@@ -20,6 +20,7 @@
   "dependencies": {
     "@escaperoom/shared": "workspace:*",
     "phaser": "3.90.0",
+    "sharp": "^0.35.4",
     "zod": "^4.6.5"
   },
   "devDependencies": {

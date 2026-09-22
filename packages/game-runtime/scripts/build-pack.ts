@@ -9,6 +9,7 @@ import {
   type PackedAtlas,
 } from "../src/pack/atlas";
 import { decodePng, encodePng } from "../src/pack/png";
+import { rasterizeSvg } from "../src/pack/svg";
 import {
   DEFAULT_PACK_PROJECTION,
   defaultAvatarAnims,
@@ -27,11 +28,14 @@ import {
  *
  *   packages/web/public/packs/<packId>/
  *     pack.config.json          (opcional: proyección, collides, version…)
- *     tiles/    tile-1.png, tile-2.png, …   (suelo y tiles del mapa)
+ *     tiles/    tile-1.png, tile-2.svg, …   (suelo y tiles del mapa)
  *     sprites/  cuadro-rey.png, …           (objetos, estados, decoración)
  *     icons/    icon-llave-bronce.png, …    (iconos de inventario)
  *     avatar/   avatar-n-idle-1.png, …      (atlas de avatar)
  *     fx/       fx-spark-1.png, …           (brillo reutilizable)
+ *
+ * Acepta fuentes en `.png` y en `.svg` (los SVG se rasterizan con `sharp` al
+ * tamaño de lienzo que indique `pack.config.sizes` o `svgSizes`).
  *
  * Genera `atlas-<kind>.png`, `atlas-<kind>.json` y `manifest.json` dentro de la
  * carpeta, y valida el resultado contra el `RoomPackage` del Rey Aldric (o el
@@ -121,17 +125,25 @@ async function readConfig(packDir: string): Promise<PackConfig> {
   return JSON.parse(await readFile(configPath, "utf8")) as PackConfig;
 }
 
+function isImageEntry(name: string): boolean {
+  const lower = name.toLowerCase();
+  return lower.endsWith(".png") || lower.endsWith(".svg");
+}
+
 async function readKindFrames(packDir: string, kind: Kind): Promise<AtlasFrameInput[]> {
   const dir = join(packDir, kind);
   if (!existsSync(dir)) {
     return [];
   }
 
-  const entries = (await readdir(dir)).filter((name) => name.toLowerCase().endsWith(".png")).sort();
+  const entries = (await readdir(dir)).filter(isImageEntry).sort();
   const frames: AtlasFrameInput[] = [];
   for (const entry of entries) {
-    const frame = basename(entry, ".png");
-    const decoded = decodePng(await readFile(join(dir, entry)));
+    const isSvg = entry.toLowerCase().endsWith(".svg");
+    const frame = basename(entry, isSvg ? ".svg" : ".png");
+    const decoded = isSvg
+      ? await rasterizeSvg(await readFile(join(dir, entry), "utf8"), frame)
+      : decodePng(await readFile(join(dir, entry)));
     frames.push({ frame, width: decoded.width, height: decoded.height, rgba: decoded.rgba });
   }
   return frames;
