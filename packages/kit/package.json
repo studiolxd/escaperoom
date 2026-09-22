@@ -1,0 +1,45 @@
+{
+  "name": "@escaperoom/kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Infraestructura común reutilizable por web, colyseus-server y mcp-server: logger, redis, rate-limit, storage (S3/R2), colas/eventos (BullMQ) y health de workers. Adaptado de @slxd/kit (ADR-017) sin la infraestructura tRPC (la consume el 0.10) ni los espejos entre apps.",
+  "exports": {
+    "./logger": {
+      "browser": "./src/logger/client.ts",
+      "default": "./src/logger/index.ts"
+    },
+    "./redis": "./src/redis/index.ts",
+    "./redis/lock": "./src/redis/lock.ts",
+    "./rate-limit": "./src/rate-limit/index.ts",
+    "./rate-limit/memory": "./src/rate-limit/memory.ts",
+    "./storage": "./src/storage/index.ts",
+    "./storage/validation": "./src/storage/validation.ts",
+    "./queue": "./src/queue/index.ts",
+    "./queue/health": "./src/queue/health.ts",
+    "./events": "./src/events/index.ts",
+    "./health": "./src/health/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1136.0",
+    "@aws-sdk/s3-request-presigner": "3.1136.0",
+    "@escaperoom/env": "workspace:*",
+    "bullmq": "^6.3.8",
+    "ioredis": "^6.0.0",
+    "pino": "^10.3.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@escaperoom/config": "workspace:*",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
+    "pino-pretty": "^13.1.3",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
+  }
+}
