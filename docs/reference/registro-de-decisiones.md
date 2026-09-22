@@ -317,6 +317,10 @@ hay merge".
 **Consecuencias:** se reutilizan routing y patrones de SLXD; los códigos de locale coinciden con las
 claves de `LocalizedText` y con el `reference_id = {id}:{locale}` del audio IA.
 
+**Convención (2026-09-22):** **toda UI nueva usa next-intl** (nada de strings hardcodeados). El demo
+`/lobby` de 0.5 conserva strings en español a propósito: es temporal y se sustituye por el lobby real
+(`specs/19`).
+
 **Alternativas descartadas:** react-i18next/FormatJS (más configuración); i18n casero.
 
 ---
