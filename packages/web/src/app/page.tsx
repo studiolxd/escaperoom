@@ -1,10 +1,9 @@
-import { PACKAGE_FORMAT } from "@escaperoom/shared";
+import { GameShell } from "@/components/game/game-shell";
 
 export default function HomePage() {
   return (
-    <main>
-      <h1>EscapeRoom Creator</h1>
-      <p>Andamiaje listo. Formato de sala: {PACKAGE_FORMAT}</p>
+    <main className="min-h-dvh bg-background p-4">
+      <GameShell />
     </main>
   );
 }
