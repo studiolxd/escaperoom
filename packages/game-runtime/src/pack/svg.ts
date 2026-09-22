@@ -166,11 +166,7 @@ export const PNG_ASPECT_TOLERANCE = 0.01;
  * proporción no encaja, es un error del pack (no se genera esa imagen).
  * Devuelve el mensaje de error, o `null` si encaja (o el frame es desconocido).
  */
-export function checkPngAspect(
-  frame: string,
-  width: number,
-  height: number,
-): string | null {
+export function checkPngAspect(frame: string, width: number, height: number): string | null {
   const expected = expectedAspectForFrame(frame);
   if (expected === null || height <= 0) return null;
   const actual = width / height;

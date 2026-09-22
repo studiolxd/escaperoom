@@ -23,10 +23,7 @@ export interface PngNormalizeResult {
   warning: string | null;
 }
 
-export async function normalizePng(
-  png: Buffer,
-  frame: string,
-): Promise<PngNormalizeResult> {
+export async function normalizePng(png: Buffer, frame: string): Promise<PngNormalizeResult> {
   const decoded = sharp(png).ensureAlpha();
   const meta = await decoded.metadata();
   const width = meta.width ?? 0;

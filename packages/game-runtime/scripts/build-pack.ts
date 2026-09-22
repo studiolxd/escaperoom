@@ -145,9 +145,25 @@ async function readKindFrames(
   const frames: AtlasFrameInput[] = [];
   const issues: PackValidationIssue[] = [];
 
+  // Un frame no puede tener dos fuentes (svg y png) en la misma carpeta: gana el
+  // SVG (vectorial) y se avisa de que el PNG se ignora.
+  const svgFrames = new Set(
+    entries.filter((e) => e.toLowerCase().endsWith(".svg")).map((e) => basename(e, ".svg")),
+  );
+
   for (const entry of entries) {
     const isSvg = entry.toLowerCase().endsWith(".svg");
     const frame = basename(entry, isSvg ? ".svg" : ".png");
+
+    if (!isSvg && svgFrames.has(frame)) {
+      issues.push({
+        path: `${kind}/${entry}`,
+        message: `hay un SVG y un PNG para el mismo frame "${frame}"; se usa el SVG y se ignora el PNG.`,
+        severity: "warning",
+      });
+      continue;
+    }
+
     let decoded;
     if (isSvg) {
       const svg = await readFile(join(dir, entry), "utf8");
