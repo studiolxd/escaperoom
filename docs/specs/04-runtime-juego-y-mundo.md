@@ -18,6 +18,13 @@ interacciones con el servidor está en `11-protocolo-multijugador.md`; la lógic
 - **Depth-sort** por coordenada isométrica del sprite (`y` visual, no de la celda) para que los
   avatares pasen correctamente por delante/detrás de objetos.
 - **Cámara y zoom** gestionados por Phaser; transiciones de sala con fade.
+- **Cámara y oclusión (revisión 2026-09-22, ADR-001):** isométrico **fijo** (sin rotación de cámara)
+  y **sin elevaciones/multinivel en v1** — rejilla plana con paredes en dos lados, para que la
+  autoría (editor y MCP) sea tan simple como un top-down. **Política de oclusión:** las paredes y
+  objetos que quedan por delante de un avatar se desvanecen (alpha) automáticamente.
+- **Arte:** puede producirse como **sprites isométricos pre-renderizados desde 3D** (3D para
+  producir, 2D para jugar); si se usa IA para generar arte, revisar titularidad/licencias
+  (`specs/18`).
 
 ## 2. Avatares y movimiento
 
@@ -158,7 +165,8 @@ encargable como un único pack.
 - Avatares en chat/voz: círculo con color + inicial.
 
 **Total estimado: ~35 tiles + ~20 sprites + 1 atlas de avatar.** Se encarga en Fase 1 (ver
-`plan/fase-1-runtime.md`) y dura todo el MVP.
+`plan/fase-1-runtime.md`) y dura todo el MVP. **Producción admitida (ADR-001):** sprites isométricos
+**pre-renderizados desde 3D** (3D para producir, 2D para jugar), que da acabado 3D sin runtime 3D.
 
 ## 9. Dependencias
 

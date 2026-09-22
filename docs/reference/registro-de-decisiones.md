@@ -35,6 +35,24 @@ para toda la UI (HUD, inventario, diálogos, chat, webcam) y para los puzzles qu
 - **Todo en Phaser** (UI en canvas): formularios, inputs, copiar/pegar, accesibilidad, chat con
   historial y i18n serían dolorosos fuera del DOM. Descartado.
 
+**Revisión (2026-09-22) — se mantiene el isométrico, con dos guardas.** Se reconsideraron
+**top-down/2.5D** y **3D** (cámara fija y primera persona) por coste de arte y autoría:
+
+- **Se mantiene isométrico** por una razón de género: en top-down puro solo es visible la cara
+  interior de la **pared norte** (una pared útil para murales/pistas), mientras que el isométrico
+  muestra **dos** caras de pared. Y la oclusión —su principal contra— queda acotada porque cada
+  habitación es un **diorama pequeño**, no un mundo abierto.
+- **Guarda 1 — sin elevaciones/multinivel en v1:** rejilla plana + paredes en dos lados. Así la
+  autoría (editor y MCP) es tan simple como un top-down; solo cambia la proyección.
+- **Guarda 2 — política de oclusión:** desvanecer (hacer semi-transparentes) paredes/objetos que
+  quedan por delante de un avatar.
+- **Producción de arte:** puede hacerse como **sprites isométricos pre-renderizados desde 3D**
+  (3D para producir, 2D para jugar), lo que da acabado 3D sin runtime 3D ni romper el UGC/MCP.
+- **Descartado 3D en runtime:** multiplica coste (modelos × animaciones × LODs), exige motor 3D y
+  rompe el editor por tiles y la generación por IA. **Descartado top-down** por perder la segunda
+  pared. **Descartado *stills* estilo *Myst*** (imágenes pre-renderizadas + hotspots) como núcleo:
+  gran acabado pero mata el UGC/IA y debilita el co-op; solo valdría para salas oficiales premium.
+
 ---
 
 ## ADR-002 — Regla para decidir capa de un puzzle (mundo vs. panel)
