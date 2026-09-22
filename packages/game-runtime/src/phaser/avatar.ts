@@ -67,6 +67,8 @@ export class AvatarController {
     const first = options.resolver.resolve(avatarFrameName(this.direction, "idle", 1), AVATAR_SIZE);
     const shadow = this.scene.add.ellipse(0, 0, 42, 16, 0x000000, 0.35);
     this.sprite = this.scene.add.sprite(0, 0, first.key, first.frame).setOrigin(0.5, 1);
+    const scale = options.resolver.displayScaleFor(first, AVATAR_SIZE);
+    this.sprite.setScale(scale.x, scale.y);
     if (options.tint !== undefined) {
       this.sprite.setTint(options.tint);
     }

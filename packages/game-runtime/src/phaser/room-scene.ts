@@ -32,7 +32,7 @@ import {
   tileToWorld,
   worldToTile,
 } from "./iso";
-import { PackFrameResolver } from "./pack-textures";
+import { PackFrameResolver, type FrameRef } from "./pack-textures";
 import { playerColor } from "./palette";
 import { WORLD_EVENT, type WorldSceneEvent } from "./world-events";
 
@@ -255,6 +255,20 @@ export class RoomScene extends Phaser.Scene {
     return object;
   }
 
+  /**
+   * Escala un sprite al tamaño **lógico** (el del manifiesto), con
+   * independencia de la resolución del pack (1× o 2×). Sin esto, un pack a 2×
+   * se pintaría al doble. Devuelve el objeto para encadenar.
+   */
+  private fitToLogicalSize<
+    T extends Phaser.GameObjects.Components.Transform & {
+      setScale(x?: number, y?: number): T;
+    },
+  >(sprite: T, ref: FrameRef, size: { width: number; height: number }): T {
+    const scale = this.resolver.displayScaleFor(ref, size);
+    return sprite.setScale(scale.x, scale.y);
+  }
+
   /** Suelo: capa `ground` como tiles uniformes 64×32. */
   private drawGround(room: RuntimeSubRoom): void {
     const ground = room.layers.find((layer) => layer.name === "ground");
@@ -271,9 +285,9 @@ export class RoomScene extends Phaser.Scene {
         const frame = resolveTileFrame(this.manifest, tileId);
         const ref = this.resolver.resolve(frame, FLOOR_TILE_SIZE);
         const { x, y } = tileToWorld(tx, ty);
-        this.track(
-          this.add.image(x, y, ref.key, ref.frame).setOrigin(0.5, 0.5).setDepth(DEPTH.ground),
-        );
+        const image = this.add.image(x, y, ref.key, ref.frame).setOrigin(0.5, 0.5);
+        this.fitToLogicalSize(image, ref, FLOOR_TILE_SIZE);
+        this.track(image.setDepth(DEPTH.ground));
       }
     }
   }
@@ -293,12 +307,9 @@ export class RoomScene extends Phaser.Scene {
           const frame = resolveTileFrame(this.manifest, tileId);
           const ref = this.resolver.resolve(frame, WALL_TILE_SIZE);
           const anchor = tileAnchor(tx, ty);
-          this.track(
-            this.add
-              .image(anchor.x, anchor.y, ref.key, ref.frame)
-              .setOrigin(0.5, 1)
-              .setDepth(isoDepth(tx, ty, DEPTH.tileSub) + 1),
-          );
+          const image = this.add.image(anchor.x, anchor.y, ref.key, ref.frame).setOrigin(0.5, 1);
+          this.fitToLogicalSize(image, ref, WALL_TILE_SIZE);
+          this.track(image.setDepth(isoDepth(tx, ty, DEPTH.tileSub) + 1));
         }
       }
     }
@@ -311,9 +322,11 @@ export class RoomScene extends Phaser.Scene {
       const anchor = tileAnchor(decoration.x, decoration.y);
       const depth = isoDepth(decoration.x, decoration.y, DEPTH.decorationSub) + 1;
 
-      this.track(
-        this.add.image(anchor.x, anchor.y, ref.key, ref.frame).setOrigin(0.5, 1).setDepth(depth),
-      );
+      const decorationImage = this.add
+        .image(anchor.x, anchor.y, ref.key, ref.frame)
+        .setOrigin(0.5, 1);
+      this.fitToLogicalSize(decorationImage, ref, SPRITE_SIZE);
+      this.track(decorationImage.setDepth(depth));
 
       if (this.showLabels) {
         this.label(decoration.sprite, anchor.x, anchor.y - SPRITE_SIZE.height, depth);
@@ -343,9 +356,9 @@ export class RoomScene extends Phaser.Scene {
           .setBlendMode(Phaser.BlendModes.ADD),
       );
 
-      const sprite = this.track(
-        this.add.sprite(anchor.x, anchor.y, ref.key, ref.frame).setOrigin(0.5, 1).setDepth(depth),
-      );
+      const sprite = this.add.sprite(anchor.x, anchor.y, ref.key, ref.frame).setOrigin(0.5, 1);
+      this.fitToLogicalSize(sprite, ref, SPRITE_SIZE);
+      this.track(sprite.setDepth(depth));
 
       const view: ObjectView = {
         object,
@@ -462,6 +475,10 @@ export class RoomScene extends Phaser.Scene {
     const frame = resolveSpriteFrame(this.manifest, resolveObjectStateSprite(object, state));
     const ref = this.resolver.resolve(frame, SPRITE_SIZE);
     view.sprite.setTexture(ref.key, ref.frame);
+    const scale = this.resolver.displayScaleFor(ref, SPRITE_SIZE);
+    view.sprite.setScale(scale.x, scale.y);
+    view.baseScaleX = scale.x;
+    view.baseScaleY = scale.y;
 
     const animation = resolveObjectStateAnimation(object, state);
     if (animation) {

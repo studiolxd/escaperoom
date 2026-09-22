@@ -1,4 +1,5 @@
 import sharp, { type Sharp } from "sharp";
+import { PACK_SCALE } from "./manifest";
 
 /**
  * Rasteriza un SVG al lienzo (ancho × alto) canónico de su frame, con fondo
@@ -129,7 +130,9 @@ export function expectedAspectForFrame(frame: string): number | null {
  * no hay medidas explícitas. Acepta `viewBox="minX minY w h"`.
  */
 export function readSvgViewBox(svg: string): { width: number; height: number } | null {
-  const viewBox = svg.match(/viewBox\s*=\s*["']\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)\s*["']/i);
+  const viewBox = svg.match(
+    /viewBox\s*=\s*["']\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)\s*["']/i,
+  );
   if (viewBox) {
     const width = Number(viewBox[3]);
     const height = Number(viewBox[4]);
@@ -149,8 +152,18 @@ export function readSvgViewBox(svg: string): { width: number; height: number } |
   return null;
 }
 
-/** Lienzo canónico de un frame, o `null` si no está en la tabla. */
+const scaleCanvas = (canvas: { width: number; height: number }) => ({
+  width: canvas.width * PACK_SCALE,
+  height: canvas.height * PACK_SCALE,
+});
+
+/** Lienzo canónico (a la escala de entrega) de un frame, o `null` si no está. */
 export function canvasForFrame(frame: string): { width: number; height: number } | null {
+  const base = baseCanvasForFrame(frame);
+  return base ? scaleCanvas(base) : null;
+}
+
+function baseCanvasForFrame(frame: string): { width: number; height: number } | null {
   if (FRAME_CANVASES[frame]) return FRAME_CANVASES[frame]!;
   if (frame.startsWith("icon-")) return ICON_CANVAS;
   if (frame.startsWith("avatar-")) return AVATAR_CANVAS;

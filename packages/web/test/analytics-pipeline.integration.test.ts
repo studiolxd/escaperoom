@@ -4,15 +4,9 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { closeSharedQueueConnection } from "@escaperoom/kit/queue";
 import { createQueueRedis } from "@escaperoom/kit/redis";
-import {
-  createAnalyticsQueue,
-  emitAnalyticsEvents,
-} from "@escaperoom/shared/analytics";
+import { createAnalyticsQueue, emitAnalyticsEvents } from "@escaperoom/shared/analytics";
 import type { PrismaClient } from "@escaperoom/shared/db";
-import {
-  createAnalyticsWorker,
-  type AnalyticsEventStore,
-} from "@escaperoom/worker";
+import { createAnalyticsWorker, type AnalyticsEventStore } from "@escaperoom/worker";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createAnalyticsCollectHandler } from "../src/server/rest/analytics-collect";
 

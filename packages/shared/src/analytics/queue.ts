@@ -1,4 +1,9 @@
-import { createDefineQueue, readQueuesRuntimeConfig, type QueueHandle, type QueuesRuntimeConfig } from "@escaperoom/kit/queue";
+import {
+  createDefineQueue,
+  readQueuesRuntimeConfig,
+  type QueueHandle,
+  type QueuesRuntimeConfig,
+} from "@escaperoom/kit/queue";
 import { logger } from "@escaperoom/kit/logger";
 import type { AnalyticsEventInput } from "../schemas/analytics";
 
