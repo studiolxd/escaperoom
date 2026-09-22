@@ -9,12 +9,14 @@ import {
   type PackManifest,
 } from "../pack";
 import {
+  approachCell,
   collectContainer,
   containerContents,
   createContainerStateMap,
   createObjectStateMap,
   currentObjectState,
   inspectObject,
+  nearestInteractable,
   resolveObjectStateAnimation,
   resolveObjectStateSprite,
   setObjectState as applyObjectState,
@@ -68,6 +70,11 @@ export interface RoomSceneOptions {
    * previsualizaciones del mundo (ticket 1.3).
    */
   intentOnly?: boolean;
+  /**
+   * Si es `false`, el avatar no se mueve ni interactúa (p. ej. mientras la
+   * intro bloquea el juego, specs/04 §4). Por defecto `true`.
+   */
+  inputEnabled?: boolean;
   /** Id del jugador local, para el reparto de inventario (`distribution`). */
   localPlayerId?: string;
 }
@@ -114,6 +121,7 @@ export class RoomScene extends Phaser.Scene {
   private readonly avatarEnabled: boolean;
   private readonly dialogOverlayEnabled: boolean;
   private readonly intentOnly: boolean;
+  private localInputEnabled: boolean;
   private readonly localPlayerId: string;
   private readonly manifest: PackManifest;
 
@@ -129,6 +137,8 @@ export class RoomScene extends Phaser.Scene {
   private transitioning = false;
   private doorCooldownUntil = 0;
   private clickTarget?: { x: number; y: number };
+  /** Objeto al que el avatar camina para abrir su menú al llegar (clic). */
+  private pendingObjectId?: string;
 
   private objectState: ObjectStateMap = {};
   private containers: ContainerStateMap = {};
@@ -145,6 +155,7 @@ export class RoomScene extends Phaser.Scene {
     this.avatarEnabled = options.avatar ?? true;
     this.dialogOverlayEnabled = options.dialogOverlay ?? true;
     this.intentOnly = options.intentOnly ?? false;
+    this.localInputEnabled = options.inputEnabled ?? true;
     this.localPlayerId = options.localPlayerId ?? "p0";
     this.manifest = options.pack?.manifest ?? buildPlaceholderManifest(options.model);
 
@@ -190,8 +201,34 @@ export class RoomScene extends Phaser.Scene {
     if (!this.built || this.transitioning || !this.avatar) {
       return;
     }
+    if (!this.localInputEnabled) {
+      this.avatar.update(delta, null);
+      return;
+    }
     this.avatar.update(delta, this.readMove());
+    this.resolvePendingInteraction();
     this.checkDoor(time);
+  }
+
+  /**
+   * Habilita o deshabilita el control del jugador (movimiento + interacción).
+   * La intro lo desactiva hasta cerrarse (specs/04 §4); el HUD del inventario
+   * también lo desactiva para que los clics no se cuelen al mundo.
+   */
+  setInputEnabled(enabled: boolean): void {
+    if (this.localInputEnabled === enabled) {
+      return;
+    }
+    this.localInputEnabled = enabled;
+    if (!enabled) {
+      this.clickTarget = undefined;
+      this.pendingObjectId = undefined;
+      this.input.setDefaultCursor("default");
+    }
+  }
+
+  get inputEnabled(): boolean {
+    return this.localInputEnabled;
   }
 
   /** Cambia de habitación con un fundido y reconstruye la escena. */
@@ -245,6 +282,7 @@ export class RoomScene extends Phaser.Scene {
     this.avatar?.destroy();
     this.avatar = undefined;
     this.clickTarget = undefined;
+    this.pendingObjectId = undefined;
     this.hoveredObjectId = undefined;
     this.input.setDefaultCursor("default");
     this.objectViews.clear();
@@ -397,7 +435,53 @@ export class RoomScene extends Phaser.Scene {
     sprite.setInteractive({ useHandCursor: true });
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => this.setHover(object.id));
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => this.clearHover(object.id));
-    sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => this.inspectObjectById(object.id));
+    sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
+      if (!this.localInputEnabled) {
+        return;
+      }
+      this.walkToObject(object.id);
+    });
+  }
+
+  /**
+   * Hace que el avatar camine hacia el objeto y, al llegar (dentro del radio de
+   * interacción), abra su menú/interacción. Nunca interactúa a distancia
+   * (specs/04 §4).
+   */
+  private walkToObject(objectId: string): void {
+    const object = this.model.objectsById[objectId];
+    if (!object || !object.interactable || !this.avatar) {
+      return;
+    }
+    const target = approachCell(object.position, this.avatar.gridCell, (x, y) =>
+      this.collision.isWalkable(x, y),
+    );
+    if (!target) {
+      this.inspectObjectById(objectId);
+      return;
+    }
+    this.pendingObjectId = objectId;
+    this.clickTarget = target;
+  }
+
+  /** Si el avatar ya alcanzó el objeto pendiente, abre su menú/interacción. */
+  private resolvePendingInteraction(): void {
+    const objectId = this.pendingObjectId;
+    if (!objectId || !this.avatar) {
+      return;
+    }
+    const object = this.model.objectsById[objectId];
+    if (!object) {
+      this.pendingObjectId = undefined;
+      return;
+    }
+    const cell = this.avatar.gridCell;
+    const distance = Math.hypot(object.position.x - cell.x, object.position.y - cell.y);
+    if (distance <= 1.75) {
+      this.pendingObjectId = undefined;
+      this.clickTarget = undefined;
+      this.inspectObjectById(objectId);
+    }
   }
 
   /** Brillo/pista al pasar el cursor sobre un objeto interactuable. */
@@ -640,8 +724,10 @@ export class RoomScene extends Phaser.Scene {
 
   /** Interactúa con el objeto interactuable más cercano al avatar (tecla Espacio). */
   private interactNearest(): void {
-    const cell = this.avatar?.gridCell ?? { x: 0, y: 0 };
-    const nearest = this.findInteractableNear(cell);
+    if (!this.localInputEnabled || !this.avatar) {
+      return;
+    }
+    const nearest = this.findInteractableNear(this.avatar.gridCell);
     if (nearest) {
       this.inspectObjectById(nearest);
     }
@@ -667,23 +753,17 @@ export class RoomScene extends Phaser.Scene {
     return target;
   }
 
-  /** Id del objeto interactuable más cercano a una celda dentro del radio dado. */
+  /**
+   * Id del objeto interactuable más cercano a una celda dentro del radio dado.
+   * Delegación pura (`nearestInteractable`) con desempate estable: nunca salta
+   * a otro objeto a igual distancia.
+   */
   private findInteractableNear(cell: { x: number; y: number }, radius = 1.75): string | undefined {
     const room = this.model.subroomsById[this.activeRoomId];
     if (!room) {
       return undefined;
     }
-    let nearest: { id: string; distance: number } | undefined;
-    for (const object of room.objects) {
-      if (!object.interactable) {
-        continue;
-      }
-      const distance = Math.hypot(object.position.x - cell.x, object.position.y - cell.y);
-      if (distance <= radius && (!nearest || distance < nearest.distance)) {
-        nearest = { id: object.id, distance };
-      }
-    }
-    return nearest?.id;
+    return nearestInteractable(room.objects, cell, { radius })?.id;
   }
 
   private showDialog(text: string): void {
@@ -823,6 +903,9 @@ export class RoomScene extends Phaser.Scene {
       d: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
     keyboard.on("keydown-SPACE", () => {
+      if (!this.localInputEnabled) {
+        return;
+      }
       this.avatar?.interact();
       this.interactNearest();
     });
@@ -833,7 +916,7 @@ export class RoomScene extends Phaser.Scene {
 
   /** Clic: si el cursor está sobre un objeto interactuable no mueve; si no, camina. */
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
-    if (this.transitioning) {
+    if (this.transitioning || !this.localInputEnabled) {
       return;
     }
     if (this.hoveredObjectId) {
@@ -845,6 +928,7 @@ export class RoomScene extends Phaser.Scene {
     const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
     const tile = worldToTile(world.x, world.y);
     if (this.collision.isWalkable(tile.tx, tile.ty)) {
+      this.pendingObjectId = undefined;
       this.clickTarget = { x: tile.tx, y: tile.ty };
     }
   }
@@ -853,6 +937,7 @@ export class RoomScene extends Phaser.Scene {
     const keyboardMove = this.readKeyboardMove();
     if (keyboardMove) {
       this.clickTarget = undefined;
+      this.pendingObjectId = undefined;
       return keyboardMove;
     }
 

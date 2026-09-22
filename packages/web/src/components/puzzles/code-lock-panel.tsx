@@ -126,7 +126,7 @@ export function CodeLockPanel({
         {KEYPAD_ROWS.flat().map((digit) => (
           <Button
             key={digit}
-            variant="outline"
+            variant="overlay"
             size="lg"
             disabled={disabled}
             aria-label={t("digit", { digit })}
@@ -137,7 +137,7 @@ export function CodeLockPanel({
           </Button>
         ))}
         <Button
-          variant="ghost"
+          variant="overlayGhost"
           size="lg"
           disabled={disabled}
           className="text-white hover:bg-white/10 hover:text-white"
@@ -146,7 +146,7 @@ export function CodeLockPanel({
           {t("clear")}
         </Button>
         <Button
-          variant="outline"
+          variant="overlay"
           size="lg"
           disabled={disabled}
           aria-label={t("digit", { digit: "0" })}
@@ -156,7 +156,7 @@ export function CodeLockPanel({
           0
         </Button>
         <Button
-          variant="ghost"
+          variant="overlayGhost"
           size="lg"
           disabled={disabled}
           className="text-white hover:bg-white/10 hover:text-white"

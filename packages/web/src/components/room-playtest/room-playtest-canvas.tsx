@@ -32,12 +32,15 @@ export default function RoomPlaytestCanvas({
   model,
   roomId,
   pack,
+  inputEnabled = true,
   onEvent,
   onReady,
 }: {
   model: RuntimeModel;
   roomId: string;
   pack?: RoomScenePack;
+  /** Control del jugador; la intro y el inventario abierto lo desactivan. */
+  inputEnabled?: boolean;
   onEvent: (event: WorldSceneEvent) => void;
   onReady?: (handle: RoomPlaytestHandle) => void;
 }) {
@@ -59,6 +62,7 @@ export default function RoomPlaytestCanvas({
       pack,
       dialogOverlay: false,
       intentOnly: true,
+      inputEnabled,
       localPlayerId: "p1",
     });
     runtimeRef.current = runtime;
@@ -75,12 +79,17 @@ export default function RoomPlaytestCanvas({
     };
   }, [model, roomId, pack]);
 
+  useEffect(() => {
+    runtimeRef.current?.setInputEnabled(inputEnabled);
+  }, [inputEnabled]);
+
   const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
   };
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
+    if (!inputEnabled) return;
     const itemId = event.dataTransfer.getData("text/plain");
     if (!itemId) return;
     runtimeRef.current?.dropItemAt(itemId, event.clientX, event.clientY);

@@ -38,7 +38,7 @@ export function GameHud() {
 
         <div className="flex items-center gap-1.5">
           <Button
-            variant="outline"
+            variant="overlay"
             size="icon"
             aria-label="Bajar la luz"
             disabled={torchLevel <= TORCH_MIN}
@@ -55,7 +55,7 @@ export function GameHud() {
             <Plus data-icon="inline-start" />
             Encender
           </Button>
-          <Button variant="ghost" size="sm" onClick={reset}>
+          <Button variant="overlayGhost" size="sm" onClick={reset}>
             <RotateCcw data-icon="inline-start" />
             Reset
           </Button>

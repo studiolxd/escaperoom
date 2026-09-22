@@ -99,7 +99,7 @@ export function ResultsScreen({
 
         <div className="flex w-full flex-col gap-2">
           {onReview ? (
-            <Button variant="outline" onClick={onReview}>
+            <Button variant="overlay" onClick={onReview}>
               {t("review")}
             </Button>
           ) : null}

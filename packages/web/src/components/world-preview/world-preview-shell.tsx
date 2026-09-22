@@ -63,35 +63,35 @@ export function WorldPreviewShell({ model }: { model: RuntimeModel }) {
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
-                variant="outline"
+                variant="overlay"
                 onClick={() => handleRef.current?.inspectObject("cuadro")}
               >
                 Inspeccionar cuadro
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant="overlay"
                 onClick={() => handleRef.current?.inspectObject("cofre")}
               >
                 Inspeccionar cofre
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant="overlay"
                 onClick={() => handleRef.current?.setObjectState("cofre", "open")}
               >
                 Abrir cofre (anim)
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant="overlay"
                 onClick={() => handleRef.current?.setObjectState("brasero", "lit")}
               >
                 Encender brasero
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant="overlay"
                 onClick={() => handleRef.current?.inspectObject("palanca")}
               >
                 Palanca → panel React
