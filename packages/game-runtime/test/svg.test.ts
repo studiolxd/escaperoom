@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { canvasForFrame, checkSvgAspect, rasterizeSvg, readSvgViewBox } from "../src/pack/svg";
+import {
+  canvasForFrame,
+  checkPngAspect,
+  checkSvgAspect,
+  rasterizeSvg,
+  readSvgViewBox,
+} from "../src/pack/svg";
 
 const SQUARE_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"><rect width="200" height="100" fill="#b45309"/></svg>';
@@ -72,5 +78,21 @@ describe("readSvgViewBox", () => {
       height: 64,
     });
     expect(readSvgViewBox('<svg width="100%" height="100%"></svg>')).toBeNull();
+  });
+});
+
+describe("checkPngAspect", () => {
+  it("acepta un tile 2:1 y lo rechaza si no lo es", () => {
+    expect(checkPngAspect("tile-2", 512, 256)).toBeNull();
+    expect(checkPngAspect("tile-2", 64, 32)).toBeNull();
+    const bad = checkPngAspect("tile-2", 512, 300);
+    expect(bad).toContain("512×300");
+    expect(bad).toContain("tile-2");
+  });
+
+  it("acepta iconos/avatar y no valida frames desconocidos", () => {
+    expect(checkPngAspect("icon-llave-oro", 64, 64)).toBeNull();
+    expect(checkPngAspect("avatar-s-walk-1", 128, 192)).toBeNull();
+    expect(checkPngAspect("no-existe", 5, 7)).toBeNull();
   });
 });

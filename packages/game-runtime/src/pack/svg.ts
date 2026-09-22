@@ -157,6 +157,27 @@ const scaleCanvas = (canvas: { width: number; height: number }) => ({
   height: canvas.height * PACK_SCALE,
 });
 
+/** Tolerancia de aspecto para PNG: 1 % sobre el lienzo canónico. */
+export const PNG_ASPECT_TOLERANCE = 0.01;
+
+/**
+ * Comprueba que un PNG **ya** tiene la proporción de su lienzo canónico (p. ej.
+ * un tile iso 2:1). A diferencia del SVG, un PNG **no** se reencuadra: si su
+ * proporción no encaja, es un error del pack (no se genera esa imagen).
+ * Devuelve el mensaje de error, o `null` si encaja (o el frame es desconocido).
+ */
+export function checkPngAspect(frame: string, width: number, height: number): string | null {
+  const expected = expectedAspectForFrame(frame);
+  if (expected === null || height <= 0) return null;
+  const actual = width / height;
+  if (Math.abs(actual - expected) / expected <= PNG_ASPECT_TOLERANCE) return null;
+  return (
+    `el PNG ${width}×${height} tiene aspecto ${actual.toFixed(3)}:1, pero el frame ` +
+    `"${frame}" exige ${expected.toFixed(3)}:1. Un PNG no se reencuadra: reexporta el ` +
+    `asset con la proporción correcta.`
+  );
+}
+
 /** Lienzo canónico (a la escala de entrega) de un frame, o `null` si no está. */
 export function canvasForFrame(frame: string): { width: number; height: number } | null {
   const base = baseCanvasForFrame(frame);
