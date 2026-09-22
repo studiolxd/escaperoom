@@ -78,11 +78,34 @@ export class RoomRuntime {
   /**
    * Suscribe un manejador a los eventos de mundo (diálogo, panel, recogida,
    * estado). Devuelve la función para cancelar la suscripción.
+   *
+   * `scene.events` solo existe cuando Phaser arranca (se inyecta en el evento
+   * `READY` del juego), así que si aún no está listo se difiere la suscripción.
    */
   onWorldEvent(handler: (event: WorldSceneEvent) => void): () => void {
-    this.scene.events.on(WORLD_EVENT, handler);
+    const scene = this.scene;
+    if (scene.events) {
+      scene.events.on(WORLD_EVENT, handler);
+      return () => {
+        scene.events.off(WORLD_EVENT, handler);
+      };
+    }
+
+    let attached = false;
+    const attach = () => {
+      if (attached) {
+        return;
+      }
+      attached = true;
+      scene.events.on(WORLD_EVENT, handler);
+    };
+    this.game.events.once(Phaser.Core.Events.READY, attach);
+
     return () => {
-      this.scene.events.off(WORLD_EVENT, handler);
+      this.game.events.off(Phaser.Core.Events.READY, attach);
+      if (attached) {
+        scene.events.off(WORLD_EVENT, handler);
+      }
     };
   }
 
