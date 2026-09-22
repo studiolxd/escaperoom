@@ -23,5 +23,20 @@
     "packLoaded": "pack gráfico «{packId}»",
     "packPlaceholder": "placeholder automático (sin pack)",
     "controls": "WASD/flechas para mover · Espacio para interactuar"
+  },
+  "CodeLock": {
+    "title": "Candado numérico",
+    "prompt": "Introduce el código de {length} dígitos",
+    "digit": "Dígito {digit}",
+    "clear": "Borrar",
+    "backspace": "Retroceder",
+    "submit": "Abrir",
+    "pending": "Comprobando…",
+    "attempts": "Intentos: {used}/{max}",
+    "wrong": "Código incorrecto · quedan {count} intentos",
+    "lockedOut": "Bloqueado · inténtalo de nuevo en {seconds} s",
+    "locked": "El candado aún no está disponible",
+    "unavailable": "El candado no acepta más intentos",
+    "solved": "¡Candado abierto!"
   }
 }

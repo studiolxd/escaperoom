@@ -22,5 +22,20 @@
     "packLoaded": "Grafikpaket „{packId}“",
     "packPlaceholder": "automatischer Platzhalter (kein Pack)",
     "controls": "WASD/Pfeiltasten zum Bewegen · Leertaste zum Interagieren"
+  },
+  "CodeLock": {
+    "title": "Zahlenschloss",
+    "prompt": "Gib den {length}-stelligen Code ein",
+    "digit": "Ziffer {digit}",
+    "clear": "Löschen",
+    "backspace": "Zurück",
+    "submit": "Öffnen",
+    "pending": "Prüfe…",
+    "attempts": "Versuche: {used}/{max}",
+    "wrong": "Falscher Code · {count} Versuche übrig",
+    "lockedOut": "Blockiert · versuche es in {seconds} s erneut",
+    "locked": "Das Schloss ist noch nicht verfügbar",
+    "unavailable": "Das Schloss nimmt keine weiteren Versuche an",
+    "solved": "Schloss geöffnet!"
   }
 }

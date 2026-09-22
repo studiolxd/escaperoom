@@ -22,5 +22,20 @@
     "packLoaded": "pacote gráfico «{packId}»",
     "packPlaceholder": "placeholder automático (sem pacote)",
     "controls": "WASD/setas para mover · Espaço para interagir"
+  },
+  "CodeLock": {
+    "title": "Cadeado numérico",
+    "prompt": "Introduz o código de {length} dígitos",
+    "digit": "Dígito {digit}",
+    "clear": "Limpar",
+    "backspace": "Apagar",
+    "submit": "Abrir",
+    "pending": "A verificar…",
+    "attempts": "Tentativas: {used}/{max}",
+    "wrong": "Código errado · faltam {count} tentativas",
+    "lockedOut": "Bloqueado · tenta novamente em {seconds} s",
+    "locked": "O cadeado ainda não está disponível",
+    "unavailable": "O cadeado já não aceita mais tentativas",
+    "solved": "Cadeado aberto!"
   }
 }

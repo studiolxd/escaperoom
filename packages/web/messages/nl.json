@@ -22,5 +22,20 @@
     "packLoaded": "grafisch pack \"{packId}\"",
     "packPlaceholder": "automatische placeholder (geen pack)",
     "controls": "WASD/pijlen om te bewegen · Spatie om te interageren"
+  },
+  "CodeLock": {
+    "title": "Cijferslot",
+    "prompt": "Voer de code van {length} cijfers in",
+    "digit": "Cijfer {digit}",
+    "clear": "Wissen",
+    "backspace": "Terug",
+    "submit": "Openen",
+    "pending": "Controleren…",
+    "attempts": "Pogingen: {used}/{max}",
+    "wrong": "Verkeerde code · nog {count} pogingen",
+    "lockedOut": "Vergrendeld · probeer opnieuw over {seconds} s",
+    "locked": "Het slot is nog niet beschikbaar",
+    "unavailable": "Het slot accepteert geen pogingen meer",
+    "solved": "Slot geopend!"
   }
 }
