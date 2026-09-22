@@ -49,5 +49,23 @@
     "alreadyRevealed": "Ya habías encontrado este objeto",
     "locked": "El escondite aún no está disponible",
     "unavailable": "El escondite ya no puede revelarse"
+  },
+  "Inventory": {
+    "title": "Inventario",
+    "recipes": "Recetas: {found}/{total}",
+    "gridLabel": "Rejilla de inventario",
+    "emptySlot": "Hueco vacío",
+    "unknownItem": "Objeto desconocido",
+    "combineZone": "Zona de combinación",
+    "dropHere": "Arrastra dos objetos aquí",
+    "pending": "Combinando…",
+    "combine": "Combinar",
+    "clear": "Vaciar",
+    "hint": "Arrastra dos objetos a la zona de combinación",
+    "combined": "Has creado: {item}",
+    "alreadyApplied": "Ya lo habías hecho: {item}",
+    "invalid": "Esos objetos no combinan",
+    "missingItems": "Te faltan objetos para esa receta",
+    "unavailable": "La combinación no está disponible"
   }
 }

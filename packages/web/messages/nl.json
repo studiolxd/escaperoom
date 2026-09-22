@@ -48,5 +48,23 @@
     "alreadyRevealed": "Je had dit voorwerp al gevonden",
     "locked": "De verstopplaats is nog niet beschikbaar",
     "unavailable": "De verstopplaats kan niet meer onthuld worden"
+  },
+  "Inventory": {
+    "title": "Inventaris",
+    "recipes": "Recepten: {found}/{total}",
+    "gridLabel": "Inventarisraster",
+    "emptySlot": "Leeg vak",
+    "unknownItem": "Onbekend voorwerp",
+    "combineZone": "Combinatiezone",
+    "dropHere": "Sleep twee voorwerpen hierheen",
+    "pending": "Combineren…",
+    "combine": "Combineren",
+    "clear": "Wissen",
+    "hint": "Sleep twee voorwerpen naar de combinatiezone",
+    "combined": "Je hebt gemaakt: {item}",
+    "alreadyApplied": "Dat had je al gedaan: {item}",
+    "invalid": "Die voorwerpen combineren niet",
+    "missingItems": "Je mist voorwerpen voor dat recept",
+    "unavailable": "De combinatie is niet beschikbaar"
   }
 }
