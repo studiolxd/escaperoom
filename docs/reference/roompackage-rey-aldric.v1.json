@@ -240,7 +240,7 @@
       ] },
 
     { "id": "r-abrir-armario", "priority": 0, "once": true,
-      "trigger": { "type": "on_interact", "objectId": "armario" },
+      "trigger": { "type": "on_use_item", "objectId": "armario", "itemId": "llave-bronce" },
       "conditions": [ { "type": "item_in_inventory", "itemId": "llave-bronce", "consumed": true } ],
       "actions": [
         { "type": "set_object_state", "objectId": "armario", "state": "open" },

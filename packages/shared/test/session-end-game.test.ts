@@ -47,7 +47,7 @@ function playToVictory(): Engine {
   dispatch({ type: "on_game_start" });
   dispatch({ type: "on_interact", objectId: "cuadro-aurelio", playerId: "p1" });
   grant("llave-bronce");
-  dispatch({ type: "on_interact", objectId: "armario", playerId: "p1" });
+  dispatch({ type: "on_use_item", objectId: "armario", itemId: "llave-bronce", playerId: "p1" });
   grant("antorcha");
   dispatch({ type: "on_interact", objectId: "brasero", playerId: "p1" });
 

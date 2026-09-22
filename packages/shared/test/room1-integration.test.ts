@@ -78,7 +78,7 @@ function playSala1(): ScriptResult {
   collectEngine(session.start(0));
 
   collectInteraction(session.interact("cuadro-aurelio", 0));
-  collectInteraction(session.interact("armario", 0));
+  collectInteraction(session.useItemOnObject("llave-bronce", "armario", 0));
   const combined = session.combine("p-combina", ["mechero", "vela"], 0);
   if (combined.engine) collectEngine(combined.engine);
   collectInteraction(session.interact("brasero", 0));
@@ -169,7 +169,7 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
     // Replay del mismo guion sobre la sesión ya completada.
     session.start(0);
     session.interact("cuadro-aurelio", 0);
-    session.interact("armario", 0);
+    session.useItemOnObject("llave-bronce", "armario", 0);
     session.combine("p-combina", ["mechero", "vela"], 0);
     session.interact("brasero", 0);
     session.attemptCode("p-candado-arca", "4732", 0);
@@ -185,7 +185,7 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
     const session = newSession();
     session.start(0);
     session.interact("cuadro-aurelio", 0);
-    session.interact("armario", 0);
+    session.useItemOnObject("llave-bronce", "armario", 0);
     session.combine("p-combina", ["mechero", "vela"], 0);
     session.interact("brasero", 0);
 

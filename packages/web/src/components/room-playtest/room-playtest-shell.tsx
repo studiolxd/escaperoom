@@ -1,12 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack, WorldSceneEvent } from "@escaperoom/game-runtime/phaser";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import type { HintRequestErrorCode } from "@escaperoom/shared/hints";
+import type { RoomObjectAction } from "@escaperoom/shared/session";
+import type { EngineEffect } from "@escaperoom/shared/engine";
 import {
   computeSessionStats,
   createRoomSession,
@@ -20,6 +22,7 @@ import {
   type InventoryCombineFeedback,
 } from "@/components/puzzles/inventory-panel";
 import { HintPanel } from "@/components/hints/hint-panel";
+import type { RoomPlaytestHandle } from "./room-playtest-canvas";
 
 const RoomPlaytestCanvas = dynamic(() => import("./room-playtest-canvas"), {
   ssr: false,
@@ -44,12 +47,24 @@ export interface RoomPlaytestShellProps {
   pack?: RoomScenePack;
 }
 
+/** Etiqueta legible de una acción de objeto (i18n). */
+const ACTION_LABEL: Record<RoomObjectAction, "menu.inspect" | "menu.useItem"> = {
+  inspect: "menu.inspect",
+  use_item: "menu.useItem",
+};
+
 /**
  * Playtest de la Sala 1 (ticket 1.10): reutiliza el runtime isométrico (1.2), los
  * objetos (1.3), el motor (1.4), las plantillas (1.5–1.7), las pistas (1.8) y las
- * stats (1.9) a través de `RoomSession`, sin duplicar su lógica. El canvas mueve
- * al avatar con el teclado y permite inspeccionar con el ratón; el overlay ofrece
- * el guion de la sala y los paneles de cada puzzle.
+ * stats (1.9) a través de `RoomSession`, sin duplicar su lógica.
+ *
+ * Interacción (ticket 1.13): la escena **no** resuelve nada; emite la intención
+ * (`interact` / `use-item`) y este overlay la resuelve con `RoomSession`
+ * (diálogo, estado del mundo y panel). Al seleccionar un objeto (Espacio cerca o
+ * clic) se abre un **menú contextual** con las acciones que el motor declara
+ * para él (`session.availableActions`): `Inspeccionar` y/o `Usar objeto…`. El
+ * armario se abre por las tres vías: menú desde Espacio, menú desde clic y
+ * arrastrando la llave sobre el objeto (drag&drop).
  */
 export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShellProps) {
   const t = useTranslations("Playtest");
@@ -66,7 +81,13 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
   const [hiddenFeedback, setHiddenFeedback] = useState<HiddenKeyFeedback>(null);
   const [hintError, setHintError] = useState<HintRequestErrorCode | null>(null);
   const [log, setLog] = useState<string[]>([]);
+  /** Objeto seleccionado: menú contextual abierto. */
+  const [selected, setSelected] = useState<string | null>(null);
+  /** Objeto destino del selector de inventario ("Usar objeto…"). */
+  const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const [draggingItem, setDraggingItem] = useState<string | null>(null);
 
+  const handleRef = useRef<RoomPlaytestHandle | null>(null);
   const now = useCallback(() => Date.now(), []);
   const rerender = useCallback(() => setVersion((value) => value + 1), []);
   const pushLog = useCallback((entry: string) => {
@@ -91,27 +112,76 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
     [model],
   );
 
-  const interact = useCallback(
+  /** Refleja en la escena los cambios de estado que el motor resolvió (efectos). */
+  const applyEngineEffects = useCallback((effects: readonly EngineEffect[]) => {
+    for (const effect of effects) {
+      if (effect.type === "set_object_state") {
+        handleRef.current?.setObjectState(effect.objectId, effect.state);
+      } else if (effect.type === "unlock_door") {
+        handleRef.current?.setObjectState(effect.objectId, "open");
+      }
+    }
+  }, []);
+
+  /**
+   * "Inspeccionar": `RoomSession.interact` resuelve el diálogo/estado/panel. El
+   * panel de un `hidden_key` ya revelado no se reabre (evita repetir
+   * "¡has encontrado…!" al inspeccionar el cuadro por segunda vez).
+   */
+  const inspect = useCallback(
     (objectId: string) => {
       const result = session.interact(objectId, now());
       showDialogs(result.dialogIds);
-      setPanel(session.panelForObject(objectId) ?? null);
+      applyEngineEffects(result.engine.effects);
+      const panelId = session.panelForObject(objectId);
+      if (panelId && shouldOpenPanel(session, roomPackage, panelId)) {
+        setPanel(panelId);
+      }
       pushLog(t("log.interact", { object: objectId }));
       rerender();
     },
-    [session, now, showDialogs, pushLog, t, rerender],
+    [session, roomPackage, now, showDialogs, applyEngineEffects, pushLog, t, rerender],
+  );
+
+  /** "Usar objeto…" / drag&drop: `RoomSession.useItemOnObject` resuelve la regla. */
+  const useItem = useCallback(
+    (itemId: string, objectId: string) => {
+      const result = session.useItemOnObject(itemId, objectId, now());
+      showDialogs(result.dialogIds);
+      applyEngineEffects(result.engine.effects);
+      pushLog(t("log.useItem", { item: labelForItem(model, itemId), object: objectId }));
+      rerender();
+    },
+    [session, model, now, showDialogs, applyEngineEffects, pushLog, t, rerender],
   );
 
   const onWorldEvent = useCallback(
     (event: WorldSceneEvent) => {
-      if (event.type === "dialog") {
-        interact(event.objectId);
+      if (event.type === "interact") {
+        setSelected(event.objectId);
+      } else if (event.type === "use-item") {
+        setSelected(null);
+        setPickerFor(null);
+        useItem(event.itemId, event.objectId);
       } else if (event.type === "open-panel") {
         setPanel(event.puzzleId);
       }
     },
-    [interact],
+    [useItem],
   );
+
+  const chooseItem = useCallback(
+    (itemId: string) => {
+      if (!pickerFor) return;
+      setPickerFor(null);
+      useItem(itemId, pickerFor);
+    },
+    [pickerFor, useItem],
+  );
+
+  const onReady = useCallback((handle: RoomPlaytestHandle) => {
+    handleRef.current = handle;
+  }, []);
 
   const combine = useCallback(
     (inputs: readonly string[]) => {
@@ -133,18 +203,20 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
             .filter((effect) => effect.type === "show_dialog")
             .map((effect) => effect.dialogId) ?? [],
         );
+        if (result.engine) applyEngineEffects(result.engine.effects);
         pushLog(t("log.arcaOpen"));
       }
       rerender();
     },
-    [session, now, showDialogs, pushLog, t, rerender],
+    [session, now, showDialogs, applyEngineEffects, pushLog, t, rerender],
   );
 
   const revealHiddenKey = useCallback(() => {
     const result = session.revealHiddenKey("p-llave-cuadro", now());
     setHiddenFeedback(result.outcome);
+    if (result.engine) applyEngineEffects(result.engine.effects);
     rerender();
-  }, [session, now, rerender]);
+  }, [session, now, applyEngineEffects, rerender]);
 
   const solvePlates = useCallback(() => {
     const result = session.solveWorldPuzzle("p-placas-estatuas", now());
@@ -154,10 +226,11 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
           .filter((effect) => effect.type === "show_dialog")
           .map((effect) => effect.dialogId),
       );
+      applyEngineEffects(result.effects);
       pushLog(t("log.plates"));
     }
     rerender();
-  }, [session, now, showDialogs, pushLog, t, rerender]);
+  }, [session, now, showDialogs, applyEngineEffects, pushLog, t, rerender]);
 
   const requestHint = useCallback(
     (puzzleId: string) => {
@@ -177,6 +250,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
     puzzlesTotal: roomPackage.puzzles.length,
   });
   const inventory = session.inventory();
+  const selectedActions = selected ? session.availableActions(selected) : [];
   const steps = [
     { id: "cuadro", done: session.isPuzzleSolved("p-llave-cuadro") },
     { id: "armario", done: session.objectState("armario") === "open" },
@@ -189,7 +263,19 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
 
   return (
     <section className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10 bg-slate-950">
-      <RoomPlaytestCanvas model={model} roomId="salon-trono" pack={pack} onEvent={onWorldEvent} />
+      <RoomPlaytestCanvas
+        model={model}
+        roomId="salon-trono"
+        pack={pack}
+        onEvent={onWorldEvent}
+        onReady={onReady}
+      />
+
+      {draggingItem ? (
+        <div className="pointer-events-none absolute inset-x-4 top-24 z-30 mx-auto w-fit rounded-full border border-amber-200/40 bg-slate-950/90 px-4 py-1.5 text-xs text-amber-100 shadow-lg">
+          {t("menu.dropHint", { item: labelForItem(model, draggingItem) })}
+        </div>
+      ) : null}
 
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4">
         <header className="pointer-events-auto flex w-fit max-w-[min(92vw,44rem)] flex-col gap-1 rounded-xl border border-white/10 bg-black/50 px-4 py-2 text-white backdrop-blur">
@@ -229,16 +315,16 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
             </ol>
 
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => interact("cuadro-aurelio")}>
+              <Button size="sm" variant="outline" onClick={() => inspect("cuadro-aurelio")}>
                 {t("action.cuadro")}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => interact("armario")}>
+              <Button size="sm" variant="outline" onClick={() => setSelected("armario")}>
                 {t("action.armario")}
               </Button>
               <Button size="sm" variant="outline" onClick={() => setPanel("p-combina")}>
                 {t("action.combina")}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => interact("brasero")}>
+              <Button size="sm" variant="outline" onClick={() => inspect("brasero")}>
                 {t("action.brasero")}
               </Button>
               <Button size="sm" variant="outline" onClick={() => setPanel(ARCA_HINTS_PUZZLE)}>
@@ -267,9 +353,16 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
                 inventory.map((itemId) => (
                   <li
                     key={itemId}
-                    className="rounded-full border border-amber-300/40 bg-amber-300/10 px-2 py-0.5 text-[0.7rem] text-amber-100"
+                    draggable
+                    onDragStart={(event) => {
+                      setDraggingItem(itemId);
+                      event.dataTransfer.setData("text/plain", itemId);
+                      event.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragEnd={() => setDraggingItem(null)}
+                    className="cursor-grab rounded-full border border-amber-300/40 bg-amber-300/10 px-2 py-0.5 text-[0.7rem] text-amber-100 active:cursor-grabbing"
                   >
-                    {model.itemsById[itemId]?.name ?? itemId}
+                    {labelForItem(model, itemId)}
                   </li>
                 ))
               )}
@@ -290,6 +383,73 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
           </div>
         </div>
       </div>
+
+      {selected ? (
+        <div className="absolute inset-x-4 bottom-52 z-20 mx-auto w-fit max-w-[min(92vw,26rem)] rounded-xl border border-amber-200/30 bg-slate-950/95 px-4 py-3 text-white shadow-xl">
+          <span className="block text-[0.65rem] uppercase tracking-wide text-amber-200/70">
+            {t("menu.title")}
+          </span>
+          <span className="block font-mono text-xs text-white/60">
+            {t("menu.object", { object: selected })}
+          </span>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {selectedActions.map((action) => (
+              <Button
+                key={action}
+                size="sm"
+                variant={action === "use_item" ? "default" : "outline"}
+                onClick={() => {
+                  if (action === "inspect") {
+                    setSelected(null);
+                    inspect(selected);
+                  } else {
+                    setSelected(null);
+                    setPickerFor(selected);
+                  }
+                }}
+              >
+                {t(ACTION_LABEL[action])}
+              </Button>
+            ))}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-white hover:bg-white/10"
+              onClick={() => setSelected(null)}
+            >
+              {t("menu.cancel")}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {pickerFor ? (
+        <div className="absolute inset-x-4 bottom-52 z-20 mx-auto w-fit max-w-[min(92vw,30rem)] rounded-xl border border-amber-200/30 bg-slate-950/95 px-4 py-3 text-white shadow-xl">
+          <span className="block text-[0.65rem] uppercase tracking-wide text-amber-200/70">
+            {t("menu.chooseItem", { object: pickerFor })}
+          </span>
+          <p className="mt-1 text-[0.7rem] text-white/50">{t("menu.dragHint")}</p>
+          {inventory.length === 0 ? (
+            <p className="mt-2 text-xs text-white/40">{t("menu.noItems")}</p>
+          ) : (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {inventory.map((itemId) => (
+                <Button key={itemId} size="sm" variant="outline" onClick={() => chooseItem(itemId)}>
+                  {labelForItem(model, itemId)}
+                </Button>
+              ))}
+            </div>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="mt-2 text-white hover:bg-white/10"
+            onClick={() => setPickerFor(null)}
+          >
+            {t("menu.cancel")}
+          </Button>
+        </div>
+      ) : null}
 
       {dialog ? (
         <button
@@ -367,4 +527,17 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
       </div>
     </section>
   );
+}
+
+/** El panel de un `hidden_key` ya revelado no se reabre (interacción resuelta). */
+function shouldOpenPanel(session: RoomSession, roomPackage: RoomPackage, panelId: string): boolean {
+  const puzzle = roomPackage.puzzles.find((candidate) => candidate.id === panelId);
+  if (puzzle?.type === "hidden_key" && session.hiddenKeyView(puzzle.id).revealed) {
+    return false;
+  }
+  return true;
+}
+
+function labelForItem(model: RuntimeModel, itemId: string): string {
+  return model.itemsById[itemId]?.name ?? itemId;
 }

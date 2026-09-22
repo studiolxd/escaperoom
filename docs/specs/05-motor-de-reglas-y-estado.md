@@ -82,7 +82,8 @@ creador. Cubre las 23 plantillas y el escape room de ejemplo; se extiende por pl
 
 | Trigger | Payload | Se dispara cuando |
 |---|---|---|
-| `on_interact` | `{ objectId }` | El jugador interactúa con un objeto |
+| `on_interact` | `{ objectId }` | El jugador interactúa (inspecciona) un objeto |
+| `on_use_item` | `{ itemId, objectId }` | El jugador **usa un objeto del inventario sobre** un objeto del mundo (drag&drop o menú "Usar objeto") |
 | `on_enter_room` | `{ roomId }` | Un jugador entra a una habitación (derivado del movimiento) |
 | `on_puzzle_solved` | `{ puzzleId }` | Un puzzle pasa a `solved` |
 | `on_item_collected` | `{ itemId }` | Se otorga un ítem |
@@ -121,7 +122,42 @@ creador. Cubre las 23 plantillas y el escape room de ejemplo; se extiende por pl
 | `delay` | `{ seconds, actions }` |
 | `end_game` | `{ result: 'victory' \| 'timeout' \| 'abandoned' }` |
 
+### Acciones disponibles y menú contextual
+
+El runtime **no** codifica a mano qué se puede hacer con cada objeto: lo deriva de las reglas que
+el paquete declara para él (`RoomSession.availableActions(objectId)`):
+
+- una regla `on_interact { objectId }` → acción `inspect` ("Inspeccionar");
+- una regla `on_use_item { objectId, itemId }` → acción `use_item` ("Usar objeto…").
+
+Si no hay ninguna regla para el objeto, se ofrece el set base `Inspeccionar` / `Usar objeto…`.
+Es extensible por datos: una regla nueva añade una acción sin tocar la UI.
+
+La resolución es **única**: la escena emite la intención (`interact` / `use-item`) y la sesión la
+traduce a eventos del motor. `RoomSession.interact` dispatcha `on_interact`;
+`RoomSession.useItemOnObject(itemId, objectId)` dispatcha `on_use_item` y devuelve
+`{ engine, dialogIds }` como `interact`. Ambos son idempotentes: las reglas `once` no re-disparan
+y una condición `item_in_inventory … consumed` gasta el ítem una sola vez (evita el doble diálogo
+al re-inspeccionar un objeto ya resuelto).
+
 ## 4. Ejemplos de la sala de referencia
+
+**Abrir el armario con la llave** (item del inventario sobre un objeto del mundo). Usa
+`on_use_item`, que el runtime emite tanto al **arrastrar** el item sobre el objeto como al elegir
+"Usar objeto" en su menú contextual:
+
+```json
+{
+  "id": "r-abrir-armario", "priority": 0, "once": true,
+  "trigger": { "type": "on_use_item", "objectId": "armario", "itemId": "llave-bronce" },
+  "conditions": [ { "type": "item_in_inventory", "itemId": "llave-bronce", "consumed": true } ],
+  "actions": [
+    { "type": "set_object_state", "objectId": "armario", "state": "open" },
+    { "type": "grant_item", "itemId": "mechero", "to": "interactor" },
+    { "type": "grant_item", "itemId": "vela", "to": "interactor" }
+  ]
+}
+```
 
 **Encender el brasero** (receta obligatoria para ver el dígito 3):
 

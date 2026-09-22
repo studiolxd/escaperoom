@@ -79,6 +79,13 @@ export interface RoomInteractionResult {
   dialogIds: string[];
 }
 
+/**
+ * Acción disponible sobre un objeto del mundo (specs/05 §3). El runtime deriva
+ * de aquí su menú contextual: `on_interact` → `inspect`, `on_use_item` →
+ * `use_item`.
+ */
+export type RoomObjectAction = "inspect" | "use_item";
+
 /** Resultado de un reveal de `hidden_key`, con el estado reconciliado. */
 export interface RoomHiddenKeyResult {
   outcome: "revealed" | "already_revealed" | "unavailable";
@@ -228,6 +235,26 @@ export class RoomSession {
     return object?.lockedBy;
   }
 
+  /**
+   * Acciones que el motor declara para un objeto, derivadas de sus reglas
+   * (specs/05 §3): `on_interact` → `inspect`; `on_use_item` → `use_item`. Si el
+   * paquete no declara ninguna para el objeto, se devuelve el set base
+   * `["inspect", "use_item"]` para que el menú contextual siga siendo útil. Así
+   * el menú es **extensible por datos**: una regla nueva amplía las acciones sin
+   * tocar la UI.
+   */
+  availableActions(objectId: string): RoomObjectAction[] {
+    const actions: RoomObjectAction[] = [];
+    for (const rule of this.roomPackage.rules) {
+      if (rule.trigger.type === "on_interact" && rule.trigger.objectId === objectId) {
+        if (!actions.includes("inspect")) actions.push("inspect");
+      } else if (rule.trigger.type === "on_use_item" && rule.trigger.objectId === objectId) {
+        if (!actions.includes("use_item")) actions.push("use_item");
+      }
+    }
+    return actions.length > 0 ? actions : ["inspect", "use_item"];
+  }
+
   // — Acciones de jugador ——————————————————————————————————————————
 
   /** Arranca la partida (`on_game_start`): timer, intro y fase `playing`. */
@@ -251,6 +278,21 @@ export class RoomSession {
     }
 
     const engine = mergeResults(now, results);
+    const dialogIds = effectsOf(engine, "show_dialog").map((effect) => effect.dialogId);
+    return { engine, dialogIds };
+  }
+
+  /**
+   * Usa un objeto del inventario sobre un objeto del mundo (drag&drop o acción
+   * "Usar objeto…"): dispara `on_use_item` con `{ itemId, objectId }`. Es pura e
+   * idempotente como `interact`: las reglas `once` no vuelven a disparar y las
+   * condiciones `item_in_inventory … consumed` gastan el ítem una sola vez.
+   */
+  useItemOnObject(itemId: string, objectId: string, now: number = this.now): RoomInteractionResult {
+    const engine = this.dispatch(
+      { type: "on_use_item", itemId, objectId, playerId: this.playerId },
+      now,
+    );
     const dialogIds = effectsOf(engine, "show_dialog").map((effect) => effect.dialogId);
     return { engine, dialogIds };
   }

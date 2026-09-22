@@ -132,9 +132,21 @@
     },
     "dialog": "Diálogo",
     "close": "Cerrar",
+    "menu": {
+      "title": "Acciones sobre el objeto",
+      "object": "Objeto: {object}",
+      "inspect": "Inspeccionar",
+      "useItem": "Usar objeto…",
+      "chooseItem": "Elige un objeto para usar sobre {object}",
+      "dragHint": "Arrástralo del inventario sobre el mundo o elige uno aquí.",
+      "dropHint": "Suelta {item} sobre un objeto del mundo",
+      "noItems": "No tienes objetos en el inventario",
+      "cancel": "Cancelar"
+    },
     "log": {
       "title": "Registro",
       "interact": "Interactúas con {object}",
+      "useItem": "Usas {item} sobre {object}",
       "combine": "Combinas {input}",
       "arcaOpen": "El candado del arca se abre",
       "plates": "Las placas ceden: la puerta a la Bodega se abre"
