@@ -8,6 +8,11 @@ import { collectPlayers, type LobbyStateLike } from "@/lib/lobby-net";
 import { useLobbyStore } from "@/store/lobby-store";
 import { LobbyTestScene } from "./lobby-scene";
 
+/** Global de depuración expuesto solo en desarrollo. */
+interface DebugGlobal {
+  __lobbyRoom?: Room<LobbyStateLike>;
+}
+
 /**
  * Monta Phaser con `LobbyTestScene` y abre la conexión Colyseus a `lobby_test`.
  * El estado que llega del servidor (autoritativo) se vuelca al store Zustand,
@@ -80,6 +85,12 @@ export default function LobbyCanvas() {
             useLobbyStore.getState().setStatus("disconnected");
           }
         });
+
+        // En desarrollo, expón la room en `window.__lobbyRoom` para poder
+        // probar el rechazo de teletransporte desde la consola sin cambiar UI.
+        if (process.env.NODE_ENV !== "production") {
+          (globalThis as DebugGlobal).__lobbyRoom = joined;
+        }
       })
       .catch((error: unknown) => {
         if (disposed) {
@@ -92,6 +103,9 @@ export default function LobbyCanvas() {
 
     return () => {
       disposed = true;
+      if ((globalThis as DebugGlobal).__lobbyRoom === room) {
+        delete (globalThis as DebugGlobal).__lobbyRoom;
+      }
       room?.leave();
       room = null;
       game.registry.remove("sendMove");
