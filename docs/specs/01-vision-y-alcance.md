@@ -39,7 +39,7 @@ por conversación con IA (MCP), (3) el modelo de acceso por claves para aulas y 
 Notas de modelo:
 
 - "Creador" y "Organizador" **no son roles de tabla**: cualquier usuario puede publicar una
-  sala o crear un evento. `is_admin` / `is_moderator` son los únicos roles de staff.
+  sala o crear un evento. `isAdmin` / `isModerator` son los únicos roles de staff.
 - Un mismo usuario puede ser las tres cosas a la vez.
 
 ## 4. Alcance de la v1

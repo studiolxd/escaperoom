@@ -113,7 +113,7 @@ Checkout con **Stripe Checkout** hospedado (no se gestionan tarjetas directament
 | POST | `/api/purchases/room-checkout` | usuario | `{ roomVersionId }` → valida `saleIndividual` y precio, crea `purchase` (`pending`) + Checkout Session con `metadata.purchaseId`. Devuelve `{ checkoutUrl }` |
 | GET | `/api/purchases/:id` | comprador o admin | Estado de una compra |
 
-El reparto 70/30 y el `stripe_transfer_id` se resuelven en el webhook (§7), no en la creación.
+El reparto 70/30 y el `stripeTransferId` se resuelven en el webhook (§7), no en la creación.
 
 ## 6. Eventos y claves de acceso
 
@@ -136,7 +136,7 @@ El reparto 70/30 y el `stripe_transfer_id` se resuelven en el webhook (§7), no 
 | POST | `/api/events/:id/access-keys` | organizador | Generación en lote: `{ type, count, sessionId?, groupAssignment, emails? }`. Aplica `groupingMode`; con `emails` dispara el envío (Resend/Postmark) |
 | GET | `/api/events/:id/access-keys` | organizador | Listado paginado con estado — alimenta el panel |
 | POST | `/api/access-keys/:code/resend` | organizador | Reenvía el email de invitación |
-| POST | `/api/access-keys/:code/regenerate` | organizador | Solo `type = rotating`: invalida la actual y crea nueva con `regenerated_from` |
+| POST | `/api/access-keys/:code/regenerate` | organizador | Solo `type = rotating`: invalida la actual y crea nueva con `regeneratedFrom` |
 | POST | `/api/access-keys/:code/confirm` | público (enlace del email) | `pending_confirmation → confirmed` |
 | POST | `/api/access-keys/redeem` | público (puede no tener cuenta) | `{ code }` → valida estado y caducidad, marca `used`/`active`, devuelve `{ sessionId, colyseusEndpoint, joinToken }` (`joinToken` = JWT corto, no la clave en claro) |
 | GET | `/api/events/:id/dashboard` | organizador | Resumen en vivo: estado de cada sesión, progreso por grupo (`progressEvent`), ranking |
@@ -160,7 +160,7 @@ los mismos que usa el `join` de Colyseus, porque `redeem` es el paso previo inme
 
 | Evento Stripe | Efecto |
 |---|---|
-| `checkout.session.completed` | Recupera `purchaseId` de `metadata`. Si `purchase_type = room`: `purchases.status = succeeded`, concede acceso, dispara `stripe_transfer_id` (70 % al creador vía Connect). Si `room_license`: crea el fork → `resulting_room_id`. Si `event_credits`: succeeded y llama a `activate` del evento |
+| `checkout.session.completed` | Recupera `purchaseId` de `metadata`. Si `purchase_type = room`: `purchases.status = succeeded`, concede acceso, dispara `stripeTransferId` (70 % al creador vía Connect). Si `room_license`: crea el fork → `resulting_room_id`. Si `event_credits`: succeeded y llama a `activate` del evento |
 | `payment_intent.payment_failed` | `purchases.status = failed` |
 | `charge.refunded` | `purchases.status = refunded`; si era sala, revoca acceso; si era evento activo, **no** revoca claves ya canjeadas (jugado es jugado) pero bloquea nuevas activaciones |
 | `account.updated` | Actualiza el estado de onboarding de Stripe Connect |
@@ -196,8 +196,8 @@ los mismos que usa el `join` de Colyseus, porque `redeem` es el paso previo inme
 | POST | `/api/me/appeal` | usuario | Apela una suspensión de cuenta |
 | GET | `/api/admin/appeals` | `is_admin \| is_moderator` | Cola de apelaciones pendientes |
 | PATCH | `/api/admin/appeals/:id` | `is_admin \| is_moderator` | Resuelve: `upheld` u `overturned` |
-| GET/POST/PATCH | `/api/admin/pricing-tiers` | `is_admin` | Gestión de tramos de precio editables |
-| GET/PATCH | `/api/admin/settings/:key` | `is_admin` | Ajustes de plataforma (p. ej. `maxPlayersPerRoom`) |
+| GET/POST/PATCH | `/api/admin/pricing-tiers` | `isAdmin` | Gestión de tramos de precio editables |
+| GET/PATCH | `/api/admin/settings/:key` | `isAdmin` | Ajustes de plataforma (p. ej. `maxPlayersPerRoom`) |
 
 ## 11. Rate limiting y seguridad
 

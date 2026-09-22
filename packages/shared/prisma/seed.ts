@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { PrismaClient } from "../generated/client";
+import { Prisma, PrismaClient } from "../generated/client";
 
 // El seed escribe directo a Postgres (DIRECT_URL): tras `migrate reset` los
 // ENUMs se recrean con OIDs nuevos y el pooler (PgBouncer) puede tener planes
@@ -104,11 +104,11 @@ async function main() {
 
   await prisma.roomVersion.upsert({
     where: { roomId_semver: { roomId: ID.room, semver: roomPackage.meta.version } },
-    update: { package: roomPackage as never, assetsHash },
+    update: { package: roomPackage as unknown as Prisma.InputJsonValue, assetsHash },
     create: {
       roomId: ID.room,
       semver: roomPackage.meta.version,
-      package: roomPackage as never,
+      package: roomPackage as unknown as Prisma.InputJsonValue,
       assetsHash,
       changelog: "Versión inicial (seed)",
       publishedBy: ID.creator,

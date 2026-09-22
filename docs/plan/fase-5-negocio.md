@@ -12,11 +12,11 @@ Referencias: `specs/02-modelo-de-negocio.md`, `specs/13-api-rest.md`, `specs/14-
 
 | # | Ticket | Detalle | Spec | Criterio de aceptación |
 |---|---|---|---|---|
-| 5.1 | **Stripe B2C + Connect** | Checkout de sala con `purchase_type: 'room'`, reparto 70/30, `stripe_transfer_id` en el webhook | `13` §5, §7 | Compra de prueba (4242) concede acceso y registra el reparto |
-| 5.2 | **B2C "una partida"** | `play_session_started_at`/`colyseus_room_id`; `GET /access` → `{owned, playable}` | `02` §2.1, `13` §4 | Tras jugar una vez, `playable: false`; reconectar a la misma room sí se permite |
+| 5.1 | **Stripe B2C + Connect** | Checkout de sala con `purchase_type: 'room'`, reparto 70/30, `stripeTransferId` en el webhook | `13` §5, §7 | Compra de prueba (4242) concede acceso y registra el reparto |
+| 5.2 | **B2C "una partida"** | `play_session_started_at`/`colyseusRoomId`; `GET /access` → `{owned, playable}` | `02` §2.1, `13` §4 | Tras jugar una vez, `playable: false`; reconectar a la misma room sí se permite |
 | 5.3 | **Catálogo + reseñas + SEO** | Listado/detalle SSR, filtros (idioma, dificultad, precio, jugadores), reseñas (upsert) | `13` §3 | El catálogo es indexable y el filtro de idioma usa `languages @>` |
 | 5.4 | **Eventos + tramos** | Crear evento, `pricingSnapshot` desde `pricingTier`, hasta 10 sesiones, `groupingMode`; autoventa gratis si el organizador es el autor | `02` §3, `13` §6.1 | Un evento calcula el total por tramos correctamente |
-| 5.5 | **Claves** | Generación individual/rotativa/grupo/batch; estados; caducidad por job; rotación con `regenerated_from` | `02` §4, `14` §6 | Una clave individual muere al canjearse; una rotativa invalida la anterior |
+| 5.5 | **Claves** | Generación individual/rotativa/grupo/batch; estados; caducidad por job; rotación con `regeneratedFrom` | `02` §4, `14` §6 | Una clave individual muere al canjearse; una rotativa invalida la anterior |
 | 5.6 | **Emails + confirmación** | `@slxd/mailer` adaptado: **Nodemailer (SMTP) por defecto**, Resend opcional; invitaciones individuales/masivas, confirmación opcional, reenvío; panel "28/30 confirmados" | `02` §4.4, `13` §6.2, ADR-020 | El email de confirmación cambia la clave a `confirmed` |
 | 5.7 | **PDF de tarjetas** | Export directo (<50) o job async con URL firmada en R2 | `13` §9 | Un lote de 100 claves genera un PDF descargable |
 | 5.8 | **Canje + agrupación** | `redeem` → `joinToken`; asignación específica/aleatoria/libre; `SESSION_FULL` | `02` §3.3, `13` §6.2 | Un invitado sin cuenta canjea y entra en la sesión asignada |

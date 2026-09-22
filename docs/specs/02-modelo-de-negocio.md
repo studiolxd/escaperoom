@@ -48,7 +48,7 @@ lanzar (ver `plan/00-plan-maestro.md`, riesgos de producto).
 - El creador marca en cada sala si es apta para venta individual, para eventos, o ambas
   (`rooms.sale_individual`, `rooms.sale_events`).
 - Precio por sala definido por el creador (`rooms.price_cents`, 0,99–4,99 € sugerido).
-- El reparto 70/30 se liquida vía **Stripe Connect** (`stripe_transfer_id` del creador en el
+- El reparto 70/30 se liquida vía **Stripe Connect** (`stripeTransferId` del creador en el
   webhook, no en la creación del checkout).
 
 ---
@@ -88,8 +88,8 @@ Los tramos dejan de ser constantes de código y pasan a ser **filas editables** 
 Ejemplo de negocio: un instituto de 120 alumnos paga ~90 € por una actividad completa, con 10
 sesiones simultáneas cubriendo una clase entera.
 
-Regla de edición: cambiar precios = crear fila nueva con `active_from` futuro y cerrar la
-anterior con `active_until`; **nunca `UPDATE` de una fila vigente** (no se altera el histórico).
+Regla de edición: cambiar precios = crear fila nueva con `activeFrom` futuro y cerrar la
+anterior con `activeUntil`; **nunca `UPDATE` de una fila vigente** (no se altera el histórico).
 `events.pricing_snapshot` congela los tramos en el momento de la compra.
 
 ### 3.3 Distribución en grupos

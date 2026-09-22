@@ -28,7 +28,7 @@ Colyseus Server (Node.js)
   resultado final y el histórico.
 - LiveKit no pasa por Colyseus: el servidor de juego firma un token LiveKit al hacer join (§8).
 - **Matchmaking y "una partida" B2C:** al crear la partida por primera vez, el servidor comprueba
-  `purchases.play_session_started_at IS NULL`; si lo está, lo rellena y guarda el `colyseus_room_id`.
+  `purchases.play_session_started_at IS NULL`; si lo está, lo rellena y guarda el `colyseusRoomId`.
   Una segunda llamada a matchmake para la misma compra se rechaza salvo reconexión a la misma
   `GameRoom` (ver `specs/02-modelo-de-negocio.md` §2.1).
 - **Tope de jugadores:** el número máximo por sala es un único valor de plataforma

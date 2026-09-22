@@ -192,7 +192,7 @@ caducidades; panel del organizador con progreso en vivo.
 **Decisión:** los tramos de precio (`pricingTier`) y el tope de jugadores por sala
 (`platformSetting.maxPlayersPerRoom`) dejan de ser constantes de código.
 
-**Consecuencias:** cambiar precios no altera el histórico (filas con `active_from`/`active_until`);
+**Consecuencias:** cambiar precios no altera el histórico (filas con `activeFrom`/`activeUntil`);
 el tope de jugadores alimenta a la vez el validador de creación de salas y el cap de publishers de
 LiveKit — **una sola fuente de verdad**, nunca se desincronizan.
 
