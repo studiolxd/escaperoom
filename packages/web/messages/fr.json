@@ -11,5 +11,16 @@
     "title": "EscapeRoom",
     "subtitle": "Canvas hybride (Phaser + overlay React) sur une tilemap isométrique.",
     "lobbyCta": "Lobby multijoueur (0.5)"
+  },
+  "RoomPreview": {
+    "badge": "aperçu isométrique (1.2)",
+    "loading": "Chargement des salles…",
+    "rooms": "Salles",
+    "grid": "Grille",
+    "objects": "Objets",
+    "spawns": "Apparitions",
+    "packLoaded": "pack graphique « {packId} »",
+    "packPlaceholder": "placeholder automatique (sans pack)",
+    "controls": "WASD/flèches pour se déplacer · Espace pour interagir"
   }
 }

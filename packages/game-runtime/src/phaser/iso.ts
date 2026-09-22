@@ -23,6 +23,16 @@ export function tileToWorld(tx: number, ty: number): IsoPoint {
   };
 }
 
+/**
+ * Punto de anclaje de un sprite/tile con pivote **abajo-centro del rombo**
+ * (specs/26 §3.1): el vértice inferior de la celda, que es donde se apoyan los
+ * objetos con altura y el avatar.
+ */
+export function tileAnchor(tx: number, ty: number): IsoPoint {
+  const { x, y } = tileToWorld(tx, ty);
+  return { x, y: y + ISO_TILE_HEIGHT / 2 };
+}
+
 /** Inversa de `tileToWorld`, redondeada a la celda más cercana. */
 export function worldToTile(worldX: number, worldY: number): { tx: number; ty: number } {
   return {

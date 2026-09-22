@@ -19,6 +19,7 @@
     "infra:up": "docker compose -f infra/docker-compose.dev.yml up -d",
     "infra:down": "docker compose -f infra/docker-compose.dev.yml down",
     "dev:env": "bash scripts/dev-env.sh",
+    "pack:build": "pnpm --filter @escaperoom/game-runtime pack:build",
     "db:migrate": "pnpm --filter @escaperoom/shared db:migrate",
     "db:seed": "pnpm --filter @escaperoom/shared db:seed",
     "db:reset": "pnpm --filter @escaperoom/shared db:reset"

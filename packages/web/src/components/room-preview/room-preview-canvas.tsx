@@ -2,20 +2,25 @@
 
 import { useEffect, useRef } from "react";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
-import { RoomRuntime } from "@escaperoom/game-runtime/phaser";
+import { RoomRuntime, type RoomScenePack } from "@escaperoom/game-runtime/phaser";
 
 /**
  * Monta el runtime Phaser de producto (`RoomRuntime`) en un contenedor React y
  * lo destruye al desmontar. Solo se carga en cliente vía `next/dynamic` con
  * `ssr: false` (ver `room-preview-shell.tsx`), porque Phaser necesita
  * `window`/`canvas`. Al cambiar `roomId`, pide el cambio de habitación.
+ *
+ * Si `pack` está presente, la escena precarga sus atlas; si no, genera
+ * placeholders procedurales por frame (ticket 1.2).
  */
 export default function RoomPreviewCanvas({
   model,
   roomId,
+  pack,
 }: {
   model: RuntimeModel;
   roomId: string;
+  pack?: RoomScenePack;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<RoomRuntime | null>(null);
@@ -29,6 +34,7 @@ export default function RoomPreviewCanvas({
 
     const runtime = new RoomRuntime(container, model, {
       initialRoomId: roomIdRef.current,
+      pack,
     });
     runtimeRef.current = runtime;
 
@@ -36,7 +42,7 @@ export default function RoomPreviewCanvas({
       runtime.destroy();
       runtimeRef.current = null;
     };
-  }, [model]);
+  }, [model, pack]);
 
   useEffect(() => {
     roomIdRef.current = roomId;
