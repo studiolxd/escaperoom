@@ -39,6 +39,9 @@ describe("lobby_test (integración con @colyseus/testing)", () => {
     expect(clientA.state.players.size).toBe(2);
     expect(clientB.state.players.size).toBe(2);
 
+    const tints = new Set([...room.state.players.values()].map((player) => player.tint));
+    expect(tints.size).toBe(2);
+
     const before = room.state.players.get(clientA.sessionId)!;
     const target = { x: before.x + 0.25, y: before.y + 0.25 };
 

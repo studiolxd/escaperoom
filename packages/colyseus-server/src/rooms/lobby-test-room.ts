@@ -5,11 +5,11 @@ import {
   MAX_PLAYERS,
   MAX_STEP_PER_TICK,
   MOVE_MESSAGE,
-  PLAYER_TINTS,
   WORLD_BOUNDS,
 } from "../constants.js";
 import { MOVE_TOO_FAST, validateMove, type MoveLimits } from "../movement.js";
 import { LobbyState, PlayerState } from "../schema/lobby-state.js";
+import { pickPlayerTint } from "../tints.js";
 
 /** Payload de `move` (specs/11 §4.2). El servidor valida el tipo antes de usarlo. */
 const movePayload = z.object({
@@ -53,11 +53,14 @@ export class LobbyTestRoom extends Room<{ state: LobbyState }> {
     const index = this.state.players.size;
     const spawn = SPAWN_POINTS[index % SPAWN_POINTS.length]!;
 
+    const usedTints: string[] = [];
+    this.state.players.forEach((player) => usedTints.push(player.tint));
+
     const player = new PlayerState();
     player.id = client.sessionId;
     player.x = spawn.x;
     player.y = spawn.y;
-    player.tint = PLAYER_TINTS[index % PLAYER_TINTS.length]!;
+    player.tint = pickPlayerTint(usedTints);
 
     this.state.players.set(client.sessionId, player);
   }

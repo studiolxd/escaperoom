@@ -30,3 +30,4 @@ export type {
 export { LobbyTestRoom } from "./rooms/lobby-test-room.js";
 export { LobbyState, PlayerState } from "./schema/lobby-state.js";
 export { createGameServer, resolvePort, startGameServer } from "./server.js";
+export { pickPlayerTint } from "./tints.js";
