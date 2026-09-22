@@ -88,6 +88,9 @@ contenido pasa a la "zona de descubrimiento". Comportamiento configurable con `d
   estado del objeto) y luz ambiental (`color`, `intensity`).
 - La iluminación puede ser **reactiva a puzzles**: p. ej. las antorchas de la escalera se
   encienden cuando `mesa-catas` pasa a estado `active` (feature del runtime, no del formato).
+- **Caída suave obligatoria:** el foco de luz se difumina en su borde (degradado radial), nunca un
+  círculo de borde neto. El halo del demo de 0.4 (`add.circle`) es un placeholder: se implementa de
+  verdad aquí, con la iluminación por `SubRoom`.
 
 ## 4. Interacción del jugador con el mundo
 

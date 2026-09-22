@@ -332,6 +332,11 @@ debajo). Catálogo, HUD, puzzles de panel y editor construyen sobre estos primit
 **Consecuencias:** control total del código de UI, sin DS externo opaco; los mismos primitivos se
 comparten entre editar, previsualizar y jugar (`specs/03` §3). Se descarta `@studiolxd/brand`.
 
+**Convención (2026-09-22):** los `Button` de shadcn que lleven icono usan la prop `data-icon`
+(p. ej. `data-icon="inline-start"`), y todo icono sobre **overlay oscuro** (HUD, paneles) debe tener
+contraste suficiente en reposo, no solo en `:hover`. Nace del pulido del demo de 0.4 (el botón de
+bajar la llama quedaba invisible hasta el hover). Aplica a HUD, paneles de puzzle y editor.
+
 **Alternativas descartadas:** copiar el DS de SLXD (arrastra tokens y BEM de suite); MUI/Chakra.
 
 ---
