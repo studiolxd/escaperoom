@@ -46,7 +46,7 @@ Cada `GameRoom` vive en un único proceso. Ruta de escalado, en orden:
 - **Vertical primero** (más CPU/RAM), más barato y simple que horizontal antes de necesitarlo.
 - **Réplica de lectura** cuando catálogo público y analítica agregada empiecen a competir con las
   escrituras transaccionales por I/O — un catálogo con segundos de retraso no importa.
-- **Particionado mensual de `analytics_events`** ya resuelto desde el diseño: solo hay que seguir
+- **Particionado mensual de `analyticsEvent`** ya resuelto desde el diseño: solo hay que seguir
   creando particiones y, eventualmente, mover las antiguas a almacenamiento más barato.
 
 ### 2.4 Redis

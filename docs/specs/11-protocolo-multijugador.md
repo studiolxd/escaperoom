@@ -32,7 +32,7 @@ Colyseus Server (Node.js)
   Una segunda llamada a matchmake para la misma compra se rechaza salvo reconexión a la misma
   `GameRoom` (ver `specs/02-modelo-de-negocio.md` §2.1).
 - **Tope de jugadores:** el número máximo por sala es un único valor de plataforma
-  (`platform_settings.max_players_per_room`, default 6) que alimenta a la vez el validador de
+  (`platformSetting.maxPlayersPerRoom`, default 6) que alimenta a la vez el validador de
   creación de salas y el cap de publishers de LiveKit (ver `specs/12-voz-y-webcam-livekit.md` §3).
 
 ## 2. Fases de la partida
@@ -231,7 +231,7 @@ Cliente                          Servidor (GameRoom)                Externo
 | `session_ended` | `game_ended` |
 | `key_redeemed` | join con clave |
 
-Emisión: cola en Redis → worker → tabla `analytics_events` (append-only). Nunca bloquea el game
+Emisión: cola en Redis → worker → tabla `analyticsEvent` (append-only). Nunca bloquea el game
 loop; si la cola cae, se pierde analítica, nunca gameplay. Taxonomía completa en `specs/16-analitica.md`.
 
 ## 11. Matriz de permisos

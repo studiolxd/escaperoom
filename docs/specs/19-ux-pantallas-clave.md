@@ -31,8 +31,8 @@ estrictamente en vivo.
 | Región | Contenido | Decisión de diseño |
 |---|---|---|
 | Cabecera | Nombre del evento, sala usada, nº de sesiones activas | — |
-| Métricas resumen | Sesiones, claves usadas, tiempo medio, pistas por grupo | Las mismas métricas de `progress_events` — el panel no calcula nada que no esté ya en la analítica de producto |
-| Listado de sesiones | Una fila por sesión: nombre del grupo, barra de progreso (puzzles resueltos / total), estado, acción | Tres acciones: `observar` (sesión en curso → entra como `SpectatorRoom`), `ver replay` (sesión terminada → reconstruida de `progress_events`, la bitácora de eventos anti-cheat, no un vídeo), sin acción si no ha empezado |
+| Métricas resumen | Sesiones, claves usadas, tiempo medio, pistas por grupo | Las mismas métricas de `progressEvent` — el panel no calcula nada que no esté ya en la analítica de producto |
+| Listado de sesiones | Una fila por sesión: nombre del grupo, barra de progreso (puzzles resueltos / total), estado, acción | Tres acciones: `observar` (sesión en curso → entra como `SpectatorRoom`), `ver replay` (sesión terminada → reconstruida de `progressEvent`, la bitácora de eventos anti-cheat, no un vídeo), sin acción si no ha empezado |
 | Pie de panel | Reenviar claves pendientes, exportar PDF | Acciones directas sobre `POST /api/access-keys/:code/resend` y `POST /api/events/:id/access-keys/export-pdf` |
 
 **Nota:** *observar* nunca añade un jugador a la partida (observador de solo lectura) — es una

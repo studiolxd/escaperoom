@@ -38,11 +38,11 @@ Better Auth gestiona `/api/auth/*` (signin, callback OAuth, signout, session; pl
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| GET | `/api/me` | usuario | Perfil: `users`, saldo de `credit_accounts` (personal + cada org), organizaciones |
-| PATCH | `/api/me` | usuario | Actualiza `display_name`, `avatar_url`, `locale` |
+| GET | `/api/me` | usuario | Perfil: `user`, saldo de `creditAccount` (personal + cada org), organizaciones |
+| PATCH | `/api/me` | usuario | Actualiza `name`, `image`, `locale` |
 | POST | `/api/me/stripe-connect` | usuario | Inicia onboarding de Stripe Connect; devuelve URL hospedada |
 | GET | `/api/me/stripe-connect/status` | usuario | `not_started \| pending \| complete` |
-| GET | `/api/me/purchases` | usuario | Historial paginado de `purchases` propias |
+| GET | `/api/me/purchases` | usuario | Historial paginado de `purchase` propias |
 | GET | `/api/me/rooms` | usuario | Todas sus salas (incluidos drafts) |
 | GET | `/api/me/events` | usuario | Sus eventos como organizador |
 | POST | `/api/organizations` | usuario | Crea organización (el creador pasa a `owner`) |
@@ -60,7 +60,7 @@ Better Auth gestiona `/api/auth/*` (signin, callback OAuth, signout, session; pl
 | GET | `/api/rooms/:roomId/versions` | público | Histórico de versiones (solo metadata `semver`, `changelog`, `published_at`) |
 | GET | `/api/rooms/:roomId/reviews` | público | Listado paginado de reseñas |
 | POST | `/api/rooms/:roomId/reviews` | comprador/jugador | Crea/actualiza su reseña (`UNIQUE(user_id, room_id)`) |
-| POST | `/api/rooms/:roomId/report` | usuario | Crea `content_reports` (`REPORT_REASON_REQUIRED` si falta motivo) |
+| POST | `/api/rooms/:roomId/report` | usuario | Crea `contentReport` (`REPORT_REASON_REQUIRED` si falta motivo) |
 
 Forma de respuesta de `GET /api/rooms/:roomId`:
 
@@ -93,12 +93,12 @@ alrededor de la edición:
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| POST | `/api/rooms` | usuario | Crea sala: `{ title, theme? }` → fila `rooms` (`draft`) + doc Yjs vacío |
+| POST | `/api/rooms` | usuario | Crea sala: `{ title, theme? }` → fila `room` (`draft`) + doc Yjs vacío |
 | PATCH | `/api/rooms/:roomId` | autor | Metadata: `title`, `priceCents`, `saleIndividual`, `saleEvents`, `licensable`, `licensePriceCents`, o `status: 'archived'` |
-| DELETE | `/api/rooms/:roomId` | autor | Borrado lógico (`deleted_at`); con `purchases`/`reviews` nunca se borra físicamente |
+| DELETE | `/api/rooms/:roomId` | autor | Borrado lógico (`deleted_at`); con `purchase`/`review` nunca se borra físicamente |
 | GET | `/api/rooms/:roomId/draft` | autor/colaborador | Bootstrap del editor: último snapshot + updates posteriores |
 | POST | `/api/rooms/:roomId/validate` | autor (o MCP) | Corre el validador sobre el draft: `{ valid, errors, warnings, estimatedMinutes, estimatedDifficulty }` |
-| POST | `/api/rooms/:roomId/publish` | autor | `{ semver, changelog }`. Exige `validate` en verde (repetido server-side). Empaqueta, sube assets a R2, calcula `assetsHash`, inserta `room_versions`. `VALIDATION_FAILED` si no pasa |
+| POST | `/api/rooms/:roomId/publish` | autor | `{ semver, changelog }`. Exige `validate` en verde (repetido server-side). Empaqueta, sube assets a R2, calcula `assetsHash`, inserta `roomVersion`. `VALIDATION_FAILED` si no pasa |
 | GET | `/api/rooms/:roomId/versions/:versionId/package` | autor, admin o servicio interno | El `RoomPackage` completo — única ruta que lo expone, nunca al público |
 | POST | `/api/rooms/:roomId/license-checkout` | creador | Compra la licencia de la sala de otro → Stripe Checkout, `purchase_type: 'room_license'` |
 | POST | `/api/rooms/:roomId/gift-copy` | autor | Envía copia gratuita a otro creador (`{ recipientEmail }`) — sin Stripe, fork inmediato |
@@ -110,7 +110,7 @@ Checkout con **Stripe Checkout** hospedado (no se gestionan tarjetas directament
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| POST | `/api/purchases/room-checkout` | usuario | `{ roomVersionId }` → valida `saleIndividual` y precio, crea `purchases` (`pending`) + Checkout Session con `metadata.purchaseId`. Devuelve `{ checkoutUrl }` |
+| POST | `/api/purchases/room-checkout` | usuario | `{ roomVersionId }` → valida `saleIndividual` y precio, crea `purchase` (`pending`) + Checkout Session con `metadata.purchaseId`. Devuelve `{ checkoutUrl }` |
 | GET | `/api/purchases/:id` | comprador o admin | Estado de una compra |
 
 El reparto 70/30 y el `stripe_transfer_id` se resuelven en el webhook (§7), no en la creación.
@@ -121,7 +121,7 @@ El reparto 70/30 y el `stripe_transfer_id` se resuelven en el webhook (§7), no 
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| POST | `/api/events` | usuario | `{ roomVersionId, title, maxSimultaneousSessions, groupingMode, requireConfirmation, expiryRules, playersPlanned, audience?, allowVideo?, recordingEnabled? }` → valida `saleEvents`, calcula `pricingSnapshot` desde `pricing_tiers` y el total. Si `organizerId === room.authorId`, claves gratis y activable sin checkout |
+| POST | `/api/events` | usuario | `{ roomVersionId, title, maxSimultaneousSessions, groupingMode, requireConfirmation, expiryRules, playersPlanned, audience?, allowVideo?, recordingEnabled? }` → valida `saleEvents`, calcula `pricingSnapshot` desde `pricingTier` y el total. Si `organizerId === room.authorId`, claves gratis y activable sin checkout |
 | PATCH | `/api/events/:id` | organizador | Edita config mientras `status = draft` |
 | GET | `/api/events/:id` | organizador o admin | Detalle + resumen (nº sesiones, nº claves por estado) |
 | POST | `/api/events/:id/checkout` | organizador | Checkout por el total (si no es autoventa gratuita) |
@@ -139,7 +139,7 @@ El reparto 70/30 y el `stripe_transfer_id` se resuelven en el webhook (§7), no 
 | POST | `/api/access-keys/:code/regenerate` | organizador | Solo `type = rotating`: invalida la actual y crea nueva con `regenerated_from` |
 | POST | `/api/access-keys/:code/confirm` | público (enlace del email) | `pending_confirmation → confirmed` |
 | POST | `/api/access-keys/redeem` | público (puede no tener cuenta) | `{ code }` → valida estado y caducidad, marca `used`/`active`, devuelve `{ sessionId, colyseusEndpoint, joinToken }` (`joinToken` = JWT corto, no la clave en claro) |
-| GET | `/api/events/:id/dashboard` | organizador | Resumen en vivo: estado de cada sesión, progreso por grupo (`progress_events`), ranking |
+| GET | `/api/events/:id/dashboard` | organizador | Resumen en vivo: estado de cada sesión, progreso por grupo (`progressEvent`), ranking |
 
 **Códigos de error de claves:** `ACCESS_KEY_INVALID`, `ACCESS_KEY_USED`, `ACCESS_KEY_EXPIRED`,
 `ACCESS_KEY_NOT_CONFIRMED` (si `requireConfirmation = true` y aún no confirmó), `SESSION_FULL` —
@@ -177,7 +177,7 @@ los mismos que usa el `join` de Colyseus, porque `redeem` es el paso previo inme
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
 | GET | `/api/sessions/:id` | organizador, jugadores de la sesión, admin | Estado persistido de la sesión |
-| GET | `/api/sessions/:id/progress` | organizador, admin | `progress_events`: puzzles resueltos, tiempos, pistas por grupo |
+| GET | `/api/sessions/:id/progress` | organizador, admin | `progressEvent`: puzzles resueltos, tiempos, pistas por grupo |
 
 ## 9. Generación de PDF de tarjetas-clave
 
@@ -190,14 +190,14 @@ los mismos que usa el `join` de Colyseus, porque `redeem` es el paso previo inme
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| GET | `/api/admin/reports` | `is_admin \| is_moderator` | Listado paginado de `content_reports`, filtrable por `status`/`severity` |
+| GET | `/api/admin/reports` | `is_admin \| is_moderator` | Listado paginado de `contentReport`, filtrable por `status`/`severity` |
 | PATCH | `/api/admin/reports/:id` | `is_admin \| is_moderator` | `{ status, resolutionNote? }`; con `actioned` puede despublicar la sala |
 | POST | `/api/rooms/:roomId/appeal` | autor de la sala | Apela un bloqueo de pre-check o una retirada |
 | POST | `/api/me/appeal` | usuario | Apela una suspensión de cuenta |
 | GET | `/api/admin/appeals` | `is_admin \| is_moderator` | Cola de apelaciones pendientes |
 | PATCH | `/api/admin/appeals/:id` | `is_admin \| is_moderator` | Resuelve: `upheld` u `overturned` |
 | GET/POST/PATCH | `/api/admin/pricing-tiers` | `is_admin` | Gestión de tramos de precio editables |
-| GET/PATCH | `/api/admin/settings/:key` | `is_admin` | Ajustes de plataforma (p. ej. `max_players_per_room`) |
+| GET/PATCH | `/api/admin/settings/:key` | `is_admin` | Ajustes de plataforma (p. ej. `maxPlayersPerRoom`) |
 
 ## 11. Rate limiting y seguridad
 

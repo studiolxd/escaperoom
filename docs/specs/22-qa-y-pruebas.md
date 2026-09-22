@@ -170,7 +170,7 @@ El playtest humano es caro en tiempo de personas: no se gasta en bugs que el aut
 ### 4.4 Métricas capturadas
 
 - **Tiempo real por puzzle vs. estimación del validador** — alimenta la calibración de constantes.
-- **Pistas usadas por puzzle** (de `progress_events`, reutiliza la analítica de producción).
+- **Pistas usadas por puzzle** (de `progressEvent`, reutiliza la analítica de producción).
 - **Señal de frustración automática:** ≥3 `puzzle_attempted` fallidos al mismo puzzle en <2 min →
   se marca la sesión para revisión.
 - **Abandono / desconexión.**

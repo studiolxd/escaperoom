@@ -21,7 +21,7 @@ Referencias: `specs/04-runtime-juego-y-mundo.md`, `specs/05-motor-de-reglas-y-es
 | 1.8 | **Sistema de pistas y diálogos** | `hints` con tiers y coste, `hint_request`, `dialog_show`, `LocalizedText` en `es` | `05` §3, `08` §2.3 | Pedir pista descuenta del contador y muestra el texto del tier correcto |
 | 1.9 | **Fin de partida** | Cronómetro (`start_timer`), `end_game` (victory/timeout), pantalla de resultados | `04` §6 | Un flujo de prueba termina en victoria/timeout y muestra stats |
 | 1.10 | **Rey Aldric Sala 1 vertical** | Construir la Sala 1 completa a mano en JSON (llave, candado, combinación, placas pendientes o incluidas) | `reference/roompackage-rey-aldric.v1.json` | Un test de integración recorre la Sala 1 de principio a fin |
-| 1.11 | **Analítica de gameplay** | Emitir `puzzle_available/attempted/solved/failed`, `hint_viewed`, `item_granted/combined`, `dialog_read` | `16` §2.2 | Los eventos aparecen en `analytics_events` durante una partida de prueba |
+| 1.11 | **Analítica de gameplay** | Emitir `puzzle_available/attempted/solved/failed`, `hint_viewed`, `item_granted/combined`, `dialog_read` | `16` §2.2 | Los eventos aparecen en `analyticsEvent` durante una partida de prueba |
 
 ## Hito 1
 

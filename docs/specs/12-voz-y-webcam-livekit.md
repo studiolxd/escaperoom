@@ -73,7 +73,7 @@ docker-compose.yml (extracto)
 |---|---|
 | **Simulcast** | Cada publisher de vídeo envía 2–3 capas; el SFU reenvía la adecuada a cada subscriber (activado por defecto en el SDK) |
 | **Vídeo apagado por defecto en eventos educativos** | La medida más efectiva: si la cohorte educativa no publica vídeo (§4), su coste es solo audio, un orden de magnitud menor |
-| **Límite de publishers de vídeo por room** | El mismo `platform_settings.max_players_per_room` (default 6) que usa el validador de salas — **una sola fuente de verdad**: si se sube a 8 desde el panel admin, sube a la vez el techo de creación de salas y el cap de publishers, nunca se desincronizan |
+| **Límite de publishers de vídeo por room** | El mismo `platformSetting.maxPlayersPerRoom` (default 6) que usa el validador de salas — **una sola fuente de verdad**: si se sube a 8 desde el panel admin, sube a la vez el techo de creación de salas y el cap de publishers, nunca se desincronizan |
 | **Degradación ante congestión** | El cliente LiveKit (adaptive stream) reduce resolución/framerate; si la red es muy mala, ofrece "pasar a solo audio" sin desconectar de la partida (que sigue por Colyseus, independiente de LiveKit) |
 | **Spectator sin publicar nunca** | El observador nunca añade coste de publisher, solo de subscriber, y solo a una room a la vez |
 | **Monitorización** | Métricas de LiveKit (bitrate, packet loss, participantes) exportadas junto al resto de analítica de infraestructura |
@@ -129,29 +129,29 @@ puede cambiarla**:
 - Egress se dispara al confirmarse el consentimiento unánime (no al crear el evento). Si nadie ha
   aceptado al arrancar, la sesión no se graba y el panel muestra
   `recordingStatus: 'not_recorded_no_consent'`.
-- Tabla nueva (`event_recordings`):
+- Tabla nueva (`eventRecording`):
 
 ```sql
-CREATE TABLE event_recordings (
-  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id       uuid NOT NULL REFERENCES sessions(id),
-  egress_id        text NOT NULL,
-  storage_path     text,                    -- ruta en R2, null hasta que termina
-  consent_status   text NOT NULL DEFAULT 'pending'
-    CHECK (consent_status IN ('pending', 'unanimous', 'declined')),
-  status           text NOT NULL DEFAULT 'not_started'
+CREATE TABLE "eventRecording" (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "sessionId"       uuid NOT NULL REFERENCES "gameSession"(id),
+  "egressId"        text NOT NULL,
+  "storagePath"     text,                   -- ruta en R2, null hasta que termina
+  "consentStatus"   text NOT NULL DEFAULT 'pending'
+    CHECK ("consentStatus" IN ('pending', 'unanimous', 'declined')),
+  status            text NOT NULL DEFAULT 'not_started'
     CHECK (status IN ('not_started', 'recording', 'ready', 'failed', 'deleted')),
-  retention_until  timestamptz,
-  created_at       timestamptz NOT NULL DEFAULT now(),
-  deleted_at       timestamptz
+  "retentionUntil"  timestamptz,
+  "createdAt"       timestamptz NOT NULL DEFAULT now(),
+  "deletedAt"       timestamptz
 );
 ```
 
 - **Retención por defecto: 90 días** desde `ready`, borrado automático (job programado, mismo
-  mecanismo que la caducidad de `access_keys`). El organizador puede pedir el borrado antes en
+  mecanismo que la caducidad de `accessKey`). El organizador puede pedir el borrado antes en
   cualquier momento (`DELETE /api/events/:id/recordings/:id`) o extender la retención
   explícitamente (nunca por defecto indefinida).
-- **Acceso:** solo miembros de la organización con `org_role IN ('owner','admin')` pueden generar
+- **Acceso:** solo miembros de la organización con `role IN ('owner','admin')` pueden generar
   la URL de descarga firmada (24 h, mismo patrón que el export de PDF).
 - La grabación **nunca** pasa por el pipeline de moderación de contenido: es privada de la
   organización, no contenido publicado.
@@ -167,5 +167,5 @@ CREATE TABLE event_recordings (
 ## 7. Dependencias
 
 - `specs/11-protocolo-multijugador.md` §8 — firma y permisos del token.
-- `specs/14-modelo-de-datos-sql.md` — `events.config`, `event_recordings`, `platform_settings`.
+- `specs/14-modelo-de-datos-sql.md` — `events.config`, `eventRecording`, `platformSetting`.
 - `specs/24-operaciones-y-escalabilidad.md` §2.5 — separación a nodo propio.

@@ -102,5 +102,5 @@ Estas quedan explícitamente sin cerrar y se listan para no perderlas de vista:
 | `packageFormat` en `meta` del RoomPackage | Al implementar el runtime (Fase 1); ver `specs/08-formato-roompackage.md` |
 | LiveKit self-hosted vs. Cloud | Prueba con tráfico real en Fase 2; ver `specs/12-voz-y-webcam-livekit.md` |
 | Titularidad del audio ElevenLabs, plazos fiscales, plantilla de DPA | Asesoría legal; ver `specs/18-legal-rgpd-y-menores.md` |
-| Job de purga de `analytics_events` | Fase 6; ver `specs/14-modelo-de-datos-sql.md` |
+| Job de purga de `analyticsEvent` | Fase 6; ver `specs/14-modelo-de-datos-sql.md` |
 | ¿"Una partida" B2C se consume al crear la sesión o al terminarla? | Matiz de producto; ver `specs/02-modelo-de-negocio.md` |

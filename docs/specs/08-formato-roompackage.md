@@ -140,15 +140,15 @@ acciones. Las reglas se serializan como:
 ```
 PostgreSQL
 ├── room_drafts / room_updates / room_snapshots  ← Yjs doc vivo (edición colaborativa, cambia siempre)
-└── room_versions                                ← inmutable, una fila por versión publicada
+└── roomVersion                                 ← inmutable, una fila por versión publicada
      └── v1.0.0: RoomPackage JSONB congelado + assets empaquetados en R2 (assets_hash)
 ```
 
 - **Publicar** = congelar el JSON, validarlo en servidor, subir assets a R2 con hash, crear fila
-  en `room_versions`. Lo que juega la gente nunca cambia en caliente.
+  en `roomVersion`. Lo que juega la gente nunca cambia en caliente.
 - **Parche** = nueva versión. Los jugadores con sala comprada reciben la nueva versión; los
   eventos ya vendidos pueden **fijar la versión original** (flag en `Event`/sesión).
-- El runtime del jugador descarga `room_versions` → JSON → mismo contrato que en el editor.
+- El runtime del jugador descarga `roomVersion` → JSON → mismo contrato que en el editor.
 
 ## 6. Versionado del formato (`packageFormat`)
 

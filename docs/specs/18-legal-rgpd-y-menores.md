@@ -95,10 +95,10 @@ Endpoint: `POST /api/organizations/:id/dpa/sign`.
 | Dato | Plazo propuesto | Razón |
 |---|---|---|
 | Cuenta tras cierre voluntario | Anonimización inmediata de campos identificativos; se conserva registro transaccional (compras) sin datos personales visibles | Obligación fiscal de conservar facturación (4–6 años típico en España, **confirmar**) |
-| `access_keys` con email de participante | 12 meses tras el evento, luego anonimización (email → hash) | El organizador puede necesitar reconstruir asistencia meses después |
-| `event_recordings` | 90 días | Ya fijado en `specs/12-voz-y-webcam-livekit.md` §5 |
-| `analytics_events` | 24 meses en detalle; agregados anonimizados sin límite | Alinea con el particionado mensual; **falta el job de purga** |
-| `content_reports` | Sin borrado automático | Histórico de moderación para detectar reincidencia de strikes |
+| `accessKey` con email de participante | 12 meses tras el evento, luego anonimización (email → hash) | El organizador puede necesitar reconstruir asistencia meses después |
+| `eventRecording` | 90 días | Ya fijado en `specs/12-voz-y-webcam-livekit.md` §5 |
+| `analyticsEvent` | 24 meses en detalle; agregados anonimizados sin límite | Alinea con el particionado mensual; **falta el job de purga** |
+| `contentReport` | Sin borrado automático | Histórico de moderación para detectar reincidencia de strikes |
 
 ### 3.4 Derechos de las personas interesadas
 
@@ -141,13 +141,13 @@ que falta encima:
    minimizar qué datos de menores le llegan (recomendación de claves sin PII) y exigir el DPA.
 3. **Grabación:** ya bloqueada por diseño para `audience: educational`, sin excepciones. Grabar
    una sesión educativa sería un producto y un análisis legal distintos.
-4. **Retención de datos de menores:** el plazo de 12 meses para `access_keys` con email aplica
+4. **Retención de datos de menores:** el plazo de 12 meses para `accessKey` con email aplica
    igual, pero conviene confirmar si un plazo más corto es más adecuado (minimización reforzada).
 
 ## 5. Checklist antes de aceptar el primer evento educativo real o el primer pago
 
 - [ ] Redactar TOS y política de privacidad reales con asesoría, a partir de §1–§3.
-- [ ] Confirmar plazos exactos de retención fiscal de `purchases` (§3.3) con asesoría fiscal.
+- [ ] Confirmar plazos exactos de retención fiscal de `purchase` (§3.3) con asesoría fiscal.
 - [ ] Redactar plantilla de DPA para organizaciones que usen claves individuales con email (§3.1).
 - [ ] Revisar TOS vigentes de ElevenLabs sobre titularidad de audio generado antes de activar la
       función en producción (§2.3).

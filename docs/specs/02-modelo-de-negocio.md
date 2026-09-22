@@ -76,7 +76,7 @@ Reglas de negocio:
 ### 3.2 Tramos de precio (tabla editable)
 
 Los tramos dejan de ser constantes de código y pasan a ser **filas editables** en
-`pricing_tiers` (ver `14-modelo-de-datos-sql.md`). Valores iniciales (seed):
+`pricingTier` (ver `14-modelo-de-datos-sql.md`). Valores iniciales (seed):
 
 | Jugadores | Precio / unidad |
 |---|---|

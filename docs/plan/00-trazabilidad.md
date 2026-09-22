@@ -50,7 +50,7 @@ Los 19 documentos de `docs/_archive/` fueron la fuente de esta consolidación. C
 | `especificaciones-escape-room-creator-v1.0.md` | Repartido en `specs/01`–`specs/14` (visión, negocio, stack, runtime, plantillas, formato, editor, MCP, SQL) |
 | `roadmap-desarrollo-tickets.md` | Expandido en `plan/00-plan-maestro.md` + `plan/fase-0` … `fase-6` |
 | `planificacion-ampliada-puntos-1-12.md` | Puntos 1–2 → `specs/05`, `specs/04`; punto 3 → `specs/15`; punto 4 → `specs/20`; punto 5 → `specs/07`; punto 6 → `specs/04` §8; punto 7 → `specs/16`; punto 8 → `specs/02` §9; puntos 9–12 → `specs/23`; punto 11 → `specs/21` |
-| `decisiones-cierre-huecos-v1_0.md` | **Fusionado**: licencias → `specs/02` §5 y `specs/14`; multiidioma → `specs/08` §2.2; audio por locale → `specs/15` §2.1; `pricing_tiers` → `specs/02` §3.2 y `specs/14` §8; `max_players_per_room` → `specs/12` §3 y `specs/14` §8; B2C una partida → `specs/02` §2.1; apelaciones → `specs/17` §7 y `specs/14` §10; cabos sueltos → `README` y specs correspondientes |
+| `decisiones-cierre-huecos-v1_0.md` | **Fusionado**: licencias → `specs/02` §5 y `specs/14`; multiidioma → `specs/08` §2.2; audio por locale → `specs/15` §2.1; `pricingTier` → `specs/02` §3.2 y `specs/14` §8; `maxPlayersPerRoom` → `specs/12` §3 y `specs/14` §8; B2C una partida → `specs/02` §2.1; apelaciones → `specs/17` §7 y `specs/14` §10; cabos sueltos → `README` y specs correspondientes |
 | `roompackage-rey-aldric-v1.0.md` | `reference/roompackage-rey-aldric.v1.json` (actualizado a `packageFormat` y `LocalizedText`) + `reference/rey-aldric-notas-diseno.md` |
 | `plantillas-puzzle-v2-especificacion.md` | `specs/07` (íntegro) + `reference/catalogo-plantillas.md` |
 | `protocolo-mensajes-colyseus.md` | `specs/11` (íntegro) |
@@ -74,7 +74,7 @@ Listadas también en `README.md`; se resuelven en las fases indicadas:
 | `packageFormat` valor inicial | `specs/08` §6 | 1 |
 | LiveKit self-hosted vs. Cloud | `specs/12` §2.2 | 2 (ticket 2.11) |
 | Titularidad audio ElevenLabs / plazos fiscales / DPA | `specs/18` §2.3, §5 | 5–6 |
-| Job de purga de `analytics_events` | `specs/14` §12 | 6 (ticket 6.11) |
+| Job de purga de `analyticsEvent` | `specs/14` §12 | 6 (ticket 6.11) |
 | ¿"Una partida" B2C se consume al crear o al terminar? | `specs/02` §2.1 | 5 |
 
 ## 4. Verificación de cobertura
