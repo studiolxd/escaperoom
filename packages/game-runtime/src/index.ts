@@ -8,3 +8,4 @@ export type RuntimeMode = (typeof RUNTIME_MODE)[keyof typeof RUNTIME_MODE];
 
 export * from "./loader";
 export * from "./pack";
+export * from "./world";

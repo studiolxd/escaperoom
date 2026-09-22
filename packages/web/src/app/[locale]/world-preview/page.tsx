@@ -1,0 +1,30 @@
+import { loadRoomPackage, toRuntimeModel } from "@escaperoom/game-runtime";
+import { setRequestLocale } from "next-intl/server";
+import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
+import { WorldPreviewShell } from "@/components/world-preview/world-preview-shell";
+import { worldPreviewPackage } from "@/lib/world-preview-fixture";
+
+type Props = { params: Promise<{ locale: string }> };
+
+/**
+ * Ruta de previsualización del sistema de objetos (ticket 1.3). Carga una sala
+ * de demo con el loader puro y monta la escena Phaser + overlay React para
+ * validar a mano: hover/brillo, inspección con diálogo, transiciones de estado
+ * con animación y un objeto con inventario interno (`distribution`).
+ */
+export default async function WorldPreviewPage({ params }: Props) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
+  const roomPackage = loadRoomPackage(worldPreviewPackage());
+  const model = toRuntimeModel(roomPackage, { locale });
+
+  return (
+    <main className="relative min-h-dvh bg-background p-4">
+      <WorldPreviewShell model={model} />
+      <div className="absolute right-4 top-4">
+        <LocaleSwitcher />
+      </div>
+    </main>
+  );
+}

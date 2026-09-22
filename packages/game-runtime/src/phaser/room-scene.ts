@@ -8,6 +8,19 @@ import {
   type CollisionGrid,
   type PackManifest,
 } from "../pack";
+import {
+  collectContainer,
+  containerContents,
+  createContainerStateMap,
+  createObjectStateMap,
+  currentObjectState,
+  inspectObject,
+  resolveObjectStateAnimation,
+  resolveObjectStateSprite,
+  setObjectState as applyObjectState,
+  type ContainerStateMap,
+  type ObjectStateMap,
+} from "../world";
 import { AvatarController } from "./avatar";
 import {
   ISO_TILE_HEIGHT,
@@ -21,6 +34,7 @@ import {
 } from "./iso";
 import { PackFrameResolver } from "./pack-textures";
 import { playerColor } from "./palette";
+import { WORLD_EVENT, type WorldSceneEvent } from "./world-events";
 
 /** Pack cargado por la escena: manifiesto + base de las imágenes de atlas. */
 export interface RoomScenePack {
@@ -39,15 +53,34 @@ export interface RoomSceneOptions {
   pack?: RoomScenePack;
   /** Muestra y controla un avatar jugable (por defecto `true`). */
   avatar?: boolean;
+  /**
+   * Dibuja el diálogo de inspección dentro de Phaser (por defecto `true`). En la
+   * integración React, ponerlo a `false` y escuchar `world:event` para pintarlo
+   * en el DOM.
+   */
+  dialogOverlay?: boolean;
+  /** Id del jugador local, para el reparto de inventario (`distribution`). */
+  localPlayerId?: string;
+}
+
+/** Vista de un objeto en la escena: sprite, brillo de hover y profundidad. */
+interface ObjectView {
+  object: RuntimeObject;
+  sprite: Phaser.GameObjects.Sprite;
+  glow: Phaser.GameObjects.Ellipse;
+  baseScaleX: number;
+  baseScaleY: number;
 }
 
 const DEPTH = {
   ground: 0,
   tileSub: 10,
   decorationSub: 20,
+  objectGlowSub: 29,
   objectSub: 30,
   ambient: 9000,
   halo: 9001,
+  dialog: 9500,
 } as const;
 
 const FLOOR_TILE_SIZE = { width: ISO_TILE_WIDTH, height: ISO_TILE_HEIGHT };
@@ -70,6 +103,8 @@ export class RoomScene extends Phaser.Scene {
   private readonly showLabels: boolean;
   private readonly pack?: RoomScenePack;
   private readonly avatarEnabled: boolean;
+  private readonly dialogOverlayEnabled: boolean;
+  private readonly localPlayerId: string;
   private readonly manifest: PackManifest;
 
   private activeRoomId: string;
@@ -85,12 +120,21 @@ export class RoomScene extends Phaser.Scene {
   private doorCooldownUntil = 0;
   private clickTarget?: { x: number; y: number };
 
+  private objectState: ObjectStateMap = {};
+  private containers: ContainerStateMap = {};
+  private objectViews = new Map<string, ObjectView>();
+  private hoveredObjectId?: string;
+  private dialogBox?: Phaser.GameObjects.Container;
+  private dialogHideAt = 0;
+
   constructor(options: RoomSceneOptions) {
     super("room-preview");
     this.model = options.model;
     this.showLabels = options.showLabels ?? false;
     this.pack = options.pack;
     this.avatarEnabled = options.avatar ?? true;
+    this.dialogOverlayEnabled = options.dialogOverlay ?? true;
+    this.localPlayerId = options.localPlayerId ?? "p0";
     this.manifest = options.pack?.manifest ?? buildPlaceholderManifest(options.model);
 
     const initialRoomId = options.initialRoomId ?? this.model.subrooms[0]?.id;
@@ -121,12 +165,17 @@ export class RoomScene extends Phaser.Scene {
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
 
+    this.objectState = createObjectStateMap(this.model);
+    this.containers = createContainerStateMap(this.model);
     this.setupInput();
     this.buildRoom();
     this.cameras.main.fadeIn(200, 11, 17, 32);
   }
 
   update(time: number, delta: number): void {
+    if (this.dialogBox && time > this.dialogHideAt) {
+      this.hideDialog();
+    }
     if (!this.built || this.transitioning || !this.avatar) {
       return;
     }
@@ -185,6 +234,10 @@ export class RoomScene extends Phaser.Scene {
     this.avatar?.destroy();
     this.avatar = undefined;
     this.clickTarget = undefined;
+    this.hoveredObjectId = undefined;
+    this.input.setDefaultCursor("default");
+    this.objectViews.clear();
+    this.hideDialog();
     for (const object of this.roomObjects) {
       object.destroy();
     }
@@ -270,20 +323,359 @@ export class RoomScene extends Phaser.Scene {
 
   private drawObjects(room: RuntimeSubRoom): void {
     for (const object of room.objects) {
-      const frame = resolveSpriteFrame(this.manifest, object.sprite);
+      const state = currentObjectState(this.objectState, object);
+      const frame = resolveSpriteFrame(this.manifest, resolveObjectStateSprite(object, state));
       const ref = this.resolver.resolve(frame, SPRITE_SIZE);
       const anchor = tileAnchor(object.position.x, object.position.y);
       const depth = isoDepth(object.position.x, object.position.y, DEPTH.objectSub) + 1;
 
-      this.track(
-        this.add.image(anchor.x, anchor.y, ref.key, ref.frame).setOrigin(0.5, 1).setDepth(depth),
+      const glow = this.track(
+        this.add
+          .ellipse(
+            anchor.x,
+            anchor.y - SPRITE_SIZE.height * 0.35,
+            SPRITE_SIZE.width * 0.72,
+            SPRITE_SIZE.height * 0.22,
+            0xffe08a,
+            0,
+          )
+          .setDepth(isoDepth(object.position.x, object.position.y, DEPTH.objectGlowSub) + 1)
+          .setBlendMode(Phaser.BlendModes.ADD),
       );
+
+      const sprite = this.track(
+        this.add.sprite(anchor.x, anchor.y, ref.key, ref.frame).setOrigin(0.5, 1).setDepth(depth),
+      );
+
+      const view: ObjectView = {
+        object,
+        sprite,
+        glow,
+        baseScaleX: sprite.scaleX,
+        baseScaleY: sprite.scaleY,
+      };
+      this.objectViews.set(object.id, view);
+
+      if (object.interactable) {
+        this.wireInteraction(view);
+      }
 
       if (this.showLabels) {
         const suffix = object.lockedBy ? " (bloqueado)" : "";
         this.label(`${object.id}${suffix}`, anchor.x, anchor.y - SPRITE_SIZE.height, depth);
       }
     }
+  }
+
+  /** Habilita brillo de pista, cursor y clic sobre un objeto interactuable. */
+  private wireInteraction(view: ObjectView): void {
+    const { sprite, object } = view;
+    sprite.setInteractive({ useHandCursor: true });
+    sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => this.setHover(object.id));
+    sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => this.clearHover(object.id));
+    sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => this.inspectObjectById(object.id));
+  }
+
+  /** Brillo/pista al pasar el cursor sobre un objeto interactuable. */
+  private setHover(objectId: string): void {
+    if (this.hoveredObjectId === objectId) {
+      return;
+    }
+    if (this.hoveredObjectId) {
+      this.clearHover(this.hoveredObjectId);
+    }
+
+    const view = this.objectViews.get(objectId);
+    if (!view) {
+      return;
+    }
+    this.hoveredObjectId = objectId;
+    this.input.setDefaultCursor("pointer");
+
+    view.glow.setAlpha(0.55);
+    this.tweens.add({
+      targets: view.glow,
+      alpha: { from: 0.3, to: 0.7 },
+      duration: 620,
+      yoyo: true,
+      repeat: -1,
+    });
+    this.tweens.add({
+      targets: view.sprite,
+      scaleX: view.baseScaleX * 1.06,
+      scaleY: view.baseScaleY * 1.06,
+      duration: 140,
+    });
+  }
+
+  private clearHover(objectId: string): void {
+    if (this.hoveredObjectId !== objectId) {
+      return;
+    }
+    this.hoveredObjectId = undefined;
+    this.input.setDefaultCursor("default");
+
+    const view = this.objectViews.get(objectId);
+    if (!view) {
+      return;
+    }
+    this.tweens.killTweensOf(view.glow);
+    view.glow.setAlpha(0);
+    this.tweens.add({
+      targets: view.sprite,
+      scaleX: view.baseScaleX,
+      scaleY: view.baseScaleY,
+      duration: 140,
+    });
+  }
+
+  /**
+   * Cambia el estado de un objeto del mundo (lo consumirá el motor de reglas de
+   * 1.4). Actualiza el sprite/animación y emite `world:event`.
+   */
+  setObjectState(objectId: string, state: string): void {
+    const object = this.model.objectsById[objectId];
+    if (!object) {
+      throw new Error(`RoomScene: el objeto "${objectId}" no existe en el modelo.`);
+    }
+    const next = applyObjectState(this.objectState, object, state);
+    if (next === this.objectState) {
+      return;
+    }
+    this.objectState = next;
+    this.syncObjectView(object);
+    this.emit({ type: "state", objectId, state });
+  }
+
+  /** Estado actual de un objeto (para consumidores externos). */
+  objectStateOf(objectId: string): string | undefined {
+    const object = this.model.objectsById[objectId];
+    return object ? currentObjectState(this.objectState, object) : undefined;
+  }
+
+  private syncObjectView(object: RuntimeObject): void {
+    const view = this.objectViews.get(object.id);
+    if (!view) {
+      return;
+    }
+    const state = currentObjectState(this.objectState, object);
+    const frame = resolveSpriteFrame(this.manifest, resolveObjectStateSprite(object, state));
+    const ref = this.resolver.resolve(frame, SPRITE_SIZE);
+    view.sprite.setTexture(ref.key, ref.frame);
+
+    const animation = resolveObjectStateAnimation(object, state);
+    if (animation) {
+      this.playTransition(view.sprite, animation);
+    }
+  }
+
+  private playTransition(sprite: Phaser.GameObjects.Sprite, animation: string): void {
+    if (this.ensureObjectAnimation(animation)) {
+      sprite.play(animation);
+      return;
+    }
+
+    const baseX = sprite.x;
+    const baseY = sprite.y;
+    switch (animation) {
+      case "shake":
+        this.tweens.add({
+          targets: sprite,
+          x: baseX + 4,
+          duration: 60,
+          yoyo: true,
+          repeat: 5,
+          onComplete: () => sprite.setX(baseX),
+        });
+        break;
+      case "slide_up":
+        sprite.setY(baseY + 12);
+        this.tweens.add({ targets: sprite, y: baseY, duration: 220, ease: "Cubic.Out" });
+        break;
+      case "pulse":
+        this.tweens.add({
+          targets: sprite,
+          scaleX: sprite.scaleX * 1.12,
+          scaleY: sprite.scaleY * 1.12,
+          duration: 180,
+          yoyo: true,
+        });
+        break;
+      case "fade_in":
+        sprite.setAlpha(0);
+        this.tweens.add({ targets: sprite, alpha: 1, duration: 260 });
+        break;
+      default:
+        break;
+    }
+  }
+
+  /** Registra una animación de objeto declarada por el pack (si no existe ya). */
+  private ensureObjectAnimation(key: string): boolean {
+    if (this.anims.exists(key)) {
+      return true;
+    }
+    const declared = this.manifest.anims.find((anim) => anim.key === key);
+    if (!declared) {
+      return false;
+    }
+    this.anims.create({
+      key,
+      frames: declared.frames.map((frame) => {
+        const ref = this.resolver.resolve(frame, SPRITE_SIZE);
+        return { key: ref.key, frame: ref.frame };
+      }),
+      frameRate: declared.frameRate,
+      repeat: declared.repeat,
+    });
+    return true;
+  }
+
+  /** Inspecciona un objeto: diálogo, reparto de inventario y panel asociado. */
+  inspectObjectById(objectId: string): void {
+    const object = this.model.objectsById[objectId];
+    if (!object || !object.interactable) {
+      return;
+    }
+
+    const result = inspectObject(this.model, objectId, {
+      locale: this.model.locale,
+      containers: this.containers,
+    });
+    if (!result) {
+      return;
+    }
+
+    const { text, collected } = this.buildInspectText(object, result);
+    if (collected.length > 0) {
+      this.emit({ type: "collect", objectId, playerId: this.localPlayerId, items: collected });
+    }
+    if (result.panelPuzzleId) {
+      this.emit({ type: "open-panel", objectId, puzzleId: result.panelPuzzleId });
+    }
+    if (text) {
+      this.showDialog(text);
+      this.emit({
+        type: "dialog",
+        objectId,
+        ...(result.dialogId ? { dialogId: result.dialogId } : {}),
+        text,
+        ...(result.panelPuzzleId ? { panelPuzzleId: result.panelPuzzleId } : {}),
+        conditioned: result.conditioned,
+      });
+    }
+  }
+
+  private buildInspectText(
+    object: RuntimeObject,
+    result: ReturnType<typeof inspectObject>,
+  ): { text?: string; collected: string[] } {
+    const parts: string[] = [];
+    if (result?.dialog?.text) {
+      parts.push(result.dialog.text);
+    }
+
+    let collected: string[] = [];
+    if (object.inventory && object.inventory.length > 0) {
+      const collect = collectContainer(this.containers, object, { openerId: this.localPlayerId });
+      if (collect.alreadyOpen) {
+        const remaining = containerContents(this.containers, object.id);
+        parts.push(
+          remaining.length > 0
+            ? `Queda dentro: ${remaining.map((id) => this.itemName(id)).join(", ")}.`
+            : "Está vacío.",
+        );
+      } else {
+        this.containers = collect.map;
+        collected = collect.grants[this.localPlayerId] ?? [];
+        if (collected.length > 0) {
+          parts.push(`Recibes: ${collected.map((id) => this.itemName(id)).join(", ")}.`);
+        }
+      }
+    }
+
+    if (parts.length === 0 && result?.panelPuzzleId) {
+      parts.push(`Abre el panel: ${result.panelPuzzleId}.`);
+    }
+
+    return { ...(parts.length > 0 ? { text: parts.join(" ") } : {}), collected };
+  }
+
+  private itemName(itemId: string): string {
+    return this.model.itemsById[itemId]?.name ?? itemId;
+  }
+
+  /** Interactúa con el objeto interactuable más cercano al avatar (tecla Espacio). */
+  private interactNearest(): void {
+    const room = this.model.subroomsById[this.activeRoomId];
+    if (!room) {
+      return;
+    }
+    const cell = this.avatar?.gridCell ?? { x: 0, y: 0 };
+    let nearest: { id: string; distance: number } | undefined;
+
+    for (const object of room.objects) {
+      if (!object.interactable) {
+        continue;
+      }
+      const distance = Math.hypot(object.position.x - cell.x, object.position.y - cell.y);
+      if (distance <= 1.75 && (!nearest || distance < nearest.distance)) {
+        nearest = { id: object.id, distance };
+      }
+    }
+
+    if (nearest) {
+      this.inspectObjectById(nearest.id);
+    }
+  }
+
+  private showDialog(text: string): void {
+    if (!this.dialogOverlayEnabled) {
+      return;
+    }
+    this.hideDialog();
+
+    const width = Math.min(this.scale.width - 32, 660);
+    const height = 92;
+    const x = this.scale.width / 2;
+    const y = this.scale.height - height / 2 - 20;
+
+    const background = this.add
+      .rectangle(0, 0, width, height, 0x0b1120, 0.9)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0xffe08a, 0.5);
+    const label = this.add
+      .text(0, -6, text, {
+        fontFamily: "ui-sans-serif, system-ui, sans-serif",
+        fontSize: "14px",
+        color: "#f8fafc",
+        align: "center",
+        wordWrap: { width: width - 36 },
+      })
+      .setOrigin(0.5);
+    const hint = this.add
+      .text(0, height / 2 - 14, "Espacio / clic para inspeccionar", {
+        fontFamily: "ui-monospace, monospace",
+        fontSize: "10px",
+        color: "#94a3b8",
+      })
+      .setOrigin(0.5);
+
+    this.dialogBox = this.add
+      .container(x, y, [background, label, hint])
+      .setScrollFactor(0)
+      .setDepth(DEPTH.dialog);
+    this.dialogHideAt = this.time.now + 6000;
+  }
+
+  private hideDialog(): void {
+    this.dialogBox?.destroy(true);
+    this.dialogBox = undefined;
+    this.dialogHideAt = 0;
+  }
+
+  private emit(event: WorldSceneEvent): void {
+    this.events.emit(WORLD_EVENT, event);
   }
 
   private drawSpawns(room: RuntimeSubRoom): void {
@@ -373,15 +765,24 @@ export class RoomScene extends Phaser.Scene {
       s: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
       d: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
     };
-    keyboard.on("keydown-SPACE", () => this.avatar?.interact());
+    keyboard.on("keydown-SPACE", () => {
+      this.avatar?.interact();
+      this.interactNearest();
+    });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       keyboard.removeAllListeners("keydown-SPACE");
     });
   }
 
-  /** Clic para moverse: permite alcanzar celdas que las teclas diagonales no cubren. */
+  /** Clic: si el cursor está sobre un objeto interactuable no mueve; si no, camina. */
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
-    if (!this.avatar || this.transitioning) {
+    if (this.transitioning) {
+      return;
+    }
+    if (this.hoveredObjectId) {
+      return;
+    }
+    if (!this.avatar) {
       return;
     }
     const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);

@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { RuntimeModel } from "../loader";
 import { RoomScene, type RoomScenePack } from "./room-scene";
+import { WORLD_EVENT, type WorldSceneEvent } from "./world-events";
 
 export interface RoomRuntimeOptions {
   /** Habitación inicial; por defecto la primera del paquete. */
@@ -11,6 +12,10 @@ export interface RoomRuntimeOptions {
   pack?: RoomScenePack;
   /** Muestra y controla un avatar jugable (por defecto `true`). */
   avatar?: boolean;
+  /** Dibuja el diálogo de inspección dentro de Phaser (por defecto `true`). */
+  dialogOverlay?: boolean;
+  /** Id del jugador local, para el reparto de inventario (`distribution`). */
+  localPlayerId?: string;
 }
 
 /**
@@ -32,6 +37,8 @@ export class RoomRuntime {
       showLabels: options.showLabels,
       pack: options.pack,
       avatar: options.avatar,
+      dialogOverlay: options.dialogOverlay,
+      localPlayerId: options.localPlayerId,
     });
 
     this.game = new Phaser.Game({
@@ -56,6 +63,50 @@ export class RoomRuntime {
   /** Cambia la habitación activa con un fundido. */
   showRoom(roomId: string): void {
     this.scene.setRoom(roomId);
+  }
+
+  /** Cambia el estado de un objeto del mundo (lo usará el motor de reglas). */
+  setObjectState(objectId: string, state: string): void {
+    this.scene.setObjectState(objectId, state);
+  }
+
+  /** Inspecciona un objeto como si el jugador lo hubiera pulsado. */
+  inspectObject(objectId: string): void {
+    this.scene.inspectObjectById(objectId);
+  }
+
+  /**
+   * Suscribe un manejador a los eventos de mundo (diálogo, panel, recogida,
+   * estado). Devuelve la función para cancelar la suscripción.
+   *
+   * `scene.events` solo existe cuando Phaser arranca (se inyecta en el evento
+   * `READY` del juego), así que si aún no está listo se difiere la suscripción.
+   */
+  onWorldEvent(handler: (event: WorldSceneEvent) => void): () => void {
+    const scene = this.scene;
+    if (scene.events) {
+      scene.events.on(WORLD_EVENT, handler);
+      return () => {
+        scene.events.off(WORLD_EVENT, handler);
+      };
+    }
+
+    let attached = false;
+    const attach = () => {
+      if (attached) {
+        return;
+      }
+      attached = true;
+      scene.events.on(WORLD_EVENT, handler);
+    };
+    this.game.events.once(Phaser.Core.Events.READY, attach);
+
+    return () => {
+      this.game.events.off(Phaser.Core.Events.READY, attach);
+      if (attached) {
+        scene.events.off(WORLD_EVENT, handler);
+      }
+    };
   }
 
   /** Destruye el juego Phaser y libera el canvas. */
