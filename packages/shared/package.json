@@ -10,6 +10,7 @@
     "./engine": "./src/engine/index.ts",
     "./templates": "./src/templates/index.ts",
     "./hints": "./src/hints/index.ts",
+    "./session": "./src/session/index.ts",
     "./services": "./src/services/index.ts",
     "./analytics": "./src/analytics/index.ts",
     "./db": "./src/db/index.ts"
