@@ -1,0 +1,123 @@
+name: escaperoom-dev
+
+# Dependencias locales. Las apps corren fuera de Docker con `pnpm dev` y se
+# conectan a PgBouncer en localhost:56433 (o directo a Postgres en 55433 para
+# migraciones). Adaptado de SLXD (ADR-017): sin ClickHouse ni Gatus; se añaden
+# LiveKit y coturn (specs/12).
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-escaperoom}
+    ports:
+      - "${POSTGRES_PORT:-55433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  # Pooler delante de Postgres. Las migraciones (Prisma) van directas a 55433;
+  # la app usa el pooler en 56433.
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.25.2-p0
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      AUTH_TYPE: scram-sha-256
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: ${PGBOUNCER_MAX_CLIENT_CONN:-200}
+      DEFAULT_POOL_SIZE: ${PGBOUNCER_DEFAULT_POOL_SIZE:-10}
+      MAX_PREPARED_STATEMENTS: ${PGBOUNCER_MAX_PREPARED_STATEMENTS:-200}
+    ports:
+      - "${PGBOUNCER_PORT:-56433}:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-p", "5432"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-56380}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # S3 compatible solo para desarrollo. En producción, Cloudflare R2.
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "${MINIO_API_PORT:-9002}:9000"
+      - "${MINIO_CONSOLE_PORT:-59002}:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - minio-data:/data
+
+  # Los buckets no se crean solos: sin este paso la primera subida muere con
+  # NoSuchBucket. La lista vive en infra/minio-dev/buckets.txt.
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    volumes:
+      - ./minio-dev/buckets.txt:/buckets.txt:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        set -e;
+        mc alias set dev http://minio:9000
+        "${MINIO_ROOT_USER:-minioadmin}" "${MINIO_ROOT_PASSWORD:-minioadmin}";
+        while read -r b; do
+        case "$$b" in ''|\#*) continue ;; esac;
+        mc mb -p "dev/$$b";
+        done < /buckets.txt
+
+  # SFU de voz/webcam (specs/12). La room de medios vive y muere con la de
+  # Colyseus; el SDK JS del cliente habla con 7880 (ws) y 7881/7882 (RTC).
+  livekit:
+    image: livekit/livekit-server:latest
+    command: --config /etc/livekit.yaml
+    ports:
+      - "${LIVEKIT_PORT:-7880}:7880"
+      - "${LIVEKIT_RTC_TCP_PORT:-7881}:7881"
+      - "${LIVEKIT_RTC_UDP_PORT:-7882}:7882/udp"
+    volumes:
+      - ./livekit/livekit.yaml:/etc/livekit.yaml:ro
+
+  # Servidor TURN/STUN para redes restrictivas (specs/12). En macOS el
+  # networking de Docker limita TURN; en producción va en el VPS con red host.
+  coturn:
+    image: coturn/coturn:latest
+    command: -c /etc/coturn/turnserver.conf
+    ports:
+      - "${COTURN_PORT:-3478}:3478"
+      - "${COTURN_PORT:-3478}:3478/udp"
+      - "${COTURN_TLS_PORT:-5349}:5349"
+    volumes:
+      - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
+
+volumes:
+  postgres-data:
+  minio-data:

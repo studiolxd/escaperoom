@@ -1,5 +1,15 @@
+import { PrismaClient } from "../../generated/client";
+
 /**
- * Acceso a datos con Prisma (ADR-015). Placeholder del ticket 0.1: el cliente
- * y las migraciones llegan en el ticket 0.2.
+ * Cliente Prisma compartido (ADR-015). Los tipos y el cliente se generan con
+ * `prisma generate` desde `packages/shared/prisma/schema.prisma`.
  */
-export const DB_PACKAGE = "@escaperoom/shared/db" as const;
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+
+export const prisma: PrismaClient = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
+
+export * from "../../generated/client";

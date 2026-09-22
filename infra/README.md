@@ -1,0 +1,37 @@
+# Infra local
+
+Dependencias de desarrollo en Docker (adaptado de SLXD, ADR-017). Las apps
+corren en el host con `pnpm dev`; esto solo levanta Postgres, Redis, MinIO,
+LiveKit y coturn.
+
+```bash
+pnpm infra:up      # docker compose up -d
+pnpm infra:down    # docker compose down
+pnpm db:migrate    # aplica migraciones Prisma (directo a Postgres)
+pnpm db:seed       # admin + creador + Rey Aldric publicado
+```
+
+## Puertos (no estándar, para no chocar con otras suites)
+
+| Servicio            | Host                    | Contenedor  |
+| ------------------- | ----------------------- | ----------- |
+| Postgres            | 55433                   | 5432        |
+| PgBouncer (app)     | 56433                   | 5432        |
+| Redis               | 56380                   | 6379        |
+| MinIO API / consola | 9002 / 59002            | 9000 / 9001 |
+| LiveKit (ws)        | 7880                    | 7880        |
+| LiveKit RTC         | 7881 (tcp) / 7882 (udp) | idem        |
+| coturn              | 3478 (tcp/udp) / 5349   | idem        |
+
+## URLs
+
+- App (vía pooler): `postgresql://postgres:postgres@localhost:56433/escaperoom`
+- Migraciones (directo): `postgresql://postgres:postgres@localhost:55433/escaperoom`
+- Redis: `redis://localhost:56380`
+- MinIO: `http://localhost:9002` (usuario/clave `minioadmin`)
+
+## Notas
+
+- **coturn en macOS**: el networking de Docker limita TURN; sirve para probar el
+  flujo, no como espejo de producción (donde va en el VPS con red host).
+- **LiveKit**: claves de desarrollo (`devkey`/`secret`) en `livekit/livekit.yaml`.

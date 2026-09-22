@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Contrato y lógica compartidos: esquemas Zod, servicios de dominio y acceso a datos.",
+  "description": "Contrato y lógica compartidos: esquemas Zod, servicios de dominio y acceso a datos (Prisma).",
   "exports": {
     ".": "./src/index.ts",
     "./schemas": "./src/schemas/index.ts",
@@ -12,16 +12,27 @@
   },
   "scripts": {
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "typecheck": "prisma generate && tsc --noEmit",
+    "test": "prisma generate && vitest run --passWithNoTests",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:reset": "prisma migrate reset --force",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/client": "6.19.3",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@escaperoom/config": "workspace:*",
     "@types/node": "^26.6.2",
     "eslint": "^10.11.0",
+    "prisma": "6.19.3",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^5.0.1"
   }
