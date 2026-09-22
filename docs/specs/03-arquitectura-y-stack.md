@@ -105,6 +105,9 @@ packages/
 ├── editor/              ← UI del editor (Next.js) + Yjs + React Flow
 ├── mcp-server/          ← @slxd/mcp-server adaptado: pipeline, tools sobre servicios, OAuth 2.1 (@slxd/mcp-auth)
 ├── colyseus-server/     ← rooms autoritativas, motor de reglas, validación de puzzles
+├── kit/                 ← @escaperoom/kit: infraestructura común reutilizable (logger,
+│                          redis, rate-limit, storage S3/R2, colas/eventos BullMQ y
+│                          health de workers); sin la infraestructura tRPC (la consume el 0.10)
 └── shared/
     ├── services/        ← **única lógica de dominio** (salas, objetos, puzzles, reglas, eventos, créditos)
     │                      la invocan tRPC, REST, MCP y Colyseus con un `actor` (ADR-022)
