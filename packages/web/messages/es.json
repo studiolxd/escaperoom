@@ -83,5 +83,20 @@
       "no_more_tiers": "Ya has pedido todas las pistas de este puzzle",
       "insufficient_hints": "Esta pista cuesta {cost} y solo quedan {remaining}"
     }
+  },
+  "Results": {
+    "title": "Resultados",
+    "result": {
+      "victory": "¡Victoria!",
+      "timeout": "Se agotó el tiempo",
+      "aborted": "Partida abandonada"
+    },
+    "time": "Tiempo",
+    "hints": "Pistas usadas",
+    "puzzles": "Puzzles resueltos",
+    "puzzlesValue": "{solved}/{total}",
+    "items": "Objetos recogidos",
+    "review": "Dejar reseña",
+    "exit": "Salir"
   }
 }

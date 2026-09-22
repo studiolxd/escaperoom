@@ -64,6 +64,17 @@ describe("i18n", () => {
         "Inventory.invalid",
         "Inventory.missingItems",
         "Inventory.unavailable",
+        "Results.title",
+        "Results.result.victory",
+        "Results.result.timeout",
+        "Results.result.aborted",
+        "Results.time",
+        "Results.hints",
+        "Results.puzzles",
+        "Results.puzzlesValue",
+        "Results.items",
+        "Results.review",
+        "Results.exit",
       ]),
     );
   });

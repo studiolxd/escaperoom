@@ -82,5 +82,20 @@
       "no_more_tiers": "You already asked for every hint of this puzzle",
       "insufficient_hints": "This hint costs {cost} and only {remaining} are left"
     }
+  },
+  "Results": {
+    "title": "Results",
+    "result": {
+      "victory": "Victory!",
+      "timeout": "Time's up",
+      "aborted": "Game abandoned"
+    },
+    "time": "Time",
+    "hints": "Hints used",
+    "puzzles": "Puzzles solved",
+    "puzzlesValue": "{solved}/{total}",
+    "items": "Items collected",
+    "review": "Leave a review",
+    "exit": "Exit"
   }
 }
