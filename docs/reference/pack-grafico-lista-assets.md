@@ -3,16 +3,23 @@
 Compañera de `specs/26-pack-grafico-v1.md`. El **nombre del archivo debe ser exactamente el frame**
 (el id del `RoomPackage`); PNG con alpha 2:1, pivote abajo-centro, un PNG por frame.
 
+**Tiles vs sprites:** la *celda* de rejilla es siempre **64×32**. Los **tiles** (suelo) van dentro del
+tilemap y **todos comparten el mismo tamaño** (64×32). Todo lo que tiene **altura** (muros, columnas,
+muebles, objetos…) son **sprites** colocados encima, de **lienzo libre**. Phaser soporta un tileset
+uniforme + sprites de cualquier tamaño con depth-sort; lo que no conviene es mezclar tamaños de tile
+en la misma capa.
+
 | Archivo | Tamaño | Descripción |
 |---|---|---|
-| **Tiles (celda 64×32, iso 2:1)** | | |
-| `tile-1.png` | 64×32 | Suelo de piedra (tablero A) |
-| `tile-2.png` | 64×32 | Suelo de loseta/piedra (tablero B) |
-| `tile-3.png` | 64×32 | Alfombra roja |
-| `tile-10.png` | 64×64 | Muro (colisiona) |
-| `tile-20.png` | 64×48 | Umbral de puerta |
-| `tile-21.png` | 64×48 | Escalón / peldaño |
-| `tile-22.png` | 64×48 | Reja / trampilla en el suelo |
+| **Tiles (todos iguales: 64×32, iso 2:1)** | | |
+| `tile-1.png` | 64×32 | Tile: suelo de piedra (tablero A) |
+| `tile-2.png` | 64×32 | Tile: suelo de loseta/piedra (tablero B) |
+| `tile-3.png` | 64×32 | Tile: alfombra roja |
+| **Sprites con altura** (no son tiles; lienzo libre, pivote abajo-centro) | | |
+| `tile-10.png` | 64×64 | Sprite: muro (colisiona) |
+| `tile-20.png` | 64×48 | Sprite: umbral de puerta |
+| `tile-21.png` | 64×48 | Sprite: escalón / peldaño |
+| `tile-22.png` | 64×48 | Sprite: reja / trampilla en el suelo |
 | **Decoración** | | |
 | `antorcha.png` | 64×96 | Antorcha de pared (apagada) |
 | `barril-suelto.png` | 64×64 | Barril suelto |
