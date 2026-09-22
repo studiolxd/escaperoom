@@ -20,6 +20,15 @@ El **nombre del archivo debe ser exactamente el frame** del `RoomPackage`
 (`specs/26` §3.3): `WorldObject.sprite`, cada estado, `Decoration.sprite`,
 `ItemDef.icon`, `tile-<id>` y los frames `avatar-<dir>-<acción>-<n>`.
 
+### Fuentes admitidas
+
+Se aceptan `.svg` y `.png` (los PNG, tal cual, sin aviso). **Los SVG se
+rasterizan automáticamente** al tamaño de lienzo canónico de su frame
+(`reference/pack-grafico-lista-assets.md`): suelo `64×32`, sprites a su talla,
+`icon-*` `64×64`, `avatar-*` `64×96`, `fx-*` `64×64`. En SVG no hace falta fijar
+el tamaño final: dibuja con el lienzo/proporción correctos (iso 2:1, base
+abajo-centro, con padding transparente) y el script lo escala sin deformar.
+
 ## Generar atlas + manifest
 
 ```bash

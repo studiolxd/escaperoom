@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   validatePack,
+  validatePackManifest,
   type PackManifest,
   type PackValidationIssue,
   type RuntimeModel,
@@ -68,8 +69,19 @@ export function resolveRoomPreviewPack(
   }
 
   const result = validatePack(raw, model);
-  if (!result.manifest || !result.ok) {
+  if (!result.manifest) {
     return { issues: result.issues };
+  }
+
+  // Pack PARCIAL: se admite mientras su estructura sea válida, aunque no cubra
+  // todos los frames del RoomPackage. La escena resuelve por nombre y lo que
+  // falte cae al placeholder automático, así ir soltando assets se ve al
+  // instante (ticket 1.2). Las incidencias se devuelven como aviso.
+  const structuralErrors = result.issues.filter((issue) => issue.severity === "error");
+  const structural = validatePackManifest(result.manifest);
+  const blocking = structural.issues.filter((issue) => issue.severity === "error");
+  if (blocking.length > 0) {
+    return { issues: [...structuralErrors, ...structural.issues] };
   }
 
   return {

@@ -69,4 +69,24 @@ describe("resolveRoomPreviewPack", () => {
     expect(result.pack).toBeUndefined();
     expect(result.issues.some((issue) => issue.severity === "error")).toBe(true);
   });
+
+  it("admite un pack PARCIAL (estructura válida, frames incompletos) y avisa de lo que falta", () => {
+    const model = loadModel();
+    const packsRoot = makeTempPacksRoot();
+    const full = buildPlaceholderManifest(model);
+    // Solo un tile: el resto de frames se resolverá con placeholder en la escena.
+    writeManifest(packsRoot, "medieval-v1", {
+      ...full,
+      tiles: { "1": { frame: "tile-1", collides: false } },
+      sprites: {},
+      ui: { icons: {} },
+      anims: [],
+      atlases: [],
+      keys: [],
+    });
+
+    const result = resolveRoomPreviewPack("medieval-v1", model, { packsRoot });
+    expect(result.pack).toBeDefined();
+    expect(result.issues.some((issue) => /falta/i.test(issue.message))).toBe(true);
+  });
 });
