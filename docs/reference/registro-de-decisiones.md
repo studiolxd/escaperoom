@@ -261,3 +261,63 @@ del agente, chat con créditos). El mapeo fichero a fichero y la lista de poda v
 
 **Alternativas descartadas:** reutilización total tipo fork (arrastra multi-tenant, Keycloak y el DS
 ajeno); reutilización mínima (solo identidad y ledger), que encarece los tickets 0.1 y 4.x.
+
+---
+
+## ADR-018 — i18n: next-intl
+
+**Contexto:** el `RoomPackage` es multiidioma desde el diseño (`specs/08` §2.2) y SLXD ya usa
+**next-intl** con el set `en, es, fr, de, nl, pt`.
+
+**Decisión:** **next-intl** con el mismo set de locales que SLXD y **`es` por defecto**. Los textos
+de plataforma siguen el patrón de catálogo de SLXD (`messages`), pero **solo `es` es obligatorio al
+principio**; los demás locales se abren a medida, sin la regla de SLXD de "los seis completos o no
+hay merge".
+
+**Consecuencias:** se reutilizan routing y patrones de SLXD; los códigos de locale coinciden con las
+claves de `LocalizedText` y con el `reference_id = {id}:{locale}` del audio IA.
+
+**Alternativas descartadas:** react-i18next/FormatJS (más configuración); i18n casero.
+
+---
+
+## ADR-019 — UI y estilos: Tailwind CSS + shadcn/ui
+
+**Contexto:** SLXD usa el DS propio `@studiolxd/brand` (BEM + tokens) atado a su suite. El proyecto
+necesita su propia capa visual, con puzzles de panel en React y un editor WYSIWYG.
+
+**Decisión:** **Tailwind CSS + shadcn/ui** (componentes copiados al repo, accesibles, con Radix por
+debajo). Catálogo, HUD, puzzles de panel y editor construyen sobre estos primitivos.
+
+**Consecuencias:** control total del código de UI, sin DS externo opaco; los mismos primitivos se
+comparten entre editar, previsualizar y jugar (`specs/03` §3). Se descarta `@studiolxd/brand`.
+
+**Alternativas descartadas:** copiar el DS de SLXD (arrastra tokens y BEM de suite); MUI/Chakra.
+
+---
+
+## ADR-020 — Email: Nodemailer por defecto, Resend opcional
+
+**Contexto:** `@slxd/mailer` ya abstrae un transporte con dos proveedores (SMTP y Resend).
+
+**Decisión:** reutilizar y adaptar ese patrón: **Nodemailer (SMTP) por defecto**, con **Resend**
+configurable por entorno si se quiere. Se descarta Postmark.
+
+**Consecuencias:** en local sirve cualquier SMTP (Mailpit/MailHog); en producción se elige proveedor
+por configuración, sin tocar código.
+
+**Alternativas descartadas:** Resend-first (menos control/self-hosting); Postmark.
+
+---
+
+## ADR-021 — Tests: Vitest + Playwright
+
+**Contexto:** `specs/22` ya describe la pirámide y menciona Vitest, pero el runner no estaba fijado
+en el stack. SLXD trae presets de Vitest en `@slxd/config`.
+
+**Decisión:** **Vitest** para unitario e integración (preset reutilizado de SLXD) y **Playwright**
+para E2E. Se declara explícitamente en el stack.
+
+**Consecuencias:** un solo runner en todo el workspace, rápido y con los helpers ya probados en SLXD.
+
+**Alternativas descartadas:** Jest (más lento y más configuración); `node:test` (menos ecosistema).

@@ -21,9 +21,12 @@ ORM / migraciones:                                                Prisma (packag
 Caché / presencia / colas:                                        Redis
 Assets:                                                           Cloudflare R2 (compatible S3)
 Pagos:                                                            Stripe + Stripe Connect
-Emails transaccionales:                                           Resend o Postmark
+Emails transaccionales:                                           Nodemailer (SMTP) por defecto; Resend opcional
 PDF de tarjetas-clave:                                            @react-pdf/renderer
 Auth:                                                             Better Auth — email mágico + Google + organizaciones
+UI / estilos:                                                     Tailwind CSS + shadcn/ui
+i18n:                                                             next-intl (locales en, es, fr, de, nl, pt; por defecto es)
+Tests:                                                            Vitest (unitario + integración) + Playwright (E2E)
 Infraestructura:                                                  Docker + VPS (Hetzner) + Cloudflare + GitHub Actions
 ```
 
@@ -46,6 +49,10 @@ lenguaje, un solo equipo, un solo build.
 | ORM/migraciones | **Prisma** | Alinea con el andamiaje de SLXD y con el port de identidad/ledger; tipos compartidos (ADR-015). |
 | Auth | **Better Auth** | Plugin de organizaciones (miembros, roles, invitaciones) y alineación con SLXD (ADR-016). |
 | Reutilización | **Andamiaje de SLXD podado** | Tooling, infra y backend (incl. MCP) se copian/adaptan; no se arrastra el multi-tenant ni el DS (ADR-017). |
+| i18n | **next-intl** | Misma solución y set de locales que SLXD (`en es fr de nl pt`), `es` por defecto; `RoomPackage` ya es multiidioma (ADR-018). |
+| UI / estilos | **Tailwind CSS + shadcn/ui** | Componentes accesibles y propios en el repo, sin DS opaco; se descarta el DS BEM de SLXD (ADR-019). |
+| Email | **Nodemailer (SMTP)**, Resend opcional | Un solo transporte con dos proveedores (patrón de `@slxd/mailer`); SMTP por defecto (ADR-020). |
+| Tests | **Vitest + Playwright** | Unitario/integración rápidos y E2E en navegador real; reutiliza el tooling de SLXD (ADR-021). |
 | Créditos IA | Pool interno de plataforma | Tokens a nivel de plataforma con margen; subsistema copiado de SLXD. |
 
 ## 3. Arquitectura del cliente: híbrido Phaser + React
@@ -136,7 +143,8 @@ como `room_versions` real → el entorno arranca siempre con contenido jugable.
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_CLIENT_ID`.
 - `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`.
 - `DATABASE_URL`, `REDIS_URL`, `R2_*`.
-- `ELEVENLABS_API_KEY`, `RESEND_API_KEY`/`POSTMARK_TOKEN`.
+- `ELEVENLABS_API_KEY`; email: `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/`EMAIL_FROM`
+  (Nodemailer, por defecto) y, opcional, `RESEND_API_KEY`.
 - `AUTH_SECRET`, `MCP_OAUTH_*`.
 
 Nunca se commitean secretos. Rotación y auditoría básica en Fase 6.

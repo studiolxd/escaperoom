@@ -27,7 +27,8 @@ Reglas:
 | `infra/docker-compose.dev.yml` — Postgres, Redis, MinIO (+init de buckets) | `infra/docker-compose.dev.yml` | podar y ampliar (ver §3) | 0.2 |
 | `infra/Dockerfile.app`, `infra/docker-entrypoint.sh` | `infra/` | adaptar | 0.2 |
 | `packages/kit` (logger, redis, rate-limit, audit, storage/R2, webhooks salientes, colas/jobs, cifrado en reposo, health de workers) | `packages/shared/kit` | adaptar (quitar tRPC y espejos entre apps) | 0.2, 0.7, 2.x |
-| `packages/mailer` (un transporte, SMTP + Resend) | `packages/shared/mailer` | copiar/adaptar | 5.6 |
+| `packages/mailer` (un transporte, SMTP + Resend) | `packages/shared/mailer` | copiar/adaptar (Nodemailer/SMTP por defecto, ADR-020) | 5.6 |
+| i18n de SLXD (**next-intl**, locales `en es fr de nl pt`; `messages`/`validation`) | `packages/web` i18n + catálogo de textos | adaptar (solo `es` obligatorio al principio, ADR-018) | 0.9 |
 | `packages/roles` (roles/permisos de organización) | `packages/shared/roles` | adaptar al modelo de orgs del proyecto | 0.3, 5.11 |
 | `packages/mcp-server` (pipeline de petición, registro de tools, gate de confirmación) | `packages/mcp-server` | adaptar | 4.1, 4.4, 4.5 |
 | `packages/mcp-auth` (OAuth 2.1 mínimo: PKCE + DCR) | auth del MCP | adaptar (login contra Better Auth, no account) | 4.7 |
@@ -40,7 +41,7 @@ Reglas:
 |---|---|
 | `apps/account` (plano de control), Keycloak, flujo de claims/webhook | Este proyecto es un producto único: no hay 12 apps que federar. Better Auth cubre la sesión. |
 | `packages/entitlements`, `packages/auth-client` | Contrato hub↔app multi-tenant; sustituido por la sesión de Better Auth y por el modelo de negocio propio. |
-| `packages/app-shell`, `packages/public-shell`, `packages/billing-ui` | Dependen del DS `@studiolxd/brand` y del shell de suite. Se definirá DS propio (decisión abierta). |
+| `packages/app-shell`, `packages/public-shell`, `packages/billing-ui`, DS `@studiolxd/brand` | Dependen del DS BEM de la suite. Sustituidos por **Tailwind CSS + shadcn/ui** (ADR-019). |
 | `packages/catalog`, `packages/plans` | Modelo comercial de la suite, no de este producto. |
 | `packages/legal`, `packages/messages` en 6 idiomas | Textos ajenos; el proyecto arranca en `es` con `LocalizedText` (specs/08). |
 | `prisma-platform-sync.mjs`, Prisma-por-app | El proyecto usa **una** base de datos con varias tablas (ADR-015). |
