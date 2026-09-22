@@ -1,0 +1,25 @@
+{
+  "name": "@escaperoom/mcp-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Servidor MCP del creador (@slxd/mcp-server adaptado). Placeholder del ticket 0.1; Fase 4.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@escaperoom/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@escaperoom/config": "workspace:*",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
+  }
+}

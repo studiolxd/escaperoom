@@ -1,0 +1,28 @@
+{
+  "name": "@escaperoom/env",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Fragmentos Zod compartidos de env.ts (helpers, servidor, cliente) — cada app compone su esquema.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server.ts",
+    "./client": "./src/client.ts",
+    "./helpers": "./src/helpers.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@escaperoom/config": "workspace:*",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
+  }
+}

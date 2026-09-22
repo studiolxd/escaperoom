@@ -1,0 +1,22 @@
+{
+  "name": "@escaperoom/editor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "UI del editor (Next.js + Yjs + React Flow). Placeholder del ticket 0.1.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@escaperoom/config": "workspace:*",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
+  }
+}

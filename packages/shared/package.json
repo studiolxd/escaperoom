@@ -1,0 +1,28 @@
+{
+  "name": "@escaperoom/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Contrato y lógica compartidos: esquemas Zod, servicios de dominio y acceso a datos.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schemas": "./src/schemas/index.ts",
+    "./services": "./src/services/index.ts",
+    "./db": "./src/db/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@escaperoom/config": "workspace:*",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
+  }
+}
