@@ -37,5 +37,16 @@
     "locked": "Le cadenas n'est pas encore disponible",
     "unavailable": "Le cadenas n'accepte plus de tentatives",
     "solved": "Cadenas ouvert !"
+  },
+  "HiddenKey": {
+    "title": "Cachette",
+    "spot": "Un objet de la pièce semble déplacé…",
+    "hidden": "Tu n'as pas encore regardé ici",
+    "reveal": "Révéler la cachette",
+    "pending": "Révélation…",
+    "revealed": "Tu as trouvé {item} !",
+    "alreadyRevealed": "Tu avais déjà trouvé cet objet",
+    "locked": "La cachette n'est pas encore disponible",
+    "unavailable": "La cachette ne peut plus être révélée"
   }
 }
