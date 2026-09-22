@@ -1,33 +1,33 @@
 -- 0010_moderation — moderación y apelaciones (specs/14 §10)
-CREATE TABLE content_reports (
-  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  reporter_id      uuid NOT NULL REFERENCES users(id),
-  room_version_id  uuid NOT NULL REFERENCES room_versions(id),
-  reason           text NOT NULL,
-  details          text,
-  severity         text NOT NULL DEFAULT 'normal'
+CREATE TABLE "contentReport" (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "reporterId"       text NOT NULL REFERENCES "user"(id),
+  "roomVersionId"    uuid NOT NULL REFERENCES "roomVersion"(id),
+  reason             text NOT NULL,
+  details            text,
+  severity           text NOT NULL DEFAULT 'normal'
     CHECK (severity IN ('critical','high','normal','low')),
-  category         text NOT NULL DEFAULT 'other',
-  source           text NOT NULL DEFAULT 'user_report',
-  status           content_report_status NOT NULL DEFAULT 'pending',
-  reviewed_by      uuid REFERENCES users(id),
-  created_at       timestamptz NOT NULL DEFAULT now(),
-  reviewed_at      timestamptz
+  category           text NOT NULL DEFAULT 'other',
+  source             text NOT NULL DEFAULT 'user_report',
+  status             "contentReportStatus" NOT NULL DEFAULT 'pending',
+  "reviewedBy"       text REFERENCES "user"(id),
+  "createdAt"        timestamptz NOT NULL DEFAULT now(),
+  "reviewedAt"       timestamptz
 );
-CREATE INDEX ix_content_reports_status ON content_reports(status) WHERE status = 'pending';
-CREATE INDEX ix_content_reports_severity ON content_reports(severity, created_at);
+CREATE INDEX "ixContentReportStatus" ON "contentReport"(status) WHERE status = 'pending';
+CREATE INDEX "ixContentReportSeverity" ON "contentReport"(severity, "createdAt");
 
-CREATE TABLE moderation_appeals (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  creator_id        uuid NOT NULL REFERENCES users(id),
-  room_id           uuid REFERENCES rooms(id),           -- null si apela estado de cuenta
-  content_report_id uuid REFERENCES content_reports(id),
-  reason            text NOT NULL,
-  status            text NOT NULL DEFAULT 'pending'
+CREATE TABLE "moderationAppeal" (
+  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "creatorId"         text NOT NULL REFERENCES "user"(id),
+  "roomId"            uuid REFERENCES "room"(id),           -- null si apela estado de cuenta
+  "contentReportId"   uuid REFERENCES "contentReport"(id),
+  reason              text NOT NULL,
+  status              text NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending','upheld','overturned')),
-  reviewed_by       uuid REFERENCES users(id),
-  resolution_note   text,
-  created_at        timestamptz NOT NULL DEFAULT now(),
-  reviewed_at       timestamptz
+  "reviewedBy"        text REFERENCES "user"(id),
+  "resolutionNote"    text,
+  "createdAt"         timestamptz NOT NULL DEFAULT now(),
+  "reviewedAt"        timestamptz
 );
-CREATE INDEX ix_moderation_appeals_status ON moderation_appeals(status) WHERE status = 'pending';
+CREATE INDEX "ixModerationAppealStatus" ON "moderationAppeal"(status) WHERE status = 'pending';

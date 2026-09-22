@@ -9,425 +9,479 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model access_keys {
-  code                 String            @id
-  event_id             String            @db.Uuid
-  session_id           String?           @db.Uuid
-  group_id             String?           @db.Uuid
-  email                String?           @db.Citext
-  key_type             access_key_type
-  status               access_key_status @default(generated)
-  single_use           Boolean           @default(true)
-  require_confirmation Boolean           @default(false)
-  regenerated_from     String?
-  confirmed_at         DateTime?         @db.Timestamptz(6)
-  activated_at         DateTime?         @db.Timestamptz(6)
-  used_at              DateTime?         @db.Timestamptz(6)
-  expires_at           DateTime?         @db.Timestamptz(6)
-  created_at           DateTime          @default(now()) @db.Timestamptz(6)
-  events               events            @relation(fields: [event_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  groups               groups?           @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  access_keys          access_keys?      @relation("access_keysToaccess_keys", fields: [regenerated_from], references: [code], onDelete: NoAction, onUpdate: NoAction)
-  other_access_keys    access_keys[]     @relation("access_keysToaccess_keys")
-  sessions             sessions?         @relation(fields: [session_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  progress_events      progress_events[]
+model accessKey {
+  code                String          @id
+  eventId             String          @db.Uuid
+  sessionId           String?         @db.Uuid
+  groupId             String?         @db.Uuid
+  email               String?         @db.Citext
+  keyType             accessKeyType
+  status              accessKeyStatus @default(generated)
+  singleUse           Boolean         @default(true)
+  requireConfirmation Boolean         @default(false)
+  regeneratedFrom     String?
+  confirmedAt         DateTime?       @db.Timestamptz(6)
+  activatedAt         DateTime?       @db.Timestamptz(6)
+  usedAt              DateTime?       @db.Timestamptz(6)
+  expiresAt           DateTime?       @db.Timestamptz(6)
+  createdAt           DateTime        @default(now()) @db.Timestamptz(6)
+  event               event           @relation(fields: [eventId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  group               group?          @relation(fields: [groupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  accessKey           accessKey?      @relation("accessKeyToaccessKey", fields: [regeneratedFrom], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  other_accessKey     accessKey[]     @relation("accessKeyToaccessKey")
+  gameSession         gameSession?    @relation(fields: [sessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  progressEvent       progressEvent[]
 
-  @@index([event_id], map: "ix_access_keys_event")
-  @@index([session_id], map: "ix_access_keys_session")
+  @@index([eventId], map: "ixAccessKeyEvent")
+  @@index([sessionId], map: "ixAccessKeySession")
+}
+
+model account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz(6)
+  refreshTokenExpiresAt DateTime? @db.Timestamptz(6)
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt             DateTime  @default(now()) @db.Timestamptz(6)
+  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId], map: "ixAccountUserId")
 }
 
 /// This table is a partition table and requires additional setup for migrations. Visit https://pris.ly/d/partition-tables for more info.
-model analytics_events {
-  id              BigInt   @default(autoincrement())
-  created_at      DateTime @default(now()) @db.Timestamptz(6)
-  event_type      String
-  session_id      String?  @db.Uuid
-  player_id       String?  @db.Uuid
-  room_version_id String?  @db.Uuid
-  payload         Json     @default("{}")
+model analyticsEvent {
+  id            BigInt   @default(autoincrement())
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+  eventType     String
+  sessionId     String?  @db.Uuid
+  playerId      String?
+  roomVersionId String?  @db.Uuid
+  payload       Json     @default("{}")
 
-  @@id([id, created_at])
-  @@index([session_id], map: "ix_analytics_events_session")
-  @@index([event_type, created_at], map: "ix_analytics_events_type")
+  @@id([id, createdAt])
+  @@index([sessionId], map: "ixAnalyticsEventSession")
+  @@index([eventType, createdAt], map: "ixAnalyticsEventType")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model content_reports {
-  id                                       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  reporter_id                              String                @db.Uuid
-  room_version_id                          String                @db.Uuid
-  reason                                   String
-  details                                  String?
-  severity                                 String                @default("normal")
-  category                                 String                @default("other")
-  source                                   String                @default("user_report")
-  status                                   content_report_status @default(pending)
-  reviewed_by                              String?               @db.Uuid
-  created_at                               DateTime              @default(now()) @db.Timestamptz(6)
-  reviewed_at                              DateTime?             @db.Timestamptz(6)
-  users_content_reports_reporter_idTousers users                 @relation("content_reports_reporter_idTousers", fields: [reporter_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users_content_reports_reviewed_byTousers users?                @relation("content_reports_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  room_versions                            room_versions         @relation(fields: [room_version_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  moderation_appeals                       moderation_appeals[]
+model contentReport {
+  id                                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporterId                          String
+  roomVersionId                       String              @db.Uuid
+  reason                              String
+  details                             String?
+  severity                            String              @default("normal")
+  category                            String              @default("other")
+  source                              String              @default("user_report")
+  status                              contentReportStatus @default(pending)
+  reviewedBy                          String?
+  createdAt                           DateTime            @default(now()) @db.Timestamptz(6)
+  reviewedAt                          DateTime?           @db.Timestamptz(6)
+  user_contentReport_reporterIdTouser user                @relation("contentReport_reporterIdTouser", fields: [reporterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_contentReport_reviewedByTouser user?               @relation("contentReport_reviewedByTouser", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roomVersion                         roomVersion         @relation(fields: [roomVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  moderationAppeal                    moderationAppeal[]
 
-  @@index([severity, created_at], map: "ix_content_reports_severity")
+  @@index([severity, createdAt], map: "ixContentReportSeverity")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model credit_accounts {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id          String?            @db.Uuid
-  organization_id  String?            @db.Uuid
-  balance_credits  BigInt             @default(0)
-  created_at       DateTime           @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime           @default(now()) @db.Timestamptz(6)
-  organizations    organizations?     @relation(fields: [organization_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users            users?             @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  credit_movements credit_movements[]
+model creditAccount {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String?
+  organizationId String?
+  balanceCredits BigInt           @default(0)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime         @default(now()) @db.Timestamptz(6)
+  organization   organization?    @relation(fields: [organizationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user           user?            @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  creditMovement creditMovement[]
 }
 
-model credit_movements {
-  id              BigInt               @id @default(autoincrement())
-  account_id      String               @db.Uuid
-  movement_type   credit_movement_type
-  amount_credits  BigInt
-  balance_after   BigInt
-  reference_type  String?
-  reference_id    String?
-  metadata        Json                 @default("{}")
-  created_by      String?              @db.Uuid
-  created_at      DateTime             @default(now()) @db.Timestamptz(6)
-  credit_accounts credit_accounts      @relation(fields: [account_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users           users?               @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+model creditMovement {
+  id            BigInt             @id @default(autoincrement())
+  accountId     String             @db.Uuid
+  movementType  creditMovementType
+  amountCredits BigInt
+  balanceAfter  BigInt
+  referenceType String?
+  referenceId   String?
+  metadata      Json               @default("{}")
+  createdBy     String?
+  createdAt     DateTime           @default(now()) @db.Timestamptz(6)
+  creditAccount creditAccount      @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user          user?              @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
-  @@index([account_id, created_at(sort: Desc)], map: "ix_credit_movements_account")
+  @@index([accountId, createdAt(sort: Desc)], map: "ixCreditMovementAccount")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model event_recordings {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  session_id      String    @db.Uuid
-  egress_id       String
-  storage_path    String?
-  consent_status  String    @default("pending")
-  status          String    @default("not_started")
-  retention_until DateTime? @db.Timestamptz(6)
-  created_at      DateTime  @default(now()) @db.Timestamptz(6)
-  deleted_at      DateTime? @db.Timestamptz(6)
-  sessions        sessions  @relation(fields: [session_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
+model event {
+  id                      String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizerId             String
+  roomVersionId           String        @db.Uuid
+  title                   String
+  audience                eventAudience @default(general)
+  maxSimultaneousSessions Int           @default(10) @db.SmallInt
+  groupingMode            groupingMode  @default(random)
+  requireConfirmation     Boolean       @default(false)
+  config                  Json          @default("{}")
+  expiryRules             Json          @default("[]")
+  pricingSnapshot         Json
+  playersPurchased        Int
+  status                  eventStatus   @default(draft)
+  createdAt               DateTime      @default(now()) @db.Timestamptz(6)
+  accessKey               accessKey[]
+  user                    user          @relation(fields: [organizerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roomVersion             roomVersion   @relation(fields: [roomVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  gameSession             gameSession[]
+  purchase                purchase[]
 
-model events {
-  id                        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizer_id              String         @db.Uuid
-  room_version_id           String         @db.Uuid
-  title                     String
-  audience                  event_audience @default(general)
-  max_simultaneous_sessions Int            @default(10) @db.SmallInt
-  grouping_mode             grouping_mode  @default(random)
-  require_confirmation      Boolean        @default(false)
-  config                    Json           @default("{}")
-  expiry_rules              Json           @default("[]")
-  pricing_snapshot          Json
-  players_purchased         Int
-  status                    event_status   @default(draft)
-  created_at                DateTime       @default(now()) @db.Timestamptz(6)
-  access_keys               access_keys[]
-  users                     users          @relation(fields: [organizer_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  room_versions             room_versions  @relation(fields: [room_version_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  purchases                 purchases[]
-  sessions                  sessions[]
-
-  @@index([organizer_id], map: "ix_events_organizer")
-}
-
-model groups {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  session_id      String            @db.Uuid
-  name            String
-  created_at      DateTime          @default(now()) @db.Timestamptz(6)
-  access_keys     access_keys[]
-  sessions        sessions          @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  progress_events progress_events[]
-
-  @@index([session_id], map: "ix_groups_session")
+  @@index([organizerId], map: "ixEventOrganizer")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model moderation_appeals {
-  id                                          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  creator_id                                  String           @db.Uuid
-  room_id                                     String?          @db.Uuid
-  content_report_id                           String?          @db.Uuid
-  reason                                      String
-  status                                      String           @default("pending")
-  reviewed_by                                 String?          @db.Uuid
-  resolution_note                             String?
-  created_at                                  DateTime         @default(now()) @db.Timestamptz(6)
-  reviewed_at                                 DateTime?        @db.Timestamptz(6)
-  content_reports                             content_reports? @relation(fields: [content_report_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users_moderation_appeals_creator_idTousers  users            @relation("moderation_appeals_creator_idTousers", fields: [creator_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users_moderation_appeals_reviewed_byTousers users?           @relation("moderation_appeals_reviewed_byTousers", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rooms                                       rooms?           @relation(fields: [room_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+model eventRecording {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId      String      @db.Uuid
+  egressId       String
+  storagePath    String?
+  consentStatus  String      @default("pending")
+  status         String      @default("not_started")
+  retentionUntil DateTime?   @db.Timestamptz(6)
+  createdAt      DateTime    @default(now()) @db.Timestamptz(6)
+  deletedAt      DateTime?   @db.Timestamptz(6)
+  gameSession    gameSession @relation(fields: [sessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model oauth_identities {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id      String   @db.Uuid
-  provider     String
-  provider_uid String
-  created_at   DateTime @default(now()) @db.Timestamptz(6)
-  users        users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+model gameSession {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId        String           @db.Uuid
+  colyseusRoomId String?
+  name           String
+  status         sessionStatus    @default(pending)
+  capacity       Int              @db.SmallInt
+  startedAt      DateTime?        @db.Timestamptz(6)
+  endedAt        DateTime?        @db.Timestamptz(6)
+  createdAt      DateTime         @default(now()) @db.Timestamptz(6)
+  accessKey      accessKey[]
+  eventRecording eventRecording[]
+  event          event            @relation(fields: [eventId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  group          group[]
+  progressEvent  progressEvent[]
 
-  @@unique([provider, provider_uid])
+  @@index([eventId], map: "ixGameSessionEvent")
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model organization_members {
-  organization_id String        @db.Uuid
-  user_id         String        @db.Uuid
-  org_role        String        @default("member")
-  joined_at       DateTime      @default(now()) @db.Timestamptz(6)
-  organizations   organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users           users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+model group {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId     String          @db.Uuid
+  name          String
+  createdAt     DateTime        @default(now()) @db.Timestamptz(6)
+  accessKey     accessKey[]
+  gameSession   gameSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  progressEvent progressEvent[]
 
-  @@id([organization_id, user_id])
+  @@index([sessionId], map: "ixGroupSession")
 }
 
-model organizations {
-  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                 String
-  owner_user_id        String                 @db.Uuid
-  stripe_customer_id   String?
-  dpa_signed_at        DateTime?              @db.Timestamptz(6)
-  created_at           DateTime               @default(now()) @db.Timestamptz(6)
-  updated_at           DateTime               @default(now()) @db.Timestamptz(6)
-  credit_accounts      credit_accounts[]
-  organization_members organization_members[]
-  users                users                  @relation(fields: [owner_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+model invitation {
+  id             String       @id
+  organizationId String
+  email          String       @db.Citext
+  role           String?
+  status         String       @default("pending")
+  expiresAt      DateTime     @db.Timestamptz(6)
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  inviterId      String
+  user           user         @relation(fields: [inviterId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization   organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([email], map: "ixInvitationEmail")
+  @@index([organizationId], map: "ixInvitationOrganizationId")
 }
 
-model platform_settings {
-  key        String   @id
-  value      Json
-  updated_by String?  @db.Uuid
-  updated_at DateTime @default(now()) @db.Timestamptz(6)
-  users      users?   @relation(fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-}
+model member {
+  id             String       @id
+  organizationId String
+  userId         String
+  role           String       @default("member")
+  createdAt      DateTime     @default(now()) @db.Timestamptz(6)
+  organization   organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user           user         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-model pricing_tiers {
-  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  min_players            Int
-  max_players            Int?
-  price_cents_per_player Int
-  currency               String    @default("EUR") @db.Char(3)
-  active_from            DateTime  @default(now()) @db.Timestamptz(6)
-  active_until           DateTime? @db.Timestamptz(6)
-  created_by             String    @db.Uuid
-  created_at             DateTime  @default(now()) @db.Timestamptz(6)
-  users                  users     @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([active_from, active_until], map: "ix_pricing_tiers_active")
-}
-
-model progress_events {
-  id              BigInt              @id @default(autoincrement())
-  session_id      String              @db.Uuid
-  group_id        String?             @db.Uuid
-  player_id       String?             @db.Uuid
-  access_key_code String?
-  puzzle_id       String
-  event_kind      progress_event_kind
-  duration_ms     Int?
-  hints_used      Int                 @default(0)
-  created_at      DateTime            @default(now()) @db.Timestamptz(6)
-  access_keys     access_keys?        @relation(fields: [access_key_code], references: [code], onDelete: NoAction, onUpdate: NoAction)
-  groups          groups?             @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users           users?              @relation(fields: [player_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  sessions        sessions            @relation(fields: [session_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([group_id], map: "ix_progress_events_group")
-  @@index([session_id, created_at], map: "ix_progress_events_session")
+  @@unique([organizationId, userId])
+  @@index([organizationId], map: "ixMemberOrganizationId")
+  @@index([userId], map: "ixMemberUserId")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model purchases {
-  id                       String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id                  String          @db.Uuid
-  purchase_type            purchase_type
-  room_version_id          String?         @db.Uuid
-  event_id                 String?         @db.Uuid
-  resulting_room_id        String?         @db.Uuid
-  amount_cents             Int
-  currency                 String          @default("EUR") @db.Char(3)
-  platform_fee_cents       Int             @default(0)
-  creator_share_cents      Int?
-  stripe_payment_intent_id String?
-  stripe_transfer_id       String?
-  status                   purchase_status @default(pending)
-  play_session_started_at  DateTime?       @db.Timestamptz(6)
-  play_session_colyseus_id String?
-  created_at               DateTime        @default(now()) @db.Timestamptz(6)
-  events                   events?         @relation(fields: [event_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rooms                    rooms?          @relation(fields: [resulting_room_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  room_versions            room_versions?  @relation(fields: [room_version_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users                    users           @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([user_id, created_at(sort: Desc)], map: "ix_purchases_user")
+model moderationAppeal {
+  id                                     String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatorId                              String
+  roomId                                 String?        @db.Uuid
+  contentReportId                        String?        @db.Uuid
+  reason                                 String
+  status                                 String         @default("pending")
+  reviewedBy                             String?
+  resolutionNote                         String?
+  createdAt                              DateTime       @default(now()) @db.Timestamptz(6)
+  reviewedAt                             DateTime?      @db.Timestamptz(6)
+  contentReport                          contentReport? @relation(fields: [contentReportId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_moderationAppeal_creatorIdTouser  user           @relation("moderationAppeal_creatorIdTouser", fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_moderationAppeal_reviewedByTouser user?          @relation("moderationAppeal_reviewedByTouser", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  room                                   room?          @relation(fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model reviews {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id    String   @db.Uuid
-  room_id    String   @db.Uuid
-  rating     Int      @db.SmallInt
-  text       String?
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  updated_at DateTime @default(now()) @db.Timestamptz(6)
-  rooms      rooms    @relation(fields: [room_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users      users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@unique([user_id, room_id])
-  @@index([room_id], map: "ix_reviews_room")
-}
-
-model room_snapshots {
-  id                      BigInt   @id @default(autoincrement())
-  room_id                 String   @db.Uuid
-  state                   Bytes
-  updates_applied_through BigInt
-  created_at              DateTime @default(now()) @db.Timestamptz(6)
-  rooms                   rooms    @relation(fields: [room_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([room_id, id(sort: Desc)], map: "ix_room_snapshots_room")
-}
-
-model room_updates {
-  id          BigInt   @id @default(autoincrement())
-  room_id     String   @db.Uuid
-  update_data Bytes
-  author_id   String?  @db.Uuid
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
-  users       users?   @relation(fields: [author_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rooms       rooms    @relation(fields: [room_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([room_id, id], map: "ix_room_updates_room")
-}
-
-model room_versions {
-  id                                                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  room_id                                           String            @db.Uuid
-  semver                                            String
-  package                                           Json
-  assets_hash                                       String
-  changelog                                         String?
-  published_by                                      String            @db.Uuid
-  published_at                                      DateTime          @default(now()) @db.Timestamptz(6)
-  content_reports                                   content_reports[]
-  events                                            events[]
-  purchases                                         purchases[]
-  users                                             users             @relation(fields: [published_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rooms_room_versions_room_idTorooms                rooms             @relation("room_versions_room_idTorooms", fields: [room_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rooms_rooms_forked_from_version_idToroom_versions rooms[]           @relation("rooms_forked_from_version_idToroom_versions")
-
-  @@unique([room_id, semver])
-  @@index([package(ops: JsonbPathOps)], map: "ix_room_versions_package", type: Gin)
-  @@index([room_id, published_at(sort: Desc)], map: "ix_room_versions_room")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model rooms {
-  id                                                        String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  author_id                                                 String               @db.Uuid
-  title                                                     String
-  status                                                    room_status          @default(draft)
-  sale_individual                                           Boolean              @default(true)
-  sale_events                                               Boolean              @default(true)
-  price_cents                                               Int?
-  currency                                                  String               @default("EUR") @db.Char(3)
-  licensable                                                Boolean              @default(false)
-  license_price_cents                                       Int?
-  forked_from_room_id                                       String?              @db.Uuid
-  forked_from_version_id                                    String?              @db.Uuid
-  created_at                                                DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at                                                DateTime             @default(now()) @db.Timestamptz(6)
-  deleted_at                                                DateTime?            @db.Timestamptz(6)
-  moderation_appeals                                        moderation_appeals[]
-  purchases                                                 purchases[]
-  reviews                                                   reviews[]
-  room_snapshots                                            room_snapshots[]
-  room_updates                                              room_updates[]
-  room_versions_room_versions_room_idTorooms                room_versions[]      @relation("room_versions_room_idTorooms")
-  room_versions_rooms_forked_from_version_idToroom_versions room_versions?       @relation("rooms_forked_from_version_idToroom_versions", fields: [forked_from_version_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rooms_forked_from_version")
-  users                                                     users                @relation(fields: [author_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  rooms                                                     rooms?               @relation("roomsTorooms", fields: [forked_from_room_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  other_rooms                                               rooms[]              @relation("roomsTorooms")
-
-  @@index([author_id], map: "ix_rooms_author")
-  @@index([title(ops: raw("gin_trgm_ops"))], map: "ix_rooms_title_trgm", type: Gin)
-}
-
-model sessions {
-  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  event_id         String             @db.Uuid
-  colyseus_room_id String?
+model organization {
+  id               String          @id
   name             String
-  status           session_status     @default(pending)
-  capacity         Int                @db.SmallInt
-  started_at       DateTime?          @db.Timestamptz(6)
-  ended_at         DateTime?          @db.Timestamptz(6)
-  created_at       DateTime           @default(now()) @db.Timestamptz(6)
-  access_keys      access_keys[]
-  event_recordings event_recordings[]
-  groups           groups[]
-  progress_events  progress_events[]
-  events           events             @relation(fields: [event_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@index([event_id], map: "ix_sessions_event")
+  slug             String          @unique
+  logo             String?
+  metadata         String?
+  stripeCustomerId String?
+  dpaSignedAt      DateTime?       @db.Timestamptz(6)
+  createdAt        DateTime        @default(now()) @db.Timestamptz(6)
+  creditAccount    creditAccount[]
+  invitation       invitation[]
+  member           member[]
 }
 
-model stripe_webhook_events {
-  id          String   @id
-  type        String
-  received_at DateTime @default(now()) @db.Timestamptz(6)
+model platformSetting {
+  key       String   @id
+  value     Json
+  updatedBy String?
+  updatedAt DateTime @default(now()) @db.Timestamptz(6)
+  user      user?    @relation(fields: [updatedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
-model users {
-  id                                                       String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email                                                    String                 @unique @db.Citext
-  password_hash                                            String?
-  display_name                                             String
-  avatar_url                                               String?
-  locale                                                   String                 @default("es")
-  stripe_account_id                                        String?
-  stripe_customer_id                                       String?
-  is_admin                                                 Boolean                @default(false)
-  is_moderator                                             Boolean                @default(false)
-  created_at                                               DateTime               @default(now()) @db.Timestamptz(6)
-  updated_at                                               DateTime               @default(now()) @db.Timestamptz(6)
-  deleted_at                                               DateTime?              @db.Timestamptz(6)
-  content_reports_content_reports_reporter_idTousers       content_reports[]      @relation("content_reports_reporter_idTousers")
-  content_reports_content_reports_reviewed_byTousers       content_reports[]      @relation("content_reports_reviewed_byTousers")
-  credit_accounts                                          credit_accounts[]
-  credit_movements                                         credit_movements[]
-  events                                                   events[]
-  moderation_appeals_moderation_appeals_creator_idTousers  moderation_appeals[]   @relation("moderation_appeals_creator_idTousers")
-  moderation_appeals_moderation_appeals_reviewed_byTousers moderation_appeals[]   @relation("moderation_appeals_reviewed_byTousers")
-  oauth_identities                                         oauth_identities[]
-  organization_members                                     organization_members[]
-  organizations                                            organizations[]
-  platform_settings                                        platform_settings[]
-  pricing_tiers                                            pricing_tiers[]
-  progress_events                                          progress_events[]
-  purchases                                                purchases[]
-  reviews                                                  reviews[]
-  room_updates                                             room_updates[]
-  room_versions                                            room_versions[]
-  rooms                                                    rooms[]
+model pricingTier {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  minPlayers          Int
+  maxPlayers          Int?
+  priceCentsPerPlayer Int
+  currency            String    @default("EUR") @db.Char(3)
+  activeFrom          DateTime  @default(now()) @db.Timestamptz(6)
+  activeUntil         DateTime? @db.Timestamptz(6)
+  createdBy           String
+  createdAt           DateTime  @default(now()) @db.Timestamptz(6)
+  user                user      @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([activeFrom, activeUntil], map: "ixPricingTierActive")
 }
 
-enum access_key_status {
+model progressEvent {
+  id            BigInt            @id @default(autoincrement())
+  sessionId     String            @db.Uuid
+  groupId       String?           @db.Uuid
+  playerId      String?
+  accessKeyCode String?
+  puzzleId      String
+  eventKind     progressEventKind
+  durationMs    Int?
+  hintsUsed     Int               @default(0)
+  createdAt     DateTime          @default(now()) @db.Timestamptz(6)
+  accessKey     accessKey?        @relation(fields: [accessKeyCode], references: [code], onDelete: NoAction, onUpdate: NoAction)
+  group         group?            @relation(fields: [groupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user          user?             @relation(fields: [playerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  gameSession   gameSession       @relation(fields: [sessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([groupId], map: "ixProgressEventGroup")
+  @@index([sessionId, createdAt], map: "ixProgressEventSession")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model purchase {
+  id                    String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                String
+  purchaseType          purchaseType
+  roomVersionId         String?        @db.Uuid
+  eventId               String?        @db.Uuid
+  resultingRoomId       String?        @db.Uuid
+  amountCents           Int
+  currency              String         @default("EUR") @db.Char(3)
+  platformFeeCents      Int            @default(0)
+  creatorShareCents     Int?
+  stripePaymentIntentId String?
+  stripeTransferId      String?
+  status                purchaseStatus @default(pending)
+  playSessionStartedAt  DateTime?      @db.Timestamptz(6)
+  playSessionColyseusId String?
+  createdAt             DateTime       @default(now()) @db.Timestamptz(6)
+  event                 event?         @relation(fields: [eventId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  room                  room?          @relation(fields: [resultingRoomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roomVersion           roomVersion?   @relation(fields: [roomVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user                  user           @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId, createdAt(sort: Desc)], map: "ixPurchaseUser")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model review {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String
+  roomId    String   @db.Uuid
+  rating    Int      @db.SmallInt
+  text      String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @db.Timestamptz(6)
+  room      room     @relation(fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user      user     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([userId, roomId])
+  @@index([roomId], map: "ixReviewRoom")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model room {
+  id                                                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  authorId                                          String
+  title                                             String
+  status                                            roomStatus         @default(draft)
+  saleIndividual                                    Boolean            @default(true)
+  saleEvents                                        Boolean            @default(true)
+  priceCents                                        Int?
+  currency                                          String             @default("EUR") @db.Char(3)
+  licensable                                        Boolean            @default(false)
+  licensePriceCents                                 Int?
+  forkedFromRoomId                                  String?            @db.Uuid
+  forkedFromVersionId                               String?            @db.Uuid
+  createdAt                                         DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt                                         DateTime           @default(now()) @db.Timestamptz(6)
+  deletedAt                                         DateTime?          @db.Timestamptz(6)
+  moderationAppeal                                  moderationAppeal[]
+  purchase                                          purchase[]
+  review                                            review[]
+  roomVersion_room_forkedFromVersionIdToroomVersion roomVersion?       @relation("room_forkedFromVersionIdToroomVersion", fields: [forkedFromVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkRoomForkedFromVersion")
+  user                                              user               @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  room                                              room?              @relation("roomToroom", fields: [forkedFromRoomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_room                                        room[]             @relation("roomToroom")
+  roomSnapshot                                      roomSnapshot[]
+  roomUpdate                                        roomUpdate[]
+  roomVersion_roomVersion_roomIdToroom              roomVersion[]      @relation("roomVersion_roomIdToroom")
+
+  @@index([authorId], map: "ixRoomAuthor")
+  @@index([title(ops: raw("gin_trgm_ops"))], map: "ixRoomTitleTrgm", type: Gin)
+}
+
+model roomSnapshot {
+  id                    BigInt   @id @default(autoincrement())
+  roomId                String   @db.Uuid
+  state                 Bytes
+  updatesAppliedThrough BigInt
+  createdAt             DateTime @default(now()) @db.Timestamptz(6)
+  room                  room     @relation(fields: [roomId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([roomId, id(sort: Desc)], map: "ixRoomSnapshotRoom")
+}
+
+model roomUpdate {
+  id         BigInt   @id @default(autoincrement())
+  roomId     String   @db.Uuid
+  updateData Bytes
+  authorId   String?
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  user       user?    @relation(fields: [authorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  room       room     @relation(fields: [roomId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([roomId, id], map: "ixRoomUpdateRoom")
+}
+
+model roomVersion {
+  id                                         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  roomId                                     String          @db.Uuid
+  semver                                     String
+  package                                    Json
+  assetsHash                                 String
+  changelog                                  String?
+  publishedBy                                String
+  publishedAt                                DateTime        @default(now()) @db.Timestamptz(6)
+  contentReport                              contentReport[]
+  event                                      event[]
+  purchase                                   purchase[]
+  room_room_forkedFromVersionIdToroomVersion room[]          @relation("room_forkedFromVersionIdToroomVersion")
+  user                                       user            @relation(fields: [publishedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  room_roomVersion_roomIdToroom              room            @relation("roomVersion_roomIdToroom", fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([roomId, semver])
+  @@index([package(ops: JsonbPathOps)], map: "ixRoomVersionPackage", type: Gin)
+  @@index([roomId, publishedAt(sort: Desc)], map: "ixRoomVersionRoom")
+}
+
+model session {
+  id                   String   @id
+  expiresAt            DateTime @db.Timestamptz(6)
+  token                String   @unique
+  createdAt            DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt            DateTime @default(now()) @db.Timestamptz(6)
+  ipAddress            String?
+  userAgent            String?
+  userId               String
+  activeOrganizationId String?
+  user                 user     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId], map: "ixSessionUserId")
+}
+
+model stripeWebhookEvent {
+  id         String   @id
+  type       String
+  receivedAt DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model user {
+  id                                                 String             @id
+  name                                               String
+  email                                              String             @unique @db.Citext
+  emailVerified                                      Boolean            @default(false)
+  image                                              String?
+  locale                                             String             @default("es")
+  stripeAccountId                                    String?
+  stripeCustomerId                                   String?
+  isAdmin                                            Boolean            @default(false)
+  isModerator                                        Boolean            @default(false)
+  createdAt                                          DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt                                          DateTime           @default(now()) @db.Timestamptz(6)
+  deletedAt                                          DateTime?          @db.Timestamptz(6)
+  account                                            account[]
+  contentReport_contentReport_reporterIdTouser       contentReport[]    @relation("contentReport_reporterIdTouser")
+  contentReport_contentReport_reviewedByTouser       contentReport[]    @relation("contentReport_reviewedByTouser")
+  creditAccount                                      creditAccount[]
+  creditMovement                                     creditMovement[]
+  event                                              event[]
+  invitation                                         invitation[]
+  member                                             member[]
+  moderationAppeal_moderationAppeal_creatorIdTouser  moderationAppeal[] @relation("moderationAppeal_creatorIdTouser")
+  moderationAppeal_moderationAppeal_reviewedByTouser moderationAppeal[] @relation("moderationAppeal_reviewedByTouser")
+  platformSetting                                    platformSetting[]
+  pricingTier                                        pricingTier[]
+  progressEvent                                      progressEvent[]
+  purchase                                           purchase[]
+  review                                             review[]
+  room                                               room[]
+  roomUpdate                                         roomUpdate[]
+  roomVersion                                        roomVersion[]
+  session                                            session[]
+}
+
+model verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([identifier], map: "ixVerificationIdentifier")
+}
+
+enum accessKeyStatus {
   generated
   sent
   pending_confirmation
@@ -437,65 +491,65 @@ enum access_key_status {
   expired
 }
 
-enum access_key_type {
+enum accessKeyType {
   individual
   rotating
   group
   batch
 }
 
-enum content_report_status {
+enum contentReportStatus {
   pending
   reviewed
   actioned
   dismissed
 }
 
-enum credit_movement_type {
+enum creditMovementType {
   purchase
   consumption
   refund
   adjustment
 }
 
-enum event_audience {
+enum eventAudience {
   general
   educational
 }
 
-enum event_status {
+enum eventStatus {
   draft
   active
   closed
 }
 
-enum grouping_mode {
+enum groupingMode {
   specific
   random
   free
 }
 
-enum progress_event_kind {
+enum progressEventKind {
   solved
   hint_used
   attempt_failed
 }
 
-enum purchase_status {
+enum purchaseStatus {
   pending
   succeeded
   refunded
   failed
 }
 
-enum purchase_type {
+enum purchaseType {
   room
   room_license
   event_credits
   platform_credits
 }
 
-enum room_status {
+enum roomStatus {
   draft
   published
   unlisted
@@ -503,7 +557,7 @@ enum room_status {
   removed
 }
 
-enum session_status {
+enum sessionStatus {
   pending
   in_progress
   ended
