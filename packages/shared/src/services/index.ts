@@ -1,9 +1,8 @@
 /**
  * Servicios de dominio — única lógica invocada por tRPC (UI), REST, MCP y
- * Colyseus (ADR-022). Placeholder del ticket 0.1; se puebla desde el 0.10.
+ * Colyseus (ADR-010/022). Todos los servicios reciben un `actor` explícito y
+ * sus dependencias se inyectan, de modo que se testean sin infraestructura.
  */
-export type Actor = {
-  userId: string;
-  organizationId: string | null;
-  role: "owner" | "admin" | "member";
-};
+export * from "./actor";
+export * from "./catalog";
+export * from "./room-package-repository";
