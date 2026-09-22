@@ -12,6 +12,7 @@ allowBuilds:
   better-sqlite3: false
   "@parcel/watcher": false
   "@swc/core": false
+  msgpackr-extract: false
   sharp: false
   unrs-resolver: false
 

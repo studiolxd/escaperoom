@@ -13,6 +13,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@colyseus/sdk": "0.18.2",
     "@escaperoom/env": "workspace:*",
     "@escaperoom/shared": "workspace:*",
     "better-auth": "1.7.5",

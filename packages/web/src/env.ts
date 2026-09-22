@@ -12,5 +12,6 @@ export const env = parseEnv({
   clientSchema: baseClientSchema,
   clientSource: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_COLYSEUS_URL: process.env.NEXT_PUBLIC_COLYSEUS_URL,
   },
 });

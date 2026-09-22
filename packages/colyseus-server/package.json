@@ -3,22 +3,35 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Rooms autoritativas, motor de reglas y validación de puzzles. Placeholder del ticket 0.1.",
+  "description": "Servidor autoritativo de salas (Colyseus): estado sincronizado, validación de movimiento y (más adelante) motor de reglas.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./constants": "./src/constants.ts",
+    "./movement": "./src/movement.ts"
   },
   "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@escaperoom/shared": "workspace:*"
+    "@colyseus/core": "0.18.14",
+    "@colyseus/schema": "5.0.33",
+    "@colyseus/ws-transport": "0.18.2",
+    "express": "^5.1.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@colyseus/sdk": "0.18.2",
+    "@colyseus/testing": "0.18.5",
+    "@colyseus/tools": "0.18.3",
     "@escaperoom/config": "workspace:*",
+    "@types/express": "^5.0.3",
     "@types/node": "^26.6.2",
     "eslint": "^10.11.0",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^5.0.1"
   }
