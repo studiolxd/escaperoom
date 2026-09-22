@@ -7,7 +7,8 @@ LiveKit y coturn.
 ```bash
 pnpm infra:up      # docker compose up -d
 pnpm infra:down    # docker compose down
-cp packages/shared/.env.example packages/shared/.env   # una sola vez
+pnpm dev:env       # crea packages/shared/.env con la BD de ESTE worktree
+pnpm db:reset      # migra 0001–0010 desde cero y siembra (admin + creador + Rey Aldric)
 pnpm db:migrate    # aplica migraciones Prisma (directo a Postgres)
 pnpm db:seed       # admin + creador + Rey Aldric publicado
 ```
@@ -15,6 +16,38 @@ pnpm db:seed       # admin + creador + Rey Aldric publicado
 > El `.env` de Prisma vive en `packages/shared/.env`. No crees también
 > `packages/shared/prisma/.env`: Prisma cargaría los dos y fallaría por conflicto
 > de variables.
+
+## Una base de datos por worktree (ticket 0.12)
+
+Varios worktrees comparten el **mismo** contenedor Postgres, así que si todos
+migran y siembran contra la misma base se pisan. `pnpm dev:env` aísla cada
+worktree en su propia base:
+
+| Worktree                            | Base de datos                       |
+| ----------------------------------- | ----------------------------------- |
+| Principal (`/Users/suvi/Dev/escaperoom`) | `escaperoom`                   |
+| Cualquier `git worktree add`        | `escaperoom_<slug del directorio>`  |
+
+El script es **idempotente**: deriva el slug del path, crea la base en el
+contenedor si falta (`docker compose … exec -T postgres createdb …`) y escribe
+`packages/shared/.env` (`DATABASE_URL` y `DIRECT_URL`, ambos directos a
+`localhost:55433`). **No pisa un `.env` existente**; para reescribirlo:
+
+```bash
+pnpm dev:env -- --force
+```
+
+Flujo típico en un worktree nuevo:
+
+```bash
+pnpm install
+pnpm infra:up
+pnpm dev:env && pnpm db:reset
+```
+
+> El `DIRECT_URL` apunta al Postgres directo (55433), no a PgBouncer: tras un
+> `migrate reset` los planes cacheados del pooler quedan inválidos (ENUMs
+> recreados).
 
 ## Puertos (no estándar, para no chocar con otras suites)
 
