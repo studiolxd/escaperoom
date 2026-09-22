@@ -30,6 +30,8 @@ combinación → brasero → candado → cáliz, con pistas, diálogos y fin de 
 
 ## Paralelizable
 
-- **Encargo del pack gráfico (1.2):** iniciar en la semana 1 (plazo externo).
+- **Encargo del pack gráfico (1.2):** iniciar en la semana 1 (plazo externo). Brief y contrato de
+  entrega: `specs/26-pack-grafico-v1.md` (entregable de documentación de 1.2); el cableado del
+  tilemap/atlas en el runtime espera a la publicación del pack.
 - **Contenido narrativo** de las salas 2–3 (guion y diálogos) puede prepararse mientras se construye
   el runtime.

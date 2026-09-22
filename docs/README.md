@@ -54,6 +54,7 @@ después en código.
 | 23 | [Motor v2, marketplace y API pública](specs/23-motor-v2-marketplace-y-api-publica.md) | Ambición post-MVP, licencias de salas, API pública/webhooks (puntos 9–12) |
 | 24 | [Operaciones y escalabilidad](specs/24-operaciones-y-escalabilidad.md) | Dos tipos de pico, cuellos de botella, señales de escalado, observabilidad |
 | 25 | [Estrategia de contenido y lanzamiento](specs/25-estrategia-de-contenido-y-lanzamiento.md) | Salas oficiales semilla, calendario de marketing, comunidad de creadores |
+| 26 | [Pack gráfico v1](specs/26-pack-grafico-v1.md) | Brief y contrato de entrega del pack `medieval-v1` (tileset, sprites, avatar, FX, manifiesto) |
 
 ## Índice del plan (`docs/plan/`)
 

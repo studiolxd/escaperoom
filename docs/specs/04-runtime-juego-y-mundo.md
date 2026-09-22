@@ -137,7 +137,8 @@ created ──> lobby ──> playing ──> ended
 ## 8. Alcance gráfico mínimo v1 (sala de prueba)
 
 Solo lo imprescindible para construir y demear el Rey Aldric; ampliación diferida a v2. Todo
-encargable como un único pack.
+encargable como un único pack. El **brief y contrato de entrega** completo está en
+`26-pack-grafico-v1.md`.
 
 ### Tileset (1 pack: medieval)
 
