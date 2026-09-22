@@ -19,8 +19,11 @@ export interface LobbyStateLike {
 }
 
 /** Convierte el `MapSchema` de jugadores del servidor en un registro plano. */
-export function collectPlayers(state: LobbyStateLike): Record<string, LobbyPlayer> {
+export function collectPlayers(state: LobbyStateLike | undefined): Record<string, LobbyPlayer> {
   const players: Record<string, LobbyPlayer> = {};
+  if (!state?.players) {
+    return players;
+  }
   state.players.forEach((player) => {
     players[player.id] = {
       id: player.id,

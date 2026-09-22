@@ -86,10 +86,22 @@ export class LobbyTestScene extends Phaser.Scene {
       }
     });
 
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+    // `game.destroy()` emite DESTROY en las escenas (no SHUTDOWN): hay que
+    // soltar la suscripción al store en ambos casos para que una escena
+    // destruida (p. ej. el doble montaje de React StrictMode) no reciba
+    // actualizaciones y llame a `this.add` con el displayList ya anulado.
+    const teardown = () => {
       this.unsubscribeStore?.();
-      this.input.off(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
+      this.unsubscribeStore = undefined;
+      this.pendingTarget = null;
+      this.clickTarget = null;
       this.avatars.clear();
+    };
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, teardown);
+    this.events.once(Phaser.Scenes.Events.DESTROY, teardown);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.input?.off(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
     });
   }
 
@@ -111,6 +123,13 @@ export class LobbyTestScene extends Phaser.Scene {
   // --- Estado -------------------------------------------------------------
 
   private syncAvatars(players: Record<string, LobbyPlayer>): void {
+    // Ignora actualizaciones si la escena ya fue destruida (p. ej. entre dos
+    // renders de React StrictMode): `Systems.destroy()` anula `displayList`.
+    // No se usa `isActive()` porque durante `create()` el estado es CREATING.
+    if (!this.sys.displayList) {
+      return;
+    }
+
     const { selfId } = useLobbyStore.getState();
     const alive = new Set<string>();
 

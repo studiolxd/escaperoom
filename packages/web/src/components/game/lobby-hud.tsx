@@ -29,6 +29,7 @@ export function LobbyHud() {
   const selfId = useLobbyStore((state) => state.selfId);
   const players = useLobbyStore((state) => state.players);
   const error = useLobbyStore((state) => state.error);
+  const connectionError = useLobbyStore((state) => state.connectionError);
 
   const list = Object.values(players).sort((a, b) => a.id.localeCompare(b.id));
 
@@ -60,6 +61,9 @@ export function LobbyHud() {
         </ul>
 
         {error ? <p className="text-xs text-rose-300">Rechazo del servidor: {error}</p> : null}
+        {connectionError ? (
+          <p className="text-xs text-rose-300">Error de conexión: {connectionError}</p>
+        ) : null}
 
         <p className="max-w-xs border-t border-white/10 pt-2 text-xs text-white/50">
           Muévete con <span className="font-mono text-white/80">WASD</span> o flechas, o haz clic en

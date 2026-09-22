@@ -27,6 +27,7 @@ export default function LobbyCanvas() {
     const store = useLobbyStore.getState();
     store.setStatus("connecting");
     store.setError(null);
+    store.setConnectionError(null);
 
     const game = new Phaser.Game({
       type: Phaser.AUTO,
@@ -86,7 +87,7 @@ export default function LobbyCanvas() {
         }
         const current = useLobbyStore.getState();
         current.setStatus("error");
-        current.setError(error instanceof Error ? error.message : String(error));
+        current.setConnectionError(error instanceof Error ? error.message : String(error));
       });
 
     return () => {
