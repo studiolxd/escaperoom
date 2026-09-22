@@ -73,8 +73,10 @@ export function createStorage(env: KitStorageEnv): Storage {
               secretAccessKey: env.STORAGE_SECRET_ACCESS_KEY,
             }
           : undefined,
-      // R2 requires path-style; S3 supports both
-      forcePathStyle: env.STORAGE_PROVIDER === "r2",
+      // Path-style whenever there is a custom endpoint (MinIO, R2 or any
+      // S3-compatible), where virtual-hosted style can't resolve the bucket.
+      // Without an endpoint (AWS S3) it stays off, which is the default.
+      forcePathStyle: Boolean(env.STORAGE_ENDPOINT) || env.STORAGE_PROVIDER === "r2",
       // AWS SDK v3 adds CRC32 checksums by default; R2 does not support them
       requestChecksumCalculation: "WHEN_REQUIRED",
       responseChecksumValidation: "WHEN_REQUIRED",
