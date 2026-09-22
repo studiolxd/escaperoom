@@ -37,5 +37,23 @@
     "locked": "Het slot is nog niet beschikbaar",
     "unavailable": "Het slot accepteert geen pogingen meer",
     "solved": "Slot geopend!"
+  },
+  "Inventory": {
+    "title": "Inventaris",
+    "recipes": "Recepten: {found}/{total}",
+    "gridLabel": "Inventarisraster",
+    "emptySlot": "Leeg vak",
+    "unknownItem": "Onbekend voorwerp",
+    "combineZone": "Combinatiezone",
+    "dropHere": "Sleep twee voorwerpen hierheen",
+    "pending": "Combineren…",
+    "combine": "Combineren",
+    "clear": "Wissen",
+    "hint": "Sleep twee voorwerpen naar de combinatiezone",
+    "combined": "Je hebt gemaakt: {item}",
+    "alreadyApplied": "Dat had je al gedaan: {item}",
+    "invalid": "Die voorwerpen combineren niet",
+    "missingItems": "Je mist voorwerpen voor dat recept",
+    "unavailable": "De combinatie is niet beschikbaar"
   }
 }

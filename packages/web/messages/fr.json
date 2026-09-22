@@ -37,5 +37,23 @@
     "locked": "Le cadenas n'est pas encore disponible",
     "unavailable": "Le cadenas n'accepte plus de tentatives",
     "solved": "Cadenas ouvert !"
+  },
+  "Inventory": {
+    "title": "Inventaire",
+    "recipes": "Recettes : {found}/{total}",
+    "gridLabel": "Grille d'inventaire",
+    "emptySlot": "Emplacement vide",
+    "unknownItem": "Objet inconnu",
+    "combineZone": "Zone de combinaison",
+    "dropHere": "Glisse deux objets ici",
+    "pending": "Combinaison…",
+    "combine": "Combiner",
+    "clear": "Vider",
+    "hint": "Glisse deux objets dans la zone de combinaison",
+    "combined": "Tu as créé : {item}",
+    "alreadyApplied": "Tu l'avais déjà fait : {item}",
+    "invalid": "Ces objets ne se combinent pas",
+    "missingItems": "Il te manque des objets pour cette recette",
+    "unavailable": "La combinaison n'est pas disponible"
   }
 }

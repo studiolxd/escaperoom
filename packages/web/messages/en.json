@@ -37,5 +37,23 @@
     "locked": "The lock is not available yet",
     "unavailable": "The lock accepts no more attempts",
     "solved": "Lock opened!"
+  },
+  "Inventory": {
+    "title": "Inventory",
+    "recipes": "Recipes: {found}/{total}",
+    "gridLabel": "Inventory grid",
+    "emptySlot": "Empty slot",
+    "unknownItem": "Unknown item",
+    "combineZone": "Combination area",
+    "dropHere": "Drag two objects here",
+    "pending": "Combining…",
+    "combine": "Combine",
+    "clear": "Clear",
+    "hint": "Drag two objects into the combination area",
+    "combined": "You created: {item}",
+    "alreadyApplied": "You had already done that: {item}",
+    "invalid": "Those objects do not combine",
+    "missingItems": "You are missing objects for that recipe",
+    "unavailable": "The combination is not available"
   }
 }
