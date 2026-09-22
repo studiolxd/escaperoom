@@ -7,9 +7,14 @@ LiveKit y coturn.
 ```bash
 pnpm infra:up      # docker compose up -d
 pnpm infra:down    # docker compose down
+cp packages/shared/.env.example packages/shared/.env   # una sola vez
 pnpm db:migrate    # aplica migraciones Prisma (directo a Postgres)
 pnpm db:seed       # admin + creador + Rey Aldric publicado
 ```
+
+> El `.env` de Prisma vive en `packages/shared/.env`. No crees también
+> `packages/shared/prisma/.env`: Prisma cargaría los dos y fallaría por conflicto
+> de variables.
 
 ## Puertos (no estándar, para no chocar con otras suites)
 
