@@ -248,6 +248,21 @@
         { "type": "grant_item", "itemId": "vela", "to": "interactor" }
       ] },
 
+    { "id": "r-revelar-cuadro", "priority": 0, "once": true,
+      "trigger": { "type": "on_puzzle_solved", "puzzleId": "p-llave-cuadro" },
+      "conditions": [],
+      "actions": [ { "type": "set_object_state", "objectId": "cuadro-aurelio", "state": "open" } ] },
+
+    { "id": "r-abrir-arca", "priority": 0, "once": true,
+      "trigger": { "type": "on_puzzle_solved", "puzzleId": "p-candado-arca" },
+      "conditions": [],
+      "actions": [ { "type": "set_object_state", "objectId": "arca-candado", "state": "open" } ] },
+
+    { "id": "r-placas-resueltas", "priority": 0, "once": true,
+      "trigger": { "type": "on_puzzle_solved", "puzzleId": "p-placas-estatuas" },
+      "conditions": [],
+      "actions": [ { "type": "set_object_state", "objectId": "puerta-bodega", "state": "open" } ] },
+
     { "id": "r-mural-resuelto", "priority": 0, "once": true,
       "trigger": { "type": "on_puzzle_solved", "puzzleId": "p-mural-vendimia" },
       "conditions": [],

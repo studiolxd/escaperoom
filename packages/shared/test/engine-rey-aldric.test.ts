@@ -132,6 +132,7 @@ describe("motor de reglas — ruta crítica del Rey Aldric", () => {
       "r-abrir-armario",
       "r-encender-brasero",
       "r-leer-pergamino",
+      "r-abrir-arca",
       "r-mural-resuelto",
       "r-caliz-en-ranura",
       "r-recoger-caliz",
