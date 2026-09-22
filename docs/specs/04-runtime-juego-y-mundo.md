@@ -95,9 +95,23 @@ contenido pasa a la "zona de descubrimiento". Comportamiento configurable con `d
 ## 4. Interacción del jugador con el mundo
 
 - Objetos interactuables muestran brillo/pista al acercar el cursor.
-- `interact` dispara la evaluación de reglas `on_interact` del objeto y, si procede, el puzzle
-  de mundo asociado (Phaser) o la apertura de un panel (React).
-- Al inspeccionar, se muestran diálogos/descripciones (`show_dialog`).
+- **Seleccionar un objeto** (tecla de interacción cerca de él o clic) abre su **menú contextual**,
+  cuyas acciones se derivan del motor (no de listas cableadas). En v1:
+  - **Inspeccionar** → `on_interact` + `show_dialog` (diálogos/descripciones).
+  - **Usar objeto…** → abre el inventario para elegir un **item del inventario** y aplicarlo al
+    objeto del mundo.
+- **Usar un item sobre un objeto del mundo** (mecánica central del género) tiene dos vías, con la
+  **misma resolución**:
+  - **Drag&drop**: arrastrar un item del inventario sobre el objeto del mundo.
+  - **Menú → Usar objeto… → elegir item** (equivalente para teclado/móvil, sin arrastrar).
+  - Ambas disparan `on_use_item {itemId, objectId}` (specs/05 §3); **solo el motor decide** qué
+    ocurre (reglas + `item_in_inventory`). El mundo **no** cablea casos por objeto.
+- **Feedback e idempotencia**: si la acción procede, la regla cambia estado/diálogo/items; si no,
+  mensaje neutro ("no ocurre nada"). Repetir una acción ya consumida **no** repite diálogos ni
+  otorga items de nuevo.
+- **Un único resolutor**: el runtime/escena Phaser **no** evalúa reglas ni decide diálogos;
+  emite la **intención** (`interact`, `use_item`) y el **estado/servicio de partida** (el motor)
+  devuelve diálogo/estado/panel. Esto evita dobles diálogos y mantiene al servidor como autoridad.
 - El patrón "Phaser lanza un puzzle en React": el jugador hace clic en el arca candada (Phaser)
   → Phaser emite evento → React monta `<CodeLockPuzzle code={...} onSolve={...} />` → al
   resolver, React notifica al estado de partida → Phaser abre la tapa con animación.
