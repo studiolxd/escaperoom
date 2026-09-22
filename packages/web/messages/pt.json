@@ -37,5 +37,16 @@
     "locked": "O cadeado ainda não está disponível",
     "unavailable": "O cadeado já não aceita mais tentativas",
     "solved": "Cadeado aberto!"
+  },
+  "HiddenKey": {
+    "title": "Esconderijo",
+    "spot": "Um objeto da sala parece fora do lugar…",
+    "hidden": "Ainda não olhaste aqui",
+    "reveal": "Revelar o esconderijo",
+    "pending": "A revelar…",
+    "revealed": "Encontraste {item}!",
+    "alreadyRevealed": "Já tinhas encontrado este objeto",
+    "locked": "O esconderijo ainda não está disponível",
+    "unavailable": "O esconderijo já não pode ser revelado"
   }
 }

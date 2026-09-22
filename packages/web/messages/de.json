@@ -37,5 +37,16 @@
     "locked": "Das Schloss ist noch nicht verfügbar",
     "unavailable": "Das Schloss nimmt keine weiteren Versuche an",
     "solved": "Schloss geöffnet!"
+  },
+  "HiddenKey": {
+    "title": "Versteck",
+    "spot": "Ein Gegenstand im Raum wirkt fehl am Platz …",
+    "hidden": "Hier hast du noch nicht nachgesehen",
+    "reveal": "Versteck aufdecken",
+    "pending": "Wird aufgedeckt …",
+    "revealed": "Du hast {item} gefunden!",
+    "alreadyRevealed": "Du hattest diesen Gegenstand bereits gefunden",
+    "locked": "Das Versteck ist noch nicht verfügbar",
+    "unavailable": "Das Versteck kann nicht mehr aufgedeckt werden"
   }
 }

@@ -37,5 +37,16 @@
     "locked": "The lock is not available yet",
     "unavailable": "The lock accepts no more attempts",
     "solved": "Lock opened!"
+  },
+  "HiddenKey": {
+    "title": "Hiding spot",
+    "spot": "Something in the room looks out of place…",
+    "hidden": "You haven't looked here yet",
+    "reveal": "Reveal the hiding spot",
+    "pending": "Revealing…",
+    "revealed": "You found {item}!",
+    "alreadyRevealed": "You had already found this object",
+    "locked": "The hiding spot is not available yet",
+    "unavailable": "The hiding spot can no longer be revealed"
   }
 }

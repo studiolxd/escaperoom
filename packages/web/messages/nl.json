@@ -37,5 +37,16 @@
     "locked": "Het slot is nog niet beschikbaar",
     "unavailable": "Het slot accepteert geen pogingen meer",
     "solved": "Slot geopend!"
+  },
+  "HiddenKey": {
+    "title": "Verstopplaats",
+    "spot": "Iets in de kamer staat op een vreemde plek…",
+    "hidden": "Hier heb je nog niet gekeken",
+    "reveal": "Verstopplaats onthullen",
+    "pending": "Onthullen…",
+    "revealed": "Je hebt {item} gevonden!",
+    "alreadyRevealed": "Je had dit voorwerp al gevonden",
+    "locked": "De verstopplaats is nog niet beschikbaar",
+    "unavailable": "De verstopplaats kan niet meer onthuld worden"
   }
 }
