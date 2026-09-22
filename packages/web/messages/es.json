@@ -98,5 +98,46 @@
     "items": "Objetos recogidos",
     "review": "Dejar reseña",
     "exit": "Salir"
+  },
+  "Playtest": {
+    "badge": "playtest Sala 1 (1.10)",
+    "subtitle": "Recorre el Salón del Trono: cuadro → llave → armario → combinación → brasero → candado → cáliz → placas.",
+    "controls": "WASD/flechas para mover · Espacio o clic para interactuar · botones del guion",
+    "steps": "Guion de la Sala 1",
+    "complete": "¡Sala 1 completada!",
+    "inProgress": "En curso",
+    "step": {
+      "cuadro": "Inspeccionar el cuadro",
+      "armario": "Abrir el armario",
+      "combina": "Combinar mechero + vela",
+      "brasero": "Encender el brasero",
+      "arca": "Abrir el candado del arca",
+      "placas": "Resolver las placas"
+    },
+    "action": {
+      "cuadro": "Inspeccionar cuadro",
+      "armario": "Abrir armario",
+      "combina": "Combinar (inventario)",
+      "brasero": "Encender brasero",
+      "arca": "Candado del arca",
+      "placas": "Resolver placas",
+      "reset": "Reiniciar",
+      "hints": "Pistas"
+    },
+    "inventory": "Inventario",
+    "emptyInventory": "Vacío",
+    "stats": {
+      "puzzles": "Puzzles resueltos",
+      "items": "Objetos"
+    },
+    "dialog": "Diálogo",
+    "close": "Cerrar",
+    "log": {
+      "title": "Registro",
+      "interact": "Interactúas con {object}",
+      "combine": "Combinas {input}",
+      "arcaOpen": "El candado del arca se abre",
+      "plates": "Las placas ceden: la puerta a la Bodega se abre"
+    }
   }
 }
