@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@escaperoom/env", "@escaperoom/shared"],
+  transpilePackages: ["@escaperoom/config", "@escaperoom/env", "@escaperoom/shared"],
 };
 
-export default nextConfig;
+const withNextIntl = createNextIntlPlugin();
+
+export default withNextIntl(nextConfig);

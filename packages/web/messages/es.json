@@ -1,0 +1,16 @@
+{
+  "Metadata": {
+    "title": "EscapeRoom Creator",
+    "description": "Escape rooms online 2D isométricos cooperativos."
+  },
+  "LocaleSwitcher": {
+    "label": "Idioma"
+  },
+  "Home": {
+    "showcase": "Página de prueba i18n (0.9)",
+    "title": "EscapeRoom",
+    "subtitle": "Canvas híbrido (Phaser + overlay React) sobre un tilemap isométrico.",
+    "lobbyCta": "Lobby multijugador (0.5)",
+    "fallbackDemo": "Esta clave solo existe en el catálogo 'es': los demás idiomas caen aquí."
+  }
+}
