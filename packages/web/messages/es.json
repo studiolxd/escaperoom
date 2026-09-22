@@ -39,6 +39,17 @@
     "unavailable": "El candado no acepta más intentos",
     "solved": "¡Candado abierto!"
   },
+  "HiddenKey": {
+    "title": "Escondite",
+    "spot": "Un objeto del salón parece fuera de lugar…",
+    "hidden": "Aún no has mirado aquí",
+    "reveal": "Revelar el escondite",
+    "pending": "Revelando…",
+    "revealed": "¡Has encontrado {item}!",
+    "alreadyRevealed": "Ya habías encontrado este objeto",
+    "locked": "El escondite aún no está disponible",
+    "unavailable": "El escondite ya no puede revelarse"
+  },
   "Inventory": {
     "title": "Inventario",
     "recipes": "Recetas: {found}/{total}",
