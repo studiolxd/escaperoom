@@ -108,6 +108,8 @@ packages/
 ├── kit/                 ← @escaperoom/kit: infraestructura común reutilizable (logger,
 │                          redis, rate-limit, storage S3/R2, colas/eventos BullMQ y
 │                          health de workers); sin la infraestructura tRPC (la consume el 0.10)
+├── worker/              ← @escaperoom/worker: procesos de cola (analítica → analyticsEvent);
+│                          consume Redis y escribe vía Prisma (@escaperoom/shared/db)
 └── shared/
     ├── services/        ← **única lógica de dominio** (salas, objetos, puzzles, reglas, eventos, créditos)
     │                      la invocan tRPC, REST, MCP y Colyseus con un `actor` (ADR-022)

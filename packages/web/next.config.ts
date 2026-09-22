@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   transpilePackages: [
     "@escaperoom/config",
     "@escaperoom/env",
+    "@escaperoom/kit",
     "@escaperoom/mcp-server",
     "@escaperoom/shared",
   ],

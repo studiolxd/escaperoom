@@ -9,6 +9,7 @@
     "./schemas": "./src/schemas/index.ts",
     "./engine": "./src/engine/index.ts",
     "./services": "./src/services/index.ts",
+    "./analytics": "./src/analytics/index.ts",
     "./db": "./src/db/index.ts"
   },
   "scripts": {
@@ -26,6 +27,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@escaperoom/kit": "workspace:*",
     "@prisma/client": "6.19.3",
     "zod": "^4.6.5"
   },
