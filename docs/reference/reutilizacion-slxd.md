@@ -26,7 +26,7 @@ Reglas:
 | `scripts/dev-env.sh` (generación idempotente de `.env.local`) | `scripts/dev-env.sh` | adaptar (servicios y secretos) | 0.1/0.2 |
 | `infra/docker-compose.dev.yml` — Postgres, Redis, MinIO (+init de buckets) | `infra/docker-compose.dev.yml` | podar y ampliar (ver §3) | 0.2 |
 | `infra/Dockerfile.app`, `infra/docker-entrypoint.sh` | `infra/` | adaptar | 0.2 |
-| `packages/kit` (logger, redis, rate-limit, audit, storage/R2, webhooks salientes, colas/jobs, cifrado en reposo, health de workers) | `packages/shared/kit` | adaptar (quitar tRPC y espejos entre apps) | 0.2, 0.7, 2.x |
+| `packages/kit` (logger, redis, rate-limit, audit, storage/R2, webhooks salientes, colas/jobs, cifrado en reposo, health de workers, **infraestructura tRPC**) | `packages/shared/kit` | adaptar (se conserva la infraestructura tRPC de la UI, ADR-022; se quitan los espejos entre apps) | 0.2, 0.7, 2.x |
 | `packages/mailer` (un transporte, SMTP + Resend) | `packages/shared/mailer` | copiar/adaptar (Nodemailer/SMTP por defecto, ADR-020) | 5.6 |
 | i18n de SLXD (**next-intl**, locales `en es fr de nl pt`; `messages`/`validation`) | `packages/web` i18n + catálogo de textos | adaptar (solo `es` obligatorio al principio, ADR-018) | 0.9 |
 | `packages/roles` (roles/permisos de organización) | `packages/shared/roles` | adaptar al modelo de orgs del proyecto | 0.3, 5.11 |

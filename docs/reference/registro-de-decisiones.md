@@ -141,13 +141,26 @@ con estilos por dato; el MCP edita el mismo grafo (datos en Yjs) sin capa de sin
 
 ---
 
-## ADR-010 — MCP del creador como cliente de la misma API
+## ADR-010 — MCP del creador: los mismos servicios que el editor (revisado 2026-09-22)
 
-**Decisión:** el MCP no tiene vía paralela; sus tools son wrappers finos sobre la API REST y el canal
-Yjs, con el token OAuth del creador. Esquemas Zod compartidos en `packages/shared`.
+**Contexto original:** el MCP se diseñó como cliente fino de la API REST, para garantizar la paridad
+editor↔MCP. Al copiar el patrón de SLXD (ADR-022) se comprobó que compartir **contrato** es más débil
+que compartir **lógica**.
 
-**Consecuencias:** paridad garantizada editor/MCP; el agente es un colaborador más del doc Yjs; el
-validador que corrige al humano corrige al agente. Se construye desde el primer momento.
+**Decisión (revisada):** el MCP no tiene vía paralela ni contrato paralelo: sus tools **no
+reimplementan lógica**. Igual que el router tRPC del editor y las rutas REST públicas, llaman a la
+**misma capa de servicios de dominio** (`packages/shared/services`), con un
+`actor {organizationId, userId, role}` como única diferencia — el patrón verificado en SLXD
+(`specs/04` § "Mutar por MCP"). Las tools que mutan llevan `destructiveHint` y pasan por el gate de
+confirmación; el agente sigue siendo un colaborador más del doc Yjs.
+
+**Consecuencias:** la paridad editor↔MCP es literal (mismo código, no solo mismo contrato); no hay dos
+superficies que sincronizar; se reutilizan `@slxd/mcp-server` y `@slxd/mcp-auth`. El transporte es
+HTTP en `/mcp/creator` con OAuth 2.1, con variante stdio para Claude Desktop.
+
+**Alternativa descartada (la anterior):** MCP como cliente fino de la API REST. Da un contrato público
+único, pero obliga a que la REST exponga todo lo del editor, añade saltos HTTP y comparte contrato en
+vez de lógica.
 
 ---
 
@@ -321,3 +334,27 @@ para E2E. Se declara explícitamente en el stack.
 **Consecuencias:** un solo runner en todo el workspace, rápido y con los helpers ya probados en SLXD.
 
 **Alternativas descartadas:** Jest (más lento y más configuración); `node:test` (menos ecosistema).
+
+---
+
+## ADR-022 — Capas de API: servicios de dominio + tRPC (UI) + REST público
+
+**Contexto:** tras revisar cómo hace SLXD su API y su MCP (`specs/01`, `specs/04`): **tRPC** para las
+pantallas, **REST `/api/v1`** para terceros y webhooks, `/internal/*` para server-to-server, y una
+**capa de servicios de dominio** que es la única con lógica; las tres puertas la llaman.
+
+**Decisión:** adoptar ese patrón en este proyecto:
+
+- `packages/shared/services` — **única lógica de dominio** (salas, objetos, puzzles, reglas, eventos,
+  créditos…), siempre con un `actor` explícito.
+- **tRPC (v11)** para la UI de web y editor (infraestructura tRPC de `@slxd/kit`).
+- **REST** para lo público/anónimo, terceros y webhooks (API pública bajo `/api/*`, catálogo anónimo,
+  `/api/webhooks/stripe`).
+- **MCP** sobre los mismos servicios (`@slxd/mcp-server` / `mcp-auth`), en `/mcp/creator`.
+- **Colyseus** consume también los servicios/reglas de dominio.
+
+**Consecuencias:** una sola verdad lógica; los webhooks se emiten desde el servicio y no desde la
+ruta; la API pública es una puerta más, no el centro. `specs/13` pasa a describir la superficie REST.
+
+**Alternativas descartadas:** REST único como contrato de todo (pierde ergonomía tipada en la UI y
+obliga a exponer de más); tRPC para todo (no sirve a terceros, webhooks ni MCP).

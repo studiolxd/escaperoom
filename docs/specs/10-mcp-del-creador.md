@@ -8,25 +8,43 @@ conversacional de creación: un agente IA construye y edita salas.
 ## 1. Filosofía de diseño: el MCP no es una vía aparte
 
 ```
-        ┌──────────────────────────────────────┐
-        │        API de salas (Next.js)        │
-        │  REST + WebSocket (misma para todos) │
-        └───────┬──────────────┬───────────────┘
-                │              │
-     ┌──────────┴───┐    ┌─────┴──────────┐
-     │ Editor visual│    │ Servidor MCP   │
-     │ (Phaser/Yjs) │    │ (TypeScript)   │
-     └──────────────┘    └─────┬──────────┘
-                               │
-                    ┌──────────┴───────┐
-                    │  Chat con agente │
-                    │  (Claude, etc.)  │
-                    └──────────────────┘
+            ┌──────────────────────────────────────────────┐
+            │     Servicios de dominio (shared/services)     │
+            │  única lógica: salas, objetos, puzzles, reglas │
+            └───┬───────────────┬───────────────┬───────────┘
+                │               │               │
+        ┌───────┴───┐   ┌───────┴───────┐  ┌────┴──────────┐
+        │ tRPC (UI) │   │ REST /api/*   │  │ MCP           │
+        │ editor+web│   │ público       │  │ /mcp/creator  │
+        └───────────┘   └───────────────┘  └────┬──────────┘
+                                                │
+                                     ┌──────────┴───────┐
+                                     │  Chat con agente │
+                                     │  (Claude, etc.)  │
+                                     └──────────────────┘
 ```
 
 **Principio rector:** *todo lo que el editor visual puede hacer, el MCP puede hacerlo, y
-viceversa.* Misma validación, mismo draft, mismo playtest. El agente es "otro par de manos" en
-el editor — con Yjs pueden co-editar agente y humano a la vez (el agente aparece como colaborador).
+viceversa.* No se comparte un contrato: **se comparte la lógica** (ADR-010/022). Las tools del MCP
+llaman a los mismos **servicios de dominio** que el router tRPC del editor y las rutas REST públicas,
+con un `actor` como única diferencia — el patrón de SLXD (`specs/04` § "Mutar por MCP"). Misma
+validación, mismo draft, mismo playtest. El agente es "otro par de manos" en el editor — con Yjs
+pueden co-editar agente y humano a la vez (el agente aparece como colaborador).
+
+### 1.1 Transporte, autenticación y pipeline
+
+Se copia el patrón de SLXD (ADR-017/022):
+
+- **Servidor:** `@slxd/mcp-server` adaptado — pipeline de petición, registro de herramientas, gate de
+  confirmación y meta-tools (`find_tools`, `tool_schema`, `run_tool`, `upload`).
+- **Transporte:** HTTP streamable en `/mcp/creator` (chat web) y **stdio** (Claude Desktop).
+- **Auth:** `@slxd/mcp-auth` adaptado — OAuth 2.1 con PKCE + DCR; el login se resuelve contra la
+  sesión de **Better Auth** (no hay plano de control aparte). El token de un creador no puede tocar
+  salas ajenas.
+- **Mutuaciones:** `destructiveHint: true` → el pipeline exige `confirm: true` o devuelve vista
+  previa; `publish` es irreversible y lleva confirmación humana explícita.
+- **La costura:** cada tool llama a un **servicio de dominio** con un `actor`; no reimplementa el
+  router tRPC (ADR-010).
 
 ## 2. Toolset
 
@@ -129,15 +147,14 @@ editor o seguir iterando por chat.
 
 ```
 packages/
-├── mcp-server/          ← @modelcontextprotocol/sdk (TypeScript)
-│   ├── tools/           ← un módulo por tool (schemas + handler)
-│   ├── lib/
-│   │   ├── roomApi.ts   ← cliente HTTP de la API de salas (el mismo que usa el editor)
-│   │   └── validator.ts ← validador compartido (importado del monorepo)
-│   └── index.ts         ← server setup (stdio + streamable HTTP)
+├── mcp-server/          ← @slxd/mcp-server adaptado (pipeline, registry, gate; OAuth con @slxd/mcp-auth)
+│   ├── tools/           ← un módulo por tool (schema Zod + handler)
+│   ├── lib/validator.ts ← validador compartido (importado del monorepo)
+│   └── index.ts         ← server setup (stdio + streamable HTTP en /mcp/creator)
 ├── editor/              ← Next.js (editor visual)
 ├── game-runtime/        ← runtime Phaser
 └── shared/
+    ├── services/        ← servicios de dominio que invocan las tools (ADR-022)
     ├── schemas/         ← Zod: PuzzleDefinition, Rule, RoomPackage…
     └── templates/       ← catálogo de plantillas con sus configs
 ```
@@ -146,16 +163,16 @@ Decisiones:
 
 - **Comparte los esquemas Zod** entre editor, API y MCP (`packages/shared`). El MCP nunca define
   sus propios tipos — importa los mismos `PuzzleDefinition` que el runtime. Cero deriva.
-- **Transporte:** stdio (desarrollo con Claude Desktop) + HTTP streamable (chat del creador
-  integrado en Next.js).
-- **Auth por OAuth** (estándar del MCP): el agente actúa con los permisos del creador autenticado,
-  no puede tocar salas ajenas.
+- **Transporte:** stdio (desarrollo con Claude Desktop) + HTTP streamable en `/mcp/creator` (chat del
+  creador integrado en Next.js).
+- **Auth por OAuth 2.1** (`@slxd/mcp-auth`): el login se resuelve contra la sesión de **Better Auth**;
+  el agente actúa con los permisos del creador autenticado y no puede tocar salas ajenas.
 - **Límites de seguridad:** el agente solo opera sobre *drafts*. `publish()` exige validación en
   verde y confirmación humana explícita (el humano aprueba el "git push" de la sala).
 - **Coste de tokens:** `get_room()` puede devolver salas grandes. Vistas filtradas
   (`get_puzzle(id)`, `get_rules_for(objectId)`) para que el agente no cargue todo en cada paso.
-- **Sin API paralela:** las tools son wrappers finos sobre las mismas rutas REST y el mismo canal
-  Yjs (ver `specs/13-api-rest.md` §12).
+- **Sin lógica paralela:** las tools llaman a los **servicios de dominio** (ADR-010/022), no a una API
+  HTTP intermedia, y escriben en el mismo canal Yjs que el editor (ver `specs/13-api-rest.md` §12).
 
 ## 6. Por qué construirlo desde el primer momento
 

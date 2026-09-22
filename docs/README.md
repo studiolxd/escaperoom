@@ -41,7 +41,7 @@ después en código.
 | 10 | [MCP del creador](specs/10-mcp-del-creador.md) | Toolset completo, transporte, auth, dry-run, errores accionables, paridad con el editor |
 | 11 | [Protocolo multijugador](specs/11-protocolo-multijugador.md) | Rooms de Colyseus, fases, mensajes, errores, join, reconexión, rate limiting, permisos, analítica embebida |
 | 12 | [Voz y webcam (LiveKit)](specs/12-voz-y-webcam-livekit.md) | Topología de rooms, despliegue, ancho de banda, cámara por defecto, grabación y consentimiento |
-| 13 | [API REST](specs/13-api-rest.md) | Endpoints de auth, catálogo, salas, compras, eventos/claves, PDF, webhooks, moderación |
+| 13 | [API REST](specs/13-api-rest.md) | Superficie REST pública (catálogo, checkout, eventos/claves, PDF, webhooks, moderación); la UI usa tRPC y el MCP comparte servicios (ADR-022) |
 | 14 | [Modelo de datos SQL](specs/14-modelo-de-datos-sql.md) | DDL completo y migraciones (usuarios/orgs, créditos, salas/Yjs, eventos/claves, compras, progreso, moderación) |
 | 15 | [Audio y créditos IA](specs/15-audio-y-creditos-ia.md) | Biblioteca, subida propia, ElevenLabs, ledger de créditos, moderación de audio |
 | 16 | [Analítica](specs/16-analitica.md) | Taxonomía de eventos, funnels, métricas norte, implementación server-side |

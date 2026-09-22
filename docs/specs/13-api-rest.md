@@ -7,13 +7,22 @@ procesos distintos.
 
 ---
 
+> **Tres puertas, una sola lógica (ADR-022).** La UI de web y editor usa **tRPC**; esta spec describe
+> la **superficie REST** — catálogo anónimo, checkout, eventos/claves, webhooks y admin — que es
+> también la base de la **API pública para terceros**; el **MCP** no pasa por aquí: llama a los
+> mismos **servicios de dominio** (`packages/shared/services`). Las tres puertas invocan esa capa
+> única; ningún handler, procedure ni tool reimplementa lógica. Los endpoints marcados `usuario`/
+> `autor` son candidatos a servirse por tRPC en la UI; en REST se conservan los que la API pública o
+> los flujos anónimos necesitan.
+
 ## 1. Convenciones generales
 
 - **Base URL:** `/api/*` (rutas de Next.js, App Router — `route.ts` por recurso).
 - **Formato:** JSON en request y response, salvo subida de assets (multipart) y export de PDF
   (binario o URL firmada, §9).
-- **Auth:** Better Auth con sesión por cookie httpOnly para el frontend web. El MCP y
-  clientes externos usan **Bearer token** (OAuth) contra las mismas rutas — no hay API separada.
+- **Auth:** Better Auth con sesión por cookie httpOnly para la UI. El MCP usa **OAuth 2.1** contra sus
+  propias tools (`/mcp/creator`, ADR-010); los clientes externos usan **Bearer/API key** contra esta
+  superficie REST.
 - **Errores:** siempre `{ "error": { "code": "STRING_CODE", "message": "texto legible" } }` con el
   HTTP status correspondiente (400/401/403/404/409/422/429/500). Nunca se filtra un stack trace.
 - **Paginación:** cursor-based (`?cursor=...&limit=20`), respuesta
@@ -201,9 +210,10 @@ los mismos que usa el `join` de Colyseus, porque `redeem` es el paso previo inme
 
 ## 12. Relación con el MCP
 
-El MCP **no tiene API paralela**: sus tools son wrappers finos sobre estas mismas rutas REST más
-el canal Yjs, autenticados con el Bearer token OAuth del creador. Garantiza que "todo lo que el
-editor visual puede hacer, el MCP puede hacerlo" sin mantener dos superficies sincronizadas.
+El MCP **no tiene API ni lógica paralelas** (ADR-010/022): sus tools comparten la **capa de servicios
+de dominio** con esta superficie REST y con el tRPC del editor, con un `actor` como única diferencia.
+Se autentica con OAuth 2.1 (`@slxd/mcp-auth`) y se sirve en `/mcp/creator`. Garantiza que "todo lo que
+el editor visual puede hacer, el MCP puede hacerlo" sin mantener dos superficies sincronizadas.
 
 ## 13. Dependencias
 

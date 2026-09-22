@@ -15,6 +15,9 @@ Partidas (estado autoritativo, 1–N jugadores):                    Colyseus (No
 Chat de texto:                                                    canal de la room de Colyseus
 Voz y webcam:                                                     LiveKit (self-hosted, WebRTC) + coturn
 Agente IA creador:                                                Servidor MCP (TypeScript, MCP SDK)
+API de la UI (web/editor):                                        tRPC (v11)
+API pública:                                                      REST /api/* (terceros, webhooks) + catálogo anónimo
+Lógica de dominio:                                                packages/shared/services (única fuente: la usan tRPC, REST, MCP y Colyseus)
 Colaboración en edición:                                          Yjs (CRDT) sobre PostgreSQL
 Base de datos:                                                    PostgreSQL (JSONB para RoomPackage)
 ORM / migraciones:                                                Prisma (packages/shared/db)
@@ -45,7 +48,8 @@ lenguaje, un solo equipo, un solo build.
 | Validación | **Servidor siempre** | Anti-trampa y coherencia; el cliente nunca marca `solved`. |
 | Editor | **El editor ES el runtime** en modo edición | WYSIWYG absoluto y un solo código; elimina el riesgo "en el editor se ve bien, en el juego falla". |
 | Formato | **JSON declarativo** | Un único `RoomPackage` para editor, API, BD, MCP y runtime; sin código arbitrario del creador. |
-| MCP | **Cliente más de la misma API** | Todo lo que hace el editor visual lo hace el MCP por la puerta grande. |
+| MCP | **Mismos servicios de dominio** | El editor (tRPC), la API pública (REST) y el MCP llaman a la misma capa de servicios; paridad por lógica compartida (ADR-010/022). |
+| API | **tRPC (UI) + REST /api/* (público)** | tRPC da ergonomía tipada a la UI; REST sirve a terceros, webhooks y catálogo anónimo. Las dos sobre los servicios (ADR-022). |
 | ORM/migraciones | **Prisma** | Alinea con el andamiaje de SLXD y con el port de identidad/ledger; tipos compartidos (ADR-015). |
 | Auth | **Better Auth** | Plugin de organizaciones (miembros, roles, invitaciones) y alineación con SLXD (ADR-016). |
 | Reutilización | **Andamiaje de SLXD podado** | Tooling, infra y backend (incl. MCP) se copian/adaptan; no se arrastra el multi-tenant ni el DS (ADR-017). |
@@ -95,12 +99,15 @@ testing-library, y el i18n/temas/accesibilidad se resuelven con infraestructura 
 
 ```
 packages/
-├── web/                 ← Next.js: catálogo, perfiles, checkout, dashboard, API REST
+├── web/                 ← Next.js: catálogo, perfiles, checkout, dashboard; rutas tRPC (UI),
+│                          REST /api/* y endpoint MCP `/mcp/creator`
 ├── game-runtime/        ← Phaser: runtime de salas (modo play y modo edit) + componentes React de puzzle
 ├── editor/              ← UI del editor (Next.js) + Yjs + React Flow
-├── mcp-server/          ← @modelcontextprotocol/sdk (TypeScript)
+├── mcp-server/          ← @slxd/mcp-server adaptado: pipeline, tools sobre servicios, OAuth 2.1 (@slxd/mcp-auth)
 ├── colyseus-server/     ← rooms autoritativas, motor de reglas, validación de puzzles
 └── shared/
+    ├── services/        ← **única lógica de dominio** (salas, objetos, puzzles, reglas, eventos, créditos)
+    │                      la invocan tRPC, REST, MCP y Colyseus con un `actor` (ADR-022)
     ├── schemas/         ← Zod: PuzzleDefinition, Rule, RoomPackage, mensajes de protocolo…
     ├── templates/       ← catálogo de plantillas con sus configs
     ├── validator/       ← validador + test de solvabilidad (usado por API, editor y MCP)
@@ -153,15 +160,17 @@ Nunca se commitean secretos. Rotación y auditoría básica en Fase 6.
 
 ```
 Next.js (web/editor UI)
-  ├── REST /api/* ──────────────► Next.js route handlers ──► PostgreSQL / Redis / R2
-  ├── WebSocket edición (Yjs) ──► backend de edición ──────► room_updates / room_snapshots
-  ├── WebSocket partida ────────► Colyseus GameRoom ───────► GameState (en vivo) + Postgres (resultado)
-  └── WebRTC ───────────────────► LiveKit SFU (+ coturn) ──► audio/vídeo en tránsito
-MCP Server ── Bearer OAuth ─────► misma API REST + canal Yjs
+  ├── tRPC (UI) ────────────────► routers ──┐
+  ├── REST /api/* ─────────────► handlers ─┤──► servicios de dominio ──► PostgreSQL / Redis / R2
+  ├── WebSocket edición (Yjs) ──► backend de edición ──────────────────► room_updates / room_snapshots
+  ├── WebSocket partida ────────► Colyseus GameRoom ───────────────────► GameState (en vivo) + Postgres
+  └── WebRTC ───────────────────► LiveKit SFU (+ coturn) ──────────────► audio/vídeo en tránsito
+MCP /mcp/creator (OAuth) ───────► tools ──────────────────────────────► servicios de dominio
 Webhook Stripe ─────────────────► /api/webhooks/stripe ──► cola Redis ──► transfers / activaciones
 ```
 
-- La API REST y Colyseus comparten base de datos pero son **procesos distintos**.
+- tRPC, REST, el MCP y Colyseus invocan los **mismos servicios de dominio** (`shared/services`);
+  REST y Colyseus son **procesos distintos** pero comparten lógica y base de datos.
 - Los recursos pesados (transfer a Connect, generación de claves, PDF) se delegan a colas Redis.
 - La analítica se emite por cola Redis → worker → `analytics_events`; nunca bloquea el game loop.
 

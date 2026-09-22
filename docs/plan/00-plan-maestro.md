@@ -54,7 +54,8 @@ Lo identificado como bloqueante (cambiarlo después es rehacer código):
 - **Mínimo viable:** 1 full-stack TS sénior (Fases 0–2) + 1 (Fases 3–4) + 1 (Fases 5–6).
 - **Con un solo desarrollador:** 8–10 meses.
 - **Con tres:** el roadmap es realista en ~6 meses.
-- **Perfil clave:** TypeScript end-to-end (Next.js + Phaser + Colyseus + Yjs + PostgreSQL/Prisma).
+- **Perfil clave:** TypeScript end-to-end (Next.js + tRPC + Phaser + Colyseus + Yjs +
+  PostgreSQL/Prisma + servicios de dominio compartidos).
 
 ## 5. Riesgos principales y mitigación
 
@@ -69,6 +70,7 @@ Lo identificado como bloqueante (cambiarlo después es rehacer código):
 | Efecto "catálogo vacío" en lanzamiento | Alto (marketing) | Salas oficiales semilla construidas con el MCP (Fase 6) desde antes de la beta |
 | Deriva del formato RoomPackage | Alto (todo) | Fixture Rey Aldric como suite de regresión; cambio que lo rompe = breaking change |
 | Acoplamiento indebido con SLXD al reutilizar código | Medio (arquitectura) | ADR-017 y `reference/reutilizacion-slxd.md` fijan qué se copia y qué se descarta; namespace propio; revisión en PR |
+| Lógica duplicada entre puertas (tRPC / REST / MCP) | Alto (mantenimiento) | Capa de servicios de dominio única (ADR-022): ninguna puerta reimplementa lógica; regla explícita en el DoD del PR |
 
 ## 6. Criterios de hito (gate)
 

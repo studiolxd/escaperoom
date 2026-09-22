@@ -20,6 +20,7 @@ Referencias: `specs/03-arquitectura-y-stack.md`, `specs/14-modelo-de-datos-sql.m
 | 0.7 | **Analítica base** | Endpoint de colección + cola Redis + worker → `analytics_events`; emisión desde Next API | `16`, `14` §8 | Insertar un evento de prueba desde API llega a `analytics_events` sin bloquear la request |
 | 0.8 | **Import script SLXD (esqueleto)** | Script `scripts/import-slxd-ledger.ts` sobre el esquema Prisma destino (mapeo pendiente del DDL real) | `14` §12, `15` §2 | El script corre en seco contra un fixture; documenta el mapeo a completar |
 | 0.9 | **i18n base (next-intl)** | Routing de locales, catálogo `es` y carga de mensajes; locales `en, es, fr, de, nl, pt` con `es` por defecto | `03` §1, ADR-018 | Una página de prueba renderiza su copy en `es` y el selector de idioma cambia de locale |
+| 0.10 | **Servicios de dominio + tRPC base** | `packages/shared/services` con `actor`; un router tRPC (UI, de `@slxd/kit`) y un route handler REST `/api/*` llamando al **mismo** servicio; endpoint MCP mínimo (`/mcp/creator`) sobre el mismo servicio | `03` §4/§6, ADR-010/022 | Un test demuestra que tRPC, REST y MCP obtienen el mismo resultado del mismo servicio |
 
 ## Hito 0
 
