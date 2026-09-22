@@ -21,8 +21,9 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
-  # Pooler delante de Postgres. Las migraciones (Prisma) van directas a 55433;
-  # la app usa el pooler en 56433.
+  # Pooler delante de Postgres (paridad con producción). En dev NO es el
+  # default: tras un `migrate reset` los ENUMs se recrean y los planes cacheados
+  # del pooler quedan inválidos. Dev va directo a Postgres (55433).
   pgbouncer:
     image: edoburu/pgbouncer:v1.25.2-p0
     environment:

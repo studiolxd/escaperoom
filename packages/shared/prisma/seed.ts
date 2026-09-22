@@ -4,7 +4,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { PrismaClient } from "../generated/client";
 
-const prisma = new PrismaClient();
+// El seed escribe directo a Postgres (DIRECT_URL): tras `migrate reset` los
+// ENUMs se recrean con OIDs nuevos y el pooler (PgBouncer) puede tener planes
+// cacheados → "cache lookup failed for type".
+const prisma = new PrismaClient({
+  datasources: { db: { url: process.env.DIRECT_URL ?? process.env.DATABASE_URL } },
+});
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.resolve(here, "../../../docs/reference/roompackage-rey-aldric.v1.json");

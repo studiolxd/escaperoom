@@ -30,10 +30,15 @@ pnpm db:seed       # admin + creador + Rey Aldric publicado
 
 ## URLs
 
-- App (vía pooler): `postgresql://postgres:postgres@localhost:56433/escaperoom`
-- Migraciones (directo): `postgresql://postgres:postgres@localhost:55433/escaperoom`
+- Postgres (dev, directo): `postgresql://postgres:postgres@localhost:55433/escaperoom`
+- PgBouncer (opcional, paridad de pooling): `postgresql://postgres:postgres@localhost:56433/escaperoom`
 - Redis: `redis://localhost:56380`
 - MinIO: `http://localhost:9002` (usuario/clave `minioadmin`)
+
+> En dev se va directo a Postgres (55433). PgBouncer (56433) existe para probar
+> paridad de pooling, pero tras un `migrate reset` hay que reiniciarlo
+> (`docker compose -f infra/docker-compose.dev.yml restart pgbouncer`) porque
+> sus planes cacheados referencian los ENUMs viejos.
 
 ## Notas
 
