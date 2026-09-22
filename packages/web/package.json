@@ -16,6 +16,7 @@
     "@colyseus/sdk": "0.18.2",
     "@escaperoom/config": "workspace:*",
     "@escaperoom/env": "workspace:*",
+    "@escaperoom/game-runtime": "workspace:*",
     "@escaperoom/kit": "workspace:*",
     "@escaperoom/mcp-server": "workspace:*",
     "@escaperoom/shared": "workspace:*",

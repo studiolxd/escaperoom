@@ -3,14 +3,21 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Runtime Phaser (modo play y edit) + componentes React de puzzle. Placeholder del ticket 0.1.",
+  "description": "Runtime del juego (modo play): loader puro del RoomPackage + escena Phaser isométrica.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./loader": "./src/loader/index.ts",
+    "./phaser": "./src/phaser/index.ts",
+    "./package.json": "./package.json"
   },
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@escaperoom/shared": "workspace:*",
+    "phaser": "3.90.0"
   },
   "devDependencies": {
     "@escaperoom/config": "workspace:*",
