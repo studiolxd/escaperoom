@@ -37,5 +37,21 @@
     "locked": "The lock is not available yet",
     "unavailable": "The lock accepts no more attempts",
     "solved": "Lock opened!"
+  },
+  "Hints": {
+    "title": "Hints",
+    "remaining": "Hints left: {count}",
+    "tier": "Hint tier {tier}",
+    "request": "Ask for a hint",
+    "requestCost": "Ask for a hint · cost {cost}",
+    "pending": "Delivering hint…",
+    "empty": "You haven't asked for any hints yet",
+    "exhausted": "No more hints for this puzzle",
+    "unavailable": "This puzzle has no hints",
+    "errors": {
+      "unknown_puzzle": "No hints are defined for this puzzle",
+      "no_more_tiers": "You already asked for every hint of this puzzle",
+      "insufficient_hints": "This hint costs {cost} and only {remaining} are left"
+    }
   }
 }

@@ -38,5 +38,21 @@
     "locked": "El candado aún no está disponible",
     "unavailable": "El candado no acepta más intentos",
     "solved": "¡Candado abierto!"
+  },
+  "Hints": {
+    "title": "Pistas",
+    "remaining": "Pistas restantes: {count}",
+    "tier": "Pista nivel {tier}",
+    "request": "Pedir pista",
+    "requestCost": "Pedir pista · coste {cost}",
+    "pending": "Entregando pista…",
+    "empty": "Aún no has pedido ninguna pista",
+    "exhausted": "No quedan más pistas para este puzzle",
+    "unavailable": "Este puzzle no tiene pistas",
+    "errors": {
+      "unknown_puzzle": "No hay pistas definidas para este puzzle",
+      "no_more_tiers": "Ya has pedido todas las pistas de este puzzle",
+      "insufficient_hints": "Esta pista cuesta {cost} y solo quedan {remaining}"
+    }
   }
 }
