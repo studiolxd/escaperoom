@@ -22,6 +22,7 @@ Referencias: `specs/03-arquitectura-y-stack.md`, `specs/14-modelo-de-datos-sql.m
 | 0.9 | **i18n base (next-intl)** | Routing de locales, catálogo `es` y carga de mensajes; locales `en, es, fr, de, nl, pt` con `es` por defecto | `03` §1, ADR-018 | Una página de prueba renderiza su copy en `es` y el selector de idioma cambia de locale |
 | 0.10 | **Servicios de dominio + tRPC base** | `packages/shared/services` con `actor`; un router tRPC (UI, de `@slxd/kit`) y un route handler REST `/api/*` llamando al **mismo** servicio; endpoint MCP mínimo (`/mcp/creator`) sobre el mismo servicio | `03` §4/§6, ADR-010/022 | Un test demuestra que tRPC, REST y MCP obtienen el mismo resultado del mismo servicio |
 | 0.11 | **Kit base** | `@slxd/kit` adaptado: logger, redis, rate-limit, storage (R2/S3), colas/eventos y health de workers; sin los espejos entre apps. La infraestructura tRPC la consume el 0.10 | `03` §4, ADR-017 | Un test de humo usa logger + redis + storage contra la infra local; el health responde |
+| 0.12 | **dev-env: BD por worktree** | `scripts/dev-env.sh` idempotente: deriva el nombre de BD del worktree (`escaperoom_<slug>`), la crea en el contenedor Postgres si falta y escribe `packages/shared/.env` (no pisa uno existente con `--force` ausente); `pnpm db:reset`/`db:seed` usan esa BD | `03` §5.2, ADR-017 | Dos worktrees en paralelo migran y siembran **sin pisarse**; el script es idempotente |
 
 ## Hito 0
 
