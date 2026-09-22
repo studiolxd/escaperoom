@@ -8,8 +8,8 @@ de enmienda están fusionadas aquí.
 
 ## 1. Decisiones de diseño
 
-- **Motor de migraciones: Drizzle ORM** (TypeScript) en `packages/shared/db`. Los tipos generados
-  se comparten con API, Colyseus y MCP ("cero deriva de tipos").
+- **Motor de migraciones: Prisma ORM** (TypeScript) en `packages/shared/db`, con `prisma migrate`.
+  Los tipos de Prisma Client se comparten con API, Colyseus y MCP ("cero deriva de tipos").
 - **UUID v7** como PK en casi todas las tablas (ordenable por tiempo). Excepciones: `access_keys.code`
   (código corto) y las series temporales (`bigserial`).
 - **`created_at` / `updated_at`** en `timestamptz`, default `now()`, con trigger genérico
@@ -512,8 +512,8 @@ analytics_events                                               (sin FK, alto vol
 
 ## 12. Estrategia de migraciones
 
-- Carpeta `packages/shared/db/migrations/`, generadas con `drizzle-kit generate`; el `.sql`
-  resultante es la fuente de verdad para `drizzle-kit migrate`.
+- Carpeta `packages/shared/db/prisma/migrations/`, generadas con `prisma migrate dev`; las
+  migraciones SQL resultantes son la fuente de verdad para `prisma migrate deploy`.
 - Numeración secuencial `0001_extensions` … `0010_moderation` (cada bloque de esta spec es una
   migración real, en este orden, por dependencias de FK).
 - **Migración de datos de SLXD** (usuarios, organizaciones, ledger de créditos): script de

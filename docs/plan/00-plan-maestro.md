@@ -46,13 +46,15 @@ Lo identificado como bloqueante (cambiarlo después es rehacer código):
 3. **Schemas Zod compartidos** (ticket 0.6) — formalizan el contrato RoomPackage temprano.
 4. **Pack gráfico v1 encargado** (ticket 1.2) — tiene plazo de entrega externo; pedirlo ya.
 5. **Analítica base instrumentada** (ticket 0.7 + 1.11) — añadirla después cuesta carísimo.
+6. **Andamiaje base podado de SLXD** (ticket 0.1) — fija namespace, tooling, env y verificación; el
+   resto del monorepo se construye encima (ADR-017).
 
 ## 4. Equipo
 
 - **Mínimo viable:** 1 full-stack TS sénior (Fases 0–2) + 1 (Fases 3–4) + 1 (Fases 5–6).
 - **Con un solo desarrollador:** 8–10 meses.
 - **Con tres:** el roadmap es realista en ~6 meses.
-- **Perfil clave:** TypeScript end-to-end (Next.js + Phaser + Colyseus + Yjs + PostgreSQL/Drizzle).
+- **Perfil clave:** TypeScript end-to-end (Next.js + Phaser + Colyseus + Yjs + PostgreSQL/Prisma).
 
 ## 5. Riesgos principales y mitigación
 
@@ -66,6 +68,7 @@ Lo identificado como bloqueante (cambiarlo después es rehacer código):
 | Titularidad del audio IA / plazos legales | Alto (legal) | Checklist de `specs/18` antes de aceptar primer pago/evento educativo |
 | Efecto "catálogo vacío" en lanzamiento | Alto (marketing) | Salas oficiales semilla construidas con el MCP (Fase 6) desde antes de la beta |
 | Deriva del formato RoomPackage | Alto (todo) | Fixture Rey Aldric como suite de regresión; cambio que lo rompe = breaking change |
+| Acoplamiento indebido con SLXD al reutilizar código | Medio (arquitectura) | ADR-017 y `reference/reutilizacion-slxd.md` fijan qué se copia y qué se descarta; namespace propio; revisión en PR |
 
 ## 6. Criterios de hito (gate)
 
@@ -80,6 +83,43 @@ Cada fase se considera completa solo si:
 ## 7. Convenciones del backlog
 
 - **IDs:** `FASE.N` (p. ej. `3.5`). No se renumeran; un ticket cancelado se marca como tal.
-- **Cada ticket** declara: detalle, dependencias, spec de referencia y criterio de aceptación.
+- **Cada ticket** declara: detalle, dependencias, spec de referencia, criterio de aceptación y su
+  **DoD** (ver §8).
 - Los tickets de contenido (salas oficiales) y de negocio que no bloquean se marcan como
   **paralelizables**.
+
+## 8. Flujo de trabajo: PR y DoD
+
+Todo el desarrollo entra por **pull request**; `main` no se toca a mano. El plan se ajusta a este
+flujo: cada ticket es, como norma, **un PR**.
+
+### 8.1 Ciclo
+
+1. **Rama por ticket** desde `main` (`fase-N/ticket-descripcion`).
+2. **PR a `main`** con el ticket como unidad; si un ticket se parte, se abren PRs separados que
+   referencian el mismo ticket.
+3. **CI obligatoria en verde**: `install`, `lint`, `typecheck`, `test` y `build` (el E2E del Rey
+   Aldric desde Fase 2). La puerta local es `scripts/verify.sh`.
+4. **Revisión**: al menos una aprobación. Regla inquebrantable: la validación de juego vive en el
+   servidor; un PR que mueva validación al cliente no se fusiona.
+5. **Sin divergencia de specs**: si el PR fuerza una decisión nueva, se actualiza `docs/specs/` (y el
+   ADR correspondiente) **en el mismo PR**.
+6. **Squash merge** y borrado de rama; el título del PR referencia el ticket (`0.1: …`).
+
+Excepción (sin PR): cambios puramente documentales de bajo riesgo que el responsable autoriza
+explícitamente en la conversación.
+
+### 8.2 DoD (Definition of Done)
+
+Un ticket/PR está "hecho" solo si se cumple **todo**:
+
+- [ ] **Criterio de aceptación** del ticket verificado (no "parece que funciona": evidencia).
+- [ ] **Tests** al nivel que corresponda (unitario/integración/E2E) y en verde.
+- [ ] **CI en verde**: lint, typecheck, test, build.
+- [ ] **Specs/ADR actualizados** si hubo decisión nueva; si no, se declara explícitamente que no hubo.
+- [ ] **Trazabilidad** anotada en `00-trazabilidad.md` si cambia el mapeo spec↔ticket.
+- [ ] **Sin secretos** ni datos reales en el diff; sin validación movida al cliente.
+- [ ] **Hito demostrable** de la fase, si el ticket cierra la fase: reproducible sin pasos ocultos.
+
+Un PR no se fusiona con criterios pendientes sin marcar; lo que quede fuera se anota como ticket
+nuevo (no se renombra el actual).

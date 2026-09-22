@@ -29,3 +29,10 @@ es publicable con confirmación humana. La paridad editor↔MCP está verificada
 
 La **paridad es el criterio de aceptación**, no una feature aparte: si el MCP no puede hacer algo que
 el editor sí, o viceversa, la fase no está cerrada (`specs/10` §1).
+
+## Reutilización SLXD (ADR-017)
+
+- **4.1 / 4.4 / 4.5** → `@slxd/mcp-server` (pipeline de petición, registro de tools, gate de
+  confirmación).
+- **4.7** → `@slxd/mcp-auth` (OAuth 2.1 PKCE + DCR), con el login resuelto contra Better Auth.
+- **4.6 / 4.9** → `@slxd/ai-chat` (chat en streaming con tools y cobro por créditos).

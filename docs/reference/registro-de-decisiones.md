@@ -202,3 +202,62 @@ ElevenLabs, con margen. El subsistema de usuarios, organizaciones y ledger se co
 
 **Consecuencias:** control del margen, precio estable para el usuario, reutilización de código ya
 desarrollado. Audio trazable por locale (`reference_id = {id}:{locale}`).
+
+---
+
+## ADR-015 — ORM y migraciones: Prisma
+
+**Contexto:** el plan original fijaba **Drizzle** sin ADR que lo justificara. Al decidir reutilizar el
+subsistema de identidad, organizaciones y ledger de SLXD (ADR-014), y dado que `@slxd/kit` y el
+contrato de derechos asumen Prisma, mantener Drizzle obligaba a reescribir ese port. `specs/14` exige
+además "cero deriva de tipos" entre API, Colyseus y MCP.
+
+**Decisión:** **Prisma** con `prisma migrate` en `packages/shared/db`, sobre una base de datos única
+con varias tablas. Los tipos de Prisma Client se comparten entre web, editor, Colyseus y MCP.
+
+**Consecuencias:** el port de identidad/ledger no se reescribe (Prisma→Prisma); tipos generados
+consumibles por todos los procesos; PgBouncer operado con sentencias preparadas, como en SLXD.
+
+**Alternativas descartadas:** Drizzle (SQL-like, ligero, cómodo con JSONB y con Zod, pero obligaba a
+reescribir el port y a desalinearse del andamiaje de SLXD).
+
+---
+
+## ADR-016 — Autenticación: Better Auth
+
+**Contexto:** el plan pedía email mágico + Google, organizaciones con miembros y roles, y sesión por
+cookie para web + Bearer para el MCP. SLXD ya usa **Better Auth**.
+
+**Decisión:** **Better Auth** con su plugin de organización. Sesión por cookie httpOnly para el
+frontend y Bearer (OAuth) para el MCP y clientes externos; rutas bajo `/api/auth/*`.
+
+**Consecuencias:** `organizations`, `organization_members`, roles e invitaciones salen del plugin;
+alineado con `@slxd/auth-client` y `@slxd/roles`; se sustituye el default previo (Auth.js/NextAuth).
+
+**Alternativas descartadas:** Auth.js/NextAuth (maduro y con más proveedores, pero sin modelo de
+organizaciones y sin reutilizar lo ya probado en SLXD).
+
+---
+
+## ADR-017 — Reutilización del andamiaje de SLXD
+
+**Contexto:** SLXD es un monorepo maduro con el mismo stack base (TypeScript, Next.js, PostgreSQL,
+Redis, Prisma, Better Auth, Docker). El proyecto comparte ese terreno pero **no** el modelo de suite
+multi-producto.
+
+**Decisión:** reutilizar de SLXD **copiando y adaptando** (el original es de solo lectura, jamás se
+edita): tooling (`@slxd/config`, `@slxd/env`, `scripts/verify.sh`, `scripts/dev-env.sh`, `turbo.json`),
+infra local (compose de Postgres/Redis/MinIO, podando y añadiendo LiveKit/coturn),
+infraestructura de backend (`@slxd/kit`, `@slxd/mailer`, `@slxd/roles`) y el eje MCP/IA
+(`@slxd/mcp-server`, `@slxd/mcp-auth`, `@slxd/ai-chat`).
+
+**No** se reutiliza: plano de control `account` / Keycloak / claims multi-tenant, DS
+`@studiolxd/brand`, `catalog`/`plans` de suite, textos en seis idiomas, ni Prisma-por-app con
+`prisma-platform-sync`. El código adaptado usa **namespace propio** (sin `slxd` en identificadores).
+
+**Consecuencias:** gran ahorro en Fase 0 (monorepo, infra, env, verificación) y en Fase 4 (MCP, OAuth
+del agente, chat con créditos). El mapeo fichero a fichero y la lista de poda viven en
+`reference/reutilizacion-slxd.md`.
+
+**Alternativas descartadas:** reutilización total tipo fork (arrastra multi-tenant, Keycloak y el DS
+ajeno); reutilización mínima (solo identidad y ledger), que encarece los tickets 0.1 y 4.x.

@@ -34,6 +34,12 @@ partidas en vivo desde su panel. Primer cobro real end-to-end (B2C y B2B).
 - El **catálogo (5.3)** puede entrar antes que eventos si la Fase 3 ya publica salas.
 - El **panel del organizador (5.9)** depende del modo observador de Colyseus (protocolo ya definido).
 
+## Reutilización SLXD (ADR-017)
+
+- **5.6** → `@slxd/mailer` (un transporte, SMTP + Resend).
+- **5.9 / 5.11** → `@slxd/roles` (roles y permisos de organización).
+- **5.4 / 5.7 / webhooks Stripe** → colas, webhooks salientes y storage de `@slxd/kit`.
+
 ## Decisión abierta a cerrar en esta fase
 
 El matiz de "una partida" B2C al abandonar (¿se consume al crear la sesión o al terminarla?) debe

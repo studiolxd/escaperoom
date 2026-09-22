@@ -12,7 +12,7 @@ procesos distintos.
 - **Base URL:** `/api/*` (rutas de Next.js, App Router — `route.ts` por recurso).
 - **Formato:** JSON en request y response, salvo subida de assets (multipart) y export de PDF
   (binario o URL firmada, §9).
-- **Auth:** Auth.js (NextAuth) con sesión por cookie httpOnly para el frontend web. El MCP y
+- **Auth:** Better Auth con sesión por cookie httpOnly para el frontend web. El MCP y
   clientes externos usan **Bearer token** (OAuth) contra las mismas rutas — no hay API separada.
 - **Errores:** siempre `{ "error": { "code": "STRING_CODE", "message": "texto legible" } }` con el
   HTTP status correspondiente (400/401/403/404/409/422/429/500). Nunca se filtra un stack trace.
@@ -25,7 +25,7 @@ procesos distintos.
 
 ## 2. Autenticación y perfil
 
-Auth.js gestiona `/api/auth/*` (signin, callback OAuth, signout, session). Rutas propias:
+Better Auth gestiona `/api/auth/*` (signin, callback OAuth, signout, session; plugin de organización). Rutas propias:
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|

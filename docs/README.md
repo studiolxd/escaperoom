@@ -3,9 +3,9 @@
 Repositorio de especificaciones y plan de implementación del SaaS de creación y juego de
 escape rooms online 2D isométricos cooperativos (1–N jugadores), desde navegador.
 
-Este `README` es el **punto de entrada**. Los documentos de la conversación de diseño original
-quedaron archivados en `docs/_archive/` y **han sido reemplazados por completo** por los
-documentos consolidados de `docs/specs/`, `docs/reference/` y `docs/plan/`.
+Este `README` es el **punto de entrada**. Los documentos de la conversación de diseño original se
+consolidaron por completo en `docs/specs/`, `docs/reference/` y `docs/plan/`; el archivo histórico
+`docs/_archive/` se eliminó (el contenido vive ya en los documentos consolidados).
 
 ---
 
@@ -16,8 +16,7 @@ docs/
 ├── README.md                  ← este índice
 ├── specs/                     ← especificaciones consolidadas (fuente de verdad)
 ├── plan/                      ← plan de implementación por fases y tickets
-├── reference/                 ← material de referencia (fixture, catálogos, ADR)
-└── _archive/                  ← documentos antiguos (histórico, no usar)
+└── reference/                 ← material de referencia (fixture, catálogos, ADR, reutilización SLXD)
 ```
 
 Regla de oro del repositorio: **`docs/specs/` es la única fuente de verdad.** Si algo no está
@@ -75,6 +74,7 @@ después en código.
 | Documento | Contenido |
 |---|---|
 | [Registro de decisiones (ADR)](reference/registro-de-decisiones.md) | Por qué cada tecnología y cada alternativa descartada |
+| [Reutilización de SLXD](reference/reutilizacion-slxd.md) | Qué se copia/adapta de SLXD, qué se descarta y la poda del compose |
 | [RoomPackage Rey Aldric (JSON)](reference/roompackage-rey-aldric.v1.json) | Fixture jugable de referencia (contrato del runtime y de los tests) |
 | [Notas de diseño del Rey Aldric](reference/rey-aldric-notas-diseno.md) | Decisiones finas, informe de validación esperado, uso como fixture |
 | [Catálogo de plantillas](reference/catalogo-plantillas.md) | Tabla comparativa de las 23 plantillas (8 MVP + 15 v2) |

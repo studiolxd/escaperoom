@@ -17,12 +17,13 @@ Voz y webcam:                                                     LiveKit (self-
 Agente IA creador:                                                Servidor MCP (TypeScript, MCP SDK)
 Colaboración en edición:                                          Yjs (CRDT) sobre PostgreSQL
 Base de datos:                                                    PostgreSQL (JSONB para RoomPackage)
+ORM / migraciones:                                                Prisma (packages/shared/db)
 Caché / presencia / colas:                                        Redis
 Assets:                                                           Cloudflare R2 (compatible S3)
 Pagos:                                                            Stripe + Stripe Connect
 Emails transaccionales:                                           Resend o Postmark
 PDF de tarjetas-clave:                                            @react-pdf/renderer
-Auth:                                                             Auth.js (NextAuth) — email + OAuth
+Auth:                                                             Better Auth — email mágico + Google + organizaciones
 Infraestructura:                                                  Docker + VPS (Hetzner) + Cloudflare + GitHub Actions
 ```
 
@@ -42,6 +43,9 @@ lenguaje, un solo equipo, un solo build.
 | Editor | **El editor ES el runtime** en modo edición | WYSIWYG absoluto y un solo código; elimina el riesgo "en el editor se ve bien, en el juego falla". |
 | Formato | **JSON declarativo** | Un único `RoomPackage` para editor, API, BD, MCP y runtime; sin código arbitrario del creador. |
 | MCP | **Cliente más de la misma API** | Todo lo que hace el editor visual lo hace el MCP por la puerta grande. |
+| ORM/migraciones | **Prisma** | Alinea con el andamiaje de SLXD y con el port de identidad/ledger; tipos compartidos (ADR-015). |
+| Auth | **Better Auth** | Plugin de organizaciones (miembros, roles, invitaciones) y alineación con SLXD (ADR-016). |
+| Reutilización | **Andamiaje de SLXD podado** | Tooling, infra y backend (incl. MCP) se copian/adaptan; no se arrastra el multi-tenant ni el DS (ADR-017). |
 | Créditos IA | Pool interno de plataforma | Tokens a nivel de plataforma con margen; subsistema copiado de SLXD. |
 
 ## 3. Arquitectura del cliente: híbrido Phaser + React
@@ -94,12 +98,15 @@ packages/
     ├── templates/       ← catálogo de plantillas con sus configs
     ├── validator/       ← validador + test de solvabilidad (usado por API, editor y MCP)
     ├── simulators/      ← simuladores (rayo, engranajes, alcanzabilidad) reutilizados por runtime/validador/MCP
-    └── db/              ← Drizzle: schema y migraciones (tipos compartidos con API, Colyseus y MCP)
+    └── db/              ← Prisma: schema y migraciones (tipos compartidos con API, Colyseus y MCP)
 ```
 
 - Tooling: pnpm workspaces + Turborepo; TS estricto; ESLint/Prettier; GitHub Actions
   (lint + test + build).
-- Principio "cero deriva de tipos": los mismos esquemas Zod y los mismos tipos Drizzle se
+- **Base de andamiaje:** el tooling (`packages/config`, `packages/env`, `scripts/verify.sh`,
+  `dev-env.sh`), la infra local y la infraestructura de backend (`kit`, `mailer`, `roles`, eje MCP)
+  se importan y adaptan de SLXD (ADR-017; mapeo y poda en `reference/reutilizacion-slxd.md`).
+- Principio "cero deriva de tipos": los mismos esquemas Zod y los mismos tipos de Prisma Client se
   comparten entre web, Colyseus, MCP y validador.
 
 ## 5. Infraestructura y despliegue
