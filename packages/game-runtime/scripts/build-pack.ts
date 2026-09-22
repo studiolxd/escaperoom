@@ -9,7 +9,7 @@ import {
   type PackedAtlas,
 } from "../src/pack/atlas";
 import { decodePng, encodePng } from "../src/pack/png";
-import { rasterizeSvg } from "../src/pack/svg";
+import { checkSvgAspect, rasterizeSvg } from "../src/pack/svg";
 import {
   DEFAULT_PACK_PROJECTION,
   defaultAvatarAnims,
@@ -130,23 +130,37 @@ function isImageEntry(name: string): boolean {
   return lower.endsWith(".png") || lower.endsWith(".svg");
 }
 
-async function readKindFrames(packDir: string, kind: Kind): Promise<AtlasFrameInput[]> {
+async function readKindFrames(
+  packDir: string,
+  kind: Kind,
+): Promise<{ frames: AtlasFrameInput[]; issues: PackValidationIssue[] }> {
   const dir = join(packDir, kind);
   if (!existsSync(dir)) {
-    return [];
+    return { frames: [], issues: [] };
   }
 
   const entries = (await readdir(dir)).filter(isImageEntry).sort();
   const frames: AtlasFrameInput[] = [];
+  const issues: PackValidationIssue[] = [];
+
   for (const entry of entries) {
     const isSvg = entry.toLowerCase().endsWith(".svg");
     const frame = basename(entry, isSvg ? ".svg" : ".png");
-    const decoded = isSvg
-      ? await rasterizeSvg(await readFile(join(dir, entry), "utf8"), frame)
-      : decodePng(await readFile(join(dir, entry)));
+    let decoded;
+    if (isSvg) {
+      const svg = await readFile(join(dir, entry), "utf8");
+      const aspectIssue = checkSvgAspect(svg, frame);
+      if (aspectIssue) {
+        issues.push({ path: `${kind}/${entry}`, message: aspectIssue, severity: "warning" });
+      }
+      decoded = await rasterizeSvg(svg, frame);
+    } else {
+      decoded = decodePng(await readFile(join(dir, entry)));
+    }
     frames.push({ frame, width: decoded.width, height: decoded.height, rgba: decoded.rgba });
   }
-  return frames;
+
+  return { frames, issues };
 }
 
 function frameIndex(frame: string): number {
@@ -280,7 +294,8 @@ async function main(): Promise<void> {
   await mkdir(options.packDir, { recursive: true });
 
   for (const kind of KINDS) {
-    const frames = await readKindFrames(options.packDir, kind);
+    const { frames, issues: frameIssues } = await readKindFrames(options.packDir, kind);
+    issues.push(...frameIssues);
     framesByKind[kind] = frames.map((frame) => frame.frame);
     if (frames.length === 0) {
       continue;

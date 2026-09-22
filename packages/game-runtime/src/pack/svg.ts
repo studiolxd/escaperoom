@@ -1,4 +1,4 @@
-import sharp from "sharp";
+import sharp, { type Sharp } from "sharp";
 
 /**
  * Rasteriza un SVG al lienzo (ancho × alto) canónico de su frame, con fondo
@@ -89,9 +89,65 @@ const FRAME_CANVASES: Record<string, { width: number; height: number }> = {
   "vasijas-8": { width: 128, height: 96 },
 };
 
+/** Tolerancia de aspecto: 3 % de desviación sobre el lienzo canónico. */
+export const ASPECT_TOLERANCE = 0.03;
+
+/**
+ * Comprueba que el `viewBox` del SVG encaja con el aspecto del lienzo canónico
+ * del frame. Devuelve un aviso legible si no encaja (un suelo iso 2:1 dibujado
+ * en un viewBox de otro aspecto se verá con márgenes o deformado), o `null` si
+ * encaja o no hay medidas.
+ */
+export function checkSvgAspect(svg: string, frame: string): string | null {
+  const expected = expectedAspectForFrame(frame);
+  const box = readSvgViewBox(svg);
+  if (expected === null || box === null) return null;
+
+  const actual = box.width / box.height;
+  if (Math.abs(actual - expected) / expected <= ASPECT_TOLERANCE) return null;
+
+  return (
+    `el viewBox ${box.width}×${box.height} tiene aspecto ${actual.toFixed(3)}:1, ` +
+    `pero el frame "${frame}" espera ${expected.toFixed(3)}:1 ` +
+    `(lienzo canónico); el SVG no llenará la celda y se verá con márgenes o deformado.`
+  );
+}
+
 const ICON_CANVAS = { width: 64, height: 64 };
 const AVATAR_CANVAS = { width: 64, height: 96 };
 const FX_CANVAS = { width: 64, height: 64 };
+
+/** Aspecto (ancho/alto) del lienzo canónico del frame, si lo tiene. */
+export function expectedAspectForFrame(frame: string): number | null {
+  const canvas = canvasForFrame(frame);
+  if (!canvas) return null;
+  return canvas.width / canvas.height;
+}
+
+/**
+ * Lee el `viewBox` (o `width`/`height` numéricos) de un SVG. Devuelve `null` si
+ * no hay medidas explícitas. Acepta `viewBox="minX minY w h"`.
+ */
+export function readSvgViewBox(svg: string): { width: number; height: number } | null {
+  const viewBox = svg.match(/viewBox\s*=\s*["']\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)\s*["']/i);
+  if (viewBox) {
+    const width = Number(viewBox[3]);
+    const height = Number(viewBox[4]);
+    if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+      return { width, height };
+    }
+  }
+  const width = svg.match(/\bwidth\s*=\s*["']([\d.]+)(?:px)?["']/i);
+  const height = svg.match(/\bheight\s*=\s*["']([\d.]+)(?:px)?["']/i);
+  if (width && height) {
+    const w = Number(width[1]);
+    const h = Number(height[1]);
+    if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+      return { width: w, height: h };
+    }
+  }
+  return null;
+}
 
 /** Lienzo canónico de un frame, o `null` si no está en la tabla. */
 export function canvasForFrame(frame: string): { width: number; height: number } | null {
@@ -104,8 +160,12 @@ export function canvasForFrame(frame: string): { width: number; height: number }
 }
 
 /**
- * Rasteriza `svg` al lienzo canónico del `frame`. `fit: contain` evita deformar;
- * la imagen se ancla abajo-centro (pivote del runtime).
+ * Rasteriza `svg` al lienzo canónico del `frame`.
+ *
+ * Si el aspecto del SVG no coincide con el del lienzo (p. ej. un suelo iso
+ * dibujado a 1.73:1 en vez de 2:1), se **reencuadra** al bbox real de la figura
+ * (detección por píxeles opacos, a alta resolución) antes de escalar. Así el
+ * rombo `a sangre` llena la celda sin márgenes sin tocar el SVG de origen.
  */
 export async function rasterizeSvg(svg: string, frame: string): Promise<RasterizedImage> {
   const canvas = canvasForFrame(frame);
@@ -116,9 +176,12 @@ export async function rasterizeSvg(svg: string, frame: string): Promise<Rasteriz
     return { width: info.width, height: info.height, rgba: data };
   }
 
-  const resized = await base
+  const needsReframe = checkSvgAspect(svg, frame) !== null;
+  const piped = needsReframe ? await reframeToAspect(base, canvas) : base;
+
+  const resized = await piped
     .resize(canvas.width, canvas.height, {
-      fit: "contain",
+      fit: "fill",
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
     .png()
@@ -129,4 +192,102 @@ export async function rasterizeSvg(svg: string, frame: string): Promise<Rasteriz
     .raw()
     .toBuffer({ resolveWithObject: true });
   return { width: info.width, height: info.height, rgba };
+}
+
+/** Resolución de trabajo para detectar el bbox de píxeles opacos. */
+const BBOX_SAMPLE_WIDTH = 1024;
+/** Alfa por debajo del cual un píxel se considera transparente. */
+const ALPHA_THRESHOLD = 16;
+
+/**
+ * Recorta el SVG al bbox de la figura y lo deja con el aspecto pedido, de modo
+ * que al escalar con `fit: fill` la figura llene el lienzo. Trabaja sobre una
+ * rasterización temporal; nunca escribe el SVG.
+ */
+async function reframeToAspect(image: Sharp, canvas: { width: number; height: number }) {
+  const { data, info } = await image
+    .clone()
+    .resize({ width: BBOX_SAMPLE_WIDTH, fit: "inside" })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const box = opaqueBounds(data, info.width, info.height);
+  if (!box) {
+    return image;
+  }
+
+  const targetAspect = canvas.width / canvas.height;
+  const boxWidth = box.right - box.left + 1;
+  const boxHeight = box.bottom - box.top + 1;
+
+  // Encaja el bbox en el aspecto pedido: añade el lado que falte.
+  let regionWidth = boxWidth;
+  let regionHeight = boxHeight;
+  if (boxWidth / boxHeight < targetAspect) {
+    regionWidth = boxHeight * targetAspect;
+  } else {
+    regionHeight = boxWidth / targetAspect;
+  }
+
+  // Centra el bbox dentro de la región pedida.
+  const centerX = (box.left + box.right + 1) / 2;
+  const centerY = (box.top + box.bottom + 1) / 2;
+  const left = Math.round(centerX - regionWidth / 2);
+  const top = Math.round(centerY - regionHeight / 2);
+
+  const scale = info.width / BBOX_SAMPLE_WIDTH || 1;
+  const srcLeft = Math.max(0, Math.floor(left * scale));
+  const srcTop = Math.max(0, Math.floor(top * scale));
+  const srcWidth = Math.min(info.width - srcLeft, Math.ceil(regionWidth * scale));
+  const srcHeight = Math.min(info.height - srcTop, Math.ceil(regionHeight * scale));
+
+  if (srcWidth <= 0 || srcHeight <= 0) {
+    return image;
+  }
+
+  // `extract` sobre la imagen original trabaja en su espacio real; como la
+  // muestra se reescaló, se reescala también el rect en la proporción real.
+  const real = await image.clone().metadata();
+  if (!real.width || !real.height) {
+    return image;
+  }
+  const realScaleX = real.width / info.width;
+  const realScaleY = real.height / info.height;
+
+  return image.clone().extract({
+    left: Math.max(0, Math.round(srcLeft * realScaleX)),
+    top: Math.max(0, Math.round(srcTop * realScaleY)),
+    width: Math.max(1, Math.round(srcWidth * realScaleX)),
+    height: Math.max(1, Math.round(srcHeight * realScaleY)),
+  });
+}
+
+/** Bbox de píxeles con alfa por encima del umbral (coordenadas de la muestra). */
+function opaqueBounds(
+  rgba: Buffer,
+  width: number,
+  height: number,
+): { left: number; top: number; right: number; bottom: number } | null {
+  let left = width;
+  let top = height;
+  let right = -1;
+  let bottom = -1;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const alpha = rgba[(y * width + x) * 4 + 3] ?? 0;
+      if (alpha > ALPHA_THRESHOLD) {
+        if (x < left) left = x;
+        if (x > right) right = x;
+        if (y < top) top = y;
+        if (y > bottom) bottom = y;
+      }
+    }
+  }
+
+  if (right < 0 || bottom < 0 || left > right || top > bottom) {
+    return null;
+  }
+  return { left, top, right, bottom };
 }
