@@ -21,6 +21,8 @@ export interface FrameSize {
 export interface FrameRef {
   key: string;
   frame?: string;
+  /** Tamaño natural del frame en el atlas, si se conoce (para escalar a lógico). */
+  size?: FrameSize;
 }
 
 export class PackFrameResolver {
@@ -28,11 +30,26 @@ export class PackFrameResolver {
   private readonly manifest?: PackManifest;
   private readonly atlasKeys: string[];
   private readonly placeholders = new Set<string>();
+  /** Escala del pack (`manifest.projection.scale`), 1 si no hay manifiesto. */
+  private readonly packScale: number;
 
   constructor(scene: Phaser.Scene, manifest?: PackManifest) {
     this.scene = scene;
     this.manifest = manifest;
     this.atlasKeys = manifest?.keys ?? [];
+    this.packScale = manifest?.projection.scale ?? 1;
+  }
+
+  /**
+   * Escala un sprite para que su tamaño **visible** corresponda al tamaño lógico
+   * pedido, independientemente de la resolución a la que se entregó el pack
+   * (1× vs 2×). Con placeholders (ya generados al tamaño lógico) devuelve 1.
+   */
+  displayScaleFor(ref: FrameRef, size: FrameSize): { x: number; y: number } {
+    if (!ref.size || ref.size.width <= 0 || ref.size.height <= 0) {
+      return { x: 1, y: 1 };
+    }
+    return { x: size.width / ref.size.width, y: size.height / ref.size.height };
   }
 
   get hasPack(): boolean {
@@ -63,7 +80,12 @@ export class PackFrameResolver {
       }
       const texture = this.scene.textures.get(key);
       if (texture.has(frame)) {
-        return { key, frame };
+        const frameData = texture.get(frame);
+        return {
+          key,
+          frame,
+          size: { width: frameData.realWidth, height: frameData.realHeight },
+        };
       }
     }
     return undefined;

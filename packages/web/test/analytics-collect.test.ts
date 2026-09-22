@@ -43,7 +43,10 @@ describe("POST /api/analytics/collect", () => {
 
   it("encola cada evento en la cola mockeada", async () => {
     const enqueue = vi.fn(async () => "job-1");
-    const queue = { name: "analytics.event", enqueue } as unknown as QueueHandle<AnalyticsEventInput>;
+    const queue = {
+      name: "analytics.event",
+      enqueue,
+    } as unknown as QueueHandle<AnalyticsEventInput>;
     const POST = createAnalyticsCollectHandler({
       emit: (events) => emitAnalyticsEvents(events, queue),
     });
@@ -81,9 +84,9 @@ describe("POST /api/analytics/collect", () => {
 
     expect(response.status).toBe(400);
     const body = await response.json();
-    expect(
-      body.error.issues.some((issue: { path: string }) => issue.path === "payload.step"),
-    ).toBe(true);
+    expect(body.error.issues.some((issue: { path: string }) => issue.path === "payload.step")).toBe(
+      true,
+    );
   });
 
   it("responde 400 INVALID_JSON si el cuerpo no es JSON", async () => {

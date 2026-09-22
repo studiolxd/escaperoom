@@ -133,11 +133,17 @@ export type PackSpriteEntry = z.infer<typeof PackSpriteEntrySchema>;
 export type PackAnim = z.infer<typeof PackAnimSchema>;
 export type PackManifest = z.infer<typeof PackManifestSchema>;
 
-/** Proyección por defecto de v1: celda 64×32 a 1× (specs/26 §3.1). */
+/**
+ * Escala de entrega/render del pack. La celda **lógica** sigue siendo 64×32
+ * (iso 2:1); a 2× se produce a 128×64 para pantallas HiDPI (specs/26 §3.1).
+ */
+export const PACK_SCALE = 2;
+
+/** Proyección por defecto de v1: celda 64×32 a escala 2× (128×64). */
 export const DEFAULT_PACK_PROJECTION: PackProjection = {
   tileWidth: 64,
   tileHeight: 32,
-  scale: 1,
+  scale: PACK_SCALE,
 };
 
 /** Valida y devuelve un `PackManifest`, lanzando un `ZodError` si es inválido. */

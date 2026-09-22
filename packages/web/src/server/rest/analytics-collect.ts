@@ -1,8 +1,5 @@
 import { logger } from "@escaperoom/kit/logger";
-import {
-  validateAnalyticsCollect,
-  type AnalyticsEventInput,
-} from "@escaperoom/shared/schemas";
+import { validateAnalyticsCollect, type AnalyticsEventInput } from "@escaperoom/shared/schemas";
 
 /** Dependencias inyectables del handler (testeable sin Redis ni base de datos). */
 export type AnalyticsCollectDeps = {

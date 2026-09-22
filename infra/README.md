@@ -23,10 +23,10 @@ Varios worktrees comparten el **mismo** contenedor Postgres, así que si todos
 migran y siembran contra la misma base se pisan. `pnpm dev:env` aísla cada
 worktree en su propia base:
 
-| Worktree                            | Base de datos                       |
-| ----------------------------------- | ----------------------------------- |
-| Principal (`/Users/suvi/Dev/escaperoom`) | `escaperoom`                   |
-| Cualquier `git worktree add`        | `escaperoom_<slug del directorio>`  |
+| Worktree                                 | Base de datos                      |
+| ---------------------------------------- | ---------------------------------- |
+| Principal (`/Users/suvi/Dev/escaperoom`) | `escaperoom`                       |
+| Cualquier `git worktree add`             | `escaperoom_<slug del directorio>` |
 
 El script es **idempotente**: deriva el slug del path, crea la base en el
 contenedor si falta (`docker compose … exec -T postgres createdb …`) y escribe

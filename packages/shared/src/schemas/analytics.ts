@@ -152,8 +152,7 @@ export type AnalyticsEventType = z.infer<typeof AnalyticsEventTypeSchema>;
 export type AnalyticsEventInput = z.infer<typeof AnalyticsEventInputSchema>;
 
 export type AnalyticsValidation =
-  | { ok: true; data: AnalyticsEventInput }
-  | { ok: false; issues: ReadableIssue[] };
+  { ok: true; data: AnalyticsEventInput } | { ok: false; issues: ReadableIssue[] };
 
 /**
  * Valida un único evento: primero el sobre (tipo dentro de la taxonomía, ids y
@@ -181,8 +180,7 @@ export function validateAnalyticsEvent(input: unknown): AnalyticsValidation {
 }
 
 export type AnalyticsCollectValidation =
-  | { ok: true; events: AnalyticsEventInput[] }
-  | { ok: false; issues: ReadableIssue[] };
+  { ok: true; events: AnalyticsEventInput[] } | { ok: false; issues: ReadableIssue[] };
 
 /**
  * Valida un lote (o un evento suelto, por comodidad). El punto de colección

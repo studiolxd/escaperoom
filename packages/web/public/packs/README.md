@@ -32,14 +32,25 @@ abajo-centro, con padding transparente) y el script lo escala sin deformar.
 ## Generar atlas + manifest
 
 ```bash
-pnpm pack:build medieval-v1                 # lee public/packs/medieval-v1 y escribe atlas-*.png/json + manifest.json
+pnpm pack:build medieval-v1                 # genera atlas + manifest (un pack incompleto NO falla)
 pnpm pack:build medieval-v1 --check         # valida sin escribir
+pnpm pack:build medieval-v1 --strict        # falla si falta algún frame (chequeo final)
 pnpm pack:build --pack <ruta> --room <json> # otra carpeta / otro RoomPackage
 ```
 
+- **Pack incompleto = normal.** Mientras vas soltando assets, `pack:build` **genera
+  igual** y termina con éxito; resume _"Pack incompleto: N entregados, M por cubrir"_.
+  Lo que falta se ve con **placeholder** en la preview. Solo abortan los errores
+  reales (SVG/atlas/manifiesto roto).
+- **`--strict`** es para el chequeo final: exige todos los frames del `RoomPackage`.
+- `tiles` se rasterizan/pintan a la **escala de entrega** (`PACK_SCALE = 2` →
+  celda 128×64); el runtime los escala al tamaño lógico, así que la sala se ve
+  igual con arte a 1× o 2×.
+
 `pack:build` (`packages/game-runtime/scripts/build-pack.ts`):
 
-1. Lee y decodifica los PNG por frame (códec PNG propio, sin dependencias).
+1. Lee y decodifica los PNG por frame (códec PNG propio) y **rasteriza los SVG**
+   al lienzo canónico (`sharp`), reencuadrando al bbox si el `viewBox` no es 2:1.
 2. Empaqueta un atlas por carpeta (`atlas-tiles`, `atlas-sprites`, `atlas-icons`,
    `atlas-avatar`, `atlas-fx`) con su JSON en formato Phaser (`trim: false`,
    `rotation: false`, padding).

@@ -70,7 +70,7 @@ interface CliOptions {
   packDir: string;
   roomPath: string;
   check: boolean;
-  allowMissing: boolean;
+  strict: boolean;
 }
 
 function findRepoRoot(start: string): string {
@@ -91,14 +91,14 @@ function parseArgs(argv: string[]): CliOptions {
   let packDir: string | undefined;
   let roomPath = join(repoRoot, DEFAULT_ROOM);
   let check = false;
-  let allowMissing = false;
+  let strict = false;
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--check") {
       check = true;
-    } else if (arg === "--allow-missing") {
-      allowMissing = true;
+    } else if (arg === "--strict") {
+      strict = true;
     } else if (arg === "--pack") {
       packDir = resolve(repoRoot, argv[++i] ?? "");
     } else if (arg === "--room") {
@@ -114,7 +114,7 @@ function parseArgs(argv: string[]): CliOptions {
     );
   }
 
-  return { packDir, roomPath, check, allowMissing };
+  return { packDir, roomPath, check, strict };
 }
 
 async function readConfig(packDir: string): Promise<PackConfig> {
@@ -329,9 +329,15 @@ async function main(): Promise<void> {
   }
   issues.push(...validateAtlasFrames(manifest, framesByAtlas));
 
-  const blocking = issues.filter(
-    (issue) => issue.severity === "error" && !(options.allowMissing && isMissingFrame(issue)),
-  );
+  // Un pack **incompleto** (solo "falta el frame/la entrada") es un estado
+  // normal mientras se van soltando assets: genera igual y sale con 0. Solo
+  // son bloqueantes los errores reales (SVG/atlas/manifiesto). `--strict`
+  // fuerza el chequeo estricto (antes `--allow-missing` hacía lo contrario).
+  const onlyMissing = issues.filter((issue) => issue.severity === "error").every(isMissingFrame);
+
+  const blocking = options.strict
+    ? issues.filter((issue) => issue.severity === "error")
+    : issues.filter((issue) => issue.severity === "error" && !isMissingFrame(issue));
 
   if (!options.check) {
     await writeFile(
@@ -340,7 +346,7 @@ async function main(): Promise<void> {
     );
   }
 
-  report(packId, options, atlases, framesByKind, issues);
+  report(packId, options, atlases, framesByKind, issues, onlyMissing);
 
   if (blocking.length > 0) {
     process.exitCode = 1;
@@ -348,7 +354,12 @@ async function main(): Promise<void> {
 }
 
 function isMissingFrame(issue: PackValidationIssue): boolean {
-  return /falta (el frame|la entrada)/.test(issue.message);
+  // "falta el frame/la entrada X" y "el frame X está declarado pero no existe":
+  // ambos son un asset aún sin entregar, no un error real del pack.
+  return (
+    /falta (el frame|la entrada)/.test(issue.message) ||
+    /está declarado en el manifiesto pero no existe/.test(issue.message)
+  );
 }
 
 async function loadRoom(roomPath: string): Promise<RuntimeModel> {
@@ -362,8 +373,10 @@ function report(
   atlases: { key: Kind; atlas: PackedAtlas }[],
   framesByKind: Record<Kind, string[]>,
   issues: PackValidationIssue[],
+  onlyMissing: boolean,
 ): void {
   const count = KINDS.reduce((total, kind) => total + framesByKind[kind].length, 0);
+  const missingCount = issues.filter(isMissingFrame).length;
   console.log(
     `\nPack "${packId}" — ${count} frames en ${atlases.length} atlas${options.check ? " (solo validación)" : ""}`,
   );
@@ -376,6 +389,12 @@ function report(
     console.log(`\n${formatPackIssues(issues)}\n`);
   } else {
     console.log("  Sin incidencias.\n");
+  }
+  if (onlyMissing && missingCount > 0) {
+    console.log(
+      `⚠ Pack incompleto: ${count} frame(s) entregado(s), ${missingCount} por cubrir. ` +
+        `Se genera igual; lo que falta se ve con placeholder en la preview.\n`,
+    );
   }
   console.log(
     options.check
