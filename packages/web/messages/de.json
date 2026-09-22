@@ -37,5 +37,34 @@
     "locked": "Das Schloss ist noch nicht verfügbar",
     "unavailable": "Das Schloss nimmt keine weiteren Versuche an",
     "solved": "Schloss geöffnet!"
+  },
+  "HiddenKey": {
+    "title": "Versteck",
+    "spot": "Ein Gegenstand im Raum wirkt fehl am Platz …",
+    "hidden": "Hier hast du noch nicht nachgesehen",
+    "reveal": "Versteck aufdecken",
+    "pending": "Wird aufgedeckt …",
+    "revealed": "Du hast {item} gefunden!",
+    "alreadyRevealed": "Du hattest diesen Gegenstand bereits gefunden",
+    "locked": "Das Versteck ist noch nicht verfügbar",
+    "unavailable": "Das Versteck kann nicht mehr aufgedeckt werden"
+  },
+  "Inventory": {
+    "title": "Inventar",
+    "recipes": "Rezepte: {found}/{total}",
+    "gridLabel": "Inventarraster",
+    "emptySlot": "Leerer Platz",
+    "unknownItem": "Unbekannter Gegenstand",
+    "combineZone": "Kombinationsbereich",
+    "dropHere": "Ziehe zwei Objekte hierher",
+    "pending": "Kombiniere…",
+    "combine": "Kombinieren",
+    "clear": "Leeren",
+    "hint": "Ziehe zwei Objekte in den Kombinationsbereich",
+    "combined": "Du hast erstellt: {item}",
+    "alreadyApplied": "Das hattest du bereits getan: {item}",
+    "invalid": "Diese Objekte lassen sich nicht kombinieren",
+    "missingItems": "Dir fehlen Objekte für dieses Rezept",
+    "unavailable": "Die Kombination ist nicht verfügbar"
   }
 }
