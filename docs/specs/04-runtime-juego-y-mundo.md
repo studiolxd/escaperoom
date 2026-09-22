@@ -112,6 +112,14 @@ contenido pasa a la "zona de descubrimiento". Comportamiento configurable con `d
   mundo. Ejemplo canónico: el armario se abre por las tres vías (menú desde Espacio, menú desde
   clic y arrastre de la llave sobre el armario).
 - Al inspeccionar, se muestran diálogos/descripciones (`show_dialog`).
+- **El diálogo se cierra** al completarse la acción (usar un objeto con éxito, abrir un candado,
+  resolver un puzzle) o con `Esc`; no se queda abierto bloqueando.
+- **La intro bloquea el juego**: hasta cerrar el diálogo de intro no se puede mover al avatar ni
+  interactuar.
+- **Selección de objeto fiable**: la interacción apunta al objeto **interactuable más cercano a la
+  celda del avatar** (no a coordenadas de pantalla); con varios candidatos, gana el más próximo y
+  nunca "salta" a otro objeto. Si el jugador **hace clic en un objeto**, el avatar **camina hacia
+  él** y, al llegar, se abre su menú/interacción. _(Pendiente: ticket 1.14)._
 - El patrón "Phaser lanza un puzzle en React": el jugador hace clic en el arca candada (Phaser)
   → Phaser emite el evento → React monta `<CodeLockPuzzle code={...} onSolve={...} />` → al
   resolver, React notifica al estado de partida → Phaser abre la tapa con animación.
@@ -178,9 +186,17 @@ encargable como un único pack. El **brief y contrato de entrega** completo est�
 
 ### UI
 
-- HUD mínimo: cronómetro, contador de pistas, icono de inventario.
-- Panel de inventario: grid 3×4 + zona de combinación.
+- HUD mínimo: cronómetro, contador de pistas, **botón/tecla de inventario** (`I`).
+- **Panel de inventario** (se abre con `I` o su botón del HUD, **no** desde el guion de test):
+  - grid de slots con el **icono real** de cada item (con fallback a inicial/texto si falta el
+    icono del pack); el inventario **cerrado** también muestra los iconos en el HUD.
+  - **Combinar**: arrastrar un item **sobre otro** del inventario (o seleccionar dos → botón
+    "Combinar" como alternativa accesible). No hay "zona de combinar" aparte.
+  - El **nombre** de un item se puede pulsar (seleccionar) y hacer clic en el mundo no debe
+    colarse por debajo del panel abierto.
 - Avatares en chat/voz: círculo con color + inicial.
+- **Todos los controles usan los `Button` de shadcn/ui** (ADR-019), con contraste suficiente en
+  reposo — no solo en `:hover`.
 
 **Total estimado: ~35 tiles + ~20 sprites + 1 atlas de avatar.** Se encarga en Fase 1 (ver
 `plan/fase-1-runtime.md`) y dura todo el MVP. **Producción admitida (ADR-001):** sprites isométricos
