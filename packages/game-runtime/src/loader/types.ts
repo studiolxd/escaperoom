@@ -52,14 +52,25 @@ export interface RuntimeAmbientLight {
 
 export type RuntimeLight = RuntimeTorchLight | RuntimeAmbientLight;
 
-/** `WorldObject` con el sprite del estado inicial ya resuelto. */
+/**
+ * `WorldObject` con el sprite del estado inicial ya resuelto.
+ *
+ * Además del sprite, el loader deriva la **inspección** desde las reglas
+ * `on_interact` (specs/04 §4): qué diálogo mostrar y qué panel abrir. Nunca se
+ * copian condiciones ni acciones crudas (podrían filtrar secretos de puzzles);
+ * solo ids y un booleano de "condicionado" que el motor de reglas (1.4) usará.
+ */
 export interface RuntimeObject {
   id: string;
   roomId: string;
   type: string;
   position: Position;
   sprite: string;
+  /** Estados declarados, en orden de aparición (`Object.keys(states)`). */
+  states: string[];
   spriteByState: Record<string, string>;
+  /** Animación de transición por estado (`SpriteState.animation`) si el paquete la declara. */
+  animationByState?: Record<string, string>;
   initialState: string;
   interactable: boolean;
   inventory?: string[];
@@ -67,6 +78,12 @@ export interface RuntimeObject {
   leadsTo?: string;
   distribution?: "first_click" | "all_players" | "assigned";
   hidingSpot?: { contains: string };
+  /** Diálogo que muestra la inspección (`on_interact` + `show_dialog`). */
+  inspectDialogId?: string;
+  /** Puzzle de panel que abre la inspección (`on_interact` + `open_panel_puzzle`). */
+  inspectPanelPuzzleId?: string;
+  /** `true` si la regla de inspección tiene condiciones (las evalúa el motor de 1.4). */
+  inspectConditioned?: boolean;
 }
 
 export interface RuntimeItem {

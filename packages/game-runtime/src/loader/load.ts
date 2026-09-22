@@ -4,6 +4,7 @@ import {
   toReadableIssues,
   type LocalizedText,
   type RoomPackage,
+  type Rule,
   type SpriteState,
   type SubRoom,
   type TileLayer,
@@ -101,6 +102,7 @@ export function toRuntimeModel(
 
   const objects: RuntimeObject[] = [];
   const objectsById: Record<string, RuntimeObject> = {};
+  const inspections = buildInspectionIndex(roomPackage.rules);
 
   for (const object of roomPackage.objects) {
     const room = subroomsById[object.roomId];
@@ -116,7 +118,7 @@ export function toRuntimeModel(
       );
     }
 
-    const runtimeObject = toRuntimeObject(object);
+    const runtimeObject = toRuntimeObject(object, inspections[object.id]);
     objects.push(runtimeObject);
     objectsById[runtimeObject.id] = runtimeObject;
     room.objects.push(runtimeObject);
@@ -224,10 +226,25 @@ function toRuntimeLight(light: SubRoom["lighting"][number]): RuntimeLight {
   return { type: "ambient", color: light.color, intensity: light.intensity };
 }
 
-function toRuntimeObject(object: WorldObject): RuntimeObject {
+/** Inspección derivada de una regla `on_interact`, sin condiciones ni secretos. */
+interface DerivedInspection {
+  dialogId?: string;
+  panelPuzzleId?: string;
+  conditioned?: boolean;
+}
+
+function toRuntimeObject(object: WorldObject, inspection?: DerivedInspection): RuntimeObject {
   const spriteByState: Record<string, string> = {};
-  for (const state of Object.keys(object.states)) {
-    spriteByState[state] = resolveStateSprite(object.states[state], object.sprite);
+  const animationByState: Record<string, string> = {};
+  const states = Object.keys(object.states);
+
+  for (const state of states) {
+    const value = object.states[state];
+    spriteByState[state] = resolveStateSprite(value, object.sprite);
+    const animation = resolveStateAnimation(value);
+    if (animation) {
+      animationByState[state] = animation;
+    }
   }
 
   return {
@@ -236,7 +253,9 @@ function toRuntimeObject(object: WorldObject): RuntimeObject {
     type: object.type,
     position: object.position,
     sprite: resolveStateSprite(object.states[object.initialState], object.sprite),
+    states,
     spriteByState,
+    ...(Object.keys(animationByState).length > 0 ? { animationByState } : {}),
     initialState: object.initialState,
     interactable: object.interactable,
     ...(object.inventory ? { inventory: object.inventory } : {}),
@@ -244,7 +263,75 @@ function toRuntimeObject(object: WorldObject): RuntimeObject {
     ...(object.leadsTo ? { leadsTo: object.leadsTo } : {}),
     ...(object.distribution ? { distribution: object.distribution } : {}),
     ...(object.hidingSpot ? { hidingSpot: object.hidingSpot } : {}),
+    ...(inspection?.dialogId ? { inspectDialogId: inspection.dialogId } : {}),
+    ...(inspection?.panelPuzzleId ? { inspectPanelPuzzleId: inspection.panelPuzzleId } : {}),
+    ...(inspection?.conditioned ? { inspectConditioned: true } : {}),
   };
+}
+
+/**
+ * Construye un índice `objectId → inspección` a partir de las reglas
+ * `on_interact`. Se prefiere la primera regla **incondicional** con
+ * `show_dialog`/`open_panel_puzzle`; si no hay, la primera condicionada. Así el
+ * runtime puede mostrar la descripción del objeto sin ejecutar reglas, y el
+ * motor de 1.4 decide cuándo aplican las acciones.
+ */
+function buildInspectionIndex(rules: Rule[]): Record<string, DerivedInspection> {
+  interface Choice {
+    id: string;
+    conditioned: boolean;
+  }
+  const index: Record<string, { dialog?: Choice; panel?: Choice }> = {};
+
+  for (const rule of rules) {
+    if (rule.trigger.type !== "on_interact") {
+      continue;
+    }
+    const { objectId } = rule.trigger;
+    const dialogId = firstAction(rule, "show_dialog")?.dialogId;
+    const panelPuzzleId = firstAction(rule, "open_panel_puzzle")?.puzzleId;
+    if (!dialogId && !panelPuzzleId) {
+      continue;
+    }
+
+    const entry = (index[objectId] ??= {});
+    const conditioned = rule.conditions.length > 0;
+    if (dialogId && shouldReplace(entry.dialog, conditioned)) {
+      entry.dialog = { id: dialogId, conditioned };
+    }
+    if (panelPuzzleId && shouldReplace(entry.panel, conditioned)) {
+      entry.panel = { id: panelPuzzleId, conditioned };
+    }
+  }
+
+  const result: Record<string, DerivedInspection> = {};
+  for (const [objectId, entry] of Object.entries(index)) {
+    result[objectId] = {
+      ...(entry.dialog ? { dialogId: entry.dialog.id } : {}),
+      ...(entry.panel ? { panelPuzzleId: entry.panel.id } : {}),
+      ...(entry.dialog?.conditioned || entry.panel?.conditioned ? { conditioned: true } : {}),
+    };
+  }
+  return result;
+}
+
+function shouldReplace(
+  current: { conditioned: boolean } | undefined,
+  nextConditioned: boolean,
+): boolean {
+  if (!current) {
+    return true;
+  }
+  return current.conditioned && !nextConditioned;
+}
+
+function firstAction<T extends Rule["actions"][number]["type"]>(
+  rule: Rule,
+  type: T,
+): Extract<Rule["actions"][number], { type: T }> | undefined {
+  return rule.actions.find(
+    (action): action is Extract<Rule["actions"][number], { type: T }> => action.type === type,
+  );
 }
 
 function resolveStateSprite(state: SpriteState | undefined, fallback: string): string {
@@ -255,6 +342,13 @@ function resolveStateSprite(state: SpriteState | undefined, fallback: string): s
     return state.sprite;
   }
   return fallback;
+}
+
+function resolveStateAnimation(state: SpriteState | undefined): string | undefined {
+  if (state && typeof state === "object" && state.animation) {
+    return state.animation;
+  }
+  return undefined;
 }
 
 /**

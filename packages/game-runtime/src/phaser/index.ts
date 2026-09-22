@@ -10,5 +10,6 @@ export * from "./iso";
 export * from "./palette";
 export * from "./pack-textures";
 export * from "./avatar";
+export * from "./world-events";
 export * from "./room-scene";
 export * from "./room-runtime";

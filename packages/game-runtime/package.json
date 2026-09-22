@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./loader": "./src/loader/index.ts",
     "./pack": "./src/pack/index.ts",
+    "./world": "./src/world/index.ts",
     "./phaser": "./src/phaser/index.ts",
     "./package.json": "./package.json"
   },
