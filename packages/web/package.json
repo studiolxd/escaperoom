@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@colyseus/sdk": "0.18.2",
+    "@escaperoom/config": "workspace:*",
     "@escaperoom/env": "workspace:*",
     "@escaperoom/shared": "workspace:*",
     "better-auth": "1.7.5",
@@ -22,6 +23,7 @@
     "cn": "^0.3.2",
     "lucide-react": "^1.47.0",
     "next": "16.3.5",
+    "next-intl": "^4.14.6",
     "phaser": "3.90.0",
     "radix-ui": "^1.6.7",
     "react": "^19.3.0",
@@ -33,7 +35,6 @@
   },
   "devDependencies": {
     "@better-auth/cli": "1.4.21",
-    "@escaperoom/config": "workspace:*",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^26.6.2",
     "@types/react": "^19.3.0",

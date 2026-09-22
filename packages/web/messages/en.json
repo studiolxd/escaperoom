@@ -1,0 +1,15 @@
+{
+  "Metadata": {
+    "title": "EscapeRoom Creator",
+    "description": "Cooperative 2D isometric online escape rooms."
+  },
+  "LocaleSwitcher": {
+    "label": "Language"
+  },
+  "Home": {
+    "showcase": "i18n test page (0.9)",
+    "title": "EscapeRoom",
+    "subtitle": "Hybrid canvas (Phaser + React overlay) over an isometric tilemap.",
+    "lobbyCta": "Multiplayer lobby (0.5)"
+  }
+}
