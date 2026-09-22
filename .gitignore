@@ -1,0 +1,34 @@
+# OS
+.DS_Store
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Test / coverage
+coverage/
+playwright-report/
+test-results/
+
+# Editors
+.vscode/
+.idea/
+
+# Local infra data
+docker-data/
