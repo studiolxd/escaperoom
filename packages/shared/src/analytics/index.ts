@@ -10,6 +10,25 @@ export {
   type EmitAnalyticsResult,
 } from "./queue";
 export {
+  mapGameplayEvent,
+  type DialogReadEvent,
+  type GameplayAnalyticsContext,
+  type GameplayEvent,
+  type HintRequestedEvent,
+  type ItemCombinedEvent,
+  type ItemGrantedEvent,
+  type PuzzleAttemptedEvent,
+  type PuzzleAvailableEvent,
+  type PuzzleFailedEvent,
+  type PuzzleSolvedEvent,
+} from "./gameplay";
+export {
+  createGameplayAnalyticsEmitter,
+  emitGameplayEvents,
+  type EmitGameplayResult,
+  type GameplayAnalyticsEmitter,
+} from "./gameplay-emitter";
+export {
   ANALYTICS_EVENT_TYPES,
   ANALYTICS_MAX_BATCH,
   AnalyticsEventTypeSchema,
