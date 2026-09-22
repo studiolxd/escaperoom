@@ -11,5 +11,20 @@
     "title": "EscapeRoom",
     "subtitle": "Hybride Canvas (Phaser + React-Overlay) über einer isometrischen Tilemap.",
     "lobbyCta": "Mehrspieler-Lobby (0.5)"
+  },
+  "CodeLock": {
+    "title": "Zahlenschloss",
+    "prompt": "Gib den {length}-stelligen Code ein",
+    "digit": "Ziffer {digit}",
+    "clear": "Löschen",
+    "backspace": "Zurück",
+    "submit": "Öffnen",
+    "pending": "Prüfe…",
+    "attempts": "Versuche: {used}/{max}",
+    "wrong": "Falscher Code · {count} Versuche übrig",
+    "lockedOut": "Blockiert · versuche es in {seconds} s erneut",
+    "locked": "Das Schloss ist noch nicht verfügbar",
+    "unavailable": "Das Schloss nimmt keine weiteren Versuche an",
+    "solved": "Schloss geöffnet!"
   }
 }

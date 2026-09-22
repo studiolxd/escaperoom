@@ -3,3 +3,4 @@
 // `/db`) para no arrastrar el cliente de base de datos a cualquier bundle.
 export * from "./schemas";
 export * from "./engine";
+export * from "./templates";
