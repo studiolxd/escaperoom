@@ -14,12 +14,15 @@
     "fallbackDemo": "Esta clave solo existe en el catálogo 'es': los demás idiomas caen aquí."
   },
   "RoomPreview": {
-    "badge": "previsualización del RoomPackage (1.1)",
+    "badge": "previsualización isométrica (1.2)",
     "loading": "Cargando habitaciones…",
     "rooms": "Habitaciones",
     "grid": "Rejilla",
     "objects": "Objetos",
-    "spawns": "Spawns"
+    "spawns": "Spawns",
+    "packLoaded": "pack gráfico «{packId}»",
+    "packPlaceholder": "placeholder automático (sin pack)",
+    "controls": "WASD/flechas para mover · Espacio para interactuar"
   },
   "CodeLock": {
     "title": "Candado numérico",

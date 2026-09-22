@@ -7,22 +7,26 @@
   "exports": {
     ".": "./src/index.ts",
     "./loader": "./src/loader/index.ts",
+    "./pack": "./src/pack/index.ts",
     "./phaser": "./src/phaser/index.ts",
     "./package.json": "./package.json"
   },
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "pack:build": "tsx scripts/build-pack.ts"
   },
   "dependencies": {
     "@escaperoom/shared": "workspace:*",
-    "phaser": "3.90.0"
+    "phaser": "3.90.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@escaperoom/config": "workspace:*",
     "@types/node": "^26.6.2",
     "eslint": "^10.11.0",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^5.0.1"
   }

@@ -1,67 +1,97 @@
 import Phaser from "phaser";
 import type { RuntimeModel, RuntimeObject, RuntimeSubRoom } from "../loader";
 import {
+  buildCollisionGrid,
+  buildPlaceholderManifest,
+  resolveSpriteFrame,
+  resolveTileFrame,
+  type CollisionGrid,
+  type PackManifest,
+} from "../pack";
+import { AvatarController } from "./avatar";
+import {
   ISO_TILE_HEIGHT,
   ISO_TILE_WIDTH,
   gridBounds,
   gridCenter,
   isoDepth,
+  tileAnchor,
   tileToWorld,
+  worldToTile,
 } from "./iso";
-import {
-  DECORATION_COLOR,
-  FLOOR_COLOR,
-  FLOOR_COLOR_ALT,
-  FLOOR_EDGE,
-  objectColor,
-  playerColor,
-  tileColor,
-} from "./palette";
+import { PackFrameResolver } from "./pack-textures";
+import { playerColor } from "./palette";
+
+/** Pack cargado por la escena: manifiesto + base de las imágenes de atlas. */
+export interface RoomScenePack {
+  manifest: PackManifest;
+  /** URL base (sin barra final) donde viven las imágenes/JSON del pack. */
+  baseUrl: string;
+}
 
 export interface RoomSceneOptions {
   model: RuntimeModel;
   /** Habitación inicial; por defecto la primera de `map.rooms`. */
   initialRoomId?: string;
-  /** Muestra etiquetas de texto sobre objetos, decoración y spawns. */
+  /** Muestra etiquetas de texto sobre objetos, decoración y spawns (debug). */
   showLabels?: boolean;
+  /** Pack gráfico; si falta, se usa el manifiesto placeholder + texturas procedurales. */
+  pack?: RoomScenePack;
+  /** Muestra y controla un avatar jugable (por defecto `true`). */
+  avatar?: boolean;
 }
 
 const DEPTH = {
+  ground: 0,
+  tileSub: 10,
+  decorationSub: 20,
+  objectSub: 30,
   ambient: 9000,
   halo: 9001,
 } as const;
 
-const OBJECT_LEFT = 0x1f2937;
-const OBJECT_RIGHT = 0x0f172a;
-
-/** Altura de la caja isométrica por tipo de objeto (primitiva de 1.1). */
-const OBJECT_HEIGHT: Record<string, number> = {
-  puerta: 60,
-  decorativo: 40,
-  estatua: 52,
-};
+const FLOOR_TILE_SIZE = { width: ISO_TILE_WIDTH, height: ISO_TILE_HEIGHT };
+const WALL_TILE_SIZE = { width: 64, height: 64 };
+const SPRITE_SIZE = { width: 64, height: 96 };
+const SPAWN_MARKER_DEPTH_SUB = 90;
 
 /**
- * Escena del runtime de producto (modo play) de 1.1: pinta un `RuntimeSubRoom`
- * con primitivas isométricas, ordena por profundidad (`isoDepth`), configura la
- * cámara para encuadrar la habitación y permite cambiar entre subrooms.
+ * Escena del runtime de producto (modo play): pinta un `RuntimeSubRoom` con el
+ * tilemap isométrico real (tiles + muros del pack, o placeholders automáticos),
+ * depth-sort con sprites, colisiones por celda, avatar animado, cámara y
+ * transición de sala (specs/04 §1, specs/26).
  *
- * Sin pack gráfico todavía (llega en 1.2): el suelo, los muros, la decoración y
- * los objetos se dibujan como rombos y cajas de color, con etiquetas para poder
- * validar visualmente el `RoomPackage` del Rey Aldric.
+ * El loader puro de 1.1 (`RuntimeModel`) es la única fuente del mundo; el pack
+ * solo aporta frames. Sin pack, cada frame se sustituye por una textura de
+ * color con su nombre, así que la sala se ve sin arte real.
  */
 export class RoomScene extends Phaser.Scene {
   private readonly model: RuntimeModel;
   private readonly showLabels: boolean;
+  private readonly pack?: RoomScenePack;
+  private readonly avatarEnabled: boolean;
+  private readonly manifest: PackManifest;
+
   private activeRoomId: string;
   private roomObjects: Phaser.GameObjects.GameObject[] = [];
   private ambientOverlay?: Phaser.GameObjects.Rectangle;
+  private resolver!: PackFrameResolver;
+  private collision!: CollisionGrid;
+  private avatar?: AvatarController;
+  private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
+  private movementKeys?: Record<"w" | "a" | "s" | "d", Phaser.Input.Keyboard.Key>;
   private built = false;
+  private transitioning = false;
+  private doorCooldownUntil = 0;
+  private clickTarget?: { x: number; y: number };
 
   constructor(options: RoomSceneOptions) {
     super("room-preview");
     this.model = options.model;
-    this.showLabels = options.showLabels ?? true;
+    this.showLabels = options.showLabels ?? false;
+    this.pack = options.pack;
+    this.avatarEnabled = options.avatar ?? true;
+    this.manifest = options.pack?.manifest ?? buildPlaceholderManifest(options.model);
 
     const initialRoomId = options.initialRoomId ?? this.model.subrooms[0]?.id;
     if (!initialRoomId || !this.model.subroomsById[initialRoomId]) {
@@ -76,15 +106,32 @@ export class RoomScene extends Phaser.Scene {
     return this.activeRoomId;
   }
 
-  create(): void {
-    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
-      this.clearRoom();
-    });
+  preload(): void {
+    if (!this.pack) {
+      return;
+    }
+    const baseUrl = this.pack.baseUrl.replace(/\/$/, "");
+    for (const atlas of this.pack.manifest.atlases) {
+      this.load.atlas(atlas.key, `${baseUrl}/${atlas.image}`, `${baseUrl}/${atlas.data}`);
+    }
+  }
 
+  create(): void {
+    this.resolver = new PackFrameResolver(this, this.pack?.manifest);
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
+
+    this.setupInput();
     this.buildRoom();
     this.cameras.main.fadeIn(200, 11, 17, 32);
+  }
+
+  update(time: number, delta: number): void {
+    if (!this.built || this.transitioning || !this.avatar) {
+      return;
+    }
+    this.avatar.update(delta, this.readMove());
+    this.checkDoor(time);
   }
 
   /** Cambia de habitación con un fundido y reconstruye la escena. */
@@ -101,10 +148,12 @@ export class RoomScene extends Phaser.Scene {
       return;
     }
 
+    this.transitioning = true;
     const camera = this.cameras.main;
     camera.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       this.buildRoom();
       camera.fadeIn(200, 11, 17, 32);
+      this.transitioning = false;
     });
     camera.fadeOut(140, 11, 17, 32);
   }
@@ -117,18 +166,25 @@ export class RoomScene extends Phaser.Scene {
       throw new Error(`RoomScene: la habitación "${this.activeRoomId}" no existe.`);
     }
 
+    this.collision = buildCollisionGrid(room, { manifest: this.manifest });
     this.drawGround(room);
-    this.drawTiles(room);
+    this.drawWalls(room);
     this.drawDecorations(room);
-    this.drawSpawns(room);
     this.drawObjects(room);
+    if (this.showLabels) {
+      this.drawSpawns(room);
+    }
     this.drawLighting(room);
     this.applyCamera(room);
+    this.buildAvatar(room);
 
     this.built = true;
   }
 
   private clearRoom(): void {
+    this.avatar?.destroy();
+    this.avatar = undefined;
+    this.clickTarget = undefined;
     for (const object of this.roomObjects) {
       object.destroy();
     }
@@ -136,50 +192,41 @@ export class RoomScene extends Phaser.Scene {
     this.ambientOverlay = undefined;
   }
 
+  private teardown(): void {
+    this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
+    this.clearRoom();
+  }
+
   private track<T extends Phaser.GameObjects.GameObject>(object: T): T {
     this.roomObjects.push(object);
     return object;
   }
 
-  private fillDiamond(
-    graphics: Phaser.GameObjects.Graphics,
-    tx: number,
-    ty: number,
-    color: number,
-    offsetY = 0,
-  ): void {
-    const { x, y } = tileToWorld(tx, ty);
-    const halfW = ISO_TILE_WIDTH / 2;
-    const halfH = ISO_TILE_HEIGHT / 2;
-
-    graphics.fillStyle(color, 1);
-    graphics.lineStyle(1, FLOOR_EDGE, 0.5);
-    graphics.beginPath();
-    graphics.moveTo(x, y - halfH + offsetY);
-    graphics.lineTo(x + halfW, y + offsetY);
-    graphics.lineTo(x, y + halfH + offsetY);
-    graphics.lineTo(x - halfW, y + offsetY);
-    graphics.closePath();
-    graphics.fillPath();
-    graphics.strokePath();
-  }
-
-  /** Suelo: un único `Graphics` por debajo de todo, con tablero ajedrezado. */
+  /** Suelo: capa `ground` como tiles uniformes 64×32. */
   private drawGround(room: RuntimeSubRoom): void {
-    const graphics = this.track(this.add.graphics());
-    graphics.setDepth(isoDepth(0, 0) - 50);
+    const ground = room.layers.find((layer) => layer.name === "ground");
+    if (!ground) {
+      return;
+    }
 
     for (let ty = 0; ty < room.height; ty += 1) {
       for (let tx = 0; tx < room.width; tx += 1) {
-        this.fillDiamond(graphics, tx, ty, (tx + ty) % 2 === 0 ? FLOOR_COLOR : FLOOR_COLOR_ALT);
+        const tileId = ground.tiles[ty * room.width + tx] ?? 0;
+        if (tileId === 0) {
+          continue;
+        }
+        const frame = resolveTileFrame(this.manifest, tileId);
+        const ref = this.resolver.resolve(frame, FLOOR_TILE_SIZE);
+        const { x, y } = tileToWorld(tx, ty);
+        this.track(
+          this.add.image(x, y, ref.key, ref.frame).setOrigin(0.5, 0.5).setDepth(DEPTH.ground),
+        );
       }
     }
   }
 
-  /** Muros y demás capas, agrupados por celda para respetar el orden de capas. */
-  private drawTiles(room: RuntimeSubRoom): void {
-    const byCell = new Map<string, Phaser.GameObjects.Graphics>();
-
+  /** Muros y demás capas: sprites con overhang, pivote abajo-centro de la celda. */
+  private drawWalls(room: RuntimeSubRoom): void {
     for (const layer of room.layers) {
       if (layer.name === "ground") {
         continue;
@@ -190,15 +237,15 @@ export class RoomScene extends Phaser.Scene {
           if (tileId === 0) {
             continue;
           }
-
-          const key = `${tx},${ty}`;
-          let graphics = byCell.get(key);
-          if (!graphics) {
-            graphics = this.track(this.add.graphics());
-            graphics.setDepth(isoDepth(tx, ty, 0));
-            byCell.set(key, graphics);
-          }
-          this.fillDiamond(graphics, tx, ty, tileColor(tileId));
+          const frame = resolveTileFrame(this.manifest, tileId);
+          const ref = this.resolver.resolve(frame, WALL_TILE_SIZE);
+          const anchor = tileAnchor(tx, ty);
+          this.track(
+            this.add
+              .image(anchor.x, anchor.y, ref.key, ref.frame)
+              .setOrigin(0.5, 1)
+              .setDepth(isoDepth(tx, ty, DEPTH.tileSub) + 1),
+          );
         }
       }
     }
@@ -206,17 +253,35 @@ export class RoomScene extends Phaser.Scene {
 
   private drawDecorations(room: RuntimeSubRoom): void {
     for (const decoration of room.decorations) {
-      const { x, y } = tileToWorld(decoration.x, decoration.y);
-      const graphics = this.track(this.add.graphics());
-      graphics.setDepth(isoDepth(decoration.x, decoration.y, -1));
+      const frame = resolveSpriteFrame(this.manifest, decoration.sprite);
+      const ref = this.resolver.resolve(frame, SPRITE_SIZE);
+      const anchor = tileAnchor(decoration.x, decoration.y);
+      const depth = isoDepth(decoration.x, decoration.y, DEPTH.decorationSub) + 1;
 
-      graphics.fillStyle(DECORATION_COLOR, 0.9);
-      graphics.fillRect(x - 8, y - 44, 16, 32);
-      graphics.lineStyle(1, FLOOR_EDGE, 0.8);
-      graphics.strokeRect(x - 8, y - 44, 16, 32);
+      this.track(
+        this.add.image(anchor.x, anchor.y, ref.key, ref.frame).setOrigin(0.5, 1).setDepth(depth),
+      );
 
       if (this.showLabels) {
-        this.label(decoration.sprite, x, y - 46, isoDepth(decoration.x, decoration.y, -1));
+        this.label(decoration.sprite, anchor.x, anchor.y - SPRITE_SIZE.height, depth);
+      }
+    }
+  }
+
+  private drawObjects(room: RuntimeSubRoom): void {
+    for (const object of room.objects) {
+      const frame = resolveSpriteFrame(this.manifest, object.sprite);
+      const ref = this.resolver.resolve(frame, SPRITE_SIZE);
+      const anchor = tileAnchor(object.position.x, object.position.y);
+      const depth = isoDepth(object.position.x, object.position.y, DEPTH.objectSub) + 1;
+
+      this.track(
+        this.add.image(anchor.x, anchor.y, ref.key, ref.frame).setOrigin(0.5, 1).setDepth(depth),
+      );
+
+      if (this.showLabels) {
+        const suffix = object.lockedBy ? " (bloqueado)" : "";
+        this.label(`${object.id}${suffix}`, anchor.x, anchor.y - SPRITE_SIZE.height, depth);
       }
     }
   }
@@ -225,9 +290,10 @@ export class RoomScene extends Phaser.Scene {
     for (const spawn of room.spawns) {
       const { x, y } = tileToWorld(spawn.x, spawn.y);
       const color = playerColor(spawn.playerIndex - 1);
+      const depth = isoDepth(spawn.x, spawn.y, SPAWN_MARKER_DEPTH_SUB) + 1;
 
       const graphics = this.track(this.add.graphics());
-      graphics.setDepth(isoDepth(spawn.x, spawn.y, 10));
+      graphics.setDepth(depth);
 
       const halfW = ISO_TILE_WIDTH / 2 - 6;
       const halfH = ISO_TILE_HEIGHT / 2 - 3;
@@ -242,66 +308,7 @@ export class RoomScene extends Phaser.Scene {
       graphics.fillPath();
       graphics.strokePath();
 
-      this.track(this.add.circle(x, y - 14, 9, color, 1).setStrokeStyle(2, 0xe0f2fe, 0.9));
-      this.track(this.add.ellipse(x, y + 2, 26, 11, 0x000000, 0.3));
-
-      if (this.showLabels) {
-        this.label(`P${spawn.playerIndex}`, x, y - 30, isoDepth(spawn.x, spawn.y, 10));
-      }
-    }
-  }
-
-  private drawObjects(room: RuntimeSubRoom): void {
-    for (const object of room.objects) {
-      this.drawObjectBox(object);
-    }
-  }
-
-  private drawObjectBox(object: RuntimeObject): void {
-    const { x, y } = tileToWorld(object.position.x, object.position.y);
-    const height = OBJECT_HEIGHT[object.type] ?? 46;
-    const halfW = ISO_TILE_WIDTH / 2 - 4;
-    const halfH = ISO_TILE_HEIGHT / 2 - 2;
-    const top = objectColor(object.type);
-
-    const graphics = this.track(this.add.graphics());
-    graphics.setDepth(isoDepth(object.position.x, object.position.y, 50));
-
-    graphics.fillStyle(OBJECT_LEFT, 0.95);
-    graphics.beginPath();
-    graphics.moveTo(x - halfW, y - height);
-    graphics.lineTo(x, y - height + halfH);
-    graphics.lineTo(x, y + halfH);
-    graphics.lineTo(x - halfW, y);
-    graphics.closePath();
-    graphics.fillPath();
-
-    graphics.fillStyle(OBJECT_RIGHT, 0.95);
-    graphics.beginPath();
-    graphics.moveTo(x + halfW, y - height);
-    graphics.lineTo(x, y - height + halfH);
-    graphics.lineTo(x, y + halfH);
-    graphics.lineTo(x + halfW, y);
-    graphics.closePath();
-    graphics.fillPath();
-
-    graphics.fillStyle(top, 1);
-    graphics.beginPath();
-    graphics.moveTo(x, y - height - halfH);
-    graphics.lineTo(x + halfW, y - height);
-    graphics.lineTo(x, y - height + halfH);
-    graphics.lineTo(x - halfW, y - height);
-    graphics.closePath();
-    graphics.fillPath();
-
-    if (this.showLabels) {
-      const suffix = object.lockedBy ? " (bloqueado)" : "";
-      this.label(
-        `${object.id}${suffix}`,
-        x,
-        y - height - halfH - 4,
-        isoDepth(object.position.x, object.position.y, 50),
-      );
+      this.label(`P${spawn.playerIndex}`, x, y - halfH - 4, depth);
     }
   }
 
@@ -328,10 +335,130 @@ export class RoomScene extends Phaser.Scene {
       halo.setDepth(DEPTH.halo).setBlendMode(Phaser.BlendModes.ADD);
 
       for (let ring = 4; ring >= 1; ring -= 1) {
-        const radius = ring * 42;
         halo.fillStyle(0xffd27f, 0.05);
-        halo.fillCircle(x, y, radius);
+        halo.fillCircle(x, y, ring * 42);
       }
+    }
+  }
+
+  private buildAvatar(room: RuntimeSubRoom): void {
+    if (!this.avatarEnabled) {
+      return;
+    }
+    const spawn = room.spawns[0] ?? { x: 0, y: 0 };
+    this.avatar = new AvatarController({
+      scene: this,
+      resolver: this.resolver,
+      manifest: this.manifest,
+      collision: this.collision,
+      start: { x: spawn.x, y: spawn.y },
+      tint: playerColor(0),
+    });
+  }
+
+  private setupInput(): void {
+    this.input.on(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.input.off(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
+    });
+
+    const keyboard = this.input.keyboard;
+    if (!keyboard) {
+      return;
+    }
+    this.cursors = keyboard.createCursorKeys();
+    this.movementKeys = {
+      w: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
+      a: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
+      s: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
+      d: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
+    };
+    keyboard.on("keydown-SPACE", () => this.avatar?.interact());
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      keyboard.removeAllListeners("keydown-SPACE");
+    });
+  }
+
+  /** Clic para moverse: permite alcanzar celdas que las teclas diagonales no cubren. */
+  private handlePointerDown(pointer: Phaser.Input.Pointer): void {
+    if (!this.avatar || this.transitioning) {
+      return;
+    }
+    const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const tile = worldToTile(world.x, world.y);
+    if (this.collision.isWalkable(tile.tx, tile.ty)) {
+      this.clickTarget = { x: tile.tx, y: tile.ty };
+    }
+  }
+
+  private readMove(): { x: number; y: number } | null {
+    const keyboardMove = this.readKeyboardMove();
+    if (keyboardMove) {
+      this.clickTarget = undefined;
+      return keyboardMove;
+    }
+
+    if (this.clickTarget && this.avatar) {
+      const cell = this.avatar.cellPosition;
+      const dx = this.clickTarget.x - cell.x;
+      const dy = this.clickTarget.y - cell.y;
+      if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
+        this.clickTarget = undefined;
+        return null;
+      }
+      return { x: Math.sign(dx), y: Math.sign(dy) };
+    }
+
+    return null;
+  }
+
+  private readKeyboardMove(): { x: number; y: number } | null {
+    let x = 0;
+    let y = 0;
+
+    const up = this.cursors?.up.isDown || this.movementKeys?.w.isDown;
+    const down = this.cursors?.down.isDown || this.movementKeys?.s.isDown;
+    const left = this.cursors?.left.isDown || this.movementKeys?.a.isDown;
+    const right = this.cursors?.right.isDown || this.movementKeys?.d.isDown;
+
+    if (up) {
+      x -= 1;
+      y -= 1;
+    }
+    if (down) {
+      x += 1;
+      y += 1;
+    }
+    if (left) {
+      x -= 1;
+      y += 1;
+    }
+    if (right) {
+      x += 1;
+      y -= 1;
+    }
+
+    return x === 0 && y === 0 ? null : { x, y };
+  }
+
+  private checkDoor(time: number): void {
+    if (!this.avatar || time < this.doorCooldownUntil) {
+      return;
+    }
+    const room = this.model.subroomsById[this.activeRoomId];
+    if (!room) {
+      return;
+    }
+    const cell = this.avatar.gridCell;
+    const door = room.objects.find(
+      (object: RuntimeObject) =>
+        object.leadsTo !== undefined &&
+        Math.round(object.position.x) === cell.x &&
+        Math.round(object.position.y) === cell.y,
+    );
+    if (door?.leadsTo) {
+      this.doorCooldownUntil = time + 600;
+      this.setRoom(door.leadsTo);
     }
   }
 
@@ -376,9 +503,11 @@ export class RoomScene extends Phaser.Scene {
     const room = this.model.subroomsById[this.activeRoomId];
     if (room) {
       const bounds = gridBounds(room.width, room.height, 1);
-      const center = gridCenter(room.width, room.height);
       this.fitZoom(bounds.width, bounds.height);
-      this.cameras.main.centerOn(center.x, center.y);
+      this.cameras.main.centerOn(
+        gridCenter(room.width, room.height).x,
+        gridCenter(room.width, room.height).y,
+      );
     }
   }
 }

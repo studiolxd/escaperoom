@@ -12,6 +12,17 @@
     "subtitle": "Canvas híbrido (Phaser + sobreposição React) sobre um tilemap isométrico.",
     "lobbyCta": "Lobby multijogador (0.5)"
   },
+  "RoomPreview": {
+    "badge": "pré-visualização isométrica (1.2)",
+    "loading": "A carregar salas…",
+    "rooms": "Salas",
+    "grid": "Grelha",
+    "objects": "Objetos",
+    "spawns": "Spawns",
+    "packLoaded": "pacote gráfico «{packId}»",
+    "packPlaceholder": "placeholder automático (sem pacote)",
+    "controls": "WASD/setas para mover · Espaço para interagir"
+  },
   "CodeLock": {
     "title": "Cadeado numérico",
     "prompt": "Introduz o código de {length} dígitos",

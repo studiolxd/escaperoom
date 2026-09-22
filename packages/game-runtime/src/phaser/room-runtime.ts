@@ -1,18 +1,25 @@
 import Phaser from "phaser";
 import type { RuntimeModel } from "../loader";
-import { RoomScene } from "./room-scene";
+import { RoomScene, type RoomScenePack } from "./room-scene";
 
 export interface RoomRuntimeOptions {
   /** Habitación inicial; por defecto la primera del paquete. */
   initialRoomId?: string;
-  /** Muestra etiquetas de texto sobre objetos, decoración y spawns. */
+  /** Muestra etiquetas de texto sobre objetos, decoración y spawns (debug). */
   showLabels?: boolean;
+  /** Pack gráfico (manifiesto + URL base); sin él, placeholders automáticos. */
+  pack?: RoomScenePack;
+  /** Muestra y controla un avatar jugable (por defecto `true`). */
+  avatar?: boolean;
 }
 
 /**
  * Controlador del runtime de producto: monta Phaser en un contenedor del DOM,
  * registra `RoomScene` con el modelo cargado y expone el cambio de habitación.
  * La capa React solo necesita una instancia y llamar a `showRoom`/`destroy`.
+ *
+ * El pack gráfico se carga dentro de `preload` de la escena; si no se pasa
+ * `pack` (o sus atlas fallan), la escena dibuja placeholders procedurales.
  */
 export class RoomRuntime {
   readonly scene: RoomScene;
@@ -23,6 +30,8 @@ export class RoomRuntime {
       model,
       initialRoomId: options.initialRoomId,
       showLabels: options.showLabels,
+      pack: options.pack,
+      avatar: options.avatar,
     });
 
     this.game = new Phaser.Game({

@@ -12,6 +12,17 @@
     "subtitle": "Hybrid canvas (Phaser + React overlay) over an isometric tilemap.",
     "lobbyCta": "Multiplayer lobby (0.5)"
   },
+  "RoomPreview": {
+    "badge": "isometric preview (1.2)",
+    "loading": "Loading rooms…",
+    "rooms": "Rooms",
+    "grid": "Grid",
+    "objects": "Objects",
+    "spawns": "Spawns",
+    "packLoaded": "graphics pack «{packId}»",
+    "packPlaceholder": "automatic placeholder (no pack)",
+    "controls": "WASD/arrows to move · Space to interact"
+  },
   "CodeLock": {
     "title": "Number lock",
     "prompt": "Enter the {length}-digit code",

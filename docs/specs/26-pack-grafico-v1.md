@@ -207,6 +207,26 @@ interface PackManifest {
 - Al publicar una revisión del pack, se actualiza el manifiesto y el hash; lo ya jugado no cambia
   en caliente.
 
+### 9.1 Empaquetado local (`pack:build`, ticket 1.2)
+
+El arte se entrega como **un PNG por frame** (nombre = identificador del `RoomPackage`, §3.3) en
+`packages/web/public/packs/<packId>/{tiles,sprites,icons,avatar,fx}`. El script
+`packages/game-runtime/scripts/build-pack.ts` (raíz: `pnpm pack:build <packId>`) decodifica los PNG,
+compone un atlas Phaser por carpeta (`atlas-<kind>.png` + `atlas-<kind>.json`) y genera
+`manifest.json` (§6). El manifiesto se valida con el esquema Zod y contra el `RoomPackage`: exige un
+frame por sprite/icono y una entrada `tiles` con `collides` **explícito** por cada `tileId` no nulo.
+
+```bash
+pnpm pack:build medieval-v1            # genera atlas + manifest.json en public/packs/medieval-v1
+pnpm pack:build medieval-v1 --check    # valida nombres/faltantes sin escribir
+```
+
+Un `pack.config.json` opcional en la carpeta declara `collides` por `tileId` (obligatorio para que
+la colisión sea correcta), la versión del pack y animaciones explícitas. Sin pack —o con un
+manifiesto que no valida— el runtime dibuja **placeholders procedurales** con el nombre de cada
+frame; al añadir el pack, los frames se resuelven desde el atlas sin tocar código. El detalle de la
+carpeta está en `packages/web/public/packs/README.md`.
+
 ## 10. Criterios de aceptación (QA de la entrega)
 
 1. Todo `sprite`/`icon` del fixture tiene un frame con el **mismo nombre**.
