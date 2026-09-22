@@ -512,8 +512,10 @@ analytics_events                                               (sin FK, alto vol
 
 ## 12. Estrategia de migraciones
 
-- Carpeta `packages/shared/db/prisma/migrations/`, generadas con `prisma migrate dev`; las
-  migraciones SQL resultantes son la fuente de verdad para `prisma migrate deploy`.
+- Carpeta `packages/shared/prisma/migrations/`: migraciones **SQL escritas a mano desde este DDL**
+  (incluyen triggers, funciones, CHECKs, índices parciales y particiones, que Prisma no expresa),
+  aplicadas con `prisma migrate deploy`. `packages/shared/prisma/schema.prisma` se genera con
+  `prisma db pull` sobre la base migrada (no se edita a mano) y el cliente con `prisma generate`.
 - Numeración secuencial `0001_extensions` … `0010_moderation` (cada bloque de esta spec es una
   migración real, en este orden, por dependencias de FK).
 - **Migración de datos de SLXD** (usuarios, organizaciones, ledger de créditos): script de

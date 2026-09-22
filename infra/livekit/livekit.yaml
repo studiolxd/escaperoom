@@ -1,0 +1,13 @@
+# LiveKit de desarrollo (specs/12). Claves de juguete: en producción van por
+# entorno y nunca al repo.
+port: 7880
+bind_addresses:
+  - ""
+rtc:
+  tcp_port: 7881
+  udp_port: 7882
+  use_external_ip: false
+keys:
+  devkey: secret
+logging:
+  level: info

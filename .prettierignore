@@ -3,5 +3,6 @@ node_modules
 dist
 coverage
 .turbo
+generated
 pnpm-lock.yaml
 docs

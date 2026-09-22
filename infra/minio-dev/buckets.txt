@@ -1,0 +1,3 @@
+# Un bucket por área; las líneas vacías y con # se ignoran (infra/docker-compose.dev.yml).
+escaperoom-assets
+escaperoom-recordings

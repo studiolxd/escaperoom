@@ -13,6 +13,9 @@ out/
 *.tsbuildinfo
 .turbo/
 
+# Prisma generated client
+packages/shared/generated/
+
 # Env / secrets
 .env
 .env.*
