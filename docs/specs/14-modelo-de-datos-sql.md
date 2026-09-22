@@ -552,8 +552,8 @@ analyticsEvent                                         (sin FK, alto volumen)
   `prisma db pull` sobre la base migrada (no se edita a mano) y el cliente con `prisma generate`.
 - Numeración secuencial `0001_extensions` … `0010_moderation` (cada bloque de esta spec es una
   migración real, en este orden, por dependencias de FK).
-- **Migración de datos de SLXD** (usuarios, organizaciones, ledger de créditos): script de
-  importación aparte (`scripts/import-slxd-ledger.ts`), a ejecutar una sola vez tras `0004_credits.sql`.
+- **Sin migración de datos de SLXD** (decisión 2026-09-22): de SLXD se reutiliza **código**
+  (identidad/orgs/ledger se copian/adaptan, ADR-017), no sus datos. No hay script de importación.
 - Entorno local: `pnpm db:migrate` aplica migraciones pendientes; `pnpm db:seed` carga usuario
   admin, creador de ejemplo y publica el Rey Aldric como `roomVersion` real.
 - CI: cada PR levanta Postgres efímero, aplica todas las migraciones desde cero y corre el test

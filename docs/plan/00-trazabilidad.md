@@ -24,7 +24,7 @@ Dos matrices para garantizar que **nada se pierde** en la consolidación:
 | `11-protocolo-multijugador` | 0, 1, 2 | 0.5, 1.4, 2.1–2.7 |
 | `12-voz-y-webcam-livekit` | 2, 6 | 2.2, 2.11 |
 | `13-api-rest` | 0, 3, 4, 5 | 0.3, 0.7, 3.9, 3.12, 4.x, 5.x |
-| `14-modelo-de-datos-sql` | 0 | 0.2, 0.8 |
+| `14-modelo-de-datos-sql` | 0 | 0.2 (0.8 cancelado: sin import de datos de SLXD) |
 | `15-audio-y-creditos-ia` | 3, 4 | 3.11, 4.9 |
 | `16-analitica` | 0, 1, 5, 6 | 0.7, 1.11, 5.9, 6.11 |
 | `17-moderacion-de-contenido` | 3, 6 | 3.11, 6.1 |

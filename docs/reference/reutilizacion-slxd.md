@@ -9,8 +9,11 @@ Reglas:
    se commitea ni se ejecuta desde este proyecto.
 2. **Namespace propio.** El código copiado pierde el prefijo `slxd`/`@slxd` y pasa al namespace del
    proyecto. No se conserva nada específico de "la suite".
-3. **Nada de secretos.** Se copia código y configuración, nunca `.env*`, claves ni datos.
-4. **Adaptar, no arrastrar.** Se poda todo lo ligado al modelo multi-producto (plano de control
+3. **Nada de secretos.** Se copia código y configuración, nunca `.env*` ni claves.
+4. **Solo código, nunca datos.** No se importan usuarios, organizaciones ni saldos de SLXD
+   (decisión 2026-09-22; el ticket 0.8 de import queda cancelado). El subsistema de
+   identidad/orgs/ledger se **copia y adapta** al esquema canónico de este proyecto.
+5. **Adaptar, no arrastrar.** Se poda todo lo ligado al modelo multi-producto (plano de control
    `account`, Keycloak, claims, DS `@studiolxd/brand`, catálogo de suite, seis idiomas).
 
 ---
