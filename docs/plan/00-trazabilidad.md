@@ -36,6 +36,7 @@ Dos matrices para garantizar que **nada se pierde** en la consolidación:
 | `23-motor-v2-marketplace-y-api-publica` | post-v1 | — (v2) |
 | `24-operaciones-y-escalabilidad` | 5, 6 | 6.4, (plan pico escolar) |
 | `25-estrategia-de-contenido-y-lanzamiento` | 6 | 6.7, 6.8, 6.10, 6.12 |
+| `26-pack-grafico-v1` | 1 | 1.2 (brief de encargo; el arte es externo) |
 
 > Las specs **07** y **23** son explícitamente post-v1: se especifican ahora para que el roadmap no
 > las reinvente, pero no tienen tickets en las fases 0–6.
