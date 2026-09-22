@@ -1,5 +1,13 @@
 /**
- * Esquemas Zod compartidos (specs/08). Placeholder del ticket 0.1: el contrato
- * `RoomPackage` llega en el ticket 0.6.
+ * Esquemas Zod compartidos (specs/08). Contrato declarativo `RoomPackage` y sus
+ * piezas (`map`, `objects`, `items`, `puzzles`, `rules`, `dialogs`, `hints`).
+ *
+ * `PACKAGE_FORMAT` se conserva como valor propuesto para `meta.packageFormat`;
+ * el schema solo exige su presencia (specs/08 §6, decisión abierta).
  */
-export const PACKAGE_FORMAT = "roompackage/v1" as const;
+export * from "./common";
+export * from "./world";
+export * from "./puzzle";
+export * from "./rules";
+export * from "./roompackage";
+export * from "./errors";
