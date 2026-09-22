@@ -96,6 +96,12 @@ function triggerMatches(trigger: RuleTrigger, event: GameEvent): boolean {
       return event.type === "on_game_start";
     case "on_interact":
       return event.type === "on_interact" && event.objectId === trigger.objectId;
+    case "on_use_item":
+      return (
+        event.type === "on_use_item" &&
+        event.objectId === trigger.objectId &&
+        event.itemId === trigger.itemId
+      );
     case "on_enter_room":
       return event.type === "on_enter_room" && event.roomId === trigger.roomId;
     case "on_puzzle_solved":
@@ -251,7 +257,7 @@ class RuleEngine {
   private evaluateEvent(event: GameEvent, depth: number, result: EngineResult): void {
     result.events.push(event);
 
-    if (event.type === "on_interact" && event.playerId) {
+    if ((event.type === "on_interact" || event.type === "on_use_item") && event.playerId) {
       this.current.players[event.playerId] ??= {};
     }
 

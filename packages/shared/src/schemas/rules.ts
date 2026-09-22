@@ -8,6 +8,11 @@ export const FlagValueSchema = z.union([z.boolean(), z.number(), z.string()]);
 /** Vocabulario de triggers v1 — specs/05 §3. */
 export const RuleTriggerSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("on_interact"), objectId: z.string() }),
+  z.object({
+    type: z.literal("on_use_item"),
+    objectId: z.string(),
+    itemId: z.string(),
+  }),
   z.object({ type: z.literal("on_enter_room"), roomId: z.string() }),
   z.object({ type: z.literal("on_puzzle_solved"), puzzleId: z.string() }),
   z.object({ type: z.literal("on_item_collected"), itemId: z.string() }),

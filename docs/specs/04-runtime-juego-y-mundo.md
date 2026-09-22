@@ -95,11 +95,25 @@ contenido pasa a la "zona de descubrimiento". Comportamiento configurable con `d
 ## 4. Interacción del jugador con el mundo
 
 - Objetos interactuables muestran brillo/pista al acercar el cursor.
-- `interact` dispara la evaluación de reglas `on_interact` del objeto y, si procede, el puzzle
+- **Selección y menú contextual.** Al seleccionar un objeto (clic o Espacio cerca de él) no se
+  resuelve nada de inmediato: se abre un **menú contextual** con las acciones disponibles para ese
+  objeto. En v1 son `Inspeccionar` y `Usar objeto…`. El menú es **extensible por datos**: las
+  acciones se derivan de las reglas que el creador declara para el objeto (`on_interact` →
+  `Inspeccionar`, `on_use_item` → `Usar objeto…`); si el paquete no declara ninguna, se ofrece el
+  set base. Así, añadir una regla amplía el menú sin tocar la UI.
+- **Intención vs. resolución.** La escena Phaser **no** resuelve diálogos, estado ni paneles por su
+  cuenta: emite la intención (`interact { objectId }` / `use-item { itemId, objectId }`) y quien
+  la resuelve es la sesión de sala (`specs/05`), que devuelve diálogo, estado del mundo y panel
+  asociado. Esto evita el doble diálogo y mantiene una única fuente de verdad.
+- `Inspeccionar` dispara la evaluación de reglas `on_interact` del objeto y, si procede, el puzzle
   de mundo asociado (Phaser) o la apertura de un panel (React).
+- `Usar objeto…` abre el inventario para **elegir** un item y emite `on_use_item` (specs/05 §3).
+  El mismo evento se emite al **arrastrar** (drag&drop) un item del inventario sobre un objeto del
+  mundo. Ejemplo canónico: el armario se abre por las tres vías (menú desde Espacio, menú desde
+  clic y arrastre de la llave sobre el armario).
 - Al inspeccionar, se muestran diálogos/descripciones (`show_dialog`).
 - El patrón "Phaser lanza un puzzle en React": el jugador hace clic en el arca candada (Phaser)
-  → Phaser emite evento → React monta `<CodeLockPuzzle code={...} onSolve={...} />` → al
+  → Phaser emite el evento → React monta `<CodeLockPuzzle code={...} onSolve={...} />` → al
   resolver, React notifica al estado de partida → Phaser abre la tapa con animación.
 
 ## 5. Fases de la partida

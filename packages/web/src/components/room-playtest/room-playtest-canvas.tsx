@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type DragEvent } from "react";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import {
   RoomRuntime,
@@ -18,6 +18,15 @@ export interface RoomPlaytestHandle {
  * Canvas del playtest de la Sala 1 (ticket 1.10): monta el runtime de producto
  * con avatar jugable (teclado) y reenvía cada `world:event` al overlay React
  * (`dialogOverlay: false`), que es quien decide qué hace el motor de reglas.
+ *
+ * `intentOnly: true` (ticket 1.13): la escena no resuelve diálogos ni reparte
+ * contenedores por su cuenta; solo emite la intención (`interact` / `use-item`)
+ * y es `RoomSession` quien devuelve diálogo, estado y panel. Así desaparece el
+ * doble diálogo al inspeccionar.
+ *
+ * El drag&drop de un item del inventario se recibe aquí (el canvas es el único
+ * elemento de fondo; los overlays tienen `pointer-events: none` o capturan el
+ * drop), se localiza el objeto bajo el puntero y la escena emite `use-item`.
  */
 export default function RoomPlaytestCanvas({
   model,
@@ -49,6 +58,7 @@ export default function RoomPlaytestCanvas({
       initialRoomId: roomId,
       pack,
       dialogOverlay: false,
+      intentOnly: true,
       localPlayerId: "p1",
     });
     runtimeRef.current = runtime;
@@ -65,5 +75,24 @@ export default function RoomPlaytestCanvas({
     };
   }, [model, roomId, pack]);
 
-  return <div ref={containerRef} className="absolute inset-0" aria-hidden />;
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  };
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const itemId = event.dataTransfer.getData("text/plain");
+    if (!itemId) return;
+    runtimeRef.current?.dropItemAt(itemId, event.clientX, event.clientY);
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute inset-0"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      aria-hidden
+    />
+  );
 }

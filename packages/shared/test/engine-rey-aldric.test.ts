@@ -33,7 +33,7 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
     dispatch({ type: "on_game_start" });
     dispatch({ type: "on_interact", objectId: "cuadro-aurelio", playerId: "p1" });
     grant("llave-bronce");
-    dispatch({ type: "on_interact", objectId: "armario", playerId: "p1" });
+    dispatch({ type: "on_use_item", objectId: "armario", itemId: "llave-bronce", playerId: "p1" });
     grant("antorcha");
     dispatch({ type: "on_interact", objectId: "brasero", playerId: "p1" });
 
@@ -58,7 +58,10 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
     engine.dispatch({ type: "on_game_start" }, 0);
     engine.dispatch({ type: "on_interact", objectId: "cuadro-aurelio", playerId: "p1" }, 0);
     engine.grantItem("llave-bronce", "interactor", 0);
-    engine.dispatch({ type: "on_interact", objectId: "armario", playerId: "p1" }, 0);
+    engine.dispatch(
+      { type: "on_use_item", objectId: "armario", itemId: "llave-bronce", playerId: "p1" },
+      0,
+    );
     engine.grantItem("antorcha", "interactor", 0);
     engine.dispatch({ type: "on_interact", objectId: "brasero", playerId: "p1" }, 0);
 
@@ -68,7 +71,7 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
     for (const event of [
       { type: "on_game_start" },
       { type: "on_interact", objectId: "cuadro-aurelio", playerId: "p1" },
-      { type: "on_interact", objectId: "armario", playerId: "p1" },
+      { type: "on_use_item", objectId: "armario", itemId: "llave-bronce", playerId: "p1" },
       { type: "on_interact", objectId: "brasero", playerId: "p1" },
     ] satisfies GameEvent[]) {
       replay.push(...engine.dispatch(event, 0).fired.map((f) => f.ruleId));
@@ -93,7 +96,10 @@ describe("motor de reglas — ruta crítica del Rey Aldric", () => {
     dispatch({ type: "on_game_start" }, 0);
     dispatch({ type: "on_interact", objectId: "cuadro-aurelio", playerId: "p1" }, 0);
     grant("llave-bronce", 0);
-    dispatch({ type: "on_interact", objectId: "armario", playerId: "p1" }, 0);
+    dispatch(
+      { type: "on_use_item", objectId: "armario", itemId: "llave-bronce", playerId: "p1" },
+      0,
+    );
     grant("antorcha", 0);
     dispatch({ type: "on_interact", objectId: "brasero", playerId: "p1" }, 0);
 

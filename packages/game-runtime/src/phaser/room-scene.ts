@@ -59,6 +59,15 @@ export interface RoomSceneOptions {
    * en el DOM.
    */
   dialogOverlay?: boolean;
+  /**
+   * Modo dirigido por motor: la escena **no resuelve** la interacción (no
+   * inspecciona ni reparte contenedores ni emite `dialog`). Al seleccionar un
+   * objeto emite la intención `interact { objectId }`, y al soltar un item,
+   * `use-item { itemId, objectId }`; la capa React resuelve con `RoomSession`.
+   * Sin él (por defecto) la escena mantiene el modo autocontenido de las
+   * previsualizaciones del mundo (ticket 1.3).
+   */
+  intentOnly?: boolean;
   /** Id del jugador local, para el reparto de inventario (`distribution`). */
   localPlayerId?: string;
 }
@@ -104,6 +113,7 @@ export class RoomScene extends Phaser.Scene {
   private readonly pack?: RoomScenePack;
   private readonly avatarEnabled: boolean;
   private readonly dialogOverlayEnabled: boolean;
+  private readonly intentOnly: boolean;
   private readonly localPlayerId: string;
   private readonly manifest: PackManifest;
 
@@ -134,6 +144,7 @@ export class RoomScene extends Phaser.Scene {
     this.pack = options.pack;
     this.avatarEnabled = options.avatar ?? true;
     this.dialogOverlayEnabled = options.dialogOverlay ?? true;
+    this.intentOnly = options.intentOnly ?? false;
     this.localPlayerId = options.localPlayerId ?? "p0";
     this.manifest = options.pack?.manifest ?? buildPlaceholderManifest(options.model);
 
@@ -555,6 +566,11 @@ export class RoomScene extends Phaser.Scene {
       return;
     }
 
+    if (this.intentOnly) {
+      this.emit({ type: "interact", objectId });
+      return;
+    }
+
     const result = inspectObject(this.model, objectId, {
       locale: this.model.locale,
       containers: this.containers,
@@ -624,26 +640,50 @@ export class RoomScene extends Phaser.Scene {
 
   /** Interactúa con el objeto interactuable más cercano al avatar (tecla Espacio). */
   private interactNearest(): void {
+    const cell = this.avatar?.gridCell ?? { x: 0, y: 0 };
+    const nearest = this.findInteractableNear(cell);
+    if (nearest) {
+      this.inspectObjectById(nearest);
+    }
+  }
+
+  /**
+   * Suelta un item del inventario sobre el objeto del mundo bajo el puntero
+   * (drag&drop). Convierte coordenadas de pantalla a celda isométrica, busca el
+   * objeto interactuable más cercano y emite `use-item { itemId, objectId }`.
+   *
+   * Devuelve el `objectId` destino, o `undefined` si el puntero no cae sobre
+   * ningún objeto interactuable.
+   */
+  dropItemAt(itemId: string, screenX: number, screenY: number): string | undefined {
+    const rect = this.game.canvas.getBoundingClientRect();
+    const world = this.cameras.main.getWorldPoint(screenX - rect.left, screenY - rect.top);
+    const tile = worldToTile(world.x, world.y);
+    const target = this.findInteractableNear({ x: tile.tx, y: tile.ty });
+    if (!target) {
+      return undefined;
+    }
+    this.emit({ type: "use-item", itemId, objectId: target });
+    return target;
+  }
+
+  /** Id del objeto interactuable más cercano a una celda dentro del radio dado. */
+  private findInteractableNear(cell: { x: number; y: number }, radius = 1.75): string | undefined {
     const room = this.model.subroomsById[this.activeRoomId];
     if (!room) {
-      return;
+      return undefined;
     }
-    const cell = this.avatar?.gridCell ?? { x: 0, y: 0 };
     let nearest: { id: string; distance: number } | undefined;
-
     for (const object of room.objects) {
       if (!object.interactable) {
         continue;
       }
       const distance = Math.hypot(object.position.x - cell.x, object.position.y - cell.y);
-      if (distance <= 1.75 && (!nearest || distance < nearest.distance)) {
+      if (distance <= radius && (!nearest || distance < nearest.distance)) {
         nearest = { id: object.id, distance };
       }
     }
-
-    if (nearest) {
-      this.inspectObjectById(nearest.id);
-    }
+    return nearest?.id;
   }
 
   private showDialog(text: string): void {

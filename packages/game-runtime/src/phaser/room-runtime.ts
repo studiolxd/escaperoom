@@ -14,6 +14,12 @@ export interface RoomRuntimeOptions {
   avatar?: boolean;
   /** Dibuja el diálogo de inspección dentro de Phaser (por defecto `true`). */
   dialogOverlay?: boolean;
+  /**
+   * Modo dirigido por motor: la escena emite intenciones (`interact`,
+   * `use-item`) en lugar de resolver la inspección por su cuenta. Lo usa la
+   * capa React que ejecuta `RoomSession`.
+   */
+  intentOnly?: boolean;
   /** Id del jugador local, para el reparto de inventario (`distribution`). */
   localPlayerId?: string;
 }
@@ -38,6 +44,7 @@ export class RoomRuntime {
       pack: options.pack,
       avatar: options.avatar,
       dialogOverlay: options.dialogOverlay,
+      intentOnly: options.intentOnly,
       localPlayerId: options.localPlayerId,
     });
 
@@ -73,6 +80,14 @@ export class RoomRuntime {
   /** Inspecciona un objeto como si el jugador lo hubiera pulsado. */
   inspectObject(objectId: string): void {
     this.scene.inspectObjectById(objectId);
+  }
+
+  /**
+   * Suelta un item del inventario en coordenadas de pantalla (drag&drop): la
+   * escena localiza el objeto bajo el puntero y emite `use-item`.
+   */
+  dropItemAt(itemId: string, screenX: number, screenY: number): string | undefined {
+    return this.scene.dropItemAt(itemId, screenX, screenY);
   }
 
   /**

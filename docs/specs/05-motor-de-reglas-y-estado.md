@@ -122,6 +122,24 @@ creador. Cubre las 23 plantillas y el escape room de ejemplo; se extiende por pl
 | `delay` | `{ seconds, actions }` |
 | `end_game` | `{ result: 'victory' \| 'timeout' \| 'abandoned' }` |
 
+### Acciones disponibles y menú contextual
+
+El runtime **no** codifica a mano qué se puede hacer con cada objeto: lo deriva de las reglas que
+el paquete declara para él (`RoomSession.availableActions(objectId)`):
+
+- una regla `on_interact { objectId }` → acción `inspect` ("Inspeccionar");
+- una regla `on_use_item { objectId, itemId }` → acción `use_item` ("Usar objeto…").
+
+Si no hay ninguna regla para el objeto, se ofrece el set base `Inspeccionar` / `Usar objeto…`.
+Es extensible por datos: una regla nueva añade una acción sin tocar la UI.
+
+La resolución es **única**: la escena emite la intención (`interact` / `use-item`) y la sesión la
+traduce a eventos del motor. `RoomSession.interact` dispatcha `on_interact`;
+`RoomSession.useItemOnObject(itemId, objectId)` dispatcha `on_use_item` y devuelve
+`{ engine, dialogIds }` como `interact`. Ambos son idempotentes: las reglas `once` no re-disparan
+y una condición `item_in_inventory … consumed` gasta el ítem una sola vez (evita el doble diálogo
+al re-inspeccionar un objeto ya resuelto).
+
 ## 4. Ejemplos de la sala de referencia
 
 **Abrir el armario con la llave** (item del inventario sobre un objeto del mundo). Usa
