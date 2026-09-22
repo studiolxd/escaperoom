@@ -42,6 +42,12 @@ describe("i18n", () => {
         "Home.subtitle",
         "Home.lobbyCta",
         "Home.fallbackDemo",
+        "CodeLock.title",
+        "CodeLock.prompt",
+        "CodeLock.submit",
+        "CodeLock.wrong",
+        "CodeLock.lockedOut",
+        "CodeLock.solved",
       ]),
     );
   });

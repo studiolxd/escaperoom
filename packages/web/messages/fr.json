@@ -11,5 +11,20 @@
     "title": "EscapeRoom",
     "subtitle": "Canvas hybride (Phaser + overlay React) sur une tilemap isométrique.",
     "lobbyCta": "Lobby multijoueur (0.5)"
+  },
+  "CodeLock": {
+    "title": "Cadenas numéroté",
+    "prompt": "Saisis le code à {length} chiffres",
+    "digit": "Chiffre {digit}",
+    "clear": "Effacer",
+    "backspace": "Retour",
+    "submit": "Ouvrir",
+    "pending": "Vérification…",
+    "attempts": "Tentatives : {used}/{max}",
+    "wrong": "Code incorrect · {count} tentatives restantes",
+    "lockedOut": "Bloqué · réessaie dans {seconds} s",
+    "locked": "Le cadenas n'est pas encore disponible",
+    "unavailable": "Le cadenas n'accepte plus de tentatives",
+    "solved": "Cadenas ouvert !"
   }
 }
