@@ -15,6 +15,16 @@ const buttonVariants = cva(
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+        /**
+         * Contraste garantizado sobre overlay oscuro (HUD, paneles de puzzle y
+         * editor) — ADR-019. El texto es legible **en reposo**, no solo en
+         * `:hover`: los tokens claros de `outline` (`bg-background`) quedaban
+         * blancos sobre fondos oscuros y solo se veían al pasar el cursor.
+         */
+        overlay:
+          "border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white focus-visible:border-white/40 focus-visible:ring-white/30 aria-expanded:bg-white/20 aria-expanded:text-white",
+        overlayGhost:
+          "text-white/80 hover:bg-white/10 hover:text-white aria-expanded:bg-white/10 aria-expanded:text-white focus-visible:border-white/30 focus-visible:ring-white/20",
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",

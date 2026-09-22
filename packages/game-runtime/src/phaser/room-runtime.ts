@@ -20,6 +20,8 @@ export interface RoomRuntimeOptions {
    * capa React que ejecuta `RoomSession`.
    */
   intentOnly?: boolean;
+  /** Control del jugador activo (por defecto `true`); la intro lo desactiva. */
+  inputEnabled?: boolean;
   /** Id del jugador local, para el reparto de inventario (`distribution`). */
   localPlayerId?: string;
 }
@@ -45,6 +47,7 @@ export class RoomRuntime {
       avatar: options.avatar,
       dialogOverlay: options.dialogOverlay,
       intentOnly: options.intentOnly,
+      inputEnabled: options.inputEnabled,
       localPlayerId: options.localPlayerId,
     });
 
@@ -80,6 +83,15 @@ export class RoomRuntime {
   /** Inspecciona un objeto como si el jugador lo hubiera pulsado. */
   inspectObject(objectId: string): void {
     this.scene.inspectObjectById(objectId);
+  }
+
+  /**
+   * Activa o desactiva el control del jugador (movimiento e interacción). La
+   * intro lo desactiva hasta cerrarse; el HUD del inventario también, para que
+   * los clics no se cuelen al mundo (specs/04 §4).
+   */
+  setInputEnabled(enabled: boolean): void {
+    this.scene.setInputEnabled(enabled);
   }
 
   /**

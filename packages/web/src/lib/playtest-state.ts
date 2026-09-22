@@ -1,0 +1,84 @@
+/**
+ * Lógica pura del playtest de la Sala 1 (ticket 1.14, specs/04 §4 y §8-UI).
+ *
+ * Aísla las decisiones de interacción/UX del componente React para poder
+ * probarlas sin DOM ni Phaser: bloqueo por intro, gating del mundo con el
+ * inventario abierto, cierre de diálogo al completar una acción y selección de
+ * parejas para combinar. El componente solo aplica el resultado.
+ */
+
+/** Id del diálogo de intro: bloquea el juego hasta cerrarse (specs/04 §4). */
+export const INTRO_DIALOG_ID = "d-intro";
+
+/** Vista mínima de un diálogo abierto. */
+export interface DialogView {
+  id: string;
+  text: string;
+}
+
+/** ¿El diálogo abierto es la intro que bloquea el juego? */
+export function isIntroOpen(dialog: DialogView | null): boolean {
+  return dialog?.id === INTRO_DIALOG_ID;
+}
+
+export interface WorldInputState {
+  /** La intro está abierta: bloquea mover/interactuar. */
+  introOpen: boolean;
+  /** El panel de inventario está abierto: el mundo no recibe clics. */
+  inventoryOpen: boolean;
+  /** Hay un panel de puzzle modal abierto. */
+  panelOpen?: boolean;
+}
+
+/**
+ * ¿Debe el mundo (Phaser) aceptar input del jugador? Falso mientras la intro o
+ * el inventario estén abiertos (o un panel modal), para que los clics no se
+ * cuelen por debajo (specs/04 §4 y §8-UI).
+ */
+export function isWorldInputEnabled(state: WorldInputState): boolean {
+  return !state.introOpen && !state.inventoryOpen && !state.panelOpen;
+}
+
+/**
+ * Diálogo que debe quedar abierto tras una acción a partir de sus
+ * `show_dialog`. Sin diálogos devuelve `null`: una acción completada **cierra**
+ * el diálogo anterior en vez de dejarlo colgado (specs/04 §4).
+ */
+export function resolveDialog(
+  dialogIds: readonly string[],
+  dialogsById: Record<string, DialogView | undefined>,
+  fallback?: string,
+): DialogView | null {
+  const last = dialogIds.at(-1);
+  if (!last) {
+    return null;
+  }
+  const known = dialogsById[last];
+  if (known) {
+    return known;
+  }
+  return { id: last, text: fallback ?? last };
+}
+
+/**
+ * Alterna la selección de un item del inventario: pulsar uno seleccionado lo
+ * quita; con dos ya seleccionados, el tercero reemplaza al más antiguo.
+ */
+export function toggleSelection(current: readonly string[], id: string): string[] {
+  if (current.includes(id)) {
+    return current.filter((value) => value !== id);
+  }
+  if (current.length >= 2) {
+    return [...current.slice(1), id];
+  }
+  return [...current, id];
+}
+
+/** Pareja lista para combinar cuando hay exactamente dos items distintos. */
+export function combinePair(staged: readonly string[]): [string, string] | null {
+  const [a, b] = staged;
+  if (a === undefined || b === undefined || a === b) {
+    return null;
+  }
+  return [a, b];
+}

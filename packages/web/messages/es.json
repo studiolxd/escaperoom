@@ -61,7 +61,9 @@
     "pending": "Combinando…",
     "combine": "Combinar",
     "clear": "Vaciar",
-    "hint": "Arrastra dos objetos a la zona de combinación",
+    "close": "Cerrar",
+    "hint": "Arrastra un objeto sobre otro para combinarlos, o selecciona dos y pulsa Combinar",
+    "dropOn": "Suelta sobre {item}",
     "combined": "Has creado: {item}",
     "alreadyApplied": "Ya lo habías hecho: {item}",
     "invalid": "Esos objetos no combinan",
@@ -102,7 +104,7 @@
   "Playtest": {
     "badge": "playtest Sala 1 (1.10)",
     "subtitle": "Recorre el Salón del Trono: cuadro → llave → armario → combinación → brasero → candado → cáliz → placas.",
-    "controls": "WASD/flechas para mover · Espacio o clic para interactuar · botones del guion",
+    "controls": "WASD/flechas para mover · Espacio o clic para interactuar · I inventario · ESC cerrar",
     "steps": "Guion de la Sala 1",
     "complete": "¡Sala 1 completada!",
     "inProgress": "En curso",
@@ -125,12 +127,14 @@
       "hints": "Pistas"
     },
     "inventory": "Inventario",
+    "inventoryButton": "Abrir (I)",
     "emptyInventory": "Vacío",
     "stats": {
       "puzzles": "Puzzles resueltos",
       "items": "Objetos"
     },
     "dialog": "Diálogo",
+    "intro": "Introducción",
     "close": "Cerrar",
     "menu": {
       "title": "Acciones sobre el objeto",

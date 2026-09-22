@@ -76,10 +76,9 @@ export function HintPanel({
       </ol>
 
       <Button
-        variant="outline"
+        variant="overlay"
         size="lg"
         disabled={!canRequest}
-        className="text-white hover:bg-white/10 hover:text-white"
         onClick={() => onRequest(puzzleId)}
       >
         {pending
