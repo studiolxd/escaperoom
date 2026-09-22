@@ -1,0 +1,32 @@
+{
+  "name": "@escaperoom/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Next.js: catálogo, checkout, dashboard, rutas tRPC (UI), REST y endpoint MCP.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@escaperoom/env": "workspace:*",
+    "@escaperoom/shared": "workspace:*",
+    "next": "16.3.5",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@escaperoom/config": "workspace:*",
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^10.11.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
+  }
+}

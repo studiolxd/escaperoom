@@ -1,0 +1,34 @@
+packages:
+  - packages/*
+
+# pnpm 12 exige declarar el destino de los scripts de instalación de las
+# dependencias (strictDepBuilds). Los `false` son scripts que pnpm ya ignoraba;
+# denegarlos explícitamente evita el error ERR_PNPM_IGNORED_BUILDS.
+allowBuilds:
+  esbuild: true
+  "@parcel/watcher": false
+  "@swc/core": false
+  sharp: false
+  unrs-resolver: false
+
+# pnpm 12 exige un día mínimo de antigüedad de las releases; estas se publicaron
+# hoy y son necesarias para el toolchain (añadido por `pnpm install`).
+minimumReleaseAgeExclude:
+  - "@typescript-eslint/eslint-plugin@8.70.1"
+  - "@typescript-eslint/parser@8.70.1"
+  - "@typescript-eslint/project-service@8.70.1"
+  - "@typescript-eslint/scope-manager@8.70.1"
+  - "@typescript-eslint/tsconfig-utils@8.70.1"
+  - "@typescript-eslint/type-utils@8.70.1"
+  - "@typescript-eslint/types@8.70.1"
+  - "@typescript-eslint/typescript-estree@8.70.1"
+  - "@typescript-eslint/utils@8.70.1"
+  - "@typescript-eslint/visitor-keys@8.70.1"
+  - typescript-eslint@8.70.1
+
+# TypeScript 7 todavía no lo soporta typescript-eslint (error "does not support
+# TS 7.0"), así que se fija la última 6.x. Se subirá cuando el toolchain lo
+# soporte.
+overrides:
+  typescript: ^6.0.3
+  "@types/node": ^26.6.2
