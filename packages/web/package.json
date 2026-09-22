@@ -17,6 +17,7 @@
     "@escaperoom/config": "workspace:*",
     "@escaperoom/env": "workspace:*",
     "@escaperoom/game-runtime": "workspace:*",
+    "@escaperoom/kit": "workspace:*",
     "@escaperoom/mcp-server": "workspace:*",
     "@escaperoom/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "1.30.0",
@@ -39,6 +40,7 @@
   },
   "devDependencies": {
     "@better-auth/cli": "1.4.21",
+    "@escaperoom/worker": "workspace:*",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^26.6.2",
     "@types/react": "^19.3.0",

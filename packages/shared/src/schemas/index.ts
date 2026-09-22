@@ -10,4 +10,5 @@ export * from "./world";
 export * from "./puzzle";
 export * from "./rules";
 export * from "./roompackage";
+export * from "./analytics";
 export * from "./errors";

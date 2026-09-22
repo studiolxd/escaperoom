@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     "@escaperoom/config",
     "@escaperoom/env",
     "@escaperoom/game-runtime",
+    "@escaperoom/kit",
     "@escaperoom/mcp-server",
     "@escaperoom/shared",
   ],
