@@ -189,10 +189,10 @@ caducidades; panel del organizador con progreso en vivo.
 
 ## ADR-012 — Tramos de precio y tope de jugadores como datos editables
 
-**Decisión:** los tramos de precio (`pricing_tiers`) y el tope de jugadores por sala
-(`platform_settings.max_players_per_room`) dejan de ser constantes de código.
+**Decisión:** los tramos de precio (`pricingTier`) y el tope de jugadores por sala
+(`platformSetting.maxPlayersPerRoom`) dejan de ser constantes de código.
 
-**Consecuencias:** cambiar precios no altera el histórico (filas con `active_from`/`active_until`);
+**Consecuencias:** cambiar precios no altera el histórico (filas con `activeFrom`/`activeUntil`);
 el tope de jugadores alimenta a la vez el validador de creación de salas y el cap de publishers de
 LiveKit — **una sola fuente de verdad**, nunca se desincronizan.
 
@@ -225,7 +225,7 @@ subsistema de identidad, organizaciones y ledger de SLXD (ADR-014), y dado que `
 contrato de derechos asumen Prisma, mantener Drizzle obligaba a reescribir ese port. `specs/14` exige
 además "cero deriva de tipos" entre API, Colyseus y MCP.
 
-**Decisión:** **Prisma** con `prisma migrate` en `packages/shared/db`, sobre una base de datos única
+**Decisión:** **Prisma** con `prisma migrate` en `packages/shared/prisma`, sobre una base de datos única
 con varias tablas. Los tipos de Prisma Client se comparten entre web, editor, Colyseus y MCP.
 
 **Consecuencias:** el port de identidad/ledger no se reescribe (Prisma→Prisma); tipos generados
@@ -236,19 +236,28 @@ reescribir el port y a desalinearse del andamiaje de SLXD).
 
 ---
 
-## ADR-016 — Autenticación: Better Auth
+## ADR-016 — Autenticación: Better Auth con modelo canónico
 
 **Contexto:** el plan pedía email mágico + Google, organizaciones con miembros y roles, y sesión por
-cookie para web + Bearer para el MCP. SLXD ya usa **Better Auth**.
+cookie para web + Bearer para el MCP. *Corrección (2026-09-22):* el argumento original de "alinear
+con SLXD" no se sostiene — **SLXD dejó de usar Better Auth** (usa su propio `account` como IdP; las
+`BETTER_AUTH_*` que quedan son restos). La decisión se mantiene por **su plugin de organización**
+(orgs, miembros, roles, invitaciones), que es justo lo que pide `specs/14` §3.
 
-**Decisión:** **Better Auth** con su plugin de organización. Sesión por cookie httpOnly para el
-frontend y Bearer (OAuth) para el MCP y clientes externos; rutas bajo `/api/auth/*`.
+**Decisión:** **Better Auth** con su plugin de organización, adoptando su **modelo canónico** sin
+mapeo: tablas `user`, `session`, `account`, `verification`, `organization`, `member`, `invitation`,
+con **nomenclatura camelCase en todo el esquema** (ADR-017 y `specs/14` se actualizan en
+consecuencia). Sesión por cookie httpOnly para el frontend y Bearer para el MCP y clientes externos;
+rutas bajo `/api/auth/*`. La tabla de sesiones de partida pasa a `gameSession` para no chocar con la
+`session` de auth.
 
-**Consecuencias:** `organizations`, `organization_members`, roles e invitaciones salen del plugin;
-alineado con `@slxd/auth-client` y `@slxd/roles`; se sustituye el default previo (Auth.js/NextAuth).
+**Consecuencias:** `organization`, `member`, roles e invitaciones salen del plugin sin glue; la
+`password_hash` de `user` desaparece (Better Auth guarda la credencial en `account.password`);
+`oauth_identities` lo sustituye `account`. Se sustituye el default previo (Auth.js/NextAuth).
 
 **Alternativas descartadas:** Auth.js/NextAuth (maduro y con más proveedores, pero sin modelo de
-organizaciones y sin reutilizar lo ya probado en SLXD).
+organizaciones). Conservar nuestros nombres snake_case con mapeo (menos churn, pero deja dos
+convenciones mezcladas y no enchufa plugins sin config).
 
 ---
 

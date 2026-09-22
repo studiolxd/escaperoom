@@ -40,7 +40,7 @@ Por tanto:
 - En cualquier campo de audio (diálogo, pista, efecto): botón "Generar con IA" → texto →
   previsualización → confirmar. **Los créditos se descuentan al confirmar, no al previsualizar.**
 - La llamada crea un `credit_movement` (`movement_type: 'consumption'`) mediante
-  `apply_credit_movement`, con `reference_type: 'audio_generation'`.
+  `applyCreditMovement`, con `reference_type: 'audio_generation'`.
 - El archivo resultante se sube a R2 y se referencia en el `LocalizedText.audioUrl` del locale.
 - La previsualización no toca el ledger; solo la escritura definitiva consume créditos.
 

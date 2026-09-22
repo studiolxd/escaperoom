@@ -143,7 +143,7 @@ packages/
 | Producción | VPS único en v1, escalado por fases (`24-operaciones-y-escalabilidad.md`) |
 
 El seed de desarrollo/CI carga: usuario admin, creador de ejemplo y el Rey Aldric publicado
-como `room_versions` real → el entorno arranca siempre con contenido jugable.
+como `roomVersion` real → el entorno arranca siempre con contenido jugable.
 
 ### 5.3 Variables y secretos
 
@@ -152,7 +152,7 @@ como `room_versions` real → el entorno arranca siempre con contenido jugable.
 - `DATABASE_URL`, `REDIS_URL`, `R2_*`.
 - `ELEVENLABS_API_KEY`; email: `SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD`/`EMAIL_FROM`
   (Nodemailer, por defecto) y, opcional, `RESEND_API_KEY`.
-- `AUTH_SECRET`, `MCP_OAUTH_*`.
+- `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `MCP_OAUTH_*`.
 
 Nunca se commitean secretos. Rotación y auditoría básica en Fase 6.
 
@@ -172,7 +172,7 @@ Webhook Stripe ─────────────────► /api/webho
 - tRPC, REST, el MCP y Colyseus invocan los **mismos servicios de dominio** (`shared/services`);
   REST y Colyseus son **procesos distintos** pero comparten lógica y base de datos.
 - Los recursos pesados (transfer a Connect, generación de claves, PDF) se delegan a colas Redis.
-- La analítica se emite por cola Redis → worker → `analytics_events`; nunca bloquea el game loop.
+- La analítica se emite por cola Redis → worker → `analyticsEvent`; nunca bloquea el game loop.
 
 ## 7. Dependencias
 

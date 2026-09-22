@@ -18,7 +18,7 @@ Referencias: `specs/10-mcp-del-creador.md`, `specs/13-api-rest.md` §12, `specs/
 | 4.6 | **Chat del creador en web** | UI conversacional en Next.js contra el MCP por HTTP | `10` §5 | Desde la web se crea un draft por chat sin usar Claude Desktop |
 | 4.7 | **Auth OAuth y límites** | El agente actúa con permisos del creador; solo drafts; control de coste de tokens con vistas filtradas | `10` §5 | El token de un creador no puede tocar salas ajenas |
 | 4.8 | **Test E2E de paridad (chat)** | Construir el Rey Aldric entero por chat y correr el test de solvabilidad | `22` §3.3 | `mcp-parity.spec.ts` en nightly produce una sala solvable equivalente |
-| 4.9 | **Créditos IA + ElevenLabs** | Import del ledger SLXD, `apply_credit_movement`, botón "Generar con IA" (previsualización gratis, consumo al confirmar) | `15` §2–3, `14` §4 | Generar un audio descuenta créditos y traza `reference_id = {dialogId}:{locale}` |
+| 4.9 | **Créditos IA + ElevenLabs** | Import del ledger SLXD, `applyCreditMovement`, botón "Generar con IA" (previsualización gratis, consumo al confirmar) | `15` §2–3, `14` §4 | Generar un audio descuenta créditos y traza `reference_id = {dialogId}:{locale}` |
 
 ## Hito 4
 

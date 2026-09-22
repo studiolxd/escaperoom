@@ -45,7 +45,7 @@ Reglas:
 | `packages/catalog`, `packages/plans` | Modelo comercial de la suite, no de este producto. |
 | `packages/legal`, `packages/messages` en 6 idiomas | Textos ajenos; el proyecto arranca en `es` con `LocalizedText` (specs/08). |
 | `prisma-platform-sync.mjs`, Prisma-por-app | El proyecto usa **una** base de datos con varias tablas (ADR-015). |
-| ClickHouse, Gatus/`status`, `monitor` | Analítica en PostgreSQL (`analytics_events`, specs/16); el panel de estado no es de v1. |
+| ClickHouse, Gatus/`status`, `monitor` | Analítica en PostgreSQL (`analyticsEvent`, specs/16); el panel de estado no es de v1. |
 
 ## 3. Poda y añadidos del compose local
 

@@ -27,7 +27,7 @@ Playwright y el **protocolo de playtest humano** para la beta cerrada.
 
 | Nivel | Qué prueba | Dónde vive | Cuándo corre |
 |---|---|---|---|
-| Unitario | Motor de reglas (`conditions`/`actions`), cada plantilla en aislado, `apply_credit_movement`, cálculo de tramos de precio, `expiryRules` | `packages/*/__tests__` (Vitest) | Cada commit, local y CI |
+| Unitario | Motor de reglas (`conditions`/`actions`), cada plantilla en aislado, `applyCreditMovement`, cálculo de tramos de precio, `expiryRules` | `packages/*/__tests__` (Vitest) | Cada commit, local y CI |
 | Integración | `GameRoom` con clientes de test (sin navegador), rutas API contra Postgres/Redis efímeros | `packages/colyseus-server/__tests__`, `packages/web/__tests__/api` | Cada PR |
 | Solvabilidad | Un `RoomPackage` es completable — hard check bloqueante para `publish()` | `packages/shared/validator` (mismo código que `POST /validate`) | Cada `publish()`, en CI contra el Rey Aldric y cada fixture |
 | E2E Playwright | Flujos completos por la UI real, multi-navegador | `packages/e2e` | PR (subset) + nightly (suite completa) |
@@ -170,7 +170,7 @@ El playtest humano es caro en tiempo de personas: no se gasta en bugs que el aut
 ### 4.4 Métricas capturadas
 
 - **Tiempo real por puzzle vs. estimación del validador** — alimenta la calibración de constantes.
-- **Pistas usadas por puzzle** (de `progress_events`, reutiliza la analítica de producción).
+- **Pistas usadas por puzzle** (de `progressEvent`, reutiliza la analítica de producción).
 - **Señal de frustración automática:** ≥3 `puzzle_attempted` fallidos al mismo puzzle en <2 min →
   se marca la sesión para revisión.
 - **Abandono / desconexión.**

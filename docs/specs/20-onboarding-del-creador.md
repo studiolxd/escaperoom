@@ -42,7 +42,7 @@ explícitamente para minimizar el abandono:
 
 ## 5. Medición
 
-- El wizard registra el paso de abandono (`onboarding_step`) — ver `specs/16-analitica.md`.
+- El wizard registra el paso de abandono (`onboardingStep`) — ver `specs/16-analitica.md`.
 - Funnel de adquisición de creador: visita → registro → wizard iniciado → sala creada → publicada.
 - Objetivo: primera sala publicada en <30 min; se mide el tiempo real por paso.
 
@@ -55,4 +55,4 @@ explícitamente para minimizar el abandono:
 ## 7. Dependencias
 
 - `specs/09-editor-de-salas.md` — herramientas que el wizard enseña.
-- `specs/16-analitica.md` — instrumentación de `onboarding_step`.
+- `specs/16-analitica.md` — instrumentación de `onboardingStep`.

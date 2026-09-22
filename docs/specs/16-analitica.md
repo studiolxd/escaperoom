@@ -1,7 +1,7 @@
 # 16 — Analítica
 
 Depende de `11-protocolo-multijugador.md` (§10, puntos de instrumentación) y
-`14-modelo-de-datos-sql.md` (§8, `analytics_events`).
+`14-modelo-de-datos-sql.md` (§8, `analyticsEvent`).
 
 ---
 
@@ -9,7 +9,7 @@ Depende de `11-protocolo-multijugador.md` (§10, puntos de instrumentación) y
 
 **Nada de analítica solo en cliente:** sesgos y ad-blockers. Los eventos se emiten desde el
 servidor (Colyseus y Next API) a un endpoint de colección → cola Redis → worker → tabla
-`analytics_events` (append-only). Nunca bloquea el game loop: si la cola cae, se pierde
+`analyticsEvent` (append-only). Nunca bloquea el game loop: si la cola cae, se pierde
 analítica, nunca gameplay.
 
 Agregaciones en BI ligero (Metabase) o ClickHouse si escala.
@@ -84,7 +84,7 @@ review_submitted                 { rating }
 ## 5. Implementación
 
 - Punto de colección: endpoint server-side que recibe lotes desde Colyseus y Next API.
-- `analytics_events` particionada por mes desde el día uno (ver `specs/14-modelo-de-datos-sql.md` §8).
+- `analyticsEvent` particionada por mes desde el día uno (ver `specs/14-modelo-de-datos-sql.md` §8).
 - Retención: 24 meses en detalle; agregados anonimizados sin límite después. **Job de purga
   pendiente** (Fase 6).
 - Instrumentar desde la Fase 1 (eventos de gameplay) aunque los dashboards lleguen en Fase 5–6 —

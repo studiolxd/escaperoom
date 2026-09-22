@@ -56,7 +56,7 @@ solvabilidad, no un sistema aparte.
 
 ## 4. Cola de revisión humana
 
-Sobre `content_reports` (`severity`, `category`, `source`) y `GET/PATCH /api/admin/reports`.
+Sobre `contentReport` (`severity`, `category`, `source`) y `GET/PATCH /api/admin/reports`.
 
 ### 4.1 SLA por severidad
 
@@ -122,7 +122,7 @@ falta leve aislada.
 ## 7. Mecanismo de apelación
 
 Un creador puede apelar tanto un bloqueo de pre-check al publicar como una retirada/strike ya
-aplicado. Tabla `moderation_appeals` (`specs/14-modelo-de-datos-sql.md` §10).
+aplicado. Tabla `moderationAppeal` (`specs/14-modelo-de-datos-sql.md` §10).
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|

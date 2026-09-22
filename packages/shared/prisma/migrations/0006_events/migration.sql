@@ -1,75 +1,77 @@
--- 0006_events — eventos, sesiones, grupos, claves y grabaciones (specs/14 §6)
-CREATE TABLE events (
-  id                        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  organizer_id              uuid NOT NULL REFERENCES users(id),
-  room_version_id           uuid NOT NULL REFERENCES room_versions(id),
-  title                     text NOT NULL,
-  audience                  event_audience NOT NULL DEFAULT 'general',
-  max_simultaneous_sessions smallint NOT NULL DEFAULT 10,
-  grouping_mode             grouping_mode NOT NULL DEFAULT 'random',
-  require_confirmation      boolean NOT NULL DEFAULT false,
-  config                    jsonb NOT NULL DEFAULT '{}',
-  expiry_rules              jsonb NOT NULL DEFAULT '[]',
-  pricing_snapshot          jsonb NOT NULL,      -- tramos vigentes en el momento de compra
-  players_purchased         int NOT NULL,
-  status                    event_status NOT NULL DEFAULT 'draft',
-  created_at                timestamptz NOT NULL DEFAULT now()
+-- 0006_events — eventos, sesiones de partida, grupos, claves y grabaciones (specs/14 §6).
+-- La tabla de sesiones de partida es `gameSession` para no chocar con la `session`
+-- de auth (Better Auth).
+CREATE TABLE "event" (
+  id                          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "organizerId"               text NOT NULL REFERENCES "user"(id),
+  "roomVersionId"             uuid NOT NULL REFERENCES "roomVersion"(id),
+  title                       text NOT NULL,
+  audience                    "eventAudience" NOT NULL DEFAULT 'general',
+  "maxSimultaneousSessions"   smallint NOT NULL DEFAULT 10,
+  "groupingMode"              "groupingMode" NOT NULL DEFAULT 'random',
+  "requireConfirmation"       boolean NOT NULL DEFAULT false,
+  config                      jsonb NOT NULL DEFAULT '{}',
+  "expiryRules"               jsonb NOT NULL DEFAULT '[]',
+  "pricingSnapshot"           jsonb NOT NULL,      -- tramos vigentes en el momento de compra
+  "playersPurchased"          int NOT NULL,
+  status                      "eventStatus" NOT NULL DEFAULT 'draft',
+  "createdAt"                 timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX ix_events_organizer ON events(organizer_id);
+CREATE INDEX "ixEventOrganizer" ON "event"("organizerId");
 
-CREATE TABLE sessions (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id          uuid NOT NULL REFERENCES events(id),
-  colyseus_room_id  text,                        -- se rellena al arrancar la partida real
-  name              text NOT NULL,
-  status            session_status NOT NULL DEFAULT 'pending',
-  capacity          smallint NOT NULL,
-  started_at        timestamptz,
-  ended_at          timestamptz,
-  created_at        timestamptz NOT NULL DEFAULT now()
+CREATE TABLE "gameSession" (
+  id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "eventId"          uuid NOT NULL REFERENCES "event"(id),
+  "colyseusRoomId"   text,                        -- se rellena al arrancar la partida real
+  name               text NOT NULL,
+  status             "sessionStatus" NOT NULL DEFAULT 'pending',
+  capacity           smallint NOT NULL,
+  "startedAt"        timestamptz,
+  "endedAt"          timestamptz,
+  "createdAt"        timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX ix_sessions_event ON sessions(event_id);
+CREATE INDEX "ixGameSessionEvent" ON "gameSession"("eventId");
 
-CREATE TABLE groups (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id  uuid NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-  name        text NOT NULL,
-  created_at  timestamptz NOT NULL DEFAULT now()
+CREATE TABLE "group" (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "sessionId"   uuid NOT NULL REFERENCES "gameSession"(id) ON DELETE CASCADE,
+  name          text NOT NULL,
+  "createdAt"   timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX ix_groups_session ON groups(session_id);
+CREATE INDEX "ixGroupSession" ON "group"("sessionId");
 
-CREATE TABLE access_keys (
-  code                 text PRIMARY KEY,        -- 'RALD-7F3K'
-  event_id             uuid NOT NULL REFERENCES events(id),
-  session_id           uuid REFERENCES sessions(id),
-  group_id             uuid REFERENCES groups(id),
-  email                citext,
-  key_type             access_key_type NOT NULL,
-  status               access_key_status NOT NULL DEFAULT 'generated',
-  single_use           boolean NOT NULL DEFAULT true,
-  require_confirmation boolean NOT NULL DEFAULT false,
-  regenerated_from     text REFERENCES access_keys(code),
-  confirmed_at         timestamptz,
-  activated_at         timestamptz,
-  used_at              timestamptz,
-  expires_at           timestamptz,
-  created_at           timestamptz NOT NULL DEFAULT now()
+CREATE TABLE "accessKey" (
+  code                  text PRIMARY KEY,        -- 'RALD-7F3K'
+  "eventId"             uuid NOT NULL REFERENCES "event"(id),
+  "sessionId"           uuid REFERENCES "gameSession"(id),
+  "groupId"             uuid REFERENCES "group"(id),
+  email                 citext,
+  "keyType"             "accessKeyType" NOT NULL,
+  status                "accessKeyStatus" NOT NULL DEFAULT 'generated',
+  "singleUse"           boolean NOT NULL DEFAULT true,
+  "requireConfirmation" boolean NOT NULL DEFAULT false,
+  "regeneratedFrom"     text REFERENCES "accessKey"(code),
+  "confirmedAt"         timestamptz,
+  "activatedAt"         timestamptz,
+  "usedAt"              timestamptz,
+  "expiresAt"           timestamptz,
+  "createdAt"           timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX ix_access_keys_event ON access_keys(event_id);
-CREATE INDEX ix_access_keys_session ON access_keys(session_id);
-CREATE INDEX ix_access_keys_expiry_sweep ON access_keys(expires_at)
+CREATE INDEX "ixAccessKeyEvent" ON "accessKey"("eventId");
+CREATE INDEX "ixAccessKeySession" ON "accessKey"("sessionId");
+CREATE INDEX "ixAccessKeyExpirySweep" ON "accessKey"("expiresAt")
   WHERE status IN ('confirmed', 'active');
 
-CREATE TABLE event_recordings (
-  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id       uuid NOT NULL REFERENCES sessions(id),
-  egress_id        text NOT NULL,
-  storage_path     text,
-  consent_status   text NOT NULL DEFAULT 'pending'
-    CHECK (consent_status IN ('pending','unanimous','declined')),
-  status           text NOT NULL DEFAULT 'not_started'
+CREATE TABLE "eventRecording" (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  "sessionId"       uuid NOT NULL REFERENCES "gameSession"(id),
+  "egressId"        text NOT NULL,
+  "storagePath"     text,
+  "consentStatus"   text NOT NULL DEFAULT 'pending'
+    CHECK ("consentStatus" IN ('pending','unanimous','declined')),
+  status            text NOT NULL DEFAULT 'not_started'
     CHECK (status IN ('not_started','recording','ready','failed','deleted')),
-  retention_until  timestamptz,
-  created_at       timestamptz NOT NULL DEFAULT now(),
-  deleted_at       timestamptz
+  "retentionUntil"  timestamptz,
+  "createdAt"       timestamptz NOT NULL DEFAULT now(),
+  "deletedAt"       timestamptz
 );

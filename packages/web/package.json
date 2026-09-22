@@ -15,12 +15,14 @@
   "dependencies": {
     "@escaperoom/env": "workspace:*",
     "@escaperoom/shared": "workspace:*",
+    "better-auth": "1.7.5",
     "next": "16.3.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@better-auth/cli": "1.4.21",
     "@escaperoom/config": "workspace:*",
     "@types/node": "^26.6.2",
     "@types/react": "^19.3.0",

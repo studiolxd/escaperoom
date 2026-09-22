@@ -19,6 +19,12 @@ export const coreSchema = z.object({
   BETTER_AUTH_URL: z.url(),
 });
 
+export const authSchema = z.object({
+  // Better Auth (ADR-016): Google OAuth. El email mágico no necesita claves.
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+});
+
 export const redisSchema = z.object({
   REDIS_URL: z.string().optional(),
   QUEUES_ENABLED: bool(false),
@@ -50,6 +56,7 @@ export const storageSchema = z.object({
 
 /** Lo que usa una app típica entera. */
 export const baseServerSchema = coreSchema
+  .extend(authSchema.shape)
   .extend(redisSchema.shape)
   .extend(emailSchema.shape)
   .extend(storageSchema.shape);

@@ -24,7 +24,7 @@ y `16-analitica.md`.
 
 ## 3. Anti-cheat
 
-- Partida verificada por servidor: bitácora de eventos de puzzle (`progress_events`) con tiempos
+- Partida verificada por servidor: bitácora de eventos de puzzle (`progressEvent`) con tiempos
   por puzzle y orden de resolución.
 - El panel permite a los moderadores ver el **replay de eventos** de una partida (reconstrucción
   de la bitácora, no un vídeo).
@@ -48,4 +48,4 @@ y `16-analitica.md`.
 ## 6. Dependencias
 
 - `specs/16-analitica.md` — eventos `session_ended` y `puzzle_solved` con tiempos.
-- `specs/14-modelo-de-datos-sql.md` §8 — `progress_events`.
+- `specs/14-modelo-de-datos-sql.md` §8 — `progressEvent`.

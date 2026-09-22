@@ -56,7 +56,7 @@ GET  /api/rooms/:id/history     → lista de snapshots (restauración)
 ```
 
 El canal de sincronización en vivo es un **WebSocket de edición** propio (análogo pero distinto
-al de Colyseus), que persiste incrementalmente en `room_updates` (ver `specs/14-modelo-de-datos-sql.md` §5).
+al de Colyseus), que persiste incrementalmente en `roomUpdate` (ver `specs/14-modelo-de-datos-sql.md` §5).
 
 ## 3. Flujo de creación (UX)
 
@@ -128,8 +128,8 @@ no tres estados sincronizados a mano:
 
 ### 4.4 Estado compartido: Yjs doc + Zustand
 
-- El doc de Yjs es la fuente de verdad (persiste en `room_updates`, se reconstruye de
-  `room_snapshots`).
+- El doc de Yjs es la fuente de verdad (persiste en `roomUpdate`, se reconstruye de
+  `roomSnapshot`).
 - Un **store de Zustand** conectado al doc de Yjs (mismo patrón que la partida con Colyseus) es lo
   que consumen los componentes React: ni Palette, ni Canvas, ni Inspector tocan la API de Yjs
   directamente.
@@ -154,10 +154,10 @@ solvabilidad está en `specs/22-qa-y-pruebas.md` §2.
 
 ## 6. Draft vs. publicado
 
-- `room_drafts` / `room_updates` / `room_snapshots`: doc Yjs vivo, mutable, colaborativo.
-- `room_versions`: inmutable, una fila por versión publicada; assets empaquetados en R2 con hash.
+- `room_drafts` / `roomUpdate` / `roomSnapshot`: doc Yjs vivo, mutable, colaborativo.
+- `roomVersion`: inmutable, una fila por versión publicada; assets empaquetados en R2 con hash.
   Los parches crean versiones nuevas; los eventos vendidos pueden fijar versión.
-- Publicar = congelar JSON + validar + subir assets + crear `room_versions` (ver
+- Publicar = congelar JSON + validar + subir assets + crear `roomVersion` (ver
   `specs/08-formato-roompackage.md` §5 y `specs/13-api-rest.md` §4).
 
 ## 7. Checklist del editor: MVP vs. v2
