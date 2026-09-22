@@ -8,8 +8,9 @@ import {
   type AtlasFrameInput,
   type PackedAtlas,
 } from "../src/pack/atlas";
-import { decodePng, encodePng } from "../src/pack/png";
+import { encodePng } from "../src/pack/png";
 import { checkSvgAspect, rasterizeSvg } from "../src/pack/svg";
+import { normalizePng } from "../src/pack/image";
 import {
   DEFAULT_PACK_PROJECTION,
   defaultAvatarAnims,
@@ -133,6 +134,7 @@ function isImageEntry(name: string): boolean {
 async function readKindFrames(
   packDir: string,
   kind: Kind,
+  options: CliOptions,
 ): Promise<{ frames: AtlasFrameInput[]; issues: PackValidationIssue[] }> {
   const dir = join(packDir, kind);
   if (!existsSync(dir)) {
@@ -155,7 +157,21 @@ async function readKindFrames(
       }
       decoded = await rasterizeSvg(svg, frame);
     } else {
-      decoded = decodePng(await readFile(join(dir, entry)));
+      const normalized = await normalizePng(await readFile(join(dir, entry)), frame);
+      if (normalized.error) {
+        // Un PNG con proporción incorrecta NO se genera (no se reencuadra).
+        issues.push({ path: `${kind}/${entry}`, message: normalized.error, severity: "error" });
+        continue;
+      }
+      if (normalized.warning) {
+        // Menor que el lienzo: aviso en modo normal; error con --strict.
+        issues.push({
+          path: `${kind}/${entry}`,
+          message: normalized.warning,
+          severity: options.strict ? "error" : "warning",
+        });
+      }
+      decoded = normalized.image;
     }
     frames.push({ frame, width: decoded.width, height: decoded.height, rgba: decoded.rgba });
   }
@@ -294,7 +310,7 @@ async function main(): Promise<void> {
   await mkdir(options.packDir, { recursive: true });
 
   for (const kind of KINDS) {
-    const { frames, issues: frameIssues } = await readKindFrames(options.packDir, kind);
+    const { frames, issues: frameIssues } = await readKindFrames(options.packDir, kind, options);
     issues.push(...frameIssues);
     framesByKind[kind] = frames.map((frame) => frame.frame);
     if (frames.length === 0) {
