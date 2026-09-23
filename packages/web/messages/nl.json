@@ -1,6 +1,6 @@
 {
   "Metadata": {
-    "title": "EscapeRoom Creator",
+    "title": "Escape room",
     "description": "Coöperatieve 2D-isometrische online escaperooms."
   },
   "LocaleSwitcher": {
@@ -1263,5 +1263,15 @@
     "success": "Bedankt! We hebben je bericht ontvangen en reageren snel.",
     "sending": "Verzenden…",
     "error": "Het bericht kon niet worden verzonden. Probeer het opnieuw."
+  },
+  "Legal": {
+    "reaccept": {
+      "title": "De voorwaarden zijn gewijzigd",
+      "description": "We hebben de Gebruiksvoorwaarden en het Privacybeleid bijgewerkt. Lees ze voordat je verdergaat en accepteer de nieuwe versie om je account te blijven gebruiken.",
+      "termsLink": "Gebruiksvoorwaarden lezen",
+      "privacyLink": "Privacybeleid lezen",
+      "accept": "Accepteren en doorgaan",
+      "error": "Je acceptatie kon niet worden opgeslagen. Probeer het opnieuw."
+    }
   }
 }

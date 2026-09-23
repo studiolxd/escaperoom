@@ -1,6 +1,6 @@
 {
   "Metadata": {
-    "title": "EscapeRoom Creator",
+    "title": "Escape room",
     "description": "Escape rooms coopératifs en ligne, isométriques 2D."
   },
   "LocaleSwitcher": {
@@ -1263,5 +1263,15 @@
     "success": "Merci ! Nous avons bien reçu votre message et nous vous répondrons bientôt.",
     "sending": "Envoi…",
     "error": "Impossible d'envoyer le message. Réessayez."
+  },
+  "Legal": {
+    "reaccept": {
+      "title": "Les conditions ont changé",
+      "description": "Nous avons mis à jour les Conditions d'utilisation et la Politique de confidentialité. Lisez-les avant de continuer et acceptez la nouvelle version pour continuer à utiliser votre compte.",
+      "termsLink": "Lire les Conditions d'utilisation",
+      "privacyLink": "Lire la Politique de confidentialité",
+      "accept": "Accepter et continuer",
+      "error": "Impossible d'enregistrer votre acceptation. Réessayez."
+    }
   }
 }

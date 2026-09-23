@@ -19,14 +19,14 @@ export async function PublicHeader() {
         </Link>
 
         <nav className="flex items-center gap-1 sm:gap-2">
-          <Button asChild variant="ghost" size="sm">
+          <Button asChild variant="ghost">
             <Link href="/rooms">{t("catalog")}</Link>
           </Button>
-          <Button asChild variant="ghost" size="sm">
+          <Button asChild variant="ghost">
             <Link href="/contact">{t("contact")}</Link>
           </Button>
           <LocaleSwitcher variant="select" />
-          <Button asChild size="sm">
+          <Button asChild>
             <Link href="/creator/onboarding">{t("createCta")}</Link>
           </Button>
         </nav>
