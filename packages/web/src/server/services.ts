@@ -1,4 +1,5 @@
 import path from "node:path";
+import { publishDraftUpdate } from "@escaperoom/kit/room-sync";
 import { storage } from "@escaperoom/kit/storage";
 import { getRedis, redisPrefix } from "@escaperoom/kit/redis";
 import { roomDocToPackage, roomPackageToDoc } from "@escaperoom/editor/room-doc";
@@ -83,6 +84,7 @@ import {
 } from "@escaperoom/shared/services";
 import { createBullCardExportQueue } from "@escaperoom/shared/access-key-cards-queue";
 import { resolveColyseusHttpUrl } from "./playtest-launcher";
+import { getEditorSyncOriginId } from "./room-sync";
 
 /**
  * Ruta del fixture del Rey Aldric relativa a la raíz del workspace. La app se
@@ -153,9 +155,21 @@ export function getReviewService(): ReviewService {
   return reviews;
 }
 
-/** Servicio del draft Yjs del editor (specs/09 §2) sobre Postgres. */
+/**
+ * Servicio del draft Yjs del editor (specs/09 §2) sobre Postgres. Cada update
+ * persistido se publica en Redis (`@escaperoom/kit/room-sync`) para que
+ * OTROS procesos `editor-sync` (si hay más de uno corriendo) lo apliquen a
+ * sus docs en memoria y lo reenvíen a sus propios clientes — sin Redis
+ * configurado o caído, `publishDraftUpdate` es un no-op y el draft se
+ * persiste igual (decisión 2026-09-23).
+ */
 export function getRoomDraftService(): RoomDraftService {
-  roomDrafts ??= createRoomDraftService({ store: createPrismaRoomDraftStore(prisma) });
+  roomDrafts ??= createRoomDraftService({
+    store: createPrismaRoomDraftStore(prisma),
+    publish: async (event) => {
+      await publishDraftUpdate({ ...event, originId: getEditorSyncOriginId() });
+    },
+  });
   return roomDrafts;
 }
 

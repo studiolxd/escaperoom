@@ -4,7 +4,9 @@ import {
   type EditorSyncServer,
   type EditorSyncServerOptions,
 } from "@escaperoom/editor/sync-server";
+import { subscribeDraftUpdates } from "@escaperoom/kit/room-sync";
 import type { Actor, RoomDraftService } from "@escaperoom/shared/services";
+import { getEditorSyncOriginId } from "../room-sync";
 
 /** Puerto por defecto del WebSocket de edición (Colyseus usa 2567). */
 export const DEFAULT_EDITOR_SYNC_PORT = 2568;
@@ -53,5 +55,12 @@ export function createWebEditorSyncServer(deps: {
     resolveActor: (request) => deps.resolveActorFromRequest(upgradeRequestToRequest(request)),
     allowedOrigins: deps.allowedOrigins,
     logger: deps.logger,
+    // Sincronización entre procesos (specs/09 §2, decisión 2026-09-23):
+    // updates persistidos por OTRO proceso (otra instancia de `editor-sync`
+    // al escalar, o un REST/MCP sin sesión viva aquí) llegan por Redis y se
+    // aplican al doc en memoria de este proceso si tiene la sala cargada. Sin
+    // `REDIS_URL`, `subscribeDraftUpdates` es un no-op: este proceso sigue
+    // sirviendo a sus propios clientes, solo pierde la propagación cruzada.
+    remoteUpdates: { subscribe: subscribeDraftUpdates, originId: getEditorSyncOriginId() },
   });
 }

@@ -607,3 +607,64 @@ del formato sigue la misma regla de `specs/08` §6: añadir el nuevo valor a
 `roompackage/vN` que ya usaba la constante sin usar, y que es más clara para futuros bumps);
 aceptar ambos valores (`"1"` y `"roompackage/v1"`) con periodo de gracia (innecesario sin salas
 publicadas reales que migrar).
+
+---
+
+## ADR-029 — Sincronización del editor entre procesos: Redis pub/sub, canal único, sin ack
+
+**Contexto:** los tickets 3.2/3.3/4.2 dejaron un gap: lo que escriben el MCP (stdio o HTTP) y
+`POST /api/rooms/:roomId/update` pasan por `RoomDraftService.appendUpdate` directamente — nunca por
+el proceso `editor-sync` (`packages/web/src/server/editor-sync/`) —, así que un editor con
+WebSocket abierto a `editor-sync` no veía esos cambios hasta recargar. Lo mismo pasaría entre dos
+instancias de `editor-sync` si se escala horizontalmente: cada una solo ve sus propios WebSockets.
+
+**Decisión:** Redis pub/sub, reutilizando la conexión y el patrón YA existentes de
+`@escaperoom/kit/events` (canal namespaced con `redisPrefix()`, `getRedis()` para publicar,
+`getSubscriberRedis()` — una única conexión de proceso en modo suscriptor — para escuchar), en un
+módulo nuevo con la misma forma: `@escaperoom/kit/room-sync`.
+
+- **Punto único de publicación:** `RoomDraftService.appendUpdate`/`restoreDraft`
+  (`packages/shared/src/services/room-draft.ts`) reciben un puerto opcional `publish` y lo llaman
+  tras persistir con `{ roomId, update, authorId }`. Como TODOS los escritores (REST, MCP, y el
+  propio `editor-sync` al persistir un update de WebSocket) pasan por `appendUpdate`, un solo punto
+  de publicación cubre los tres orígenes sin tocar cada adaptador.
+- **Canal único, no uno por sala:** `editor-sync:draft-updates` lleva el `roomId` en el payload
+  (JSON con el update en base64) en vez de una sala por canal — más simple de suscribir una vez por
+  proceso (`SUBSCRIBE`, no `PSUBSCRIBE`) y barato mientras la mayoría de salas no tienen editores
+  conectados en un momento dado.
+- **Recepción:** `createEditorSyncServer` (`packages/editor/src/sync/server.ts`) acepta un puerto
+  `remoteUpdates: { subscribe, originId }`. Al recibir un evento de una sala que tiene cargada,
+  aplica el update a su doc Yjs en memoria con un origen que NO es un `ActorOrigin`
+  (`Symbol("remote-draft-update")`): el `broadcast` a los WebSockets de ese proceso pasa igual, pero
+  la rama que persiste (`appendUpdate`) y por tanto la que publica se salta — así un proceso nunca
+  repersiste ni republica lo que acaba de recibir de Redis (evita el bucle de reenvío) sin necesitar
+  lógica de deduplicación aparte. El filtro por `originId` (un id por proceso, generado una vez y
+  compartido entre el publicador y el suscriptor de ESE proceso) es la segunda barrera: cada proceso
+  ignora sus propios mensajes en vez de confiar solo en la idempotencia de Yjs.
+- **Sin ack ni cola:** es fan-out best-effort, igual que `@escaperoom/kit/events`. Si un proceso está
+  caído o su suscripción tarda en levantar, se pierde ese mensaje de propagación — no importa: la
+  fuente de verdad sigue siendo Postgres (`roomUpdate`), y ese proceso la recarga entera la próxima
+  vez que alguien abra la sala ahí. Lo único que se pierde es la actualización EN VIVO mientras tanto.
+- **Degradación sin Redis:** sin `REDIS_URL` (o si Redis se cae), `publishDraftUpdate` y
+  `subscribeDraftUpdates` son no-op — documentado y probado en `@escaperoom/kit/room-sync`. El
+  draft se sigue persistiendo con normalidad y cada proceso `editor-sync` sigue sirviendo a sus
+  propios clientes conectados con normalidad; lo único que se pierde es que un cambio hecho en OTRO
+  proceso (otra instancia escalada, o el MCP/REST) no llega en vivo — el cliente lo ve al recargar,
+  como antes de este cambio. Redis caído nunca rompe una escritura: `RoomDraftService` ignora en
+  silencio cualquier error del puerto `publish`.
+
+**Consecuencias:** un creador con el editor abierto ve en vivo lo que escribe el MCP (o un
+coautor en otra pestaña que cayó a otro proceso) sin recargar. El cableado es explícito por
+composition root (`packages/web/src/server/services.ts`, `packages/mcp-server/src/bin/stdio.ts`):
+cada uno decide su propio `originId` — el de `stdio.ts` es uno por llamada (nunca se suscribe, no
+necesita ser estable); el de web (`packages/web/src/server/room-sync.ts`) es uno por proceso,
+compartido entre `getRoomDraftService()` (publica) y `createWebEditorSyncServer()` (se
+suscribe y filtra su propio eco).
+
+**Alternativas descartadas:** un canal Redis por sala (`editor-sync:room:<id>`) — más preciso pero
+obliga a un `(P)SUBSCRIBE`/`UNSUBSCRIBE` por cada apertura/cierre de sala en vez de una suscripción
+fija por proceso; se descartó por complejidad sin beneficio claro al volumen actual. Colas con ack
+(BullMQ, ya usado en el repo para jobs) — pensado para "hay que procesar esto sí o sí", no encaja
+con "mejor esfuerzo, la fuente de verdad ya está en Postgres". Deduplicar solo por idempotencia de
+Yjs sin filtrar por `originId` — funciona (aplicar dos veces el mismo update Yjs es un no-op), pero
+depende de un detalle interno de Yjs en vez de una invariante explícita del protocolo de sync.
