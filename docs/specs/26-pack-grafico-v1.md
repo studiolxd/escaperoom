@@ -115,6 +115,27 @@ abajo-centro, depth-sort por `x+y`, `collides: true`), porque **suben** por enci
   deja huecos oscuros entre tiles) y **sin outline en el borde inferior** (se duplicaría entre
   piezas). Bordes limpios al 0–100 % de alpha para que la **oclusión** (`04` §1) los desvanezca bien.
 
+#### Esquinas de sala
+
+Una esquina no es un muro distinto: es el **encaje** del vértice interior donde se juntan dos muros
+(en iso, la que mira al jugador), para que no quede hueco ni costura.
+
+- **`muro-esquina` (pieza L)**: resuelve el ángulo interior con la **misma anchura de huella y misma
+  altura/cornisa** que el muro recto, de modo que el **canto superior quede continuo** (sin escalón).
+- **`muro-remate` (opcional)**: cierra el canto cuando el muro gira hacia el lado visible.
+- Se apoya en la celda con pivote abajo-centro; `collides: true`; transparente; sin outline en los
+  bordes de unión.
+
+#### Columnas
+
+- **Huella** rombo 2:1, base apoyada en la celda; **lienzo ~64×128** a 1× (hasta 128×256 a 2×) para
+  columnas altas.
+- **Dos caras visibles** (izquierda/derecha con la luz del pack) + **capital/canto** arriba. Si es
+  redonda, mismo tratamiento: sombreado por caras, sin degradado de fondo.
+- Se entrega en piezas: **`columna-base`**, **`columna`** (fuste, opcionalmente tileable vertical),
+  **`columna-capital`**. La base encaja con la anchura del muro si hace esquina.
+- `collides: true`; **ocluible** (se desvanece al quedar por delante de un avatar, como los muros).
+
 ### 4.2 Sprites de objetos, estados y decoración
 
 Checklist exacto tomado del fixture: **57 frames únicos**. Cada uno es un sprite isométrico

@@ -22,6 +22,10 @@ en la misma capa.
 | `muro-tapiz.png` | 64×96 | Muro con tapiz/estandarte |
 | `muro-ventana.png` | 64×96 | Muro con ventana/mirilla |
 | `muro-arco.png` | 64×96 | Muro con arco/paso |
+| `muro-remate.png` | 64×96 | Remate de muro (canto al girar) |
+| `columna.png` | 64×128 | Columna (fuste) |
+| `columna-base.png` | 64×48 | Base de columna |
+| `columna-capital.png` | 64×48 | Capital de columna |
 | **Sprites con altura** (no son tiles; lienzo libre, pivote abajo-centro) | | |
 | `tile-20.png` | 64×48 | Sprite: umbral de puerta |
 | `tile-21.png` | 64×48 | Sprite: escalón / peldaño |
