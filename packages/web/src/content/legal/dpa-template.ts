@@ -100,9 +100,19 @@ export const dpaTemplate: LegalDocument = {
         "El email de un participante asociado a una clave de acceso se conserva 12 meses tras la " +
           "finalización del evento; pasado ese plazo se sustituye por un valor no reversible (hash) " +
           "que impide reidentificar al participante.",
-        "[PENDIENTE ASESORÍA LEGAL: confirmar si, para eventos con participantes menores de edad, " +
-          "conviene un plazo de retención más corto que los 12 meses generales (minimización " +
-          "reforzada), tal y como plantea specs/18 §4.4].",
+        "Para eventos con audiencia educativa (los que pueden incluir menores de edad) ese plazo se " +
+          "reduce a 3 meses tras la finalización del evento. Los menores merecen una protección " +
+          "específica (considerando 38 del RGPD) y el principio de minimización (artículo 5.1.c y " +
+          "5.1.e) obliga a no conservar su email más allá de lo que exige la finalidad: el único uso " +
+          "posterior al evento es que el responsable compruebe quién participó o reemita una clave, " +
+          "y esa necesidad se agota en las semanas siguientes, dentro del mismo trimestre escolar. El " +
+          "responsable conserva además su propia lista de alumnado, así que la copia de la " +
+          "plataforma no es la fuente de ese dato. Los 12 meses generales se mantienen para eventos " +
+          "de empresa, donde el organizador puede necesitar reconstruir la asistencia meses después " +
+          "(por ejemplo, para acreditar una formación).",
+        "En ambos casos el responsable puede pedir en cualquier momento la supresión anticipada de " +
+          "los emails de un evento, y la plataforma la ejecuta sin esperar a que venza el plazo " +
+          "(artículo 28.3.g del RGPD).",
       ],
     },
     {

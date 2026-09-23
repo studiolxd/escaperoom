@@ -1452,5 +1452,26 @@
     "continueOnboarding": "Continuar configuración",
     "openDashboard": "Abrir panel de Stripe",
     "actionError": "No se pudo completar la acción. Inténtalo de nuevo."
+  },
+  "Auth": {
+    "login": {
+      "title": "Inicia sesión",
+      "subtitle": "Accede con Google o con un enlace mágico por email"
+    },
+    "signup": {
+      "title": "Crea tu cuenta",
+      "subtitle": "Regístrate con Google o con un enlace mágico por email"
+    },
+    "emailLabel": "Email",
+    "emailPlaceholder": "tucorreo@ejemplo.com",
+    "emailSubmit": "Enviar enlace mágico",
+    "continueWith": "O continúa con",
+    "google": "Continuar con Google",
+    "emailSent": "Te hemos enviado un enlace a tu email.",
+    "error": "No se pudo iniciar sesión. Inténtalo de nuevo.",
+    "switchToSignupPrompt": "¿No tienes cuenta?",
+    "switchToSignupLink": "Crea una",
+    "switchToLoginPrompt": "¿Ya tienes cuenta?",
+    "switchToLoginLink": "Inicia sesión"
   }
 }

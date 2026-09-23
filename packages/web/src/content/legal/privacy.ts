@@ -61,9 +61,23 @@ export const privacyPolicy: LegalDocument = {
         "Por diseño: la cámara y el micrófono están desactivados por defecto, no hay mensajería " +
           "privada entre jugadores y la grabación de sesión está bloqueada sin excepciones cuando la " +
           "audiencia del evento es educativa.",
-        "[PENDIENTE ASESORÍA LEGAL: confirmar con asesoría que este diseño ('sin cuenta propia del " +
-          "menor, responsable = el centro u organización') es una garantía suficiente frente a la edad " +
-          "de consentimiento propio de la LOPDGDD (14 años en España), tal y como pide specs/18 §4].",
+        "Este diseño es compatible con la edad de consentimiento digital que fija la LOPDGDD " +
+          "(artículo 7: 14 años en España) porque esa regla solo se aplica cuando un tratamiento se " +
+          "basa en el consentimiento del propio menor, y aquí ningún tratamiento se basa en él: la " +
+          "plataforma trata el email del participante por encargo del centro u organización, que es " +
+          "quien tiene su propia base legal frente al alumnado o al personal (en un centro educativo, " +
+          "la función educativa que le encomienda la legislación de educación, no el consentimiento). " +
+          "Es el mismo esquema que la Agencia Española de Protección de Datos describe para las " +
+          "plataformas educativas contratadas por un centro: el centro es el responsable y el " +
+          "proveedor su encargado, sin que el proveedor recabe consentimiento del alumnado ni de las " +
+          "familias.",
+        "Por la misma razón, el modelo no depende de dónde esté fijada esa edad: seguiría siendo " +
+          "válido si la ley la eleva (por ejemplo, a 16 años, como plantea el proyecto de Ley " +
+          "Orgánica de protección de menores en entornos digitales en tramitación al redactar este " +
+          "borrador). Lo que sí sigue siendo obligación de la plataforma, como encargado, es tratar " +
+          "esos datos solo según las instrucciones del organizador, aplicar una minimización " +
+          "reforzada (plazo de conservación más corto para eventos educativos, véase la sección 4) y " +
+          "asistir al centro si necesita una evaluación de impacto por tratar datos de menores.",
       ],
     },
     {
@@ -77,8 +91,10 @@ export const privacyPolicy: LegalDocument = {
           "obligación de facturación.",
         "Facturas y registros de facturación: 6 años tras su emisión, conforme al artículo 30 del " +
           "Código de Comercio.",
-        "Clave de acceso con email de un participante: 12 meses tras el evento, después el email se " +
-          "sustituye por un valor no reversible (hash).",
+        "Clave de acceso con email de un participante: 12 meses tras el evento en general, y 3 " +
+          "meses cuando la audiencia del evento es educativa (minimización reforzada por la posible " +
+          "presencia de menores; véase la sección 6 del contrato de encargo de tratamiento). En " +
+          "ambos casos, pasado el plazo el email se sustituye por un valor no reversible (hash).",
         "Grabación de sesión (cuando existe consentimiento): 90 días.",
         "Eventos de analítica detallados: 24 meses; los datos agregados y anonimizados se conservan " +
           "sin límite de tiempo.",
