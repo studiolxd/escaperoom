@@ -1263,19 +1263,19 @@
     "valueProps": {
       "creator": {
         "title": "Para creadores",
-        "body": "Publica y monetiza salas sin saber programar; el editor es el propio motor del juego (WYSIWYG real) y el MCP te deja crear una sala entera describiéndola al chat."
+        "body": "Publica y monetiza salas sin necesidad de programar; ayúdate de tu asistente de IA (ChatGPT, Claude…) a través del MCP para crear salas describiéndolas."
       },
       "player": {
         "title": "Para jugadores",
-        "body": "Escape rooms cooperativos de 1 a 4 jugadores en el navegador, con voz y webcam, sin instalar nada."
+        "body": "Escape rooms para resolver, individual o en equipo, desde el navegador, con voz y webcam, sin instalar nada."
       },
       "teacher": {
         "title": "Para docentes",
-        "body": "Organiza partidas para tu clase, reparte claves de acceso y sigue el progreso de cada grupo sin salir del navegador."
+        "body": "Organiza partidas para tu clase, reparte claves de acceso y sigue el progreso de cada grupo desde el navegador."
       },
       "company": {
         "title": "Para empresas",
-        "body": "Compra por jugador con descuentos por tramos y monta dinámicas de equipo en remoto o presenciales, sin instalar nada."
+        "body": "Organiza una actividad diferente para tu equipo y trabaja soft skills como el trabajo cooperativo, desde el navegador, sin instalar nada. Descuentos por volumen."
       }
     }
   },
