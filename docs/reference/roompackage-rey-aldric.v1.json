@@ -4,7 +4,7 @@
     "title": "La Maldición del Rey Aldric",
     "authorId": "org-escapehub-official",
     "version": "1.0.0",
-    "packageFormat": "1",
+    "packageFormat": "roompackage/v1",
     "theme": "medieval",
     "description": "El rey Aldric fue traicionado por su hermano, el mago Malrec, que selló su alma en un relicario en las catacumbas del castillo. Cruza el Salón del Trono, la Bodega de los Vinos Encantados y las Catacumbas para romper el sello en 60 minutos.",
     "languages": ["es"],

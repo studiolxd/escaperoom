@@ -47,7 +47,7 @@ export function worldPreviewPackage(): unknown {
       title: "Objetos interactuables (demo 1.3)",
       authorId: "org-escaperoom",
       version: "1.0.0",
-      packageFormat: "1",
+      packageFormat: "roompackage/v1",
       theme: "medieval",
       description:
         "Sala de demo: pasa el cursor por los objetos para ver el brillo, pulsa Espacio o clic para inspeccionar y abre el cofre para ver su inventario interno.",

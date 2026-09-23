@@ -190,10 +190,11 @@ export class RoomPublishError extends Error {
 
 /**
  * Valores de `meta.packageFormat` que el servidor sabe publicar (specs/08 §6:
- * valor inicial `"1"`, el que usa el fixture del Rey Aldric). Un bump breaking
- * del formato añade aquí el nuevo valor cuando el runtime lo soporte.
+ * valor fijado `"roompackage/v1"`, el que usa el fixture del Rey Aldric). Un
+ * bump breaking del formato añade aquí el nuevo valor cuando el runtime lo
+ * soporte.
  */
-export const SUPPORTED_PACKAGE_FORMATS: readonly string[] = ["1"];
+export const SUPPORTED_PACKAGE_FORMATS: readonly string[] = ["roompackage/v1"];
 
 /** Longitud máxima del changelog de una versión. */
 export const MAX_CHANGELOG_LENGTH = 5000;

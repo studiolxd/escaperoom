@@ -2,8 +2,9 @@
  * Esquemas Zod compartidos (specs/08). Contrato declarativo `RoomPackage` y sus
  * piezas (`map`, `objects`, `items`, `puzzles`, `rules`, `dialogs`, `hints`).
  *
- * `PACKAGE_FORMAT` se conserva como valor propuesto para `meta.packageFormat`;
- * el schema solo exige su presencia (specs/08 §6, decisión abierta).
+ * `PACKAGE_FORMAT` es el valor canónico de `meta.packageFormat`
+ * (`"roompackage/v1"`); el schema solo exige su presencia, la validación del
+ * literal exacto vive en `SUPPORTED_PACKAGE_FORMATS` (specs/08 §6).
  */
 export * from "./common";
 export * from "./localized-text";

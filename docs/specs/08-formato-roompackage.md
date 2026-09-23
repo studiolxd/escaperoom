@@ -25,7 +25,7 @@ interface RoomPackage {
     title: string;
     authorId: string;
     version: string;              // semver "1.2.0" — versionado para parches
-    packageFormat: string;        // versión del formato; ver §6 (pendiente de fijar valor inicial)
+    packageFormat: string;        // versión del formato; ver §6 ("roompackage/v1")
     theme: string;                // "medieval", "scifi"…
     description: string;
     languages: string[];          // ["es","en"] — multidioma desde el diseño
@@ -152,11 +152,13 @@ PostgreSQL
 
 ## 6. Versionado del formato (`packageFormat`)
 
-- `meta.packageFormat` es un **campo a añadir** (cabos sueltos reconocidos) que fija la versión
-  del formato del `RoomPackage`, independiente del `semver` de la sala.
+- `meta.packageFormat` fija la versión del formato del `RoomPackage`, independiente del `semver`
+  de la sala.
 - **Regla de oro:** cualquier cambio del formato que rompa el JSON del Rey Aldric es un **cambio
   breaking** y exige bump de `packageFormat`.
-- Valor inicial propuesto: `"1"`. Se fija al implementar el runtime (Fase 1).
+- Valor fijado: `"roompackage/v1"`. `SUPPORTED_PACKAGE_FORMATS` (packages/shared) exige este
+  literal exacto al publicar; sin salas publicadas en producción, el bump se hizo sin periodo de
+  compatibilidad hacia atrás (ver `docs/reference/registro-de-decisiones.md`).
 
 ## 7. Relación con el editor y el MCP
 

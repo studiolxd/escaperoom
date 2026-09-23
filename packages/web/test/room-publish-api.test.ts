@@ -100,7 +100,11 @@ describe("REST de publicación (specs/13 §4)", () => {
     const res = await api.postPublish({ changelog: "Estreno" }, "autora");
     expect(res.status).toBe(201);
     const { version } = (await res.json()) as { version: VersionJson };
-    expect(version).toMatchObject({ semver: "1.0.0", changelog: "Estreno", packageFormat: "1" });
+    expect(version).toMatchObject({
+      semver: "1.0.0",
+      changelog: "Estreno",
+      packageFormat: "roompackage/v1",
+    });
     expect(version.assetsHash).toMatch(/^sha256:/);
 
     api.editDraft((pkg) => (pkg.meta.title = "Otro título"));

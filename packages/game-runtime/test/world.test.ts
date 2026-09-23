@@ -40,7 +40,7 @@ function demoPackage() {
       title: "Demo",
       authorId: "org-test",
       version: "1.0.0",
-      packageFormat: "1",
+      packageFormat: "roompackage/v1",
       theme: "medieval",
       description: "Sala de prueba",
       languages: ["es", "en"],

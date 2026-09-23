@@ -5,9 +5,10 @@ import { RuleConditionSchema, RuleSchema } from "./rules";
 import { ItemDefSchema, MapSchema, WorldObjectSchema } from "./world";
 
 /**
- * Valor propuesto para `meta.packageFormat` (specs/08 §6). La decisión del valor
- * inicial sigue **abierta**: el schema solo exige que el campo esté presente y
- * no vacío, sin fijar todavía un literal.
+ * Valor canónico de `meta.packageFormat` (specs/08 §6). El schema solo exige
+ * que el campo esté presente y no vacío (no valida el literal), pero
+ * `SUPPORTED_PACKAGE_FORMATS` en `services/room-publish.ts` exige exactamente
+ * este valor al publicar.
  */
 export const PACKAGE_FORMAT = "roompackage/v1" as const;
 

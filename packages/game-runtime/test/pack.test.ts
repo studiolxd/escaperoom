@@ -33,7 +33,7 @@ function validManifest(): PackManifest {
   return {
     id: "medieval-v1",
     version: "1.0.0",
-    packageFormat: "1",
+    packageFormat: "roompackage/v1",
     projection: { tileWidth: 64, tileHeight: 32, scale: 1 },
     atlases: [
       { key: "tiles", image: "atlas-tiles.png", data: "atlas-tiles.json" },

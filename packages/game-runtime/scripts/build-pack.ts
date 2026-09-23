@@ -272,7 +272,7 @@ function buildManifest(
   return {
     id: config.id ?? packId,
     version: config.version ?? "1.0.0",
-    packageFormat: config.packageFormat ?? "1",
+    packageFormat: config.packageFormat ?? "roompackage/v1",
     projection: config.projection ?? DEFAULT_PACK_PROJECTION,
     atlases: atlases.map(({ key }) => ({
       key,
