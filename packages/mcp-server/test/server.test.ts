@@ -63,9 +63,9 @@ describe("mcp-server en memoria", () => {
   });
 
   it("4.1 implementa get_room y validate (más la tool de 0.10); el resto llega en 4.2–4.5", () => {
-    const implemented = CREATOR_TOOLSET.filter((tool) => tool.run && tool.ticket !== "4.2").map(
-      (tool) => tool.name,
-    );
+    const implemented = CREATOR_TOOLSET.filter(
+      (tool) => tool.run && tool.ticket !== "4.2" && tool.ticket !== "4.3",
+    ).map((tool) => tool.name);
     expect(implemented).toEqual(["validate", "get_room", GET_FEATURED_ROOM_TOOL]);
   });
 

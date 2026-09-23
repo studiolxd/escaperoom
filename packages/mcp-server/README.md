@@ -5,7 +5,7 @@ en borrador (`docs/specs/10-mcp-del-creador.md`). Sus tools **no tienen lógica 
 mismos servicios de dominio de `@escaperoom/shared/services` que el tRPC del editor y la REST, con
 un `actor` como única diferencia (ADR-010/022).
 
-## Toolset (tickets 4.1 y 4.2)
+## Toolset (tickets 4.1–4.3)
 
 El toolset completo de specs/10 §2 está registrado con su nombre, descripción, anotaciones y
 esquema de entrada (Zod de `@escaperoom/shared/schemas` → JSON Schema). Todas las tools que operan
@@ -15,12 +15,12 @@ sobre un draft reciben `roomId` (el mismo `:roomId` de `/api/rooms/:roomId/draft
 | --- | --- | --- |
 | A — Estructura | `create_room`, `set_map`, `paint_tiles`, `define_subrooms` | **implementadas** (4.2) |
 | B — Contenido | `add_object`, `define_item`, `add_puzzle`, `add_dialog`, `add_hint` | **implementadas** (4.2) |
-| C — Lógica | `add_rule`, `get_room_graph` | esqueleto (4.3) |
+| C — Lógica | `add_rule`, `get_room_graph` | **implementadas** (4.3) |
 | D — Verificación | `validate` | **implementada** (validador de 2.9) |
 | D — Verificación | `preview`, `publish` | esqueleto (4.5) |
 | E — Consulta | `get_room` | **implementada** (draft de 3.2) |
 | E — Consulta | `get_template_catalog` | **implementada** (4.2), pública |
-| E — Consulta | `get_puzzle`, `get_rules_for` | esqueleto (4.3) |
+| E — Consulta | `get_puzzle`, `get_rules_for` | **implementadas** (4.3), vistas filtradas |
 | — | `get_featured_room` | ejemplo de 0.10 (paridad tRPC/REST/MCP), pública |
 
 Una tool del esqueleto responde con `isError: true`, el texto
@@ -66,13 +66,38 @@ tamaño y capas (RLE) de las habitaciones indicadas (por defecto, todas las defi
 `create_room` da de alta la sala con `RoomDraftService.createDraft` (fila `room` en `draft` del
 creador + update inicial con la metadata).
 
+## Lógica y consulta (ticket 4.3)
+
+- **`add_rule({ roomId, rule, replace? })`** — escribe en el mapa `rules` del doc con el MISMO
+  modelo que el grafo de reglas del editor (3.6, `setRule` de `rules-graph/yjs-rules.ts`), vía el
+  comando `addRule` de `@escaperoom/editor/room-doc`. `id`, `priority` (0) y `once` (`true`) son
+  opcionales: sin `id` se propone uno legible a partir del trigger (`r-brasero`,
+  `r-candado-arca-resuelto`). Antes de escribir comprueba que existen las habitaciones, objetos,
+  puzzles, items y diálogos referenciados (`ruleReferences` del validador, la misma lista que su
+  check de referencias): `No existe el objeto "salida-bodega" (en actions[0].objectId). Objetos
+  disponibles: [...]`.
+- **`get_room_graph({ roomId })`** — grafo compacto (`src/room-graph.ts`): habitaciones, items,
+  objetos (estados, `lockedBy`, `leadsTo`), puzzles (`requires`, `unlocks`, `grants`, recetas),
+  reglas como `when`/`if`/`then` (una línea por pieza) y aristas `[origen, relación, destino]`
+  (`requiere`, `desbloquea`, `otorga`, `lleva_a`, `dispara`, `condiciona`, `afecta`). Sin tiles,
+  sprites ni textos: una fracción de `get_room`.
+- **`get_puzzle({ roomId, puzzleId })`** — el puzzle, sus pistas y las reglas que lo referencian.
+- **`get_rules_for({ roomId, objectId })`** — reglas que disparan con el objeto, lo usan en una
+  condición o actúan sobre él: la consulta «reglas que lo tocan» del inspector (3.4,
+  `findRulesTouching`), la misma que ve el creador en el editor.
+
+Las consultas leen el doc del draft (`readDraftDoc`, misma autorización) con la serialización de
+3.1 y no exigen que el draft sea ya un RoomPackage completo; un id inexistente lista los
+disponibles.
+
 ## Estructura
 
 ```
 src/
 ├── server.ts             createCreatorMcpServer(deps): registra el toolset y la política común
 ├── tools/                un módulo por tool (esquema Zod + handler); index.ts = CREATOR_TOOLSET
-├── room-draft-reader.ts  draft (3.2) → doc Yjs → RoomPackage validado
+├── room-draft-reader.ts  draft (3.2) → doc Yjs (readDraftDoc) → RoomPackage validado
+├── room-graph.ts         buildRoomGraph: grafo compacto de get_room_graph (4.3)
 ├── draft-writer.ts       mutateDraft: transacción sobre el draft, enganche de 4.4 y commit (liveSync)
 ├── auth.ts               identidad: actorFromEnv (stdio), HttpAuthenticator (HTTP, enganche de 4.7)
 ├── transports/stdio.ts   runStdioServer(deps)
@@ -138,3 +163,8 @@ sustituto de la conversión de 3.1 que guarda el RoomPackage como JSON en el doc
 `roomDocToPackage` del draft resultante es un `RoomPackage` válido por esquema; además, los errores
 legibles, que un creador no toca el draft de otro, el enganche previo al commit y que un editor
 conectado al WebSocket de edición (3.3) ve la mutación al instante.
+
+`test/logic-toolset.test.ts` (4.3) siembra el Rey Aldric con `roomPackageToDoc`: el agente obtiene
+el grafo, añade una regla que aparece en `get_rules_for`, `get_room` y `roomDocToPackage`, y se
+comprueban los errores accionables (objeto, item, diálogo, puzzle o habitación inexistentes; ids
+repetidos) y que las vistas filtradas ocupan menos que `get_room`.

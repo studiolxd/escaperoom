@@ -53,6 +53,8 @@ const LISTING_BY_REASON: Partial<Record<RoomDocError["code"], DocListing>> = {
   UNKNOWN_ROOM: { label: "Habitaciones disponibles", collection: "subrooms" },
   UNKNOWN_OBJECT: { label: "Objetos disponibles", collection: "objects" },
   UNKNOWN_PUZZLE: { label: "Puzzles disponibles", collection: "puzzles" },
+  UNKNOWN_ITEM: { label: "Items disponibles", collection: "items" },
+  UNKNOWN_DIALOG: { label: "Diálogos disponibles", collection: "dialogs" },
 };
 
 /**

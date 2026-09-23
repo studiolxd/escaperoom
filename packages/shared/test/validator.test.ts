@@ -5,6 +5,7 @@ import { parseRoomPackage, type RoomPackage } from "../src/schemas";
 import {
   computeCodeClues,
   renderValidationReport,
+  ruleReferences,
   validateRoomPackage,
   type ValidationCheckId,
   type ValidationReport,
@@ -388,6 +389,32 @@ describe("validador — huérfanos, reglas y referencias", () => {
     expect(references.issues[0]!.message).toMatch(
       /^el objeto «salida-bodega» \(en rules\[r-rota\]\.trigger\) no existe\. Disponibles: \[altar, arca-candado, /u,
     );
+  });
+
+  it("ruleReferences lista cada id de una regla con su ruta (delay incluido)", () => {
+    expect(
+      ruleReferences({
+        id: "r-x",
+        priority: 0,
+        once: true,
+        trigger: { type: "on_use_item", objectId: "mural-ranura", itemId: "caliz-real" },
+        conditions: [{ type: "puzzle_state_is", puzzleId: "p-mural-vendimia", state: "solved" }],
+        actions: [
+          { type: "play_sound", soundId: "fx" },
+          { type: "delay", seconds: 1, actions: [{ type: "show_dialog", dialogId: "d-ranura" }] },
+        ],
+      }),
+    ).toEqual([
+      { kind: "object", id: "mural-ranura", field: "trigger", path: "trigger.objectId" },
+      { kind: "item", id: "caliz-real", field: "trigger", path: "trigger.itemId" },
+      {
+        kind: "puzzle",
+        id: "p-mural-vendimia",
+        field: "conditions",
+        path: "conditions[0].puzzleId",
+      },
+      { kind: "dialog", id: "d-ranura", field: "actions", path: "actions[1].actions[0].dialogId" },
+    ]);
   });
 
   it("marca la dificultad como fuera de rango si estimatedMinutes no encaja", () => {

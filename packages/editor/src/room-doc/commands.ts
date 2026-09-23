@@ -28,6 +28,8 @@ export type RoomDocErrorCode =
   | "INVALID_ID"
   | "REFERENCED_ID"
   | "UNKNOWN_PUZZLE"
+  | "UNKNOWN_ITEM"
+  | "UNKNOWN_DIALOG"
   | "UNKNOWN_LANGUAGE";
 
 export class RoomDocError extends Error {

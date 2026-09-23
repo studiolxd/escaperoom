@@ -1,4 +1,4 @@
-import type { PuzzleDefinition, RoomPackage, Rule } from "../schemas";
+import type { PuzzleDefinition, RoomPackage, Rule, RuleAction } from "../schemas";
 import { flattenActions, puzzleGrants, type RoomIndex } from "./model";
 import type { DoubleUseItem, ValidationIssue } from "./types";
 
@@ -13,6 +13,101 @@ import type { DoubleUseItem, ValidationIssue } from "./types";
 // ---------------------------------------------------------------------------
 
 type RefKind = "room" | "object" | "puzzle" | "item" | "dialog" | "hint";
+
+/** Entidad que una regla referencia por id (specs/05 §3). */
+export type RuleReferenceKind = Exclude<RefKind, "hint">;
+
+export interface RuleReference {
+  kind: RuleReferenceKind;
+  id: string;
+  /** Parte de la regla donde aparece. */
+  field: "trigger" | "conditions" | "actions";
+  /** Ruta exacta dentro de la regla (`actions[2].actions[0].objectId`). */
+  path: string;
+}
+
+/**
+ * Ids de habitaciones, objetos, puzzles, items y diálogos que usa una regla,
+ * en orden de aparición (trigger → condiciones → acciones, `delay` incluidos).
+ * Lo comparten la integridad referencial del validador, `add_rule` del MCP
+ * (4.3) y sus vistas filtradas: una sola lista de qué campo apunta a qué.
+ */
+export function ruleReferences(rule: Rule): RuleReference[] {
+  const refs: RuleReference[] = [];
+  const push = (
+    kind: RuleReferenceKind,
+    id: string,
+    field: RuleReference["field"],
+    path: string,
+  ): void => {
+    refs.push({ kind, id, field, path });
+  };
+
+  const trigger = rule.trigger;
+  switch (trigger.type) {
+    case "on_interact":
+      push("object", trigger.objectId, "trigger", "trigger.objectId");
+      break;
+    case "on_use_item":
+      push("object", trigger.objectId, "trigger", "trigger.objectId");
+      push("item", trigger.itemId, "trigger", "trigger.itemId");
+      break;
+    case "on_enter_room":
+      push("room", trigger.roomId, "trigger", "trigger.roomId");
+      break;
+    case "on_puzzle_solved":
+      push("puzzle", trigger.puzzleId, "trigger", "trigger.puzzleId");
+      break;
+    case "on_item_collected":
+      push("item", trigger.itemId, "trigger", "trigger.itemId");
+      break;
+    default:
+      break;
+  }
+
+  rule.conditions.forEach((condition, i) => {
+    const path = `conditions[${i}]`;
+    if (condition.type === "item_in_inventory") {
+      push("item", condition.itemId, "conditions", `${path}.itemId`);
+    }
+    if (condition.type === "puzzle_state_is") {
+      push("puzzle", condition.puzzleId, "conditions", `${path}.puzzleId`);
+    }
+    if (condition.type === "object_state_is") {
+      push("object", condition.objectId, "conditions", `${path}.objectId`);
+    }
+  });
+
+  const visit = (actions: readonly RuleAction[], prefix: string): void => {
+    actions.forEach((action, i) => {
+      const path = `${prefix}[${i}]`;
+      switch (action.type) {
+        case "set_object_state":
+        case "unlock_door":
+        case "reveal_number":
+          push("object", action.objectId, "actions", `${path}.objectId`);
+          break;
+        case "grant_item":
+        case "consume_item":
+          push("item", action.itemId, "actions", `${path}.itemId`);
+          break;
+        case "show_dialog":
+          push("dialog", action.dialogId, "actions", `${path}.dialogId`);
+          break;
+        case "open_panel_puzzle":
+          push("puzzle", action.puzzleId, "actions", `${path}.puzzleId`);
+          break;
+        case "delay":
+          visit(action.actions, `${path}.actions`);
+          break;
+        default:
+          break;
+      }
+    });
+  };
+  visit(rule.actions, "actions");
+  return refs;
+}
 
 const REF_LABEL: Record<RefKind, string> = {
   room: "la habitación",
@@ -156,59 +251,8 @@ export function checkReferences(pkg: RoomPackage): ValidationIssue[] {
   }
 
   for (const rule of pkg.rules) {
-    const where = `rules[${rule.id}]`;
-    const trigger = rule.trigger;
-    switch (trigger.type) {
-      case "on_interact":
-        ref("object", trigger.objectId, `${where}.trigger`);
-        break;
-      case "on_use_item":
-        ref("object", trigger.objectId, `${where}.trigger`);
-        ref("item", trigger.itemId, `${where}.trigger`);
-        break;
-      case "on_enter_room":
-        ref("room", trigger.roomId, `${where}.trigger`);
-        break;
-      case "on_puzzle_solved":
-        ref("puzzle", trigger.puzzleId, `${where}.trigger`);
-        break;
-      case "on_item_collected":
-        ref("item", trigger.itemId, `${where}.trigger`);
-        break;
-      default:
-        break;
-    }
-    for (const condition of rule.conditions) {
-      if (condition.type === "item_in_inventory") {
-        ref("item", condition.itemId, `${where}.conditions`);
-      }
-      if (condition.type === "puzzle_state_is") {
-        ref("puzzle", condition.puzzleId, `${where}.conditions`);
-      }
-      if (condition.type === "object_state_is") {
-        ref("object", condition.objectId, `${where}.conditions`);
-      }
-    }
-    for (const action of flattenActions(rule.actions)) {
-      switch (action.type) {
-        case "set_object_state":
-        case "unlock_door":
-        case "reveal_number":
-          ref("object", action.objectId, `${where}.actions`);
-          break;
-        case "grant_item":
-        case "consume_item":
-          ref("item", action.itemId, `${where}.actions`);
-          break;
-        case "show_dialog":
-          ref("dialog", action.dialogId, `${where}.actions`);
-          break;
-        case "open_panel_puzzle":
-          ref("puzzle", action.puzzleId, `${where}.actions`);
-          break;
-        default:
-          break;
-      }
+    for (const reference of ruleReferences(rule)) {
+      ref(reference.kind, reference.id, `rules[${rule.id}].${reference.field}`);
     }
   }
 

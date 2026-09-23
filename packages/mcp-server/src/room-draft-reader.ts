@@ -1,4 +1,10 @@
-import { formatRoomPackageError, safeParseRoomPackage, type RoomPackage } from "@escaperoom/shared/schemas";
+import { findRulesTouching, type RefKind } from "@escaperoom/editor/inspector";
+import {
+  formatRoomPackageError,
+  safeParseRoomPackage,
+  type RoomPackage,
+  type Rule,
+} from "@escaperoom/shared/schemas";
 import {
   buildDraftDoc,
   RoomDraftError,
@@ -19,6 +25,32 @@ export type DraftDoc = ReturnType<typeof buildDraftDoc>;
 export type RoomDocToPackage = (doc: DraftDoc) => unknown;
 
 /**
+ * Abre el doc Yjs del draft (con la autorización del servicio de 3.2), ejecuta
+ * `read` sobre él y lo libera. Base de las consultas filtradas (4.3), que leen
+ * el doc con los comandos de la sala sin exigir un RoomPackage completo.
+ */
+export async function readDraftDoc<T>(
+  deps: { drafts: RoomDraftService },
+  actor: Actor,
+  roomId: string,
+  read: (doc: DraftDoc) => T,
+): Promise<T> {
+  let draft;
+  try {
+    draft = await deps.drafts.loadDraft(actor, roomId);
+  } catch (error) {
+    if (error instanceof RoomDraftError) throw draftErrorToToolError(error);
+    throw error;
+  }
+  const doc = buildDraftDoc(draft);
+  try {
+    return read(doc);
+  } finally {
+    doc.destroy();
+  }
+}
+
+/**
  * Lee el draft de una sala como `RoomPackage` validado, pasando por el MISMO
  * servicio del draft que las rutas REST del editor (autorización incluida).
  */
@@ -33,20 +65,8 @@ export async function readDraftRoomPackage(
       "la conversión del doc Yjs a RoomPackage aún no está cableada en este servidor (ticket 3.1)",
     );
   }
-  let draft;
-  try {
-    draft = await deps.drafts.loadDraft(actor, roomId);
-  } catch (error) {
-    if (error instanceof RoomDraftError) throw draftErrorToToolError(error);
-    throw error;
-  }
-  const doc = buildDraftDoc(draft);
-  let raw: unknown;
-  try {
-    raw = deps.roomDocToPackage(doc);
-  } finally {
-    doc.destroy();
-  }
+  const toPackage = deps.roomDocToPackage;
+  const raw = await readDraftDoc(deps, actor, roomId, (doc) => toPackage(doc));
   const parsed = safeParseRoomPackage(raw);
   if (!parsed.success) {
     throw new ToolError(
@@ -68,4 +88,14 @@ export function draftErrorToToolError(error: RoomDraftError): ToolError {
     default:
       return new ToolError("INTERNAL", error.message);
   }
+}
+
+/**
+ * Reglas que tocan un elemento (en trigger, condiciones o acciones), en orden:
+ * «reglas que lo tocan» del inspector (3.4), la misma consulta que ve el
+ * creador en el editor.
+ */
+export function rulesTouching(rules: readonly Rule[], kind: RefKind, id: string): Rule[] {
+  const touched = new Set(findRulesTouching(rules, kind, id).map((touch) => touch.ruleId));
+  return rules.filter((rule) => touched.has(rule.id));
 }
