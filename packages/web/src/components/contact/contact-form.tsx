@@ -49,8 +49,6 @@ export function ContactForm() {
       </div>
 
       <Button type="submit">{t("submit")}</Button>
-
-      <p className="text-xs text-muted-foreground">{t("placeholderNotice")}</p>
     </form>
   );
 }
