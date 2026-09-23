@@ -37,9 +37,15 @@ export interface ConnectGateway {
     returnUrl: string;
   }): Promise<{ url: string }>;
   getAccountStatus(accountId: string): Promise<ConnectAccountStatus>;
+  /** Enlace de un solo uso al dashboard Express de la cuenta (solo con onboarding completo). */
+  createDashboardLink(accountId: string): Promise<{ url: string }>;
 }
 
-export type CreatorConnectErrorCode = "UNAUTHORIZED" | "NOT_FOUND" | "PAYMENT_GATEWAY_UNAVAILABLE";
+export type CreatorConnectErrorCode =
+  | "UNAUTHORIZED"
+  | "NOT_FOUND"
+  | "PAYMENT_GATEWAY_UNAVAILABLE"
+  | "ONBOARDING_NOT_COMPLETE";
 
 /** Error de dominio; los adaptadores lo traducen a HTTP/tRPC/MCP. */
 export class CreatorConnectError extends Error {
@@ -116,6 +122,29 @@ export function createCreatorConnectService(deps: {
       }
       return { status: await deps.connect.getAccountStatus(user.stripeAccountId) };
     },
+
+    /**
+     * `GET /api/me/stripe-connect/dashboard` — enlace de un solo uso al
+     * dashboard Express de Stripe, solo si el onboarding ya está completo
+     * (specs/02 §2).
+     */
+    async getDashboardLink(actor: Actor): Promise<{ url: string }> {
+      const user = await requireExistingUser(actor);
+      if (!user.stripeAccountId) {
+        throw new CreatorConnectError("ONBOARDING_NOT_COMPLETE", "Todavía no ha iniciado el onboarding");
+      }
+      if (!deps.connect) {
+        throw new CreatorConnectError(
+          "PAYMENT_GATEWAY_UNAVAILABLE",
+          "El dashboard de pagos todavía no está disponible",
+        );
+      }
+      const status = await deps.connect.getAccountStatus(user.stripeAccountId);
+      if (status !== "complete") {
+        throw new CreatorConnectError("ONBOARDING_NOT_COMPLETE", "El onboarding todavía no está completo");
+      }
+      return deps.connect.createDashboardLink(user.stripeAccountId);
+    },
   };
 }
 
@@ -156,6 +185,9 @@ export function createFakeConnectGateway(): ConnectGateway & { accounts: Map<str
     },
     async getAccountStatus(accountId) {
       return accounts.get(accountId) ?? "not_started";
+    },
+    async createDashboardLink(accountId) {
+      return { url: `https://connect.example.test/dashboard/${accountId}` };
     },
   };
 }

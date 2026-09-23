@@ -617,8 +617,11 @@ export function createEventService(deps: {
     },
 
     /**
-     * Marca el pago como hecho. Interna, sin actor: la invocará el webhook de
-     * Stripe de 5.1 tras verificar la firma. Idempotente.
+     * `checkout.session.completed` (`purchaseType: 'event_credits'`): marca el
+     * pago como hecho y, si el evento sigue en `draft`, lo activa en la misma
+     * escritura (specs/13 §7: "succeeded y llama a `activate` del evento").
+     * Interna, sin actor: la invoca el webhook de Stripe tras verificar la
+     * firma. Idempotente.
      */
     async markPaid(id: string): Promise<EventView> {
       const event = await findEvent(id);
@@ -628,6 +631,23 @@ export function createEventService(deps: {
           ...event.config,
           payment: { ...event.config.payment, status: "paid", paidAt: now().toISOString() },
         },
+        ...(event.status === "draft" ? { status: "active" as const } : {}),
+      });
+      return toEventView(updated ?? (await findEvent(id)));
+    },
+
+    /**
+     * `payment_intent.payment_failed` (`purchaseType: 'event_credits'`): libera
+     * el checkout abierto para que el organizador pueda reintentarlo. Interna,
+     * invocada por el webhook.
+     */
+    async markCheckoutFailed(id: string): Promise<EventView> {
+      const event = await findEvent(id);
+      if (event.config.payment.status !== "pending" || event.config.payment.checkoutRef === null) {
+        return toEventView(event);
+      }
+      const updated = await store.updateEvent(event.id, event.status, {
+        config: { ...event.config, payment: { ...event.config.payment, checkoutRef: null } },
       });
       return toEventView(updated ?? (await findEvent(id)));
     },

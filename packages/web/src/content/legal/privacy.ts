@@ -127,6 +127,11 @@ export const privacyPolicy: LegalDocument = {
         "Cloudflare R2 — almacenamiento de assets y grabaciones.",
         "LiveKit Cloud — solo si se activa como plan de contingencia para audio/vídeo en tránsito; " +
           "mientras el servicio se opere en modo self-hosted, este proveedor no interviene.",
+        "Plausible — analítica de producto planificada, no activa todavía; no usa cookies. Mientras " +
+          "no se active, este proveedor no interviene (véase la Política de Cookies).",
+        "Google Analytics — analítica de producto planificada, no activa todavía; usa cookies " +
+          "(`_ga`/`_ga_*`) y solo se cargaría con consentimiento previo. Mientras no se active, este " +
+          "proveedor no interviene (véase la Política de Cookies).",
       ],
     },
     {

@@ -307,10 +307,13 @@ describe("eventos — autoventa y pago", () => {
       "EVENT_NOT_EDITABLE",
     );
 
+    // El webhook de Stripe (5.1) llama a `markPaid` al confirmar el pago, que
+    // activa el evento en la misma escritura (specs/13 §7): no hace falta un
+    // `activate` explícito del organizador.
     const paid = await events.markPaid(event.id);
     expect(paid.config.payment.status).toBe("paid");
-    expect(paid.activatable).toBe(true);
-    expect((await events.activate(organizer, event.id)).status).toBe("active");
+    expect(paid.status).toBe("active");
+    await rejects(events.activate(organizer, event.id), "EVENT_NOT_EDITABLE");
   });
 
   it("sin pasarela cableada el checkout responde PAYMENT_GATEWAY_UNAVAILABLE", async () => {

@@ -1255,7 +1255,6 @@
     }
   },
   "Landing": {
-    "kicker": "EscapeRoom Creator",
     "heroTitle": "Create and play cooperative isometric escape rooms in the browser",
     "heroSubtitle": "Publish and monetize rooms without writing code — the editor IS the game engine — or build a whole room by chatting with an AI agent.",
     "ctaStartCreating": "Create your first room",

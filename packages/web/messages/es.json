@@ -1256,27 +1256,26 @@
     }
   },
   "Landing": {
-    "kicker": "EscapeRoom Creator",
-    "heroTitle": "Crea y juega escape rooms cooperativos en el navegador",
-    "heroSubtitle": "Publica y monetiza salas sin saber programar — el editor es el propio motor del juego — o crea una sala entera conversando con un agente IA.",
-    "ctaStartCreating": "Crea tu primera sala",
+    "heroTitle": "Crea y juega escape rooms online",
+    "heroSubtitle": "Escape rooms para resolver, individual o en equipo, desde el navegador. Diseña salas sin necesidad de programar.",
+    "ctaStartCreating": "Crea tu sala",
     "ctaBrowseCatalog": "Explorar salas",
     "valueProps": {
       "creator": {
         "title": "Para creadores",
-        "body": "Publica y monetiza salas sin saber programar; el editor es el propio motor del juego (WYSIWYG real) y el MCP te deja crear una sala entera describiéndola al chat."
+        "body": "Publica y monetiza salas sin necesidad de programar; ayúdate de tu asistente de IA (ChatGPT, Claude…) a través del MCP para crear salas describiéndolas."
       },
       "player": {
         "title": "Para jugadores",
-        "body": "Escape rooms cooperativos de 1 a 4 jugadores en el navegador, con voz y webcam, sin instalar nada."
+        "body": "Escape rooms para resolver, individual o en equipo, desde el navegador, con voz y webcam, sin instalar nada."
       },
       "teacher": {
         "title": "Para docentes",
-        "body": "Organiza partidas para tu clase, reparte claves de acceso y sigue el progreso de cada grupo sin salir del navegador."
+        "body": "Organiza partidas para tu clase, reparte claves de acceso y sigue el progreso de cada grupo desde el navegador."
       },
       "company": {
         "title": "Para empresas",
-        "body": "Compra por jugador con descuentos por tramos y monta dinámicas de equipo en remoto o presenciales, sin instalar nada."
+        "body": "Organiza una actividad diferente para tu equipo y trabaja soft skills como el trabajo cooperativo, desde el navegador, sin instalar nada. Descuentos por volumen."
       }
     }
   },
@@ -1343,7 +1342,9 @@
     "nav": {
       "terms": "Términos de Servicio",
       "privacy": "Política de Privacidad",
-      "dpa": "Plantilla de DPA"
+      "dpa": "Plantilla de DPA",
+      "legalNotice": "Aviso Legal",
+      "cookies": "Política de Cookies"
     },
     "terms": {
       "title": "Términos de Servicio (borrador)"
@@ -1353,6 +1354,12 @@
     },
     "dpa": {
       "title": "Plantilla de Contrato de Encargo de Tratamiento (DPA) (borrador)"
+    },
+    "legalNotice": {
+      "title": "Aviso Legal (borrador)"
+    },
+    "cookies": {
+      "title": "Política de Cookies (borrador)"
     }
   },
   "PublicNav": {
@@ -1372,5 +1379,41 @@
     "success": "¡Gracias! Hemos recibido tu mensaje y te responderemos pronto.",
     "sending": "Enviando…",
     "error": "No se ha podido enviar el mensaje. Inténtalo de nuevo."
+  },
+  "Checkout": {
+    "kinds": {
+      "room": "esta sala",
+      "room_license": "esta licencia",
+      "event_credits": "este evento",
+      "generic": "esta compra"
+    },
+    "success": {
+      "title": "Pago confirmado",
+      "description": "El pago de {kind} se ha completado correctamente.",
+      "cta": "Continuar"
+    },
+    "cancelled": {
+      "title": "Pago cancelado",
+      "description": "No se ha completado el pago de {kind}. No se te ha cobrado nada.",
+      "retryCta": "Intentarlo de nuevo",
+      "backCta": "Volver al catálogo"
+    }
+  },
+  "Payouts": {
+    "pageTitle": "Cobros",
+    "title": "Cuenta de cobros",
+    "description": "Gestiona cómo recibes el reparto de tus ventas, licencias y eventos.",
+    "loading": "Consultando el estado de tu cuenta…",
+    "loadError": "No se pudo consultar el estado de tu cuenta. Inténtalo de nuevo.",
+    "statusLabel": "Estado:",
+    "status": {
+      "not_started": "Sin iniciar",
+      "pending": "Pendiente de completar",
+      "complete": "Completo"
+    },
+    "startOnboarding": "Configurar cuenta de cobros",
+    "continueOnboarding": "Continuar configuración",
+    "openDashboard": "Abrir panel de Stripe",
+    "actionError": "No se pudo completar la acción. Inténtalo de nuevo."
   }
 }

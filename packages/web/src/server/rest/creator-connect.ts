@@ -16,6 +16,7 @@ const STATUS_BY_CODE: Record<CreatorConnectErrorCode, number> = {
   UNAUTHORIZED: 401,
   NOT_FOUND: 404,
   PAYMENT_GATEWAY_UNAVAILABLE: 501,
+  ONBOARDING_NOT_COMPLETE: 409,
 };
 
 const NO_STORE = { "Cache-Control": "no-store" };
@@ -58,6 +59,16 @@ export function createCreatorConnectHandlers(deps: CreatorConnectHandlerDeps) {
         deps.connect.authorize(actor);
         const { status } = await deps.connect.getStatus(actor);
         return Response.json({ status }, { headers: NO_STORE });
+      });
+    },
+
+    /** `GET /api/me/stripe-connect/dashboard` — enlace de un solo uso al dashboard Express. */
+    async getStripeConnectDashboard(request: Request): Promise<Response> {
+      return handle(async () => {
+        const actor = await deps.resolveActor(request);
+        deps.connect.authorize(actor);
+        const { url } = await deps.connect.getDashboardLink(actor);
+        return Response.json({ url }, { headers: NO_STORE });
       });
     },
   };

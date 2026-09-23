@@ -54,8 +54,13 @@ export function createStripePaymentGateway(stripe: Stripe): PaymentGateway {
           },
         ],
         metadata: { purchaseType: "event_credits", eventId: input.eventId, organizerId: input.organizerId },
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/events/${input.eventId}?checkout=success`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/events/${input.eventId}?checkout=cancelled`,
+        // `eventId` también en el PaymentIntent: `payment_intent.payment_failed`
+        // solo trae el PaymentIntent, no la Session que lo originó.
+        payment_intent_data: {
+          metadata: { purchaseType: "event_credits", eventId: input.eventId },
+        },
+        success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/es/checkout/confirmation?type=event_credits&status=success&eventId=${input.eventId}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/es/checkout/confirmation?type=event_credits&status=cancelled&eventId=${input.eventId}`,
       });
       return { checkoutRef: session.id, url: session.url ?? "" };
     },
@@ -74,8 +79,10 @@ export function createStripePaymentGateway(stripe: Stripe): PaymentGateway {
         ],
         metadata: { purchaseType: "room_license", purchaseId: input.purchaseId },
         payment_intent_data: { metadata: { purchaseType: "room_license", purchaseId: input.purchaseId } },
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/rooms/${input.roomId}?license=success`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/rooms/${input.roomId}?license=cancelled`,
+        // Igual que el resto de checkouts (specs/13 §5): la confirmación se
+        // sirve en `es` (`DEFAULT_LOCALE`), la pasarela no conoce el idioma.
+        success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/es/checkout/confirmation?type=room_license&status=success&roomId=${input.roomId}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/es/checkout/confirmation?type=room_license&status=cancelled&roomId=${input.roomId}`,
       });
       return { checkoutRef: session.id, url: session.url ?? "" };
     },
@@ -157,6 +164,10 @@ export function createStripeConnectGateway(stripe: Stripe): ConnectGateway {
       const account = await stripe.accounts.retrieve(accountId);
       if (account.details_submitted && account.payouts_enabled) return "complete";
       return "pending";
+    },
+    async createDashboardLink(accountId) {
+      const link = await stripe.accounts.createLoginLink(accountId);
+      return { url: link.url };
     },
   };
 }

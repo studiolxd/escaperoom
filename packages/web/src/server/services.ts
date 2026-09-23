@@ -322,16 +322,20 @@ export function getPublishConfirmationService(): PublishConfirmationService | nu
 
 /**
  * Eventos B2B/B2Edu (specs/02 §3, specs/13 §6.1) sobre Postgres. El precio sale
- * de los tramos de 3.12 (`snapshotAt`). `payments: null` hasta que 5.1 cablee
- * Stripe Checkout: mientras, `POST /api/events/:id/checkout` responde 501
- * `PAYMENT_GATEWAY_UNAVAILABLE` (la autoventa del autor no lo necesita).
+ * de los tramos de 3.12 (`snapshotAt`). Stripe Checkout (ticket 5.1): el
+ * cobro es 100 % plataforma (specs/02 §1), sin `Transfer` al creador de la
+ * sala. `payments: null` sin `STRIPE_SECRET_KEY`: `POST /api/events/:id/checkout`
+ * responde 501 `PAYMENT_GATEWAY_UNAVAILABLE` (la autoventa del autor no lo necesita).
  */
 export function getEventService(): EventService {
-  events ??= createEventService({
-    store: createPrismaEventStore(prisma),
-    pricing: getPricingTierService(),
-    payments: null,
-  });
+  if (!events) {
+    const stripe = getStripeClient();
+    events = createEventService({
+      store: createPrismaEventStore(prisma),
+      pricing: getPricingTierService(),
+      payments: stripe ? createStripePaymentGateway(stripe) : null,
+    });
+  }
   return events;
 }
 
@@ -391,16 +395,21 @@ export function getRedeemService(): RedeemService | null {
 /**
  * Licencias entre creadores (specs/02 §5, specs/13 §4) sobre Postgres. El fork
  * se siembra con `roomPackageToDoc` (3.1) a partir del `package` congelado.
- * `payments: null` hasta que 5.1 cablee Stripe (mismo puerto que eventos): una
- * licencia con precio responde 501 `PAYMENT_GATEWAY_UNAVAILABLE`; el regalo y
- * la licencia gratuita no lo necesitan.
+ * Reparto 70/30 al creador de origen vía `Transfer` (mismo puerto que la venta
+ * individual, ticket 5.1), resuelta en el webhook (`confirmLicensePayment`).
+ * `payments: null` sin `STRIPE_SECRET_KEY`: una licencia con precio responde
+ * 501 `PAYMENT_GATEWAY_UNAVAILABLE`; el regalo y la licencia gratuita no lo
+ * necesitan.
  */
 export function getRoomLicenseService(): RoomLicenseService {
-  roomLicenses ??= createRoomLicenseService({
-    store: createPrismaRoomLicenseStore(prisma),
-    buildDoc: (pkg) => roomPackageToDoc(pkg),
-    payments: null,
-  });
+  if (!roomLicenses) {
+    const stripe = getStripeClient();
+    roomLicenses = createRoomLicenseService({
+      store: createPrismaRoomLicenseStore(prisma),
+      buildDoc: (pkg) => roomPackageToDoc(pkg),
+      payments: stripe ? createStripePaymentGateway(stripe) : null,
+    });
+  }
   return roomLicenses;
 }
 

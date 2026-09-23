@@ -113,7 +113,17 @@ export const termsOfService: LegalDocument = {
       ],
     },
     {
-      heading: "9. Ley aplicable y jurisdicción",
+      heading: "9. Contrato de encargo de tratamiento (DPA)",
+      paragraphs: [
+        "El Contrato de Encargo de Tratamiento (DPA) forma parte de estas condiciones y se acepta " +
+          "junto con ellas, como anexo incorporado por referencia, para las organizaciones que lo " +
+          "necesiten. No hace falta una firma aparte de estos Términos de Servicio: el flujo " +
+          "específico de organizaciones B2B/Edu (ticket 5.11) ya implementa la aceptación separada del " +
+          "DPA cuando esa organización activa claves de acceso individuales con email.",
+      ],
+    },
+    {
+      heading: "10. Ley aplicable y jurisdicción",
       paragraphs: [
         "[PENDIENTE ASESORÍA LEGAL: confirmar la ley aplicable (previsiblemente España) y el alcance " +
           "geográfico inicial — specs/18 §1 deja pendiente confirmar si hay usuarios de otros países " +

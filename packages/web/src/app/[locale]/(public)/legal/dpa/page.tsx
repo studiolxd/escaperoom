@@ -31,6 +31,8 @@ export default async function DpaTemplatePage({ params }: Props) {
         { href: "/legal/terms", label: t("nav.terms") },
         { href: "/legal/privacy", label: t("nav.privacy") },
         { href: "/legal/dpa", label: t("nav.dpa") },
+        { href: "/legal/legal-notice", label: t("nav.legalNotice") },
+        { href: "/legal/cookies", label: t("nav.cookies") },
       ]}
     />
   );
