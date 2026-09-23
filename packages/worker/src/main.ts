@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { createQueueRedis } from "@escaperoom/kit/redis";
 import { logger } from "@escaperoom/kit/logger";
+import { initNodeSentry } from "@escaperoom/kit/observability/sentry-node";
 import { storage } from "@escaperoom/kit/storage";
 import { createPrismaPartitionMaintenanceDb } from "@escaperoom/shared/analytics";
 import { prisma } from "@escaperoom/shared/db";
@@ -40,6 +41,9 @@ function loadLocalEnv(): void {
 
 async function main(): Promise<void> {
   loadLocalEnv();
+
+  // Sentry (ticket 6.4): sin SENTRY_DSN queda deshabilitado, sin romper nada.
+  initNodeSentry({ dsn: process.env.SENTRY_DSN });
 
   if (!process.env.REDIS_URL) {
     // Sin Redis no hay cola que consumir. En vez de tumbar el proceso (rompería
