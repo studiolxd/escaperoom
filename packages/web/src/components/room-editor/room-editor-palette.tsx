@@ -19,8 +19,9 @@ export interface RoomEditorPaletteProps {
 
 /**
  * Palette del editor (specs/09 §4.1): catálogo estático del pack (tiles y
- * sprites de objetos). No conoce el estado de la sala salvo el contador de
- * objetos colocados, derivado del doc.
+ * sprites). Un sprite se coloca como objeto (herramienta «Colocar») o, con la
+ * herramienta «Decorar», como decoración de la habitación. No conoce el estado
+ * de la sala salvo el contador de objetos colocados, derivado del doc.
  */
 export function RoomEditorPalette({
   palette,
@@ -34,6 +35,7 @@ export function RoomEditorPalette({
   const t = useTranslations("RoomEditor");
   const placed = new Map<string, number>();
   for (const object of objects) placed.set(object.sprite, (placed.get(object.sprite) ?? 0) + 1);
+  const decorating = tool === "decorate";
   const paintsTiles = tool === "brush" || tool === "fill";
 
   return (
@@ -70,13 +72,25 @@ export function RoomEditorPalette({
         })}
       </ul>
 
-      <h2 className="mb-2 text-sm font-semibold">{t("palette.objects")}</h2>
+      <h2 className="mb-2 text-sm font-semibold">
+        {t(decorating ? "palette.decorations" : "palette.objects")}
+      </h2>
+      <p
+        className="mb-2 text-xs text-white/50"
+        data-palette-mode={decorating ? "decorate" : "place"}
+      >
+        {decorating
+          ? sprite
+            ? t("palette.decorateHint", { sprite })
+            : t("palette.decoratePick")
+          : t("palette.placeHint")}
+      </p>
       {palette.sprites.length === 0 ? (
         <p className="text-xs text-white/50">{t("palette.empty")}</p>
       ) : (
         <ul className="grid grid-cols-2 gap-1.5" data-palette="objects">
           {palette.sprites.map((entry) => {
-            const active = tool === "place" && entry.sprite === sprite;
+            const active = (tool === "place" || decorating) && entry.sprite === sprite;
             const count = placed.get(entry.sprite) ?? 0;
             return (
               <li key={entry.sprite}>
@@ -84,9 +98,11 @@ export function RoomEditorPalette({
                   type="button"
                   className={cn(
                     "flex w-full flex-col items-center rounded border p-1 text-[10px] text-white/70",
-                    active
-                      ? "border-amber-400 bg-amber-400/15"
-                      : "border-white/10 hover:border-white/30",
+                    active && decorating
+                      ? "border-emerald-400 bg-emerald-400/15"
+                      : active
+                        ? "border-amber-400 bg-amber-400/15"
+                        : "border-white/10 hover:border-white/30",
                   )}
                   aria-pressed={active}
                   onClick={() => onSelectSprite(entry.sprite)}

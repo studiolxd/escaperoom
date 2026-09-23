@@ -4,6 +4,7 @@ import { addObjectTool } from "./add-object";
 import { addPuzzleTool } from "./add-puzzle";
 import { addRuleTool } from "./add-rule";
 import { createRoomTool } from "./create-room";
+import { decorateSubroomTool } from "./decorate-subroom";
 import type { CreatorTool } from "./define";
 import { defineItemTool } from "./define-item";
 import { defineSubroomsTool } from "./define-subrooms";
@@ -34,6 +35,7 @@ export const CREATOR_TOOLSET: readonly CreatorTool[] = [
   defineSubroomsTool,
   // Fase B — Contenido
   addObjectTool,
+  decorateSubroomTool,
   defineItemTool,
   addPuzzleTool,
   addDialogTool,

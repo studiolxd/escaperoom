@@ -4,7 +4,9 @@ import { join } from "node:path";
 import {
   EditToolController,
   placeObject,
+  roomDocToPackage,
   roomPackageToDoc,
+  setAmbientLight,
   type EditToolController as Controller,
 } from "@escaperoom/editor";
 import { loadRoomPackage, type EditorPalette } from "@escaperoom/game-runtime";
@@ -94,14 +96,22 @@ describe("<RoomEditorWorkspace> — render", () => {
 
     expect(html).toContain("La Maldición del Rey Aldric");
     expect(html).toContain("Guardado automático");
-    for (const tool of ["Seleccionar", "Pincel", "Relleno", "Borrador", "Colocar"]) {
+    for (const tool of [
+      "Seleccionar",
+      "Pincel",
+      "Relleno",
+      "Borrador",
+      "Colocar",
+      "Decorar",
+      "Antorcha",
+    ]) {
       expect(html).toContain(tool);
     }
     for (const layer of ["Suelo", "Muro", "Decoración"]) expect(html).toContain(layer);
     for (const room of fixture.map.rooms) expect(html).toContain(room.name);
     expect(html).toContain('aria-current="page"');
     expect(count(html, 'data-palette="tiles"')).toBe(1);
-    expect(count(html, "data-tool=")).toBe(5);
+    expect(count(html, "data-tool=")).toBe(7);
     expect(html).toContain("/packs/medieval-v1/sprites/trono.svg");
     // Contador derivado del doc: el trono ya está colocado una vez.
     expect(html).toContain("1 colocado");
@@ -175,6 +185,87 @@ describe("<RoomEditorWorkspace> — render", () => {
     expect(controller.getState().selectedObjectId).toBe("barriles-trono");
     const objects = doc.getMap("objects");
     expect(objects.has("barriles-trono")).toBe(true);
+  });
+});
+
+describe("<RoomEditorWorkspace> — decoración e iluminación de la habitación", () => {
+  it("el panel de la sala lista decoración, antorchas y luz ambiente del doc", () => {
+    const { doc, controller, palette } = setup();
+    const html = render(
+      createElement(RoomEditorWorkspace, { doc, controller, palette, status: "local" }),
+    );
+    const salon = fixture.map.rooms[0]!;
+    expect(html).toContain('data-room-panel="salon-trono"');
+    expect(html).toContain(`Habitación «${salon.name}»`);
+    expect(count(html, "data-decoration=")).toBe(salon.decorations.length);
+    // Antorcha del brasero: celda y objeto que la gobierna.
+    expect(count(html, "data-torch=")).toBe(1);
+    expect(html).toMatch(/<option value="brasero" selected="">brasero<\/option>/);
+    expect(html).toContain('value="#3a2f22"');
+    expect(html).toContain("data-ambient-light");
+    expect(html).toContain("Quitar luz ambiente");
+    // Modo «Colocar» por defecto en la palette.
+    expect(html).toContain('data-palette-mode="place"');
+  });
+
+  it("las herramientas Decorar y Antorcha escriben en el doc y el panel lo refleja", () => {
+    const { doc, controller, palette } = setup();
+    let canvas: RoomEditorCanvasProps | undefined;
+    const workspace = () =>
+      createElement(RoomEditorWorkspace, {
+        doc,
+        controller,
+        palette,
+        status: "local",
+        renderCanvas: (props: RoomEditorCanvasProps) => {
+          canvas = props;
+          return null;
+        },
+      });
+    render(workspace());
+    const pointer = (x: number, y: number, objectId?: string) =>
+      canvas?.onPointer({
+        type: "pointer",
+        phase: "down",
+        cell: { x, y },
+        inside: true,
+        roomId: "salon-trono",
+        ...(objectId ? { objectId } : {}),
+      });
+
+    controller.selectDecorationSprite("barriles");
+    pointer(8, 8);
+    controller.setTool("torch");
+    pointer(3, 3);
+
+    const salon = roomDocToPackage(doc).map.rooms[0]!;
+    expect(salon.decorations.at(-1)).toEqual({ sprite: "barriles", x: 8, y: 8 });
+    expect(salon.lighting.at(-1)).toEqual({ type: "torch", x: 3, y: 3 });
+    expect(roomDocToPackage(doc).objects).toHaveLength(fixture.objects.length);
+    // El lienzo recibe la decoración nueva por el modelo del runtime.
+    const html = render(workspace());
+    expect(canvas?.model.subroomsById["salon-trono"]?.decorations).toContainEqual({
+      sprite: "barriles",
+      x: 8,
+      y: 8,
+    });
+    expect(count(html, "data-decoration=")).toBe(fixture.map.rooms[0]!.decorations.length + 1);
+    expect(count(html, "data-torch=")).toBe(2);
+  });
+
+  it("en modo Decorar la palette lo indica y una habitación sin luces ofrece añadirlas", () => {
+    const { doc, controller, palette } = setup();
+    setAmbientLight(doc, "bodega", null);
+    controller.setRoom("bodega");
+    controller.selectDecorationSprite("barriles");
+    const html = render(
+      createElement(RoomEditorWorkspace, { doc, controller, palette, status: "local" }),
+    );
+    expect(html).toContain('data-palette-mode="decorate"');
+    expect(html).toContain("Haz clic en el lienzo para colocar «barriles» como decoración.");
+    expect(html).toContain('data-room-panel="bodega"');
+    expect(html).toContain("Añadir luz ambiente");
+    expect(html).not.toContain("data-ambient-light");
   });
 });
 

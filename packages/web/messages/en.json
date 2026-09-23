@@ -481,7 +481,9 @@
       "brush": "Brush",
       "fill": "Fill",
       "eraser": "Eraser",
-      "place": "Place"
+      "place": "Place",
+      "decorate": "Decorate",
+      "torch": "Torch"
     },
     "layers": {
       "label": "Layer",
@@ -499,7 +501,11 @@
       "objects": "Objects",
       "tileTitle": "Tile {tileId} · {layer}",
       "placed": "{count, plural, one {# placed} other {# placed}}",
-      "empty": "This pack has no objects."
+      "empty": "This pack has no objects.",
+      "decorations": "Decoration",
+      "placeHint": "Pick a sprite to place it as an interactive object.",
+      "decoratePick": "Pick a sprite to place it as decoration.",
+      "decorateHint": "Click on the canvas to place “{sprite}” as decoration."
     },
     "selection": {
       "title": "Selection",
@@ -520,12 +526,37 @@
       "OUT_OF_BOUNDS": "That cell is outside the room.",
       "DUPLICATE_ID": "Something already uses that ID.",
       "INVALID_ID": "Use only lowercase letters, digits and hyphens (e.g. throne-chest).",
-      "REFERENCED_ID": "That object is already used by rules or puzzles; rename it from the inspector."
+      "REFERENCED_ID": "That object is already used by rules or puzzles; rename it from the inspector.",
+      "UNKNOWN_DECORATION": "That decoration no longer exists.",
+      "UNKNOWN_LIGHT": "That light no longer exists.",
+      "INVALID_VALUE": "Invalid value: colour is #rrggbb and intensity goes from 0 to 1."
     },
     "canvas": {
       "label": "View",
       "map": "Map",
       "rules": "Rules"
+    },
+    "roomPanel": {
+      "title": "Room “{room}”",
+      "decorations": "Decoration",
+      "decorationsEmpty": "No decoration.",
+      "decorationsHint": "Use the Decorate tool and pick a sprite from the palette to place more.",
+      "sprite": "Sprite",
+      "x": "Column",
+      "y": "Row",
+      "removeDecoration": "Remove decoration “{sprite}”",
+      "lighting": "Lighting",
+      "ambient": "Ambient light",
+      "color": "Ambient light colour",
+      "intensity": "Intensity",
+      "removeAmbient": "Remove ambient light",
+      "addAmbient": "Add ambient light",
+      "torches": "Torches",
+      "torchesEmpty": "No torches.",
+      "torchesHint": "Use the Torch tool: placed on an object, the torch turns on and off with it.",
+      "governedBy": "Object that controls it",
+      "noObject": "Always lit",
+      "removeTorch": "Remove torch"
     }
   },
   "Inspector": {

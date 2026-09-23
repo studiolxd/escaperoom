@@ -450,7 +450,9 @@
       "brush": "Pincel",
       "fill": "Preencher",
       "eraser": "Borracha",
-      "place": "Colocar"
+      "place": "Colocar",
+      "decorate": "Decorar",
+      "torch": "Tocha"
     },
     "layers": {
       "label": "Camada",
@@ -468,7 +470,11 @@
       "objects": "Objetos",
       "tileTitle": "Tile {tileId} · {layer}",
       "placed": "{count, plural, one {# colocado} other {# colocados}}",
-      "empty": "Este pack não tem objetos."
+      "empty": "Este pack não tem objetos.",
+      "decorations": "Decoração",
+      "placeHint": "Escolhe um sprite para o colocar como objeto interativo.",
+      "decoratePick": "Escolhe um sprite para o colocar como decoração.",
+      "decorateHint": "Clica na tela para colocar «{sprite}» como decoração."
     },
     "selection": {
       "title": "Seleção",
@@ -489,12 +495,37 @@
       "OUT_OF_BOUNDS": "Essa célula está fora da divisão.",
       "DUPLICATE_ID": "Esse ID já está em uso.",
       "INVALID_ID": "Usa apenas minúsculas, números e hífenes (p. ex. arca-trono).",
-      "REFERENCED_ID": "Esse objeto já é usado em regras ou puzzles; muda-lhe o ID a partir do inspetor."
+      "REFERENCED_ID": "Esse objeto já é usado em regras ou puzzles; muda-lhe o ID a partir do inspetor.",
+      "UNKNOWN_DECORATION": "Essa decoração já não existe.",
+      "UNKNOWN_LIGHT": "Essa luz já não existe.",
+      "INVALID_VALUE": "Valor inválido: a cor é #rrggbb e a intensidade vai de 0 a 1."
     },
     "canvas": {
       "label": "Vista",
       "map": "Mapa",
       "rules": "Regras"
+    },
+    "roomPanel": {
+      "title": "Divisão «{room}»",
+      "decorations": "Decoração",
+      "decorationsEmpty": "Sem decoração.",
+      "decorationsHint": "Usa a ferramenta Decorar e escolhe um sprite da paleta para colocar mais.",
+      "sprite": "Sprite",
+      "x": "Coluna",
+      "y": "Linha",
+      "removeDecoration": "Remover decoração «{sprite}»",
+      "lighting": "Iluminação",
+      "ambient": "Luz ambiente",
+      "color": "Cor da luz ambiente",
+      "intensity": "Intensidade",
+      "removeAmbient": "Remover luz ambiente",
+      "addAmbient": "Adicionar luz ambiente",
+      "torches": "Tochas",
+      "torchesEmpty": "Sem tochas.",
+      "torchesHint": "Usa a ferramenta Tocha: colocada sobre um objeto, a tocha acende-se e apaga-se com ele.",
+      "governedBy": "Objeto que a controla",
+      "noObject": "Sempre acesa",
+      "removeTorch": "Remover tocha"
     }
   },
   "Inspector": {

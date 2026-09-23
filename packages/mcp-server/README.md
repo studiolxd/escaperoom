@@ -15,6 +15,7 @@ sobre un draft reciben `roomId` (el mismo `:roomId` de `/api/rooms/:roomId/draft
 | --- | --- | --- |
 | A — Estructura | `create_room`, `set_map`, `paint_tiles`, `define_subrooms` | **implementadas** (4.2) |
 | B — Contenido | `add_object`, `define_item`, `add_puzzle`, `add_dialog`, `add_hint` | **implementadas** (4.2) |
+| B — Contenido | `decorate_subroom` | **implementada** (paridad de 4.8): decoración e iluminación por habitación |
 | C — Lógica | `add_rule`, `get_room_graph` | **implementadas** (4.3) |
 | D — Verificación | `validate` | **implementada** (validador de 2.9; checklist de publicación en 4.5) |
 | D — Verificación | `preview`, `publish` | **implementadas** (4.5): playtest de 3.8 y publicación con confirmación humana |
@@ -97,6 +98,15 @@ editor con la sala abierta lo recibe al reconectar (los updates Yjs conmutan; no
 coordenadas de objetos y tiles son locales a ella. `define_subrooms` crea/redimensiona habitaciones
 (`bounds.w × bounds.h`; `bounds.x/y` no se guardan) y `set_map` fija el tileset y, opcionalmente,
 tamaño y capas (RLE) de las habitaciones indicadas (por defecto, todas las definidas).
+
+**Decoración e iluminación.** `decorate_subroom({ subroomId, decorations?, lighting? })` fija
+`SubRoom.decorations` (sprites sin interacción en celdas de la habitación) y `SubRoom.lighting`
+(antorchas `{type: 'torch', x, y, objectId?}` y luz ambiente `{type: 'ambient', color: '#rrggbb',
+intensity: 0–1}`) con los mismos comandos de `room-doc` que las herramientas «Decorar»/«Antorcha» y
+el panel de la habitación del editor (`setDecorations`, `setLighting` de `room-doc/decor.ts`). Es
+declarativa: cada lista enviada sustituye a la actual en ese orden (el formato no da id a estas
+entradas, así que el agente no razona con índices) y la omitida no se toca. Va en la fase B y no en
+`define_subrooms` porque una antorcha gobernada por un objeto necesita que el objeto exista.
 
 `create_room` da de alta la sala con `RoomDraftService.createDraft` (fila `room` en `draft` del
 creador + update inicial con la metadata).
@@ -343,7 +353,7 @@ repetidos) y que las vistas filtradas ocupan menos que `get_room`.
 `test/mcp-parity.spec.ts` (specs/22 §3.3) es la prueba determinista de "todo lo que el editor visual
 puede hacer, el MCP puede hacerlo": un cliente del SDK construye **el Rey Aldric entero** solo con el
 toolset (`create_room`, `define_subrooms`, `set_map`, `paint_tiles`, `define_item`, `add_dialog`,
-`add_object`, `add_puzzle`, `add_hint`, `add_rule`), siguiendo el guion de
+`add_object`, `add_puzzle`, `add_hint`, `add_rule`, `decorate_subroom`), siguiendo el guion de
 `test/fixtures/aldric-script.ts`, que envía cada entidad tal cual está en
 `docs/reference/roompackage-rey-aldric.v1.json`. Después comprueba que `validate` está en verde y
 publicable, que el validador da la sala solvable para 1–4 jugadores con **la misma ruta crítica** (16
@@ -368,7 +378,10 @@ Diferencias no semánticas que el test normaliza (y comprueba aparte):
 | --- | --- |
 | `meta.id`, `meta.authorId`, `meta.version` | Los asigna la plataforma (id del draft, actor de `create_room`, semver de la publicación). |
 | Orden de `objects`, `items`, `puzzles`, `rules`, `dialogs`, `hints` | El doc conserva el orden de alta (el de juego). Se compara por id; el único orden con semántica —el desempate por posición entre reglas del mismo disparador y prioridad (`r-caliz-en-ranura` antes que `r-recoger-caliz`)— se comprueba explícitamente. |
-| `map.rooms[].decorations`, `map.rooms[].lighting` | Hueco **compartido con el editor visual**: ningún comando de `room-doc` los escribe (ni el editor ni el MCP), así que una sala hecha en cualquiera de los dos los tiene vacíos. Son cosméticos: ni el validador ni la ruta crítica los usan. |
+
+`map.rooms[].decorations` y `map.rooms[].lighting` ya **no** se normalizan: el guion los construye con
+`decorate_subroom` (al final, cuando existen los objetos que gobiernan antorchas, como el `brasero`) y
+se comparan byte a byte y en orden con el fixture.
 
 **Variante por chat con un LLM real (nightly, no determinista).** La fila 4.8 del plan pide también
 construir la sala "por chat". Esa variante necesita el proveedor del chat web (4.6), que aún no está

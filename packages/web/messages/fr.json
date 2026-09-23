@@ -450,7 +450,9 @@
       "brush": "Pinceau",
       "fill": "Remplissage",
       "eraser": "Gomme",
-      "place": "Placer"
+      "place": "Placer",
+      "decorate": "Décorer",
+      "torch": "Torche"
     },
     "layers": {
       "label": "Calque",
@@ -468,7 +470,11 @@
       "objects": "Objets",
       "tileTitle": "Tuile {tileId} · {layer}",
       "placed": "{count, plural, one {# placé} other {# placés}}",
-      "empty": "Ce pack n’a pas d’objets."
+      "empty": "Ce pack n’a pas d’objets.",
+      "decorations": "Décoration",
+      "placeHint": "Choisissez un sprite pour le placer comme objet interactif.",
+      "decoratePick": "Choisissez un sprite pour le placer comme décoration.",
+      "decorateHint": "Cliquez sur le canevas pour placer « {sprite} » comme décoration."
     },
     "selection": {
       "title": "Sélection",
@@ -489,12 +495,37 @@
       "OUT_OF_BOUNDS": "Cette case est hors de la pièce.",
       "DUPLICATE_ID": "Cet ID est déjà utilisé.",
       "INVALID_ID": "Utilisez uniquement des minuscules, des chiffres et des tirets (ex. coffre-trone).",
-      "REFERENCED_ID": "Cet objet est déjà utilisé par des règles ou des puzzles ; renommez-le depuis l’inspecteur."
+      "REFERENCED_ID": "Cet objet est déjà utilisé par des règles ou des puzzles ; renommez-le depuis l’inspecteur.",
+      "UNKNOWN_DECORATION": "Cette décoration n’existe plus.",
+      "UNKNOWN_LIGHT": "Cette lumière n’existe plus.",
+      "INVALID_VALUE": "Valeur non valide : la couleur est #rrggbb et l’intensité va de 0 à 1."
     },
     "canvas": {
       "label": "Vue",
       "map": "Carte",
       "rules": "Règles"
+    },
+    "roomPanel": {
+      "title": "Pièce « {room} »",
+      "decorations": "Décoration",
+      "decorationsEmpty": "Aucune décoration.",
+      "decorationsHint": "Utilisez l’outil Décorer et choisissez un sprite dans la palette pour en placer d’autres.",
+      "sprite": "Sprite",
+      "x": "Colonne",
+      "y": "Ligne",
+      "removeDecoration": "Retirer la décoration « {sprite} »",
+      "lighting": "Éclairage",
+      "ambient": "Lumière ambiante",
+      "color": "Couleur de la lumière ambiante",
+      "intensity": "Intensité",
+      "removeAmbient": "Retirer la lumière ambiante",
+      "addAmbient": "Ajouter une lumière ambiante",
+      "torches": "Torches",
+      "torchesEmpty": "Aucune torche.",
+      "torchesHint": "Utilisez l’outil Torche : posée sur un objet, la torche s’allume et s’éteint avec lui.",
+      "governedBy": "Objet qui la contrôle",
+      "noObject": "Toujours allumée",
+      "removeTorch": "Retirer la torche"
     }
   },
   "Inspector": {

@@ -191,6 +191,16 @@ export function aldricScript(pkg: RoomPackage): {
     for (const id of ["hint-sello-1", "hint-sello-2", "hint-sello-3"]) hint(id);
     object("relicario");
     puzzle("p-sello-final", true);
+    // ── Decoración e iluminación de cada habitación ───────────────────────
+    // Al final: las antorchas gobernadas por un objeto (la del brasero) lo
+    // necesitan ya dado de alta.
+    for (const room of pkg.map.rooms) {
+      push("decorate_subroom", `decoración y luces ${room.id}`, {
+        subroomId: room.id,
+        decorations: structuredClone(room.decorations),
+        lighting: structuredClone(room.lighting),
+      });
+    }
     // ── Fase C — victoria y reloj ─────────────────────────────────────────
     rule("r-sello-resuelto");
     rule("r-aviso-10min");

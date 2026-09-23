@@ -6,6 +6,7 @@ export * from "./tiles";
 export * from "./doc-model";
 export * from "./serialize";
 export * from "./commands";
+export * from "./decor";
 export * from "./content";
 export * from "./logic";
 export * from "./tool-controller";

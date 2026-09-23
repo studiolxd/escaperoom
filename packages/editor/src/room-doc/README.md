@@ -10,6 +10,7 @@ comandos de las herramientas del modo edición (`docs/specs/09-editor-de-salas.m
 | `serialize.ts`        | `roomPackageToDoc`, `roomDocToPackage` (puras) y `observeRoomDoc` (un aviso por transacción).        |
 | `commands.ts`         | `paintTiles`, `fillTiles`, `eraseTiles`, `placeObject`, `addObject`, `moveObject`, `renameObject`, `writeRoomMeta`, `initRoomDoc`… |
 | `content.ts`          | Estructura y contenido (4.2, MCP): `defineSubRooms`, `setSubRoomGrid`, `setTileset`, `defineItem`, `addPuzzle`, `addDialog`, `addHint`. |
+| `decor.ts`            | Decoración e iluminación de una habitación (`addDecoration`, `moveDecoration`, `addTorch`, `updateTorch`, `setAmbientLight`…) y las declarativas `setDecorations`/`setLighting` (MCP `decorate_subroom`). |
 | `logic.ts`            | Lógica (4.3, MCP): `addRule` (referencias comprobadas, sobre el mapa `rules` de 3.6), `proposeRuleId`. |
 | `tool-controller.ts`  | `EditToolController`: eventos de puntero del runtime (`mode: 'edit'`) → comandos sobre el doc.       |
 | `use-room-package.ts` | `useRoomPackage(doc)`: la sala como `RoomPackage` en estado React.                                   |
@@ -50,3 +51,10 @@ solo toca el doc al soltar (mientras tanto el runtime pinta una previsualizació
 objeto referenciado por reglas o puzzles se rechaza (`REFERENCED_ID`): para eso está
 `renameElement` del inspector (3.4, `inspector/rename.ts`), que reescribe todas las referencias en
 la misma transacción.
+
+«Decorar» coloca el sprite elegido en la palette como **decoración** de la habitación
+(`SubRoom.decorations`, sin id ni interacción) y «Antorcha» añade una antorcha en la celda; si se
+pulsa sobre un objeto, la antorcha queda gobernada por él (`objectId`, specs/04 §3.4). Las entradas
+de `decorations` y `lighting` no tienen id en el formato y se direccionan por su índice; el panel de
+la habitación del editor (web) las mueve, cambia y quita, y fija la luz ambiente, con los comandos
+de `decor.ts`.

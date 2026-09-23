@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
 import { RoomEditorPalette } from "./room-editor-palette";
+import { RoomEditorRoomPanel } from "./room-editor-room-panel";
 
 /** Botón secundario legible sobre el fondo oscuro del editor. */
 const QUIET_BUTTON = "border border-white/15 text-white hover:bg-white/10";
@@ -131,6 +132,7 @@ export function RoomEditorWorkspace({
   }, [controller, showRules]);
 
   const selected = pkg.objects.find((object) => object.id === tools.selectedObjectId);
+  const activeRoom = pkg.map.rooms.find((room) => room.id === activeRoomId);
   const onPointer = (event: EditPointerEvent) => controller.pointer(event);
 
   return (
@@ -308,6 +310,17 @@ export function RoomEditorWorkspace({
               </div>
             </>
           )}
+          {activeRoom && (
+            <div className="mt-4 border-t border-white/10 pt-3">
+              <RoomEditorRoomPanel
+                doc={doc}
+                room={activeRoom}
+                objects={pkg.objects.filter((object) => object.roomId === activeRoom.id)}
+                sprites={palette.sprites.map((entry) => entry.sprite)}
+                errorText={(error) => errorText(t, error)}
+              />
+            </div>
+          )}
           {validation && <div className="mt-4 border-t border-white/10 pt-3">{validation}</div>}
         </aside>
       </div>
@@ -324,6 +337,9 @@ const ERROR_CODES = [
   "DUPLICATE_ID",
   "INVALID_ID",
   "REFERENCED_ID",
+  "UNKNOWN_DECORATION",
+  "UNKNOWN_LIGHT",
+  "INVALID_VALUE",
 ] as const;
 
 function errorText(t: Translator, error: ToolError): string {

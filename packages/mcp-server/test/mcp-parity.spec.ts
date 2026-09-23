@@ -110,18 +110,15 @@ const byId = <T extends { id: string }>(list: readonly T[]): T[] =>
  *   Las entradas se comparan por id; el único orden con semántica (el
  *   desempate entre reglas del mismo disparador con la misma prioridad, que
  *   el motor resuelve por posición) se comprueba aparte.
- * - `map.rooms[].decorations` y `map.rooms[].lighting`: hueco COMPARTIDO con el
- *   editor visual — ningún comando de `room-doc` (y por tanto ni el editor ni
- *   el MCP) los escribe hoy; son cosméticos (el validador y la ruta no los
- *   usan). Se comprueba aparte que el MCP los deja vacíos, como el editor.
+ *
+ * `map.rooms[].decorations` y `map.rooms[].lighting` NO se normalizan: los
+ * escribe `decorate_subroom` con los mismos comandos de `room-doc` que usa el
+ * editor (herramientas «Decorar»/«Antorcha» y panel de la sala).
  */
 function normalize(pkg: RoomPackage): unknown {
   return {
     meta: { ...pkg.meta, id: "<plataforma>", authorId: "<plataforma>", version: "<plataforma>" },
-    map: {
-      ...pkg.map,
-      rooms: pkg.map.rooms.map((room) => ({ ...room, decorations: [], lighting: [] })),
-    },
+    map: pkg.map,
     objects: byId(pkg.objects),
     items: byId(pkg.items),
     puzzles: byId(pkg.puzzles),
@@ -152,6 +149,7 @@ describe("paridad editor ↔ MCP: el Rey Aldric construido por MCP (4.8)", () =>
         "add_puzzle",
         "add_rule",
         "create_room",
+        "decorate_subroom",
         "define_item",
         "define_subrooms",
         "paint_tiles",
@@ -167,6 +165,12 @@ describe("paridad editor ↔ MCP: el Rey Aldric construido por MCP (4.8)", () =>
     expect(sent("add_rule", "rule")).toEqual(expect.arrayContaining(aldric.rules));
     expect(sent("add_dialog", "dialog")).toEqual(expect.arrayContaining(aldric.dialogs));
     expect(sent("add_hint", "hint")).toEqual(expect.arrayContaining(aldric.hints));
+    expect(sent("decorate_subroom", "decorations")).toEqual(
+      aldric.map.rooms.map((room) => room.decorations),
+    );
+    expect(sent("decorate_subroom", "lighting")).toEqual(
+      aldric.map.rooms.map((room) => room.lighting),
+    );
   });
 
   it("validate por MCP la da en verde y publicable", async () => {
@@ -226,10 +230,20 @@ describe("paridad editor ↔ MCP: el Rey Aldric construido por MCP (4.8)", () =>
     // Lo que la normalización deja fuera, explícito:
     expect(pkg.meta).toMatchObject({ authorId: AUTHOR.userId, version: "0.0.0" });
     expect(pkg.meta.id).toBe(built.roomId);
-    for (const room of pkg.map.rooms) {
-      expect(room.decorations, room.id).toEqual([]);
-      expect(room.lighting, room.id).toEqual([]);
+    // Decoración e iluminación, byte a byte y en el orden del fixture (el
+    // runtime pinta la primera luz ambiente; la antorcha del salón la gobierna
+    // el brasero).
+    for (const [index, room] of pkg.map.rooms.entries()) {
+      const expected = aldric.map.rooms[index];
+      expect(room.decorations, room.id).toEqual(expected?.decorations);
+      expect(room.lighting, room.id).toEqual(expected?.lighting);
     }
+    expect(pkg.map.rooms[0]?.lighting).toContainEqual({
+      type: "torch",
+      x: 5,
+      y: 1,
+      objectId: "brasero",
+    });
     // Las habitaciones sí conservan el orden (el primer spawn es el del salón).
     expect(pkg.map.rooms.map((room) => room.id)).toEqual(aldric.map.rooms.map((room) => room.id));
     // Desempates por posición entre reglas del mismo disparador: mismo orden.
