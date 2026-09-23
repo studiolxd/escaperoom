@@ -19,6 +19,11 @@ const CODE_BY_PUBLISH_ERROR: Partial<Record<RoomPublishError["code"], ToolErrorC
   ROOM_NOT_PUBLISHABLE: "NOT_PUBLISHABLE",
   UNSUPPORTED_PACKAGE_FORMAT: "NOT_PUBLISHABLE",
   ASSETS_NOT_PUBLISHABLE: "NOT_PUBLISHABLE",
+  // Moderación (6.1): cuenta restringida o contenido bloqueado por el pre-check.
+  ACCOUNT_FROZEN: "NOT_PUBLISHABLE",
+  CREATOR_SUSPENDED: "NOT_PUBLISHABLE",
+  CREATOR_BANNED: "NOT_PUBLISHABLE",
+  CONTENT_BLOCKED: "NOT_PUBLISHABLE",
 };
 
 /** Traduce los errores de la publicación a errores accionables para el agente. */

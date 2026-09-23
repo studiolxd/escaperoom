@@ -965,7 +965,11 @@
       "ASSETS_NOT_PUBLISHABLE": "Des audios sont en attente ou refusés en modération : impossible de publier pour l'instant.",
       "ROOM_NOT_PUBLISHABLE": "La salle a été retirée par la modération et ne peut pas être publiée.",
       "PUBLISH_CONFIRM_DISABLED": "La confirmation des publications n'est pas disponible dans cet environnement.",
-      "UNKNOWN": "Impossible de publier la salle. Réessayez."
+      "UNKNOWN": "Impossible de publier la salle. Réessayez.",
+      "CONTENT_BLOCKED": "Le pré-contrôle de modération a bloqué certains textes de la salle. Corrigez-les ou faites recours.",
+      "ACCOUNT_FROZEN": "Votre compte est gelé pendant l'examen d'un signalement grave : vous ne pouvez pas publier.",
+      "CREATOR_SUSPENDED": "La publication est temporairement suspendue sur votre compte.",
+      "CREATOR_BANNED": "Votre compte ne peut plus publier de salles."
     }
   },
   "McpConsent": {
@@ -1163,6 +1167,66 @@
       "split_clue": "Indice partagé",
       "pipes": "Tuyaux",
       "combine_items": "Combiner des objets"
+    }
+  },
+  "Moderation": {
+    "metaTitle": "File de modération",
+    "title": "File de modération",
+    "intro": "Signalements triés par gravité et SLA, recours en attente et audios importés à examiner.",
+    "forbidden": "Seuls les modérateurs ou administrateurs peuvent voir la file de modération.",
+    "loading": "Chargement de la file…",
+    "empty": "Rien en attente.",
+    "tabs": {
+      "reports": "Signalements ({count})",
+      "appeals": "Recours ({count})",
+      "audio": "Audio ({count})"
+    },
+    "severity": {
+      "critical": "Critique",
+      "high": "Élevée",
+      "normal": "Normale",
+      "low": "Faible"
+    },
+    "source": {
+      "user_report": "Signalement d'utilisateur",
+      "precheck": "Pré-contrôle automatique",
+      "sampling": "Échantillonnage aléatoire"
+    },
+    "target": {
+      "room": "Salle",
+      "review": "Avis",
+      "user": "Utilisateur"
+    },
+    "overdue": "SLA dépassé",
+    "activeEvent": "Événement actif",
+    "auto": {
+      "unpublish": "Dépubliée en attente d'examen",
+      "hide": "Masqué en attente d'examen"
+    },
+    "meta": "À examiner avant {due} · créé {created} · {count, plural, one {# signalement} other {# signalements}} sur ce contenu",
+    "note": "Note de résolution (motif visible par le créateur)",
+    "rejectNeedsNote": "Pour refuser un audio, indiquez le motif dans la note",
+    "appeal": {
+      "room": "Recours sur une salle",
+      "account": "Recours sur le compte (suspension ou bannissement)"
+    },
+    "actions": {
+      "confirm": "Confirmer l'infraction",
+      "warn": "Confirmer avec avertissement",
+      "dismiss": "Classer sans suite",
+      "restore": "Rétablir (faux positif)",
+      "uphold": "Maintenir la décision",
+      "overturn": "Annuler l'action",
+      "approve": "Approuver",
+      "reject": "Refuser"
+    },
+    "errors": {
+      "UNAUTHORIZED": "Connectez-vous pour modérer.",
+      "FORBIDDEN": "Vous n'avez pas les droits de modération.",
+      "NOT_FOUND": "L'élément n'existe plus.",
+      "ALREADY_REVIEWED": "Quelqu'un l'a déjà traité.",
+      "VALIDATION_ERROR": "Cette décision n'est pas valable pour ce contenu.",
+      "UNKNOWN": "Une erreur s'est produite. Réessayez."
     }
   }
 }

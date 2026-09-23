@@ -60,6 +60,16 @@ export const RATE_LIMIT_POLICIES = {
     ip: { limit: 10, windowSeconds: 3600 },
     user: { limit: 5, windowSeconds: 3600 },
   },
+  /** `POST /api/rooms/:roomId/report` y `POST /api/reports` (ticket 6.1, mismo cubo). */
+  "report-write": {
+    ip: { limit: 30, windowSeconds: 600 },
+    user: { limit: 10, windowSeconds: 600 },
+  },
+  /** `POST /api/rooms/:roomId/appeal` y `POST /api/me/appeal` (ticket 6.1). */
+  "appeal-write": {
+    ip: { limit: 20, windowSeconds: 3600 },
+    user: { limit: 5, windowSeconds: 3600 },
+  },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitPolicyName = keyof typeof RATE_LIMIT_POLICIES;

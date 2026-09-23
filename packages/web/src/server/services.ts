@@ -8,6 +8,9 @@ import { EVENT_ROOM_NAME } from "@/lib/colyseus";
 import {
   createAudioAssetService,
   createPrismaAudioAssetStore,
+  createModerationService,
+  createPrismaModerationStore,
+  type ModerationService,
   createCatalogService,
   createPrismaPublishedRoomListing,
   createPrismaReviewStore,
@@ -88,6 +91,7 @@ let invitations: InvitationService | undefined;
 let accessKeyCards: AccessKeyCardsService | undefined;
 let organizations: OrganizationService | undefined;
 let eventPanel: EventPanelService | undefined;
+let moderation: ModerationService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -158,10 +162,21 @@ export function getAudioAssetService(): AudioAssetService {
 }
 
 /**
+ * Moderación de contenido (ticket 6.1, specs/17): reportes, cola con SLA,
+ * strikes y apelaciones sobre Postgres. El pre-check es el local (filtro de
+ * lenguaje + PII, sin proveedores externos).
+ */
+export function getModerationService(): ModerationService {
+  moderation ??= createModerationService({ store: createPrismaModerationStore(prisma) });
+  return moderation;
+}
+
+/**
  * Publicación de salas (specs/08 §5, specs/13 §4) sobre Postgres y el bucket
  * (R2/S3 vía `@escaperoom/kit/storage`). El doc Yjs del draft se congela con
  * la serialización del editor (`roomDocToPackage`, ticket 3.1). Los audios
  * pasan por el servicio de 3.11: pendientes o rechazados bloquean la publicación.
+ * El pre-check de moderación y la puerta de cuenta (suspensión, ban) son de 6.1.
  */
 export function getRoomPublishService(): RoomPublishService {
   if (!roomPublish) {
@@ -180,6 +195,7 @@ export function getRoomPublishService(): RoomPublishService {
         put: (key, bytes, contentType) =>
           storage.putObject({ key, body: Buffer.from(bytes), contentType }),
       },
+      moderation: getModerationService(),
     });
   }
   return roomPublish;
