@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 256" width="192" height="256">
+<polygon points="57.600,227.200 83.200,240.000 83.200,236.000 57.600,223.200" fill="#785632" stroke="#422000" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="83.200,240.000 128.000,217.600 128.000,213.600 83.200,236.000" fill="#52300c" stroke="#422000" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="57.600,223.200 102.400,200.800 128.000,213.600 83.200,236.000" fill="#8a6844" stroke="#422000" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="60.800,223.200 83.200,234.400 83.200,58.400 60.800,47.200" fill="#9e7046" stroke="#683a10" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="60.800,47.200 102.400,26.400 124.800,37.600 83.200,58.400" fill="#b08258" stroke="#683a10" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="83.200,234.400 124.800,213.600 124.800,37.600 83.200,58.400" fill="#2a221c"/>
+<polygon points="84.000,188.000 124.000,168.000 119.200,165.600 79.200,185.600" fill="#82542a"/>
+<polygon points="84.000,142.000 124.000,122.000 119.200,119.600 79.200,139.600" fill="#82542a"/>
+<polygon points="84.000,96.000 124.000,76.000 119.200,73.600 79.200,93.600" fill="#82542a"/>
+<polygon points="83.200,234.400 102.400,244.000 102.400,68.000 83.200,58.400" fill="#784a20" stroke="#5a2c02" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="124.800,213.600 144.000,223.200 144.000,47.200 124.800,37.600" fill="#784a20" stroke="#5a2c02" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="57.600,47.200 83.200,60.000 83.200,54.000 57.600,41.200" fill="#785632" stroke="#422000" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="83.200,60.000 128.000,37.600 128.000,31.600 83.200,54.000" fill="#52300c" stroke="#422000" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="57.600,41.200 102.400,18.800 128.000,31.600 83.200,54.000" fill="#8a6844" stroke="#422000" stroke-width="0.5" stroke-linejoin="round"/>
+</svg>

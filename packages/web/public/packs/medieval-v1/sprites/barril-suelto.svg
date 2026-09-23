@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<ellipse cx="64.00" cy="96.00" rx="16.96" ry="8.49" fill="#784a20"/>
+<path d="M47.03,96.00 Q41.10,76.00 47.03,56.00 L80.97,56.00 Q86.90,76.00 80.97,96.00 Z" fill="#96683e" stroke="#5a2c02" stroke-width="0.5" stroke-linejoin="round"/>
+<path d="M69.09,96.00 Q70.79,76.00 69.09,56.00 L80.97,56.00 Q86.90,76.00 80.97,96.00 Z" fill="#784a20"/>
+<path d="M53.82,56.00 Q50.77,76.00 53.82,96.00" fill="none" stroke="#5a2c02" stroke-width="0.5" stroke-linejoin="round" opacity="0.5"/>
+<path d="M60.61,56.00 Q59.59,76.00 60.61,96.00" fill="none" stroke="#5a2c02" stroke-width="0.5" stroke-linejoin="round" opacity="0.5"/>
+<path d="M67.39,56.00 Q68.41,76.00 67.39,96.00" fill="none" stroke="#5a2c02" stroke-width="0.5" stroke-linejoin="round" opacity="0.5"/>
+<path d="M74.18,56.00 Q77.23,76.00 74.18,96.00" fill="none" stroke="#5a2c02" stroke-width="0.5" stroke-linejoin="round" opacity="0.5"/>
+<path d="M44.80,87.20 L83.20,87.20" fill="none" stroke="#3a3a3c" stroke-width="2.4" stroke-linejoin="round"/>
+<path d="M44.80,64.80 L83.20,64.80" fill="none" stroke="#3a3a3c" stroke-width="2.4" stroke-linejoin="round"/>
+<ellipse cx="64.00" cy="56.00" rx="16.96" ry="8.49" fill="#aa7c52" stroke="#5a2c02" stroke-width="0.5"/>
+</svg>

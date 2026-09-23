@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 192" width="128" height="192">
+<g transform="translate(0 0) scale(1 1)">
+<polygon points="52.000,148.000 62.000,148.000 62.000,178.000 52.000,178.000" fill="#4a3a30" stroke="#2a2018" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="66.000,148.000 76.000,148.000 76.000,178.000 66.000,178.000" fill="#4a3a30" stroke="#2a2018" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="49.000,148.000 79.000,148.000 76.000,106.000 52.000,106.000" fill="#d2d2d0" stroke="#8c8c8a" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="50.000,134.000 78.000,134.000 78.000,138.000 50.000,138.000" fill="#6b4a2a"/>
+<polygon points="46.000,108.000 54.000,108.000 54.000,136.000 46.000,136.000" fill="#e4bc9c" stroke="#8c8c8a" stroke-width="0.8" stroke-linejoin="round"/>
+<polygon points="74.000,108.000 80.000,106.000 94.000,94.000 90.000,88.000" fill="#e4bc9c" stroke="#8c8c8a" stroke-width="0.8" stroke-linejoin="round"/>
+<circle cx="64" cy="90.0" r="15" fill="#e4bc9c" stroke="#8c8c8a" stroke-width="0.8"/>
+<path d="M49,88 A15,15 0 0 1 79,88 L79,84 L49,84 Z" fill="#4a321e"/>
+<path d="M49,86 A15,15 0 0 1 79,86 L76,88 L52,88 Z" fill="#4a321e"/>
+<circle cx="59" cy="91.0" r="1.8" fill="#2a2018"/><circle cx="69" cy="91.0" r="1.8" fill="#2a2018"/>
+<line x1="61.00" y1="98.00" x2="67.00" y2="98.00" stroke="#a06a5a" stroke-width="1.2" stroke-linecap="round"/>
+</g>
+</svg>

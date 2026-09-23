@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 256" width="192" height="256">
+<g transform="matrix(0.89445 -0.44723 0 -1 32.00 224.00)">
+<polygon points="5.776,0.000 13.776,0.000 13.776,128.000 5.776,128.000" fill="#a09e98" stroke="#72706a" stroke-width="0.6" stroke-linejoin="round"/>
+<polygon points="57.776,0.000 65.776,0.000 65.776,128.000 57.776,128.000" fill="#a09e98" stroke="#72706a" stroke-width="0.6" stroke-linejoin="round"/>
+<polygon points="5.776,128.000 65.776,128.000 65.776,140.000 5.776,140.000" fill="#aaa8a2" stroke="#72706a" stroke-width="0.6" stroke-linejoin="round"/>
+<polygon points="13.776,0.000 57.776,0.000 57.776,128.000 13.776,128.000" fill="#96683e"/>
+<line x1="24.78" y1="2.00" x2="24.78" y2="126.00" stroke="#64360c" stroke-width="0.8" stroke-linecap="round" opacity="0.7"/>
+<line x1="35.78" y1="2.00" x2="35.78" y2="126.00" stroke="#64360c" stroke-width="0.8" stroke-linecap="round" opacity="0.7"/>
+<line x1="46.78" y1="2.00" x2="46.78" y2="126.00" stroke="#64360c" stroke-width="0.8" stroke-linecap="round" opacity="0.7"/>
+<polygon points="14.776,28.000 56.776,28.000 56.776,33.000 14.776,33.000" fill="#3a3a3c"/>
+<circle cx="18.78" cy="30.50" r="1" fill="#6c6c6e"/>
+<circle cx="35.78" cy="30.50" r="1" fill="#6c6c6e"/>
+<circle cx="52.78" cy="30.50" r="1" fill="#6c6c6e"/>
+<polygon points="14.776,100.000 56.776,100.000 56.776,105.000 14.776,105.000" fill="#3a3a3c"/>
+<circle cx="18.78" cy="102.50" r="1" fill="#6c6c6e"/>
+<circle cx="35.78" cy="102.50" r="1" fill="#6c6c6e"/>
+<circle cx="52.78" cy="102.50" r="1" fill="#6c6c6e"/>
+<circle cx="50.78" cy="60.00" r="2.6" fill="#3a3a3c"/>
+</g>
+</svg>

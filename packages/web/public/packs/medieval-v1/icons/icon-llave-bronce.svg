@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<g transform="rotate(-40 64 64)">
+<circle cx="38" cy="64" r="16" fill="none" stroke="#b06e3c" stroke-width="9"/>
+<circle cx="38" cy="64" r="16" fill="none" stroke="#6a2800" stroke-width="1.2"/>
+<polygon points="54.000,60.000 102.000,60.000 102.000,68.000 54.000,68.000" fill="#b06e3c" stroke="#6a2800" stroke-width="1.2" stroke-linejoin="round"/>
+<polygon points="86.000,68.000 92.000,68.000 92.000,80.000 86.000,80.000" fill="#b06e3c" stroke="#6a2800" stroke-width="1.2" stroke-linejoin="round"/>
+<polygon points="96.000,68.000 102.000,68.000 102.000,78.000 96.000,78.000" fill="#b06e3c" stroke="#6a2800" stroke-width="1.2" stroke-linejoin="round"/>
+</g>
+</svg>

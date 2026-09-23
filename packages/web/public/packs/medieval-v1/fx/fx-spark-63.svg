@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+<polygon points="64.187,71.493 62.553,65.521 56.507,64.187 62.479,62.553 63.813,56.507 65.447,62.479 71.493,63.813 65.521,65.447" fill="#f7c33a" opacity="0.045000000000000005"/>
+<polygon points="64.103,68.121 63.204,64.836 59.879,64.103 63.164,63.204 63.897,59.879 64.796,63.164 68.121,63.897 64.836,64.796" fill="#fff0a0" opacity="0.05"/>
+<circle cx="42.07" cy="37.99" r="1.69" fill="#f7c33a" opacity="0.38"/>
+<circle cx="94.91" cy="47.15" r="1.52" fill="#f7c33a" opacity="0.32"/>
+<circle cx="92.02" cy="63.92" r="1.49" fill="#f7c33a" opacity="0.31"/>
+<circle cx="53.08" cy="47.25" r="2.57" fill="#f7c33a" opacity="0.68"/>
+<circle cx="44.87" cy="64.12" r="2.01" fill="#f7c33a" opacity="0.49"/>
+<circle cx="51.94" cy="55.62" r="2.44" fill="#f7c33a" opacity="0.64"/>
+<circle cx="57.96" cy="91.68" r="1.73" fill="#f7c33a" opacity="0.39"/>
+<circle cx="73.81" cy="77.35" r="2.54" fill="#f7c33a" opacity="0.67"/>
+<circle cx="55.08" cy="54.41" r="2.72" fill="#f7c33a" opacity="0.73"/>
+</svg>

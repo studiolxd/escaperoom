@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 96" width="128" height="96">
+<polygon points="41.600,64.000 64.000,75.200 64.000,57.200 41.600,46.000" fill="#a8a6a0" stroke="#72706a" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="64.000,75.200 86.400,64.000 86.400,46.000 64.000,57.200" fill="#82807a" stroke="#72706a" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="41.600,46.000 64.000,34.800 86.400,46.000 64.000,57.200" fill="#bab8b2" stroke="#72706a" stroke-width="0.5" stroke-linejoin="round"/>
+<ellipse cx="64.00" cy="46.00" rx="6.00" ry="3.00" fill="#2a2523"/>
+</svg>

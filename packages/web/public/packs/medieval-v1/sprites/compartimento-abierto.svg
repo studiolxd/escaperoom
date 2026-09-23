@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+<g transform="matrix(0.89445 -0.44723 0 -1 32.00 160.00)">
+<polygon points="11.776,52.000 59.776,52.000 59.776,100.000 11.776,100.000" fill="#94928c" stroke="#72706a" stroke-width="0.6" stroke-linejoin="round"/>
+<polygon points="15.776,56.000 55.776,56.000 55.776,96.000 15.776,96.000" fill="#1e1a17"/>
+<polygon points="15.776,60.000 19.776,60.000 19.776,92.000 15.776,92.000" fill="#82807a"/>
+<polygon points="27.776,62.000 43.776,62.000 43.776,70.000 27.776,70.000" fill="#bf9640"/>
+<polygon points="55.776,56.000 85.776,70.000 85.776,110.000 55.776,96.000" fill="#a09e98" stroke="#72706a" stroke-width="0.6" stroke-linejoin="round"/>
+</g>
+</svg>

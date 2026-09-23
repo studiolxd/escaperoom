@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 96" width="128" height="96">
+<polygon points="24.000,76.000 64.000,96.000 64.000,86.000 24.000,66.000" fill="#a8a6a0" stroke="#72706a" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="64.000,96.000 128.000,64.000 128.000,54.000 64.000,86.000" fill="#82807a" stroke="#72706a" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="24.000,66.000 88.000,34.000 128.000,54.000 64.000,86.000" fill="#bab8b2" stroke="#72706a" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="44.000,76.000 64.000,86.000 64.000,76.000 44.000,66.000" fill="#a8a6a0" stroke="#72706a" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="64.000,86.000 128.000,54.000 128.000,44.000 64.000,76.000" fill="#82807a" stroke="#72706a" stroke-width="0.5" stroke-linejoin="round"/>
+<polygon points="44.000,66.000 108.000,34.000 128.000,44.000 64.000,76.000" fill="#bab8b2" stroke="#72706a" stroke-width="0.5" stroke-linejoin="round"/>
+</svg>
