@@ -137,6 +137,9 @@ export const dpaAnnex: LegalDocument = {
           "que este anexo. La plataforma responde frente al responsable de su cumplimiento.",
       ],
       list: [
+        "Netcup GmbH — hosting de la plataforma (servidores y base de datos) sobre la que se " +
+          "almacenan y procesan estos datos mientras dura el encargo, en Núremberg (Alemania), " +
+          "Unión Europea; no supone una transferencia internacional (véase la sección 12).",
         "Resend/Postmark — envío del email de invitación con la clave de acceso.",
         "Cloudflare R2 — almacenamiento de las grabaciones de sesión, solo cuando se activa la " +
           "grabación.",
@@ -162,11 +165,11 @@ export const dpaAnnex: LegalDocument = {
     {
       heading: "7.2 Cambios en la lista de subencargados",
       paragraphs: [
-        "Antes de incorporar o sustituir un subencargado, la plataforma lo anunciará con antelación " +
-          "razonable, actualizando esta lista y avisando a las organizaciones que tengan aceptado " +
-          "este anexo, para que puedan oponerse por motivos razonables relacionados con la " +
-          "protección de datos (artículo 28.2 del RGPD). Si no se encuentra una alternativa, la " +
-          "organización puede dejar de usar la función afectada sin penalización.",
+        "Antes de incorporar o sustituir un subencargado, la plataforma lo anunciará con una " +
+          "antelación mínima de 30 días, actualizando esta lista y avisando a las organizaciones que " +
+          "tengan aceptado este anexo, para que puedan oponerse por motivos razonables relacionados " +
+          "con la protección de datos (artículo 28.2 del RGPD). Si no se encuentra una alternativa, " +
+          "la organización puede dejar de usar la función afectada sin penalización.",
       ],
     },
     {
@@ -189,9 +192,10 @@ export const dpaAnnex: LegalDocument = {
     {
       heading: "9. Notificación de violaciones de seguridad",
       paragraphs: [
-        "La plataforma notificará al responsable, sin dilación indebida, cualquier violación de la " +
-          "seguridad de estos datos de la que tenga conocimiento, por correo electrónico a la " +
-          "dirección de contacto de su organización.",
+        "La plataforma notificará al responsable, sin dilación indebida y, en todo caso, dentro de " +
+          "las 48 horas siguientes a que tenga constancia de ella, cualquier violación de la " +
+          "seguridad de estos datos, por correo electrónico a la dirección de contacto de su " +
+          "organización.",
         "La notificación describirá, en la medida en que se conozca, la naturaleza de la violación, " +
           "las categorías y el número aproximado de interesados y de registros afectados, las " +
           "consecuencias probables y las medidas adoptadas o propuestas (artículo 33.3 del RGPD); si " +
@@ -229,10 +233,12 @@ export const dpaAnnex: LegalDocument = {
           "información necesaria para demostrar el cumplimiento de las obligaciones del artículo 28 " +
           "del RGPD.",
         "El responsable puede además verificar ese cumplimiento mediante una auditoría, propia o de " +
-          "un auditor que designe, con un preaviso razonable, en horario laboral, sin interferir en " +
-          "la actividad, bajo acuerdo de confidencialidad y a su costa. Como los sistemas son " +
-          "compartidos con otras organizaciones, la verificación no puede alcanzar datos de terceros: " +
-          "se realizará sobre documentación, configuración y entornos acotados.",
+          "un auditor que designe, previo aviso razonable —al menos 30 días naturales—, una vez al " +
+          "año como máximo (salvo que lo exija la autoridad de control o haya mediado una violación " +
+          "de seguridad), en horario laboral, sin interferir en la actividad, bajo acuerdo de " +
+          "confidencialidad y a su costa. Como los sistemas son compartidos con otras organizaciones, " +
+          "la verificación no puede alcanzar datos de terceros: se realizará sobre documentación, " +
+          "configuración y entornos acotados.",
       ],
     },
     {
