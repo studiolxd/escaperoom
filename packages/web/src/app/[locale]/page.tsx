@@ -29,6 +29,13 @@ export default async function HomePage({ params }: Props) {
       </div>
 
       <Link
+        href="/rooms"
+        className="absolute bottom-6 left-6 rounded-full border border-white/15 bg-black/60 px-4 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-black/80"
+      >
+        {t("catalogCta")} →
+      </Link>
+
+      <Link
         href="/lobby"
         className="absolute bottom-6 right-6 rounded-full border border-white/15 bg-black/60 px-4 py-2 text-sm text-white backdrop-blur transition-colors hover:bg-black/80"
       >

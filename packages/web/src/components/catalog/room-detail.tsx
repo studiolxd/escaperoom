@@ -1,0 +1,111 @@
+import type { CatalogRoom, Review, ReviewViewerState } from "@escaperoom/shared/services";
+import { useFormatter, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import { CATALOG_PATH, roomPath } from "@/lib/catalog-seo";
+import { languageName } from "./language-name";
+import { RatingSummary } from "./rating-summary";
+import { ReviewForm } from "./review-form";
+import { RoomPrice } from "./room-card";
+
+function ReviewItem({ review }: { review: Review }) {
+  const t = useTranslations("RoomDetail");
+  const format = useFormatter();
+  return (
+    <li className="flex flex-col gap-1 border-b border-border py-3 last:border-b-0">
+      <div className="flex items-center gap-2 text-sm">
+        <span aria-label={t("stars", { rating: review.rating })} className="text-amber-500">
+          {"★".repeat(review.rating)}
+          <span className="text-muted-foreground/40">{"★".repeat(5 - review.rating)}</span>
+        </span>
+        <span className="font-medium">{review.authorDisplayName}</span>
+        <time dateTime={review.updatedAt} className="text-xs text-muted-foreground">
+          {format.dateTime(new Date(review.updatedAt), { dateStyle: "medium" })}
+        </time>
+      </div>
+      {review.text ? <p className="text-sm">{review.text}</p> : null}
+    </li>
+  );
+}
+
+/** Detalle SSR de una sala del catálogo: ficha, reseñas y formulario de reseña. */
+export function RoomDetailView({
+  room,
+  locale,
+  reviews,
+  reviewsNextCursor,
+  viewer,
+}: {
+  room: CatalogRoom;
+  locale: string;
+  reviews: Review[];
+  reviewsNextCursor: string | null;
+  viewer: ReviewViewerState;
+}) {
+  const t = useTranslations("RoomDetail");
+  const tc = useTranslations("Catalog");
+
+  const facts: Array<[string, React.ReactNode]> = [
+    [t("difficulty"), tc(`difficulty${room.difficulty}`)],
+    [t("duration"), tc("minutes", { minutes: room.estimatedMinutes })],
+    [t("players"), tc("playersRange", { min: room.players.min, max: room.players.max })],
+    [t("languages"), room.languages.map((code) => languageName(code, locale)).join(", ")],
+    [t("price"), <RoomPrice key="price" room={room} />],
+    [t("author"), room.authorDisplayName],
+  ];
+
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-6 bg-background px-4 py-8 text-foreground">
+      <Link href={CATALOG_PATH} className="text-sm underline-offset-4 hover:underline">
+        ← {t("back")}
+      </Link>
+
+      <header className="flex flex-col gap-2">
+        <h1 className="text-3xl font-semibold" lang={room.defaultLanguage}>
+          {room.title}
+        </h1>
+        <RatingSummary ratingAvg={room.ratingAvg} ratingCount={room.ratingCount} />
+      </header>
+
+      <p className="whitespace-pre-line" lang={room.defaultLanguage}>
+        {room.description}
+      </p>
+
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-2 rounded-xl border border-border p-4 text-sm sm:grid-cols-3">
+        {facts.map(([label, value]) => (
+          <div key={label} className="flex flex-col">
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="font-medium">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="text-xs text-muted-foreground">
+        {t("version", { semver: room.latestVersion.semver })}
+        {room.saleEvents ? ` · ${t("saleEvents")}` : null}
+      </p>
+
+      <section aria-labelledby="reviews-heading" className="flex flex-col gap-3">
+        <h2 id="reviews-heading" className="text-xl font-semibold">
+          {t("reviewsHeading")}
+        </h2>
+        <ReviewForm roomId={room.id} initial={viewer} />
+        {reviews.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t("noReviews")}</p>
+        ) : (
+          <ul>
+            {reviews.map((review) => (
+              <ReviewItem key={review.id} review={review} />
+            ))}
+          </ul>
+        )}
+        {reviewsNextCursor ? (
+          <Link
+            href={{ pathname: roomPath(room.id), query: { reviews: reviewsNextCursor } }}
+            className="text-sm underline-offset-4 hover:underline"
+          >
+            {t("moreReviews")} →
+          </Link>
+        ) : null}
+      </section>
+    </main>
+  );
+}
