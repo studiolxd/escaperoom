@@ -14,6 +14,7 @@
     "./chat": "./src/chat/index.ts",
     "./session": "./src/session/index.ts",
     "./services": "./src/services/index.ts",
+    "./join-token": "./src/services/join-token.ts",
     "./analytics": "./src/analytics/index.ts",
     "./audio": "./src/audio/index.ts",
     "./db": "./src/db/index.ts"

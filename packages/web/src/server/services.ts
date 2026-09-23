@@ -3,6 +3,7 @@ import { storage } from "@escaperoom/kit/storage";
 import { roomDocToPackage } from "@escaperoom/editor/room-doc";
 import type { RoomPackageSerializer } from "@escaperoom/editor/validation";
 import { prisma } from "@escaperoom/shared/db";
+import { EVENT_ROOM_NAME } from "@/lib/colyseus";
 import {
   createAudioAssetService,
   createPrismaAudioAssetStore,
@@ -27,7 +28,10 @@ import {
   createPrismaEventStore,
   createAccessKeyService,
   createPrismaAccessKeyStore,
+  createRedeemService,
+  readJoinTokenConfig,
   type AccessKeyService,
+  type RedeemService,
   type EventService,
   type CatalogService,
   type PlatformSettingsService,
@@ -52,6 +56,7 @@ let roomPublish: RoomPublishService | undefined;
 let events: EventService | undefined;
 let reviews: ReviewService | undefined;
 let accessKeys: AccessKeyService | undefined;
+let redeem: RedeemService | null | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -175,4 +180,24 @@ export function getAccessKeyService(): AccessKeyService {
     events: getEventService(),
   });
   return accessKeys;
+}
+
+/**
+ * Canje de claves (ticket 5.8): consume el asiento con `consumeSeat` y firma el
+ * `joinToken` que exige la room `event` de Colyseus (`JOIN_TOKEN_SECRET`,
+ * compartido con colyseus-server). `null` si falta el secreto en producción.
+ */
+export function getRedeemService(): RedeemService | null {
+  if (redeem !== undefined) return redeem;
+  const joinToken = readJoinTokenConfig();
+  redeem = joinToken
+    ? createRedeemService({
+        store: createPrismaAccessKeyStore(prisma),
+        accessKeys: getAccessKeyService(),
+        joinToken,
+        colyseusEndpoint: process.env.NEXT_PUBLIC_COLYSEUS_URL?.trim() || "ws://localhost:2567",
+        roomName: EVENT_ROOM_NAME,
+      })
+    : null;
+  return redeem;
 }

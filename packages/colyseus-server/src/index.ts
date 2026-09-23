@@ -1,7 +1,8 @@
 /**
  * Servidor autoritativo de salas (Colyseus). El ticket 0.5 añade la room
  * `lobby_test` con movimiento validado; el 2.8, la room `game` que ejecuta la
- * partida completa (motor de reglas + 8 plantillas) sobre `RoomSession`.
+ * partida completa (motor de reglas + 8 plantillas) sobre `RoomSession`; el
+ * 3.8, la `playtest`; el 5.8, la `event` (sesión de evento con `joinToken`).
  */
 export {
   CHAT_HISTORY_LIMIT,
@@ -11,6 +12,7 @@ export {
   CHAT_RATE_LIMITED_ERROR,
   DEFAULT_PORT,
   ERROR_MESSAGE,
+  EVENT_ROOM_NAME,
   GAME_DOOR_REACH,
   GAME_ERRORS,
   GAME_MAX_STEP,
@@ -71,6 +73,8 @@ export type {
 export { LobbyTestRoom } from "./rooms/lobby-test-room.js";
 export { GameRoom } from "./rooms/game-room.js";
 export { PLAYTEST_FORBIDDEN_CODE, PlaytestRoom } from "./rooms/playtest-room.js";
+export { EVENT_JOIN_FORBIDDEN_CODE, EventRoom, JOIN_TOKEN_ERRORS } from "./rooms/event-room.js";
+export type { EventRoomOptions } from "./rooms/event-room.js";
 export type { PlaytestJoinOptions, PlaytestRoomOptions } from "./rooms/playtest-room.js";
 export {
   DEFAULT_PLAYTEST_TTL_SECONDS,
@@ -101,5 +105,11 @@ export {
   REY_ALDRIC_PACKAGE_ID,
 } from "./game/room-packages.js";
 export { ChatMessageState, LobbyState, PlayerState } from "./schema/lobby-state.js";
-export { createGameServer, definePlaytestRoom, resolvePort, startGameServer } from "./server.js";
+export {
+  createGameServer,
+  defineEventRoom,
+  definePlaytestRoom,
+  resolvePort,
+  startGameServer,
+} from "./server.js";
 export { pickPlayerTint } from "./tints.js";

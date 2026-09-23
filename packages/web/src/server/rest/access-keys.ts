@@ -6,6 +6,8 @@ import {
   type AccessKeyService,
   type Actor,
   type GameSessionRef,
+  type RedeemResult,
+  type RedeemService,
 } from "@escaperoom/shared/services";
 import { eventJson, type EventRouteContext } from "./events";
 
@@ -30,6 +32,8 @@ const STATUS_BY_CODE: Record<AccessKeyErrorCode, number> = {
   ACCESS_KEY_USED: 409,
   ACCESS_KEY_EXPIRED: 409,
   ACCESS_KEY_NOT_CONFIRMED: 409,
+  SESSION_FULL: 409,
+  SESSION_REQUIRED: 422,
   CONFLICT: 409,
 };
 
@@ -67,7 +71,7 @@ async function handle(fn: () => Promise<Response>): Promise<Response> {
     return await fn();
   } catch (err) {
     if (err instanceof AccessKeyError) {
-      const extra = err.issues.length > 0 ? { issues: err.issues } : {};
+      const extra = { ...(err.issues.length > 0 ? { issues: err.issues } : {}), ...err.details };
       return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code], extra);
     }
     if (err instanceof EventError) {
@@ -180,5 +184,39 @@ export function createAccessKeyHandlers(deps: AccessKeyHandlerDeps) {
         return Response.json(accessKeyJson(key), { status: 201, headers: NO_STORE });
       });
     },
+  };
+}
+
+/** Respuesta del canje (specs/13 §6.2): nunca incluye la clave en claro. */
+export function redeemJson(r: RedeemResult) {
+  return {
+    eventId: r.eventId,
+    sessionId: r.sessionId,
+    groupId: r.groupId,
+    colyseusEndpoint: r.colyseusEndpoint,
+    roomName: r.roomName,
+    joinToken: r.joinToken,
+    expiresAt: r.expiresAt.toISOString(),
+    player: r.player,
+  };
+}
+
+/**
+ * `POST /api/access-keys/redeem` — público (el invitado puede no tener cuenta).
+ * `redeem: null` = canje desactivado (falta `JOIN_TOKEN_SECRET` en producción).
+ */
+export function createRedeemHandler(deps: {
+  redeem: RedeemService | null;
+  resolveActor: (request: Request) => Promise<Actor>;
+}) {
+  return async function postRedeem(request: Request): Promise<Response> {
+    return handle(async () => {
+      if (!deps.redeem) {
+        return errorResponse("REDEEM_UNAVAILABLE", "El canje de claves no está disponible", 503);
+      }
+      const actor = await deps.resolveActor(request);
+      const result = await deps.redeem.redeem(actor, await readJson(request));
+      return Response.json(redeemJson(result), { headers: NO_STORE });
+    });
   };
 }

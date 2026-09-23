@@ -21,7 +21,9 @@ import type { EventRow, EventService, EventStatus, EventStore, EventView } from 
  *   generar; `on_session_end` y `on_group_complete` las aplica el job de
  *   `@escaperoom/worker` con `expireAccessKeys`.
  * - **Canje** (5.8): `checkRedeemable` + `applyRedemption` son la función de estado
- *   pura y `consumeSeat` la escritura condicional que la usa.
+ *   pura y `consumeSeat` la escritura condicional que la usa; con sesión, el
+ *   store comprueba el aforo bajo bloqueo de la fila de la sesión (`redeemSeat`).
+ *   La asignación por `groupingMode` y el `joinToken` viven en `redeem.ts`.
  */
 
 // ── Tipos de dominio ───────────────────────────────────────────────────────
@@ -114,6 +116,25 @@ export type GameSessionRef = {
 /** Grupo con el evento de su sesión (join). */
 export type GroupRef = { id: string; sessionId: string; eventId: string };
 
+/** Estados de sesión que aún admiten jugadores. */
+export const OPEN_SESSION_STATUSES: readonly GameSessionRef["status"][] = [
+  "pending",
+  "in_progress",
+];
+
+/** Sesión con su ocupación: Σ `redeemedCount` de las claves asignadas a ella. */
+export type SessionSeats = GameSessionRef & { occupied: number };
+
+/** Grupo de una sesión con su ocupación (Σ `redeemedCount` de sus claves). */
+export type GroupSeats = { id: string; sessionId: string; name: string; occupied: number };
+
+/** Sesión y grupo en los que cae un canje (`null` = sin asignar). */
+export type SeatAssignment = { sessionId: string | null; groupId: string | null };
+
+/** Resultado de un canje con aforo: la sesión estaba llena o la clave cambió. */
+export type RedeemSeatResult =
+  { ok: true; key: AccessKeyRow } | { ok: false; reason: "CONFLICT" | "SESSION_FULL" };
+
 export type AccessKeyListCursor = { createdAt: Date; code: string };
 
 /** Resultado de una inserción de claves bajo el límite de asientos del evento. */
@@ -172,6 +193,22 @@ export interface AccessKeyStore {
     oldPatch: AccessKeyPatch,
     replacement: AccessKeyRow,
   ): Promise<RotateKeyResult>;
+  /** Sesiones del evento (mismo orden que `listSessions`) con su ocupación. */
+  listSessionSeats(eventId: string): Promise<SessionSeats[]>;
+  /** Grupos de la sesión (por creación) con su ocupación. */
+  listGroupSeats(sessionId: string): Promise<GroupSeats[]>;
+  /**
+   * Canje con aforo: con la sesión bloqueada, si está abierta y
+   * `ocupación + 1 ≤ capacity`, aplica `patch` solo si la clave sigue como se
+   * leyó. Dos canjes simultáneos de la última plaza: uno gana y el otro
+   * recibe `SESSION_FULL`.
+   */
+  redeemSeat(
+    code: string,
+    expected: AccessKeyExpectation,
+    patch: AccessKeyPatch,
+    sessionId: string,
+  ): Promise<RedeemSeatResult>;
   /** `hours_after_start`: caduca las claves vivas con `expiresAt <= now`. */
   expireByDeadline(now: Date): Promise<number>;
   /** `on_session_end`: claves vivas de sesiones `ended` en eventos con esa regla. */
@@ -195,17 +232,27 @@ export type AccessKeyErrorCode =
   | "ACCESS_KEY_USED"
   | "ACCESS_KEY_EXPIRED"
   | "ACCESS_KEY_NOT_CONFIRMED"
+  | "SESSION_FULL"
+  | "SESSION_REQUIRED"
   | "CONFLICT";
 
 /** Error de dominio de claves; los adaptadores lo traducen a HTTP/tRPC/MCP. */
 export class AccessKeyError extends Error {
   readonly code: AccessKeyErrorCode;
   readonly issues: ReadableIssue[];
-  constructor(code: AccessKeyErrorCode, message: string, issues: ReadableIssue[] = []) {
+  /** Datos extra para el cliente (p. ej. las sesiones elegibles de `SESSION_REQUIRED`). */
+  readonly details: Record<string, unknown> | undefined;
+  constructor(
+    code: AccessKeyErrorCode,
+    message: string,
+    issues: ReadableIssue[] = [],
+    details?: Record<string, unknown>,
+  ) {
     super(message);
     this.name = "AccessKeyError";
     this.code = code;
     this.issues = issues;
+    this.details = details;
   }
 }
 
@@ -764,33 +811,48 @@ export function createAccessKeyService(deps: {
     },
 
     /**
-     * Canje de un asiento, sin actor (lo invocará `redeem` de 5.8, que añade la
-     * asignación de sesión y el `joinToken`). Escritura condicional sobre el
-     * estado leído: dos canjes simultáneos no consumen el mismo asiento.
+     * Canje de un asiento, sin actor (lo usa `redeem` de 5.8, que añade la
+     * asignación por `groupingMode` y el `joinToken`). Escritura condicional
+     * sobre el estado leído: dos canjes simultáneos no consumen el mismo
+     * asiento. La sesión/grupo propios de la clave mandan; si no tiene, se
+     * fija la de `assign`. Con sesión, el store comprueba el aforo de forma
+     * atómica (`SESSION_FULL`).
+     *
+     * `assign` puede ser una función: se reevalúa en cada intento con la clave
+     * recién leída, así un reparto aleatorio que pierde la última plaza de una
+     * sesión en carrera prueba en otra (o acaba en `SESSION_FULL`).
      */
     async consumeSeat(
       rawCode: string,
-      assignment: { sessionId?: string | null } = {},
+      assign:
+        Partial<SeatAssignment> | ((key: AccessKeyRow) => Promise<Partial<SeatAssignment>>) = {},
     ): Promise<AccessKeyRow> {
       const code = normalizeAccessKeyCode(rawCode);
       for (let attempt = 0; attempt < MAX_CODE_ATTEMPTS; attempt++) {
         const key = code ? await store.findKey(code) : null;
         if (!key) throw new AccessKeyError("ACCESS_KEY_INVALID", "Clave no válida");
-        const at = now();
-        const check = checkRedeemable(key, at);
+        const check = checkRedeemable(key, now());
         if (!check.ok) throw new AccessKeyError(check.code, "La clave no se puede canjear");
+        const assignment = typeof assign === "function" ? await assign(key) : assign;
+        const sessionId = key.sessionId ?? assignment.sessionId ?? null;
+        const groupId = key.groupId ?? assignment.groupId ?? null;
         const patch: AccessKeyPatch = {
-          ...applyRedemption(key, at),
-          ...(assignment.sessionId !== undefined && key.sessionId === null
-            ? { sessionId: assignment.sessionId }
-            : {}),
+          ...applyRedemption(key, now()),
+          ...(key.sessionId === null && sessionId !== null ? { sessionId } : {}),
+          ...(key.groupId === null && groupId !== null ? { groupId } : {}),
         };
-        const updated = await store.updateKey(
-          key.code,
-          { status: key.status, redeemedCount: key.redeemedCount },
-          patch,
-        );
-        if (updated) return updated;
+        const expected = { status: key.status, redeemedCount: key.redeemedCount };
+        if (sessionId === null) {
+          const updated = await store.updateKey(key.code, expected, patch);
+          if (updated) return updated;
+          continue;
+        }
+        const result = await store.redeemSeat(key.code, expected, patch, sessionId);
+        if (result.ok) return result.key;
+        if (result.reason === "SESSION_FULL" && typeof assign !== "function") {
+          throw new AccessKeyError("SESSION_FULL", "La sesión no admite más jugadores");
+        }
+        // CONFLICT, o sesión llena con reparto dinámico: se relee y reintenta.
       }
       throw new AccessKeyError("CONFLICT", "La clave cambió durante el canje; reinténtalo");
     },
@@ -834,6 +896,8 @@ export function createInMemoryAccessKeyStore(opts: {
       if (value !== undefined) (k as Record<string, unknown>)[field] = value;
     }
   };
+  const occupiedBy = (pred: (k: AccessKeyRow) => boolean) =>
+    keys.filter(pred).reduce((sum, k) => sum + k.redeemedCount, 0);
   const hasRule = async (eventId: string, type: string) =>
     ((await opts.events.findEvent(eventId))?.expiryRules ?? []).some((r) => r.type === type);
   const expireWhere = async (pred: (k: AccessKeyRow) => boolean, rule: string) => {
@@ -919,6 +983,36 @@ export function createInMemoryAccessKeyStore(opts: {
       apply(k, oldPatch);
       keys.push(copy(replacement));
       return { ok: true, key: copy(replacement) };
+    },
+    async listSessionSeats(eventId) {
+      return sessions
+        .filter((s) => s.eventId === eventId)
+        .map((s) => ({ ...s, occupied: occupiedBy((k) => k.sessionId === s.id) }));
+    },
+    async listGroupSeats(sessionId) {
+      return groups
+        .filter((g) => g.sessionId === sessionId)
+        .map((g) => ({
+          id: g.id,
+          sessionId: g.sessionId,
+          name: g.name,
+          occupied: occupiedBy((k) => k.groupId === g.id),
+        }));
+    },
+    // Sin `await` entre lectura y escritura: atómico frente a otros canjes.
+    async redeemSeat(code, expected, patch, sessionId) {
+      const session = sessions.find((s) => s.id === sessionId);
+      if (
+        !session ||
+        !OPEN_SESSION_STATUSES.includes(session.status) ||
+        occupiedBy((k) => k.sessionId === sessionId) + 1 > session.capacity
+      ) {
+        return { ok: false, reason: "SESSION_FULL" };
+      }
+      const k = keys.find((x) => x.code === code);
+      if (!k || !matches(k, expected)) return { ok: false, reason: "CONFLICT" };
+      apply(k, patch);
+      return { ok: true, key: copy(k) };
     },
     async expireByDeadline(now) {
       let n = 0;
