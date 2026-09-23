@@ -57,3 +57,14 @@ export const ReplaceSchema = z
   .boolean()
   .optional()
   .describe("true = sustituye la entrada existente con el mismo id (conserva su orden)");
+
+/**
+ * Opción común de las tools que mutan (4.4): ensaya la mutación (Zod, dry-run y
+ * validador incremental) y devuelve el resultado SIN escribir en el draft.
+ */
+export const DryRunSchema = z
+  .boolean()
+  .optional()
+  .describe(
+    "true = ensayo: valida y devuelve el resultado (avisos o error del validador) sin escribir nada en el draft",
+  );

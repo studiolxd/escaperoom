@@ -1,9 +1,9 @@
 import { listIds, setSubRoomGrid, setTileset } from "@escaperoom/editor/room-doc";
 import { GridSchema, MapSchema, TileLayerSchema } from "@escaperoom/shared/schemas";
 import { z } from "zod";
-import { mutateDraft } from "../draft-writer";
-import { textResult, ToolError } from "../results";
-import { defineTool, MUTATION, RoomIdSchema } from "./define";
+import { mutateDraft, mutationResult } from "../draft-writer";
+import { ToolError } from "../results";
+import { defineTool, DryRunSchema, MUTATION, RoomIdSchema } from "./define";
 
 /**
  * Fase A — tileset y, opcionalmente, dimensiones y capas (specs/10 §2). En el
@@ -28,16 +28,17 @@ export const setMapTool = defineTool({
       .min(1)
       .optional()
       .describe("Habitaciones a las que aplicar size/layers (por defecto, todas)"),
+    dryRun: DryRunSchema,
   }),
   annotations: MUTATION,
-  async run({ roomId, tileset, size, layers, subroomIds }, { actor, deps }) {
+  async run({ roomId, tileset, size, layers, subroomIds, dryRun }, { actor, deps }) {
     if (layers && !size) {
       throw new ToolError(
         "INVALID_INPUT",
         "`layers` necesita `size` (el RLE se decodifica sobre esa rejilla)",
       );
     }
-    const { result } = await mutateDraft({ actor, deps, tool: "set_map" }, roomId, (doc) => {
+    const outcome = await mutateDraft({ actor, deps, tool: "set_map", dryRun }, roomId, (doc) => {
       setTileset(doc, tileset);
       if (!size) return [];
       const targets = subroomIds ?? listIds(doc, "subrooms");
@@ -50,11 +51,12 @@ export const setMapTool = defineTool({
       for (const id of targets) setSubRoomGrid(doc, id, size, layers);
       return targets;
     });
+    const { result } = outcome;
     const detail =
       result.length > 0 && size
         ? `; ${size.cols}×${size.rows}${layers ? ` con capas [${layers.map((l) => l.name).join(", ")}]` : ""} en [${result.join(", ")}]`
         : "";
-    return textResult(`✅ set_map — tileset "${tileset}"${detail}`, {
+    return mutationResult(outcome, `✅ set_map — tileset "${tileset}"${detail}`, {
       roomId,
       tileset,
       subroomIds: result,

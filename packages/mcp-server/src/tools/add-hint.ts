@@ -1,9 +1,8 @@
 import { addHint, proposeHintId } from "@escaperoom/editor/room-doc";
 import { HintDefSchema } from "@escaperoom/shared/schemas";
 import { z } from "zod";
-import { mutateDraft } from "../draft-writer";
-import { textResult } from "../results";
-import { defineTool, MUTATION, ReplaceSchema, RoomIdSchema } from "./define";
+import { mutateDraft, mutationResult } from "../draft-writer";
+import { defineTool, DryRunSchema, MUTATION, ReplaceSchema, RoomIdSchema } from "./define";
 
 /** Fase B — pista escalonada con coste (specs/10 §2). */
 export const addHintTool = defineTool({
@@ -17,14 +16,17 @@ export const addHintTool = defineTool({
     roomId: RoomIdSchema,
     hint: HintDefSchema.extend({ id: HintDefSchema.shape.id.optional() }),
     replace: ReplaceSchema,
+    dryRun: DryRunSchema,
   }),
   annotations: MUTATION,
-  async run({ roomId, hint, replace }, { actor, deps }) {
-    const { result } = await mutateDraft({ actor, deps, tool: "add_hint" }, roomId, (doc) => {
+  async run({ roomId, hint, replace, dryRun }, { actor, deps }) {
+    const outcome = await mutateDraft({ actor, deps, tool: "add_hint", dryRun }, roomId, (doc) => {
       const id = hint.id ?? proposeHintId(doc, hint.puzzleId, hint.tier);
       return { id, ...addHint(doc, { ...hint, id }, { replace }) };
     });
-    return textResult(
+    const { result } = outcome;
+    return mutationResult(
+      outcome,
       `✅ add_hint — "${result.id}" ${result.replaced ? "sustituida" : "añadida"} al puzzle "${hint.puzzleId}" (tier ${hint.tier}, coste ${hint.cost})`,
       { roomId, id: result.id, replaced: result.replaced },
     );

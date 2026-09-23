@@ -1,9 +1,8 @@
 import { defineSubRooms } from "@escaperoom/editor/room-doc";
 import { RectSchema, SpawnPointSchema, SubRoomSchema } from "@escaperoom/shared/schemas";
 import { z } from "zod";
-import { mutateDraft } from "../draft-writer";
-import { textResult } from "../results";
-import { defineTool, MUTATION, RoomIdSchema } from "./define";
+import { mutateDraft, mutationResult } from "../draft-writer";
+import { defineTool, DryRunSchema, MUTATION, RoomIdSchema } from "./define";
 
 /**
  * Fase A — habitaciones internas del mapa (specs/10 §2). `bounds.w × bounds.h`
@@ -33,24 +32,32 @@ export const defineSubroomsTool = defineTool({
         }),
       )
       .min(1),
+    dryRun: DryRunSchema,
   }),
   annotations: MUTATION,
-  async run({ roomId, subrooms }, { actor, deps }) {
-    const { result } = await mutateDraft({ actor, deps, tool: "define_subrooms" }, roomId, (doc) =>
-      defineSubRooms(
-        doc,
-        subrooms.map(({ id, name, bounds, spawnPoints }) => ({
-          id,
-          name,
-          grid: { cols: bounds.w, rows: bounds.h },
-          ...(spawnPoints ? { spawnPoints } : {}),
-        })),
-      ),
+  async run({ roomId, subrooms, dryRun }, { actor, deps }) {
+    const outcome = await mutateDraft(
+      { actor, deps, tool: "define_subrooms", dryRun },
+      roomId,
+      (doc) =>
+        defineSubRooms(
+          doc,
+          subrooms.map(({ id, name, bounds, spawnPoints }) => ({
+            id,
+            name,
+            grid: { cols: bounds.w, rows: bounds.h },
+            ...(spawnPoints ? { spawnPoints } : {}),
+          })),
+        ),
     );
+    const { result } = outcome;
     const parts = [
       result.created.length > 0 ? `creadas [${result.created.join(", ")}]` : "",
       result.updated.length > 0 ? `actualizadas [${result.updated.join(", ")}]` : "",
     ].filter(Boolean);
-    return textResult(`✅ define_subrooms — ${parts.join("; ")}`, { roomId, ...result });
+    return mutationResult(outcome, `✅ define_subrooms — ${parts.join("; ")}`, {
+      roomId,
+      ...result,
+    });
   },
 });

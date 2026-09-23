@@ -80,21 +80,8 @@ export async function buildSmallRoom(client: Client): Promise<string> {
       interactable: true,
     },
   });
-  await ok(client, "add_object", {
-    roomId,
-    object: {
-      id: "puerta-cripta",
-      roomId: LAB,
-      type: "puerta",
-      position: { x: 9, y: 4 },
-      sprite: "puerta",
-      states: { cerrada: "puerta-cerrada", abierta: "puerta-abierta" },
-      initialState: "cerrada",
-      lockedBy: "llave-cripta",
-      interactable: true,
-      leadsTo: CRYPT,
-    },
-  });
+  // El puzzle antes que la puerta que depende de él: el validador incremental
+  // (4.4) rechaza una puerta cuyo `lockedBy` aún no existe (dead end nuevo).
   await ok(client, "add_puzzle", {
     roomId,
     puzzle: {
@@ -108,6 +95,21 @@ export async function buildSmallRoom(client: Client): Promise<string> {
       unlocks: [],
       length: 3,
       code: "314",
+    },
+  });
+  await ok(client, "add_object", {
+    roomId,
+    object: {
+      id: "puerta-cripta",
+      roomId: LAB,
+      type: "puerta",
+      position: { x: 9, y: 4 },
+      sprite: "puerta",
+      states: { cerrada: "puerta-cerrada", abierta: "puerta-abierta" },
+      initialState: "cerrada",
+      lockedBy: "p-cofre",
+      interactable: true,
+      leadsTo: CRYPT,
     },
   });
   await ok(client, "add_dialog", {

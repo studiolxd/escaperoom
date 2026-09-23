@@ -21,12 +21,18 @@ export function toolsetContract(getClient: () => Client): void {
       if (def && "roomId" in def.inputSchema.shape) {
         expect(tool.inputSchema.required).toContain("roomId");
       }
+      // Toda tool implementada que muta admite el ensayo `dryRun` (4.4), opcional.
+      if (def?.run && def.annotations.readOnlyHint === false) {
+        expect(Object.keys(tool.inputSchema.properties ?? {}), tool.name).toContain("dryRun");
+        expect(tool.inputSchema.required ?? []).not.toContain("dryRun");
+      }
     }
     const addRule = tools.find((tool) => tool.name === "add_rule");
     expect(Object.keys(addRule?.inputSchema.properties ?? {})).toEqual([
       "roomId",
       "rule",
       "replace",
+      "dryRun",
     ]);
   });
 

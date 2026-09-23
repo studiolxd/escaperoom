@@ -5,7 +5,7 @@ en borrador (`docs/specs/10-mcp-del-creador.md`). Sus tools **no tienen lógica 
 mismos servicios de dominio de `@escaperoom/shared/services` que el tRPC del editor y la REST, con
 un `actor` como única diferencia (ADR-010/022).
 
-## Toolset (tickets 4.1–4.3)
+## Toolset (tickets 4.1–4.4)
 
 El toolset completo de specs/10 §2 está registrado con su nombre, descripción, anotaciones y
 esquema de entrada (Zod de `@escaperoom/shared/schemas` → JSON Schema). Todas las tools que operan
@@ -26,8 +26,8 @@ sobre un draft reciben `roomId` (el mismo `:roomId` de `/api/rooms/:roomId/draft
 Una tool del esqueleto responde con `isError: true`, el texto
 `❌ <tool>: no implementado todavía (ticket 4.x)…` y `structuredContent.error.code = "NOT_IMPLEMENTED"`.
 El resto de errores usan los mismos códigos (`UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`,
-`INVALID_DRAFT`, `INVALID_INPUT`, `NOT_AVAILABLE`, `INTERNAL`); los de una referencia inexistente
-llevan además `reason` y los ids `available` (specs/10 §3).
+`INVALID_DRAFT`, `INVALID_INPUT`, `VALIDATION_FAILED`, `NOT_AVAILABLE`, `INTERNAL`); los de una
+referencia inexistente llevan además `reason` y los ids `available` (specs/10 §3).
 
 `get_room`/`validate` leen el draft con `RoomDraftService.loadDraft` (misma autorización que el
 editor: solo el autor) y lo convierten a `RoomPackage` con `roomDocToPackage`, la conversión doc
@@ -35,16 +35,51 @@ Yjs → RoomPackage del ticket 3.1, **inyectada**. Mientras no se cablee, respon
 
 ## Escritura en el draft (ticket 4.2)
 
-Cada tool que muta (`src/draft-writer.ts`, `mutateDraft`):
+Cada tool que muta (`src/draft-writer.ts`, `mutateDraft`) pasa por el mismo pipeline (specs/10 §3,
+ticket 4.4):
 
 1. valida la entrada con los esquemas Zod de `@escaperoom/shared/schemas` (lo hace el SDK antes de
    llamar a la tool; un error sale como `Input validation error: …`);
-2. reconstruye el doc Yjs del draft con `RoomDraftService.loadDraft` (autorización: solo el autor) y
-   aplica **una transacción** con los comandos de la sala de `@escaperoom/editor/room-doc` — los
-   mismos del editor (`paintTiles`, `addObject`, `defineSubRooms`, `addPuzzle`…);
-3. pasa por `deps.beforeCommit` (enganche del dry-run + validador incremental de **4.4**; si lanza,
-   no se escribe nada);
-4. confirma el update de esa transacción (si no cambió nada, no escribe).
+2. **dry-run:** reconstruye el doc Yjs del draft con `RoomDraftService.loadDraft` (autorización:
+   solo el autor) —una copia en memoria; el doc real es el del canal del editor— y aplica **una
+   transacción** con los comandos de la sala de `@escaperoom/editor/room-doc`, los mismos del editor
+   (`paintTiles`, `addObject`, `defineSubRooms`, `addPuzzle`…). Si no cambia nada, termina aquí;
+3. **validador incremental** (`src/mutation-validation.ts`): serializa el doc resultante **una vez**
+   (`roomDocToPackage` → esquema → `validateRoomPackage`) y lo compara con la foto de antes
+   (`compareValidationReports` de `@escaperoom/shared/validator`);
+4. si la mutación **introduce** ❌ nuevos, no escribe y devuelve `VALIDATION_FAILED` con un mensaje
+   accionable: qué hallazgos nuevos hay, qué hacer y el informe resumido (y en `structuredContent`
+   `introducedErrors`, `lostSolvability`, `preexistingErrors` y los checks). Si solo introduce 🟡,
+   escribe y los devuelve como avisos;
+5. pasa por `deps.beforeCommit` (enganche extra opcional) y confirma el update de la transacción.
+
+**`dryRun: true`** (todas las tools de mutación, incluida `create_room`): recorre el pipeline entero
+y devuelve el mismo resultado —`🧪 <tool> (dry-run) — …` con el veredicto, o el mismo error
+`VALIDATION_FAILED` marcado `(dry-run)`— sin escribir nada.
+
+### Criterio "¿empeora el draft?" (4.4)
+
+Un draft a medio construir tiene errores (sin regla de victoria no es solvable). **Los errores que el
+draft ya tenía no bloquean** una mutación que no los empeora:
+
+| Antes → después | Veredicto |
+| --- | --- |
+| RoomPackage → RoomPackage | Se rechaza si aparecen ❌ **nuevos**. Cada hallazgo tiene la huella `check\|code\|ids` (sin el texto, que cita listas de disponibles) y se comparan como multiconjunto. La no-solvabilidad solo es nueva si un tamaño de grupo que **era** solvable deja de serlo. |
+| RoomPackage → fuera del esquema | Se rechaza. |
+| Fuera del esquema → fuera del esquema | Se rechaza solo si aparecen problemas de esquema nuevos (ruta con el id de la entidad en vez del índice + mensaje). |
+| Fuera del esquema → RoomPackage | Se acepta: sin informe previo no se pueden atribuir los ❌, que se devuelven como pendientes. |
+| Sin `roomDocToPackage` inyectado | No se valida. |
+
+Una respuesta de éxito lleva `structuredContent.validation` (`status`, `ok`, `newWarnings`,
+`pendingErrors`, `resolvedErrors`, `schemaProblems`) y el texto añade los avisos nuevos, los errores
+resueltos y los pendientes. Consecuencia práctica para el agente: **se construye de la fuente al
+sumidero** — primero el puzzle que abre una puerta y después la puerta con su `lockedBy`.
+
+**Rendimiento.** La foto "después" de cada commit se guarda en una caché LRU
+(`DraftSnapshotCache`, por defecto una por proceso; clave = hash del estado Yjs completo) y es la
+foto "antes" de la siguiente mutación sobre la sala: una construcción paso a paso serializa y valida
+una sola vez por llamada. Solo si falla la caché (primera mutación, o el draft cambió por otra vía)
+se reconstruye aparte el doc de antes para fotografiarlo.
 
 Los errores de los comandos se traducen a mensajes accionables: `No existe la habitación "bodega".
 Habitaciones disponibles: [laboratorio, cripta]`, `Ya existe el id "x". Usa otro id o replace: true…`,
@@ -98,7 +133,8 @@ src/
 ├── tools/                un módulo por tool (esquema Zod + handler); index.ts = CREATOR_TOOLSET
 ├── room-draft-reader.ts  draft (3.2) → doc Yjs (readDraftDoc) → RoomPackage validado
 ├── room-graph.ts         buildRoomGraph: grafo compacto de get_room_graph (4.3)
-├── draft-writer.ts       mutateDraft: transacción sobre el draft, enganche de 4.4 y commit (liveSync)
+├── draft-writer.ts       mutateDraft: pipeline de mutación (dry-run → validador → commit por liveSync)
+├── mutation-validation.ts  fotos del draft, caché y veredicto del validador incremental (4.4)
 ├── auth.ts               identidad: actorFromEnv (stdio), HttpAuthenticator (HTTP, enganche de 4.7)
 ├── transports/stdio.ts   runStdioServer(deps)
 ├── transports/http.ts    handleCreatorMcpRequest (Next /mcp/creator) y startHttpServer (Node)

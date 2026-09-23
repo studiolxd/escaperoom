@@ -134,10 +134,12 @@ describe("toolset de lógica y consulta (4.3)", () => {
     // 2. Añade la regla (sin id: se propone a partir del trigger).
     const added = await call(client, "add_rule", { roomId, rule: STATUE_RULE });
     expect(added.isError, added.text).toBe(false);
+    // El validador incremental (4.4) acompaña al texto: el Aldric sigue en verde.
     expect(added.text).toBe(
-      '✅ add_rule — "r-estatua-izq" añadida (on_interact, 1 condición(es), 1 acción(es))',
+      '✅ add_rule — "r-estatua-izq" añadida (on_interact, 1 condición(es), 1 acción(es))\n✅ Validador sin errores.',
     );
-    expect(added.structured).toEqual({ roomId, id: "r-estatua-izq", replaced: false });
+    expect(added.structured).toMatchObject({ roomId, id: "r-estatua-izq", replaced: false });
+    expect(added.structured?.validation).toMatchObject({ status: "validated", ok: true });
 
     const expected: Rule = { id: "r-estatua-izq", priority: 0, once: true, ...STATUE_RULE } as Rule;
 
@@ -199,7 +201,8 @@ describe("toolset de lógica y consulta (4.3)", () => {
       const result = await call(client, "add_rule", { roomId, rule, replace: true });
       expect(result.isError, `${rule.id}: ${result.text}`).toBe(false);
     }
-  });
+    // Una llamada por regla, cada una con el validador incremental de 4.4: margen para CI.
+  }, 30_000);
 
   it("vistas filtradas: get_puzzle con sus pistas y reglas", async () => {
     const { deps } = await createAldricDeps();
@@ -256,7 +259,10 @@ describe("errores accionables (specs/10 §3)", () => {
     expect(result.text).toBe(
       `❌ add_rule: No existe el objeto "salida-bodega" (en actions[0].objectId). Objetos disponibles: [${objects.join(", ")}]`,
     );
-    expect(result.structured?.error).toMatchObject({ reason: "UNKNOWN_OBJECT", available: objects });
+    expect(result.structured?.error).toMatchObject({
+      reason: "UNKNOWN_OBJECT",
+      available: objects,
+    });
     expect(await store.countUpdatesAfter(roomId, 0n)).toBe(before);
   });
 
@@ -267,7 +273,9 @@ describe("errores accionables (specs/10 §3)", () => {
       call(client, "add_rule", { roomId, rule: { conditions: [], actions: [], ...rule } });
 
     const item = await add({ trigger: { type: "on_item_collected", itemId: "copa" } });
-    expect(item.text).toMatch(/^❌ add_rule: No existe el item "copa" \(en trigger\.itemId\)\. Items disponibles: \[mechero, vela,/);
+    expect(item.text).toMatch(
+      /^❌ add_rule: No existe el item "copa" \(en trigger\.itemId\)\. Items disponibles: \[mechero, vela,/,
+    );
 
     const dialog = await add({
       trigger: { type: "on_game_start" },

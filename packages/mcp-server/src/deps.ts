@@ -1,5 +1,6 @@
 import type { Actor, CatalogService, RoomDraftService } from "@escaperoom/shared/services";
 import type { BeforeDraftCommit, LiveDraftSync } from "./draft-writer";
+import type { DraftSnapshotCache } from "./mutation-validation";
 import type { RoomDocToPackage } from "./room-draft-reader";
 
 /**
@@ -19,6 +20,11 @@ export type CreatorMcpDeps = {
    * editores abiertos las reciben al reconectar.
    */
   liveSync?: LiveDraftSync;
-  /** Enganche previo al commit de cada mutación (dry-run + validador de 4.4). */
+  /** Enganche extra previo al commit, tras el validador incremental de 4.4 (tests, gates). */
   beforeCommit?: BeforeDraftCommit;
+  /**
+   * Caché de fotos del validador incremental (4.4). Por defecto, una compartida
+   * por el proceso (el HTTP crea deps por petición).
+   */
+  snapshotCache?: DraftSnapshotCache;
 };

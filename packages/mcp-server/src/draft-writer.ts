@@ -2,8 +2,18 @@ import { RoomDocError, RoomLanguageError, listIds } from "@escaperoom/editor/roo
 import { buildDraftDoc, RoomDraftError, type Actor } from "@escaperoom/shared/services";
 import * as Y from "yjs";
 import type { CreatorMcpDeps } from "./deps";
-import { ToolError } from "./results";
-import { draftErrorToToolError, type DraftDoc } from "./room-draft-reader";
+import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import {
+  defaultSnapshotCache,
+  describeValidation,
+  DraftSnapshotCache,
+  judgeMutation,
+  snapshotDraft,
+  type DraftSnapshot,
+  type MutationValidation,
+} from "./mutation-validation";
+import { textResult, ToolError } from "./results";
+import { draftErrorToToolError, type DraftDoc, type RoomDocToPackage } from "./room-draft-reader";
 
 /**
  * Escritura del MCP en el draft (specs/10 §3, ADR-010): cada tool que muta es
@@ -40,9 +50,9 @@ export type PendingDraftCommit = {
 };
 
 /**
- * Enganche previo al commit (specs/10 §3, pasos 2–4). Es el punto donde 4.4
- * conecta el dry-run con el validador incremental: si lanza un `ToolError`,
- * no se escribe nada y el agente recibe el error.
+ * Enganche extra previo al commit: corre DESPUÉS del validador incremental de
+ * 4.4 (y nunca en dry-run). Si lanza un `ToolError`, no se escribe nada y el
+ * agente recibe el error.
  */
 export type BeforeDraftCommit = (pending: PendingDraftCommit) => void | Promise<void>;
 
@@ -103,17 +113,41 @@ async function commitUpdate(
   }
 }
 
+/** Resultado de una mutación que ha pasado el pipeline. */
+export type MutationOutcome<T> = {
+  tool: string;
+  result: T;
+  /** `false` si la transacción no cambió nada (no se valida ni se escribe). */
+  changed: boolean;
+  /** `true` si era un ensayo: se validó pero NO se escribió. */
+  dryRun: boolean;
+  /** Veredicto del validador incremental; `null` si no se validó. */
+  validation: MutationValidation | null;
+};
+
 /**
- * Aplica `mutate` sobre el draft como una transacción y la confirma. Devuelve
- * lo que devuelva `mutate` y si hubo cambios (sin cambios no se escribe nada).
+ * Pipeline común de las tools que mutan (specs/10 §3, ticket 4.4). El paso 1
+ * (Zod) lo hace el SDK con el `inputSchema` de la tool; aquí:
+ *
+ * 2. dry-run: aplica `mutate` como UNA transacción sobre el doc reconstruido
+ *    del draft (una copia en memoria: el doc real es el del canal del editor)
+ *    y serializa el resultado una sola vez;
+ * 3. validador incremental: compara la foto de después con la de antes (de la
+ *    caché si la hay; si no, de una segunda reconstrucción del draft). Si el
+ *    paquete no cambia (un `replace` idéntico), se reutiliza el informe;
+ * 4. si introduce ❌ nuevos lanza `VALIDATION_FAILED` con el error accionable
+ *    (nada se escribe); si solo introduce 🟡, sigue y los devuelve;
+ * 5. commit del update de la transacción al canal del editor (salvo `dryRun`).
+ *
  * La autorización es la del servicio del draft: solo el autor.
  */
 export async function mutateDraft<T>(
-  ctx: { actor: Actor; deps: CreatorMcpDeps; tool: string },
+  ctx: { actor: Actor; deps: CreatorMcpDeps; tool: string; dryRun?: boolean },
   roomId: string,
   mutate: (doc: DraftDoc) => T,
-): Promise<{ result: T; changed: boolean }> {
+): Promise<MutationOutcome<T>> {
   const { actor, deps, tool } = ctx;
+  const dryRun = ctx.dryRun === true;
   let draft;
   try {
     draft = await deps.drafts.loadDraft(actor, roomId);
@@ -123,6 +157,10 @@ export async function mutateDraft<T>(
   }
   const doc = buildDraftDoc(draft);
   try {
+    const cache = deps.snapshotCache ?? defaultSnapshotCache;
+    const toPackage = deps.roomDocToPackage;
+    const beforeKey = toPackage ? DraftSnapshotCache.key(roomId, doc) : null;
+
     let result!: T;
     // El evento `update` de Yjs emite el diff exacto de la transacción, y solo
     // si cambió algo: ese es el update que se confirma.
@@ -140,11 +178,61 @@ export async function mutateDraft<T>(
     } finally {
       doc.off("update", onUpdate);
     }
-    if (!update) return { result, changed: false };
+    if (!update) return { tool, result, changed: false, dryRun, validation: null };
+
+    let validation: MutationValidation | null = null;
+    let afterEntry: { key: string; snapshot: DraftSnapshot } | null = null;
+    if (toPackage && beforeKey) {
+      const before = cache.get(beforeKey) ?? snapshotBaseline(draft, toPackage);
+      cache.set(beforeKey, before);
+      const after = snapshotDraft(doc, toPackage, before);
+      validation = judgeMutation(tool, before, after, { dryRun });
+      afterEntry = { key: DraftSnapshotCache.key(roomId, doc), snapshot: after };
+    }
+    if (afterEntry) cache.set(afterEntry.key, afterEntry.snapshot);
+    if (dryRun) return { tool, result, changed: true, dryRun, validation };
+
     await deps.beforeCommit?.({ tool, roomId, actor, doc, update });
     await commitUpdate(deps, actor, roomId, update);
-    return { result, changed: true };
+    return { tool, result, changed: true, dryRun, validation };
   } finally {
     doc.destroy();
   }
+}
+
+/** Foto del draft tal y como estaba (reconstrucción aparte: el doc de trabajo ya mutó). */
+function snapshotBaseline(
+  draft: Parameters<typeof buildDraftDoc>[0],
+  toPackage: RoomDocToPackage,
+): DraftSnapshot {
+  const doc = buildDraftDoc(draft);
+  try {
+    return snapshotDraft(doc, toPackage);
+  } finally {
+    doc.destroy();
+  }
+}
+
+/**
+ * Resultado MCP de una mutación: el texto de éxito de la tool (`✅ tool — …`)
+ * más el veredicto del validador (avisos 🟡 nuevos, errores pendientes). En
+ * dry-run el prefijo pasa a `🧪 tool (dry-run) —` y se aclara que no se
+ * escribió nada.
+ */
+export function mutationResult(
+  outcome: MutationOutcome<unknown>,
+  text: string,
+  structured: Record<string, unknown>,
+): CallToolResult {
+  const lines = [
+    outcome.dryRun ? text.replace(`✅ ${outcome.tool} —`, `🧪 ${outcome.tool} (dry-run) —`) : text,
+  ];
+  if (!outcome.changed) lines.push("ℹ️ Sin cambios: el draft ya estaba así.");
+  if (outcome.validation) lines.push(...describeValidation(outcome.validation));
+  if (outcome.dryRun) lines.push("🧪 dryRun: true — no se ha escrito nada en el draft.");
+  return textResult(lines.join("\n"), {
+    ...structured,
+    ...(outcome.dryRun ? { dryRun: true } : {}),
+    ...(outcome.validation ? { validation: outcome.validation } : {}),
+  });
 }
