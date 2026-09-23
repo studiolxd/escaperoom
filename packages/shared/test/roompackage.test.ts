@@ -27,7 +27,7 @@ describe("RoomPackage schema", () => {
     }
 
     expect(result.data.meta.id).toBe("room-rey-aldric");
-    expect(result.data.meta.packageFormat).toBe("1");
+    expect(result.data.meta.packageFormat).toBe("roompackage/v1");
     expect(result.data.map.rooms).toHaveLength(3);
     expect(result.data.puzzles.map((p) => p.type)).toEqual([
       "combine_items",
@@ -83,9 +83,11 @@ describe("RoomPackage schema", () => {
     expect(formatRoomPackageError(result.error)).toContain(path);
   });
 
-  it("mantiene PACKAGE_FORMAT como valor propuesto sin cerrar la decisión", () => {
+  it("mantiene PACKAGE_FORMAT como el valor canónico fijado", () => {
     expect(PACKAGE_FORMAT).toBe("roompackage/v1");
-    expect(RoomPackageSchema.shape.meta.shape.packageFormat.safeParse("1").success).toBe(true);
+    expect(
+      RoomPackageSchema.shape.meta.shape.packageFormat.safeParse("roompackage/v1").success,
+    ).toBe(true);
     expect(RoomPackageSchema.shape.meta.shape.packageFormat.safeParse("").success).toBe(false);
   });
 });

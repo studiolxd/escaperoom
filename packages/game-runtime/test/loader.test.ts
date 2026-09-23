@@ -26,7 +26,7 @@ describe("loadRoomPackage", () => {
     const roomPackage = loadRoomPackage(loadFixture());
 
     expect(roomPackage.meta.id).toBe("room-rey-aldric");
-    expect(roomPackage.meta.packageFormat).toBe("1");
+    expect(roomPackage.meta.packageFormat).toBe("roompackage/v1");
     expect(roomPackage.map.rooms.map((room) => room.id)).toEqual([
       "salon-trono",
       "bodega",

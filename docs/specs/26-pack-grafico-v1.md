@@ -218,7 +218,7 @@ esquema Zod al cablear 1.2):
 interface PackManifest {
   id: string;              // "medieval-v1"
   version: string;         // semver del pack
-  packageFormat: string;   // versión del RoomPackage con la que se probó ("1")
+  packageFormat: string;   // versión del RoomPackage con la que se probó ("roompackage/v1")
   projection: { tileWidth: 64; tileHeight: 32; scale: number };
   atlases: { key: string; image: string; data: string }[];
   /** Mapa tileId → frame + colisión (el runtime no infiere colisión del número). */

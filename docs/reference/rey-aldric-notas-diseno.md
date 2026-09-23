@@ -21,7 +21,7 @@ Acompaña a `reference/roompackage-rey-aldric.v1.json` y a `specs/08-formato-roo
   `12` muro+tapiz, `20` puerta madera, `21` reja, `22` arco abierto.
 - Los estados de objeto son strings arbitrarios declarados en `states`.
 - Las posiciones de objeto son en celdas de grid (el runtime las proyecta a isométrico).
-- Textos e items usan `LocalizedText` (multidioma) y `packageFormat: "1"`.
+- Textos e items usan `LocalizedText` (multidioma) y `packageFormat: "roompackage/v1"`.
 
 ## Notas de diseño finas
 

@@ -579,3 +579,31 @@ caliente vs. ~1–1.5 ms un `GET` a Redis; el ahorro relativo crece con el tama�
 - **Sin cache** (aceptar la consulta a Postgres en cada petición): descartado porque el catálogo es
   la puerta de entrada pública y de SEO; el coste crece con el número de salas y de filtros
   combinados sin necesidad, cuando Redis ya está disponible y en uso para lo mismo (rate limit).
+
+---
+
+## ADR-028 — `meta.packageFormat`: valor canónico fijado a `"roompackage/v1"`
+
+**Contexto:** `specs/08` §6 dejaba `meta.packageFormat` como decisión abierta. En la práctica el
+repo corría con dos valores distintos a la vez: `SUPPORTED_PACKAGE_FORMATS = ["1"]` en
+`packages/shared/src/services/room-publish.ts` (el valor que el servidor validaba de verdad al
+publicar) y `PACKAGE_FORMAT = "roompackage/v1"` en `packages/shared/src/schemas/roompackage.ts`
+(una constante declarada pero nunca importada fuera de sus propios tests). El fixture del Rey
+Aldric y los fixtures de demo usaban `"1"` hardcodeado.
+
+**Decisión:** se fija `"roompackage/v1"` como valor único y canónico de `meta.packageFormat`,
+promoviendo la constante ya existente en `schemas/roompackage.ts` a valor real. Se actualiza
+`SUPPORTED_PACKAGE_FORMATS` a `["roompackage/v1"]` y todos los fixtures/tests que hardcodeaban
+`"1"` (`docs/reference/roompackage-rey-aldric.v1.json`, `packages/web/src/lib/world-preview-fixture.ts`,
+`DEFAULT_PACKAGE_FORMAT` del editor, fixtures de `game-runtime` y tests de `shared`/`web`).
+
+**Consecuencias:** no se añade periodo de compatibilidad hacia atrás con `"1"` — el repo no tiene
+salas publicadas por usuarios reales en producción, así que no hay nada que migrar y mantener dos
+valores válidos solo añadiría superficie de confusión sin beneficio. Cualquier futuro bump breaking
+del formato sigue la misma regla de `specs/08` §6: añadir el nuevo valor a
+`SUPPORTED_PACKAGE_FORMATS` cuando el runtime lo soporte.
+
+**Alternativas descartadas:** mantener `"1"` como valor final (pierde la semántica de namespace
+`roompackage/vN` que ya usaba la constante sin usar, y que es más clara para futuros bumps);
+aceptar ambos valores (`"1"` y `"roompackage/v1"`) con periodo de gracia (innecesario sin salas
+publicadas reales que migrar).

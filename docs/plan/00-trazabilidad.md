@@ -72,7 +72,6 @@ Listadas también en `README.md`; se resuelven en las fases indicadas:
 
 | Tema | Spec | Fase |
 |---|---|---|
-| `packageFormat` valor inicial | `specs/08` §6 | 1 |
 | LiveKit self-hosted vs. Cloud | `specs/12` §2.2 | 2 (ticket 2.11) |
 | Titularidad audio ElevenLabs / plazos fiscales / DPA | `specs/18` §2.3, §5 | 5–6 |
 | Job de purga de `analyticsEvent` | `specs/14` §12 | 6 (ticket 6.11) |

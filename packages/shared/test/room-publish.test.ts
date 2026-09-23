@@ -142,7 +142,7 @@ describe("publicación — congelar la versión", () => {
 
     const first = await service.publish(author, ROOM_ID, { changelog: "Primera versión" });
     expect(first.version.semver).toBe("1.0.0");
-    expect(first.version.packageFormat).toBe("1");
+    expect(first.version.packageFormat).toBe("roompackage/v1");
     expect(first.version.changelog).toBe("Primera versión");
     expect(first.report.ok).toBe(true);
     expect(store.rooms.get(ROOM_ID)?.status).toBe("published");
@@ -159,7 +159,7 @@ describe("publicación — congelar la versión", () => {
       id: ROOM_ID,
       authorId: author.userId,
       version: "1.0.0",
-      packageFormat: "1",
+      packageFormat: "roompackage/v1",
     });
 
     // Mutar lo devuelto tampoco toca lo almacenado.

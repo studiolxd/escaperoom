@@ -56,7 +56,7 @@ export function buildPlaceholderManifest(
   return {
     id: options.id ?? `${model.meta.id}-placeholder`,
     version: options.version ?? "0.0.0",
-    packageFormat: options.packageFormat ?? "1",
+    packageFormat: options.packageFormat ?? "roompackage/v1",
     projection: options.projection ?? DEFAULT_PACK_PROJECTION,
     atlases: [],
     tiles,

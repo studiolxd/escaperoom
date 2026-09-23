@@ -297,7 +297,7 @@ function soloPackage(puzzle: PuzzleDefinition, players = { min: 1, max: 2 }): Ro
       title: `Solitario ${puzzle.type}`,
       authorId: "test",
       version: "1.0.0",
-      packageFormat: "1",
+      packageFormat: "roompackage/v1",
       theme: "medieval",
       description: "Paquete de prueba del modo solitario",
       languages: ["es"],

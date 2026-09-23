@@ -43,7 +43,7 @@ import { decodeRle, encodeRowRle, parseTileKey, tileKey } from "./tiles";
  * `meta.packageFormat` de una sala nueva o sin valor: el del fixture y el único
  * que acepta hoy la publicación (`SUPPORTED_PACKAGE_FORMATS` de 3.9).
  */
-export const DEFAULT_PACKAGE_FORMAT = "1";
+export const DEFAULT_PACKAGE_FORMAT = "roompackage/v1";
 
 const META_SCALARS = [
   "id",
