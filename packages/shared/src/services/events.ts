@@ -178,6 +178,37 @@ export interface PaymentGateway {
     amountCents: number;
     currency: string;
   }): Promise<{ checkoutRef: string; url: string }>;
+  /**
+   * Venta individual de una sala a un jugador (ticket 5.1, `purchase_type:
+   * 'room'`, specs/13 §5). El `purchaseId` viaja en `metadata` del checkout Y
+   * del `PaymentIntent` (`payment_intent_data.metadata`), para que
+   * `payment_intent.payment_failed` pueda resolver la compra sin depender de
+   * la Session.
+   */
+  createRoomCheckout(input: {
+    purchaseId: string;
+    buyerId: string;
+    roomId: string;
+    roomVersionId: string;
+    title: string;
+    amountCents: number;
+    currency: string;
+    successUrl: string;
+    cancelUrl: string;
+  }): Promise<{ checkoutRef: string; url: string }>;
+  /**
+   * Transferencia del reparto del creador tras el cobro ("separate charges
+   * and transfers", specs/02 §2): NUNCA `application_fee_amount`, incompatible
+   * con este modelo. `paymentIntentId` ata la transferencia al cargo original
+   * (`source_transaction`) para que Stripe la financie con esos fondos.
+   */
+  createTransfer(input: {
+    purchaseId: string;
+    amountCents: number;
+    currency: string;
+    destinationAccountId: string;
+    paymentIntentId: string;
+  }): Promise<{ transferId: string }>;
 }
 
 // ── Errores ────────────────────────────────────────────────────────────────
@@ -624,17 +655,25 @@ export type EventService = ReturnType<typeof createEventService>;
 
 type EventCheckoutInput = Parameters<PaymentGateway["createEventCheckout"]>[0];
 type LicenseCheckoutInput = Parameters<PaymentGateway["createLicenseCheckout"]>[0];
+type RoomCheckoutInput = Parameters<PaymentGateway["createRoomCheckout"]>[0];
+type TransferInput = Parameters<PaymentGateway["createTransfer"]>[0];
 
-/** Pasarela falsa: registra las llamadas y devuelve una URL ficticia. Nunca toca Stripe. */
+/** Pasarela falsa: registra las llamadas y devuelve una URL/ref ficticia. Nunca toca Stripe. */
 export function createFakePaymentGateway(): PaymentGateway & {
   calls: EventCheckoutInput[];
   licenseCalls: LicenseCheckoutInput[];
+  roomCalls: RoomCheckoutInput[];
+  transferCalls: TransferInput[];
 } {
   const calls: EventCheckoutInput[] = [];
   const licenseCalls: LicenseCheckoutInput[] = [];
+  const roomCalls: RoomCheckoutInput[] = [];
+  const transferCalls: TransferInput[] = [];
   return {
     calls,
     licenseCalls,
+    roomCalls,
+    transferCalls,
     async createEventCheckout(input) {
       calls.push(input);
       const checkoutRef = `fake_cs_${calls.length}`;
@@ -644,6 +683,15 @@ export function createFakePaymentGateway(): PaymentGateway & {
       licenseCalls.push(input);
       const checkoutRef = `fake_cs_license_${licenseCalls.length}`;
       return { checkoutRef, url: `https://checkout.example.test/${checkoutRef}` };
+    },
+    async createRoomCheckout(input) {
+      roomCalls.push(input);
+      const checkoutRef = `fake_cs_room_${roomCalls.length}`;
+      return { checkoutRef, url: `https://checkout.example.test/${checkoutRef}` };
+    },
+    async createTransfer(input) {
+      transferCalls.push(input);
+      return { transferId: `fake_tr_${transferCalls.length}` };
     },
   };
 }
