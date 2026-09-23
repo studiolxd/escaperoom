@@ -22,3 +22,46 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm turbo run lint typecheck test build
+
+  # Subset E2E con navegador de cada PR (specs/22 §3.4, ticket 6.5): el smoke
+  # del Rey Aldric (2 jugadores, pasos 1–6) contra web + colyseus-server +
+  # editor-sync reales y Postgres efímero. La suite completa corre en nightly
+  # (e2e-nightly.yml).
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: escaperoom_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d escaperoom_e2e"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_e2e
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @escaperoom/shared build
+      - run: pnpm --filter @escaperoom/e2e e2e:install
+      - run: pnpm --filter @escaperoom/e2e e2e:smoke
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-smoke-report
+          path: |
+            packages/e2e/playwright-report
+            packages/e2e/test-results
+            packages/e2e/.run/*.log
+          retention-days: 7

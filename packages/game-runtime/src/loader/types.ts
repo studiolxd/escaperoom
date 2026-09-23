@@ -136,6 +136,13 @@ export interface RuntimePuzzle {
    */
   plates?: { objectId: string; x: number; y: number }[];
   viewpoints?: { objectId: string; x: number; y: number }[];
+  /**
+   * Paleta de un `split_clue` en modo `symbols`: los glifos distintos de la
+   * pista **ordenados alfabéticamente** (sin posiciones ni repeticiones, así
+   * que no dice qué va en cada hueco). Sin ella, cada jugador solo podría
+   * teclear los glifos que ve desde su mirilla y el grupo no podría resolver.
+   */
+  symbols?: string[];
   /** Objeto-puente del modo solitario (cáliz, espejo), si la sala lo admite. */
   soloBridgeItemId?: string;
 }

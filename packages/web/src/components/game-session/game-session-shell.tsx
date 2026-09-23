@@ -806,7 +806,12 @@ export function GameSessionShell({
         <span className="mt-1 text-[0.65rem] uppercase tracking-wide text-white/50">
           {tp("log.title")}
         </span>
-        <ul className="flex flex-col gap-0.5 text-[0.65rem] text-white/70" aria-live="polite">
+        {/* Altura acotada: el registro crece con la partida y, sin tope, el panel
+            tapaba la barra de objetos en pantallas de 720 px (ticket 6.5). */}
+        <ul
+          className="flex max-h-24 flex-col gap-0.5 overflow-y-auto text-[0.65rem] text-white/70"
+          aria-live="polite"
+        >
           {log.length === 0 ? <li className="text-white/40">—</li> : null}
           {log.map((entry) => (
             <li key={entry.id}>{entry.text}</li>
@@ -946,7 +951,7 @@ export function GameSessionShell({
             <InventoryPanel
               view={combineView}
               items={model.items.map((item) => ({ id: item.id, name: item.name, icon: item.icon }))}
-              onCombine={(a, b) => combinePuzzleId && client.combine([a, b], combinePuzzleId)}
+              onCombine={(inputs) => combinePuzzleId && client.combine(inputs, combinePuzzleId)}
               feedback={combineFeedback}
               onClose={closeInventory}
               renderIcon={(item) => renderItemIcon(item.id)}
@@ -1015,6 +1020,7 @@ export function GameSessionShell({
             {activePuzzle?.type === "split_clue" && activeView ? (
               <SplitCluePanel
                 view={activeView as SplitCluePublicView}
+                symbols={activePuzzle.symbols}
                 onSubmit={(combination) =>
                   client.attempt(
                     activePuzzle.id,

@@ -74,6 +74,19 @@ describe("modelo público del runtime (campos de fase 2)", () => {
       expect(serialized).not.toContain(`"${key}"`);
     }
   });
+
+  it("la paleta de las mirillas trae todos los glifos, ordenados y sin el orden de la pista", () => {
+    // Sin ella, cada jugador solo podría teclear lo que ve desde su mirilla (ticket 6.5).
+    const reja = model.puzzlesById["p-reja-mirillas"];
+    expect(reja?.symbols).toEqual(["corona", "espada", "luna"]);
+    const fragments = reyAldric().puzzles.find((puzzle) => puzzle.id === "p-reja-mirillas");
+    expect(fragments?.type === "split_clue" && fragments.fragments).toEqual([
+      "luna",
+      "corona",
+      "luna",
+      "espada",
+    ]);
+  });
 });
 
 describe("toGameSnapshot", () => {

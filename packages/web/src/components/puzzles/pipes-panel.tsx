@@ -138,6 +138,8 @@ export function PipesPanel({
               data-cell={cell.index}
               data-kind={cell.kind}
               data-gate={cell.gate ?? undefined}
+              data-rotation={cell.rotation}
+              data-rotatable={cell.rotatable}
               data-wet={wet}
               disabled={!interactive}
               onClick={() => {

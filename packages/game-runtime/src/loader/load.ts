@@ -181,7 +181,8 @@ export function toRuntimeModel(
 
 /**
  * Resumen público de un puzzle: dependencias y, para las mecánicas de
- * posición, dónde están las placas/mirillas. Nunca `code`, `solution`,
+ * posición, dónde están las placas/mirillas; para un `split_clue` de
+ * símbolos, su paleta (glifos distintos, ordenados). Nunca `code`, `solution`,
  * `recipes`, `seed`, `pairs`, `fragments` ni testigos.
  */
 function toRuntimePuzzle(puzzle: PuzzleDefinition): RuntimePuzzle {
@@ -203,6 +204,7 @@ function toRuntimePuzzle(puzzle: PuzzleDefinition): RuntimePuzzle {
       x: zone.x,
       y: zone.y,
     }));
+    if (puzzle.inputUI === "symbols") base.symbols = [...new Set(puzzle.fragments)].sort();
     if (puzzle.soloBridgeItemId) base.soloBridgeItemId = puzzle.soloBridgeItemId;
   }
   return base;

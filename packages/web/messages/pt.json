@@ -941,6 +941,26 @@
       "UNKNOWN": "Não foi possível confirmar. Tenta novamente dentro de alguns minutos."
     }
   },
+  "Redeem": {
+    "title": "Resgata a tua chave",
+    "intro": "Introduz a chave do teu cartão ou convite para entrares no jogo do teu grupo.",
+    "codeLabel": "Chave",
+    "nameLabel": "O teu nome (o teu grupo vai vê-lo)",
+    "namePlaceholder": "p. ex. Ana",
+    "cta": "Entrar no jogo",
+    "redeeming": "A resgatar…",
+    "errors": {
+      "ACCESS_KEY_INVALID": "Esta chave não existe. Verifica se a escreveste bem.",
+      "ACCESS_KEY_USED": "Esta chave já foi usada.",
+      "ACCESS_KEY_EXPIRED": "Esta chave já não é válida. Pede uma nova ao organizador.",
+      "ACCESS_KEY_NOT_CONFIRMED": "Antes de jogar tens de confirmar a tua presença a partir do email de convite.",
+      "SESSION_FULL": "A sessão desta chave está completa. Avisa o organizador.",
+      "SESSION_REQUIRED": "Este evento exige escolher uma sessão. Pede ao organizador o link da tua sessão.",
+      "RATE_LIMITED": "Demasiadas tentativas. Espera um momento e tenta de novo.",
+      "REDEEM_UNAVAILABLE": "O resgate não está disponível neste momento. Tenta mais tarde.",
+      "UNKNOWN": "Não foi possível resgatar a chave. Tenta de novo dentro de alguns minutos."
+    }
+  },
   "PublishConfirm": {
     "title": "Confirmar publicação",
     "intro": "O teu assistente de IA pediu para publicar esta sala. Revê os dados: a sala só é publicada se tu confirmares.",

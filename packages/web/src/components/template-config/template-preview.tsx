@@ -87,7 +87,7 @@ export function TemplatePreviewPanel({
         <InventoryPanel
           view={toCombineItemsPublicView(preview.state, preview.def)}
           items={items}
-          onCombine={(a, b) => onAction({ type: "combine", inputs: [a, b] })}
+          onCombine={(inputs) => onAction({ type: "combine", inputs })}
           feedback={preview.feedback}
           renderIcon={renderIcon}
         />

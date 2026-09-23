@@ -941,6 +941,26 @@
       "UNKNOWN": "Die Bestätigung hat nicht geklappt. Versuche es in ein paar Minuten noch einmal."
     }
   },
+  "Redeem": {
+    "title": "Löse deinen Schlüssel ein",
+    "intro": "Gib den Schlüssel von deiner Karte oder Einladung ein, um dem Spiel deiner Gruppe beizutreten.",
+    "codeLabel": "Schlüssel",
+    "nameLabel": "Dein Name (deine Gruppe sieht ihn)",
+    "namePlaceholder": "z. B. Ana",
+    "cta": "Dem Spiel beitreten",
+    "redeeming": "Wird eingelöst…",
+    "errors": {
+      "ACCESS_KEY_INVALID": "Diesen Schlüssel gibt es nicht. Prüfe, ob du ihn richtig eingegeben hast.",
+      "ACCESS_KEY_USED": "Dieser Schlüssel wurde bereits verwendet.",
+      "ACCESS_KEY_EXPIRED": "Dieser Schlüssel ist nicht mehr gültig. Bitte den Veranstalter um einen neuen.",
+      "ACCESS_KEY_NOT_CONFIRMED": "Bevor du spielst, musst du deine Teilnahme über die Einladungs-E-Mail bestätigen.",
+      "SESSION_FULL": "Die Sitzung dieses Schlüssels ist voll. Sag dem Veranstalter Bescheid.",
+      "SESSION_REQUIRED": "Bei dieser Veranstaltung muss eine Sitzung gewählt werden. Bitte den Veranstalter um den Link deiner Sitzung.",
+      "RATE_LIMITED": "Zu viele Versuche. Warte kurz und versuche es erneut.",
+      "REDEEM_UNAVAILABLE": "Das Einlösen ist gerade nicht verfügbar. Versuche es später erneut.",
+      "UNKNOWN": "Der Schlüssel konnte nicht eingelöst werden. Versuche es in ein paar Minuten erneut."
+    }
+  },
   "PublishConfirm": {
     "title": "Veröffentlichung bestätigen",
     "intro": "Dein KI-Assistent möchte diesen Raum veröffentlichen. Prüfe die Angaben: Der Raum wird nur veröffentlicht, wenn du bestätigst.",

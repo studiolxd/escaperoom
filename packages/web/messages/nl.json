@@ -941,6 +941,26 @@
       "UNKNOWN": "Bevestigen is niet gelukt. Probeer het over een paar minuten opnieuw."
     }
   },
+  "Redeem": {
+    "title": "Wissel je sleutel in",
+    "intro": "Voer de sleutel van je kaart of uitnodiging in om mee te doen aan het spel van je groep.",
+    "codeLabel": "Sleutel",
+    "nameLabel": "Je naam (je groep ziet hem)",
+    "namePlaceholder": "bijv. Ana",
+    "cta": "Meedoen aan het spel",
+    "redeeming": "Bezig met inwisselen…",
+    "errors": {
+      "ACCESS_KEY_INVALID": "Deze sleutel bestaat niet. Controleer of je hem goed hebt ingevoerd.",
+      "ACCESS_KEY_USED": "Deze sleutel is al gebruikt.",
+      "ACCESS_KEY_EXPIRED": "Deze sleutel is niet meer geldig. Vraag de organisator om een nieuwe.",
+      "ACCESS_KEY_NOT_CONFIRMED": "Voordat je speelt, moet je je aanwezigheid bevestigen via de uitnodigingsmail.",
+      "SESSION_FULL": "De sessie van deze sleutel is vol. Laat het de organisator weten.",
+      "SESSION_REQUIRED": "Voor dit evenement moet je een sessie kiezen. Vraag de organisator om de link van je sessie.",
+      "RATE_LIMITED": "Te veel pogingen. Wacht even en probeer het opnieuw.",
+      "REDEEM_UNAVAILABLE": "Inwisselen is nu niet beschikbaar. Probeer het later opnieuw.",
+      "UNKNOWN": "De sleutel kon niet worden ingewisseld. Probeer het over een paar minuten opnieuw."
+    }
+  },
   "PublishConfirm": {
     "title": "Publicatie bevestigen",
     "intro": "Je AI-assistent wil deze kamer publiceren. Controleer de gegevens: de kamer wordt alleen gepubliceerd als jij bevestigt.",
