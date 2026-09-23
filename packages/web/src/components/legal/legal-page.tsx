@@ -8,13 +8,17 @@ type LegalPageProps = {
   document: LegalDocument;
   /** `true` si el locale actual no es `es`: el contenido solo existe en español. */
   onlyInSpanishNotice?: string;
-  nav: { href: "/legal/terms" | "/legal/privacy" | "/legal/dpa"; label: string }[];
-  currentHref: "/legal/terms" | "/legal/privacy" | "/legal/dpa";
+  nav: {
+    href: "/legal/terms" | "/legal/privacy" | "/legal/dpa" | "/legal/legal-notice" | "/legal/cookies";
+    label: string;
+  }[];
+  currentHref: "/legal/terms" | "/legal/privacy" | "/legal/dpa" | "/legal/legal-notice" | "/legal/cookies";
 };
 
 /**
- * Layout compartido de las tres páginas legales (ticket 6.2, specs/18): TOS,
- * política de privacidad y plantilla de DPA. El contenido en sí (`document`)
+ * Layout compartido de las páginas legales (ticket 6.2, specs/18): TOS,
+ * política de privacidad, plantilla de DPA, aviso legal y política de
+ * cookies. El contenido en sí (`document`)
  * vive siempre en español — specs/18 fija España como jurisdicción de
  * referencia y el alcance de este ticket es un borrador técnico, no una
  * traducción jurídica a seis idiomas de un texto que todavía no ha revisado

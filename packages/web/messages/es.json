@@ -1342,7 +1342,9 @@
     "nav": {
       "terms": "Términos de Servicio",
       "privacy": "Política de Privacidad",
-      "dpa": "Plantilla de DPA"
+      "dpa": "Plantilla de DPA",
+      "legalNotice": "Aviso Legal",
+      "cookies": "Política de Cookies"
     },
     "terms": {
       "title": "Términos de Servicio (borrador)"
@@ -1352,6 +1354,12 @@
     },
     "dpa": {
       "title": "Plantilla de Contrato de Encargo de Tratamiento (DPA) (borrador)"
+    },
+    "legalNotice": {
+      "title": "Aviso Legal (borrador)"
+    },
+    "cookies": {
+      "title": "Política de Cookies (borrador)"
     }
   },
   "PublicNav": {

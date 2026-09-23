@@ -21,6 +21,12 @@ export async function PublicFooter() {
           <Link href="/legal/dpa" className="hover:text-foreground">
             {legal("nav.dpa")}
           </Link>
+          <Link href="/legal/legal-notice" className="hover:text-foreground">
+            {legal("nav.legalNotice")}
+          </Link>
+          <Link href="/legal/cookies" className="hover:text-foreground">
+            {legal("nav.cookies")}
+          </Link>
         </nav>
       </div>
     </footer>
