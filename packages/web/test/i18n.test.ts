@@ -96,6 +96,15 @@ describe("i18n", () => {
         "Results.items",
         "Results.review",
         "Results.exit",
+        "EditorI18n.placeholder",
+        "EditorI18n.missingOne",
+        "EditorI18n.missingSummary",
+        "EditorI18n.languagesTitle",
+        "EditorI18n.removeWarning",
+        "EditorI18n.removeKeep",
+        "EditorI18n.removePurge",
+        "EditorI18n.errors.DEFAULT_LANGUAGE",
+        "EditorI18n.errors.LAST_LANGUAGE",
       ]),
     );
   });

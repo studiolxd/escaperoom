@@ -204,5 +204,27 @@
     "alreadyOpen": "The floodgate is already open",
     "notAGate": "There is no floodgate there",
     "alreadySolved": "The channel is already solved"
+  },
+  "EditorI18n": {
+    "placeholder": "Text in {language}",
+    "missingOne": "Missing {language} translation",
+    "missingSummary": "Missing translation in: {languages}",
+    "languagesTitle": "Room languages",
+    "default": "Default language",
+    "makeDefault": "Make default",
+    "remove": "Remove",
+    "removeWarning": "Remove {language}? {count, plural, =0 {It has no translated texts.} one {It has # translated text: it will be kept in the draft but not published.} other {It has # translated texts: they will be kept in the draft but not published.}}",
+    "removeKeep": "Remove and keep texts",
+    "removePurge": "Remove and delete its texts",
+    "cancel": "Cancel",
+    "addLabel": "Language code",
+    "addPlaceholder": "e.g. en",
+    "add": "Add language",
+    "errors": {
+      "INVALID_LANGUAGE": "Invalid language code (e.g. es, en, pt-BR).",
+      "UNKNOWN_LANGUAGE": "That language is not declared in the room.",
+      "DEFAULT_LANGUAGE": "You can't remove the default language; pick another one first.",
+      "LAST_LANGUAGE": "The room needs at least one language."
+    }
   }
 }

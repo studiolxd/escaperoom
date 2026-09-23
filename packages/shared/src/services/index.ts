@@ -5,6 +5,7 @@
  */
 export * from "./actor";
 export * from "./catalog";
+export * from "./catalog-listing";
 export * from "./room-package-repository";
 export * from "./room-draft";
 export * from "./room-draft-prisma-store";
