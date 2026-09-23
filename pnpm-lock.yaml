@@ -203,6 +203,9 @@ importers:
       '@colyseus/ws-transport':
         specifier: 0.18.2
         version: 0.18.2(@colyseus/core@0.18.14)(express@5.2.1)
+      '@escaperoom/shared':
+        specifier: workspace:*
+        version: link:../shared
       express:
         specifier: ^5.1.0
         version: 5.2.1

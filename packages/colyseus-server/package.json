@@ -20,6 +20,7 @@
     "@colyseus/core": "0.18.14",
     "@colyseus/schema": "5.0.33",
     "@colyseus/ws-transport": "0.18.2",
+    "@escaperoom/shared": "workspace:*",
     "express": "^5.1.0",
     "zod": "^4.6.5"
   },

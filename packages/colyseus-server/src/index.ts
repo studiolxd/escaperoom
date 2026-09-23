@@ -3,6 +3,11 @@
  * `lobby_test` con movimiento validado; el motor de reglas llega en el 1.4.
  */
 export {
+  CHAT_HISTORY_LIMIT,
+  CHAT_INVALID_PAYLOAD_ERROR,
+  CHAT_MAX_LENGTH,
+  CHAT_MESSAGE,
+  CHAT_RATE_LIMITED_ERROR,
   DEFAULT_PORT,
   ERROR_MESSAGE,
   LOBBY_ROOM_NAME,
@@ -28,6 +33,6 @@ export type {
   Vector2,
 } from "./movement.js";
 export { LobbyTestRoom } from "./rooms/lobby-test-room.js";
-export { LobbyState, PlayerState } from "./schema/lobby-state.js";
+export { ChatMessageState, LobbyState, PlayerState } from "./schema/lobby-state.js";
 export { createGameServer, resolvePort, startGameServer } from "./server.js";
 export { pickPlayerTint } from "./tints.js";
