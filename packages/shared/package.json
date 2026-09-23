@@ -33,6 +33,7 @@
   "dependencies": {
     "@escaperoom/kit": "workspace:*",
     "@prisma/client": "6.19.3",
+    "yjs": "^13.6.32",
     "zod": "^4.6.5"
   },
   "devDependencies": {
