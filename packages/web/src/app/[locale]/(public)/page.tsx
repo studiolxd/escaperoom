@@ -38,9 +38,8 @@ export default async function HomePage({ params }: Props) {
         </div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-4 py-14">
-        <h2 className="text-center text-xl font-semibold">{l("valuePropsTitle")}</h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <section className="mx-auto max-w-6xl px-4 py-14">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {audiences.map((audience) => (
             <div
               key={audience}
