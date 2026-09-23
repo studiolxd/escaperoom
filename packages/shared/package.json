@@ -9,6 +9,7 @@
     "./schemas": "./src/schemas/index.ts",
     "./engine": "./src/engine/index.ts",
     "./templates": "./src/templates/index.ts",
+    "./validator": "./src/validator/index.ts",
     "./hints": "./src/hints/index.ts",
     "./chat": "./src/chat/index.ts",
     "./session": "./src/session/index.ts",

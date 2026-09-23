@@ -7,3 +7,4 @@ export * from "./templates";
 export * from "./hints";
 export * from "./chat";
 export * from "./session";
+export * from "./validator";
