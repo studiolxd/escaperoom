@@ -22,6 +22,29 @@ export function resolveActorFromRequest(request: Request): Promise<Actor> {
   return resolveActorFromHeaders(request.headers);
 }
 
+/**
+ * Actor SOLO de la sesión del navegador (cookie de Better Auth), para las
+ * acciones que exigen un humano: confirmar una publicación pedida por el MCP
+ * (4.5) o consentir un cliente OAuth (4.7). Con cabecera `Authorization`
+ * (un token OAuth del MCP, o un token de sesión vía el plugin `bearer` de
+ * Better Auth) devuelve el actor anónimo: un agente con su token nunca pasa
+ * por humano.
+ */
+export async function resolveBrowserActorFromHeaders(headers: Headers): Promise<Actor> {
+  if (hasAuthorizationHeader(headers)) return ANONYMOUS_ACTOR;
+  return resolveActorFromHeaders(headers);
+}
+
+/** `actor` de navegador de una petición (ver `resolveBrowserActorFromHeaders`). */
+export function resolveBrowserActorFromRequest(request: Request): Promise<Actor> {
+  return resolveBrowserActorFromHeaders(request.headers);
+}
+
+/** `true` si la petición trae credenciales por cabecera (`Authorization`). */
+export function hasAuthorizationHeader(headers: Headers): boolean {
+  return headers.has("authorization");
+}
+
 /** Contexto de tRPC por petición: actor + servicios de dominio compartidos. */
 export async function createContext(opts: { req: Request }): Promise<Context> {
   const actor = await resolveActorFromRequest(opts.req);

@@ -935,5 +935,30 @@
       "PUBLISH_CONFIRM_DISABLED": "A confirmação de publicações não está disponível neste ambiente.",
       "UNKNOWN": "Não foi possível publicar a sala. Tenta novamente."
     }
+  },
+  "McpConsent": {
+    "title": "Ligar um assistente de IA",
+    "intro": "«{client}» quer criar e editar salas com a tua conta de criador através do MCP.",
+    "signedInAs": "Sessão iniciada como {user}",
+    "permissionsTitle": "Se o permitires, poderá:",
+    "permissions": {
+      "drafts": "Ver e editar as tuas salas em rascunho.",
+      "noForeign": "Mais nada: não pode aceder a salas de outros criadores nem à tua conta.",
+      "expiry": "O acesso expira sozinho; o assistente pode renová-lo até 30 dias e revogá-lo a qualquer momento."
+    },
+    "redirectTo": "Depois voltarás a {target}.",
+    "approve": "Permitir",
+    "deny": "Recusar",
+    "login": {
+      "intro": "Inicia sessão para continuar.",
+      "google": "Continuar com o Google",
+      "emailLabel": "Ou recebe um link de acesso por email",
+      "emailSubmit": "Enviar link",
+      "emailSent": "Enviámos-te um link. Abre-o neste navegador para continuar.",
+      "error": "Não foi possível iniciar sessão. Tenta novamente."
+    },
+    "errors": {
+      "invalid": "O pedido de autorização não é válido. Volta a ligar o assistente a partir da sua aplicação."
+    }
   }
 }

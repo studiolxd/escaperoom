@@ -935,5 +935,30 @@
       "PUBLISH_CONFIRM_DISABLED": "Die Bestätigung von Veröffentlichungen ist in dieser Umgebung nicht verfügbar.",
       "UNKNOWN": "Der Raum konnte nicht veröffentlicht werden. Bitte versuche es erneut."
     }
+  },
+  "McpConsent": {
+    "title": "KI-Assistenten verbinden",
+    "intro": "„{client}“ möchte über MCP mit deinem Creator-Konto Räume erstellen und bearbeiten.",
+    "signedInAs": "Angemeldet als {user}",
+    "permissionsTitle": "Wenn du zustimmst, kann er:",
+    "permissions": {
+      "drafts": "Deine Raum-Entwürfe ansehen und bearbeiten.",
+      "noForeign": "Sonst nichts: kein Zugriff auf Räume anderer Creator oder auf dein Konto.",
+      "expiry": "Der Zugriff läuft von selbst ab; der Assistent kann ihn bis zu 30 Tage verlängern und jederzeit widerrufen."
+    },
+    "redirectTo": "Danach kehrst du zu {target} zurück.",
+    "approve": "Erlauben",
+    "deny": "Ablehnen",
+    "login": {
+      "intro": "Melde dich an, um fortzufahren.",
+      "google": "Weiter mit Google",
+      "emailLabel": "Oder erhalte einen Anmeldelink per E-Mail",
+      "emailSubmit": "Link senden",
+      "emailSent": "Wir haben dir einen Link geschickt. Öffne ihn in diesem Browser, um fortzufahren.",
+      "error": "Anmeldung fehlgeschlagen. Bitte versuche es erneut."
+    },
+    "errors": {
+      "invalid": "Die Autorisierungsanfrage ist ungültig. Verbinde den Assistenten erneut aus seiner App."
+    }
   }
 }

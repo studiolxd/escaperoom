@@ -33,10 +33,20 @@ function errorResponse(code: string, message: string, status: number, extra: obj
  *
  * Solo acepta peticiones del propio sitio (`Sec-Fetch-Site`), además de la
  * cookie de sesión `SameSite=Lax`: otra web no puede confirmar por el creador.
+ * Y solo con la sesión del NAVEGADOR (4.7): cualquier `Authorization` (el
+ * token OAuth del MCP) se rechaza con 403 antes de resolver el actor, para
+ * que el agente no pueda confirmar su propia publicación.
  */
 export function createPublishConfirmHandlers(deps: PublishConfirmHandlerDeps) {
   return {
     async postConfirm(request: Request): Promise<Response> {
+      if (request.headers.has("authorization")) {
+        return errorResponse(
+          "BEARER_NOT_ALLOWED",
+          "La confirmación de publicación exige la sesión del navegador del creador; los tokens del MCP no pueden confirmar",
+          403,
+        );
+      }
       const site = request.headers.get("sec-fetch-site");
       if (site && site !== "same-origin") {
         return errorResponse(

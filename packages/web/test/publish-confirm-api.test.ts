@@ -11,6 +11,13 @@ import {
   createUnavailablePublishAssetSource,
   type Actor,
 } from "@escaperoom/shared/services";
+import { createHash, randomBytes } from "node:crypto";
+import {
+  authenticateOAuthBearer,
+  createInMemoryOAuthStore,
+  createOAuthProvider,
+  resolveHttpAuth,
+} from "@escaperoom/mcp-server";
 import { describe, expect, it } from "vitest";
 import { createPublishConfirmHandlers } from "../src/server/rest/publish-confirm";
 
@@ -30,7 +37,7 @@ type ErrorJson = { error: { code: string; message: string } };
  * es un RoomPackage mutable que devuelve el serializador (como en
  * room-publish-api.test.ts).
  */
-function setup(opts: { disabled?: boolean } = {}) {
+function setup(opts: { disabled?: boolean; resolveActor?: (req: Request) => Promise<Actor> } = {}) {
   let draft: RoomPackage = structuredClone(reyAldric);
   const store = createInMemoryRoomPublishStore([
     { id: ROOM_ID, authorId: author.userId, status: "draft" },
@@ -49,7 +56,9 @@ function setup(opts: { disabled?: boolean } = {}) {
   const actors: Record<string, Actor> = { autora: author, otro: intruder };
   const handlers = createPublishConfirmHandlers({
     confirmations: opts.disabled ? null : confirmations,
-    resolveActor: async (req) => actors[req.headers.get("x-test-user") ?? ""] ?? ANONYMOUS_ACTOR,
+    resolveActor:
+      opts.resolveActor ??
+      (async (req) => actors[req.headers.get("x-test-user") ?? ""] ?? ANONYMOUS_ACTOR),
   });
 
   return {
@@ -141,6 +150,80 @@ describe("POST /api/publish-confirm (confirmación humana, ticket 4.5)", { timeo
     // La huella ya no coincide: el draft cambió (se comprueba antes que el validador).
     expect(res.status).toBe(409);
     expect(((await res.json()) as ErrorJson).error.code).toBe("DRAFT_CHANGED");
+  });
+
+  it("un token Bearer OAuth válido del creador (el del MCP) no confirma: 403 y no publica", async () => {
+    // Token OAuth real de la autora (4.7), obtenido por el flujo completo con PKCE.
+    const origin = "http://localhost";
+    const provider = createOAuthProvider({
+      store: createInMemoryOAuthStore(),
+      issuer: origin,
+      resource: `${origin}/mcp/creator`,
+    });
+    const redirectUri = "http://127.0.0.1:7777/cb";
+    const registered = await provider.handleRegister(
+      new Request(`${origin}/api/mcp/oauth/register`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ client_name: "Agente", redirect_uris: [redirectUri] }),
+      }),
+    );
+    const { client_id } = (await registered.json()) as { client_id: string };
+    const verifier = randomBytes(40).toString("base64url");
+    const parsed = await provider.parseAuthorizationRequest(
+      new URLSearchParams({
+        response_type: "code",
+        client_id,
+        redirect_uri: redirectUri,
+        code_challenge: createHash("sha256").update(verifier).digest("base64url"),
+        code_challenge_method: "S256",
+      }),
+    );
+    if (!parsed.ok) throw new Error(parsed.description);
+    const code = (await provider.approve(parsed.request, author)).searchParams.get("code")!;
+    const tokenResponse = await provider.handleToken(
+      new Request(`${origin}/api/mcp/oauth/token`, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code,
+          code_verifier: verifier,
+          client_id,
+        }),
+      }),
+    );
+    const { access_token } = (await tokenResponse.json()) as { access_token: string };
+    const bearer = { authorization: `Bearer ${access_token}`, "sec-fetch-site": "same-origin" };
+
+    // Peor caso: aunque el resolvedor aceptara el token (es válido y es de la autora)…
+    const acceptsBearer = async (req: Request): Promise<Actor> => {
+      const auth = resolveHttpAuth(await authenticateOAuthBearer(provider, req));
+      return auth.ok ? auth.actor : ANONYMOUS_ACTOR;
+    };
+    const probe = await acceptsBearer(
+      new Request(`${origin}/mcp/creator`, { headers: { authorization: bearer.authorization } }),
+    );
+    expect(probe.userId).toBe(author.userId);
+
+    const api = setup({ resolveActor: acceptsBearer });
+    const { token } = await api.confirmations.request(author, ROOM_ID, { versionNotes: "v1" });
+    // …el agente no confirma su propia publicación.
+    const res = await api.post({ token }, undefined, bearer);
+    expect(res.status).toBe(403);
+    expect(((await res.json()) as ErrorJson).error.code).toBe("BEARER_NOT_ALLOWED");
+    // Ni con la cookie de sesión de la autora a la vez.
+    const both = await api.post({ token }, "autora", bearer);
+    expect(both.status).toBe(403);
+    expect(await api.store.listVersions(ROOM_ID)).toEqual([]);
+
+    // La misma confirmación, desde el navegador de la autora (sin Bearer), sí publica.
+    const browser = setup();
+    const human = await browser.confirmations.request(author, ROOM_ID, { versionNotes: "v1" });
+    const ok = await browser.post({ token: human.token }, "autora", {
+      "sec-fetch-site": "same-origin",
+    });
+    expect(ok.status).toBe(201);
   });
 
   it("sin configuración responde 503", async () => {

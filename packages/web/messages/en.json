@@ -935,5 +935,30 @@
       "PUBLISH_CONFIRM_DISABLED": "Publication confirmation is not available in this environment.",
       "UNKNOWN": "The room could not be published. Please try again."
     }
+  },
+  "McpConsent": {
+    "title": "Connect an AI assistant",
+    "intro": "“{client}” wants to build and edit rooms with your creator account through MCP.",
+    "signedInAs": "Signed in as {user}",
+    "permissionsTitle": "If you allow it, it will be able to:",
+    "permissions": {
+      "drafts": "View and edit your draft rooms.",
+      "noForeign": "Nothing else: it cannot access other creators' rooms or your account.",
+      "expiry": "Access expires on its own; the assistant can renew it for up to 30 days and revoke it at any time."
+    },
+    "redirectTo": "You will then return to {target}.",
+    "approve": "Allow",
+    "deny": "Deny",
+    "login": {
+      "intro": "Sign in to continue.",
+      "google": "Continue with Google",
+      "emailLabel": "Or get a sign-in link by email",
+      "emailSubmit": "Send link",
+      "emailSent": "We've sent you a link. Open it in this browser to continue.",
+      "error": "Sign-in failed. Please try again."
+    },
+    "errors": {
+      "invalid": "The authorization request is not valid. Reconnect the assistant from its app."
+    }
   }
 }

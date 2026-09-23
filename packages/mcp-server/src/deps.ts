@@ -46,4 +46,9 @@ export type CreatorMcpDeps = {
    * PIDE publicar; la publicación la confirma el humano en la web.
    */
   publishRequests?: Pick<PublishConfirmationService, "request"> | null;
+  /**
+   * Tope, en bytes, del texto de una respuesta de tool (coste de tokens, 4.7).
+   * Por defecto `DEFAULT_MAX_TOOL_RESPONSE_BYTES`; `Infinity` lo desactiva.
+   */
+  maxToolResponseBytes?: number;
 };

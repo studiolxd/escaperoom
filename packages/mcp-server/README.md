@@ -26,9 +26,8 @@ sobre un draft reciben `roomId` (el mismo `:roomId` de `/api/rooms/:roomId/draft
 Con 4.5 todo el toolset está implementado; una tool sin `run` respondería con `isError: true`, el
 texto `❌ <tool>: no implementado todavía (ticket 4.x)…` y `structuredContent.error.code =
 "NOT_IMPLEMENTED"`. Los errores usan los mismos códigos (`UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`,
-`INVALID_DRAFT`, `INVALID_INPUT`, `VALIDATION_FAILED`, `NOT_PUBLISHABLE`, `NOT_AVAILABLE`,
-`INTERNAL`); los de una
-referencia inexistente llevan además `reason` y los ids `available` (specs/10 §3).
+`INVALID_DRAFT`, `INVALID_INPUT`, `VALIDATION_FAILED`, `NOT_PUBLISHABLE`, `RESPONSE_TOO_LARGE`,
+`NOT_AVAILABLE`, `INTERNAL`); los de una referencia inexistente llevan además `reason` y los ids `available` (specs/10 §3).
 
 `get_room`/`validate` leen el draft con `RoomDraftService.loadDraft` (misma autorización que el
 editor: solo el autor) y lo convierten a `RoomPackage` con `roomDocToPackage`, la conversión doc
@@ -189,18 +188,19 @@ src/
 ├── mutation-validation.ts  fotos del draft, caché y veredicto del validador incremental (4.4)
 ├── publish-checklist.ts  checklist de publicación de validate/publish (4.5)
 ├── links.ts              enlaces a la web (preview, confirmación) y puerto del playtest (4.5)
-├── auth.ts               identidad: actorFromEnv (stdio), HttpAuthenticator (HTTP, enganche de 4.7)
+├── auth.ts               identidad: actorFromEnv (stdio), HttpAuthenticator y 401 del HTTP (4.7)
+├── oauth/                servidor de autorización OAuth 2.1 (4.7): provider, store, bearer
+├── rate-limit.ts         límite de llamadas a tools por token (4.7)
 ├── transports/stdio.ts   runStdioServer(deps)
 ├── transports/http.ts    handleCreatorMcpRequest (Next /mcp/creator) y startHttpServer (Node)
 └── bin/stdio.ts          punto de entrada stdio para Claude Desktop (servicios sobre Postgres)
 ```
 
-## Identidad y auth
+## Identidad y auth (ticket 4.7)
 
-El OAuth 2.1 (`@slxd/mcp-auth` sobre Better Auth) llega en **4.7**. Hasta entonces:
-
-- **stdio (desarrollo):** la identidad sale del entorno. Sin ella el servidor arranca, avisa por
-  stderr y cada tool del creador responde `UNAUTHORIZED`.
+- **stdio (solo desarrollo):** la identidad sale del entorno. **No apto para producción**: quien
+  lanza el proceso decide con qué usuario actúa el agente, sin login ni consentimiento. Sin
+  identidad, el servidor arranca, avisa por stderr y cada tool del creador responde `UNAUTHORIZED`.
 
   | Variable | Uso |
   | --- | --- |
@@ -210,9 +210,55 @@ El OAuth 2.1 (`@slxd/mcp-auth` sobre Better Auth) llega en **4.7**. Hasta entonc
   | `PUBLISH_CONFIRM_SECRET` | Secreto de la confirmación de `publish`: el mismo que en web (opcional en desarrollo). |
   | `DATABASE_URL` | Postgres de la app (el mismo que `packages/web`). |
 
-- **HTTP (`/mcp/creator` en `packages/web`):** la sesión de Better Auth de la petición. Sin sesión,
-  401 con `WWW-Authenticate: Bearer`, antes de tocar el protocolo. En 4.7 el `authenticate` de
-  `handleCreatorMcpRequest` validará el Bearer de OAuth y devolverá el mismo `Actor`.
+- **HTTP (`/mcp/creator` en `packages/web`):** OAuth 2.1 según la especificación de autorización
+  de MCP (`src/oauth`, equivalente de `@slxd/mcp-auth` con librerías estándar), o la cookie de
+  sesión de Better Auth para el chat web integrado. Con `Authorization: Bearer` solo vale el access
+  token OAuth.
+
+### OAuth 2.1 para clientes MCP remotos
+
+`createOAuthProvider({ store, issuer, resource })` es framework-agnóstico (`Request`/`Response`); la
+web lo sirve así:
+
+| Endpoint                                                               | Qué                                                                                                                                                                                                |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /.well-known/oauth-protected-resource/mcp/creator` (y en la raíz) | Metadata del recurso protegido (RFC 9728): `resource`, `authorization_servers`, `scopes_supported: ["mcp:creator"]`.                                                                               |
+| `GET /.well-known/oauth-authorization-server`                          | Metadata del servidor de autorización (RFC 8414).                                                                                                                                                  |
+| `POST /api/mcp/oauth/register`                                         | Registro dinámico de clientes (RFC 7591), limitado por IP. Públicos (`none`) o confidenciales (`client_secret_post`/`_basic`). `redirect_uri`: https, http solo loopback, o esquema de app nativa. |
+| `GET /api/mcp/oauth/authorize`                                         | Valida la petición y lleva a `/{locale}/oauth/consent`: login con Better Auth (Google o enlace mágico) y consentimiento (next-intl, 6 idiomas).                                                    |
+| `POST /api/mcp/oauth/authorize`                                        | Decisión del formulario (misma sesión + mismo origen): `code` o `access_denied` por la `redirect_uri`, con `state` e `iss`.                                                                        |
+| `POST /api/mcp/oauth/token`                                            | `authorization_code` con **PKCE S256 obligatorio** y `refresh_token` con **rotación**.                                                                                                             |
+| `POST /api/mcp/oauth/revoke`                                           | Revocación (RFC 7009): revoca la autorización entera (access + refresh).                                                                                                                           |
+
+- **El token representa al creador**, siempre con rol `member`: las tools aplican la misma
+  autorización que el editor (`RoomDraftService`: solo el autor lee o escribe su draft; otro draft
+  → `FORBIDDEN` por tool). El token está ligado al recurso (RFC 8707) y no vale para otro.
+- **Caducidad:** access token 1 h, refresh 30 días (rota en cada uso), código 5 min y de un solo
+  uso, cliente registrado 1 año.
+- **Sin credenciales, token caducado, revocado o desconocido** → 401 con
+  `WWW-Authenticate: Bearer realm=…, resource_metadata="<origen>/.well-known/oauth-protected-resource/mcp/creator", scope="mcp:creator"`
+  (y `error="invalid_token"` si se presentó un token): el cliente MCP descubre desde ahí el
+  servidor de autorización y empieza el flujo.
+- **Confirmar una publicación o dar el consentimiento es cosa de un humano:** `POST
+  /api/publish-confirm` (4.5), su página y el formulario de consentimiento solo aceptan la cookie de
+  sesión del navegador; cualquier cabecera `Authorization` (el token OAuth del MCP) se rechaza con
+  403, así el agente no puede confirmar su propia publicación.
+- **Almacenamiento** (`OAuthStore`, clave → JSON con caducidad): en la web, la tabla
+  `verification` de Better Auth (prefijo `mcp-oauth:`, sin migración); códigos y tokens solo por su
+  hash SHA-256. En tests, `createInMemoryOAuthStore`.
+
+### Límites de coste
+
+- **Rate limit por token** (`createRateLimiter`, ventana deslizante en memoria del proceso): 60
+  llamadas a tools por minuto por autorización OAuth (o por usuario con sesión web). Al superarlo,
+  429 con `Retry-After` y un error JSON-RPC legible (`Límite de uso del MCP superado: máximo 60
+llamadas a tools cada 60 s por token. Reintenta en N s…`, `data.code = "RATE_LIMITED"`). Solo
+  cuentan los `tools/call`.
+- **Tope de tamaño de respuesta** (`DEFAULT_MAX_TOOL_RESPONSE_BYTES` = 64 KB de texto ≈ 16k
+  tokens; `deps.maxToolResponseBytes` lo cambia): por encima, la tool responde `RESPONSE_TOO_LARGE`
+  con un mensaje accionable —usar `get_room_graph`, `get_puzzle({ roomId, puzzleId })` y
+  `get_rules_for({ roomId, objectId })`— y, si es `get_room`, los ids de puzzles y objetos de la
+  sala. Aplica a todos los transportes. El Rey Aldric (~25 KB) cabe.
 
 ## Conectar desde Claude Desktop
 
@@ -261,6 +307,13 @@ conectado al WebSocket de edición (3.3) ve la mutación al instante.
 link de prueba y solo para el autor; `publish` falla con el informe si el validador no está en
 verde, en verde **no publica** hasta confirmar (y tras confirmar crea la `roomVersion`, de un solo
 uso), y si el draft cambia entre la solicitud y la confirmación, la confirmación se rechaza.
+
+`test/oauth.test.ts` (4.7) hace el flujo OAuth completo con el cliente del SDK de MCP
+(`StreamableHTTPClientTransport` + `authProvider`: 401 → metadata → DCR → PKCE → consentimiento →
+token) contra `startHttpServer` con los endpoints OAuth montados como en la web, y comprueba que el
+token funciona en `/mcp/creator`, que un creador no lee ni modifica el draft de otro (`FORBIDDEN`
+por tool), 401 con token caducado/revocado/inventado o sin token, rotación del refresh, PKCE,
+`redirect_uri`, rate limit y el aviso de `get_room` en una sala grande.
 
 `test/logic-toolset.test.ts` (4.3) siembra el Rey Aldric con `roomPackageToDoc`: el agente obtiene
 el grafo, añade una regla que aparece en `get_rules_for`, `get_room` y `roomDocToPackage`, y se

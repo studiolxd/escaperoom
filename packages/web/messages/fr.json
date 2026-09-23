@@ -935,5 +935,30 @@
       "PUBLISH_CONFIRM_DISABLED": "La confirmation des publications n'est pas disponible dans cet environnement.",
       "UNKNOWN": "Impossible de publier la salle. Réessayez."
     }
+  },
+  "McpConsent": {
+    "title": "Connecter un assistant IA",
+    "intro": "« {client} » souhaite créer et modifier des salles avec votre compte créateur via MCP.",
+    "signedInAs": "Connecté en tant que {user}",
+    "permissionsTitle": "Si vous l'autorisez, il pourra :",
+    "permissions": {
+      "drafts": "Voir et modifier vos salles en brouillon.",
+      "noForeign": "Rien d'autre : il ne peut pas accéder aux salles d'autres créateurs ni à votre compte.",
+      "expiry": "L'accès expire de lui-même ; l'assistant peut le renouveler jusqu'à 30 jours et le révoquer à tout moment."
+    },
+    "redirectTo": "Vous reviendrez ensuite à {target}.",
+    "approve": "Autoriser",
+    "deny": "Refuser",
+    "login": {
+      "intro": "Connectez-vous pour continuer.",
+      "google": "Continuer avec Google",
+      "emailLabel": "Ou recevez un lien de connexion par e-mail",
+      "emailSubmit": "Envoyer le lien",
+      "emailSent": "Nous vous avons envoyé un lien. Ouvrez-le dans ce navigateur pour continuer.",
+      "error": "Échec de la connexion. Réessayez."
+    },
+    "errors": {
+      "invalid": "La demande d'autorisation n'est pas valide. Reconnectez l'assistant depuis son application."
+    }
   }
 }
