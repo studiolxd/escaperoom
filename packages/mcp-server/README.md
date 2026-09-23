@@ -337,3 +337,44 @@ por tool), 401 con token caducado/revocado/inventado o sin token, rotación del 
 el grafo, añade una regla que aparece en `get_rules_for`, `get_room` y `roomDocToPackage`, y se
 comprueban los errores accionables (objeto, item, diálogo, puzzle o habitación inexistentes; ids
 repetidos) y que las vistas filtradas ocupan menos que `get_room`.
+
+### Paridad editor ↔ MCP (ticket 4.8)
+
+`test/mcp-parity.spec.ts` (specs/22 §3.3) es la prueba determinista de "todo lo que el editor visual
+puede hacer, el MCP puede hacerlo": un cliente del SDK construye **el Rey Aldric entero** solo con el
+toolset (`create_room`, `define_subrooms`, `set_map`, `paint_tiles`, `define_item`, `add_dialog`,
+`add_object`, `add_puzzle`, `add_hint`, `add_rule`), siguiendo el guion de
+`test/fixtures/aldric-script.ts`, que envía cada entidad tal cual está en
+`docs/reference/roompackage-rey-aldric.v1.json`. Después comprueba que `validate` está en verde y
+publicable, que el validador da la sala solvable para 1–4 jugadores con **la misma ruta crítica** (16
+pasos) que el fixture y que el RoomPackage del draft es equivalente al fixture. Corre en memoria, sin
+red, en cada PR (~2 s).
+
+Cómo construye el agente (lo que el validador incremental de 4.4 obliga a hacer):
+
+- **En orden de juego** (Salón → Bodega → Catacumbas): nada puede referenciar lo que aún no existe
+  ni quedar inalcanzable.
+- **Altas en dos pasos para las referencias mutuas**: el puzzle que `unlocks` una puerta y la puerta
+  con `lockedBy` ese puzzle (placas ↔ puerta de la Bodega, candado ↔ arca, mirillas ↔ reja, sello ↔
+  relicario); el `code_lock` que lista sus `hints` y cada pista con su `puzzleId`. Se da de alta el
+  puzzle sin la referencia y, cuando existe la otra entidad, se sustituye con `replace: true` (que
+  conserva su posición).
+- `p-combina` entra primero con la receta cuyos ingredientes ya se obtienen (mechero + vela) y se
+  completa en las Catacumbas, cuando ya hay llave de plata y compuerta de oro.
+
+Diferencias no semánticas que el test normaliza (y comprueba aparte):
+
+| Campo | Por qué difiere |
+| --- | --- |
+| `meta.id`, `meta.authorId`, `meta.version` | Los asigna la plataforma (id del draft, actor de `create_room`, semver de la publicación). |
+| Orden de `objects`, `items`, `puzzles`, `rules`, `dialogs`, `hints` | El doc conserva el orden de alta (el de juego). Se compara por id; el único orden con semántica —el desempate por posición entre reglas del mismo disparador y prioridad (`r-caliz-en-ranura` antes que `r-recoger-caliz`)— se comprueba explícitamente. |
+| `map.rooms[].decorations`, `map.rooms[].lighting` | Hueco **compartido con el editor visual**: ningún comando de `room-doc` los escribe (ni el editor ni el MCP), así que una sala hecha en cualquiera de los dos los tiene vacíos. Son cosméticos: ni el validador ni la ruta crítica los usan. |
+
+**Variante por chat con un LLM real (nightly, no determinista).** La fila 4.8 del plan pide también
+construir la sala "por chat". Esa variante necesita el proveedor del chat web (4.6), que aún no está
+en main, así que queda documentada y no implementada: cuando 4.6 esté, un job nightly opcional
+(`schedule` en `.github/workflows/`, detrás de `ANTHROPIC_API_KEY` y saltado si falta) debe darle al
+proveedor de 4.6 el mismo toolset (cliente MCP en memoria como aquí), pedirle el Rey Aldric a partir
+de la descripción de la sala y aplicar las MISMAS comprobaciones de este spec salvo la igualdad de
+entidades (el LLM elige ids y textos): `validate` en verde y ruta crítica solvable para 1–4 jugadores.
+Nunca en el CI de PR (sin llamadas reales a APIs).
