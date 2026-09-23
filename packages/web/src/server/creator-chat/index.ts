@@ -4,11 +4,14 @@
  * creador por HTTP — el mismo servidor que Claude Desktop, sin lógica
  * paralela.
  */
+export * from "./ai-sdk-provider";
 export * from "./anthropic-provider";
 export * from "./config";
 export * from "./conversation-store";
+export * from "./google-provider";
 export * from "./handler";
 export * from "./mcp-tools";
+export * from "./openai-provider";
 export * from "./orchestrator";
 export * from "./provider";
 export * from "./scripted-provider";

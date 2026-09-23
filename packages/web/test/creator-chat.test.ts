@@ -76,6 +76,7 @@ function setup(
       ? { configured: false }
       : {
           configured: true,
+          provider: "anthropic",
           apiKey: "sk-test-no-se-usa",
           model: "scripted",
           limits: { ...DEFAULT_CREATOR_CHAT_LIMITS, ...opts.limits },
@@ -484,6 +485,7 @@ describe("chat del creador (4.6) — configuración y acceso", () => {
   it("con clave: modelo por defecto claude-sonnet-5 y topes configurables por env", () => {
     expect(readCreatorChatConfig({ ANTHROPIC_API_KEY: "sk" })).toEqual({
       configured: true,
+      provider: "anthropic",
       apiKey: "sk",
       model: "claude-sonnet-5",
       limits: DEFAULT_CREATOR_CHAT_LIMITS,
@@ -503,6 +505,23 @@ describe("chat del creador (4.6) — configuración y acceso", () => {
         maxOutputTokens: DEFAULT_CREATOR_CHAT_LIMITS.maxOutputTokens,
       },
     });
+  });
+
+  it("CREATOR_CHAT_PROVIDER elige el proveedor y su clave y modelo por defecto", () => {
+    expect(
+      readCreatorChatConfig({ CREATOR_CHAT_PROVIDER: "openai", OPENAI_API_KEY: "sk-oa" }),
+    ).toMatchObject({ configured: true, provider: "openai", apiKey: "sk-oa", model: "gpt-5.1" });
+    expect(
+      readCreatorChatConfig({ CREATOR_CHAT_PROVIDER: "google", GOOGLE_GENERATIVE_AI_API_KEY: "sk-g" }),
+    ).toMatchObject({ configured: true, provider: "google", apiKey: "sk-g", model: "gemini-3-pro" });
+    // Sin la clave del proveedor elegido, «no configurado» (no cae a otro proveedor).
+    expect(
+      readCreatorChatConfig({ CREATOR_CHAT_PROVIDER: "openai", ANTHROPIC_API_KEY: "sk" }),
+    ).toEqual({ configured: false });
+    // Un valor no reconocido se ignora y rige `anthropic` por defecto.
+    expect(
+      readCreatorChatConfig({ CREATOR_CHAT_PROVIDER: "cohere", ANTHROPIC_API_KEY: "sk" }),
+    ).toMatchObject({ configured: true, provider: "anthropic" });
   });
 
   it("exige sesión, mismo sitio y un mensaje válido", async () => {

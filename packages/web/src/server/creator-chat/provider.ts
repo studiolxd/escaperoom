@@ -1,12 +1,19 @@
 /**
  * Proveedor del modelo de lenguaje del chat del creador (ticket 4.6). El
  * orquestador solo conoce esta interfaz: la implementación real habla con la
- * API de Anthropic (`anthropic-provider.ts`) y la guionizada
+ * API del modelo a través del Vercel AI SDK (`ai-sdk-provider.ts`, con
+ * wrappers finos por proveedor en `anthropic-provider.ts`,
+ * `openai-provider.ts` y `google-provider.ts`) y la guionizada
  * (`scripted-provider.ts`) sustituye al modelo en tests, sin red.
  *
- * Los mensajes usan un formato neutro. Lo que un proveedor necesite conservar
- * tal cual entre turnos (p. ej. los bloques de razonamiento de Claude) viaja
- * como bloque `opaque` y el mismo proveedor lo reenvía sin tocarlo.
+ * Los mensajes usan un formato neutro. El razonamiento extendido del modelo
+ * (p. ej. los bloques `thinking` de Claude) viaja como bloque `reasoning`: el
+ * AI SDK ya lo normaliza de forma genérica entre proveedores (lo expone como
+ * una content part `reasoning` con metadatos propios del proveedor en
+ * `providerOptions`) y lo reenvía tal cual en el siguiente turno si se le
+ * devuelve sin tocar — ver el comentario en `ai-sdk-provider.ts`. `opaque` se
+ * conserva por si algún proveedor necesita en el futuro un passthrough crudo
+ * que el AI SDK no normalice.
  */
 
 export type ChatTextBlock = { type: "text"; text: string };
@@ -23,11 +30,22 @@ export type ChatToolResultBlock = {
   content: string;
   isError: boolean;
 };
+/** Razonamiento extendido del modelo, normalizado por el AI SDK entre proveedores. */
+export type ChatReasoningBlock = {
+  type: "reasoning";
+  text: string;
+  /** Metadatos propios del proveedor (p. ej. la firma de un bloque `thinking` de Claude); se reenvían sin tocar. */
+  providerOptions?: Record<string, unknown>;
+};
 /** Bloque propio de un proveedor que debe reenviarse sin cambios. */
 export type ChatOpaqueBlock = { type: "opaque"; provider: string; block: unknown };
 
 export type ChatContentBlock =
-  ChatTextBlock | ChatToolUseBlock | ChatToolResultBlock | ChatOpaqueBlock;
+  | ChatTextBlock
+  | ChatToolUseBlock
+  | ChatToolResultBlock
+  | ChatReasoningBlock
+  | ChatOpaqueBlock;
 
 export type ChatMessage = { role: "user" | "assistant"; content: ChatContentBlock[] };
 
