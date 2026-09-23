@@ -42,3 +42,5 @@ export * from "./event-panel";
 export * from "./moderation";
 export * from "./moderation-precheck";
 export * from "./moderation-prisma-store";
+export * from "./user-data-rights";
+export * from "./user-data-rights-prisma-store";

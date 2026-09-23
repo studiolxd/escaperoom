@@ -64,6 +64,9 @@ import {
   type PricingTierService,
   type RoomDraftService,
   type RoomPublishService,
+  createUserDataRightsService,
+  createPrismaUserDataRightsStore,
+  type UserDataRightsService,
 } from "@escaperoom/shared/services";
 import { createBullCardExportQueue } from "@escaperoom/shared/access-key-cards-queue";
 import { resolveColyseusHttpUrl } from "./playtest-launcher";
@@ -92,6 +95,7 @@ let accessKeyCards: AccessKeyCardsService | undefined;
 let organizations: OrganizationService | undefined;
 let eventPanel: EventPanelService | undefined;
 let moderation: ModerationService | undefined;
+let userDataRights: UserDataRightsService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -238,6 +242,15 @@ export function getEventService(): EventService {
 export function getOrganizationService(): OrganizationService {
   organizations ??= createOrganizationService({ store: createPrismaOrganizationStore(prisma) });
   return organizations;
+}
+
+/**
+ * Derechos RGPD sobre la cuenta propia (ticket 6.2, specs/18 §3.4): export de
+ * datos (`GET /api/me/data-export`) y cierre de cuenta (`DELETE /api/me`).
+ */
+export function getUserDataRightsService(): UserDataRightsService {
+  userDataRights ??= createUserDataRightsService({ store: createPrismaUserDataRightsStore(prisma) });
+  return userDataRights;
 }
 
 /**

@@ -1249,5 +1249,24 @@
       "VALIDATION_ERROR": "La decisión no es válida para este contenido.",
       "UNKNOWN": "Algo ha fallado. Inténtalo de nuevo."
     }
+  },
+  "Legal": {
+    "draftNotice": "Borrador pendiente de revisión legal: no es un texto vigente",
+    "draftDateLabel": "Versión del borrador",
+    "onlyInSpanishNotice": "Este contenido legal solo existe en español por ahora; specs/18 fija España como jurisdicción de referencia.",
+    "nav": {
+      "terms": "Términos de Servicio",
+      "privacy": "Política de Privacidad",
+      "dpa": "Plantilla de DPA"
+    },
+    "terms": {
+      "title": "Términos de Servicio (borrador)"
+    },
+    "privacy": {
+      "title": "Política de Privacidad (borrador)"
+    },
+    "dpa": {
+      "title": "Plantilla de Contrato de Encargo de Tratamiento (DPA) (borrador)"
+    }
   }
 }
