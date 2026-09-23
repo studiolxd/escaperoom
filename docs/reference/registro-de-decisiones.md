@@ -511,3 +511,34 @@ esquema solo admite uno por puzzle). `docs/reference/roompackage-rey-aldric.v1.j
 
 **Alternativas descartadas:** ver arriba (gastar solo en el último uso); mantener el comportamiento
 de 2.8/2.10 (rechazada por no reflejar cómo se comporta un escape room real).
+
+---
+
+## ADR-026 — `sliding_puzzle` y `pipes`: `attempt` pieza a pieza, no estado final
+
+**Contexto:** `specs/11` §5 describía originalmente el `attempt` de `sliding_puzzle` como
+`{positions}` (array con la disposición completa de todas las fichas) y el de `pipes` como
+`{rotations}` (todas las rotaciones a la vez) — es decir, el cliente resuelve el puzzle localmente y
+manda el estado final ya resuelto. El ticket 2.8 (`packages/shared/src/templates/sliding-puzzle.ts`,
+`pipes.ts`, y su despacho en `packages/shared/src/session/room-session.ts` /
+`packages/colyseus-server/src/rooms/game-room.ts`) se implementó distinto: cada clic manda una sola
+acción y el servidor lleva el tablero.
+
+**Decisión:** el `attempt` de `sliding_puzzle` es `{move: <índice de celda>}` (desliza la ficha
+adyacente al hueco) y el de `pipes` es `{rotate: <índice de celda>, turns?}` o `{gate: <índice de
+celda>}` (gira una tubería 90° o presenta un objeto en una compuerta). El servidor valida y aplica
+cada acción contra el tablero autoritativo y devuelve el desenlace (`moved`, `rotated`, `opened`,
+`solved`, etc.); nunca confía en un tablero final calculado por el cliente. Se documenta como la
+verdad vigente en `specs/11` §5.1; no se cambia código, solo se corrige la spec para que refleje la
+implementación real.
+
+**Consecuencias:** dos jugadores con el mismo panel de `sliding_puzzle` o `pipes` abierto a la vez se
+ven mover las piezas el uno al otro en tiempo real, porque cada movimiento se sincroniza y anima en
+cuanto el servidor lo confirma — central en un escape room cooperativo. El servidor revalida cada
+paso (más mensajes, pero cada uno trivial de validar) en vez de una sola validación cara del estado
+final.
+
+**Alternativas descartadas:** mandar el estado final completo tal como decía la spec original
+(peor UX cooperativa: un jugador no ve moverse las piezas del otro hasta que termina, o nunca, si
+resuelve de un tirón sin re-render intermedio; y obliga a validar una permutación completa en vez de
+un movimiento).
