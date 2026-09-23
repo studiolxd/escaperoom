@@ -1,5 +1,6 @@
 import { createRulesOverlaySerializer } from "@escaperoom/editor/validation";
 import { insertCondition, writeRules } from "@escaperoom/editor";
+import { initRoomDoc, roomDocToPackage, roomPackageToDoc } from "@escaperoom/editor/room-doc";
 import { parseRoomPackage } from "@escaperoom/shared/schemas";
 import {
   ANONYMOUS_ACTOR,
@@ -109,6 +110,27 @@ describe("POST /api/rooms/:roomId/validate", () => {
     };
     expect(json.error.code).toBe("INVALID_DRAFT");
     expect(json.error.details.length).toBeGreaterThan(0);
+  });
+
+  it("con la serialización real del editor (3.1): el draft completo del Rey Aldric valida", async () => {
+    const api = await setup({ serialize: roomDocToPackage });
+    await api.push(() => roomPackageToDoc(reyAldric, api.doc));
+    const res = await api.validate("autora");
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as ValidateJson;
+    expect(json.report.ok).toBe(true);
+  });
+
+  it("con la serialización real, una sala recién creada en el editor es un RoomPackage válido", async () => {
+    const api = await setup({ serialize: roomDocToPackage });
+    const fresh = new Y.Doc();
+    initRoomDoc(fresh, { id: ROOM_ID, title: "Nueva", language: "es" });
+    await api.push(() => {
+      api.doc.getMap("rules").clear();
+      Y.applyUpdate(api.doc, Y.encodeStateAsUpdate(fresh));
+    });
+    const res = await api.validate("autora");
+    expect(res.status).toBe(200);
   });
 
   it("501 (tras autorizar) mientras no hay serialización del draft", async () => {

@@ -1,3 +1,4 @@
+import { roomDocToPackage } from "@escaperoom/editor/room-doc";
 import { handleCreatorMcpRequest } from "@escaperoom/mcp-server";
 import { resolveActorFromRequest } from "@/server/context";
 import { getCatalogService, getRoomDraftService } from "@/server/services";
@@ -14,7 +15,11 @@ export const dynamic = "force-dynamic";
 function handler(request: Request): Promise<Response> {
   return handleCreatorMcpRequest(request, {
     authenticate: resolveActorFromRequest,
-    createDeps: () => ({ catalog: getCatalogService(), drafts: getRoomDraftService() }),
+    createDeps: () => ({
+      catalog: getCatalogService(),
+      drafts: getRoomDraftService(),
+      roomDocToPackage,
+    }),
   });
 }
 

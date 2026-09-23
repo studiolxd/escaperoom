@@ -34,10 +34,11 @@ habitaciones, pistas, diálogos; `unknown` si el id no existe, p. ej. una refere
 
 ## Serialización doc → RoomPackage
 
-Es de 3.1. Aquí se inyecta (`RoomPackageSerializer = (doc) => unknown`) y el resultado siempre pasa
-por el esquema Zod: un doc a medio editar da `status: "invalid"` con `conversionErrors` en vez de
-romper. Hasta que 3.1 esté en main, `createRulesOverlaySerializer(base)` toma las reglas del mapa
-`rules` del doc (3.6) y el resto del paquete base; lo usan los tests y la demo.
+Es de 3.1 (`roomDocToPackage`, `@escaperoom/editor/room-doc`). Aquí se inyecta
+(`RoomPackageSerializer = (doc) => unknown`) y el resultado siempre pasa por el esquema Zod: un doc a
+medio editar da `status: "invalid"` con `conversionErrors` en vez de romper. La página del editor y
+`POST /validate` usan `roomDocToPackage`; `createRulesOverlaySerializer(base)` (reglas del doc sobre
+un paquete base) queda para los tests y la demo.
 
 ## Textos (i18n)
 

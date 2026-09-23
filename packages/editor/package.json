@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./sync-server": "./src/sync/server.ts",
-    "./validation": "./src/validation/core.ts"
+    "./validation": "./src/validation/core.ts",
+    "./room-doc": "./src/room-doc/core.ts"
   },
   "scripts": {
     "lint": "eslint .",

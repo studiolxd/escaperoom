@@ -9,7 +9,7 @@ import {
   readFlatRecord,
   type RecordMap,
 } from "./doc-model";
-import { buildSubRoomRecord, readLayerTiles } from "./serialize";
+import { DEFAULT_PACKAGE_FORMAT, buildSubRoomRecord, readLayerTiles } from "./serialize";
 import { tileKey } from "./tiles";
 
 /**
@@ -397,6 +397,7 @@ export function initRoomDoc(doc: Y.Doc, input: InitRoomDocInput): boolean {
     meta.set("title", input.title);
     meta.set("authorId", input.authorId ?? "");
     meta.set("version", "0.0.0");
+    meta.set("packageFormat", DEFAULT_PACKAGE_FORMAT);
     meta.set("theme", input.theme ?? "medieval");
     meta.set("description", "");
     meta.set("estimatedMinutes", 30);

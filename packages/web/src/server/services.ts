@@ -1,5 +1,6 @@
 import path from "node:path";
 import { storage } from "@escaperoom/kit/storage";
+import { roomDocToPackage } from "@escaperoom/editor/room-doc";
 import type { RoomPackageSerializer } from "@escaperoom/editor/validation";
 import { prisma } from "@escaperoom/shared/db";
 import {
@@ -59,12 +60,12 @@ export function getRoomDraftService(): RoomDraftService {
 }
 
 /**
- * Doc Yjs del draft → `RoomPackage` para `POST /api/rooms/:roomId/validate`.
- * La serialización es del ticket 3.1 (runtime en modo edición); hasta que
- * esté en main no hay ninguna y el endpoint responde 501 tras autorizar.
+ * Doc Yjs del draft → `RoomPackage` para `POST /api/rooms/:roomId/validate`:
+ * la serialización del editor (ticket 3.1), la misma que usan la publicación y
+ * el MCP. El handler admite `null` (501) para tests y despliegues sin ella.
  */
 export function getDraftSerializer(): RoomPackageSerializer | null {
-  return null;
+  return roomDocToPackage;
 }
 
 /** Ajustes de plataforma (`platformSetting`, specs/13 §10) sobre Postgres. */
@@ -104,9 +105,8 @@ export function getAudioAssetService(): AudioAssetService {
 
 /**
  * Publicación de salas (specs/08 §5, specs/13 §4) sobre Postgres y el bucket
- * (R2/S3 vía `@escaperoom/kit/storage`). Piezas pendientes de otros tickets:
- * `serializer: null` hasta que 3.1 aporte el mapeo doc Yjs → RoomPackage
- * (mientras, `POST /publish` responde 501 `SERIALIZER_UNAVAILABLE`). Los audios
+ * (R2/S3 vía `@escaperoom/kit/storage`). El doc Yjs del draft se congela con
+ * la serialización del editor (`roomDocToPackage`, ticket 3.1). Los audios
  * pasan por el servicio de 3.11: pendientes o rechazados bloquean la publicación.
  */
 export function getRoomPublishService(): RoomPublishService {
@@ -114,7 +114,7 @@ export function getRoomPublishService(): RoomPublishService {
     roomPublish = createRoomPublishService({
       store: createPrismaRoomPublishStore(prisma),
       drafts: createPrismaRoomDraftStore(prisma),
-      serializer: null,
+      serializer: roomDocToPackage,
       assets: createAudioPublishAssetSource({
         audio: getAudioAssetService(),
         readObject: async (key) => {

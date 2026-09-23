@@ -83,7 +83,13 @@ describe("<RoomEditorWorkspace> — render", () => {
   it("pinta cabecera, herramientas, capas, habitaciones y palette desde el doc Yjs", () => {
     const { doc, controller, palette } = setup();
     const html = render(
-      createElement(RoomEditorWorkspace, { doc, controller, palette, status: "connected" }),
+      createElement(RoomEditorWorkspace, {
+        doc,
+        controller,
+        palette,
+        status: "connected",
+        validation: createElement("div", { "data-validation-slot": "" }),
+      }),
     );
 
     expect(html).toContain("La Maldición del Rey Aldric");
@@ -103,6 +109,7 @@ describe("<RoomEditorWorkspace> — render", () => {
     expect(html).toContain("Validar");
     expect(html).toContain("Jugar");
     expect(html).toContain("inspector");
+    expect(html).toContain("data-validation-slot");
     // Sin lienzo (SSR), marcador de carga.
     expect(html).toContain("Cargando el lienzo…");
   });

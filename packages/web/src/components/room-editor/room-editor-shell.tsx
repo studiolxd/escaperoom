@@ -9,10 +9,17 @@ import {
   EditorSyncProvider,
   initRoomDoc,
   isRoomDocEmpty,
+  readObject,
+  roomDocToPackage,
   roomPackageToDoc,
+  useRoomValidation,
+  ValidationPanel,
+  type ValidationPanelLabelsInput,
+  type ValidationTarget,
 } from "@escaperoom/editor";
 import type { EditorPalette } from "@escaperoom/game-runtime";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
+import { Button } from "@/components/ui/button";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
 import { RoomEditorWorkspace, type RoomEditorStatus } from "./room-editor-workspace";
@@ -145,13 +152,78 @@ export function RoomEditorShell(props: RoomEditorShellProps) {
     );
   }
   return (
-    <RoomEditorWorkspace
-      doc={session.doc}
-      controller={session.controller}
+    <ValidatedWorkspace
+      session={session}
       palette={props.palette}
       pack={props.pack}
       status={status}
+    />
+  );
+}
+
+/**
+ * Workspace con el validador de 3.7 cableado a la serialización del editor:
+ * revalida en cada cambio del doc (con debounce), «Validar» fuerza una pasada
+ * y un clic en un objeto señalado lo selecciona en el lienzo.
+ */
+function ValidatedWorkspace({
+  session,
+  palette,
+  pack,
+  status,
+}: {
+  session: Session;
+  palette: EditorPalette;
+  pack?: RoomPreviewPack;
+  status: RoomEditorStatus;
+}) {
+  const t = useTranslations("RoomEditor");
+  const panelLabels = useTranslations("ValidationPanel").raw(
+    "labels",
+  ) as ValidationPanelLabelsInput;
+  const { doc, controller } = session;
+  const validation = useRoomValidation(doc, roomDocToPackage);
+
+  const selectTarget = (target: ValidationTarget) => {
+    if (target.kind !== "object") return;
+    const object = readObject(doc, target.id);
+    if (!object) return;
+    controller.setRoom(object.roomId);
+    controller.select(object.id);
+  };
+
+  return (
+    <RoomEditorWorkspace
+      doc={doc}
+      controller={controller}
+      palette={palette}
+      pack={pack}
+      status={status}
       renderCanvas={renderCanvas}
+      validation={
+        <ValidationPanel state={validation} labels={panelLabels} onSelectTarget={selectTarget} />
+      }
+      headerActions={
+        <>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="border border-white/15 text-white hover:bg-white/10"
+            onClick={() => validation.validateNow()}
+          >
+            {t("header.validate")}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="border border-white/15 text-white hover:bg-white/10"
+            disabled
+            title={t("header.comingSoon")}
+          >
+            {t("header.playtest")}
+          </Button>
+        </>
+      }
     />
   );
 }

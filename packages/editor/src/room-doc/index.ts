@@ -3,9 +3,5 @@
  * pura doc ⇄ RoomPackage y capa de comandos de las herramientas del modo
  * edición (pincel, relleno, borrador, colocar, arrastrar).
  */
-export * from "./tiles";
-export * from "./doc-model";
-export * from "./serialize";
-export * from "./commands";
-export * from "./tool-controller";
+export * from "./core";
 export { useRoomPackage } from "./use-room-package";

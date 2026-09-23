@@ -41,6 +41,8 @@ export interface RoomEditorWorkspaceProps {
   renderCanvas?: (props: RoomEditorCanvasProps) => ReactNode;
   /** Hueco del inspector de propiedades (3.4). */
   inspector?: ReactNode;
+  /** Panel del validador (3.7), bajo la selección. */
+  validation?: ReactNode;
   /** Acciones de cabecera: validar (3.7), jugar (3.8), publicar (3.9). */
   headerActions?: ReactNode;
 }
@@ -76,6 +78,7 @@ export function RoomEditorWorkspace({
   status,
   renderCanvas,
   inspector,
+  validation,
   headerActions,
 }: RoomEditorWorkspaceProps) {
   const t = useTranslations("RoomEditor");
@@ -246,6 +249,7 @@ export function RoomEditorWorkspace({
           <div className="mt-4 border-t border-white/10 pt-3">
             {inspector ?? <p className="text-xs text-white/40">{t("selection.inspectorSoon")}</p>}
           </div>
+          {validation && <div className="mt-4 border-t border-white/10 pt-3">{validation}</div>}
         </aside>
       </div>
     </div>

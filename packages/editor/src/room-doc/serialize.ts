@@ -1,6 +1,5 @@
 import * as Y from "yjs";
 import {
-  PACKAGE_FORMAT,
   type DialogDef,
   type Difficulty,
   type HintDef,
@@ -39,6 +38,12 @@ import { decodeRle, encodeRowRle, parseTileKey, tileKey } from "./tiles";
  * re-renderiza desde `roomDocToPackage`, y un paquete (fixture, versión
  * publicada, salida del MCP) se abre en el editor con `roomPackageToDoc`.
  */
+
+/**
+ * `meta.packageFormat` de una sala nueva o sin valor: el del fixture y el único
+ * que acepta hoy la publicación (`SUPPORTED_PACKAGE_FORMATS` de 3.9).
+ */
+export const DEFAULT_PACKAGE_FORMAT = "1";
 
 const META_SCALARS = [
   "id",
@@ -180,7 +185,7 @@ function readMeta(doc: Y.Doc): RoomPackageMeta {
     title: str(meta.get("title")),
     authorId: str(meta.get("authorId")),
     version: str(meta.get("version"), "0.0.0"),
-    packageFormat: str(meta.get("packageFormat"), PACKAGE_FORMAT),
+    packageFormat: str(meta.get("packageFormat"), DEFAULT_PACKAGE_FORMAT),
     theme: str(meta.get("theme")),
     description: str(meta.get("description")),
     languages,
@@ -250,7 +255,9 @@ function readCollection<T>(
 }
 
 /**
- * Proyecta el doc a un RoomPackage (función pura: no muta el doc). Los textos
+ * Proyecta el doc a un RoomPackage (función pura: no muta el doc; no valida:
+ * los consumidores pasan el resultado por el esquema Zod). Es el serializador
+ * que se inyecta en el validador (3.7), la publicación (3.9) y el MCP (4.1). Los textos
  * se limitan a los idiomas declarados (las traducciones retiradas se quedan en
  * el borrador, 3.10) y las capas se codifican en RLE por filas.
  */
