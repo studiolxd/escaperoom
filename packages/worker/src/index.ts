@@ -20,6 +20,11 @@ export {
   type InvitationEmailWorkerOptions,
 } from "./invitation-email";
 export {
+  createPurchaseConfirmationEmailProcessor,
+  createPurchaseConfirmationEmailWorker,
+  type PurchaseConfirmationEmailWorkerOptions,
+} from "./purchase-confirmation-email";
+export {
   createAccessKeyCardsWorker,
   processAccessKeyCardsExport,
   type AccessKeyCardsWorkerOptions,

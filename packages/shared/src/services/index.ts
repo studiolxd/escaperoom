@@ -55,6 +55,8 @@ export * from "./user-data-rights";
 export * from "./user-data-rights-prisma-store";
 export * from "./purchases";
 export * from "./purchases-prisma-store";
+export * from "./purchase-confirmation";
+export * from "./purchase-confirmation-prisma-store";
 export * from "./creator-connect";
 export * from "./creator-connect-prisma-store";
 export * from "./stripe-gateway";
