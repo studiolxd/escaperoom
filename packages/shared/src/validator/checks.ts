@@ -1,10 +1,11 @@
-import type { RoomPackage, Rule } from "../schemas";
+import type { PuzzleDefinition, RoomPackage, Rule } from "../schemas";
 import { flattenActions, puzzleGrants, type RoomIndex } from "./model";
 import type { DoubleUseItem, ValidationIssue } from "./types";
 
 /**
  * Checks estáticos del informe (sin búsqueda): integridad referencial, reglas
- * repetibles sin condición de corte e ítems de doble uso (specs/22 §2.4).
+ * repetibles sin condición de corte, ítems de doble uso (specs/22 §2.4) y
+ * objetos-puente del modo solitario (specs/22 §2.1).
  */
 
 // ---------------------------------------------------------------------------
@@ -286,7 +287,8 @@ export function guardLabel(guards: number): string {
 
 /**
  * Ítems con más de un uso donde alguno los gasta (receta con `consumeInputs`,
- * condición `consumed`, `consume_item` u objeto-puente que queda colocado).
+ * condición `consumed` o `consume_item`). Los objetos-puente cuentan como uso
+ * pero no gastan: se presentan, igual que la llave de una compuerta.
  * Hay conflicto si la oferta (fuentes) no cubre la demanda y ninguna regla
  * repetible lo devuelve — el caso del cáliz del Rey Aldric está resuelto por
  * `r-recoger-caliz`.
@@ -313,7 +315,7 @@ export function analyzeDoubleUse(index: RoomIndex): DoubleUseItem[] {
       case "simultaneous_plates":
       case "split_clue":
         if (puzzle.soloBridgeItemId !== undefined) {
-          add(puzzle.soloBridgeItemId, `puente de ${puzzle.id}`, true);
+          add(puzzle.soloBridgeItemId, `puente de ${puzzle.id}`, false);
         }
         break;
       case "pipes":
@@ -357,4 +359,47 @@ export function analyzeDoubleUse(index: RoomIndex): DoubleUseItem[] {
     });
   }
   return result;
+}
+
+// ---------------------------------------------------------------------------
+// Modo solitario (objetos-puente)
+// ---------------------------------------------------------------------------
+
+/**
+ * Qué exige más de un jugador en una mecánica cooperativa, o `null` si el
+ * puzzle no es cooperativo. Coherente con los oráculos: unas placas con una
+ * sola placa las pisa un jugador; una pista dividida siempre pide el puente en
+ * solitario (`isSplitClueSolvableForGroup`).
+ */
+export function cooperativeRequirement(puzzle: PuzzleDefinition): string | null {
+  switch (puzzle.type) {
+    case "simultaneous_plates":
+      return puzzle.plates.length >= 2 ? `pisar ${puzzle.plates.length} placas a la vez` : null;
+    case "split_clue":
+      return `ver la pista repartida entre ${puzzle.viewpoints.length} punto(s) de vista`;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Mecánicas cooperativas sin `soloBridgeItemId` en una sala que se evalúa con
+ * 1 jugador (`players.min = 1`). Es un error independiente de la búsqueda: el
+ * puzzle no se puede resolver en solitario aunque la victoria llegue por otro
+ * camino o el puzzle aún no sea alcanzable.
+ */
+export function checkSoloBridges(pkg: RoomPackage): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  for (const puzzle of pkg.puzzles) {
+    const requirement = cooperativeRequirement(puzzle);
+    if (requirement === null) continue;
+    if ("soloBridgeItemId" in puzzle && puzzle.soloBridgeItemId !== undefined) continue;
+    issues.push({
+      code: "solo_bridge_missing",
+      message: `«${puzzle.id}» (${puzzle.type}) es cooperativo: exige ${requirement} y no declara soloBridgeItemId, así que no se puede resolver con 1 jugador. Añade un objeto-puente (soloBridgeItemId) o sube players.min a 2`,
+      ids: [puzzle.id],
+      playerCounts: [1],
+    });
+  }
+  return issues;
 }

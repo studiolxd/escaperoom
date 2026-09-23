@@ -65,6 +65,8 @@ export interface RouteStep {
   outcome: string;
   itemsGained: string[];
   itemsConsumed: string[];
+  /** Ítems presentados sin gastarse (objetos-puente del modo solitario). */
+  itemsUsed: string[];
   rulesFired: string[];
   puzzlesSolved: string[];
   roomsEntered: string[];

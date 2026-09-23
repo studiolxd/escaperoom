@@ -40,6 +40,8 @@ Acompaña a `reference/roompackage-rey-aldric.v1.json` y a `specs/08-formato-roo
 4. **El cáliz tiene doble uso** (placa-puente en solitario + ranura del mural). La regla
    `r-recoger-caliz` permite recuperarlo tras las placas, evitando el soft-lock. El validador marca
    como 🟡 cualquier item con dos usos potencialmente conflictivos — aquí está resuelto explícitamente.
+   Desde 2.8/2.10 el objeto-puente **se presenta y no se gasta** (motor y validador): el cáliz sigue
+   en el inventario tras las placas y la ranura tampoco lo consume, así que ya no hay conflicto.
 
 5. **La compuerta de oro** (`compuerta-oro`, `opensWithItem: llave-oro`) está en `blockedCells` del
    puzzle de tuberías: la llave-oro (de la llave-plata, del compartimento del mural, que necesita el

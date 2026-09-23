@@ -1,6 +1,12 @@
 import type { RoomPackage } from "../schemas";
 import { clueRequirements, computeCodeClues } from "./clues";
-import { analyzeDoubleUse, analyzeRepeatableRules, checkReferences, guardLabel } from "./checks";
+import {
+  analyzeDoubleUse,
+  analyzeRepeatableRules,
+  checkReferences,
+  checkSoloBridges,
+  guardLabel,
+} from "./checks";
 import { recipeLabel, RoomIndex, type Move, type StepEffects } from "./model";
 import { createOracle } from "./oracles";
 import {
@@ -131,7 +137,11 @@ export function validateRoomPackage(
       closures.map((closure) => closure.state),
     ),
     deadEndsCheck(index, closures, plainOracle, playerCounts),
-    solvabilityCheck(solvability, playerCounts),
+    solvabilityCheck(
+      solvability,
+      playerCounts,
+      playerCounts.includes(1) ? checkSoloBridges(pkg) : [],
+    ),
     codeHintsCheck(codeClues, solvability),
     ruleCutsCheck(pkg),
     doubleUseCheck(doubleUse),
@@ -198,7 +208,7 @@ function describeMove(
             ...base,
             description:
               puzzle.soloBridgeItemId !== undefined &&
-              effects.itemsConsumed.includes(puzzle.soloBridgeItemId)
+              effects.itemsUsed.includes(puzzle.soloBridgeItemId)
                 ? `Colocar ${puzzle.soloBridgeItemId} en ${puzzle.id} (puente)`
                 : `Pisar las placas de ${puzzle.id} a la vez`,
           };
@@ -214,7 +224,7 @@ function describeMove(
             ...base,
             description:
               puzzle.soloBridgeItemId !== undefined &&
-              effects.itemsConsumed.includes(puzzle.soloBridgeItemId)
+              effects.itemsUsed.includes(puzzle.soloBridgeItemId)
                 ? `Resolver ${puzzle.id} con ${puzzle.soloBridgeItemId} (puente)`
                 : `Resolver ${puzzle.id} (cooperativo)`,
           };
@@ -313,6 +323,7 @@ function toRouteSteps(index: RoomIndex, route: RouteNode[]): RouteStep[] {
       outcome: describeOutcome(effects),
       itemsGained: [...effects.itemsGained],
       itemsConsumed: [...effects.itemsConsumed],
+      itemsUsed: [...effects.itemsUsed],
       rulesFired: [...effects.rulesFired],
       puzzlesSolved: [...effects.puzzlesSolved],
       roomsEntered: [...effects.roomsEntered],
@@ -463,6 +474,7 @@ function deadEndsCheck(
 function solvabilityCheck(
   results: readonly SolvabilityResult[],
   playerCounts: readonly number[],
+  soloIssues: readonly ValidationIssue[],
 ): ValidationCheck {
   const failing = results.filter((result) => !result.solvable);
   const issues = mergeBlocked(
@@ -477,6 +489,8 @@ function solvabilityCheck(
       ids: [],
     });
   }
+  // Modo solitario: mecánicas cooperativas sin objeto-puente (specs/22 §2.1).
+  issues.push(...soloIssues);
   const truncated = results.filter((result) => result.searchTruncated);
   const summary =
     truncated.length > 0
@@ -487,7 +501,9 @@ function solvabilityCheck(
     "error",
     issues,
     summary,
-    `Solvabilidad: sin victoria posible con ${playersLabel(failing.map((r) => r.playerCount))}`,
+    failing.length > 0
+      ? `Solvabilidad: sin victoria posible con ${playersLabel(failing.map((r) => r.playerCount))}`
+      : `Solvabilidad: la sala admite 1 jugador, pero ${soloIssues.map((issue) => issue.ids[0]).join(", ")} no declara(n) objeto-puente`,
   );
   if (result.passed && truncated.length > 0) result.status = "warning";
   return result;

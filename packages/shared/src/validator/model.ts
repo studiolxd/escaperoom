@@ -482,6 +482,8 @@ export class RelaxedState implements ModelState {
 export interface StepEffects {
   itemsGained: string[];
   itemsConsumed: string[];
+  /** Ítems presentados sin gastarse (objetos-puente del modo solitario). */
+  itemsUsed: string[];
   rulesFired: string[];
   puzzlesSolved: string[];
   roomsEntered: string[];
@@ -494,6 +496,7 @@ export function emptyEffects(): StepEffects {
   return {
     itemsGained: [],
     itemsConsumed: [],
+    itemsUsed: [],
     rulesFired: [],
     puzzlesSolved: [],
     roomsEntered: [],
@@ -687,7 +690,7 @@ export type MoveKind = RouteStepKind;
 export type PuzzleOracle = (
   puzzle: PuzzleDefinition,
   state: ModelState,
-) => { ok: true; consumes: string[] } | { ok: false; reasons: string[] };
+) => { ok: true; uses: string[] } | { ok: false; reasons: string[] };
 
 export function objectAccessible(index: RoomIndex, state: ModelState, objectId: string): boolean {
   const object = index.objects.get(objectId);
@@ -812,10 +815,8 @@ export function applyMove(
       if (!puzzle || state.isSolved(puzzle.id)) return null;
       const verdict = oracle(puzzle, state);
       if (!verdict.ok) return null;
-      for (const itemId of verdict.consumes) {
-        state.consumeItem(itemId);
-        effects.itemsConsumed.push(itemId);
-      }
+      // Los objetos-puente se presentan: siguen en el inventario.
+      effects.itemsUsed.push(...verdict.uses);
       if (puzzle.type === "hidden_key" && puzzle.hidingSpot.objectId !== undefined) {
         dispatchEvent(
           index,
