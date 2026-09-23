@@ -124,10 +124,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   private readonly openPanels = new Map<string, Set<string>>();
 
   override onCreate(options: GameRoomOptions = {}): void {
-    const roomPackage = resolveRoomPackage(options.packageId);
-    if (!roomPackage) {
-      throw new Error(`Paquete de sala desconocido: «${options.packageId ?? ""}».`);
-    }
+    const roomPackage = this.loadRoomPackage(options);
     this.roomPackage = roomPackage;
     this.maxClients = Math.min(MAX_PLAYERS, roomPackage.meta.players.max);
     this.createdAt = Date.now();
@@ -176,6 +173,18 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     );
 
     this.setTimestep(() => this.handleTick(), GAME_TICK_MS);
+  }
+
+  /**
+   * Resuelve el paquete de la partida en servidor (el cliente solo elige el id).
+   * La `PlaytestRoom` (3.8) lo sobrescribe para leer el borrador congelado.
+   */
+  protected loadRoomPackage(options: GameRoomOptions): RoomPackage {
+    const roomPackage = resolveRoomPackage(options.packageId);
+    if (!roomPackage) {
+      throw new Error(`Paquete de sala desconocido: «${options.packageId ?? ""}».`);
+    }
+    return roomPackage;
   }
 
   override onJoin(client: Client, options: GameJoinOptions = {}): void {

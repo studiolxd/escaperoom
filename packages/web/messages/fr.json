@@ -560,5 +560,62 @@
     "ownRoom": "C'est votre salle : vous ne pouvez pas la noter.",
     "errorContent": "L'avis contient un langage non autorisé. Reformulez-le pour le publier.",
     "errorGeneric": "Impossible d'enregistrer l'avis. Réessayez."
+  },
+  "EditorPlaytest": {
+    "editor": {
+      "creating": "Préparation…",
+      "localDraft": "Ce brouillon est local : enregistrez-le sur le serveur pour y jouer.",
+      "ready": "Partie de test prête",
+      "shareHint": "Partagez le lien avec un ami : il pourra jouer le brouillon sans que la salle apparaisse dans le catalogue.",
+      "linkLabel": "Lien de test",
+      "expires": "Le lien expire à {time}.",
+      "copy": "Copier le lien",
+      "copied": "Copié !",
+      "open": "Ouvrir la partie",
+      "dismiss": "Fermer",
+      "errors": {
+        "UNAUTHORIZED": "Connectez-vous pour jouer votre brouillon.",
+        "FORBIDDEN": "Seul l'auteur de la salle peut créer une partie de test.",
+        "NOT_FOUND": "La salle n'existe pas.",
+        "INVALID_DRAFT": "Le brouillon ne forme pas encore une salle valide : consultez les avertissements du validateur.",
+        "PLAYTEST_UNPLAYABLE": "Le serveur de jeu ne peut pas charger ce brouillon.",
+        "PLAYTEST_DISABLED": "Le playtest n'est pas disponible dans cet environnement.",
+        "PLAYTEST_UNAVAILABLE": "Le serveur de jeu ne répond pas. Réessayez.",
+        "UNKNOWN": "Impossible de créer la partie de test."
+      }
+    },
+    "page": {
+      "title": "Partie de test",
+      "subtitle": "Brouillon non publié : il n'apparaît pas dans le catalogue.",
+      "connecting": "Connexion à la partie…",
+      "invalidLink": "Ce lien de test n'est pas valide.",
+      "expired": "Ce lien de test a expiré. Demandez-en un nouveau à l'auteur.",
+      "closed": "La partie de test a été fermée.",
+      "phase": {
+        "lobby": "En attente",
+        "playing": "En cours",
+        "ended": "Terminée"
+      },
+      "result": "Résultat : {result}",
+      "start": "Lancer la partie",
+      "waitingHost": "En attente du lancement par l'hôte…",
+      "objects": "Objets",
+      "noObjects": "La salle n'a pas d'objets.",
+      "interact": "Interagir",
+      "players": "Joueurs",
+      "you": "vous",
+      "host": "hôte",
+      "inventory": "Inventaire",
+      "emptyInventory": "Vide",
+      "log": "Événements"
+    },
+    "log": {
+      "dialog": "Dialogue « {id} »",
+      "objectState": "« {id} » → {state}",
+      "item": "Vous obtenez « {item} »",
+      "solved": "Énigme résolue : « {id} »",
+      "ended": "Fin de la partie : {result}",
+      "error": "Avis : {message}"
+    }
   }
 }

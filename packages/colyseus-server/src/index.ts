@@ -23,6 +23,9 @@ export {
   MAX_STEP_PER_TICK,
   MOVE_MESSAGE,
   PLAYER_TINTS,
+  PLAYTEST_EXPIRED_CLOSE_CODE,
+  PLAYTEST_INTERNAL_PATH,
+  PLAYTEST_ROOM_NAME,
   TICK_RATE_MS,
   WORLD_BOUNDS,
 } from "./constants.js";
@@ -67,6 +70,24 @@ export type {
 } from "./media/index.js";
 export { LobbyTestRoom } from "./rooms/lobby-test-room.js";
 export { GameRoom } from "./rooms/game-room.js";
+export { PLAYTEST_FORBIDDEN_CODE, PlaytestRoom } from "./rooms/playtest-room.js";
+export type { PlaytestJoinOptions, PlaytestRoomOptions } from "./rooms/playtest-room.js";
+export {
+  DEFAULT_PLAYTEST_TTL_SECONDS,
+  DEV_PLAYTEST_SECRET,
+  readPlaytestConfig,
+} from "./playtest/config.js";
+export type { PlaytestConfig } from "./playtest/config.js";
+export { createPlaytestRouter } from "./playtest/http.js";
+export type { PlaytestCreatedResponse } from "./playtest/http.js";
+export {
+  MAX_PLAYTESTS_PER_AUTHOR,
+  PlaytestRegistry,
+  playtestRegistry,
+} from "./playtest/registry.js";
+export type { PlaytestEntry } from "./playtest/registry.js";
+export { signPlaytestToken, verifyPlaytestToken } from "./playtest/token.js";
+export type { PlaytestTokenPayload, PlaytestTokenResult } from "./playtest/token.js";
 export type { GameJoinOptions, GameRoomOptions } from "./rooms/game-room.js";
 export {
   GameInventoryState,
@@ -80,5 +101,5 @@ export {
   REY_ALDRIC_PACKAGE_ID,
 } from "./game/room-packages.js";
 export { ChatMessageState, LobbyState, PlayerState } from "./schema/lobby-state.js";
-export { createGameServer, resolvePort, startGameServer } from "./server.js";
+export { createGameServer, definePlaytestRoom, resolvePort, startGameServer } from "./server.js";
 export { pickPlayerTint } from "./tints.js";

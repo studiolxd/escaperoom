@@ -111,3 +111,12 @@ export const GAME_ERRORS = {
   moveTooFast: "MOVE_TOO_FAST",
   roomLocked: "ROOM_LOCKED",
 } as const;
+
+/** Room temporal del playtest del editor (ticket 3.8, specs/09 §3). */
+export const PLAYTEST_ROOM_NAME = "playtest" as const;
+
+/** Código de cierre del WebSocket cuando el playtest caduca con jugadores dentro. */
+export const PLAYTEST_EXPIRED_CLOSE_CODE = 4410;
+
+/** Ruta interna (web → Colyseus) para registrar un playtest. */
+export const PLAYTEST_INTERNAL_PATH = "/internal/playtests" as const;
