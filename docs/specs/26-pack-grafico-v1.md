@@ -83,13 +83,16 @@ Capas del tilemap: `ground`, `walls`, `decorations`, `objects` (`04-runtime-jueg
 | `2` | suelo loseta / piedra (tablero B) | no |
 | `3` | alfombra roja | no |
 | `10` | muro | **sí** |
-| `20` | umbral de puerta | no |
-| `21` | escalón / peldaño | no |
-| `22` | reja / trampilla en el suelo | no |
+| `20` | puerta de madera (hueco en la fila de muro) | no |
+| `21` | reja (hueco en la fila de muro) | no |
+| `22` | arco abierto (hueco en la fila de muro; lienzo de muro, como `muro-arco`) | no |
 
-> La semántica de `20`, `21` y `22` es una **propuesta** a cerrar al cablear 1.2/1.3. Lo que es
-> obligatorio: que exista un frame para cada tileId no nulo del fixture y que el manifiesto declare
-> `collides` por tileId (el runtime **no** infiere colisiones del número).
+> `20`, `21` y `22` son **piezas de muro**: van en la capa `walls`, sobre la fila de muro, y se
+> pasa a través de ellas. La semántica sigue las notas de diseño del fixture
+> (`reference/rey-aldric-notas-diseno.md`). `22` usa el lienzo del muro (`tile-10`, 64×64 base);
+> `20` y `21` mantienen 64×48 base. Lo obligatorio: que exista un frame para cada tileId no nulo
+> del fixture y que el manifiesto declare `collides` por tileId (el runtime **no** infiere
+> colisiones del número).
 
 **Variedad mínima** (`04-runtime-juego-y-mundo.md` §8): 4–6 baldosas de suelo (piedra, loseta,
 alfombra roja), 4 variantes de muro, 2 muros decorados (antorcha, tapiz) y transiciones: arco y

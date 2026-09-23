@@ -30,7 +30,8 @@ const FRAME_CANVASES: Record<string, { width: number; height: number }> = {
   "tile-10": { width: 64, height: 64 },
   "tile-20": { width: 64, height: 48 },
   "tile-21": { width: 64, height: 48 },
-  "tile-22": { width: 64, height: 48 },
+  // `22` = arco abierto en la fila de muro: misma altura que el muro (tile-10).
+  "tile-22": { width: 64, height: 64 },
   antorcha: { width: 64, height: 96 },
   "barril-suelto": { width: 64, height: 64 },
   barriles: { width: 96, height: 96 },

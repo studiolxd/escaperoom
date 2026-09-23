@@ -27,9 +27,9 @@ en la misma capa.
 | `columna-base.png` | 64×48 | Base de columna |
 | `columna-capital.png` | 64×48 | Capital de columna |
 | **Sprites con altura** (no son tiles; lienzo libre, pivote abajo-centro) | | |
-| `tile-20.png` | 64×48 | Sprite: umbral de puerta |
-| `tile-21.png` | 64×48 | Sprite: escalón / peldaño |
-| `tile-22.png` | 64×48 | Sprite: reja / trampilla en el suelo |
+| `tile-20.png` | 64×48 | Sprite: puerta de madera (hueco en la fila de muro) |
+| `tile-21.png` | 64×48 | Sprite: reja (hueco en la fila de muro) |
+| `tile-22.png` | 64×64 | Sprite: arco abierto en la fila de muro (mismo lienzo que `muro-arco`) |
 | **Decoración** | | |
 | `antorcha.png` | 64×96 | Antorcha de pared (apagada) |
 | `barril-suelto.png` | 64×64 | Barril suelto |
