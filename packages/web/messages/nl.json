@@ -375,5 +375,54 @@
       "rightsRequired": "Verklaar vóór het uploaden dat je de rechten op de audio hebt.",
       "generic": "De audio kon niet worden geüpload. Probeer het opnieuw."
     }
+  },
+  "ValidationPanel": {
+    "title": "Live validatie",
+    "description": "Bewerk de regels van koning Aldric: de validator controleert het Yjs-document opnieuw (met debounce) en markeert problemen in de graaf.",
+    "breakRule": "Kast kapotmaken",
+    "fixRule": "Repareren",
+    "labels": {
+      "ui": {
+        "title": "Validatie",
+        "idle": "Nog niet gevalideerd",
+        "validating": "Bezig met valideren…",
+        "upToDate": "Bijgewerkt",
+        "publishable": "Geen fouten: klaar om te publiceren",
+        "blocked": "Er zijn fouten die publicatie blokkeren",
+        "invalidDraft": "Het concept is nog geen geldige kamer",
+        "errors": "Fouten",
+        "warnings": "Waarschuwingen",
+        "noIssues": "Geen problemen",
+        "playerCounts": "Met {counts} speler(s)",
+        "estimate": "Schatting",
+        "estimateValue": "~{minutes} min (bereik {min}–{max}) voor {players} speler(s), {steps} stappen",
+        "difficulty": "Opgegeven moeilijkheid {declared}, verwacht {expected}",
+        "route": "Kritiek pad ({players} speler(s))",
+        "noRoute": "Geen oplossingspad: geen schatting"
+      },
+      "checks": {
+        "references": "Kapotte verwijzingen",
+        "orphans": "Verweesde objecten",
+        "dead_ends": "Doodlopende paden",
+        "solvability": "Oplosbaarheid",
+        "code_hints": "Codehints",
+        "rule_cuts": "Regels zonder stopvoorwaarde",
+        "double_use": "Voorwerpen met dubbel gebruik",
+        "puzzle_hints": "Puzzels zonder hint",
+        "recipe_consumption": "Voorwerpen verbruikt door meerdere recepten",
+        "assets": "Assets ontbreken in het manifest",
+        "difficulty": "Moeilijkheid en duur"
+      },
+      "kinds": {
+        "rule": "Regel",
+        "puzzle": "Puzzel",
+        "object": "Object",
+        "item": "Voorwerp",
+        "room": "Kamer",
+        "hint": "Hint",
+        "dialog": "Dialoog",
+        "unknown": "Onbekende id"
+      }
+    }
   }
 }

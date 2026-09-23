@@ -419,5 +419,54 @@
       "rightsRequired": "Antes de subir, declara que tienes los derechos del audio.",
       "generic": "No se pudo subir el audio. Inténtalo de nuevo."
     }
+  },
+  "ValidationPanel": {
+    "title": "Validación en vivo",
+    "description": "Edita las reglas del Rey Aldric: el validador revalida el doc Yjs con debounce y resalta los problemas en el grafo.",
+    "breakRule": "Romper el armario",
+    "fixRule": "Arreglarlo",
+    "labels": {
+      "ui": {
+        "title": "Validación",
+        "idle": "Sin validar todavía",
+        "validating": "Validando…",
+        "upToDate": "Al día",
+        "publishable": "Sin errores: se puede publicar",
+        "blocked": "Hay errores que bloquean la publicación",
+        "invalidDraft": "El borrador aún no forma una sala válida",
+        "errors": "Errores",
+        "warnings": "Avisos",
+        "noIssues": "Sin problemas",
+        "playerCounts": "Con {counts} jugador(es)",
+        "estimate": "Estimación",
+        "estimateValue": "~{minutes} min (rango {min}–{max}) para {players} jugador(es), {steps} pasos",
+        "difficulty": "Dificultad declarada {declared}, esperada {expected}",
+        "route": "Ruta crítica ({players} jugador(es))",
+        "noRoute": "Sin ruta de solución: no hay estimación"
+      },
+      "checks": {
+        "references": "Referencias rotas",
+        "orphans": "Objetos huérfanos",
+        "dead_ends": "Dead ends",
+        "solvability": "Solvabilidad",
+        "code_hints": "Pistas de código",
+        "rule_cuts": "Reglas sin condición de corte",
+        "double_use": "Items de doble uso",
+        "puzzle_hints": "Puzzles sin pista",
+        "recipe_consumption": "Items gastados en varias recetas",
+        "assets": "Assets fuera del manifest",
+        "difficulty": "Dificultad y duración"
+      },
+      "kinds": {
+        "rule": "Regla",
+        "puzzle": "Puzzle",
+        "object": "Objeto",
+        "item": "Item",
+        "room": "Habitación",
+        "hint": "Pista",
+        "dialog": "Diálogo",
+        "unknown": "Id inexistente"
+      }
+    }
   }
 }

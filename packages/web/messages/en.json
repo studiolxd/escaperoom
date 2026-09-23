@@ -406,5 +406,54 @@
       "rightsRequired": "Before uploading, declare that you own the rights to the audio.",
       "generic": "The audio couldn't be uploaded. Please try again."
     }
+  },
+  "ValidationPanel": {
+    "title": "Live validation",
+    "description": "Edit King Aldric's rules: the validator re-checks the Yjs doc (debounced) and highlights problems in the graph.",
+    "breakRule": "Break the wardrobe",
+    "fixRule": "Fix it",
+    "labels": {
+      "ui": {
+        "title": "Validation",
+        "idle": "Not validated yet",
+        "validating": "Validating…",
+        "upToDate": "Up to date",
+        "publishable": "No errors: ready to publish",
+        "blocked": "There are errors blocking publication",
+        "invalidDraft": "The draft is not a valid room yet",
+        "errors": "Errors",
+        "warnings": "Warnings",
+        "noIssues": "No issues",
+        "playerCounts": "With {counts} player(s)",
+        "estimate": "Estimate",
+        "estimateValue": "~{minutes} min (range {min}–{max}) for {players} player(s), {steps} steps",
+        "difficulty": "Declared difficulty {declared}, expected {expected}",
+        "route": "Critical path ({players} player(s))",
+        "noRoute": "No solution path: no estimate"
+      },
+      "checks": {
+        "references": "Broken references",
+        "orphans": "Orphan objects",
+        "dead_ends": "Dead ends",
+        "solvability": "Solvability",
+        "code_hints": "Code clues",
+        "rule_cuts": "Rules without a cut-off condition",
+        "double_use": "Double-use items",
+        "puzzle_hints": "Puzzles without hints",
+        "recipe_consumption": "Items consumed by several recipes",
+        "assets": "Assets missing from the manifest",
+        "difficulty": "Difficulty and duration"
+      },
+      "kinds": {
+        "rule": "Rule",
+        "puzzle": "Puzzle",
+        "object": "Object",
+        "item": "Item",
+        "room": "Room",
+        "hint": "Hint",
+        "dialog": "Dialog",
+        "unknown": "Unknown id"
+      }
+    }
   }
 }

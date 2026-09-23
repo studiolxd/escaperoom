@@ -3,7 +3,13 @@ import type { ValidationReport, ValidationStatus } from "./types";
 const ICON: Record<ValidationStatus, string> = { ok: "✅", warning: "🟡", error: "❌" };
 
 /** Checks que solo aparecen en el texto cuando encuentran algo. */
-const SILENT_WHEN_PASSED = new Set(["references", "double_use"]);
+const SILENT_WHEN_PASSED = new Set([
+  "references",
+  "double_use",
+  "puzzle_hints",
+  "recipe_consumption",
+  "assets",
+]);
 
 /**
  * Renderiza el informe en texto, con el formato del "Informe de validación

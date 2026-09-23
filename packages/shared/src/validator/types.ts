@@ -17,6 +17,9 @@ export type ValidationCheckId =
   | "code_hints"
   | "rule_cuts"
   | "double_use"
+  | "puzzle_hints"
+  | "recipe_consumption"
+  | "assets"
   | "difficulty";
 
 /** Hallazgo concreto dentro de un check, con mensaje accionable. */
@@ -150,6 +153,17 @@ export interface ValidationReport {
   doubleUse: DoubleUseItem[];
 }
 
+/**
+ * Subconjunto estructural del manifest del pack gráfico (specs/26 §6) que usa
+ * el check `assets`: solo las claves declaradas. Un `PackManifest` de
+ * game-runtime encaja tal cual (el validador no depende del runtime).
+ */
+export interface AssetManifestInput {
+  tiles?: Readonly<Record<string, unknown>>;
+  sprites?: Readonly<Record<string, unknown>>;
+  ui?: { icons?: Readonly<Record<string, unknown>> };
+}
+
 export interface ValidateOptions {
   /**
    * Tamaños de grupo a evaluar. Por defecto, todos los de
@@ -158,4 +172,9 @@ export interface ValidateOptions {
   playerCounts?: number[];
   /** Presupuesto de estados de la búsqueda exacta por tamaño de grupo. */
   maxStates?: number;
+  /**
+   * Manifest del pack gráfico de la sala. Sin él, el check `assets` no se
+   * evalúa (pasa en silencio: "no comprobado").
+   */
+  assetManifest?: AssetManifestInput;
 }

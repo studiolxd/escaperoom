@@ -6,7 +6,8 @@
   "description": "Editor de salas: colaboración Yjs (proveedor cliente + servidor del WebSocket de edición) y, en 3.1, la UI.",
   "exports": {
     ".": "./src/index.ts",
-    "./sync-server": "./src/sync/server.ts"
+    "./sync-server": "./src/sync/server.ts",
+    "./validation": "./src/validation/core.ts"
   },
   "scripts": {
     "lint": "eslint .",
