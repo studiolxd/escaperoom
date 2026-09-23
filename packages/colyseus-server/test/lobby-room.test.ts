@@ -82,12 +82,16 @@ describe("lobby_test (integración con @colyseus/testing)", () => {
     const clientB = await colyseus.connectTo(room);
     expect(room.state.players.size).toBe(2);
 
-    const leavePatch = clientB.waitForNextPatch();
     await clientA.leave();
-    await leavePatch;
 
-    expect(room.state.players.size).toBe(1);
+    // No usamos `waitForNextPatch`: tras `connectTo` el cliente aún recibe el
+    // patch del tick que difunde su propio `onJoin` (con los 2 jugadores), y si
+    // ese tick cae antes de procesar la salida la espera se resuelve con él.
+    // Esperamos al estado final del cliente, no a "un" patch cualquiera.
+    await expect.poll(() => room.state.players.size, { timeout: 5000 }).toBe(1);
+    await expect
+      .poll(() => clientB.state.players.has(clientA.sessionId), { timeout: 5000 })
+      .toBe(false);
     expect(clientB.state.players.size).toBe(1);
-    expect(clientB.state.players.has(clientA.sessionId)).toBe(false);
   });
 });

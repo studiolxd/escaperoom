@@ -57,12 +57,12 @@ describe("chat del lobby_test (integración con @colyseus/testing)", () => {
     const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
     const clientA = await colyseus.connectTo(room);
 
-    const patchA = clientA.waitForNextPatch();
+    // Esperamos al estado del servidor y no a `waitForNextPatch`: el primer
+    // patch tras `connectTo` puede ser el del propio join, no el del mensaje.
     clientA.send(CHAT_MESSAGE, { text: "primero" });
-    await patchA;
-    const patchA2 = clientA.waitForNextPatch();
+    await expect.poll(() => room.state.chat.length, { timeout: 5000 }).toBe(1);
     clientA.send(CHAT_MESSAGE, { text: "segundo" });
-    await patchA2;
+    await expect.poll(() => room.state.chat.length, { timeout: 5000 }).toBe(2);
 
     // `connectTo` espera al estado inicial: el historial ya viene incluido.
     const clientB = await colyseus.connectTo(room);
@@ -90,9 +90,8 @@ describe("chat del lobby_test (integración con @colyseus/testing)", () => {
     const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
     const clientA = await colyseus.connectTo(room);
 
-    const patch = clientA.waitForNextPatch();
     clientA.send(CHAT_MESSAGE, { text: "eres un tonto" });
-    await patch;
+    await expect.poll(() => room.state.chat.length, { timeout: 5000 }).toBe(1);
 
     const message = room.state.chat.at(-1);
     expect(message?.filtered).toBe(true);
