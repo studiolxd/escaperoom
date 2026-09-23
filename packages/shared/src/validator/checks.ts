@@ -331,11 +331,11 @@ export function guardLabel(guards: number): string {
 
 /**
  * Ítems con más de un uso donde alguno los gasta (receta con `consumeInputs`,
- * condición `consumed` o `consume_item`). Los objetos-puente cuentan como uso
- * pero no gastan: se presentan, igual que la llave de una compuerta.
+ * condición `consumed`, `consume_item` o un objeto-puente, que desde 2.11 se
+ * gasta al fijarse igual que cualquier otro ítem de un solo uso). La llave de
+ * una compuerta de `pipes` sigue sin gastarse.
  * Hay conflicto si la oferta (fuentes) no cubre la demanda y ninguna regla
- * repetible lo devuelve — el caso del cáliz del Rey Aldric está resuelto por
- * `r-recoger-caliz`.
+ * repetible lo devuelve.
  */
 export function analyzeDoubleUse(index: RoomIndex): DoubleUseItem[] {
   const uses = new Map<string, { label: string; consuming: boolean }[]>();
@@ -359,7 +359,7 @@ export function analyzeDoubleUse(index: RoomIndex): DoubleUseItem[] {
       case "simultaneous_plates":
       case "split_clue":
         if (puzzle.soloBridgeItemId !== undefined) {
-          add(puzzle.soloBridgeItemId, `puente de ${puzzle.id}`, false);
+          add(puzzle.soloBridgeItemId, `puente de ${puzzle.id}`, true);
         }
         break;
       case "pipes":

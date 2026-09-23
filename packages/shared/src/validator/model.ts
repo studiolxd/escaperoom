@@ -482,8 +482,6 @@ export class RelaxedState implements ModelState {
 export interface StepEffects {
   itemsGained: string[];
   itemsConsumed: string[];
-  /** Ítems presentados sin gastarse (objetos-puente del modo solitario). */
-  itemsUsed: string[];
   rulesFired: string[];
   puzzlesSolved: string[];
   roomsEntered: string[];
@@ -496,7 +494,6 @@ export function emptyEffects(): StepEffects {
   return {
     itemsGained: [],
     itemsConsumed: [],
-    itemsUsed: [],
     rulesFired: [],
     puzzlesSolved: [],
     roomsEntered: [],
@@ -815,8 +812,12 @@ export function applyMove(
       if (!puzzle || state.isSolved(puzzle.id)) return null;
       const verdict = oracle(puzzle, state);
       if (!verdict.ok) return null;
-      // Los objetos-puente se presentan: siguen en el inventario.
-      effects.itemsUsed.push(...verdict.uses);
+      // Los objetos-puente se gastan al fijarse (desde 2.11): una unidad por
+      // uso (`verdict.uses` ya trae una entrada por placa/mirilla puenteada).
+      for (const itemId of verdict.uses) {
+        state.consumeItem(itemId);
+        effects.itemsConsumed.push(itemId);
+      }
       if (puzzle.type === "hidden_key" && puzzle.hidingSpot.objectId !== undefined) {
         dispatchEvent(
           index,

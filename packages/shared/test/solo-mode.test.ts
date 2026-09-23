@@ -29,10 +29,14 @@ import {
 } from "../src/validator";
 
 /**
- * Modo solitario verificado (ticket 2.10, specs/22 §2.1): cada mecánica
- * cooperativa que declara `soloBridgeItemId` se completa con 1 jugador usando
- * su objeto-puente, y sin él no. El puente se presenta y **no se gasta**, igual
- * que en `RoomSession` (2.8). Niveles:
+ * Modo solitario verificado (ticket 2.10, specs/22 §2.1; comportamiento de
+ * consumo actualizado en 2.11): cada mecánica cooperativa que declara
+ * `soloBridgeItemId` se completa con 1 jugador usando su objeto-puente, y sin
+ * él no. Desde 2.11 el puente **se gasta** al fijarse (un objeto, un uso,
+ * como cualquier otro ítem de un escape room), igual que en `RoomSession`.
+ * Como el inventario no admite copias duplicadas del mismo ítem (`grantItem`
+ * es idempotente), un objeto-puente consumible solo puede cubrir 1 placa que
+ * falte por jugador ausente. Niveles:
  *
  * - **validador**: el test de solvabilidad con `players.min = 1` sobre el Rey
  *   Aldric y sobre un paquete mínimo por cada plantilla cooperativa;
@@ -406,9 +410,8 @@ describe("modo solitario — validador sobre el Rey Aldric (players.min = 1)", (
       const solvedAt = route.steps.findIndex((step) => step.puzzlesSolved.includes(puzzle.id));
       expect(solvedAt, `${puzzle.id} no se resuelve en la ruta`).toBeGreaterThanOrEqual(0);
       const step = route.steps[solvedAt]!;
-      expect(step.itemsUsed, `${puzzle.id} no usa ${bridge}`).toEqual([bridge]);
-      // El puente se presenta y no se gasta (mismo criterio que `RoomSession`).
-      expect(step.itemsConsumed).not.toContain(bridge);
+      // El puente se gasta al fijarse (2.11), mismo criterio que `RoomSession`.
+      expect(step.itemsConsumed, `${puzzle.id} no gasta ${bridge}`).toEqual([bridge]);
       expect(step.description).toContain(`${bridge}`);
       expect(step.description).toContain("(puente)");
       const gainedAt = route.steps.findIndex((candidate) => candidate.itemsGained.includes(bridge));
@@ -417,14 +420,14 @@ describe("modo solitario — validador sobre el Rey Aldric (players.min = 1)", (
     }
   });
 
-  it("en grupo las mecánicas cooperativas no gastan el puente", () => {
+  it("en grupo las mecánicas cooperativas no usan (ni gastan) el puente", () => {
     const group = validateRoomPackage(reyAldric, { playerCounts: [2] });
     expect(group.ok).toBe(true);
     for (const puzzle of bridged) {
       const step = group.criticalRoute!.steps.find((candidate) =>
         candidate.puzzlesSolved.includes(puzzle.id),
       )!;
-      expect(step.itemsUsed).toEqual([]);
+      expect(step.itemsConsumed).toEqual([]);
     }
   });
 
@@ -534,17 +537,16 @@ describe("modo solitario — toda plantilla cooperativa del catálogo", () => {
     const route = report.criticalRoute!;
     expect(route.playerCount).toBe(1);
     const step = route.steps.find((candidate) => candidate.puzzlesSolved.includes(puzzle.id))!;
-    expect(step.itemsUsed).toEqual([BRIDGE]);
-    expect(step.itemsConsumed).toEqual([]);
+    expect(step.itemsConsumed).toEqual([BRIDGE]);
     expect(route.steps[route.steps.length - 1]!.victory).toBe(true);
 
     expect(solvesSolo(puzzle, true)).toBe(true);
   });
 
-  it.each(types)("%s: en el motor, un jugador gana con el puente y no lo gasta", (type) => {
+  it.each(types)("%s: en el motor, un jugador gana con el puente y lo gasta al fijarlo", (type) => {
     const played = playSoloSession(soloPackage(COOPERATIVE_PUZZLES[type]!()), true);
     expect(played).toMatchObject({ victory: true, solved: true });
-    expect(played.inventory).toContain(BRIDGE);
+    expect(played.inventory).not.toContain(BRIDGE);
   });
 
   it.each(types)("%s: en el motor, sin puente declarado un jugador no lo resuelve", (type) => {
@@ -602,7 +604,7 @@ describe("modo solitario — toda plantilla cooperativa del catálogo", () => {
     expect(soloIssues(report)).toHaveLength(1);
   });
 
-  it("un solo puente fija todas las placas que falten (no se gasta)", () => {
+  it("un objeto-puente consumible cubre como mucho 1 placa que falte (se gasta al fijarse)", () => {
     const puzzle = COOPERATIVE_PUZZLES.simultaneous_plates!();
     if (puzzle.type !== "simultaneous_plates") throw new Error("tipo inesperado");
     puzzle.plates = [...puzzle.plates, { objectId: "coop-c", x: 5, y: 2 }];
@@ -610,12 +612,27 @@ describe("modo solitario — toda plantilla cooperativa del catálogo", () => {
     pkg.objects.push(worldObject("coop-c", 5) as RoomPackage["objects"][number]);
 
     const report = validateRoomPackage(pkg);
-    expect(report.ok).toBe(true);
-    expect(report.solvability.map((result) => result.solvable)).toEqual([true, true, true]);
-    const step = report.criticalRoute!.steps.find((candidate) =>
+    // Con 1 jugador faltan 2 placas: un único objeto-puente (no se duplica en
+    // el inventario) ya no basta desde que se gasta al fijarse (2.11).
+    expect(report.solvability.map((result) => [result.playerCount, result.solvable])).toEqual([
+      [1, false],
+      [2, true],
+      [3, true],
+    ]);
+    expect(report.ok).toBe(false);
+    const issue = checkOf(report, "solvability").issues.find((candidate) =>
+      candidate.ids.includes("p-coop"),
+    )!;
+    expect(issue.message).toContain("un objeto-puente consumible solo cubre 1");
+    expect(issue.message).toContain("no admite copias duplicadas");
+
+    // Con 2 jugadores falta 1 sola placa: el mismo puente la cubre y se gasta.
+    const group = validateRoomPackage(pkg, { playerCounts: [2] });
+    expect(group.ok).toBe(true);
+    const step = group.criticalRoute!.steps.find((candidate) =>
       candidate.puzzlesSolved.includes("p-coop"),
     )!;
-    expect(step.itemsUsed).toEqual([BRIDGE]);
+    expect(step.itemsConsumed).toEqual([BRIDGE]);
   });
 
   it("unas placas de una sola placa no son cooperativas y no piden puente", () => {

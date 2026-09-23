@@ -37,11 +37,21 @@ Acompaña a `reference/roompackage-rey-aldric.v1.json` y a `specs/08-formato-roo
 3. **La llave dentro de la llave:** la receta de inspección (`llave-plata → llave-oro`,
    `consumeInputs: false`) usa `combine_items` sin consumir — patrón reutilizable para "examinar".
 
-4. **El cáliz tiene doble uso** (placa-puente en solitario + ranura del mural). La regla
-   `r-recoger-caliz` permite recuperarlo tras las placas, evitando el soft-lock. El validador marca
-   como 🟡 cualquier item con dos usos potencialmente conflictivos — aquí está resuelto explícitamente.
-   Desde 2.8/2.10 el objeto-puente **se presenta y no se gasta** (motor y validador): el cáliz sigue
-   en el inventario tras las placas y la ranura tampoco lo consume, así que ya no hay conflicto.
+4. **El cáliz y el busto de piedra son dos objetos distintos** (2.11). Hasta 2.10 el objeto-puente
+   de `p-placas-estatuas` (placa-puente en solitario) era el mismo cáliz que luego iba a la ranura
+   del mural, con la regla `r-recoger-caliz` devolviéndolo tras las placas para evitar un soft-lock
+   — patrón que solo funcionaba porque el puente **no se consumía**. En 2.11 se decidió que los
+   objetos-puente vuelven a comportarse como cualquier objeto de un escape room: **se gastan al
+   fijarse** (desaparecen del inventario), como es habitual en el género. Reutilizar el mismo cáliz
+   para dos interacciones habría dejado la ruta en solitario irresoluble (el cáliz se gastaría en la
+   placa y ya no estaría disponible para la ranura), así que en vez de eso el arca (`p-candado-arca`,
+   candado `4732`) ahora otorga **dos objetos**: `caliz-real` (va a la ranura del mural, sin cambios)
+   y `busto-piedra` (el nuevo `soloBridgeItemId` de `p-placas-estatuas`, temáticamente coherente con
+   el nombre del puzzle — "placas de las estatuas"). `r-recoger-caliz` se mantiene por compatibilidad
+   narrativa (permite volver a sacar el cáliz de la ranura) pero ya no es necesaria para la
+   resolubilidad: el cáliz nunca se usa como puente. Ver también
+   `docs/reference/registro-de-decisiones.md` (2.11) para la decisión completa (dos objetos vs.
+   "gastar en el último uso").
 
 5. **La compuerta de oro** (`compuerta-oro`, `opensWithItem: llave-oro`) está en `blockedCells` del
    puzzle de tuberías: la llave-oro (de la llave-plata, del compartimento del mural, que necesita el
@@ -75,8 +85,8 @@ Acompaña a `reference/roompackage-rey-aldric.v1.json` y a `specs/08-formato-roo
 2. Abrir armario (llave-bronce)         → mechero + vela
 3. Combinar mechero+vela                → antorcha
 4. Encender brasero (antorcha)          → dígito 3 visible
-5. Resolver candado-arca "4732"         → cáliz + pergamino
-6. [Solo: cáliz en placa-izq] / [Grupo: placas simultáneas] → puerta-bodega
+5. Resolver candado-arca "4732"         → cáliz + busto de piedra + pergamino
+6. [Solo: busto en placa-izq, se gasta] / [Grupo: placas simultáneas] → puerta-bodega
 7. Resolver mural-vendimia (3×3)        → compartimento → llave-plata
 8. Inspeccionar llave-plata             → llave-oro
 9. Colocar cáliz en ranura (lore) / recuperarlo

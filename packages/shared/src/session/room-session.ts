@@ -630,9 +630,11 @@ export class RoomSession {
    * "Usar objeto…"): dispara `on_use_item` con `{ itemId, objectId }`. Si el
    * ítem es el objeto-puente de una mecánica cooperativa (el cáliz sobre una
    * placa, el espejo en una mirilla) o abre una compuerta de `pipes`, la
-   * plantilla correspondiente lo aplica. El puente **no se consume** (se
-   * presenta; mismo criterio que la compuerta de `pipes`), así el cáliz sigue
-   * sirviendo para la ranura del mural. Es pura e idempotente como `interact`.
+   * plantilla correspondiente lo aplica. Desde 2.11 el puente **se consume**
+   * al fijarse (un objeto, un uso, como cualquier otro ítem de un escape
+   * room): desaparece del inventario en cuanto la placa/mirilla queda fijada.
+   * La compuerta de `pipes` sigue sin consumirse (es una llave, no un
+   * puente). Es pura e idempotente como `interact`.
    */
   useItemOnObject(
     itemId: string,
@@ -654,11 +656,19 @@ export class RoomSession {
       if (!puzzle.plates.some((plate) => plate.objectId === objectId)) continue;
       const bridged = this.placePlatesBridge(puzzle.id, objectId, now, playerId);
       if (bridged.engine) results.push(bridged.engine);
+      if (bridged.outcome === "solved" || bridged.outcome === "activated") {
+        const consumed = this.consumeInventoryItem(itemId, playerId, now);
+        if (consumed) results.push(consumed);
+      }
     }
     for (const puzzle of this.puzzlesOfType("split_clue")) {
       if (puzzle.soloBridgeItemId !== itemId) continue;
       if (!puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === objectId)) continue;
-      this.placeSplitClueBridge(puzzle.id, playerId);
+      const outcome = this.placeSplitClueBridge(puzzle.id, playerId);
+      if (outcome === "bridged") {
+        const consumed = this.consumeInventoryItem(itemId, playerId, now);
+        if (consumed) results.push(consumed);
+      }
     }
 
     const engine = mergeResults(now, results);
@@ -1099,6 +1109,28 @@ export class RoomSession {
     }
     results.push(this.engine.grantItem(itemId, playerId, now));
     return mergeResults(now, results);
+  }
+
+  /**
+   * Retira una unidad de `itemId` del inventario de `playerId` (p. ej. el
+   * objeto-puente al fijarse). `null` si no lo tenía (no debería pasar: el
+   * llamador ya comprobó la posesión antes de actuar). Simétrico a
+   * `engine.grantItem`, pero el motor no expone un `consumeItem` público
+   * porque solo las reglas (`consume_item`) lo hacen hoy.
+   */
+  private consumeInventoryItem(
+    itemId: string,
+    playerId: string,
+    now: number,
+  ): EngineResult | null {
+    const inventory = this.engine.state.inventory[playerId];
+    const index = inventory?.indexOf(itemId) ?? -1;
+    if (!inventory || index < 0) return null;
+    inventory.splice(index, 1);
+    return {
+      ...emptyResult(now),
+      effects: [{ type: "consume_item", itemId, playerId }],
+    };
   }
 
   /** Refleja en el `GameState` el estado de la plantilla (salvo `solved`, que es del host). */

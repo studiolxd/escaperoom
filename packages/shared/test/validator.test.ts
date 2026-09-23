@@ -130,8 +130,8 @@ describe("validador — Rey Aldric", () => {
       gained("mechero"), // 2. armario
       gained("antorcha"), // 3. mechero+vela
       at((s) => s.rulesFired.includes("r-encender-brasero"), "brasero"), // 4. dígito 3
-      solve("p-candado-arca"), // 5. "4732" → cáliz
-      solve("p-placas-estatuas"), // 6. placas (en solitario con el cáliz)
+      solve("p-candado-arca"), // 5. "4732" → cáliz + busto de piedra
+      solve("p-placas-estatuas"), // 6. placas (en solitario con el busto de piedra)
       solve("p-mural-vendimia"), // 7. mural → llave-plata
       gained("llave-oro"), // 8. inspeccionar llave-plata
       solve("p-copas-memoria"), // 10. copas
@@ -144,12 +144,11 @@ describe("validador — Rey Aldric", () => {
       solve("p-sello-final"),
     );
 
-    // El puente del modo solitario se usa (cáliz en la placa, espejo en la mirilla).
-    // El puente se presenta y no se gasta (mismo criterio que `RoomSession`).
-    expect(route.steps[solve("p-placas-estatuas")]!.itemsUsed).toEqual(["caliz-real"]);
-    expect(route.steps[solve("p-placas-estatuas")]!.itemsConsumed).not.toContain("caliz-real");
-    expect(route.steps[solve("p-reja-mirillas")]!.itemsUsed).toEqual(["espejo"]);
-    expect(route.steps[solve("p-reja-mirillas")]!.itemsConsumed).not.toContain("espejo");
+    // El puente del modo solitario se usa (busto de piedra en la placa, espejo
+    // en la mirilla). Desde 2.11 el puente se gasta al fijarse (mismo criterio
+    // que `RoomSession`), así que aparece en `itemsConsumed`.
+    expect(route.steps[solve("p-placas-estatuas")]!.itemsConsumed).toEqual(["busto-piedra"]);
+    expect(route.steps[solve("p-reja-mirillas")]!.itemsConsumed).toEqual(["espejo"]);
 
     const last = route.steps[route.steps.length - 1]!;
     expect(last.victory).toBe(true);
@@ -162,7 +161,6 @@ describe("validador — Rey Aldric", () => {
     const group = report.solvability.find((result) => result.playerCount === 2)!;
     const plates = group.route!.find((step) => step.subjectId === "p-placas-estatuas")!;
     expect(plates.itemsConsumed).toEqual([]);
-    expect(plates.itemsUsed).toEqual([]);
     expect(group.route!.length).toBeLessThan(report.criticalRoute!.steps.length);
   });
 
@@ -194,9 +192,10 @@ describe("validador — Rey Aldric", () => {
     expect(estimate.expectedDifficulty).toBe(2);
   });
 
-  it("el cáliz no es doble uso conflictivo: el puente se presenta y no se gasta (sin aviso)", () => {
+  it("ni el cáliz ni el busto de piedra son doble uso: cada uno tiene un solo destino (sin aviso)", () => {
     expect(report.doubleUse.filter((item) => item.conflict)).toEqual([]);
     expect(report.doubleUse.map((item) => item.itemId)).not.toContain("caliz-real");
+    expect(report.doubleUse.map((item) => item.itemId)).not.toContain("busto-piedra");
     expect(text).not.toContain("doble uso conflictivo");
   });
 
@@ -352,22 +351,27 @@ describe("validador — huérfanos, reglas y referencias", () => {
     expect(renderValidationReport(report)).toContain("🟡 Reglas sin condición de corte: r-bucle");
   });
 
-  it("avisa del doble uso del cáliz si la ranura lo gasta y se quita la regla de recuperación", () => {
+  it("avisa del doble uso conflictivo de un objeto-puente que también se gasta en una regla", () => {
     const pkg = cloneFixture();
-    pkg.rules = pkg.rules.filter((rule) => rule.id !== "r-recoger-caliz");
-    const slot = pkg.rules.find((rule) => rule.id === "r-caliz-en-ranura")!;
-    slot.conditions = slot.conditions.map((condition) =>
-      condition.type === "item_in_inventory" && condition.itemId === "caliz-real"
-        ? { ...condition, consumed: true }
-        : condition,
-    );
+    // Desde 2.11 el busto de piedra (puente de p-placas-estatuas) ya se gasta
+    // al fijarse; si además una regla lo gasta en otro sitio y nada lo
+    // recupera, hay conflicto de doble uso (mismo mecanismo que antes
+    // cubría el cáliz cuando reutilizaba el mismo objeto para dos puzzles).
+    pkg.rules.push({
+      id: "r-busto-otro-uso",
+      priority: 0,
+      once: true,
+      trigger: { type: "on_interact", objectId: "trono" },
+      conditions: [{ type: "item_in_inventory", itemId: "busto-piedra", consumed: true }],
+      actions: [{ type: "show_dialog", dialogId: "d-mural" }],
+    });
 
     const report = validateRoomPackage(pkg);
     const doubleUse = checkOf(report, "double_use");
     expect(doubleUse.status).toBe("warning");
-    expect(doubleUse.issues[0]!.ids).toEqual(["caliz-real"]);
+    expect(doubleUse.issues[0]!.ids).toEqual(["busto-piedra"]);
     expect(renderValidationReport(report)).toContain(
-      "🟡 Items de doble uso conflictivo: caliz-real",
+      "🟡 Items de doble uso conflictivo: busto-piedra",
     );
   });
 

@@ -112,7 +112,7 @@ describe("toRuntimeModel", () => {
     const model = toRuntimeModel(loadValidPackage());
 
     expect(model.locale).toBe("es");
-    expect(model.items).toHaveLength(9);
+    expect(model.items).toHaveLength(10);
     expect(model.itemsById["llave-bronce"]?.name).toBe("Llave de bronce");
   });
 

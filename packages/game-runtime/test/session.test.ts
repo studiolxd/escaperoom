@@ -52,7 +52,7 @@ describe("modelo público del runtime (campos de fase 2)", () => {
         { objectId: "placa-izq", x: 6, y: 11 },
         { objectId: "placa-der", x: 14, y: 11 },
       ],
-      soloBridgeItemId: "caliz-real",
+      soloBridgeItemId: "busto-piedra",
     });
     expect(model.puzzlesById["p-reja-mirillas"]?.viewpoints).toEqual([
       { objectId: "mirilla-a", x: 9, y: 10 },

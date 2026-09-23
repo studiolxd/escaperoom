@@ -212,7 +212,7 @@ function describeMove(
             ...base,
             description:
               puzzle.soloBridgeItemId !== undefined &&
-              effects.itemsUsed.includes(puzzle.soloBridgeItemId)
+              effects.itemsConsumed.includes(puzzle.soloBridgeItemId)
                 ? `Colocar ${puzzle.soloBridgeItemId} en ${puzzle.id} (puente)`
                 : `Pisar las placas de ${puzzle.id} a la vez`,
           };
@@ -228,7 +228,7 @@ function describeMove(
             ...base,
             description:
               puzzle.soloBridgeItemId !== undefined &&
-              effects.itemsUsed.includes(puzzle.soloBridgeItemId)
+              effects.itemsConsumed.includes(puzzle.soloBridgeItemId)
                 ? `Resolver ${puzzle.id} con ${puzzle.soloBridgeItemId} (puente)`
                 : `Resolver ${puzzle.id} (cooperativo)`,
           };
@@ -327,7 +327,6 @@ function toRouteSteps(index: RoomIndex, route: RouteNode[]): RouteStep[] {
       outcome: describeOutcome(effects),
       itemsGained: [...effects.itemsGained],
       itemsConsumed: [...effects.itemsConsumed],
-      itemsUsed: [...effects.itemsUsed],
       rulesFired: [...effects.rulesFired],
       puzzlesSolved: [...effects.puzzlesSolved],
       roomsEntered: [...effects.roomsEntered],

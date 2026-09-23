@@ -22,8 +22,8 @@ import {
  *
  * Guion: inspeccionar el cuadro → `llave-bronce` → abrir el armario →
  * `mechero`+`vela` → combinar → `antorcha` → encender el brasero → candado del
- * arca (código `4732`) → `caliz-real` → placas (puente en solitario con el
- * cáliz) → puerta a la Bodega.
+ * arca (código `4732`) → `caliz-real` + `busto-piedra` → placas (resueltas
+ * aquí con `solveWorldPuzzle`, sin pasar por el puente) → puerta a la Bodega.
  *
  * **La victoria es al final de las 3 salas** (`p-canal-agua` + `p-sello-final`
  * viven en las Catacumbas), así que este vertical no puede terminar en
@@ -104,8 +104,10 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
     // receta del Salón (`mechero + vela → antorcha`) se haya aplicado.
     expect(session.combineItemsView("p-combina").appliedRecipeCount).toBeGreaterThanOrEqual(1);
 
-    // — Ítems esperados: los consumibles se gastan, el cáliz y el pergamino quedan —
-    expect(session.inventory()).toEqual(["caliz-real", "pergamino-bodega"]);
+    // — Ítems esperados: los consumibles se gastan; `solveWorldPuzzle` fuerza
+    // la resolución de las placas sin pasar por `useItemOnObject`, así que el
+    // busto de piedra (su objeto-puente) no llega a gastarse aquí —
+    expect(session.inventory()).toEqual(["caliz-real", "busto-piedra", "pergamino-bodega"]);
     expect(session.inventory()).not.toContain("llave-bronce");
     expect(session.inventory()).not.toContain("mechero");
     expect(session.inventory()).not.toContain("vela");
@@ -153,7 +155,7 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
       hintsUsed: 0,
       puzzlesSolved: SALA1_SOLVED.length,
       puzzlesTotal: TOTAL_PUZZLES,
-      itemsCollected: 2,
+      itemsCollected: 3,
     });
   });
 
