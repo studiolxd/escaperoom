@@ -15,10 +15,14 @@ import {
   createPricingTierService,
   type Actor,
   type PricingTierRow,
+  type DpaGate,
 } from "@escaperoom/shared/services";
 import { extractText, getDocumentProxy } from "unpdf";
 import { describe, expect, it } from "vitest";
 import { createAccessKeyCardsHandlers } from "../src/server/rest/access-key-cards";
+
+/** DPA de la organización en regla: la puerta de 5.11 se prueba en `organizations.test.ts`. */
+const DPA_SIGNED: DpaGate = { requireDpa: async () => {} };
 
 /** Renderizar 100 tarjetas es CPU: holgura para CI con turbo en paralelo. */
 const HEAVY = { timeout: 60_000 };
@@ -88,7 +92,7 @@ async function setup(players: number) {
     now,
   });
   const keyStore = createInMemoryAccessKeyStore({ events: eventStore });
-  const accessKeys = createAccessKeyService({ store: keyStore, events, now });
+  const accessKeys = createAccessKeyService({ store: keyStore, events, dpa: DPA_SIGNED, now });
   const event = await events.createEvent(author, {
     roomVersionId: VERSION,
     title: "Jornada de empresa",

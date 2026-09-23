@@ -20,7 +20,11 @@ import {
   type JoinClaims,
   type PricingTierRow,
   type RedeemResult,
+  type DpaGate,
 } from "../src/services";
+
+/** DPA de la organización en regla: la puerta de 5.11 se prueba en `organizations.test.ts`. */
+const DPA_SIGNED: DpaGate = { requireDpa: async () => {} };
 
 /**
  * Canje + agrupación (ticket 5.8): `redeem` consume el asiento con
@@ -86,7 +90,7 @@ async function setup(
     now,
   });
   const store = createInMemoryAccessKeyStore({ events: eventStore });
-  const keys = createAccessKeyService({ store, events, now });
+  const keys = createAccessKeyService({ store, events, dpa: DPA_SIGNED, now });
   let guest = 0;
   const redeem = createRedeemService({
     store,

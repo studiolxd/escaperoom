@@ -49,7 +49,7 @@ Better Auth gestiona `/api/auth/*` (signin, callback OAuth, signout, session; pl
 | POST | `/api/organizations/:orgId/members` | owner/admin | Invita a un miembro por email |
 | GET | `/api/me/data-export` | usuario | Export completo de datos (portabilidad RGPD) |
 | DELETE | `/api/me` | usuario | Cierre de cuenta y anonimización según plazos |
-| POST | `/api/organizations/:id/dpa/sign` | owner/admin | Aceptación del DPA antes de habilitar claves individuales con email |
+| POST | `/api/organizations/:id/dpa/sign` | owner/admin | Aceptación del DPA antes de habilitar claves individuales con email. Cuerpo `{ version }` (la vigente; si no, 409 `DPA_VERSION_MISMATCH`); responde `{ organizationId, currentVersion, signed, version, signedBy, signedAt, alreadySigned }`. Miembro sin rol → 403 (specs/18 §3.1) |
 
 ## 3. Catálogo (público)
 
@@ -197,7 +197,9 @@ enlaces del correo hacen GET y no deben confirmar por el asistente). El token es
 (`CONFIRMATION_TOKEN_TTL_SECONDS`) o con la clave, lo que llegue antes. Errores: 403
 `CONFIRMATION_INVALID` (firma alterada, token de otra clave), 410 `CONFIRMATION_EXPIRED`, 409
 `ACCESS_KEY_EXPIRED` (clave caducada o rotada), 409 `ACCESS_KEY_NO_EMAIL` al reenviar una clave sin
-email, 503 `CONFIRMATION_UNAVAILABLE` sin secreto en producción. Confirmar dos veces responde 200 con
+email, 503 `CONFIRMATION_UNAVAILABLE` sin secreto en producción, 403 `DPA_REQUIRED` al generar
+claves con `emails`, activar con emails en el `keyPlan` o reenviar invitaciones si la organización
+activa no tiene firmado el DPA vigente (ticket 5.11, specs/18 §3.1). Confirmar dos veces responde 200 con
 `alreadyConfirmed: true`.
 
 **Canje (ticket 5.8).** Cuerpo `{ code, displayName?, sessionId?, groupId? }`: `sessionId`/`groupId`

@@ -277,10 +277,13 @@ model organization {
   stripeCustomerId String?
   dpaSignedAt      DateTime?       @db.Timestamptz(6)
   createdAt        DateTime        @default(now()) @db.Timestamptz(6)
+  dpaVersion       String?
+  dpaSignedBy      String?
   audioAsset       audioAsset[]
   creditAccount    creditAccount[]
   invitation       invitation[]
   member           member[]
+  user             user?           @relation(fields: [dpaSignedBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
 }
 
 model platformSetting {
@@ -489,6 +492,7 @@ model user {
   event                                              event[]
   invitation                                         invitation[]
   member                                             member[]
+  organization                                       organization[]
   moderationAppeal_moderationAppeal_creatorIdTouser  moderationAppeal[] @relation("moderationAppeal_creatorIdTouser")
   moderationAppeal_moderationAppeal_reviewedByTouser moderationAppeal[] @relation("moderationAppeal_reviewedByTouser")
   platformSetting                                    platformSetting[]

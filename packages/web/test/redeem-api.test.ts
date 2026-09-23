@@ -11,10 +11,14 @@ import {
   createRedeemService,
   verifyJoinToken,
   type Actor,
+  type DpaGate,
 } from "@escaperoom/shared/services";
 import { describe, expect, it } from "vitest";
 import { EVENT_ROOM_NAME } from "../src/lib/colyseus";
 import { createRedeemHandler } from "../src/server/rest/access-keys";
+
+/** DPA de la organización en regla: la puerta de 5.11 se prueba en `organizations.test.ts`. */
+const DPA_SIGNED: DpaGate = { requireDpa: async () => {} };
 
 const author: Actor = { userId: "autora", organizationId: null, role: "member" };
 const VERSION = "10000000-0000-4000-8000-000000000001";
@@ -76,7 +80,7 @@ async function setup(groupingMode: "random" | "free" = "random") {
     now,
   });
   const store = createInMemoryAccessKeyStore({ events: eventStore });
-  const accessKeys = createAccessKeyService({ store, events, now });
+  const accessKeys = createAccessKeyService({ store, events, dpa: DPA_SIGNED, now });
   const redeem = createRedeemService({
     store,
     accessKeys,

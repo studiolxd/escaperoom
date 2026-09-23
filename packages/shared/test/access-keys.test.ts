@@ -20,7 +20,11 @@ import {
   type Actor,
   type PricingTierRow,
   type RandomBytes,
+  type DpaGate,
 } from "../src/services";
+
+/** DPA de la organización en regla: la puerta de 5.11 se prueba en `organizations.test.ts`. */
+const DPA_SIGNED: DpaGate = { requireDpa: async () => {} };
 
 const author: Actor = { userId: "autora", organizationId: null, role: "member" };
 const organizer: Actor = { userId: "profe", organizationId: null, role: "member" };
@@ -71,7 +75,13 @@ function setup(opts: { random?: RandomBytes } = {}) {
     now,
   });
   const store = createInMemoryAccessKeyStore({ events: eventStore });
-  const keys = createAccessKeyService({ store, events, now, random: opts.random });
+  const keys = createAccessKeyService({
+    store,
+    events,
+    dpa: DPA_SIGNED,
+    now,
+    random: opts.random,
+  });
 
   /** Evento de la autora (autoventa: activable sin pago). */
   async function createEvent(over: Record<string, unknown> = {}) {

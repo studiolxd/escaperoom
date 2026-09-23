@@ -32,6 +32,10 @@ import {
   createRedeemService,
   createInvitationService,
   createPrismaInvitationStore,
+  AccessKeyError,
+  createOrganizationService,
+  createPrismaOrganizationStore,
+  type OrganizationService,
   readJoinTokenConfig,
   type InvitationService,
   type AccessKeyService,
@@ -73,6 +77,7 @@ let redeem: RedeemService | null | undefined;
 let roomLicenses: RoomLicenseService | undefined;
 let invitations: InvitationService | undefined;
 let accessKeyCards: AccessKeyCardsService | undefined;
+let organizations: OrganizationService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -186,14 +191,25 @@ export function getEventService(): EventService {
 }
 
 /**
+ * Organizaciones y DPA (ticket 5.11, specs/18 §3.1): firma del DPA por
+ * owner/admin y la puerta que exigen claves e invitaciones con email.
+ */
+export function getOrganizationService(): OrganizationService {
+  organizations ??= createOrganizationService({ store: createPrismaOrganizationStore(prisma) });
+  return organizations;
+}
+
+/**
  * Claves de acceso (specs/02 §4, specs/13 §6.2) sobre Postgres. Envuelve la
  * activación de 5.4 para crear sesiones y claves al pasar a `active`. La
- * caducidad la aplica el job de `@escaperoom/worker`.
+ * caducidad la aplica el job de `@escaperoom/worker`. Las claves con email
+ * exigen el DPA de la organización activa (5.11).
  */
 export function getAccessKeyService(): AccessKeyService {
   accessKeys ??= createAccessKeyService({
     store: createPrismaAccessKeyStore(prisma),
     events: getEventService(),
+    dpa: getOrganizationService().dpaGate((message) => new AccessKeyError("DPA_REQUIRED", message)),
   });
   return accessKeys;
 }
