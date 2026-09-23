@@ -1,7 +1,9 @@
 import { verifyStripeWebhookSignature } from "@escaperoom/shared/services";
 import { createStripeWebhookHandlers } from "@/server/rest/stripe-webhook";
 import {
+  getEventService,
   getPurchaseService,
+  getRoomLicenseService,
   getStripeClient,
   getStripeWebhookSecret,
   getWebhookEventDedupeStore,
@@ -29,6 +31,8 @@ export async function POST(request: Request): Promise<Response> {
   }
   return createStripeWebhookHandlers({
     purchases: getPurchaseService(),
+    roomLicenses: getRoomLicenseService(),
+    events: getEventService(),
     dedupe: getWebhookEventDedupeStore(),
     verify: (payload, signature) => verifyStripeWebhookSignature(stripe, payload, signature, webhookSecret),
   }).postWebhook(request);
