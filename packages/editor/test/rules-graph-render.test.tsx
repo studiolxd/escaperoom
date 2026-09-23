@@ -63,3 +63,21 @@ describe("<RulesGraph> — render básico", () => {
     expect(html).not.toContain("newRule");
   });
 });
+
+describe("<RulesGraph> — foco desde el inspector (3.4)", () => {
+  it("focusRuleId selecciona los nodos de esa regla y solo esos", () => {
+    const doc = new Y.Doc();
+    writeRules(doc, rules);
+    const html = renderToStaticMarkup(
+      <RulesGraph doc={doc} focusRuleId="r-abrir-arca" height={480} />,
+    );
+    const selected = [
+      ...html.matchAll(/class="react-flow__node[^"]*\bselected\b[^"]*"[^>]*data-id="([^"]+)"/g),
+    ].map((m) => m[1]);
+    const alt = [
+      ...html.matchAll(/data-id="([^"]+)"[^>]*class="react-flow__node[^"]*\bselected\b/g),
+    ].map((m) => m[1]);
+    const ids = selected.length > 0 ? selected : alt;
+    expect(ids).toEqual(["r-abrir-arca/trigger", "r-abrir-arca/a/0"]);
+  });
+});

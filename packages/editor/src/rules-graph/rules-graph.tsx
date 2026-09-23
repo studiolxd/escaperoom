@@ -12,6 +12,7 @@ import {
   type IsValidConnection,
   type NodeChange,
   type NodeProps,
+  type ReactFlowInstance,
   type XYPosition,
 } from "@xyflow/react";
 import {
@@ -87,6 +88,13 @@ export type RulesGraphProps = {
   className?: string;
   /** Errores de edición (id duplicado, índice fuera de rango tras un cambio remoto…). */
   onError?: (error: unknown) => void;
+  /**
+   * Regla a enseñar (desde el inspector, 3.4): sus nodos salen seleccionados y
+   * la vista se centra en ellos cada vez que cambia.
+   */
+  focusRuleId?: string;
+  /** Clic en un nodo de una regla (el inspector la muestra). */
+  onSelectRule?: (ruleId: string) => void;
 };
 
 type AnyNode = RuleGraphNode | DraftNode;
@@ -583,7 +591,7 @@ const toolbarButton: CSSProperties = {
 };
 
 function RulesGraphCanvas(props: RulesGraphProps) {
-  const { doc, issues, readOnly = false, onError } = props;
+  const { doc, issues, readOnly = false, onError, focusRuleId, onSelectRule } = props;
   const t = useMemo(() => createLabeler(props.labels), [props.labels]);
   const rules = useYjsRules(doc);
   const graph = useMemo(() => rulesToGraph(rules), [rules]);
@@ -592,6 +600,7 @@ function RulesGraphCanvas(props: RulesGraphProps) {
   const [drafts, setDrafts] = useState<DraftNode[]>([]);
   const [local, setLocal] = useState<Record<string, LocalNodeState>>({});
   const draftSeq = useRef(0);
+  const flow = useRef<ReactFlowInstance<AnyNode> | null>(null);
 
   const run = useCallback(
     (fn: () => void) => {
@@ -645,18 +654,27 @@ function RulesGraphCanvas(props: RulesGraphProps) {
     () =>
       [...ruleNodes, ...drafts].map((node) => {
         // Tamaño inicial estimado: permite pintar en servidor (SSR) antes de medir.
-        const sized = { ...node, initialWidth: NODE_WIDTH, initialHeight: LAYOUT.rowHeight - 30 };
+        const focused =
+          focusRuleId !== undefined &&
+          node.type !== RULE_DRAFT_NODE_TYPE &&
+          (node as RuleGraphNode).data.ruleId === focusRuleId;
+        const sized = {
+          ...node,
+          initialWidth: NODE_WIDTH,
+          initialHeight: LAYOUT.rowHeight - 30,
+          ...(focused ? { selected: true } : {}),
+        };
         const state = local[node.id];
         if (!state) return sized as AnyNode;
         return {
           ...sized,
           position: state.position ?? node.position,
           measured: state.measured,
-          selected: state.selected,
+          selected: state.selected ?? sized.selected,
           dragging: state.dragging,
         } as AnyNode;
       }),
-    [ruleNodes, drafts, local],
+    [ruleNodes, drafts, local, focusRuleId],
   );
   const nodesById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes]);
 
@@ -731,6 +749,32 @@ function RulesGraphCanvas(props: RulesGraphProps) {
     [addDrafts, doc, nodesById, readOnly, ruleNodes, run],
   );
 
+  // Centra la vista en la regla enfocada (al cambiar de regla o al montar el lienzo).
+  const focusRule = useCallback(
+    (instance: ReactFlowInstance<AnyNode> | null) => {
+      if (!instance || focusRuleId === undefined) return;
+      const ids = ruleNodes.filter((n) => n.data.ruleId === focusRuleId).map((n) => ({ id: n.id }));
+      if (ids.length > 0) void instance.fitView({ nodes: ids, duration: 300, maxZoom: 1.2 });
+    },
+    // Solo al cambiar la regla enfocada: editar no debe mover la vista.
+    [focusRuleId],
+  );
+  useEffect(() => {
+    // Al cambiar de regla se olvida la selección local para que mande el foco.
+    if (focusRuleId !== undefined) {
+      setLocal((current) => {
+        let next = current;
+        for (const [id, state] of Object.entries(current)) {
+          if (state.selected === undefined) continue;
+          if (next === current) next = { ...current };
+          next[id] = { ...state, selected: undefined };
+        }
+        return next;
+      });
+    }
+    focusRule(flow.current);
+  }, [focusRule, focusRuleId]);
+
   const newRule = () =>
     run(() => createRule(doc, { id: nextRuleId(doc), trigger: defaultTrigger("on_interact") }));
 
@@ -749,6 +793,15 @@ function RulesGraphCanvas(props: RulesGraphProps) {
           onNodesChange={onNodesChange}
           onConnect={onConnect}
           onDelete={onDelete}
+          onInit={(instance) => {
+            flow.current = instance;
+            focusRule(instance);
+          }}
+          onNodeClick={(_, node) => {
+            if (node.type !== RULE_DRAFT_NODE_TYPE) {
+              onSelectRule?.((node as RuleGraphNode).data.ruleId);
+            }
+          }}
           isValidConnection={isValidConnection}
           nodesConnectable={!readOnly}
           elementsSelectable

@@ -31,6 +31,10 @@ const QUIET_BUTTON = "border border-white/15 text-white hover:bg-white/10";
 /** Estado de la conexión que muestra la cabecera. */
 export type RoomEditorStatus = "local" | "connecting" | "connected" | "offline";
 
+/** Pestañas del área central (specs/09 §4.1): lienzo WYSIWYG o grafo de reglas. */
+export const CANVAS_TABS = ["map", "rules"] as const;
+export type CanvasTab = (typeof CANVAS_TABS)[number];
+
 export interface RoomEditorWorkspaceProps {
   doc: Y.Doc;
   controller: EditToolController;
@@ -39,8 +43,16 @@ export interface RoomEditorWorkspaceProps {
   status: RoomEditorStatus;
   /** Lienzo Phaser (solo cliente); sin él se muestra un marcador (SSR, tests). */
   renderCanvas?: (props: RoomEditorCanvasProps) => ReactNode;
-  /** Hueco del inspector de propiedades (3.4). */
+  /**
+   * Inspector de propiedades (3.4). Si se pasa, sustituye al panel mínimo de
+   * selección de 3.1 (id, sprite, celda y borrar).
+   */
   inspector?: ReactNode;
+  /** Grafo de reglas (3.6) como segunda pestaña del área central. */
+  rulesGraph?: ReactNode;
+  /** Pestaña activa (controlada por quien monta el editor; por defecto el mapa). */
+  canvasTab?: CanvasTab;
+  onCanvasTabChange?: (tab: CanvasTab) => void;
   /** Panel del validador (3.7), bajo la selección. */
   validation?: ReactNode;
   /** Acciones de cabecera: validar (3.7), jugar (3.8), publicar (3.9). */
@@ -78,6 +90,9 @@ export function RoomEditorWorkspace({
   status,
   renderCanvas,
   inspector,
+  rulesGraph,
+  canvasTab = "map",
+  onCanvasTabChange,
   validation,
   headerActions,
 }: RoomEditorWorkspaceProps) {
@@ -99,8 +114,12 @@ export function RoomEditorWorkspace({
     if (activeRoomId !== tools.roomId) controller.setRoom(activeRoomId);
   }, [activeRoomId, tools.roomId, controller]);
 
-  // Supr/Retroceso borra el objeto seleccionado (fuera de campos de texto).
+  const showRules = Boolean(rulesGraph) && canvasTab === "rules";
+
+  // Supr/Retroceso borra el objeto seleccionado (fuera de campos de texto). En
+  // la pestaña de reglas esas teclas son del grafo (borrar nodos).
   useEffect(() => {
+    if (showRules) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Delete" && event.key !== "Backspace") return;
       const target = event.target as HTMLElement | null;
@@ -109,7 +128,7 @@ export function RoomEditorWorkspace({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [controller]);
+  }, [controller, showRules]);
 
   const selected = pkg.objects.find((object) => object.id === tools.selectedObjectId);
   const onPointer = (event: EditPointerEvent) => controller.pointer(event);
@@ -160,7 +179,29 @@ export function RoomEditorWorkspace({
 
         <main className="flex min-w-0 flex-1 flex-col">
           <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-3 py-2">
-            <div role="toolbar" aria-label={t("tools.label")} className="flex gap-1">
+            {rulesGraph && (
+              <div role="tablist" aria-label={t("canvas.label")} className="mr-2 flex gap-1">
+                {CANVAS_TABS.map((tab) => (
+                  <Button
+                    key={tab}
+                    size="sm"
+                    role="tab"
+                    variant={canvasTab === tab ? "secondary" : "ghost"}
+                    className={canvasTab === tab ? undefined : QUIET_BUTTON}
+                    aria-selected={canvasTab === tab}
+                    data-canvas-tab={tab}
+                    onClick={() => onCanvasTabChange?.(tab)}
+                  >
+                    {t(`canvas.${tab}`)}
+                  </Button>
+                ))}
+              </div>
+            )}
+            <div
+              role="toolbar"
+              aria-label={t("tools.label")}
+              className={cn("flex gap-1", showRules && "hidden")}
+            >
               {EDIT_TOOLS.map((tool) => (
                 <Button
                   key={tool}
@@ -175,7 +216,12 @@ export function RoomEditorWorkspace({
                 </Button>
               ))}
             </div>
-            <label className="ml-2 flex items-center gap-2 text-xs text-white/70">
+            <label
+              className={cn(
+                "ml-2 flex items-center gap-2 text-xs text-white/70",
+                showRules && "hidden",
+              )}
+            >
               {t("layers.label")}
               <select
                 className="rounded border border-white/15 bg-slate-900 px-2 py-1 text-sm text-white"
@@ -191,7 +237,10 @@ export function RoomEditorWorkspace({
                 ))}
               </select>
             </label>
-            <nav aria-label={t("rooms.label")} className="ml-auto flex gap-1">
+            <nav
+              aria-label={t("rooms.label")}
+              className={cn("ml-auto flex gap-1", showRules && "hidden")}
+            >
               {pkg.map.rooms.map((room) => (
                 <Button
                   key={room.id}
@@ -221,6 +270,12 @@ export function RoomEditorWorkspace({
                 {t("loading")}
               </div>
             )}
+            {/* El lienzo sigue montado debajo: volver al mapa no recrea Phaser. */}
+            {showRules && (
+              <div className="absolute inset-0 z-10 bg-white text-slate-900" data-rules-tab="">
+                {rulesGraph}
+              </div>
+            )}
             {(modelError || tools.error) && (
               <p
                 role="alert"
@@ -232,23 +287,27 @@ export function RoomEditorWorkspace({
           </div>
         </main>
 
-        <aside className="w-72 shrink-0 overflow-y-auto border-l border-white/10 p-3">
-          <h2 className="mb-2 text-sm font-semibold">{t("selection.title")}</h2>
-          {selected ? (
-            <SelectionPanel
-              key={selected.id}
-              doc={doc}
-              object={selected}
-              roomName={pkg.map.rooms.find((room) => room.id === selected.roomId)?.name}
-              onRenamed={(id) => controller.select(id)}
-              onDelete={() => controller.deleteSelection()}
-            />
-          ) : (
-            <p className="text-sm text-white/60">{t("selection.none")}</p>
+        <aside className="w-80 shrink-0 overflow-y-auto border-l border-white/10 p-3">
+          {inspector ?? (
+            <>
+              <h2 className="mb-2 text-sm font-semibold">{t("selection.title")}</h2>
+              {selected ? (
+                <SelectionPanel
+                  key={selected.id}
+                  doc={doc}
+                  object={selected}
+                  roomName={pkg.map.rooms.find((room) => room.id === selected.roomId)?.name}
+                  onRenamed={(id) => controller.select(id)}
+                  onDelete={() => controller.deleteSelection()}
+                />
+              ) : (
+                <p className="text-sm text-white/60">{t("selection.none")}</p>
+              )}
+              <div className="mt-4 border-t border-white/10 pt-3">
+                <p className="text-xs text-white/40">{t("selection.inspectorSoon")}</p>
+              </div>
+            </>
           )}
-          <div className="mt-4 border-t border-white/10 pt-3">
-            {inspector ?? <p className="text-xs text-white/40">{t("selection.inspectorSoon")}</p>}
-          </div>
           {validation && <div className="mt-4 border-t border-white/10 pt-3">{validation}</div>}
         </aside>
       </div>
