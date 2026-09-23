@@ -36,7 +36,7 @@ import { decodeRle, encodeRowRle, parseTileKey, tileKey } from "./tiles";
 /**
  * Serialización pura doc Yjs ⇄ RoomPackage (specs/08, specs/09 §2). Es la
  * frontera entre el editor y todo lo demás: el runtime en modo edición se
- * re-renderiza desde `docToRoomPackage`, y un paquete (fixture, versión
+ * re-renderiza desde `roomDocToPackage`, y un paquete (fixture, versión
  * publicada, salida del MCP) se abre en el editor con `roomPackageToDoc`.
  */
 
@@ -254,7 +254,7 @@ function readCollection<T>(
  * se limitan a los idiomas declarados (las traducciones retiradas se quedan en
  * el borrador, 3.10) y las capas se codifican en RLE por filas.
  */
-export function docToRoomPackage(doc: Y.Doc): RoomPackage {
+export function roomDocToPackage(doc: Y.Doc): RoomPackage {
   const meta = readMeta(doc);
   const languages = meta.languages;
   const withoutLocalized = (record: RecordMap, field: string) => {

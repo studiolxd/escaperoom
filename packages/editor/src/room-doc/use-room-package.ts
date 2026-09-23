@@ -1,7 +1,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 import type * as Y from "yjs";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
-import { docToRoomPackage, observeRoomDoc } from "./serialize";
+import { roomDocToPackage, observeRoomDoc } from "./serialize";
 
 /**
  * La sala del doc Yjs como `RoomPackage` en estado React. Cualquier mutación
@@ -10,11 +10,11 @@ import { docToRoomPackage, observeRoomDoc } from "./serialize";
  */
 export function useRoomPackage(doc: Y.Doc): RoomPackage {
   const store = useMemo(() => {
-    let snapshot = docToRoomPackage(doc);
+    let snapshot = roomDocToPackage(doc);
     return {
       subscribe(onChange: () => void) {
         return observeRoomDoc(doc, () => {
-          snapshot = docToRoomPackage(doc);
+          snapshot = roomDocToPackage(doc);
           onChange();
         });
       },

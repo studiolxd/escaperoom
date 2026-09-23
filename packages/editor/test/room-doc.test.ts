@@ -10,6 +10,7 @@ import {
   createRule,
   decodeRle,
   docToRoomPackage,
+  roomDocToPackage,
   encodeRowRle,
   ensureLocalizedField,
   eraseTiles,
@@ -78,14 +79,14 @@ describe("RLE por filas", () => {
 
 describe("RoomPackage ⇄ doc Yjs — ida y vuelta", () => {
   it("el fixture del Rey Aldric sale idéntico del doc (sin pérdida)", () => {
-    const pkg = docToRoomPackage(aldricDoc());
+    const pkg = roomDocToPackage(aldricDoc());
     expect(pkg).toEqual(fixture);
     // Y sigue cumpliendo el contrato.
     expect(parseRoomPackage(pkg)).toEqual(fixture);
   });
 
   it("conserva el orden de los arrays y el RLE byte a byte", () => {
-    const pkg = docToRoomPackage(aldricDoc());
+    const pkg = roomDocToPackage(aldricDoc());
     expect(JSON.stringify(pkg.map)).toBe(JSON.stringify(fixture.map));
     expect(pkg.objects.map((o) => o.id)).toEqual(fixture.objects.map((o) => o.id));
     expect(pkg.dialogs.map((d) => d.id)).toEqual(fixture.dialogs.map((d) => d.id));
@@ -96,16 +97,21 @@ describe("RoomPackage ⇄ doc Yjs — ida y vuelta", () => {
 
   it("sobrevive a la réplica por updates binarios y a una segunda ida y vuelta", () => {
     const replica = replicate(aldricDoc());
-    expect(docToRoomPackage(replica)).toEqual(fixture);
-    const again = roomPackageToDoc(docToRoomPackage(replica));
-    expect(docToRoomPackage(again)).toEqual(fixture);
+    expect(roomDocToPackage(replica)).toEqual(fixture);
+    const again = roomPackageToDoc(roomDocToPackage(replica));
+    expect(roomDocToPackage(again)).toEqual(fixture);
+  });
+
+  it("sirve de serializador al validador del editor (3.7)", () => {
+    const doc = aldricDoc();
+    expect(docToRoomPackage(doc, roomDocToPackage)).toEqual({ ok: true, pkg: fixture });
   });
 
   it("roomPackageToDoc sustituye el contenido previo del doc", () => {
     const doc = aldricDoc();
     placeObject(doc, { roomId: "bodega", sprite: "arca", position: { x: 3, y: 3 } });
     roomPackageToDoc(fixture, doc);
-    expect(docToRoomPackage(doc)).toEqual(fixture);
+    expect(roomDocToPackage(doc)).toEqual(fixture);
   });
 
   it("es compatible con las porciones de 3.10 (textos) y 3.6 (reglas)", () => {
@@ -115,13 +121,13 @@ describe("RoomPackage ⇄ doc Yjs — ida y vuelta", () => {
     setLocalizedValue(intro, "en", "Prophecy…");
     createRule(doc, { id: "r-nueva", trigger: { type: "on_game_start" } });
 
-    const pkg = docToRoomPackage(doc);
+    const pkg = roomDocToPackage(doc);
     expect(pkg.meta.languages).toEqual(["es", "en"]);
     expect(pkg.dialogs.find((d) => d.id === "d-intro")?.text.en?.text).toBe("Prophecy…");
     expect(pkg.rules.at(-1)?.id).toBe("r-nueva");
     // Un diálogo creado desde 3.10 (sin `order`) va al final.
     ensureLocalizedField(doc, "dialogs", "aaa-nuevo", { es: { text: "Hola" } });
-    expect(docToRoomPackage(doc).dialogs.at(-1)?.id).toBe("aaa-nuevo");
+    expect(roomDocToPackage(doc).dialogs.at(-1)?.id).toBe("aaa-nuevo");
   });
 
   it("observeRoomDoc avisa una vez por transacción, también ante cambios remotos", () => {
@@ -155,7 +161,7 @@ describe("comandos de pintado", () => {
       3,
     );
     expect(changed).toBe(2);
-    const pkg = docToRoomPackage(doc);
+    const pkg = roomDocToPackage(doc);
     const before = layerTiles(fixture, "salon-trono", "ground");
     const after = layerTiles(pkg, "salon-trono", "ground");
     const diff = after.flatMap((t, i) => (t !== before[i] ? [i] : []));
@@ -167,7 +173,7 @@ describe("comandos de pintado", () => {
   it("pintar en la capa de decoración la crea detrás de las existentes", () => {
     const doc = aldricDoc();
     paintTiles(doc, "bodega", "decor", [{ x: 4, y: 4 }], 21);
-    const room = docToRoomPackage(doc).map.rooms.find((r) => r.id === "bodega");
+    const room = roomDocToPackage(doc).map.rooms.find((r) => r.id === "bodega");
     expect(room?.layers.map((l) => l.name)).toEqual(["ground", "walls", "decor"]);
     expect(getTile(doc, "bodega", "decor", { x: 4, y: 4 })).toBe(21);
   });
@@ -178,7 +184,7 @@ describe("comandos de pintado", () => {
     expect(eraseTiles(doc, "salon-trono", "walls", [{ x: 0, y: 0 }])).toBe(1);
     expect(getTile(doc, "salon-trono", "walls", { x: 0, y: 0 })).toBe(0);
     expect(getTile(doc, "salon-trono", "ground", { x: 0, y: 0 })).toBe(1);
-    const walls = layerTiles(docToRoomPackage(doc), "salon-trono", "walls");
+    const walls = layerTiles(roomDocToPackage(doc), "salon-trono", "walls");
     expect(walls[0]).toBe(0);
     expect(walls[1]).toBe(10);
   });
@@ -201,7 +207,7 @@ describe("comandos de pintado", () => {
     );
     const painted = fillTiles(doc, "sala-1", "ground", { x: 0, y: 0 }, 3);
     expect(painted).toBe(8);
-    expect(layerTiles(docToRoomPackage(doc), "sala-1", "ground")).toEqual([
+    expect(layerTiles(roomDocToPackage(doc), "sala-1", "ground")).toEqual([
       3, 3, 10, 1, 1, 3, 3, 10, 1, 1, 3, 3, 10, 1, 1, 3, 3, 10, 1, 1,
     ]);
     // Rellenar con el mismo tile no cambia nada.
@@ -217,8 +223,8 @@ describe("comandos de pintado", () => {
     paintTiles(b, "bodega", "ground", [{ x: 5, y: 5 }], 1);
     paintTiles(b, "bodega", "ground", [{ x: 6, y: 5 }], 3);
     sync(a, b);
-    expect(docToRoomPackage(a)).toEqual(docToRoomPackage(b));
-    const tiles = layerTiles(docToRoomPackage(a), "bodega", "ground");
+    expect(roomDocToPackage(a)).toEqual(roomDocToPackage(b));
+    const tiles = layerTiles(roomDocToPackage(a), "bodega", "ground");
     expect(tiles).toHaveLength(18 * 12);
     expect(tiles[5 * 18 + 6]).toBe(3);
   });
@@ -243,7 +249,7 @@ describe("comandos de objetos", () => {
   it("colocar crea un WorldObject válido al final de la lista", () => {
     const doc = aldricDoc();
     placeObject(doc, { roomId: "salon-trono", sprite: "arca", position: { x: 4, y: 4 } });
-    const pkg = parseRoomPackage(docToRoomPackage(doc));
+    const pkg = parseRoomPackage(roomDocToPackage(doc));
     expect(pkg.objects).toHaveLength(fixture.objects.length + 1);
     expect(pkg.objects.at(-1)).toEqual({
       id: "arca-trono",
@@ -264,7 +270,7 @@ describe("comandos de objetos", () => {
     expect(() => place(undefined, 18)).toThrow(RoomDocError);
     expect(() => place("trono", 1)).toThrow(/Ya existe/);
     expect(() => place("Arca Trono", 1)).toThrow(/no es un id válido/);
-    expect(docToRoomPackage(doc).objects).toHaveLength(fixture.objects.length);
+    expect(roomDocToPackage(doc).objects).toHaveLength(fixture.objects.length);
   });
 
   it("arrastrar mueve el objeto (también a otra habitación) y valida la celda", () => {
@@ -290,11 +296,11 @@ describe("comandos de objetos", () => {
     expect(readObject(doc, id)).toBeUndefined();
     expect(readObject(doc, "arca-vinos")?.position).toEqual({ x: 2, y: 2 });
     // El orden de alta se conserva.
-    expect(docToRoomPackage(doc).objects.at(-1)?.id).toBe("arca-vinos");
+    expect(roomDocToPackage(doc).objects.at(-1)?.id).toBe("arca-vinos");
     // `brasero` lo usan reglas y la luz de la antorcha.
     expect(() => renameObject(doc, "brasero", "brasero-2")).toThrow(/se usa en/);
     removeObject(doc, "arca-vinos");
-    expect(docToRoomPackage(doc)).toEqual(fixture);
+    expect(roomDocToPackage(doc)).toEqual(fixture);
   });
 });
 
@@ -331,7 +337,7 @@ describe("controlador de herramientas (eventos del runtime → doc)", () => {
     tools.selectTile(21, "decor");
     tools.setTool("fill");
     tools.pointer(down(5, 5));
-    const decor = layerTiles(docToRoomPackage(doc), "salon-trono", "decor");
+    const decor = layerTiles(roomDocToPackage(doc), "salon-trono", "decor");
     expect(decor.every((t) => t === 21)).toBe(true);
   });
 
@@ -349,7 +355,7 @@ describe("controlador de herramientas (eventos del runtime → doc)", () => {
     expect(readObject(doc, "arca-trono")?.position).toEqual({ x: 4, y: 5 });
     // Fuera de la rejilla no coloca nada.
     tools.pointer(down(40, 5));
-    expect(docToRoomPackage(doc).objects).toHaveLength(fixture.objects.length + 1);
+    expect(roomDocToPackage(doc).objects).toHaveLength(fixture.objects.length + 1);
   });
 
   it("seleccionar y arrastrar: previsualiza sin tocar el doc y confirma al soltar", () => {
@@ -422,7 +428,7 @@ describe("sala nueva", () => {
   it("initRoomDoc crea un esqueleto válido solo si el doc está vacío", () => {
     const doc = new Y.Doc();
     expect(initRoomDoc(doc, { id: "r-nueva", title: "Mi sala", language: "es" })).toBe(true);
-    const pkg = parseRoomPackage(docToRoomPackage(doc));
+    const pkg = parseRoomPackage(roomDocToPackage(doc));
     expect(pkg.meta).toMatchObject({ id: "r-nueva", title: "Mi sala", languages: ["es"] });
     expect(pkg.map.rooms).toHaveLength(1);
     expect(pkg.map.rooms[0]?.layers[0]).toEqual({
@@ -432,7 +438,7 @@ describe("sala nueva", () => {
         .flatMap((_, i) => (i % 2 === 0 ? [12] : [1])),
     });
     expect(initRoomDoc(doc, { id: "otra", title: "Otra", language: "en" })).toBe(false);
-    expect(docToRoomPackage(doc).meta.id).toBe("r-nueva");
+    expect(roomDocToPackage(doc).meta.id).toBe("r-nueva");
   });
 
   it("lineCells interpola en diagonal", () => {
