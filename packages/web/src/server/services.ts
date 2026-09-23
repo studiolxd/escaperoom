@@ -75,9 +75,6 @@ import {
   type PricingTierService,
   type RoomDraftService,
   type RoomPublishService,
-  createWaitlistService,
-  createPrismaWaitlistStore,
-  type WaitlistService,
   createUserDataRightsService,
   createPrismaUserDataRightsStore,
   type UserDataRightsService,
@@ -112,7 +109,6 @@ let accessKeyCards: AccessKeyCardsService | undefined;
 let organizations: OrganizationService | undefined;
 let eventPanel: EventPanelService | undefined;
 let moderation: ModerationService | undefined;
-let waitlist: WaitlistService | undefined;
 let userDataRights: UserDataRightsService | undefined;
 
 /**
@@ -253,12 +249,6 @@ export function getAudioGenerationService(): AudioGenerationService | null {
 export function getModerationService(): ModerationService {
   moderation ??= createModerationService({ store: createPrismaModerationStore(prisma) });
   return moderation;
-}
-
-/** Waitlist de la landing pública (ticket 6.7, specs/20 §1, §5) sobre Postgres. */
-export function getWaitlistService(): WaitlistService {
-  waitlist ??= createWaitlistService({ store: createPrismaWaitlistStore(prisma) });
-  return waitlist;
 }
 
 /**

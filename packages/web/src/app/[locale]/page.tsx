@@ -1,16 +1,15 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { GameShell } from "@/components/game/game-shell";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
-import { WaitlistForm } from "@/components/landing/waitlist-form";
 import { Link } from "@/i18n/navigation";
 
 type Props = { params: Promise<{ locale: string }> };
 
 /**
  * Landing pública (ticket 6.7, specs/01 §2, specs/20, specs/25 §2.1): sin
- * autenticación, con la propuesta de valor y la waitlist. Debajo, en modo
- * "showcase" (ticket 0.9), sigue el fondo jugable de Phaser para dar contexto
- * visual inmediato del producto.
+ * autenticación, con la propuesta de valor. Debajo, en modo "showcase"
+ * (ticket 0.9), sigue el fondo jugable de Phaser para dar contexto visual
+ * inmediato del producto.
  */
 export default async function HomePage({ params }: Props) {
   const { locale } = await params;
@@ -45,12 +44,6 @@ export default async function HomePage({ params }: Props) {
             >
               {l("ctaBrowseCatalog")}
             </Link>
-          </div>
-
-          <div className="mt-6 flex flex-col items-center gap-2 border-t border-white/10 pt-5">
-            <p className="text-sm font-medium text-white/90">{l("waitlist.title")}</p>
-            <p className="text-xs text-white/60">{l("waitlist.subtitle")}</p>
-            <WaitlistForm />
           </div>
 
           <div className="mt-4">

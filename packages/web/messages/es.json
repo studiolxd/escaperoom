@@ -1278,16 +1278,6 @@
         "title": "Para profes y empresas",
         "body": "Compra por jugador con descuentos por tramos, reparte claves de acceso y vigila el progreso de tu grupo en directo."
       }
-    },
-    "waitlist": {
-      "title": "Sé el primero en enterarte",
-      "subtitle": "Apúntate a la lista de espera y te avisamos cuando puedas crear tu primera sala.",
-      "emailLabel": "Tu email",
-      "submit": "Apuntarme",
-      "sending": "Enviando…",
-      "success": "¡Listo! Te avisaremos en cuanto abramos.",
-      "alreadyIn": "Ya estabas en la lista — te avisaremos igual.",
-      "error": "No se pudo guardar tu email. Inténtalo de nuevo."
     }
   },
   "Onboarding": {
