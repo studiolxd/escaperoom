@@ -1277,16 +1277,6 @@
         "title": "For teachers and companies",
         "body": "Buy per player with tiered discounts, hand out access keys and watch your group's progress live."
       }
-    },
-    "waitlist": {
-      "title": "Be the first to know",
-      "subtitle": "Join the waitlist and we'll let you know as soon as you can create your first room.",
-      "emailLabel": "Your email",
-      "submit": "Join",
-      "sending": "Sending…",
-      "success": "Done! We'll let you know as soon as we open up.",
-      "alreadyIn": "You were already on the list — we'll still let you know.",
-      "error": "Couldn't save your email. Please try again."
     }
   },
   "Onboarding": {

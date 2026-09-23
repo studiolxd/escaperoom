@@ -70,10 +70,6 @@ export const RATE_LIMIT_POLICIES = {
     ip: { limit: 20, windowSeconds: 3600 },
     user: { limit: 5, windowSeconds: 3600 },
   },
-  /** `POST /api/waitlist` (ticket 6.7) — público, sin sesión: solo cuota por IP. */
-  "waitlist-join": {
-    ip: { limit: 10, windowSeconds: 600 },
-  },
   /**
    * `GET /api/me/data-export` y `DELETE /api/me` (ticket 6.2, specs/18 §3.4):
    * ambas exigen sesión, así que el cubo por usuario es el que importa.

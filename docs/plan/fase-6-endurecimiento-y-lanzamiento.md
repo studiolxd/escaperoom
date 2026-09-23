@@ -16,7 +16,7 @@ Referencias: `specs/17-moderacion-de-contenido.md`, `specs/18-legal-rgpd-y-menor
 | 6.4 | **Observabilidad** | Logs, métricas, alertas (Uptime Kuma + Sentry), backups de Postgres con restauración probada | `24` §6 | Una caída simulada dispara alerta; un restore de backup se verifica |
 | 6.5 | **Testing completo** | Suite E2E Playwright (juego, compra, evento, editor), `mcp-parity` nightly, prueba de carga de 10 sesiones | `22` §3 | Suite nightly en verde; prueba de carga sin degradación |
 | 6.6 | **i18n es/en** | Extraer textos de la web y del runtime; selector de idioma | `08` §2.2 | La UI y una sala multidioma se ven en `es` e `en` |
-| 6.7 | **Onboarding + landing** | Wizard de 5 pasos, sala de ejemplo (copia del Rey Aldric), ayuda contextual, landing + waitlist | `20`, `25` §2 | Un creador nuevo publica una sala en <30 min; la waitlist captura emails |
+| 6.7 | **Onboarding + landing** | Wizard de 5 pasos, sala de ejemplo (copia del Rey Aldric), ayuda contextual, landing | `20`, `25` §2 | Un creador nuevo publica una sala en <30 min |
 | 6.8 | **Salas oficiales semilla** | Rey Aldric + 3 salas (misterio, historia moderna, matemáticas) antes de beta; 8–10 para lanzamiento; construidas con el MCP | `25` §1 | Cada sala oficial pasa validador y playtest humano |
 | 6.9 | **Beta cerrada** | 5–10 creadores/organizadores reales; playtest humano con 5–8 grupos; canal de comunidad | `22` §4, `25` §3 | Criterios de `specs/22` §4.5 cumplidos: ≥80 % completan, ±30 % de duración, cero soft-locks |
 | 6.10 | **Programa de referidos** | Créditos a ambos lados por referido convertido; se activa en beta | `25` §3.2 | Un referido completado acredita créditos a ambos |

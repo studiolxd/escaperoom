@@ -56,8 +56,6 @@ Priorizando los temas que sirven a **ambos** lados del negocio (B2C y B2B/Edu):
 
 ### 2.1 Pre-lanzamiento (durante el desarrollo)
 
-- **Waitlist** simple (landing + email) desde que exista URL pública, antes de tener producto
-  jugable — capitaliza el SEO temprano del dominio.
 - **Contenido de blog/SEO** usando las primeras salas oficiales como gancho editorial ("cómo hemos
   diseñado un escape room de historia medieval") — contenido de proceso real, no publicidad genérica.
 - **Reclutamiento de playtesters y primeros organizadores** vía la red de contactos educativos de
