@@ -3,10 +3,14 @@ import { Room, type Client } from "@colyseus/core";
 import { z } from "zod";
 import type { EngineResult } from "@escaperoom/shared/engine";
 import type { PuzzleDefinition, RoomPackage } from "@escaperoom/shared/schemas";
+import { LIVE_PHASES, type LivePhase } from "@escaperoom/shared/event-progress";
 import {
   createRoomSession,
+  solvedPuzzleIds,
+  toSessionResult,
   type RoomPuzzleActionResult,
   type RoomSession,
+  type SessionResult,
 } from "@escaperoom/shared/session";
 import { createSlidingRng, visibleFragmentsByIndex } from "@escaperoom/shared/templates";
 import {
@@ -141,48 +145,58 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.state.roomPackageId = roomPackage.meta.id;
     this.state.roomPackageVersion = roomPackage.meta.version;
 
-    this.onMessage(GAME_MESSAGES.startGame, (client) => this.handleStart(client));
-    this.onMessage(GAME_MESSAGES.move, (client, payload) =>
+    // Toda intención pasa por `canAct`: la `EventRoom` (5.9) admite observadores
+    // de solo lectura cuyas acciones se rechazan antes de llegar al motor.
+    const on = (type: string, handler: (client: Client, payload: unknown) => void) =>
+      this.onMessage(type, (client, payload: unknown) => {
+        if (!this.canAct(client)) {
+          this.fail(client, GAME_ERRORS.permissionDenied, "Un observador no puede actuar.");
+          return;
+        }
+        handler(client, payload);
+      });
+    on(GAME_MESSAGES.startGame, (client) => this.handleStart(client));
+    on(GAME_MESSAGES.move, (client, payload) =>
       this.withPayload(client, movePayload, payload, (data) => this.handleMove(client, data)),
     );
-    this.onMessage(GAME_MESSAGES.interact, (client, payload) =>
+    on(GAME_MESSAGES.interact, (client, payload) =>
       this.withPayload(client, objectPayload, payload, (data) => this.handleInteract(client, data)),
     );
-    this.onMessage(GAME_MESSAGES.useItem, (client, payload) =>
+    on(GAME_MESSAGES.useItem, (client, payload) =>
       this.withPayload(client, useItemPayload, payload, (data) => this.handleUseItem(client, data)),
     );
-    this.onMessage(GAME_MESSAGES.combine, (client, payload) =>
+    on(GAME_MESSAGES.combine, (client, payload) =>
       this.withPayload(client, combinePayload, payload, (data) => this.handleCombine(client, data)),
     );
-    this.onMessage(GAME_MESSAGES.puzzleOpen, (client, payload) =>
+    on(GAME_MESSAGES.puzzleOpen, (client, payload) =>
       this.withPayload(client, puzzlePayload, payload, (data) => this.handleOpen(client, data)),
     );
-    this.onMessage(GAME_MESSAGES.puzzleClose, (client, payload) =>
+    on(GAME_MESSAGES.puzzleClose, (client, payload) =>
       this.withPayload(client, puzzlePayload, payload, (data) => {
         this.openPanels.get(client.sessionId)?.delete(data.puzzleId);
       }),
     );
-    this.onMessage(GAME_MESSAGES.puzzleAttempt, (client, payload) =>
+    on(GAME_MESSAGES.puzzleAttempt, (client, payload) =>
       this.withPayload(client, attemptPayload, payload, (data) => this.handleAttempt(client, data)),
     );
-    this.onMessage(GAME_MESSAGES.plateState, (client, payload) =>
+    on(GAME_MESSAGES.plateState, (client, payload) =>
       this.withPayload(client, platePayload, payload, (data) => this.handlePlate(client, data)),
     );
-    this.onMessage(GAME_MESSAGES.splitView, (client, payload) =>
+    on(GAME_MESSAGES.splitView, (client, payload) =>
       this.withPayload(client, optionalPuzzlePayload, payload ?? {}, (data) =>
         this.handleSplitView(client, data),
       ),
     );
-    this.onMessage(GAME_MESSAGES.hintRequest, (client, payload) =>
+    on(GAME_MESSAGES.hintRequest, (client, payload) =>
       this.withPayload(client, puzzlePayload, payload, (data) => this.handleHint(client, data)),
     );
-    this.onMessage(CHAT_MESSAGE, (client, payload) => {
+    on(CHAT_MESSAGE, (client, payload) => {
       const player = this.state.players.get(client.sessionId);
       if (player) this.chat.handle(client, player.name, payload, this.state.chat);
     });
     // Medios (specs/11 §8, ticket 2.2): token LiveKit de la room derivada de
     // `this.roomId`; sin claves llega `configured: false` y se juega sin medios.
-    this.onMessage(MEDIA_TOKEN_REQUEST_MESSAGE, (client, payload) => {
+    on(MEDIA_TOKEN_REQUEST_MESSAGE, (client, payload) => {
       void sendMediaTokenToClient(client, this.roomId, payload);
     });
 
@@ -199,6 +213,53 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       throw new Error(`Paquete de sala desconocido: «${options.packageId ?? ""}».`);
     }
     return roomPackage;
+  }
+
+  /**
+   * ¿Puede este cliente enviar intenciones? Siempre en la `GameRoom`; la
+   * `EventRoom` (5.9) lo niega a los observadores.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- punto de extensión
+  protected canAct(client: Client): boolean {
+    return true;
+  }
+
+  /**
+   * Progreso público de la partida (ticket 5.9): contadores y tiempos, nunca
+   * soluciones. Lo lee el panel del organizador a través de la `EventRoom`.
+   */
+  protected progressCounters(): {
+    phase: LivePhase;
+    result: SessionResult | null;
+    puzzlesSolved: number;
+    puzzlesTotal: number;
+    hintsUsed: number;
+    players: number;
+    startedAt: number | null;
+    endedAt: number | null;
+    elapsedMs: number;
+  } {
+    const game = this.session?.state;
+    const now = this.logicalNow();
+    const started = Boolean(game?.flags.game_started);
+    const endedAt = started && game?.endedAt !== undefined ? game.endedAt : null;
+    let players = 0;
+    this.state.players.forEach((player) => {
+      if (player.connected) players += 1;
+    });
+    return {
+      phase: (LIVE_PHASES as readonly string[]).includes(this.state.phase)
+        ? (this.state.phase as LivePhase)
+        : "lobby",
+      result: toSessionResult(game?.result) ?? null,
+      puzzlesSolved: game ? solvedPuzzleIds(game).length : 0,
+      puzzlesTotal: this.roomPackage.puzzles.length,
+      hintsUsed: game ? Object.values(game.hintsUsed).reduce((sum, cost) => sum + cost, 0) : 0,
+      players,
+      startedAt: started && game ? this.createdAt + game.startedAt : null,
+      endedAt: endedAt !== null ? this.createdAt + endedAt : null,
+      elapsedMs: started && game ? Math.max(0, (endedAt ?? now) - game.startedAt) : 0,
+    };
   }
 
   override onJoin(client: Client, options: GameJoinOptions = {}): void {

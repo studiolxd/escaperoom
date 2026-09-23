@@ -244,6 +244,16 @@ loop; si la cola cae, se pierde analítica, nunca gameplay. Taxonomía completa 
 | ver fragmentos `split_clue` | ✅ (los suyos) | ✅ | ❌ (anti-filtrado) |
 | recibir soluciones/pesos/códigos | ❌ | ❌ | ❌ |
 
+**Implementación v1 (ticket 5.9).** El observador no es una room aparte: es un **modo de la
+room `event`**. El organizador entra con `{ sessionId, spectatorToken }` (JWT HS256 de audiencia
+propia firmado por web con `JOIN_TOKEN_SECRET`, 5 min para hacer el `join`) en una room ya creada
+(`join`, nunca `create`): recibe el room state y los broadcasts, no aparece en `players` ni ocupa
+plaza de juego (hasta 4 observadores por room). Cualquier mensaje suyo —incluidos `chat`, pedir
+token de medios y pistas— se rechaza con `PERMISSION_DENIED` antes de llegar al motor; como las
+respuestas con datos de un puzzle (`puzzle_view`, `attempt_result`, `split_fragments`,
+`hint_delivered`) solo van a quien las pidió, nunca recibe soluciones. `pause` y la suscripción a N
+rooms (`observer_join_rooms`) quedan para cuando exista la pausa global.
+
 **El host no tiene privilegios de validación.** Host ≠ servidor: solo gestiona la sesión
 (empezar, pausar, expulsar), nunca resuelve puzzles por decreto. Deliberado: el host también es un
 cliente no fiable.

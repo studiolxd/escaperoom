@@ -33,6 +33,9 @@ import {
   createAccessKeyService,
   createPrismaAccessKeyStore,
   createRedeemService,
+  createColyseusLiveProgressSource,
+  createEventPanelService,
+  type EventPanelService,
   createInvitationService,
   createPrismaInvitationStore,
   AccessKeyError,
@@ -59,6 +62,7 @@ import {
   type RoomPublishService,
 } from "@escaperoom/shared/services";
 import { createBullCardExportQueue } from "@escaperoom/shared/access-key-cards-queue";
+import { resolveColyseusHttpUrl } from "./playtest-launcher";
 
 /**
  * Ruta del fixture del Rey Aldric relativa a la raíz del workspace. La app se
@@ -82,6 +86,7 @@ let roomLicenses: RoomLicenseService | undefined;
 let invitations: InvitationService | undefined;
 let accessKeyCards: AccessKeyCardsService | undefined;
 let organizations: OrganizationService | undefined;
+let eventPanel: EventPanelService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -311,4 +316,40 @@ export function getExportBlobStore(): Pick<CardExportBlobStore, "get"> {
       }
     },
   };
+}
+
+/**
+ * Panel del organizador (ticket 5.9): contadores de claves e invitaciones sobre
+ * Postgres y progreso en vivo de las rooms `event` por la ruta interna de
+ * Colyseus (`COLYSEUS_INTERNAL_URL` o la pública con `ws` → `http`), autenticada
+ * con una credencial derivada de `JOIN_TOKEN_SECRET`, el mismo secreto que
+ * firma los tokens de observador. Sin secreto (producción mal configurada) el
+ * panel sigue funcionando sin progreso en vivo ni modo observador.
+ */
+export function getEventPanelService(): EventPanelService {
+  if (!eventPanel) {
+    const joinToken = readJoinTokenConfig();
+    const eventStore = createPrismaEventStore(prisma);
+    eventPanel = createEventPanelService({
+      keys: createPrismaAccessKeyStore(prisma),
+      invitations: createPrismaInvitationStore(prisma),
+      keyCounts: async (eventId) => {
+        const [summary, redeemed] = await Promise.all([
+          eventStore.summarize(eventId),
+          prisma.accessKey.count({ where: { eventId, redeemedCount: { gt: 0 } } }),
+        ]);
+        return { byStatus: summary.accessKeysByStatus, redeemed };
+      },
+      live: joinToken
+        ? createColyseusLiveProgressSource({
+            baseUrl: resolveColyseusHttpUrl(),
+            secret: joinToken.secret,
+          })
+        : { forEvent: async () => null },
+      spectator: joinToken,
+      colyseusEndpoint: process.env.NEXT_PUBLIC_COLYSEUS_URL?.trim() || "ws://localhost:2567",
+      roomName: EVENT_ROOM_NAME,
+    });
+  }
+  return eventPanel;
 }

@@ -1011,5 +1011,126 @@
       "MODEL_ERROR": "Le modèle de langage a échoué. Réessayez.",
       "UNKNOWN": "Une erreur est survenue. Réessayez."
     }
+  },
+  "EventPanel": {
+    "metaTitle": "Tableau de bord de l’événement",
+    "title": "Tableau de bord de l’événement",
+    "loading": "Chargement du tableau de bord…",
+    "updatedAt": "Mis à jour à {time}",
+    "liveUnavailable": "Le serveur de jeu est injoignable : seules les données enregistrées sont affichées.",
+    "status": {
+      "draft": "Brouillon",
+      "active": "Actif",
+      "closed": "Clôturé"
+    },
+    "activeSessions": "{count, plural, one {# session active} other {# sessions actives}}",
+    "metrics": {
+      "title": "Résumé",
+      "keys": "Clés générées",
+      "sent": "Invitations envoyées",
+      "confirmed": "Confirmées",
+      "confirmedOf": "{confirmed}/{invited} confirmés",
+      "redeemed": "Clés utilisées",
+      "sessions": "Sessions",
+      "sessionsValue": "{active} actives sur {total}",
+      "averageTime": "Temps moyen (évadés)",
+      "averageHints": "Indices par groupe",
+      "none": "—"
+    },
+    "table": {
+      "title": "Progression et classement",
+      "empty": "L’événement n’a pas encore de sessions.",
+      "rank": "Rang",
+      "group": "Groupe",
+      "progress": "Progression",
+      "progressValue": "{solved}/{total} énigmes",
+      "state": "État",
+      "time": "Temps",
+      "hints": "Indices",
+      "players": "Joueurs",
+      "playersValue": "{online} en ligne · {occupied}/{capacity} places",
+      "action": "Action"
+    },
+    "states": {
+      "not_started": "Pas commencée",
+      "lobby": "En salle d’attente",
+      "playing": "En cours",
+      "ended": "Terminée",
+      "offline": "Hors ligne"
+    },
+    "results": {
+      "victory": "Évadé",
+      "timeout": "Temps écoulé",
+      "aborted": "Abandonnée"
+    },
+    "actions": {
+      "observe": "Observer",
+      "observeHint": "Voir la partie en lecture seule"
+    },
+    "footer": {
+      "resend": "Renvoyer les invitations en attente",
+      "resending": "Renvoi…",
+      "resent": "{count, plural, =0 {Aucune invitation en attente de confirmation} one {# rappel en file d’attente} other {# rappels en file d’attente}}",
+      "exportCsv": "Exporter la progression (CSV)",
+      "exportPdf": "Exporter les clés (PDF)",
+      "exportingPdf": "Génération du PDF…",
+      "pdfQueued": "Génération du PDF de {cards} cartes…",
+      "pdfReady": "Télécharger le PDF des clés"
+    },
+    "errors": {
+      "UNAUTHORIZED": "Connectez-vous pour voir le tableau de bord de l’événement.",
+      "FORBIDDEN": "Seul l’organisateur de l’événement peut voir ce tableau de bord.",
+      "NOT_FOUND": "Cet événement n’existe pas.",
+      "SESSION_NOT_FOUND": "Cette session n’appartient pas à cet événement.",
+      "SESSION_NOT_LIVE": "Cette session n’a aucune partie en cours.",
+      "SPECTATOR_UNAVAILABLE": "Le mode observateur n’est pas disponible pour le moment.",
+      "NO_PRINTABLE_KEYS": "Il n’y a aucune clé à imprimer.",
+      "UNKNOWN": "Une erreur est survenue. Réessayez dans quelques secondes."
+    },
+    "observer": {
+      "title": "Mode observateur",
+      "readOnly": "Lecture seule : vous voyez la partie sans pouvoir agir ni voir les solutions.",
+      "back": "Retour au tableau de bord",
+      "connecting": "Connexion en tant qu’observateur…",
+      "error": "Impossible d’observer la partie.",
+      "retry": "Réessayer",
+      "phase": {
+        "lobby": "En salle d’attente",
+        "playing": "En cours",
+        "paused": "En pause",
+        "ended": "Terminée"
+      },
+      "timeLeft": "Temps restant",
+      "elapsed": "Temps de jeu",
+      "solved": "{solved}/{total} énigmes résolues",
+      "players": "Joueurs",
+      "noPlayers": "Personne n’a encore rejoint la partie.",
+      "offline": "hors ligne",
+      "host": "hôte",
+      "puzzles": "Énigmes",
+      "puzzleStates": {
+        "locked": "Verrouillée",
+        "available": "Disponible",
+        "in_progress": "En cours",
+        "solved": "Résolue",
+        "failed": "Échouée"
+      },
+      "chat": "Discussion du groupe",
+      "noChat": "Aucun message pour l’instant.",
+      "log": "Activité",
+      "noLog": "Aucune activité pour l’instant.",
+      "logSolved": "Résolue : {puzzle}",
+      "logEnded": "Fin de la partie : {result}"
+    },
+    "puzzleTypes": {
+      "code_lock": "Cadenas",
+      "hidden_key": "Objet caché",
+      "simultaneous_plates": "Plaques simultanées",
+      "sliding_puzzle": "Taquin",
+      "memory": "Mémoire",
+      "split_clue": "Indice partagé",
+      "pipes": "Tuyaux",
+      "combine_items": "Combiner des objets"
+    }
   }
 }

@@ -176,7 +176,9 @@ El reparto 70/30 y el `stripeTransferId` se resuelven en el webhook (§7), no en
 | POST | `/api/access-keys/:code/regenerate` | organizador | Solo `type = rotating`: invalida la actual y crea nueva con `regeneratedFrom` |
 | POST | `/api/access-keys/:code/confirm` | público (enlace del email) | `{ token }` firmado → `pending_confirmation → confirmed` |
 | POST | `/api/access-keys/redeem` | público (puede no tener cuenta) | `{ code }` → valida estado y caducidad, marca `used`/`active`, devuelve `{ sessionId, colyseusEndpoint, joinToken }` (`joinToken` = JWT corto, no la clave en claro) |
-| GET | `/api/events/:id/dashboard` | organizador | Resumen en vivo: estado de cada sesión, progreso por grupo (`progressEvent`), ranking |
+| GET | `/api/events/:id/dashboard` | organizador | Resumen en vivo: estado del evento, claves (generadas/enviadas/confirmadas/canjeadas), sesiones con su progreso y el ranking del evento |
+| GET | `/api/events/:id/progress/export?locale=` | organizador | Progreso y ranking en CSV (adjunto, UTF-8 con BOM, cabeceras en el idioma pedido o el del evento) |
+| POST | `/api/events/:id/sessions/:sessionId/spectate` | organizador | Token de observador (5 min) para entrar en la room `event` de una sesión en curso en solo lectura: `{ sessionId, spectatorToken, expiresAt, colyseus: { endpoint, roomName } }` |
 
 **Códigos de error de claves:** `ACCESS_KEY_INVALID`, `ACCESS_KEY_USED`, `ACCESS_KEY_EXPIRED`,
 `ACCESS_KEY_NOT_CONFIRMED` (si `requireConfirmation = true` y aún no confirmó), `SESSION_FULL` —
@@ -209,6 +211,19 @@ solo cuentan en `groupingMode: free` (el asistente elige); sin `sessionId` en `f
 El invitado sin cuenta recibe una identidad efímera `guest:<uuid>` que solo vive en el `joinToken`
 (JWT HS256, `JOIN_TOKEN_SECRET` compartido con Colyseus, 15 min por defecto). La room `event` de
 Colyseus rechaza el `join` sin token válido, caducado o de otra sesión (`JOIN_TOKEN_*`).
+
+**Panel del organizador (ticket 5.9).** Solo el organizador del evento (401 sin sesión, 403 otro
+usuario, 404 evento inexistente). El dashboard cruza Postgres (sesiones con su ocupación, claves por
+estado, invitaciones de 5.6) con el progreso en vivo que publica cada room `event` (fase, puzzles
+resueltos/totales, pistas, jugadores conectados, inicio/fin y tiempo jugado; nunca soluciones), que
+web lee de la ruta interna de Colyseus `GET /internal/events/:eventId/progress` (credencial derivada
+de `JOIN_TOKEN_SECRET`). Si Colyseus no responde, `liveAvailable: false` y solo se muestra lo
+persistido. Una fila por sesión (= grupo en juego) con `state: not_started | lobby | playing | ended
+| offline`, ordenada por el ranking de `specs/21` §4: primero los que escaparon por tiempo
+(desempates: menos pistas, menos jugadores), después el resto por puzzles resueltos (desempates:
+menos pistas, menos tiempo); las sesiones sin empezar no tienen puesto. `spectate` responde 404
+`SESSION_NOT_FOUND` (sesión de otro evento), 409 `SESSION_NOT_LIVE` (sin partida en curso) y 503
+`SPECTATOR_UNAVAILABLE` (sin `JOIN_TOKEN_SECRET` en producción).
 
 ### 6.3 Grabaciones
 

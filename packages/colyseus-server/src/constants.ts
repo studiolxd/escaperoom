@@ -124,5 +124,11 @@ export const PLAYTEST_EXPIRED_CLOSE_CODE = 4410;
  */
 export const EVENT_ROOM_NAME = "event" as const;
 
+/**
+ * Observadores simultáneos por room de evento (ticket 5.9): el organizador
+ * (y quien comparta su panel en otra pestaña) sin ocupar plazas de juego.
+ */
+export const MAX_EVENT_SPECTATORS = 4;
+
 /** Ruta interna (web → Colyseus) para registrar un playtest. */
 export const PLAYTEST_INTERNAL_PATH = "/internal/playtests" as const;

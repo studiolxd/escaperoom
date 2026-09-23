@@ -10,3 +10,4 @@ export * from "./snapshot";
 export * from "./network";
 export * from "./local";
 export * from "./views";
+export * from "./read-only";

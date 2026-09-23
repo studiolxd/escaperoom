@@ -1,7 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createNetworkGameClient, type NetworkGameClient } from "@escaperoom/game-runtime/session";
+import {
+  createNetworkGameClient,
+  createReadOnlyGameClient,
+  type NetworkGameClient,
+} from "@escaperoom/game-runtime/session";
 import { COLYSEUS_URL } from "@/lib/colyseus";
 import {
   Client,
@@ -96,12 +100,14 @@ export function useGameConnection({
         joined.reconnection.maxRetries = AUTO_RECONNECT_RETRIES;
         joinedRoomRef.current = joined.roomId;
         networkClient = createNetworkGameClient(joined);
+        // Observador (5.9): cliente de solo lectura y sin voz/webcam.
+        const spectating = parsedTarget.kind === "spectate";
         networkClient.onEvent((event) => {
           if (event.type === "media_token" && !disposed) {
             useMediaStore.getState().setPayload(parseMediaTokenPayload(event.payload));
           }
         });
-        networkClient.requestMediaToken(role);
+        if (!spectating) networkClient.requestMediaToken(role);
         joined.onDrop(() => {
           if (!disposed) setStatus("reconnecting");
         });
@@ -115,7 +121,7 @@ export function useGameConnection({
           if (!isConsentedClose(code) && !isExpiredClose(code)) setError(`close ${code}`);
         });
         setRoomId(joined.roomId);
-        setClient(networkClient);
+        setClient(spectating ? createReadOnlyGameClient(networkClient) : networkClient);
         setStatus("connected");
         onJoinedRef.current?.(joined.roomId);
       })

@@ -155,7 +155,7 @@ describe("room de evento con joinToken", () => {
     await client.waitForInitialState();
     const room = colyseus.getRoomById<EventRoom>(client.roomId);
     expect(room.roomName).toBe(EVENT_ROOM_NAME);
-    expect(room.metadata).toEqual({ sessionId: ticket.sessionId });
+    expect(room.metadata).toEqual({ sessionId: ticket.sessionId, eventId: ticket.eventId });
     expect(client.state.roomPackageId).toBe("room-rey-aldric");
     await expect.poll(() => client.state.players.get(client.sessionId)?.name).toBe("Ana");
 
