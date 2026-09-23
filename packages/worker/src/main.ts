@@ -1,19 +1,24 @@
 import { existsSync } from "node:fs";
 import { createQueueRedis } from "@escaperoom/kit/redis";
 import { logger } from "@escaperoom/kit/logger";
+import { storage } from "@escaperoom/kit/storage";
 import { prisma } from "@escaperoom/shared/db";
 import { createMailTransportFromEnv, readConfirmationTokenConfig } from "@escaperoom/shared/mail";
 import {
+  createAccessKeyCardsService,
+  createPrismaAccessKeyCardStore,
   createPrismaAccessKeyStore,
   createPrismaInvitationStore,
 } from "@escaperoom/shared/services";
+import { createAccessKeyCardsWorker } from "./access-key-cards";
 import { createAccessKeyExpiryWorker } from "./access-key-expiry";
 import { createInvitationEmailWorker } from "./invitation-email";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
 
 /**
  * Arranque de los workers de cola: analítica (specs/16), caducidad de claves
- * (ticket 5.5, job repetitivo) y envíos de invitación por email (ticket 5.6).
+ * (ticket 5.5, job repetitivo), envíos de invitación por email (ticket 5.6) y
+ * PDF de tarjetas-clave (ticket 5.7).
  *
  *   pnpm --filter @escaperoom/worker dev
  *
@@ -79,6 +84,21 @@ async function main(): Promise<void> {
     logger.info({ provider: transport?.provider }, "invitation email: consumiendo la cola");
   }
 
+  // PDF de tarjetas: el mismo servicio que web, sin cola ni firma (solo renderiza y sube).
+  const cardsConnection = createQueueRedis();
+  const cards = createAccessKeyCardsWorker({
+    cards: createAccessKeyCardsService({
+      store: createPrismaAccessKeyCardStore(prisma),
+      queue: null,
+      signingSecret: null,
+    }),
+    blobs: {
+      put: (key, bytes, contentType) =>
+        storage.putObject({ key, body: Buffer.from(bytes), contentType }),
+    },
+    connection: cardsConnection,
+  });
+
   let closing = false;
   const shutdown = async (signal: string): Promise<void> => {
     if (closing) return;
@@ -88,9 +108,11 @@ async function main(): Promise<void> {
     await expiry.worker.close();
     await expiry.queue.close();
     await invitations?.close();
+    await cards.close();
     await connection.quit().catch(() => undefined);
     await expiryConnection.quit().catch(() => undefined);
     await mailConnection?.quit().catch(() => undefined);
+    await cardsConnection.quit().catch(() => undefined);
     await prisma.$disconnect().catch(() => undefined);
   };
 

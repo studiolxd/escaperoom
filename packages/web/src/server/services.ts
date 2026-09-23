@@ -36,6 +36,11 @@ import {
   type InvitationService,
   type AccessKeyService,
   type RedeemService,
+  createAccessKeyCardsService,
+  createPrismaAccessKeyCardStore,
+  readExportSigningSecret,
+  type AccessKeyCardsService,
+  type CardExportBlobStore,
   type EventService,
   createPrismaRoomLicenseStore,
   createRoomLicenseService,
@@ -46,6 +51,7 @@ import {
   type RoomDraftService,
   type RoomPublishService,
 } from "@escaperoom/shared/services";
+import { createBullCardExportQueue } from "@escaperoom/shared/access-key-cards-queue";
 
 /**
  * Ruta del fixture del Rey Aldric relativa a la raíz del workspace. La app se
@@ -66,6 +72,7 @@ let accessKeys: AccessKeyService | undefined;
 let redeem: RedeemService | null | undefined;
 let roomLicenses: RoomLicenseService | undefined;
 let invitations: InvitationService | undefined;
+let accessKeyCards: AccessKeyCardsService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -241,4 +248,32 @@ export function getInvitationService(): InvitationService {
     confirmation: readConfirmationTokenConfig(),
   });
   return invitations;
+}
+
+/**
+ * PDF de tarjetas-clave (ticket 5.7, specs/13 §9). Por debajo de 50 tarjetas se
+ * renderiza aquí; por encima se encola en BullMQ (`QUEUES_ENABLED`) y lo hace
+ * `@escaperoom/worker`. Las URLs de descarga se firman con `APP_SECRET`.
+ */
+export function getAccessKeyCardsService(): AccessKeyCardsService {
+  accessKeyCards ??= createAccessKeyCardsService({
+    store: createPrismaAccessKeyCardStore(prisma),
+    queue: createBullCardExportQueue(),
+    signingSecret: readExportSigningSecret(),
+  });
+  return accessKeyCards;
+}
+
+/** PDFs de los exports en el bucket privado (los sube el worker). */
+export function getExportBlobStore(): Pick<CardExportBlobStore, "get"> {
+  return {
+    async get(key) {
+      try {
+        return new Uint8Array((await storage.getObjectBuffer(key)).buffer);
+      } catch (err) {
+        if ((err as { name?: string }).name === "NoSuchKey") return null;
+        throw err;
+      }
+    },
+  };
 }
