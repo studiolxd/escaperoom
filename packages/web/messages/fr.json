@@ -375,5 +375,54 @@
       "rightsRequired": "Avant l'envoi, déclarez que vous détenez les droits de l'audio.",
       "generic": "Impossible d'envoyer l'audio. Réessayez."
     }
+  },
+  "ValidationPanel": {
+    "title": "Validation en direct",
+    "description": "Modifiez les règles du roi Aldric : le validateur revérifie le doc Yjs (avec anti-rebond) et signale les problèmes dans le graphe.",
+    "breakRule": "Casser l’armoire",
+    "fixRule": "Réparer",
+    "labels": {
+      "ui": {
+        "title": "Validation",
+        "idle": "Pas encore validé",
+        "validating": "Validation…",
+        "upToDate": "À jour",
+        "publishable": "Aucune erreur : prêt à publier",
+        "blocked": "Des erreurs bloquent la publication",
+        "invalidDraft": "Le brouillon n’est pas encore une salle valide",
+        "errors": "Erreurs",
+        "warnings": "Avertissements",
+        "noIssues": "Aucun problème",
+        "playerCounts": "Avec {counts} joueur(s)",
+        "estimate": "Estimation",
+        "estimateValue": "~{minutes} min (de {min} à {max}) pour {players} joueur(s), {steps} étapes",
+        "difficulty": "Difficulté déclarée {declared}, attendue {expected}",
+        "route": "Chemin critique ({players} joueur(s))",
+        "noRoute": "Aucun chemin de solution : pas d’estimation"
+      },
+      "checks": {
+        "references": "Références cassées",
+        "orphans": "Objets orphelins",
+        "dead_ends": "Impasses",
+        "solvability": "Solvabilité",
+        "code_hints": "Indices de code",
+        "rule_cuts": "Règles sans condition d’arrêt",
+        "double_use": "Objets à double usage",
+        "puzzle_hints": "Énigmes sans indice",
+        "recipe_consumption": "Objets consommés par plusieurs recettes",
+        "assets": "Ressources absentes du manifeste",
+        "difficulty": "Difficulté et durée"
+      },
+      "kinds": {
+        "rule": "Règle",
+        "puzzle": "Énigme",
+        "object": "Objet",
+        "item": "Objet d’inventaire",
+        "room": "Pièce",
+        "hint": "Indice",
+        "dialog": "Dialogue",
+        "unknown": "Id inexistant"
+      }
+    }
   }
 }

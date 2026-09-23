@@ -11,3 +11,4 @@ export * from "./sync/provider";
 export * from "./i18n-fields";
 export * from "./rules-graph";
 export * from "./audio-fields";
+export * from "./validation";

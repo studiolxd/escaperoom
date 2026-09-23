@@ -375,5 +375,54 @@
       "rightsRequired": "Erkläre vor dem Hochladen, dass du die Rechte am Audio besitzt.",
       "generic": "Das Audio konnte nicht hochgeladen werden. Versuche es erneut."
     }
+  },
+  "ValidationPanel": {
+    "title": "Live-Validierung",
+    "description": "Bearbeite die Regeln von König Aldric: Der Validator prüft das Yjs-Dokument (entprellt) erneut und markiert Probleme im Graphen.",
+    "breakRule": "Schrank kaputt machen",
+    "fixRule": "Reparieren",
+    "labels": {
+      "ui": {
+        "title": "Validierung",
+        "idle": "Noch nicht validiert",
+        "validating": "Wird validiert…",
+        "upToDate": "Aktuell",
+        "publishable": "Keine Fehler: bereit zur Veröffentlichung",
+        "blocked": "Fehler blockieren die Veröffentlichung",
+        "invalidDraft": "Der Entwurf ist noch kein gültiger Raum",
+        "errors": "Fehler",
+        "warnings": "Warnungen",
+        "noIssues": "Keine Probleme",
+        "playerCounts": "Mit {counts} Spieler(n)",
+        "estimate": "Schätzung",
+        "estimateValue": "~{minutes} Min. (Spanne {min}–{max}) für {players} Spieler, {steps} Schritte",
+        "difficulty": "Angegebene Schwierigkeit {declared}, erwartet {expected}",
+        "route": "Kritischer Pfad ({players} Spieler)",
+        "noRoute": "Kein Lösungsweg: keine Schätzung"
+      },
+      "checks": {
+        "references": "Defekte Verweise",
+        "orphans": "Verwaiste Objekte",
+        "dead_ends": "Sackgassen",
+        "solvability": "Lösbarkeit",
+        "code_hints": "Code-Hinweise",
+        "rule_cuts": "Regeln ohne Abbruchbedingung",
+        "double_use": "Gegenstände mit Doppelnutzung",
+        "puzzle_hints": "Rätsel ohne Hinweis",
+        "recipe_consumption": "In mehreren Rezepten verbrauchte Gegenstände",
+        "assets": "Assets fehlen im Manifest",
+        "difficulty": "Schwierigkeit und Dauer"
+      },
+      "kinds": {
+        "rule": "Regel",
+        "puzzle": "Rätsel",
+        "object": "Objekt",
+        "item": "Gegenstand",
+        "room": "Raum",
+        "hint": "Hinweis",
+        "dialog": "Dialog",
+        "unknown": "Unbekannte ID"
+      }
+    }
   }
 }

@@ -7,6 +7,7 @@ import {
   checkSoloBridges,
   guardLabel,
 } from "./checks";
+import { checkAssets, checkPuzzleHints, checkRecipeConsumption } from "./heuristics";
 import { recipeLabel, RoomIndex, type Move, type StepEffects } from "./model";
 import { createOracle } from "./oracles";
 import {
@@ -145,6 +146,9 @@ export function validateRoomPackage(
     codeHintsCheck(codeClues, solvability),
     ruleCutsCheck(pkg),
     doubleUseCheck(doubleUse),
+    puzzleHintsCheck(pkg),
+    recipeConsumptionCheck(index),
+    assetsCheck(pkg, options.assetManifest),
     difficultyCheck(pkg, estimate),
   ];
 
@@ -597,6 +601,45 @@ function doubleUseCheck(items: readonly DoubleUseItem[]): ValidationCheck {
     issues,
     `Sin items de doble uso conflictivo${resolved.length > 0 ? ` (${resolved.map((item) => `${item.itemId} se recupera con ${item.resolvedBy}`).join("; ")})` : ""}`,
     `Items de doble uso conflictivo: ${issues.map((issue) => issue.ids[0]).join(", ")}`,
+  );
+}
+
+function puzzleHintsCheck(pkg: RoomPackage): ValidationCheck {
+  const issues = checkPuzzleHints(pkg);
+  return check(
+    "puzzle_hints",
+    "warning",
+    issues,
+    "Todo puzzle tiene al menos una pista asociada",
+    `Puzzles sin pista asociada: ${issues.map((issue) => issue.ids[0]).join(", ")}`,
+  );
+}
+
+function recipeConsumptionCheck(index: RoomIndex): ValidationCheck {
+  const issues = checkRecipeConsumption(index);
+  return check(
+    "recipe_consumption",
+    "warning",
+    issues,
+    "Sin items gastados (consumeInputs) por más de una receta",
+    `Items con consumeInputs en más de una receta: ${issues.map((issue) => issue.ids[0]).join(", ")}`,
+  );
+}
+
+function assetsCheck(
+  pkg: RoomPackage,
+  manifest: ValidateOptions["assetManifest"],
+): ValidationCheck {
+  if (!manifest) {
+    return check("assets", "warning", [], "Assets no comprobados (sin manifest del pack)", "");
+  }
+  const issues = checkAssets(pkg, manifest);
+  return check(
+    "assets",
+    "warning",
+    issues,
+    "Assets íntegros: todo tile, sprite e icono está en el manifest del pack",
+    `Assets sin declarar en el manifest: ${issues.length}`,
   );
 }
 

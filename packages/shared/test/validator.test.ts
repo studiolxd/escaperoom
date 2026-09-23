@@ -54,8 +54,34 @@ describe("validador — Rey Aldric", () => {
   it("reproduce los mismos ✅/🟡 del informe esperado de las notas de diseño", () => {
     const expected = icons(expectedReportBlock());
     expect(expected).toEqual(["✅", "✅", "✅", "🟡", "✅", "🟡"]);
-    expect(icons(text)).toEqual(expected);
+    // 3.7 añade el 🟡 «Puzzles sin pista asociada» (specs/09 §5), posterior a
+    // las notas: el Rey Aldric solo tiene HintDef para sus dos candados.
+    const withoutHintLine = text
+      .split("\n")
+      .filter((line) => !line.startsWith("🟡 Puzzles sin pista asociada"))
+      .join("\n");
+    expect(icons(withoutHintLine)).toEqual(expected);
     expect(report.ok).toBe(true);
+  });
+
+  it("avisa (🟡) de los puzzles sin pista asociada, sin contar los candados (code_hints)", () => {
+    const hints = checkOf(report, "puzzle_hints");
+    expect(hints).toMatchObject({ status: "warning", passed: false, heuristic: false });
+    expect(hints.issues.map((issue) => issue.ids[0])).toEqual([
+      "p-combina",
+      "p-llave-cuadro",
+      "p-placas-estatuas",
+      "p-mural-vendimia",
+      "p-copas-memoria",
+      "p-reja-mirillas",
+      "p-canal-agua",
+    ]);
+    expect(text).toContain("🟡 Puzzles sin pista asociada: p-combina, p-llave-cuadro,");
+    // Los checks nuevos que pasan no aparecen en el texto.
+    expect(checkOf(report, "recipe_consumption").passed).toBe(true);
+    expect(checkOf(report, "assets")).toMatchObject({ passed: true, status: "ok" });
+    expect(text).not.toContain("consumeInputs");
+    expect(text).not.toContain("Assets");
   });
 
   it("cada check tiene el estado del documento de diseño", () => {

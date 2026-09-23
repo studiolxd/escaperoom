@@ -130,6 +130,12 @@ describe("i18n", () => {
         "EditorAudio.rightsDeclared",
         "EditorAudio.errors.tooLarge",
         "EditorAudio.errors.notMp3",
+        "ValidationPanel.title",
+        "ValidationPanel.labels.ui.blocked",
+        "ValidationPanel.labels.ui.estimateValue",
+        "ValidationPanel.labels.checks.dead_ends",
+        "ValidationPanel.labels.checks.puzzle_hints",
+        "ValidationPanel.labels.kinds.rule",
       ]),
     );
   });

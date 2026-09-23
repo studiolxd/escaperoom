@@ -1,5 +1,6 @@
 import path from "node:path";
 import { storage } from "@escaperoom/kit/storage";
+import type { RoomPackageSerializer } from "@escaperoom/editor/validation";
 import { prisma } from "@escaperoom/shared/db";
 import {
   createAudioAssetService,
@@ -52,6 +53,15 @@ export function getRoomDraftService(): RoomDraftService {
   return roomDrafts;
 }
 
+/**
+ * Doc Yjs del draft → `RoomPackage` para `POST /api/rooms/:roomId/validate`.
+ * La serialización es del ticket 3.1 (runtime en modo edición); hasta que
+ * esté en main no hay ninguna y el endpoint responde 501 tras autorizar.
+ */
+export function getDraftSerializer(): RoomPackageSerializer | null {
+  return null;
+}
+
 /** Ajustes de plataforma (`platformSetting`, specs/13 §10) sobre Postgres. */
 export function getPlatformSettingsService(): PlatformSettingsService {
   platformSettings ??= createPlatformSettingsService({
@@ -68,7 +78,8 @@ export function getPricingTierService(): PricingTierService {
 
 /** Binarios de audio sobre el adaptador S3/R2 de `@escaperoom/kit/storage` (bucket privado). */
 const audioBlobs: AudioBlobStore = {
-  put: (key, bytes, contentType) => storage.putObject({ key, body: Buffer.from(bytes), contentType }),
+  put: (key, bytes, contentType) =>
+    storage.putObject({ key, body: Buffer.from(bytes), contentType }),
   delete: (key) => storage.deleteObject(key),
   signedReadUrl: (key) => storage.getSignedReadUrl(key, { expiresIn: 600 }),
 };
