@@ -643,8 +643,11 @@ export class RoomScene extends Phaser.Scene {
     sprite.setInteractive({ useHandCursor: true });
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => this.setHover(object.id));
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => this.clearHover(object.id));
-    sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, () => {
-      if (!this.localInputEnabled) {
+    sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (pointer: Phaser.Input.Pointer) => {
+      // Phaser también escucha `mouseup` en `window`: soltar el ratón sobre un
+      // botón o diálogo HTML que tapa el objeto no es un clic en el mundo (al
+      // cerrar un diálogo, el avatar echaba a andar hacia lo que había debajo).
+      if (!this.localInputEnabled || pointer.upElement !== this.sys.game.canvas) {
         return;
       }
       this.walkToObject(object.id);

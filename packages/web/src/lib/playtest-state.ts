@@ -74,11 +74,15 @@ export function toggleSelection(current: readonly string[], id: string): string[
   return [...current, id];
 }
 
-/** Pareja lista para combinar cuando hay exactamente dos items distintos. */
-export function combinePair(staged: readonly string[]): [string, string] | null {
+/**
+ * Entradas listas para combinar: dos items distintos, o **uno solo** (las
+ * recetas de un ingrediente, como «Inspeccionar la llave de plata» del Rey
+ * Aldric, paso 8; sin esto la ruta crítica no se podía completar desde la UI).
+ */
+export function combineInputs(staged: readonly string[]): string[] | null {
   const [a, b] = staged;
-  if (a === undefined || b === undefined || a === b) {
+  if (a === undefined || a === b) {
     return null;
   }
-  return [a, b];
+  return b === undefined ? [a] : [a, b];
 }

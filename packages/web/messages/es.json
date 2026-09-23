@@ -942,6 +942,26 @@
       "UNKNOWN": "No se pudo confirmar. Inténtalo de nuevo en unos minutos."
     }
   },
+  "Redeem": {
+    "title": "Canjea tu clave",
+    "intro": "Introduce la clave de tu tarjeta o invitación para entrar en la partida de tu grupo.",
+    "codeLabel": "Clave",
+    "nameLabel": "Tu nombre (lo verá tu grupo)",
+    "namePlaceholder": "p. ej. Ana",
+    "cta": "Entrar en la partida",
+    "redeeming": "Canjeando…",
+    "errors": {
+      "ACCESS_KEY_INVALID": "Esta clave no existe. Revisa que la hayas escrito bien.",
+      "ACCESS_KEY_USED": "Esta clave ya se ha usado.",
+      "ACCESS_KEY_EXPIRED": "Esta clave ya no es válida. Pide al organizador una nueva.",
+      "ACCESS_KEY_NOT_CONFIRMED": "Antes de jugar tienes que confirmar tu asistencia desde el email de invitación.",
+      "SESSION_FULL": "La sesión de esta clave está completa. Avisa al organizador.",
+      "SESSION_REQUIRED": "Este evento requiere elegir sesión. Pide al organizador el enlace de tu sesión.",
+      "RATE_LIMITED": "Demasiados intentos. Espera un momento y vuelve a probar.",
+      "REDEEM_UNAVAILABLE": "El canje no está disponible ahora mismo. Inténtalo más tarde.",
+      "UNKNOWN": "No se pudo canjear la clave. Inténtalo de nuevo en unos minutos."
+    }
+  },
   "PublishConfirm": {
     "title": "Confirmar publicación",
     "intro": "Tu asistente de IA ha pedido publicar esta sala. Revisa los datos: la sala solo se publica si confirmas tú.",

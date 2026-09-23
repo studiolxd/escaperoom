@@ -786,7 +786,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
               name: item.name,
               icon: item.icon,
             }))}
-            onCombine={(a, b) => combine([a, b])}
+            onCombine={combine}
             feedback={combineFeedback}
             onClose={closeInventory}
             renderIcon={(item) => (

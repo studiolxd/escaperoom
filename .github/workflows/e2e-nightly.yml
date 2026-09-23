@@ -1,0 +1,97 @@
+# Suite E2E completa (specs/22 §3.4, ticket 6.5): las suites de Playwright
+# (juego completo, evento, editor; compra saltada hasta 5.1), `mcp-parity` y la
+# prueba de carga de 10 sesiones, cada noche sobre main. Un fallo abre (o
+# comenta) un issue `e2e-nightly`; no bloquea PRs ya mergeados.
+name: E2E nightly
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-nightly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: escaperoom_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d escaperoom_e2e"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_e2e
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_e2e
+      # Rate limiting REST con Redis, como en producción (ticket 6.3).
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @escaperoom/shared build
+      - run: pnpm --filter @escaperoom/e2e e2e:install
+
+      - name: Playwright — suite completa
+        id: playwright
+        run: pnpm --filter @escaperoom/e2e e2e
+      - name: mcp-parity (el Rey Aldric construido por MCP)
+        id: parity
+        if: always()
+        run: pnpm --filter @escaperoom/mcp-server exec vitest run test/mcp-parity.spec.ts
+      - name: Carga — 10 sesiones simultáneas con clientes de protocolo
+        id: load
+        if: always()
+        run: pnpm --filter @escaperoom/e2e load | tee load-report.txt
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-nightly-report
+          path: |
+            packages/e2e/playwright-report
+            packages/e2e/test-results
+            packages/e2e/.run/*.log
+            load-report.txt
+          retention-days: 14
+
+      - name: Abrir (o comentar) el issue del nightly
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          body="El nightly E2E ha fallado en ${GITHUB_SHA::7}: ${RUN_URL}
+          - Playwright: ${{ steps.playwright.outcome }}
+          - mcp-parity: ${{ steps.parity.outcome }}
+          - carga (10 sesiones): ${{ steps.load.outcome }}"
+          gh label create e2e-nightly --color B60205 --description "Fallo del nightly E2E" 2>/dev/null || true
+          existing=$(gh issue list --label e2e-nightly --state open --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "Nightly E2E en rojo" --label e2e-nightly --body "$body"
+          fi

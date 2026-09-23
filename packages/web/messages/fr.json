@@ -941,6 +941,26 @@
       "UNKNOWN": "La confirmation a échoué. Réessayez dans quelques minutes."
     }
   },
+  "Redeem": {
+    "title": "Utilisez votre clé",
+    "intro": "Saisissez la clé de votre carte ou de votre invitation pour rejoindre la partie de votre groupe.",
+    "codeLabel": "Clé",
+    "nameLabel": "Votre nom (votre groupe le verra)",
+    "namePlaceholder": "ex. Ana",
+    "cta": "Rejoindre la partie",
+    "redeeming": "Validation…",
+    "errors": {
+      "ACCESS_KEY_INVALID": "Cette clé n’existe pas. Vérifiez que vous l’avez bien saisie.",
+      "ACCESS_KEY_USED": "Cette clé a déjà été utilisée.",
+      "ACCESS_KEY_EXPIRED": "Cette clé n’est plus valide. Demandez-en une nouvelle à l’organisateur.",
+      "ACCESS_KEY_NOT_CONFIRMED": "Avant de jouer, vous devez confirmer votre présence depuis l’e-mail d’invitation.",
+      "SESSION_FULL": "La session de cette clé est complète. Prévenez l’organisateur.",
+      "SESSION_REQUIRED": "Cet événement demande de choisir une session. Demandez le lien de votre session à l’organisateur.",
+      "RATE_LIMITED": "Trop de tentatives. Patientez un instant et réessayez.",
+      "REDEEM_UNAVAILABLE": "L’utilisation des clés n’est pas disponible pour le moment. Réessayez plus tard.",
+      "UNKNOWN": "Impossible d’utiliser la clé. Réessayez dans quelques minutes."
+    }
+  },
   "PublishConfirm": {
     "title": "Confirmer la publication",
     "intro": "Votre assistant IA a demandé à publier cette salle. Vérifiez les informations : la salle n'est publiée que si vous confirmez.",

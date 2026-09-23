@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { cn } from "cn";
 import type { CombinationOutcome, CombineItemsPublicView } from "@escaperoom/shared/templates";
 import { Button } from "@/components/ui/button";
-import { combinePair, toggleSelection } from "@/lib/playtest-state";
+import { combineInputs, toggleSelection } from "@/lib/playtest-state";
 
 /** Item del catálogo resuelto para pintar (el host localiza `name`). */
 export interface InventoryItemView {
@@ -26,8 +26,8 @@ export interface InventoryPanelProps {
   view: CombineItemsPublicView;
   /** Catálogo de items para resolver id → nombre/icono. */
   items: InventoryItemView[];
-  /** Envía la pareja al servidor; nunca se valida aquí. */
-  onCombine: (a: string, b: string) => void;
+  /** Envía las entradas (una o dos) al servidor; nunca se valida aquí. */
+  onCombine: (inputs: string[]) => void;
   /** El host marca `true` mientras espera la respuesta del servidor. */
   pending?: boolean;
   /** Último resultado del servidor para pintar el feedback. */
@@ -54,7 +54,8 @@ const DEFAULT_ROWS = 4;
  *
  * Combinación con **dos vías equivalentes** (sin "zona de combinar" aparte):
  * arrastrar un item **sobre otro** del inventario, o seleccionar dos y pulsar
- * "Combinar". El nombre del item es pulsable (selecciona), no es decorativo.
+ * "Combinar". Con uno solo seleccionado, "Combinar" lo examina (recetas de un
+ * ingrediente). El nombre del item es pulsable (selecciona), no es decorativo.
  */
 export function InventoryPanel({
   view,
@@ -87,10 +88,10 @@ export function InventoryPanel({
     setStaged((current) => toggleSelection(current, id));
   }
 
-  function combine(pair: readonly string[]) {
-    const resolved = combinePair(pair);
+  function combine(selection: readonly string[]) {
+    const resolved = combineInputs(selection);
     if (!resolved) return;
-    onCombine(resolved[0], resolved[1]);
+    onCombine(resolved);
     setStaged([]);
   }
 
@@ -228,7 +229,7 @@ export function InventoryPanel({
       <div className="flex items-center gap-2">
         <Button
           className="flex-1"
-          disabled={disabled || staged.length !== 2}
+          disabled={disabled || combineInputs(staged) === null}
           onClick={() => combine(staged)}
         >
           {pending ? t("pending") : t("combine")}

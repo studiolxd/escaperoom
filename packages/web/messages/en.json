@@ -872,6 +872,26 @@
       "UNKNOWN": "We could not confirm. Please try again in a few minutes."
     }
   },
+  "Redeem": {
+    "title": "Redeem your key",
+    "intro": "Enter the key from your card or invitation to join your group's game.",
+    "codeLabel": "Key",
+    "nameLabel": "Your name (your group will see it)",
+    "namePlaceholder": "e.g. Ana",
+    "cta": "Join the game",
+    "redeeming": "Redeeming…",
+    "errors": {
+      "ACCESS_KEY_INVALID": "This key does not exist. Check that you typed it correctly.",
+      "ACCESS_KEY_USED": "This key has already been used.",
+      "ACCESS_KEY_EXPIRED": "This key is no longer valid. Ask the organizer for a new one.",
+      "ACCESS_KEY_NOT_CONFIRMED": "Before playing you need to confirm your attendance from the invitation email.",
+      "SESSION_FULL": "This key's session is full. Let the organizer know.",
+      "SESSION_REQUIRED": "This event requires choosing a session. Ask the organizer for your session's link.",
+      "RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
+      "REDEEM_UNAVAILABLE": "Redeeming is not available right now. Please try again later.",
+      "UNKNOWN": "The key could not be redeemed. Please try again in a few minutes."
+    }
+  },
   "Game": {
     "page": {
       "subtitle": "Online co-op game: invite your group with the link."

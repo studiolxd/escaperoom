@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   INTRO_DIALOG_ID,
-  combinePair,
+  combineInputs,
   isIntroOpen,
   isWorldInputEnabled,
   resolveDialog,
@@ -50,9 +50,9 @@ describe("el inventario abierto no propaga clics al mundo", () => {
   });
 
   it("también lo deshabilita con un panel modal abierto", () => {
-    expect(
-      isWorldInputEnabled({ introOpen: false, inventoryOpen: false, panelOpen: true }),
-    ).toBe(false);
+    expect(isWorldInputEnabled({ introOpen: false, inventoryOpen: false, panelOpen: true })).toBe(
+      false,
+    );
   });
 });
 
@@ -72,9 +72,10 @@ describe("combinar con dos seleccionados", () => {
     expect(staged).toEqual(["llave-bronce"]);
   });
 
-  it("forma la pareja solo con dos items distintos", () => {
-    expect(combinePair(["mechero", "vela"])).toEqual(["mechero", "vela"]);
-    expect(combinePair(["mechero"])).toBeNull();
-    expect(combinePair(["mechero", "mechero"])).toBeNull();
+  it("combina dos items distintos o uno solo (receta de un ingrediente)", () => {
+    expect(combineInputs(["mechero", "vela"])).toEqual(["mechero", "vela"]);
+    expect(combineInputs(["llave-plata"])).toEqual(["llave-plata"]);
+    expect(combineInputs([])).toBeNull();
+    expect(combineInputs(["mechero", "mechero"])).toBeNull();
   });
 });

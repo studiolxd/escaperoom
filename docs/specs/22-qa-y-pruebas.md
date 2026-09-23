@@ -140,6 +140,15 @@ Ambas existen porque un fallo puede estar en el motor (capa 1) o en cómo la UI 
 - Un fallo de `game.reyaldric.spec.ts` **bloquea el merge**; un fallo nightly abre ticket
   automático, no bloquea retroactivamente PRs ya mergeados.
 
+> **Implementación real (ticket 6.5):** `packages/e2e` (ver su README). En lugar de un
+> `docker-compose.e2e.yml`, Playwright levanta web, colyseus-server y editor-sync
+> (`scripts/serve.ts`) y Postgres/Redis vienen de `infra/docker-compose.dev.yml` en local o de
+> los `services` de GitHub Actions en CI; LiveKit y el email quedan desactivados (sin servicios
+> externos). El subset de PR es un smoke de `game.reyaldric.spec.ts` (pasos 1–6, job
+> `e2e-smoke`); la ruta completa de 14 pasos, `event-flow`, `editor-publish`, `mcp-parity` y la
+> carga de 10 sesiones (`load/ten-sessions.ts`) van en `e2e-nightly.yml`, que abre un issue
+> `e2e-nightly` si falla. `purchase-flow.spec.ts` está escrito y saltado hasta Stripe (5.1).
+
 ## 4. Protocolo de playtest humano (beta cerrada)
 
 El test de solvabilidad garantiza que la sala **se puede** completar; no dice si es **divertida,
