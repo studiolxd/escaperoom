@@ -1377,7 +1377,8 @@
     "messageLabel": "Mensaje",
     "submit": "Enviar mensaje",
     "success": "¡Gracias! Hemos recibido tu mensaje y te responderemos pronto.",
-    "placeholderNotice": "Este formulario es un placeholder: de momento no se envía a ningún sistema real."
+    "sending": "Enviando…",
+    "error": "No se ha podido enviar el mensaje. Inténtalo de nuevo."
   },
   "Checkout": {
     "kinds": {

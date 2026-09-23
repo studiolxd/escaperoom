@@ -1261,6 +1261,7 @@
     "messageLabel": "Bericht",
     "submit": "Bericht versturen",
     "success": "Bedankt! We hebben je bericht ontvangen en reageren snel.",
-    "placeholderNotice": "Dit formulier is een placeholder: het verstuurt nog niets naar een echt systeem."
+    "sending": "Verzenden…",
+    "error": "Het bericht kon niet worden verzonden. Probeer het opnieuw."
   }
 }

@@ -1261,6 +1261,7 @@
     "messageLabel": "Nachricht",
     "submit": "Nachricht senden",
     "success": "Danke! Wir haben deine Nachricht erhalten und melden uns bald.",
-    "placeholderNotice": "Dieses Formular ist ein Platzhalter: Es sendet noch an kein echtes System."
+    "sending": "Wird gesendet…",
+    "error": "Die Nachricht konnte nicht gesendet werden. Bitte versuche es erneut."
   }
 }
