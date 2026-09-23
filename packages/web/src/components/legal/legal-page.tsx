@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { LegalDocument } from "@/content/legal/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "@/i18n/navigation";
@@ -12,6 +13,8 @@ type LegalPageProps = {
     label: string;
   }[];
   currentHref: "/legal/terms" | "/legal/privacy" | "/legal/dpa" | "/legal/legal-notice" | "/legal/cookies";
+  /** Contenido interactivo adicional bajo el documento (p. ej. el enlace de preferencias de cookies). */
+  children?: ReactNode;
 };
 
 /**
@@ -23,7 +26,14 @@ type LegalPageProps = {
  * el resto de la página (título, navegación entre páginas legales) sí sigue
  * el idioma activo, como el resto de la app.
  */
-export function LegalPage({ title, document, onlyInSpanishNotice, nav, currentHref }: LegalPageProps) {
+export function LegalPage({
+  title,
+  document,
+  onlyInSpanishNotice,
+  nav,
+  currentHref,
+  children,
+}: LegalPageProps) {
   return (
     <main className="min-h-dvh bg-background px-4 py-10 text-foreground">
       <div className="mx-auto w-full max-w-2xl space-y-6">
@@ -69,6 +79,8 @@ export function LegalPage({ title, document, onlyInSpanishNotice, nav, currentHr
             ))}
           </CardContent>
         </Card>
+
+        {children}
       </div>
     </main>
   );

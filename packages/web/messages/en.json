@@ -1366,6 +1366,37 @@
       "error": "Couldn't record your acceptance. Please try again."
     }
   },
+  "CookieConsent": {
+    "settingsLink": "Cookie preferences",
+    "banner": {
+      "description": "We use necessary cookies to run the platform. You can review your preferences at any time.",
+      "acceptAll": "Accept all",
+      "rejectAll": "Reject all",
+      "preferences": "Preferences"
+    },
+    "dialog": {
+      "title": "Cookie preferences",
+      "description": "Manage which optional cookie categories you accept. Necessary cookies can't be turned off."
+    },
+    "categories": {
+      "necessary": {
+        "name": "Necessary",
+        "description": "Required for the platform to work (session and language). Always on."
+      },
+      "analytics": {
+        "name": "Analytics",
+        "description": "Helps us understand how the platform is used."
+      },
+      "marketing": {
+        "name": "Marketing",
+        "description": "Would measure advertising with third-party pixels."
+      },
+      "preferences": {
+        "name": "Preferences",
+        "description": "Would remember optional, non-essential personalization."
+      }
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Browse rooms",

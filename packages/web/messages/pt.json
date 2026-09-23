@@ -1278,6 +1278,37 @@
       "error": "Não foi possível registar a aceitação. Tente novamente."
     }
   },
+  "CookieConsent": {
+    "settingsLink": "Preferências de cookies",
+    "banner": {
+      "description": "Usamos cookies necessários para o funcionamento da plataforma. Podes rever as tuas preferências a qualquer momento.",
+      "acceptAll": "Aceitar tudo",
+      "rejectAll": "Rejeitar tudo",
+      "preferences": "Preferências"
+    },
+    "dialog": {
+      "title": "Preferências de cookies",
+      "description": "Gere quais categorias de cookies opcionais aceitas. Os cookies necessários não podem ser desativados."
+    },
+    "categories": {
+      "necessary": {
+        "name": "Necessários",
+        "description": "Indispensáveis para o funcionamento básico da plataforma (sessão e idioma). Sempre ativos."
+      },
+      "analytics": {
+        "name": "Análise",
+        "description": "Ajuda-nos a perceber como a plataforma é utilizada."
+      },
+      "marketing": {
+        "name": "Marketing",
+        "description": "Mediria a publicidade com pixels de terceiros."
+      },
+      "preferences": {
+        "name": "Preferências",
+        "description": "Guardaria personalização opcional, não essencial."
+      }
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Explorar salas",

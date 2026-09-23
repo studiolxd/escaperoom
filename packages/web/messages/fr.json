@@ -1278,6 +1278,37 @@
       "error": "Impossible d'enregistrer votre acceptation. Réessayez."
     }
   },
+  "CookieConsent": {
+    "settingsLink": "Préférences de cookies",
+    "banner": {
+      "description": "Nous utilisons des cookies nécessaires au fonctionnement de la plateforme. Vous pouvez modifier vos préférences à tout moment.",
+      "acceptAll": "Tout accepter",
+      "rejectAll": "Tout refuser",
+      "preferences": "Préférences"
+    },
+    "dialog": {
+      "title": "Préférences de cookies",
+      "description": "Gérez les catégories de cookies facultatifs que vous acceptez. Les cookies nécessaires ne peuvent pas être désactivés."
+    },
+    "categories": {
+      "necessary": {
+        "name": "Nécessaires",
+        "description": "Indispensables au fonctionnement de base de la plateforme (session et langue). Toujours actifs."
+      },
+      "analytics": {
+        "name": "Analytique",
+        "description": "Nous aide à comprendre comment la plateforme est utilisée."
+      },
+      "marketing": {
+        "name": "Marketing",
+        "description": "Mesurerait la publicité avec des pixels tiers."
+      },
+      "preferences": {
+        "name": "Préférences",
+        "description": "Mémoriserait une personnalisation facultative, non essentielle."
+      }
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Explorer les salles",

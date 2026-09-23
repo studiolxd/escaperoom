@@ -1278,6 +1278,37 @@
       "error": "Die Zustimmung konnte nicht gespeichert werden. Bitte versuche es erneut."
     }
   },
+  "CookieConsent": {
+    "settingsLink": "Cookie-Einstellungen",
+    "banner": {
+      "description": "Wir verwenden notwendige Cookies für den Betrieb der Plattform. Du kannst deine Einstellungen jederzeit ändern.",
+      "acceptAll": "Alle akzeptieren",
+      "rejectAll": "Alle ablehnen",
+      "preferences": "Einstellungen"
+    },
+    "dialog": {
+      "title": "Cookie-Einstellungen",
+      "description": "Verwalte, welche optionalen Cookie-Kategorien du akzeptierst. Notwendige Cookies lassen sich nicht deaktivieren."
+    },
+    "categories": {
+      "necessary": {
+        "name": "Notwendig",
+        "description": "Für den grundlegenden Betrieb der Plattform erforderlich (Sitzung und Sprache). Immer aktiv."
+      },
+      "analytics": {
+        "name": "Analyse",
+        "description": "Hilft uns zu verstehen, wie die Plattform genutzt wird."
+      },
+      "marketing": {
+        "name": "Marketing",
+        "description": "Würde Werbung mit Pixeln von Drittanbietern messen."
+      },
+      "preferences": {
+        "name": "Präferenzen",
+        "description": "Würde optionale, nicht wesentliche Personalisierung speichern."
+      }
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Räume entdecken",
