@@ -1,9 +1,11 @@
 import path from "node:path";
 import { storage } from "@escaperoom/kit/storage";
+import { getRedis, redisPrefix } from "@escaperoom/kit/redis";
 import { roomDocToPackage, roomPackageToDoc } from "@escaperoom/editor/room-doc";
 import type { RoomPackageSerializer } from "@escaperoom/editor/validation";
 import { prisma } from "@escaperoom/shared/db";
 import { createInvitationEmailQueue, readConfirmationTokenConfig } from "@escaperoom/shared/mail";
+import { logger } from "@escaperoom/kit/logger";
 import { EVENT_ROOM_NAME } from "@/lib/colyseus";
 import {
   createAudioAssetService,
@@ -12,6 +14,7 @@ import {
   createPrismaModerationStore,
   type ModerationService,
   createCatalogService,
+  createCachedPublishedRoomListing,
   createPrismaPublishedRoomListing,
   createPrismaReviewStore,
   createReviewService,
@@ -111,13 +114,35 @@ let waitlist: WaitlistService | undefined;
 let userDataRights: UserDataRightsService | undefined;
 
 /**
+ * Adaptador mínimo de `ioredis` al `CatalogCacheStore` del cache del catálogo
+ * (ADR-027). `null` sin `REDIS_URL` (dev sin Redis): el cache queda desactivado
+ * y `createCachedPublishedRoomListing` pasa las consultas directo a Postgres.
+ */
+function catalogCacheStore() {
+  const redis = getRedis();
+  if (!redis) return null;
+  return {
+    get: (key: string) => redis.get(key),
+    set: (key: string, value: string, ttlSeconds: number) => redis.set(key, value, "EX", ttlSeconds),
+  };
+}
+
+/**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
  * comparten esta MISMA instancia (ADR-022): no hay lógica en los adaptadores.
  */
 export function getCatalogService(): CatalogService {
   catalog ??= createCatalogService({
     rooms: createJsonFileRoomPackageRepository(path.resolve(process.cwd(), FEATURED_ROOM_FIXTURE)),
-    listing: createPrismaPublishedRoomListing(prisma),
+    // Cache de la consulta del catálogo (ADR-027, ticket 6.4): el render de
+    // `/[locale]/rooms` es dinámico por el nonce de la CSP (ticket 6.3) y no se
+    // puede cachear a nivel HTTP sin relajarla, así que se cachea la consulta.
+    listing: createCachedPublishedRoomListing(createPrismaPublishedRoomListing(prisma), {
+      store: catalogCacheStore(),
+      prefix: redisPrefix(),
+      // Medición aproximada del efecto del cache (docs/reference/seguridad.md §3).
+      onTiming: (timing) => logger.debug(timing, "catalog-cache: consulta"),
+    }),
   });
   return catalog;
 }

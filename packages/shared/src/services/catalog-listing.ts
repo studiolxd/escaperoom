@@ -1,3 +1,4 @@
+import { logger } from "@escaperoom/kit/logger";
 import { Prisma, type PrismaClient } from "../../generated/client";
 import { includesAllLanguages, parseRoomPackage, RoomPackageMetaSchema } from "../schemas";
 import {
@@ -258,5 +259,112 @@ export function createPrismaPublishedRoomListing(prisma: PrismaClient): Publishe
       const row = rows[0];
       return row ? toRoom(row) : null;
     },
+  };
+}
+
+/**
+ * Store mínimo que necesita el cache (subconjunto de `ioredis`): así el
+ * decorador no depende del cliente concreto y los tests pueden usar uno en
+ * memoria. `set` recibe el TTL en segundos.
+ */
+export interface CatalogCacheStore {
+  get(key: string): Promise<string | null>;
+  set(key: string, value: string, ttlSeconds: number): Promise<unknown>;
+}
+
+/** Un evento de acceso al cache, para medir aciertos y tiempos (decisión de 6.4). */
+export type CatalogCacheTiming = {
+  op: "listPublished" | "getPublished";
+  hit: boolean;
+  ms: number;
+};
+
+export type CachedPublishedRoomListingOptions = {
+  /** `null` cuando no hay `REDIS_URL` (dev sin Redis): el cache queda desactivado. */
+  store: CatalogCacheStore | null;
+  /** Prefijo de claves, compartido con rate-limit/colas (`redisPrefix()` de `@escaperoom/kit/redis`). */
+  prefix: string;
+  /** specs/03: mismo presupuesto de frescura que el `Cache-Control` de `GET /api/rooms` (60 s). */
+  ttlSeconds?: number;
+  onTiming?: (timing: CatalogCacheTiming) => void;
+};
+
+const DEFAULT_CATALOG_CACHE_TTL_SECONDS = 60;
+
+/**
+ * Serializa un valor con las claves de cada objeto ordenadas, para que el
+ * mismo filtro dé siempre la misma clave de cache sin importar el orden en
+ * que se construyó.
+ */
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  if (value !== null && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const entries = Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`);
+    return `{${entries.join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/**
+ * Cachea la CONSULTA del catálogo publicado en Redis (ticket 6.4), no la
+ * respuesta HTTP: el render de `/[locale]/rooms` sigue siendo dinámico
+ * (`connection()` en el layout, obligado por el nonce de la CSP — ticket 6.3),
+ * pero no repite la consulta cara a Postgres en cada petición. Ver el porque en
+ * `docs/reference/seguridad.md` §3 y ADR-027.
+ *
+ * Falla ABIERTO como el resto de usos de Redis en la app (rate limiting,
+ * colas): un fallo de lectura o escritura en Redis nunca rompe el catálogo,
+ * solo deja de acelerarlo.
+ */
+export function createCachedPublishedRoomListing(
+  inner: PublishedRoomListing,
+  options: CachedPublishedRoomListingOptions,
+): PublishedRoomListing {
+  const { store, prefix, ttlSeconds = DEFAULT_CATALOG_CACHE_TTL_SECONDS, onTiming } = options;
+  if (!store) return inner;
+  // Narrowing explícito: la función anidada de abajo cierra sobre `store`, y
+  // TS no arrastra el `if (!store)` de arriba a través de un closure.
+  const cacheStore: CatalogCacheStore = store;
+
+  async function withCache<T>(
+    op: CatalogCacheTiming["op"],
+    keyPart: string,
+    load: () => Promise<T>,
+  ): Promise<T> {
+    const key = `${prefix}:catalog:${op}:${keyPart}`;
+    const start = Date.now();
+    try {
+      const cached = await cacheStore.get(key);
+      if (cached !== null) {
+        onTiming?.({ op, hit: true, ms: Date.now() - start });
+        return JSON.parse(cached) as T;
+      }
+    } catch (err) {
+      logger.warn(
+        { err: err instanceof Error ? err : new Error(String(err)), op },
+        "catalog-cache: redis unavailable on read, falling back to postgres",
+      );
+    }
+
+    const value = await load();
+    onTiming?.({ op, hit: false, ms: Date.now() - start });
+    void cacheStore.set(key, JSON.stringify(value), ttlSeconds).catch((err: unknown) => {
+      logger.warn(
+        { err: err instanceof Error ? err : new Error(String(err)), op },
+        "catalog-cache: redis unavailable on write, skipping cache",
+      );
+    });
+    return value;
+  }
+
+  return {
+    listPublished: (filter, page) =>
+      withCache("listPublished", stableStringify({ filter, page }), () =>
+        inner.listPublished(filter, page),
+      ),
+    getPublished: (roomId) => withCache("getPublished", roomId, () => inner.getPublished(roomId)),
   };
 }

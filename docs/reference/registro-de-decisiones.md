@@ -542,3 +542,40 @@ final.
 (peor UX cooperativa: un jugador no ve moverse las piezas del otro hasta que termina, o nunca, si
 resuelve de un tirón sin re-render intermedio; y obliga a validar una permutación completa en vez de
 un movimiento).
+
+---
+
+## ADR-027 — Catálogo público: cache de la consulta en Redis, no del HTML (ticket 6.4)
+
+**Contexto:** la CSP con nonce por petición (ticket 6.3, ADR sin número dedicado — `specs/13` §11)
+obliga a renderizar dinámico TODO el segmento `[locale]` (`connection()` en su layout), incluida
+`/[locale]/rooms`, el catálogo público SSR con JSON-LD para SEO (ticket 5.3). Antes de la CSP esa
+ruta era candidata a cachearse/prerenderizarse; con nonce por petición, el HTML ya no se puede
+cachear sin romper la CSP.
+
+**Decisión:** no tocar la CSP (el nonce y `'strict-dynamic'` de `script-src` no son negociables) y en
+su lugar cachear la CONSULTA cara a Postgres del listado del catálogo en Redis
+(`createCachedPublishedRoomListing`), reutilizando la MISMA conexión/patrón de
+`@escaperoom/kit/redis` que ya usan rate limiting y colas (ticket 6.3) — sin integración de Redis
+nueva. TTL de 60 s (el mismo presupuesto de frescura que el `Cache-Control` de `GET /api/rooms`),
+clave por `filter`/`page` normalizados, y falla abierto ante cualquier error de Redis.
+
+**Consecuencias:** el render sigue siendo dinámico y el navegador recibe HTML fresco en cada
+petición (nonce válido siempre), pero la consulta SQL más cara (CTE con joins y filtro JSONB) no se
+repite mientras el cache esté caliente. Medición local aproximada: ~7 ms la consulta a Postgres en
+caliente vs. ~1–1.5 ms un `GET` a Redis; el ahorro relativo crece con el tamaño del catálogo. Sin
+`REDIS_URL` (dev sin Redis) el comportamiento es idéntico al de antes (sin cache).
+
+**Alternativas descartadas:**
+
+- **Partial Prerendering (PPR) de Next** (shell estático + huecos dinámicos con `Suspense` solo
+  donde hace falta el nonce): en Next 16.3.5 sigue siendo experimental, no estable para producción.
+  Además el nonce hoy viaja al `<html>` raíz vía cabeceras de la petición en `proxy.ts` — un
+  mecanismo pensado para 100% dinámico — y adoptar PPR exigiría rediseñar esa propagación con riesgo
+  de debilitar la CSP (un nonce mal cacheado la rompe) para un beneficio que el cache de consulta ya
+  cubre sin tocar la CSP. Queda como opción a revisar cuando PPR/Cache Components sea estable.
+- **Cachear la respuesta HTTP completa** (CDN o `Cache-Control` en la página): requeriría un nonce
+  fijo o `'unsafe-inline'`, prohibido por la restricción de seguridad del ticket.
+- **Sin cache** (aceptar la consulta a Postgres en cada petición): descartado porque el catálogo es
+  la puerta de entrada pública y de SEO; el coste crece con el número de salas y de filtros
+  combinados sin necesidad, cuando Redis ya está disponible y en uso para lo mismo (rate limit).

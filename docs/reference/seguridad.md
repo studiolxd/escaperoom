@@ -137,6 +137,56 @@ Excepciones a `'self'` y su motivo:
 La redirección de locale (`/` → `/es`) también lleva la CSP. El JSON-LD de la ficha de sala es un
 bloque de datos (`type="application/ld+json"`), no script ejecutable: la CSP no lo bloquea.
 
+### 3.1 Rendimiento del catálogo público con render dinámico (ticket 6.4, ADR-027)
+
+El nonce por petición obliga a que TODO el segmento `[locale]` sea dinámico (`connection()`), y con
+él `/[locale]/rooms` (el catálogo público SSR con JSON-LD, ticket 5.3): antes de la CSP con nonce,
+esa ruta era candidata a cachearse o prerenderizarse; ahora Next no puede servir HTML cacheado ni
+prerenderizado porque cada respuesta lleva un nonce distinto que debe casar con el de sus
+`<script>`.
+
+**No se relaja la CSP para recuperar cacheabilidad.** El nonce y `'strict-dynamic'` de `script-src`
+no son negociables (specs/13 §11): la alternativa que se evaluó y se descartó es cachear el HTML
+completo, lo que exigiría un nonce fijo o `'unsafe-inline'`.
+
+**Partial Prerendering (PPR) de Next, evaluado y descartado por ahora.** PPR permitiría un shell
+estático cacheado con huecos dinámicos (`Suspense`) solo donde de verdad hace falta el nonce. Se
+descarta en esta ronda porque:
+
+- En Next 16.3.5 (la versión instalada) sigue siendo una función experimental (`experimental.ppr` /
+  Cache Components), no estable para producción.
+- El nonce no es un hueco aislado dentro de la página: lo necesita el `<html>` raíz completo (todos
+  los `<script>` de Next, incluidos los del shell) y hoy se inyecta vía cabeceras de la PETICIÓN en
+  `proxy.ts`, un mecanismo pensado para render 100% dinámico. Adoptar PPR aquí significaría rediseñar
+  cómo viaja el nonce al shell estático, con riesgo de baja seguridad (un nonce cacheado o
+  reutilizado invalida la protección de la CSP) para un beneficio que la alternativa de abajo ya
+  cubre sin tocar la CSP.
+
+**Decisión: cachear la CONSULTA a Postgres del catálogo, no la respuesta HTTP.**
+`createCachedPublishedRoomListing` (`packages/shared/src/services/catalog-listing.ts`) envuelve
+`PublishedRoomListing` con un cache de lectura en Redis (misma conexión y patrón de
+`@escaperoom/kit/redis` que rate limiting y colas, ticket 6.3 — ninguna integración nueva):
+
+- Clave = prefijo de la app + `filter`/`page` (o `roomId` para el detalle), serializados con claves
+  ordenadas para que un mismo filtro construido en distinto orden dé la misma clave.
+- TTL de 60 s: el mismo presupuesto de frescura que ya usa `Cache-Control: s-maxage=60,
+  stale-while-revalidate=300` de `GET /api/rooms` — una sala recién publicada tarda como mucho eso en
+  aparecer en el listado SSR.
+- **Falla abierto** (igual que `RedisSlidingWindowStore`): si Redis no responde al leer o escribir,
+  la consulta va directa a Postgres y solo se pierde la aceleración, nunca la disponibilidad. Sin
+  `REDIS_URL` (dev sin Redis) el cache queda desactivado sin cambiar el comportamiento.
+- El render HTML de `/[locale]/rooms` sigue siendo dinámico (obligatorio por el nonce): lo que deja
+  de repetirse en cada petición es la consulta cara a Postgres, no la respuesta al navegador.
+
+**Medición aproximada** (Postgres y Redis locales de `docker compose`, una sala publicada en la
+base): la consulta SQL del listado (CTE `latest` + `s`, joins con `room`/`user`, filtro JSONB) tarda
+~7 ms en caliente; un `GET` a Redis sobre una conexión persistente tarda ~1–1.5 ms (p50, medido con
+`redis-benchmark -t get`). Con una tabla pequeña la diferencia ya es de un orden de magnitud; con más
+salas y filtros de texto (`ILIKE`) sin poder usar el índice GIN al 100%, la consulta a Postgres crece
+mientras la lectura de Redis se mantiene plana, así que el ahorro relativo aumenta con el catálogo. El
+cache no cambia el rendimiento del RENDER en sí (sigue siendo dinámico por el nonce), solo evita
+repetir la parte más cara de construir la página.
+
 **CSP de la API** (`/api/*`, `next.config.ts`): `default-src 'none'; frame-ancestors 'none'`.
 
 **Cabeceras fijas** (todas las respuestas, `next.config.ts`):
