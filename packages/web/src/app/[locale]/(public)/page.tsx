@@ -20,10 +20,7 @@ export default async function HomePage({ params }: Props) {
   return (
     <main className="bg-background">
       <section className="mx-auto flex min-h-[70dvh] w-full max-w-3xl flex-col items-center justify-center px-4 py-20 text-center">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-          {l("kicker")}
-        </p>
-        <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">{l("heroTitle")}</h1>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">{l("heroTitle")}</h1>
         <p className="mt-4 text-balance text-base text-muted-foreground sm:text-lg">
           {l("heroSubtitle")}
         </p>

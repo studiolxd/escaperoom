@@ -1256,10 +1256,9 @@
     }
   },
   "Landing": {
-    "kicker": "EscapeRoom Creator",
-    "heroTitle": "Crea y juega escape rooms cooperativos en el navegador",
-    "heroSubtitle": "Publica y monetiza salas sin saber programar — el editor es el propio motor del juego — o crea una sala entera conversando con un agente IA.",
-    "ctaStartCreating": "Crea tu primera sala",
+    "heroTitle": "Crea y juega escape rooms online",
+    "heroSubtitle": "Escape rooms para resolver, individual o en equipo, desde el navegador. Diseña salas sin necesidad de programar.",
+    "ctaStartCreating": "Crea tu sala",
     "ctaBrowseCatalog": "Explorar salas",
     "valueProps": {
       "creator": {
