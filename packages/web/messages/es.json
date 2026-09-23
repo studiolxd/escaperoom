@@ -961,5 +961,56 @@
     "errors": {
       "invalid": "La solicitud de autorización no es válida. Vuelve a conectar el asistente desde su aplicación."
     }
+  },
+  "CreatorChat": {
+    "title": "Chat del creador",
+    "intro": "Describe tu escape room y el asistente la construye en tu borrador con las mismas herramientas que el editor. Puedes retocarla después en el editor visual.",
+    "notConfigured": "El chat del creador no está configurado en este entorno (falta la clave del modelo de lenguaje). Puedes seguir creando salas con el editor visual.",
+    "loginRequired": "Inicia sesión para usar el chat del creador.",
+    "empty": "Por ejemplo: «Crea una escape room medieval de 2 salas para 4 jugadores: La cripta del alquimista».",
+    "placeholder": "Escribe tu mensaje…",
+    "send": "Enviar",
+    "sending": "Enviando…",
+    "thinking": "El asistente está trabajando…",
+    "closed": "Esta conversación ha llegado a su límite. Empieza una nueva.",
+    "you": "Tú",
+    "assistant": "Asistente",
+    "openEditor": "Abrir el borrador en el editor",
+    "noRoom": "Aún no hay borrador: el asistente lo creará.",
+    "newConversation": "Nueva conversación",
+    "usage": "{turns}/{maxTurns} pasos · {tokens, number} de {maxTokens, number} tokens",
+    "publishNote": "La sala no se publica hasta que la revises y confirmes en ese enlace.",
+    "tool": {
+      "running": "en curso",
+      "ok": "hecho",
+      "error": "error",
+      "input": "Datos enviados",
+      "result": "Resultado"
+    },
+    "links": {
+      "preview": "Abrir la partida de prueba",
+      "publish_confirm": "Revisar y confirmar la publicación"
+    },
+    "limit": {
+      "turns": "Se ha alcanzado el máximo de pasos de esta conversación. Empieza una nueva para seguir.",
+      "tokens": "Se ha alcanzado el máximo de uso del modelo en esta conversación. Empieza una nueva para seguir."
+    },
+    "stop": {
+      "refusal": "El asistente no ha podido responder a esta petición.",
+      "max_tokens": "La respuesta se ha cortado por longitud. Pide el cambio en partes más pequeñas."
+    },
+    "errors": {
+      "UNAUTHORIZED": "Tu sesión ha caducado. Vuelve a iniciar sesión.",
+      "CROSS_SITE": "Petición rechazada: el chat solo funciona desde esta web.",
+      "NOT_CONFIGURED": "El chat del creador no está configurado en este entorno.",
+      "INVALID_REQUEST": "El mensaje no es válido (¿vacío o demasiado largo?).",
+      "CONVERSATION_NOT_FOUND": "La conversación ha caducado. Empieza una nueva.",
+      "BUSY": "Espera a que el asistente termine de responder.",
+      "MCP_UNAVAILABLE": "Las herramientas del creador no responden. Inténtalo de nuevo en un momento.",
+      "MODEL_AUTH": "El modelo de lenguaje rechazó la credencial configurada. Avisa al equipo.",
+      "MODEL_RATE_LIMITED": "El modelo de lenguaje está saturado. Espera un momento y vuelve a intentarlo.",
+      "MODEL_ERROR": "El modelo de lenguaje ha fallado. Inténtalo de nuevo.",
+      "UNKNOWN": "Algo ha fallado. Inténtalo de nuevo."
+    }
   }
 }

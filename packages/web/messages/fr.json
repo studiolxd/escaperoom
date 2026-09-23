@@ -960,5 +960,56 @@
     "errors": {
       "invalid": "La demande d'autorisation n'est pas valide. Reconnectez l'assistant depuis son application."
     }
+  },
+  "CreatorChat": {
+    "title": "Chat du créateur",
+    "intro": "Décrivez votre escape game et l'assistant le construit dans votre brouillon avec les mêmes outils que l'éditeur. Vous pourrez l'ajuster ensuite dans l'éditeur visuel.",
+    "notConfigured": "Le chat du créateur n'est pas configuré dans cet environnement (la clé du modèle de langage manque). Vous pouvez continuer à créer des salles avec l'éditeur visuel.",
+    "loginRequired": "Connectez-vous pour utiliser le chat du créateur.",
+    "empty": "Par exemple : « Crée un escape game médiéval de 2 salles pour 4 joueurs : La crypte de l'alchimiste ».",
+    "placeholder": "Écrivez votre message…",
+    "send": "Envoyer",
+    "sending": "Envoi…",
+    "thinking": "L'assistant travaille…",
+    "closed": "Cette conversation a atteint sa limite. Commencez-en une nouvelle.",
+    "you": "Vous",
+    "assistant": "Assistant",
+    "openEditor": "Ouvrir le brouillon dans l'éditeur",
+    "noRoom": "Pas encore de brouillon : l'assistant le créera.",
+    "newConversation": "Nouvelle conversation",
+    "usage": "{turns}/{maxTurns} étapes · {tokens, number} sur {maxTokens, number} tokens",
+    "publishNote": "La salle n'est publiée qu'après votre vérification et confirmation via ce lien.",
+    "tool": {
+      "running": "en cours",
+      "ok": "terminé",
+      "error": "erreur",
+      "input": "Données envoyées",
+      "result": "Résultat"
+    },
+    "links": {
+      "preview": "Ouvrir la partie de test",
+      "publish_confirm": "Vérifier et confirmer la publication"
+    },
+    "limit": {
+      "turns": "Cette conversation a atteint le nombre maximal d'étapes. Commencez-en une nouvelle pour continuer.",
+      "tokens": "Cette conversation a atteint l'utilisation maximale du modèle. Commencez-en une nouvelle pour continuer."
+    },
+    "stop": {
+      "refusal": "L'assistant n'a pas pu répondre à cette demande.",
+      "max_tokens": "La réponse a été coupée pour cause de longueur. Demandez la modification en plus petites parties."
+    },
+    "errors": {
+      "UNAUTHORIZED": "Votre session a expiré. Reconnectez-vous.",
+      "CROSS_SITE": "Requête refusée : le chat ne fonctionne que depuis ce site.",
+      "NOT_CONFIGURED": "Le chat du créateur n'est pas configuré dans cet environnement.",
+      "INVALID_REQUEST": "Le message n'est pas valide (vide ou trop long ?).",
+      "CONVERSATION_NOT_FOUND": "La conversation a expiré. Commencez-en une nouvelle.",
+      "BUSY": "Attendez que l'assistant ait fini de répondre.",
+      "MCP_UNAVAILABLE": "Les outils du créateur ne répondent pas. Réessayez dans un instant.",
+      "MODEL_AUTH": "Le modèle de langage a refusé l'identifiant configuré. Prévenez l'équipe.",
+      "MODEL_RATE_LIMITED": "Le modèle de langage est saturé. Patientez un instant puis réessayez.",
+      "MODEL_ERROR": "Le modèle de langage a échoué. Réessayez.",
+      "UNKNOWN": "Une erreur est survenue. Réessayez."
+    }
   }
 }
