@@ -5,7 +5,6 @@ import Phaser from "phaser";
 import { Client, type Room } from "@colyseus/sdk";
 import { CHAT_MESSAGE, CHAT_RATE_LIMITED_ERROR } from "@escaperoom/shared/chat";
 import { COLYSEUS_URL, LOBBY_ROOM_NAME } from "@/lib/colyseus";
-import { collectPlayers, type LobbyStateLike } from "@/lib/lobby-net";
 import {
   MEDIA_TOKEN_MESSAGE,
   MEDIA_TOKEN_REQUEST_MESSAGE,
