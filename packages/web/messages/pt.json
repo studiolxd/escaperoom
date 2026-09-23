@@ -1246,6 +1246,38 @@
       "UNKNOWN": "Algo correu mal. Tente novamente."
     }
   },
+  "Legal": {
+    "nav": {
+      "terms": "Termos de serviço",
+      "privacy": "Política de privacidade",
+      "dpa": "Modelo de DPA",
+      "legalNotice": "Aviso legal",
+      "cookies": "Política de cookies"
+    },
+    "terms": {
+      "title": "Termos de Serviço"
+    },
+    "privacy": {
+      "title": "Política de Privacidade"
+    },
+    "dpa": {
+      "title": "Modelo de Contrato de Subcontratação de Tratamento de Dados (DPA)"
+    },
+    "legalNotice": {
+      "title": "Aviso Legal"
+    },
+    "cookies": {
+      "title": "Política de Cookies"
+    },
+    "reaccept": {
+      "title": "Os termos mudaram",
+      "description": "Atualizámos os Termos de Serviço e a Política de Privacidade. Leia-os antes de continuar e aceite a nova versão para continuar a usar a sua conta.",
+      "termsLink": "Ler Termos de Serviço",
+      "privacyLink": "Ler Política de Privacidade",
+      "accept": "Aceitar e continuar",
+      "error": "Não foi possível registar a aceitação. Tente novamente."
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Explorar salas",
@@ -1263,15 +1295,5 @@
     "success": "Obrigado! Recebemos a tua mensagem e responderemos em breve.",
     "sending": "A enviar…",
     "error": "Não foi possível enviar a mensagem. Tenta novamente."
-  },
-  "Legal": {
-    "reaccept": {
-      "title": "Os termos mudaram",
-      "description": "Atualizámos os Termos de Serviço e a Política de Privacidade. Leia-os antes de continuar e aceite a nova versão para continuar a usar a sua conta.",
-      "termsLink": "Ler Termos de Serviço",
-      "privacyLink": "Ler Política de Privacidade",
-      "accept": "Aceitar e continuar",
-      "error": "Não foi possível registar a aceitação. Tente novamente."
-    }
   }
 }

@@ -1246,6 +1246,38 @@
       "UNKNOWN": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     }
   },
+  "Legal": {
+    "nav": {
+      "terms": "Nutzungsbedingungen",
+      "privacy": "Datenschutzerklärung",
+      "dpa": "DPA-Vorlage",
+      "legalNotice": "Rechtlicher Hinweis",
+      "cookies": "Cookie-Richtlinie"
+    },
+    "terms": {
+      "title": "Nutzungsbedingungen"
+    },
+    "privacy": {
+      "title": "Datenschutzerklärung"
+    },
+    "dpa": {
+      "title": "Vorlage für den Auftragsverarbeitungsvertrag (DPA)"
+    },
+    "legalNotice": {
+      "title": "Rechtlicher Hinweis"
+    },
+    "cookies": {
+      "title": "Cookie-Richtlinie"
+    },
+    "reaccept": {
+      "title": "Die Bedingungen haben sich geändert",
+      "description": "Wir haben die Nutzungsbedingungen und die Datenschutzrichtlinie aktualisiert. Lies sie, bevor du fortfährst, und akzeptiere die neue Version, um dein Konto weiter zu nutzen.",
+      "termsLink": "Nutzungsbedingungen lesen",
+      "privacyLink": "Datenschutzrichtlinie lesen",
+      "accept": "Akzeptieren und fortfahren",
+      "error": "Die Zustimmung konnte nicht gespeichert werden. Bitte versuche es erneut."
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Räume entdecken",
@@ -1263,15 +1295,5 @@
     "success": "Danke! Wir haben deine Nachricht erhalten und melden uns bald.",
     "sending": "Wird gesendet…",
     "error": "Die Nachricht konnte nicht gesendet werden. Bitte versuche es erneut."
-  },
-  "Legal": {
-    "reaccept": {
-      "title": "Die Bedingungen haben sich geändert",
-      "description": "Wir haben die Nutzungsbedingungen und die Datenschutzrichtlinie aktualisiert. Lies sie, bevor du fortfährst, und akzeptiere die neue Version, um dein Konto weiter zu nutzen.",
-      "termsLink": "Nutzungsbedingungen lesen",
-      "privacyLink": "Datenschutzrichtlinie lesen",
-      "accept": "Akzeptieren und fortfahren",
-      "error": "Die Zustimmung konnte nicht gespeichert werden. Bitte versuche es erneut."
-    }
   }
 }

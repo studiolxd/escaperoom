@@ -1334,6 +1334,38 @@
       "ctaFinish": "Finish"
     }
   },
+  "Legal": {
+    "nav": {
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "dpa": "DPA Template",
+      "legalNotice": "Legal Notice",
+      "cookies": "Cookie Policy"
+    },
+    "terms": {
+      "title": "Terms of Service"
+    },
+    "privacy": {
+      "title": "Privacy Policy"
+    },
+    "dpa": {
+      "title": "Data Processing Agreement (DPA) Template"
+    },
+    "legalNotice": {
+      "title": "Legal Notice"
+    },
+    "cookies": {
+      "title": "Cookie Policy"
+    },
+    "reaccept": {
+      "title": "The terms have changed",
+      "description": "We've updated the Terms of Service and Privacy Policy. Read them before continuing and accept the new version to keep using your account.",
+      "termsLink": "Read Terms of Service",
+      "privacyLink": "Read Privacy Policy",
+      "accept": "Accept and continue",
+      "error": "Couldn't record your acceptance. Please try again."
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Browse rooms",
@@ -1351,16 +1383,6 @@
     "success": "Thanks! We received your message and will get back to you soon.",
     "sending": "Sending…",
     "error": "We couldn't send your message. Please try again."
-  },
-  "Legal": {
-    "reaccept": {
-      "title": "The terms have changed",
-      "description": "We've updated the Terms of Service and Privacy Policy. Read them before continuing and accept the new version to keep using your account.",
-      "termsLink": "Read Terms of Service",
-      "privacyLink": "Read Privacy Policy",
-      "accept": "Accept and continue",
-      "error": "Couldn't record your acceptance. Please try again."
-    }
   },
   "Auth": {
     "login": {

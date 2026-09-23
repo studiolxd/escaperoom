@@ -1246,6 +1246,38 @@
       "UNKNOWN": "Une erreur s'est produite. Réessayez."
     }
   },
+  "Legal": {
+    "nav": {
+      "terms": "Conditions d'utilisation",
+      "privacy": "Politique de confidentialité",
+      "dpa": "Modèle de DPA",
+      "legalNotice": "Mentions légales",
+      "cookies": "Politique de cookies"
+    },
+    "terms": {
+      "title": "Conditions d'utilisation"
+    },
+    "privacy": {
+      "title": "Politique de confidentialité"
+    },
+    "dpa": {
+      "title": "Modèle de contrat de sous-traitance (DPA)"
+    },
+    "legalNotice": {
+      "title": "Mentions légales"
+    },
+    "cookies": {
+      "title": "Politique de cookies"
+    },
+    "reaccept": {
+      "title": "Les conditions ont changé",
+      "description": "Nous avons mis à jour les Conditions d'utilisation et la Politique de confidentialité. Lisez-les avant de continuer et acceptez la nouvelle version pour continuer à utiliser votre compte.",
+      "termsLink": "Lire les Conditions d'utilisation",
+      "privacyLink": "Lire la Politique de confidentialité",
+      "accept": "Accepter et continuer",
+      "error": "Impossible d'enregistrer votre acceptation. Réessayez."
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Explorer les salles",
@@ -1263,15 +1295,5 @@
     "success": "Merci ! Nous avons bien reçu votre message et nous vous répondrons bientôt.",
     "sending": "Envoi…",
     "error": "Impossible d'envoyer le message. Réessayez."
-  },
-  "Legal": {
-    "reaccept": {
-      "title": "Les conditions ont changé",
-      "description": "Nous avons mis à jour les Conditions d'utilisation et la Politique de confidentialité. Lisez-les avant de continuer et acceptez la nouvelle version pour continuer à utiliser votre compte.",
-      "termsLink": "Lire les Conditions d'utilisation",
-      "privacyLink": "Lire la Politique de confidentialité",
-      "accept": "Accepter et continuer",
-      "error": "Impossible d'enregistrer votre acceptation. Réessayez."
-    }
   }
 }

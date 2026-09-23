@@ -1246,6 +1246,38 @@
       "UNKNOWN": "Er ging iets mis. Probeer het opnieuw."
     }
   },
+  "Legal": {
+    "nav": {
+      "terms": "Gebruiksvoorwaarden",
+      "privacy": "Privacybeleid",
+      "dpa": "DPA-sjabloon",
+      "legalNotice": "Juridische kennisgeving",
+      "cookies": "Cookiebeleid"
+    },
+    "terms": {
+      "title": "Gebruiksvoorwaarden"
+    },
+    "privacy": {
+      "title": "Privacybeleid"
+    },
+    "dpa": {
+      "title": "Sjabloon verwerkersovereenkomst (DPA)"
+    },
+    "legalNotice": {
+      "title": "Juridische kennisgeving"
+    },
+    "cookies": {
+      "title": "Cookiebeleid"
+    },
+    "reaccept": {
+      "title": "De voorwaarden zijn gewijzigd",
+      "description": "We hebben de Gebruiksvoorwaarden en het Privacybeleid bijgewerkt. Lees ze voordat je verdergaat en accepteer de nieuwe versie om je account te blijven gebruiken.",
+      "termsLink": "Gebruiksvoorwaarden lezen",
+      "privacyLink": "Privacybeleid lezen",
+      "accept": "Accepteren en doorgaan",
+      "error": "Je acceptatie kon niet worden opgeslagen. Probeer het opnieuw."
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Kamers verkennen",
@@ -1263,15 +1295,5 @@
     "success": "Bedankt! We hebben je bericht ontvangen en reageren snel.",
     "sending": "Verzenden…",
     "error": "Het bericht kon niet worden verzonden. Probeer het opnieuw."
-  },
-  "Legal": {
-    "reaccept": {
-      "title": "De voorwaarden zijn gewijzigd",
-      "description": "We hebben de Gebruiksvoorwaarden en het Privacybeleid bijgewerkt. Lees ze voordat je verdergaat en accepteer de nieuwe versie om je account te blijven gebruiken.",
-      "termsLink": "Gebruiksvoorwaarden lezen",
-      "privacyLink": "Privacybeleid lezen",
-      "accept": "Accepteren en doorgaan",
-      "error": "Je acceptatie kon niet worden opgeslagen. Probeer het opnieuw."
-    }
   }
 }

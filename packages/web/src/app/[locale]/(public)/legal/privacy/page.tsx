@@ -20,8 +20,6 @@ export default async function PrivacyPage({ params }: Props) {
   return (
     <LegalPage
       title={t("privacy.title")}
-      draftNotice={t("draftNotice")}
-      draftDateLabel={t("draftDateLabel")}
       document={privacyPolicy}
       onlyInSpanishNotice={locale === "es" ? undefined : t("onlyInSpanishNotice")}
       currentHref="/legal/privacy"
