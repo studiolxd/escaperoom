@@ -218,12 +218,12 @@ function playSalonHastaArca(script: Script): void {
   // 4. Encender el brasero → dígito 3 visible
   record(session.interact("brasero", clock.next(), "p1").engine);
   expect(session.flag("digito3")).toBe(3);
-  // 5. Candado del arca "4732" → cáliz + pergamino
+  // 5. Candado del arca "4732" → cáliz + busto de piedra + pergamino
   const arca = session.attemptCode("p-candado-arca", "4732", clock.next(), "p1");
   expect(arca.outcome).toBe("correct");
   record(arca.engine);
   expect(session.inventory("p1")).toEqual(
-    expect.arrayContaining(["caliz-real", "pergamino-bodega"]),
+    expect.arrayContaining(["caliz-real", "busto-piedra", "pergamino-bodega"]),
   );
 }
 
@@ -342,25 +342,28 @@ describe("integración — Rey Aldric completo (2 jugadores)", () => {
 });
 
 describe("integración — Rey Aldric en solitario (objetos-puente)", () => {
-  it("un jugador gana con el cáliz en la placa y el espejo en la mirilla", () => {
+  it("un jugador gana con el busto en la placa y el espejo en la mirilla (ambos se gastan)", () => {
     const script = newScript(["p1"]);
     const { session, clock, record } = script;
 
     playSalonHastaArca(script);
+    expect(session.inventory("p1")).toContain("busto-piedra");
 
-    // 6. [Solo] cáliz en la placa izquierda + el jugador en la derecha
+    // 6. [Solo] busto de piedra en la placa izquierda + el jugador en la derecha
     record(session.movePlayer("p1", "salon-trono", PLACA_IZQ.x, PLACA_IZQ.y, clock.next()).engine);
-    const bridge = session.useItemOnObject("caliz-real", "placa-izq", clock.next(), "p1");
+    const bridge = session.useItemOnObject("busto-piedra", "placa-izq", clock.next(), "p1");
     expect(bridge.rejected).toBeUndefined();
     record(bridge.engine);
-    // El jugador deja la placa: el cáliz la mantiene hundida.
+    // El puente se gasta al fijarse: desaparece del inventario, pero la placa
+    // se queda hundida sola (fijada permanentemente, no por peso vivo).
+    expect(session.inventory("p1")).not.toContain("busto-piedra");
     record(session.movePlayer("p1", "salon-trono", 10, 11, clock.next()).engine);
     expect(session.objectState("placa-izq")).toBe("down");
     expect(session.isPuzzleSolved("p-placas-estatuas")).toBe(false);
     record(session.movePlayer("p1", "salon-trono", PLACA_DER.x, PLACA_DER.y, clock.next()).engine);
     expect(session.isPuzzleSolved("p-placas-estatuas")).toBe(true);
     expect(session.objectState("puerta-bodega")).toBe("open");
-    // El puente no se consume: el cáliz sigue sirviendo para la ranura.
+    // El cáliz es un objeto distinto (2.11): sigue disponible para la ranura.
     expect(session.inventory("p1")).toContain("caliz-real");
 
     record(session.movePlayer("p1", "bodega", 9, 2, clock.next()).engine);
@@ -372,6 +375,8 @@ describe("integración — Rey Aldric en solitario (objetos-puente)", () => {
     record(session.movePlayer("p1", "bodega", MIRILLA_A.x, MIRILLA_A.y, clock.next()).engine);
     expect(session.splitClueView("p-reja-mirillas", "p1").visibleCount).toBe(2);
     record(session.useItemOnObject("espejo", "mirilla-a", clock.next(), "p1").engine);
+    // El espejo también se gasta al fijarse en la mirilla.
+    expect(session.inventory("p1")).not.toContain("espejo");
     const view = session.splitClueView("p-reja-mirillas", "p1");
     expect(view.bridged).toBe(true);
     expect(view.visible.every((fragment) => fragment !== null)).toBe(true);

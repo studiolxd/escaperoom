@@ -463,3 +463,51 @@ una sala entera a la vez) sí hará falta una cola, como el resto de trabajos la
 audio con previsualización síncrona); tabla `audioAssetGeneration` separada (duplica moderación,
 referencias y publicación sin necesidad); tool MCP de generación de una sola llamada (no puede
 ofrecer la previsualización sin cobrar que pide la spec).
+
+---
+
+## ADR-025 — Objetos-puente: se consumen al usarse (revierte ADR de 2.8/2.10)
+
+**Contexto:** en 2.8/2.10 se decidió que el objeto-puente de una mecánica cooperativa en modo
+solitario (el cáliz sobre una placa de `simultaneous_plates`, el espejo en una mirilla de
+`split_clue`) **no se consumía**: quedaba en el inventario y podía reutilizarse. Se revisó esa
+decisión: en un escape room un objeto normalmente se usa una sola vez, y "se presenta sin gastarse"
+rompía esa expectativa para cualquiera que probara el modo solitario.
+
+**Decisión:** el puente **se consume** (se retira del inventario) al fijarse en la placa/mirilla,
+tanto en el motor (`RoomSession.useItemOnObject` → `consumeInventoryItem`) como en el validador
+(`oracles.ts` mueve el ítem a `itemsConsumed`, no a un `itemsUsed` sin gastar — ese campo se ha
+eliminado de `StepEffects`/`RouteStep` por quedar sin uso). Como el inventario no admite copias
+duplicadas del mismo ítem (`grantItem`/`addItem` son idempotentes), un objeto-puente consumible solo
+puede cubrir **una** placa que falte por jugador ausente; si `plates.length - playerCount > 1`, el
+validador lo marca como irresoluble en solitario aunque el ítem exista (`oracles.ts`,
+`simultaneous_plates`).
+
+El Rey Aldric reutilizaba el mismo cáliz para dos interacciones (puente de `p-placas-estatuas` +
+ranura del mural en `bodega`), con la regla `r-recoger-caliz` devolviéndolo tras las placas para
+evitar un soft-lock — un patrón que solo funcionaba porque el puente no se gastaba. Consumirlo a la
+primera interacción habría dejado la ruta en solitario irresoluble. Se evaluaron dos soluciones:
+
+1. **Dos objetos distintos** (elegida): `p-candado-arca` ahora otorga también `busto-piedra`
+   (temáticamente coherente con "placas de las estatuas"), que pasa a ser el `soloBridgeItemId` de
+   `p-placas-estatuas`. `caliz-real` sigue yendo a la ranura del mural, sin cambios. Es la solución
+   más simple y explícita: cada puzzle tiene su propio objeto, sin lógica adicional de recuperación
+   ni orden de pasos que razonar.
+2. **Gastar solo en el último uso** (descartada): habría exigido que el motor supiera cuántos usos
+   le quedan a un ítem multiuso antes de consumirlo, y que el validador modelara esa cuenta — mucha
+   más complejidad de diseño y de implementación para un caso (un mismo objeto con dos destinos
+   distintos) que ya era, por sí mismo, una señal de diseño confusa (el validador histórico ya lo
+   marcaba con 🟡 como "doble uso potencialmente conflictivo").
+
+`r-recoger-caliz` se mantiene (permite volver a sacar el cáliz de la ranura por lore) pero deja de
+ser necesaria para la resolubilidad.
+
+**Consecuencias:** los objetos-puente se comportan como cualquier otro objeto de un solo uso, más
+predecible para creadores y jugadores. Un puzzle cooperativo con más de 1 plaza sin cubrir en
+solitario ya no se puede resolver con un solo objeto-puente: hace falta subir `players.min` o
+rediseñar el puzzle (p. ej. varias placas con distinto `soloBridgeItemId` no es posible hoy — el
+esquema solo admite uno por puzzle). `docs/reference/roompackage-rey-aldric.v1.json` gana el ítem
+`busto-piedra`; `docs/reference/rey-aldric-notas-diseno.md` documenta el cambio.
+
+**Alternativas descartadas:** ver arriba (gastar solo en el último uso); mantener el comportamiento
+de 2.8/2.10 (rechazada por no reflejar cómo se comporta un escape room real).

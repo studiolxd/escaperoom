@@ -95,9 +95,9 @@ export interface OracleOptions {
 }
 
 /**
- * Construye el oráculo del modelo: `ok` con los ítems que el paso presenta sin
- * gastarlos (objetos-puente) o todos los motivos por los que aún no se puede
- * resolver.
+ * Construye el oráculo del modelo: `ok` con los ítems que el paso gasta
+ * (objetos-puente, desde 2.11) o todos los motivos por los que aún no se
+ * puede resolver.
  */
 export function createOracle(index: RoomIndex, options: OracleOptions = {}): PuzzleOracle {
   const templateCache = new Map<string, boolean>();
@@ -168,13 +168,19 @@ export function createOracle(index: RoomIndex, options: OracleOptions = {}): Puz
             reasons.push(
               `necesita ${puzzle.plates.length} jugadores a la vez y no declara soloBridgeItemId`,
             );
+          } else if (missing > 1) {
+            // El puente se gasta al fijarse (2.11) y el inventario no admite
+            // duplicados del mismo ítem (`grantItem` es idempotente): un solo
+            // objeto-puente nunca puede cubrir más de una placa que falte.
+            reasons.push(
+              `con ${state.playerCount} jugador(es) faltan ${missing} placas y un objeto-puente consumible solo cubre 1 (el inventario no admite copias duplicadas de «${bridge}»)`,
+            );
           } else if (state.itemCount(bridge) <= 0) {
             reasons.push(
               `con ${state.playerCount} jugador(es) necesita el objeto-puente «${bridge}» en el inventario`,
             );
           } else {
-            // El puente se presenta y no se gasta (igual que en `RoomSession`):
-            // el mismo objeto puede fijar todas las placas que falten.
+            // El puente se gasta al fijarse (igual que en `RoomSession`).
             uses.push(bridge);
           }
         }

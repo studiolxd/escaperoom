@@ -137,7 +137,7 @@ describe("collectRequiredFrames y validador de pack", () => {
     expect(required.sprites).toContain("cuadro-rey");
     expect(required.sprites).toContain("cuadro-rey-torcido");
     expect(required.sprites).toContain("tapiz-dragones");
-    expect(required.icons).toHaveLength(9);
+    expect(required.icons).toHaveLength(10);
     expect(required.icons).toContain("icon-llave-oro");
   });
 

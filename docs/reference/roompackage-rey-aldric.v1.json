@@ -134,6 +134,7 @@
     { "id": "llave-plata", "name": { "es": { "text": "Llave de plata" } }, "icon": "icon-llave-plata" },
     { "id": "llave-oro", "name": { "es": { "text": "Llave de oro" } }, "icon": "icon-llave-oro" },
     { "id": "caliz-real", "name": { "es": { "text": "Cáliz real" } }, "icon": "icon-caliz" },
+    { "id": "busto-piedra", "name": { "es": { "text": "Busto de piedra" } }, "icon": "icon-busto" },
     { "id": "espejo", "name": { "es": { "text": "Espejo antiguo" } }, "icon": "icon-espejo" },
     { "id": "pergamino-bodega", "name": { "es": { "text": "Pergamino de los vinos" } }, "icon": "icon-pergamino" }
   ],
@@ -156,7 +157,7 @@
     },
     {
       "id": "p-candado-arca", "type": "code_lock", "layer": "panel",
-      "roomId": "salon-trono", "requiresSolved": [], "grantsItems": ["caliz-real", "pergamino-bodega"], "unlocks": ["arca-candado"],
+      "roomId": "salon-trono", "requiresSolved": [], "grantsItems": ["caliz-real", "busto-piedra", "pergamino-bodega"], "unlocks": ["arca-candado"],
       "length": 4, "code": "4732", "maxAttempts": 5, "lockoutSec": 30,
       "hints": ["hint-arca-1", "hint-arca-2"]
     },
@@ -167,7 +168,7 @@
         { "objectId": "placa-izq", "x": 6, "y": 11 },
         { "objectId": "placa-der", "x": 14, "y": 11 }
       ],
-      "windowMs": 800, "holdMode": "stand", "soloBridgeItemId": "caliz-real"
+      "windowMs": 800, "holdMode": "stand", "soloBridgeItemId": "busto-piedra"
     },
     {
       "id": "p-mural-vendimia", "type": "sliding_puzzle", "layer": "panel",
