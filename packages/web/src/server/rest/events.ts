@@ -61,7 +61,7 @@ async function handle(fn: () => Promise<Response>): Promise<Response> {
 }
 
 /** Forma pública de un evento: `playersPurchased` se expone como `playersPlanned` (la entrada). */
-function eventJson(e: EventView) {
+export function eventJson(e: EventView) {
   return {
     id: e.id,
     organizerId: e.organizerId,
@@ -137,7 +137,11 @@ export function createEventHandlers(deps: EventHandlerDeps) {
       });
     },
 
-    /** `POST /api/events/:id/activate` — `draft → active` con el pago saldado. */
+    /**
+     * `draft → active` con el pago saldado, sin generar nada. La ruta
+     * `POST /api/events/:id/activate` usa `createAccessKeyHandlers().postActivate`
+     * (5.5), que además crea las sesiones y las claves.
+     */
     async postActivate(request: Request, ctx: EventRouteContext): Promise<Response> {
       return handle(async () => {
         const { id } = await ctx.params;

@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Procesos de cola del backend: consume la cola de analítica de Redis y escribe en analyticsEvent vía Prisma (specs/16, 14 §8).",
+  "description": "Procesos de cola del backend: consume la cola de analítica de Redis y escribe en analyticsEvent vía Prisma (specs/16, 14 §8), y el job repetitivo de caducidad de claves (specs/02 §4.3).",
   "exports": {
     ".": "./src/index.ts"
   },

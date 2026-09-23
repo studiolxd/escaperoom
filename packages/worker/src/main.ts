@@ -2,10 +2,13 @@ import { existsSync } from "node:fs";
 import { createQueueRedis } from "@escaperoom/kit/redis";
 import { logger } from "@escaperoom/kit/logger";
 import { prisma } from "@escaperoom/shared/db";
+import { createPrismaAccessKeyStore } from "@escaperoom/shared/services";
+import { createAccessKeyExpiryWorker } from "./access-key-expiry";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
 
 /**
- * Arranque del worker de analítica.
+ * Arranque de los workers de cola: analítica (specs/16) y caducidad de claves
+ * (ticket 5.5, job repetitivo).
  *
  *   pnpm --filter @escaperoom/worker dev
  *
@@ -42,13 +45,23 @@ async function main(): Promise<void> {
     logger.info("analytics worker: consumiendo la cola de analítica");
   });
 
+  // Conexión propia: cada Worker de BullMQ bloquea la suya.
+  const expiryConnection = createQueueRedis();
+  const expiry = await createAccessKeyExpiryWorker({
+    store: createPrismaAccessKeyStore(prisma),
+    connection: expiryConnection,
+  });
+
   let closing = false;
   const shutdown = async (signal: string): Promise<void> => {
     if (closing) return;
     closing = true;
     logger.info({ signal }, "analytics worker: cerrando");
     await worker.close();
+    await expiry.worker.close();
+    await expiry.queue.close();
     await connection.quit().catch(() => undefined);
+    await expiryConnection.quit().catch(() => undefined);
     await prisma.$disconnect().catch(() => undefined);
   };
 
