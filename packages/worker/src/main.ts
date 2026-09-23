@@ -12,20 +12,25 @@ import {
   createPrismaAccessKeyCardStore,
   createPrismaModerationStore,
   createPrismaAccessKeyStore,
+  createPrismaAccessKeyEmailPurgeStore,
   createPrismaInvitationStore,
+  readEmailPurgeSecret,
 } from "@escaperoom/shared/services";
 import { createAccessKeyCardsWorker } from "./access-key-cards";
 import { createAnalyticsPartitionsWorker } from "./analytics-partitions";
 import { createAccessKeyExpiryWorker } from "./access-key-expiry";
+import { createAccessKeyEmailPurgeWorker } from "./access-key-email-purge";
 import { createInvitationEmailWorker } from "./invitation-email";
 import { createModerationSamplingWorker } from "./moderation-sampling";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
 
 /**
  * Arranque de los workers de cola: analítica (specs/16), caducidad de claves
- * (ticket 5.5, job repetitivo), envíos de invitación por email (ticket 5.6),
- * PDF de tarjetas-clave (ticket 5.7), particiones/purga de analítica (ticket
- * 6.11, job mensual) y muestreo aleatorio de moderación (ticket 6.1, diario).
+ * (ticket 5.5, job repetitivo), purga (hash) del email de claves tras el
+ * plazo de retención (specs/18 §4.1), envíos de invitación por email (ticket
+ * 5.6), PDF de tarjetas-clave (ticket 5.7), particiones/purga de analítica
+ * (ticket 6.11, job mensual) y muestreo aleatorio de moderación (ticket 6.1,
+ * diario).
  *
  *   pnpm --filter @escaperoom/worker dev
  *
@@ -71,6 +76,21 @@ async function main(): Promise<void> {
     store: createPrismaAccessKeyStore(prisma),
     connection: expiryConnection,
   });
+
+  // Purga (hash) del email de claves: sin APP_SECRET en producción, inactivo.
+  const emailPurgeSecret = readEmailPurgeSecret();
+  const emailPurgeConnection = emailPurgeSecret ? createQueueRedis() : null;
+  const emailPurge =
+    emailPurgeSecret && emailPurgeConnection
+      ? await createAccessKeyEmailPurgeWorker({
+          store: createPrismaAccessKeyEmailPurgeStore(prisma),
+          secret: emailPurgeSecret,
+          connection: emailPurgeConnection,
+        })
+      : null;
+  if (!emailPurge) {
+    logger.warn("access-key email purge: APP_SECRET no configurado; job inactivo");
+  }
 
   // Envíos de invitación: sin transporte (config de email incompleta en
   // producción) no se consume la cola y los jobs esperan a que se configure.
@@ -131,6 +151,8 @@ async function main(): Promise<void> {
     await worker.close();
     await expiry.worker.close();
     await expiry.queue.close();
+    await emailPurge?.worker.close();
+    await emailPurge?.queue.close();
     await invitations?.close();
     await cards.close();
     await partitions.worker.close();
@@ -139,6 +161,7 @@ async function main(): Promise<void> {
     await sampling.queue.close();
     await connection.quit().catch(() => undefined);
     await expiryConnection.quit().catch(() => undefined);
+    await emailPurgeConnection?.quit().catch(() => undefined);
     await mailConnection?.quit().catch(() => undefined);
     await cardsConnection.quit().catch(() => undefined);
     await partitionsConnection.quit().catch(() => undefined);
