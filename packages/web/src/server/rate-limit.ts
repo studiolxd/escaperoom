@@ -70,6 +70,10 @@ export const RATE_LIMIT_POLICIES = {
     ip: { limit: 20, windowSeconds: 3600 },
     user: { limit: 5, windowSeconds: 3600 },
   },
+  /** `POST /api/waitlist` (ticket 6.7) — público, sin sesión: solo cuota por IP. */
+  "waitlist-join": {
+    ip: { limit: 10, windowSeconds: 600 },
+  },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitPolicyName = keyof typeof RATE_LIMIT_POLICIES;

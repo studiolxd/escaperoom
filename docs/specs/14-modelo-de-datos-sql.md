@@ -554,6 +554,25 @@ CREATE TRIGGER "trgReviewUpdatedAt" BEFORE UPDATE ON "review"
   FOR EACH ROW EXECUTE FUNCTION "setUpdatedAt"();
 ```
 
+## 9.1 Waitlist de la landing (ticket 6.7)
+
+No prevista explícitamente en este documento antes de 6.7 (`specs/20 §1`, `specs/25 §2.1` solo
+mencionan "landing + email" sin modelo). Decisión de diseño: tabla mínima, sin relación con
+`user` (cualquier visitante, autenticado o no, puede apuntarse) y `UNIQUE(email)` para que
+reintentar el alta sea idempotente en vez de un error.
+
+```sql
+-- 0017_waitlist.sql
+CREATE TABLE "waitlistSignup" (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  email       citext NOT NULL,
+  locale      text NOT NULL,
+  source      text,
+  "createdAt" timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (email)
+);
+```
+
 ## 10. Moderación y apelaciones
 
 ```sql

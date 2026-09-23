@@ -557,6 +557,14 @@
       "governedBy": "Object that controls it",
       "noObject": "Always lit",
       "removeTorch": "Remove torch"
+    },
+    "toolHints": {
+      "brush": "Paint the floor tile by tile.",
+      "fill": "Fill a connected area with the same tile.",
+      "eraser": "Erase tiles from the active layer.",
+      "place": "Place interactive objects (keys, locks, furniture…).",
+      "decorate": "Add visual decoration, no game logic.",
+      "torch": "Place torches that light up the room."
     }
   },
   "Inspector": {
@@ -1247,6 +1255,94 @@
       "ALREADY_REVIEWED": "Someone else has already resolved it.",
       "VALIDATION_ERROR": "That decision isn't valid for this content.",
       "UNKNOWN": "Something went wrong. Please try again."
+    }
+  },
+  "Landing": {
+    "kicker": "EscapeRoom Creator",
+    "heroTitle": "Create and play cooperative isometric escape rooms in the browser",
+    "heroSubtitle": "Publish and monetize rooms without writing code — the editor IS the game engine — or build a whole room by chatting with an AI agent.",
+    "ctaStartCreating": "Create your first room",
+    "ctaBrowseCatalog": "Browse the catalog",
+    "valuePropsTitle": "One platform, three ways to play",
+    "valueProps": {
+      "creator": {
+        "title": "For creators",
+        "body": "Publish and monetize rooms without knowing how to code; the editor is the actual game engine (real WYSIWYG) and the MCP lets you build a whole room by describing it to the chat."
+      },
+      "player": {
+        "title": "For players",
+        "body": "Cooperative 1-4 player escape rooms in the browser, with voice and webcam, nothing to install."
+      },
+      "organizer": {
+        "title": "For teachers and companies",
+        "body": "Buy per player with tiered discounts, hand out access keys and watch your group's progress live."
+      }
+    },
+    "waitlist": {
+      "title": "Be the first to know",
+      "subtitle": "Join the waitlist and we'll let you know as soon as you can create your first room.",
+      "emailLabel": "Your email",
+      "submit": "Join",
+      "sending": "Sending…",
+      "success": "Done! We'll let you know as soon as we open up.",
+      "alreadyIn": "You were already on the list — we'll still let you know.",
+      "error": "Couldn't save your email. Please try again."
+    }
+  },
+  "Onboarding": {
+    "title": "Create your first room",
+    "progress": "Step {step} of 5",
+    "stepLabels": {
+      "theme": "Theme",
+      "firstRoom": "First room",
+      "firstPuzzle": "First puzzle",
+      "playtest": "Playtest",
+      "publish": "Publish"
+    },
+    "back": "Back",
+    "loginRequired": {
+      "intro": "Sign in to start creating.",
+      "google": "Continue with Google",
+      "emailLabel": "Or with a magic link by email",
+      "emailSubmit": "Send link",
+      "emailSent": "We've sent a link to your email.",
+      "error": "Couldn't sign in. Please try again."
+    },
+    "step1": {
+      "title": "1. Choose a theme",
+      "body": "This first version's theme pack is medieval: castle, dungeon and period props. It's the starting point for every room.",
+      "medievalLabel": "Medieval",
+      "cta": "Continue"
+    },
+    "step2": {
+      "title": "2. Paint your first room",
+      "body": "Start from a pre-filled template instead of a blank canvas: an editable copy of \"The Curse of King Aldric\", the platform's reference room. Take it apart, delete what you don't need and make it yours, or start blank.",
+      "templateOption": "Copy of King Aldric (recommended)",
+      "templateDesc": "3 rooms, 8 puzzles already solved as an example — see how it's built and edit it.",
+      "blankOption": "Start blank",
+      "blankDesc": "Empty room with the minimum metadata.",
+      "cta": "Create room and open the editor",
+      "creating": "Creating your room…",
+      "error": "Couldn't create the room. Please try again.",
+      "openEditor": "Open in the editor →"
+    },
+    "step3": {
+      "title": "3. Place 1 guided puzzle",
+      "body": "In the editor, try the \"Decorate\" or \"Place\" tool to add an object and attach a puzzle to it (a lock, for example). Every tool shows a tooltip the first time you use it.",
+      "hint": "Tip: the King Aldric copy already ships with 8 solved puzzles — open one in the inspector to see how it's built.",
+      "cta": "I placed my puzzle, continue"
+    },
+    "step4": {
+      "title": "4. Playtest",
+      "body": "Play your own room in a temporary session before publishing it, without it counting as a real playthrough.",
+      "cta": "Open playtest",
+      "done": "I've tried it, continue"
+    },
+    "step5": {
+      "title": "5. Publish",
+      "body": "When you're ready, publish your room from the editor — the validator explains every warning before it blocks publishing. Not ready yet? Save the draft and come back anytime.",
+      "ctaOpenEditor": "Open the editor to publish",
+      "ctaFinish": "Finish"
     }
   }
 }

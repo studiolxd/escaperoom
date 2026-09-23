@@ -40,6 +40,14 @@ explícitamente para minimizar el abandono:
 - Los mensajes del **validador** son accionables, no crípticos: *"El puzzle `candado-arca` requiere
   `llave-bronce`, pero ninguna regla lo otorga"*.
 
+**Decisión de diseño (6.7, no cerrada explícitamente aquí):** no existía ningún sistema de hints
+en `packages/editor` (el único previo, `shared/src/hints`, es el de pistas de *puzzle* dentro de
+una partida, un dominio distinto). Se implementó el mínimo que encaja con el editor actual: un
+globo de ayuda por herramienta (`data-tool`), mostrado una vez y persistido en `localStorage`
+(`packages/web/src/components/room-editor/editor-tool-hint.tsx`), sin backend ni tabla propia. El
+**enlace al vídeo de 60 s queda pendiente**: no hay todavía infraestructura de vídeo/hosting en el
+repo: el tooltip solo lleva el texto corto.
+
 ## 5. Medición
 
 - El wizard registra el paso de abandono (`onboardingStep`) — ver `specs/16-analitica.md`.

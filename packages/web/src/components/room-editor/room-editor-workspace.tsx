@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
+import { EditorToolHint } from "./editor-tool-hint";
 import { RoomEditorPalette } from "./room-editor-palette";
 import { RoomEditorRoomPanel } from "./room-editor-room-panel";
 
@@ -205,17 +206,18 @@ export function RoomEditorWorkspace({
               className={cn("flex gap-1", showRules && "hidden")}
             >
               {EDIT_TOOLS.map((tool) => (
-                <Button
-                  key={tool}
-                  size="sm"
-                  variant={tools.tool === tool ? "secondary" : "ghost"}
-                  className={tools.tool === tool ? undefined : QUIET_BUTTON}
-                  aria-pressed={tools.tool === tool}
-                  data-tool={tool}
-                  onClick={() => controller.setTool(tool)}
-                >
-                  {t(`tools.${tool}`)}
-                </Button>
+                <EditorToolHint key={tool} id={`tool.${tool}`} text={t(`toolHints.${tool}`)}>
+                  <Button
+                    size="sm"
+                    variant={tools.tool === tool ? "secondary" : "ghost"}
+                    className={tools.tool === tool ? undefined : QUIET_BUTTON}
+                    aria-pressed={tools.tool === tool}
+                    data-tool={tool}
+                    onClick={() => controller.setTool(tool)}
+                  >
+                    {t(`tools.${tool}`)}
+                  </Button>
+                </EditorToolHint>
               ))}
             </div>
             <label

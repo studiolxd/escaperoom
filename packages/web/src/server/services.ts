@@ -64,6 +64,9 @@ import {
   type PricingTierService,
   type RoomDraftService,
   type RoomPublishService,
+  createWaitlistService,
+  createPrismaWaitlistStore,
+  type WaitlistService,
 } from "@escaperoom/shared/services";
 import { createBullCardExportQueue } from "@escaperoom/shared/access-key-cards-queue";
 import { resolveColyseusHttpUrl } from "./playtest-launcher";
@@ -92,6 +95,7 @@ let accessKeyCards: AccessKeyCardsService | undefined;
 let organizations: OrganizationService | undefined;
 let eventPanel: EventPanelService | undefined;
 let moderation: ModerationService | undefined;
+let waitlist: WaitlistService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -169,6 +173,12 @@ export function getAudioAssetService(): AudioAssetService {
 export function getModerationService(): ModerationService {
   moderation ??= createModerationService({ store: createPrismaModerationStore(prisma) });
   return moderation;
+}
+
+/** Waitlist de la landing pública (ticket 6.7, specs/20 §1, §5) sobre Postgres. */
+export function getWaitlistService(): WaitlistService {
+  waitlist ??= createWaitlistService({ store: createPrismaWaitlistStore(prisma) });
+  return waitlist;
 }
 
 /**
