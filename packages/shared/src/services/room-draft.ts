@@ -38,9 +38,16 @@ export type DraftRoomRef = { id: string; authorId: string };
 
 /** Operaciones de lectura/escritura sobre las tablas del draft. */
 export interface RoomDraftTx {
-  latestSnapshot(roomId: string): Promise<DraftSnapshot | null>;
-  /** Updates con `id > afterId`, en orden ascendente de `id`. */
-  updatesAfter(roomId: string, afterId: bigint): Promise<DraftUpdate[]>;
+  /**
+   * Snapshot más reciente; con `atOrBeforeUpdateId`, el más reciente cuyo
+   * `updatesAppliedThrough <= atOrBeforeUpdateId` (restauración).
+   */
+  latestSnapshot(roomId: string, atOrBeforeUpdateId?: bigint): Promise<DraftSnapshot | null>;
+  /**
+   * Updates con `id > afterId` (y `id <= throughId` si se indica), en orden
+   * ascendente de `id`.
+   */
+  updatesAfter(roomId: string, afterId: bigint, throughId?: bigint): Promise<DraftUpdate[]>;
   countUpdatesAfter(roomId: string, afterId: bigint): Promise<number>;
   insertUpdate(roomId: string, data: Uint8Array, authorId: string | null): Promise<DraftUpdate>;
   insertSnapshot(
@@ -59,16 +66,14 @@ export interface RoomDraftTx {
 export interface RoomDraftStore extends RoomDraftTx {
   /** La sala viva (sin `deletedAt`), o `null` si no existe o está borrada. */
   findRoom(roomId: string): Promise<DraftRoomRef | null>;
+  /** Metadata de un snapshot concreto de la sala (sin estado), o `null`. */
+  findSnapshot(roomId: string, snapshotId: bigint): Promise<Omit<DraftSnapshot, "state"> | null>;
   listSnapshots(roomId: string, limit: number): Promise<DraftSnapshotMeta[]>;
   withRoomLock<T>(roomId: string, fn: (tx: RoomDraftTx) => Promise<T>): Promise<T>;
 }
 
 export type RoomDraftErrorCode =
-  | "UNAUTHORIZED"
-  | "FORBIDDEN"
-  | "NOT_FOUND"
-  | "INVALID_UPDATE"
-  | "PAYLOAD_TOO_LARGE";
+  "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "INVALID_UPDATE" | "PAYLOAD_TOO_LARGE";
 
 /** Error de dominio del draft; los adaptadores lo traducen a HTTP/tRPC/MCP. */
 export class RoomDraftError extends Error {
@@ -92,6 +97,12 @@ export type AppendUpdateResult = {
   /** Snapshot creado por la compactación periódica, si este update la disparó. */
   snapshot: DraftSnapshotMeta | null;
 };
+
+/**
+ * Punto del historial al que restaurar: un snapshot (`GET …/history`) o un
+ * `roomUpdate.id` concreto. `{ updateId: 0n }` = el doc vacío inicial.
+ */
+export type RestoreTarget = { snapshotId: bigint } | { updateId: bigint };
 
 /** Cada cuántos updates desde el último snapshot se compacta (specs/09 §2). */
 export const DEFAULT_SNAPSHOT_EVERY = 100;
@@ -144,6 +155,54 @@ function toMeta(snapshot: DraftSnapshot): DraftSnapshotMeta {
 }
 
 /**
+ * Update Yjs que, aplicado sobre el estado actual, devuelve el CONTENIDO del
+ * doc al del punto `target` sin reescribir la historia (specs/09 §2).
+ *
+ * Técnica: se reconstruye el doc en el punto objetivo, se aplica encima (en
+ * una sola transacción rastreada por un `UndoManager` de alcance doc completo)
+ * todo lo posterior, y se deshace esa transacción. Las operaciones de "deshacer"
+ * son operaciones nuevas del CRDT (borran lo insertado después y re-crean lo
+ * borrado después), así que el resultado es un update normal que se añade al
+ * historial y que mergea con ediciones concurrentes. Devuelve `null` si no hay
+ * nada que deshacer (el doc ya está en ese punto).
+ */
+export function buildRestoreUpdate(input: {
+  target: Pick<RoomDraft, "snapshot" | "updates">;
+  current: Pick<RoomDraft, "snapshot" | "updates">;
+}): Uint8Array | null {
+  const doc = buildDraftDoc(input.target);
+  const tracked = Symbol("restore");
+  const undo = new Y.UndoManager(doc, { trackedOrigins: new Set([tracked]), captureTimeout: 0 });
+  // Con alcance doc completo el UndoManager apila aunque la transacción no
+  // cambie nada: se detecta aparte si lo posterior al punto aporta algo.
+  let changed = false;
+  const onAfterTransaction = (tr: Y.Transaction) => {
+    if (tr.origin === tracked) changed = tr.changed.size > 0 || tr.deleteSet.clients.size > 0;
+  };
+  doc.on("afterTransaction", onAfterTransaction);
+  try {
+    Y.transact(
+      doc,
+      () => {
+        if (input.current.snapshot) Y.applyUpdate(doc, input.current.snapshot.state);
+        for (const update of input.current.updates) Y.applyUpdate(doc, update.data);
+      },
+      tracked,
+    );
+    doc.off("afterTransaction", onAfterTransaction);
+    if (!changed) return null;
+    const before = Y.encodeStateVector(doc);
+    while (undo.undoStack.length > 0) undo.undo();
+    const update = Y.encodeStateAsUpdate(doc, before);
+    const { structs, ds } = Y.decodeUpdate(update);
+    return structs.length > 0 || ds.clients.size > 0 ? update : null;
+  } finally {
+    undo.destroy();
+    doc.destroy();
+  }
+}
+
+/**
  * Compacta dentro del lock: último snapshot + updates posteriores → nuevo
  * snapshot. Devuelve `null` si no hay updates nuevos que compactar.
  */
@@ -168,6 +227,58 @@ export function createRoomDraftService(deps: {
   const { store } = deps;
   const snapshotEvery = deps.snapshotEvery ?? DEFAULT_SNAPSHOT_EVERY;
   const maxUpdateBytes = deps.maxUpdateBytes ?? DEFAULT_MAX_UPDATE_BYTES;
+
+  /** Resuelve el `roomUpdate.id` hasta el que llega el punto de restauración. */
+  async function resolveRestorePoint(roomId: string, target: RestoreTarget): Promise<bigint> {
+    if ("snapshotId" in target) {
+      const snapshot = await store.findSnapshot(roomId, target.snapshotId);
+      if (!snapshot) throw new RoomDraftError("NOT_FOUND", "Snapshot no encontrado");
+      return snapshot.updatesAppliedThrough;
+    }
+    if (target.updateId < 0n) throw new RoomDraftError("NOT_FOUND", "Update no encontrado");
+    if (target.updateId === 0n) return 0n;
+    const [update] = await store.updatesAfter(roomId, target.updateId - 1n, target.updateId);
+    if (!update) throw new RoomDraftError("NOT_FOUND", "Update no encontrado");
+    return update.id;
+  }
+
+  async function planRestoreInTx(
+    tx: RoomDraftTx,
+    roomId: string,
+    through: bigint,
+  ): Promise<Uint8Array | null> {
+    const targetSnapshot = await tx.latestSnapshot(roomId, through);
+    const targetUpdates = await tx.updatesAfter(
+      roomId,
+      targetSnapshot?.updatesAppliedThrough ?? 0n,
+      through,
+    );
+    const snapshot = await tx.latestSnapshot(roomId);
+    const updates = await tx.updatesAfter(roomId, snapshot?.updatesAppliedThrough ?? 0n);
+    return buildRestoreUpdate({
+      target: { snapshot: targetSnapshot, updates: targetUpdates },
+      current: { snapshot, updates },
+    });
+  }
+
+  async function appendInTx(
+    tx: RoomDraftTx,
+    roomId: string,
+    data: Uint8Array,
+    authorId: string | null,
+  ): Promise<AppendUpdateResult> {
+    const inserted = await tx.insertUpdate(roomId, data, authorId);
+    const update = {
+      id: inserted.id,
+      roomId: inserted.roomId,
+      authorId: inserted.authorId,
+      createdAt: inserted.createdAt,
+    };
+    const latest = await tx.latestSnapshot(roomId);
+    const pending = await tx.countUpdatesAfter(roomId, latest?.updatesAppliedThrough ?? 0n);
+    const snapshot = pending >= snapshotEvery ? await compactInTx(tx, roomId) : null;
+    return { update, snapshot: snapshot ? toMeta(snapshot) : null };
+  }
 
   async function authorize(actor: Actor, roomId: string): Promise<DraftRoomRef> {
     if (isAnonymous(actor)) throw new RoomDraftError("UNAUTHORIZED", "No hay sesión");
@@ -211,18 +322,48 @@ export function createRoomDraftService(deps: {
       }
       const authorId = opts.authorId === undefined ? actor.userId : opts.authorId;
 
+      return store.withRoomLock(roomId, (tx) => appendInTx(tx, roomId, data, authorId));
+    },
+
+    /**
+     * Comprueba que el actor puede editar el draft (misma regla que las rutas
+     * REST). La usa el handshake del WebSocket de edición (ticket 3.3).
+     */
+    async checkAccess(actor: Actor, roomId: string): Promise<void> {
+      await authorize(actor, roomId);
+    },
+
+    /**
+     * Calcula (sin escribir) el update que restaura el contenido del draft al
+     * punto `target`. `null` si el doc ya está en ese punto. Lo usa el servidor
+     * de sincronización para aplicarlo sobre el doc vivo y difundirlo.
+     */
+    async planRestore(
+      actor: Actor,
+      roomId: string,
+      target: RestoreTarget,
+    ): Promise<Uint8Array | null> {
+      await authorize(actor, roomId);
+      const through = await resolveRestorePoint(roomId, target);
+      return planRestoreInTx(store, roomId, through);
+    },
+
+    /**
+     * Restaura el draft al punto `target` añadiendo un update nuevo (la
+     * historia no se borra: se puede volver a restaurar a cualquier punto,
+     * incluido el anterior a esta restauración). Para salas sin sesión de
+     * edición abierta; con sesión viva, restaura el servidor de sincronización.
+     */
+    async restoreDraft(
+      actor: Actor,
+      roomId: string,
+      target: RestoreTarget,
+    ): Promise<AppendUpdateResult | null> {
+      await authorize(actor, roomId);
+      const through = await resolveRestorePoint(roomId, target);
       return store.withRoomLock(roomId, async (tx) => {
-        const inserted = await tx.insertUpdate(roomId, data, authorId);
-        const update = {
-          id: inserted.id,
-          roomId: inserted.roomId,
-          authorId: inserted.authorId,
-          createdAt: inserted.createdAt,
-        };
-        const latest = await tx.latestSnapshot(roomId);
-        const pending = await tx.countUpdatesAfter(roomId, latest?.updatesAppliedThrough ?? 0n);
-        const snapshot = pending >= snapshotEvery ? await compactInTx(tx, roomId) : null;
-        return { update, snapshot: snapshot ? toMeta(snapshot) : null };
+        const update = await planRestoreInTx(tx, roomId, through);
+        return update ? appendInTx(tx, roomId, update, actor.userId) : null;
       });
     },
 
@@ -263,11 +404,22 @@ export function createInMemoryRoomDraftStore(
   let nextSnapshotId = 1n;
 
   const tx: RoomDraftTx = {
-    async latestSnapshot(roomId) {
-      return snapshots.filter((s) => s.roomId === roomId).at(-1) ?? null;
+    async latestSnapshot(roomId, atOrBeforeUpdateId) {
+      return (
+        snapshots
+          .filter(
+            (s) =>
+              s.roomId === roomId &&
+              (atOrBeforeUpdateId === undefined || s.updatesAppliedThrough <= atOrBeforeUpdateId),
+          )
+          .at(-1) ?? null
+      );
     },
-    async updatesAfter(roomId, afterId) {
-      return updates.filter((u) => u.roomId === roomId && u.id > afterId);
+    async updatesAfter(roomId, afterId, throughId) {
+      return updates.filter(
+        (u) =>
+          u.roomId === roomId && u.id > afterId && (throughId === undefined || u.id <= throughId),
+      );
     },
     async countUpdatesAfter(roomId, afterId) {
       return updates.filter((u) => u.roomId === roomId && u.id > afterId).length;
@@ -303,6 +455,16 @@ export function createInMemoryRoomDraftStore(
     },
     async findRoom(roomId) {
       return roomById.get(roomId) ?? null;
+    },
+    async findSnapshot(roomId, snapshotId) {
+      const found = snapshots.find((s) => s.roomId === roomId && s.id === snapshotId);
+      if (!found) return null;
+      return {
+        id: found.id,
+        roomId: found.roomId,
+        updatesAppliedThrough: found.updatesAppliedThrough,
+        createdAt: found.createdAt,
+      };
     },
     async listSnapshots(roomId, limit) {
       return snapshots

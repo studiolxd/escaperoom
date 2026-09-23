@@ -13,5 +13,6 @@ export const env = parseEnv({
   clientSource: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_COLYSEUS_URL: process.env.NEXT_PUBLIC_COLYSEUS_URL,
+    NEXT_PUBLIC_EDITOR_SYNC_URL: process.env.NEXT_PUBLIC_EDITOR_SYNC_URL,
   },
 });

@@ -10,6 +10,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "dev:worker": "pnpm --filter @escaperoom/worker dev",
+    "dev:editor-sync": "pnpm --filter @escaperoom/web editor-sync",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",

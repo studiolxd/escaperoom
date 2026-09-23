@@ -177,7 +177,10 @@ describe("roomDraftService: validación del update", () => {
       service.appendUpdate(author, ROOM_ID, new Uint8Array([0xff, 0xff, 0xff])),
       "INVALID_UPDATE",
     );
-    await expectDraftError(service.appendUpdate(author, ROOM_ID, new Uint8Array()), "INVALID_UPDATE");
+    await expectDraftError(
+      service.appendUpdate(author, ROOM_ID, new Uint8Array()),
+      "INVALID_UPDATE",
+    );
   });
 
   it("rechaza updates por encima del tamaño máximo", async () => {
@@ -233,5 +236,118 @@ describe("roomDraftService: autorización", () => {
     expect(stateOf(buildDraftDoc(await service.loadDraft(intruder, OTHER_ROOM_ID)))).toEqual(
       stateOf(b.doc),
     );
+  });
+});
+
+describe("roomDraftService: restauración del historial", () => {
+  /** Persiste las ediciones `from..to-1` y devuelve el id del último update. */
+  async function persistEdits(
+    service: ReturnType<typeof setup>["service"],
+    editor: ReturnType<typeof createEditorDoc>,
+    from: number,
+    to: number,
+  ): Promise<bigint> {
+    editor.emitted.length = 0;
+    for (let i = from; i < to; i++) edit(editor.doc, i);
+    let last = 0n;
+    for (const update of editor.emitted) {
+      last = (await service.appendUpdate(author, ROOM_ID, update)).update.id;
+    }
+    return last;
+  }
+
+  async function currentState(service: ReturnType<typeof setup>["service"]) {
+    const doc = buildDraftDoc(await service.loadDraft(author, ROOM_ID));
+    try {
+      return stateOf(doc);
+    } finally {
+      doc.destroy();
+    }
+  }
+
+  it("restaura a un update anterior, añade un update nuevo y conserva la historia", async () => {
+    const { store, service } = setup(7); // con compactaciones entre medias
+    const editor = createEditorDoc();
+    const checkpoint = await persistEdits(service, editor, 0, 10);
+    const expected = await currentState(service);
+    await persistEdits(service, editor, 10, 25);
+    const before = await store.updatesAfter(ROOM_ID, 0n);
+    expect(await currentState(service)).not.toEqual(expected);
+
+    const result = await service.restoreDraft(author, ROOM_ID, { updateId: checkpoint });
+
+    expect(result).not.toBeNull();
+    expect(await currentState(service)).toEqual(expected);
+    const after = await store.updatesAfter(ROOM_ID, 0n);
+    expect(after).toHaveLength(before.length + 1);
+    expect(after.slice(0, before.length).map((u) => u.id)).toEqual(before.map((u) => u.id));
+    expect(after.at(-1)?.authorId).toBe(author.userId);
+  });
+
+  it("restaura a un snapshot del historial y se puede deshacer restaurando de nuevo", async () => {
+    const { store, service } = setup(5);
+    const editor = createEditorDoc();
+    await persistEdits(service, editor, 0, 12);
+    const [snapshot] = await service.listHistory(author, ROOM_ID);
+    const atSnapshot = stateOf(
+      buildDraftDoc({
+        snapshot: null,
+        updates: await store.updatesAfter(ROOM_ID, 0n, snapshot!.updatesAppliedThrough),
+      }),
+    );
+    const beforeRestore = await persistEdits(service, editor, 12, 20);
+    const latest = await currentState(service);
+    expect(latest).not.toEqual(atSnapshot);
+
+    await service.restoreDraft(author, ROOM_ID, { snapshotId: snapshot!.id });
+    expect(await currentState(service)).toEqual(atSnapshot);
+
+    // Volver al estado previo a la restauración: la historia sigue ahí.
+    await service.restoreDraft(author, ROOM_ID, { updateId: beforeRestore });
+    expect(await currentState(service)).toEqual(latest);
+  });
+
+  it("restaurar al punto actual no añade nada; updateId 0 vacía el contenido", async () => {
+    const { store, service } = setup(1000);
+    const editor = createEditorDoc();
+    const last = await persistEdits(service, editor, 0, 6);
+    expect(await service.restoreDraft(author, ROOM_ID, { updateId: last })).toBeNull();
+    expect(await store.countUpdatesAfter(ROOM_ID, 0n)).toBe(6);
+
+    await service.restoreDraft(author, ROOM_ID, { updateId: 0n });
+    expect(await currentState(service)).toEqual({
+      meta: {},
+      tiles: [],
+      objects: {},
+      rules: [],
+      notas: "",
+    });
+  });
+
+  it("un editor con la copia antigua converge con la restauración (merge CRDT)", async () => {
+    const { service } = setup(1000);
+    const editor = createEditorDoc();
+    const checkpoint = await persistEdits(service, editor, 0, 4);
+    await persistEdits(service, editor, 4, 8);
+    const update = await service.planRestore(author, ROOM_ID, { updateId: checkpoint });
+    expect(update).not.toBeNull();
+    Y.applyUpdate(editor.doc, update!);
+    await service.restoreDraft(author, ROOM_ID, { updateId: checkpoint });
+    expect(stateOf(editor.doc)).toEqual(await currentState(service));
+  });
+
+  it("autoriza y valida el punto de restauración", async () => {
+    const { service } = setup();
+    const editor = createEditorDoc();
+    await persistEdits(service, editor, 0, 2);
+    await expectDraftError(service.restoreDraft(intruder, ROOM_ID, { updateId: 1n }), "FORBIDDEN");
+    await expectDraftError(
+      service.restoreDraft(ANONYMOUS_ACTOR, ROOM_ID, { updateId: 1n }),
+      "UNAUTHORIZED",
+    );
+    await expectDraftError(service.restoreDraft(author, ROOM_ID, { updateId: 99n }), "NOT_FOUND");
+    await expectDraftError(service.planRestore(author, ROOM_ID, { snapshotId: 42n }), "NOT_FOUND");
+    await expect(service.checkAccess(author, ROOM_ID)).resolves.toBeUndefined();
+    await expectDraftError(service.checkAccess(intruder, ROOM_ID), "FORBIDDEN");
   });
 });

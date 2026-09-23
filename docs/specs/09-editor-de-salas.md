@@ -58,6 +58,29 @@ GET  /api/rooms/:id/history     → lista de snapshots (restauración)
 El canal de sincronización en vivo es un **WebSocket de edición** propio (análogo pero distinto
 al de Colyseus), que persiste incrementalmente en `roomUpdate` (ver `specs/14-modelo-de-datos-sql.md` §5).
 
+**Implementación (ticket 3.3):**
+
+- **Dónde vive:** proceso propio `pnpm dev:editor-sync` (puerto `EDITOR_SYNC_PORT`, 2568 por
+  defecto), con punto de entrada en `packages/web/src/server/editor-sync/`. Los route handlers de
+  Next no admiten `upgrade` de WebSocket y Colyseus es otro dominio (partida); vivir en `web`
+  permite reutilizar tal cual la sesión de Better Auth y el `RoomDraftService` de las rutas REST.
+  El núcleo (`createEditorSyncServer`) está en `@escaperoom/editor/sync-server` y es agnóstico
+  del proceso: se engancha al `upgrade` de cualquier `http.Server`.
+- **Protocolo:** `ws(s)://…/rooms/:roomId`, trama de y-websocket con `y-protocols` (sync step
+  1/2 + update, awareness, query-awareness) más un mensaje propio de restauración (`4`).
+- **Auth:** en el handshake HTTP, con la misma resolución de actor que REST (cookie de sesión o
+  `Authorization: Bearer`) y el mismo permiso (`checkAccess`: hoy, solo el autor). Rechazo con
+  401/403/404 antes de abrir el socket; `Origin` limitado a `EDITOR_SYNC_ALLOWED_ORIGINS`.
+- **Persistencia:** cada update integrado en el doc vivo se persiste en orden con
+  `appendUpdate` (autoría = usuario de la conexión). Si falla, la sala se descarta y los clientes
+  reconectan; su sync step 2 reenvía lo no persistido. Al irse el último editor se compacta.
+- **Awareness:** se retransmite y nunca se persiste; se limpia al cerrar la conexión.
+- **Restaurar:** `restoreDraft`/`planRestore` reconstruyen el doc en el punto elegido
+  (snapshot o `roomUpdate.id`) y generan un update nuevo que deshace lo posterior; la historia no
+  se reescribe y la restauración es a su vez restaurable.
+- **Cliente:** `EditorSyncProvider` (`@escaperoom/editor`), headless: autosave, offline con
+  merge CRDT al reconectar, reconexión con backoff y `restore()`.
+
 ## 3. Flujo de creación (UX)
 
 ```
