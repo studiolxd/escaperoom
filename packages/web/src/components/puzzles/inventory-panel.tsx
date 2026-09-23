@@ -162,9 +162,10 @@ export function InventoryPanel({
           const isDropTarget = dropTargetId === itemId && draggingId !== itemId;
 
           return (
-            <button
+            <Button
               key={index}
               type="button"
+              variant="overlayGhost"
               role="listitem"
               draggable={isDraggable}
               disabled={itemId === undefined || disabled}
@@ -193,7 +194,7 @@ export function InventoryPanel({
               onDrop={(event) => itemId && dropOn(itemId, event)}
               onClick={() => itemId && toggleStaged(itemId)}
               className={cn(
-                "flex aspect-square flex-col items-center justify-center gap-1 rounded-lg border p-1 text-center transition-colors",
+                "flex aspect-square h-auto flex-col items-center justify-center gap-1 rounded-lg border p-1 text-center transition-colors",
                 itemId === undefined
                   ? "border-dashed border-white/10 bg-white/[0.02]"
                   : "border-white/15 bg-white/5 hover:border-amber-300/50 hover:bg-white/10",
@@ -221,7 +222,7 @@ export function InventoryPanel({
               ) : (
                 <span className="text-[0.6rem] text-white/20">·</span>
               )}
-            </button>
+            </Button>
           );
         })}
       </div>

@@ -3,6 +3,7 @@
 import { useMemo, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
+import { Button } from "@/components/ui/button";
 import {
   PIPE_EAST,
   PIPE_NORTH,
@@ -131,9 +132,10 @@ export function PipesPanel({
           const interactive = canRotate || canOpen;
 
           return (
-            <button
+            <Button
               key={cell.index}
               type="button"
+              variant="overlayGhost"
               aria-label={canOpen ? `${cellLabel(cell)} — ${t("useItem")}` : cellLabel(cell)}
               data-cell={cell.index}
               data-kind={cell.kind}
@@ -147,7 +149,7 @@ export function PipesPanel({
                 else if (canOpen) onOpenGate?.(cell.index);
               }}
               className={cn(
-                "relative size-14 overflow-hidden rounded-md border transition",
+                "relative size-14 h-auto overflow-hidden rounded-md border p-0 transition",
                 cell.index === startIndex || cell.index === endIndex
                   ? "border-sky-300/50"
                   : "border-white/10",
@@ -167,7 +169,7 @@ export function PipesPanel({
                   )}
                 />
               ) : null}
-            </button>
+            </Button>
           );
         })}
       </div>

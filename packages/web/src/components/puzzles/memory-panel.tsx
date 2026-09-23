@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
 import type { MemoryFlipOutcome, MemoryPublicView } from "@escaperoom/shared/templates";
+import { Button } from "@/components/ui/button";
 
 /** Resultado del último volteo, tal como lo devolvió el servidor. */
 export type MemoryFeedback = MemoryFlipOutcome | null;
@@ -83,13 +84,9 @@ export function MemoryPanel({
             {t("pairs", { found: view.matchedCount, total: view.targetCount })}
           </span>
           {onClose ? (
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded px-1 text-xs text-white/60 hover:text-white"
-            >
+            <Button size="xs" variant="overlayGhost" onClick={onClose}>
               {t("close")}
-            </button>
+            </Button>
           ) : null}
         </div>
       </header>
@@ -122,9 +119,10 @@ export function MemoryPanel({
         {view.cards.map((card) => {
           const faceUp = card.flipped;
           return (
-            <button
+            <Button
               key={card.id}
               type="button"
+              variant="overlayGhost"
               role="listitem"
               aria-label={faceUp ? t("cardUp", { id: card.id }) : t("cardDown", { id: card.id })}
               aria-pressed={faceUp}
@@ -134,7 +132,7 @@ export function MemoryPanel({
               disabled={disabled || faceUp}
               onClick={() => onFlip(card.id)}
               className={cn(
-                "grid aspect-square place-items-center rounded-lg border text-2xl transition-colors",
+                "grid aspect-square h-auto place-items-center rounded-lg border p-0 text-2xl transition-colors",
                 card.matched
                   ? "border-emerald-300/60 bg-emerald-300/10 text-emerald-100"
                   : faceUp
@@ -149,7 +147,7 @@ export function MemoryPanel({
               ) : (
                 <span aria-hidden>◆</span>
               )}
-            </button>
+            </Button>
           );
         })}
       </div>
