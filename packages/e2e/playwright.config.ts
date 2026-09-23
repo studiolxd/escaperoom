@@ -22,7 +22,11 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 1 : 0,
+  // 2 reintentos en CI: el runner (ubuntu-latest, 2 vCPU/7GB) sostiene a la vez
+  // Postgres + 3 procesos Node + Chromium con 2 páginas — bajo presión de
+  // memoria, el navegador puede cerrarse a mitad de test ("Target page,
+  // context or browser has been closed"), no es un fallo de la app.
+  retries: process.env.CI ? 2 : 0,
   timeout: 180_000,
   expect: { timeout: 15_000 },
   reporter: process.env.CI
@@ -34,7 +38,9 @@ export default defineConfig({
     locale: "es-ES",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    // Apagado en CI: es la captura más cara en memoria del runner y el trace +
+    // screenshot en fallo ya bastan para depurar. En local sigue grabando.
+    video: process.env.CI ? "off" : "retain-on-failure",
     actionTimeout: 15_000,
     navigationTimeout: 60_000,
   },
