@@ -78,7 +78,20 @@ import {
   createUserDataRightsService,
   createPrismaUserDataRightsStore,
   type UserDataRightsService,
+  createPurchaseService,
+  createPrismaPurchaseStore,
+  type PurchaseService,
+  createCreatorConnectService,
+  createPrismaCreatorConnectStore,
+  type CreatorConnectService,
+  createStripeClient,
+  createStripePaymentGateway,
+  createStripeConnectGateway,
+  readStripeConfig,
+  createPrismaWebhookEventDedupeStore,
+  type WebhookEventDedupeStore,
 } from "@escaperoom/shared/services";
+import type Stripe from "stripe";
 import { createBullCardExportQueue } from "@escaperoom/shared/access-key-cards-queue";
 import { resolveColyseusHttpUrl } from "./playtest-launcher";
 import { getEditorSyncOriginId } from "./room-sync";
@@ -110,6 +123,10 @@ let organizations: OrganizationService | undefined;
 let eventPanel: EventPanelService | undefined;
 let moderation: ModerationService | undefined;
 let userDataRights: UserDataRightsService | undefined;
+let stripeClient: Stripe | null | undefined;
+let purchases: PurchaseService | undefined;
+let creatorConnect: CreatorConnectService | undefined;
+let webhookDedupe: WebhookEventDedupeStore | undefined;
 
 /**
  * Adaptador mínimo de `ioredis` al `CatalogCacheStore` del cache del catálogo
@@ -460,4 +477,64 @@ export function getEventPanelService(): EventPanelService {
     });
   }
   return eventPanel;
+}
+
+/**
+ * Cliente Stripe compartido (ticket 5.1, specs/02 §2): `null` sin
+ * `STRIPE_SECRET_KEY` (dev/CI sin la clave configurada). Los servicios que lo
+ * necesitan quedan sin pasarela y sus endpoints responden
+ * `PAYMENT_GATEWAY_UNAVAILABLE`/501, sin romper el resto de la app.
+ */
+export function getStripeClient(): Stripe | null {
+  if (stripeClient !== undefined) return stripeClient;
+  const config = readStripeConfig();
+  stripeClient = config.configured ? createStripeClient(config.secretKey) : null;
+  return stripeClient;
+}
+
+/**
+ * Venta individual de salas a jugadores (ticket 5.1, specs/02 §1-2, specs/13
+ * §5): Stripe Checkout hospedado + `Transfer` del 70% al creador al confirmar
+ * el pago (webhook). `payments: null` sin `STRIPE_SECRET_KEY`.
+ */
+export function getPurchaseService(): PurchaseService {
+  if (!purchases) {
+    const stripe = getStripeClient();
+    purchases = createPurchaseService({
+      store: createPrismaPurchaseStore(prisma),
+      payments: stripe ? createStripePaymentGateway(stripe) : null,
+    });
+  }
+  return purchases;
+}
+
+/**
+ * Onboarding de Stripe Connect para creadores (ticket 5.1, specs/02 §2):
+ * cuentas Express `recipient`. `connect: null` sin `STRIPE_SECRET_KEY`.
+ */
+export function getCreatorConnectService(): CreatorConnectService {
+  if (!creatorConnect) {
+    const stripe = getStripeClient();
+    creatorConnect = createCreatorConnectService({
+      store: createPrismaCreatorConnectStore(prisma),
+      connect: stripe ? createStripeConnectGateway(stripe) : null,
+    });
+  }
+  return creatorConnect;
+}
+
+/** Idempotencia del webhook de Stripe (specs/13 §7) sobre `stripeWebhookEvent`. */
+export function getWebhookEventDedupeStore(): WebhookEventDedupeStore {
+  webhookDedupe ??= createPrismaWebhookEventDedupeStore(prisma);
+  return webhookDedupe;
+}
+
+/**
+ * Secreto de firma del webhook (`STRIPE_WEBHOOK_SECRET`): sin él, el endpoint
+ * nunca puede verificar `Stripe-Signature` y responde 503 (nunca se procesa
+ * un evento sin verificar la firma, specs/13 §7).
+ */
+export function getStripeWebhookSecret(): string | null {
+  const config = readStripeConfig();
+  return config.configured ? config.webhookSecret : null;
 }
