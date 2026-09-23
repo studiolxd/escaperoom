@@ -14,6 +14,7 @@ import {
   createPrismaAccessKeyStore,
   createPrismaAccessKeyEmailPurgeStore,
   createPrismaInvitationStore,
+  createPrismaPurchaseConfirmationStore,
   readEmailPurgeSecret,
 } from "@escaperoom/shared/services";
 import { createAccessKeyCardsWorker } from "./access-key-cards";
@@ -21,6 +22,7 @@ import { createAnalyticsPartitionsWorker } from "./analytics-partitions";
 import { createAccessKeyExpiryWorker } from "./access-key-expiry";
 import { createAccessKeyEmailPurgeWorker } from "./access-key-email-purge";
 import { createInvitationEmailWorker } from "./invitation-email";
+import { createPurchaseConfirmationEmailWorker } from "./purchase-confirmation-email";
 import { createModerationSamplingWorker } from "./moderation-sampling";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
 
@@ -28,9 +30,9 @@ import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
  * Arranque de los workers de cola: analítica (specs/16), caducidad de claves
  * (ticket 5.5, job repetitivo), purga (hash) del email de claves tras el
  * plazo de retención (specs/18 §4.1), envíos de invitación por email (ticket
- * 5.6), PDF de tarjetas-clave (ticket 5.7), particiones/purga de analítica
- * (ticket 6.11, job mensual) y muestreo aleatorio de moderación (ticket 6.1,
- * diario).
+ * 5.6), confirmación de compra por email (specs/18 §3-4), PDF de
+ * tarjetas-clave (ticket 5.7), particiones/purga de analítica (ticket 6.11,
+ * job mensual) y muestreo aleatorio de moderación (ticket 6.1, diario).
  *
  *   pnpm --filter @escaperoom/worker dev
  *
@@ -114,6 +116,26 @@ async function main(): Promise<void> {
     logger.info({ provider: transport?.provider }, "invitation email: consumiendo la cola");
   }
 
+  // Confirmación de compra (specs/18 §3-4): mismo transporte y misma condición
+  // de arranque que las invitaciones.
+  const purchaseConfirmationConnection = transport ? createQueueRedis() : null;
+  const purchaseConfirmations =
+    transport && purchaseConfirmationConnection
+      ? createPurchaseConfirmationEmailWorker({
+          deps: {
+            store: createPrismaPurchaseConfirmationStore(prisma),
+            transport,
+            appUrl: process.env.APP_URL?.trim() || "http://localhost:3000",
+          },
+          connection: purchaseConfirmationConnection,
+        })
+      : null;
+  if (!purchaseConfirmations) {
+    logger.warn("purchase confirmation email: EMAIL_* incompleto; los envíos quedan en cola sin procesar");
+  } else {
+    logger.info({ provider: transport?.provider }, "purchase confirmation email: consumiendo la cola");
+  }
+
   // PDF de tarjetas: el mismo servicio que web, sin cola ni firma (solo renderiza y sube).
   const cardsConnection = createQueueRedis();
   const cards = createAccessKeyCardsWorker({
@@ -154,6 +176,7 @@ async function main(): Promise<void> {
     await emailPurge?.worker.close();
     await emailPurge?.queue.close();
     await invitations?.close();
+    await purchaseConfirmations?.close();
     await cards.close();
     await partitions.worker.close();
     await partitions.queue.close();
@@ -163,6 +186,7 @@ async function main(): Promise<void> {
     await expiryConnection.quit().catch(() => undefined);
     await emailPurgeConnection?.quit().catch(() => undefined);
     await mailConnection?.quit().catch(() => undefined);
+    await purchaseConfirmationConnection?.quit().catch(() => undefined);
     await cardsConnection.quit().catch(() => undefined);
     await partitionsConnection.quit().catch(() => undefined);
     await samplingConnection.quit().catch(() => undefined);

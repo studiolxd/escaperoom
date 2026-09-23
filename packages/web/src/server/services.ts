@@ -7,6 +7,7 @@ import type { RoomPackageSerializer } from "@escaperoom/editor/validation";
 import { prisma } from "@escaperoom/shared/db";
 import {
   createInvitationEmailQueue,
+  createPurchaseConfirmationEmailQueue,
   readConfirmationTokenConfig,
   createMailTransportFromEnv,
 } from "@escaperoom/shared/mail";
@@ -94,6 +95,7 @@ import {
   readStripeConfig,
   createPrismaWebhookEventDedupeStore,
   type WebhookEventDedupeStore,
+  type PurchaseConfirmationQueue,
   createContactService,
   type ContactService,
   createTermsAcceptanceService,
@@ -136,6 +138,7 @@ let stripeClient: Stripe | null | undefined;
 let purchases: PurchaseService | undefined;
 let creatorConnect: CreatorConnectService | undefined;
 let webhookDedupe: WebhookEventDedupeStore | undefined;
+let purchaseConfirmations: PurchaseConfirmationQueue | undefined;
 let contact: ContactService | null | undefined;
 let termsAcceptance: TermsAcceptanceService | undefined;
 
@@ -547,6 +550,17 @@ export function getCreatorConnectService(): CreatorConnectService {
 export function getWebhookEventDedupeStore(): WebhookEventDedupeStore {
   webhookDedupe ??= createPrismaWebhookEventDedupeStore(prisma);
   return webhookDedupe;
+}
+
+/**
+ * Cola del email de confirmación de compra (specs/18 §3-4): el webhook de
+ * Stripe encola en `mail.purchase-confirmation` tras liquidar cada compra y
+ * `@escaperoom/worker` la entrega, siguiendo el mismo mecanismo que
+ * `mail.invitation` (5.6). Con `QUEUES_ENABLED=false` el encolado es un no-op.
+ */
+export function getPurchaseConfirmationQueue(): PurchaseConfirmationQueue {
+  purchaseConfirmations ??= createPurchaseConfirmationEmailQueue();
+  return purchaseConfirmations;
 }
 
 /**

@@ -12,6 +12,7 @@ import {
   type Actor,
   type PaymentGateway,
 } from "@escaperoom/shared/services";
+import type { PurchaseConfirmationEmailJob } from "@escaperoom/shared/mail";
 import * as Y from "yjs";
 import type Stripe from "stripe";
 import { describe, expect, it } from "vitest";
@@ -136,12 +137,20 @@ function setup(payments: PaymentGateway = createFakePaymentGateway()) {
   const events = createEventService({ store: eventStore, pricing: pricingTiers, payments });
 
   const dedupe = createInMemoryWebhookEventDedupeStore();
+  const confirmationJobs: PurchaseConfirmationEmailJob[] = [];
+  const confirmations = {
+    async enqueue(job: PurchaseConfirmationEmailJob) {
+      confirmationJobs.push(job);
+      return `conf-${confirmationJobs.length}`;
+    },
+  };
   let nextEvent: Stripe.Event | null = null;
   const handlers = createStripeWebhookHandlers({
     purchases,
     roomLicenses,
     events,
     dedupe,
+    confirmations,
     verify: () => {
       if (!nextEvent) throw new Error("firma no válida (test sin evento preparado)");
       return nextEvent;
@@ -157,7 +166,17 @@ function setup(payments: PaymentGateway = createFakePaymentGateway()) {
       }),
     );
   };
-  return { store, purchases, licenseStore, roomLicenses, eventStore, events, dedupe, post };
+  return {
+    store,
+    purchases,
+    licenseStore,
+    roomLicenses,
+    eventStore,
+    events,
+    dedupe,
+    confirmationJobs,
+    post,
+  };
 }
 
 describe("POST /api/stripe/webhook", () => {
@@ -168,6 +187,7 @@ describe("POST /api/stripe/webhook", () => {
       roomLicenses: s.roomLicenses,
       events: s.events,
       dedupe: createInMemoryWebhookEventDedupeStore(),
+      confirmations: { enqueue: async () => null },
       verify: () => {
         throw new Error("no debería llamarse");
       },
@@ -181,8 +201,8 @@ describe("POST /api/stripe/webhook", () => {
     expect(res.status).toBe(400);
   });
 
-  it("checkout.session.completed (room) liquida la compra y transfiere el reparto", async () => {
-    const { store, post } = setup();
+  it("checkout.session.completed (room) liquida la compra, transfiere el reparto y encola el email de confirmación", async () => {
+    const { store, post, confirmationJobs } = setup();
     const purchase = await store.insertPendingPurchase({
       id: "30000000-0000-4000-8000-000000000001",
       userId: buyer.userId,
@@ -196,6 +216,7 @@ describe("POST /api/stripe/webhook", () => {
     const settled = await store.findPurchase(purchase.id);
     expect(settled?.status).toBe("succeeded");
     expect(settled?.platformFeeCents).toBe(90);
+    expect(confirmationJobs).toEqual([{ kind: "room", purchaseId: purchase.id }]);
   });
 
   it("es idempotente: un evt.id repetido no reprocesa", async () => {
@@ -248,8 +269,8 @@ describe("POST /api/stripe/webhook", () => {
     expect((await store.findPurchase(purchase.id))?.status).toBe("refunded");
   });
 
-  it("checkout.session.completed (room_license) crea el fork y transfiere el 70% al creador de origen", async () => {
-    const { licenseStore, post } = setup();
+  it("checkout.session.completed (room_license) crea el fork, transfiere el 70% al creador de origen y encola el email de confirmación", async () => {
+    const { licenseStore, post, confirmationJobs } = setup();
     const purchase = await licenseStore.insertPendingPurchase({
       id: "30000000-0000-4000-8000-000000000005",
       userId: buyer.userId,
@@ -268,6 +289,7 @@ describe("POST /api/stripe/webhook", () => {
     expect(settled?.status).toBe("succeeded");
     expect(settled?.resultingRoomId).toBeTruthy();
     expect(settled?.transferRef).toBe("fake_tr_1");
+    expect(confirmationJobs).toEqual([{ kind: "room_license", purchaseId: purchase.id }]);
   });
 
   it("payment_intent.payment_failed (room_license) marca la compra como failed", async () => {
@@ -289,8 +311,8 @@ describe("POST /api/stripe/webhook", () => {
     expect((await licenseStore.findPurchase(purchase.id))?.status).toBe("failed");
   });
 
-  it("checkout.session.completed (event_credits) marca el evento como pagado y lo activa", async () => {
-    const { eventStore, events, post } = setup();
+  it("checkout.session.completed (event_credits) marca el evento como pagado, lo activa y encola el email de confirmación", async () => {
+    const { eventStore, events, post, confirmationJobs } = setup();
     const event = await events.createEvent(
       { userId: "otro-organizador", organizationId: null, role: "member" },
       {
@@ -311,6 +333,7 @@ describe("POST /api/stripe/webhook", () => {
     const settled = await eventStore.findEvent(event.id);
     expect(settled?.status).toBe("active");
     expect(settled?.config.payment.status).toBe("paid");
+    expect(confirmationJobs).toEqual([{ kind: "event_credits", eventId: event.id }]);
   });
 
   it("payment_intent.payment_failed (event_credits) libera el checkout para reintentar", async () => {
