@@ -234,5 +234,19 @@
     "wrong": "La combinación no es correcta",
     "incomplete": "Faltan fragmentos por completar",
     "attempts": "Intentos: {count}"
+  },
+  "SlidingPuzzle": {
+    "title": "Puzle deslizante",
+    "prompt": "Desliza las piezas hasta recomponer el mural",
+    "boardLabel": "Tablero del puzle deslizante",
+    "tile": "Pieza {tile}",
+    "blank": "Hueco",
+    "moves": "Movimientos: {count}",
+    "pending": "Moviendo…",
+    "solved": "¡Mural recompuesto!",
+    "locked": "El mural aún no está disponible",
+    "unavailable": "El mural no acepta más movimientos",
+    "notAdjacent": "Esa pieza no se puede deslizar",
+    "alreadySolved": "El mural ya está resuelto"
   }
 }

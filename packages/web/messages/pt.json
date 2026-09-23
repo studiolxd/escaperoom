@@ -135,5 +135,19 @@
     "wrong": "A combinação não está correta",
     "incomplete": "Ainda faltam fragmentos",
     "attempts": "Tentativas: {count}"
+  },
+  "SlidingPuzzle": {
+    "title": "Puzzle deslizante",
+    "prompt": "Desliza as peças até recompor o mural",
+    "boardLabel": "Tabuleiro do puzzle deslizante",
+    "tile": "Peça {tile}",
+    "blank": "Espaço vazio",
+    "moves": "Movimentos: {count}",
+    "pending": "A mover…",
+    "solved": "Mural recomposto!",
+    "locked": "O mural ainda não está disponível",
+    "unavailable": "O mural não aceita mais movimentos",
+    "notAdjacent": "Essa peça não pode deslizar",
+    "alreadySolved": "O mural já está resolvido"
   }
 }

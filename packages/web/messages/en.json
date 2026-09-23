@@ -166,5 +166,19 @@
     "wrong": "The combination is not correct",
     "incomplete": "Some fragments are still missing",
     "attempts": "Attempts: {count}"
+  },
+  "SlidingPuzzle": {
+    "title": "Sliding puzzle",
+    "prompt": "Slide the tiles to restore the mural",
+    "boardLabel": "Sliding puzzle board",
+    "tile": "Tile {tile}",
+    "blank": "Blank",
+    "moves": "Moves: {count}",
+    "pending": "Moving…",
+    "solved": "Mural restored!",
+    "locked": "The mural is not available yet",
+    "unavailable": "The mural accepts no more moves",
+    "notAdjacent": "That tile cannot slide",
+    "alreadySolved": "The mural is already solved"
   }
 }

@@ -135,5 +135,19 @@
     "wrong": "La combinaison est incorrecte",
     "incomplete": "Il manque encore des fragments",
     "attempts": "Tentatives : {count}"
+  },
+  "SlidingPuzzle": {
+    "title": "Puzzle coulissant",
+    "prompt": "Fais glisser les pièces pour reconstituer la fresque",
+    "boardLabel": "Plateau du puzzle coulissant",
+    "tile": "Pièce {tile}",
+    "blank": "Case vide",
+    "moves": "Coups : {count}",
+    "pending": "Déplacement…",
+    "solved": "Fresque reconstituée !",
+    "locked": "La fresque n'est pas encore disponible",
+    "unavailable": "La fresque n'accepte plus de coups",
+    "notAdjacent": "Cette pièce ne peut pas glisser",
+    "alreadySolved": "La fresque est déjà résolue"
   }
 }
