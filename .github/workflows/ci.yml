@@ -47,6 +47,14 @@ jobs:
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_e2e
     steps:
       - uses: actions/checkout@v4
+      # Colchón de memoria además de arrancar menos procesos (ver
+      # playwright.config.ts): el runner (2 vCPU/7GB) sostiene a la vez
+      # Postgres + web (next build+start) + colyseus-server + Chromium con 2
+      # páginas, y bajo presión de RAM el navegador se cierra a mitad de test
+      # ("Target page ... has been closed"), no es un fallo de la app.
+      - uses: pierotofy/set-swap-space@49819abfb41bd9b44fb781159c033dba90353a7c # v1.0
+        with:
+          swap-size-gb: 4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
