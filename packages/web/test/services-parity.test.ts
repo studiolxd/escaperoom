@@ -5,7 +5,9 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { GET_FEATURED_ROOM_TOOL, createCreatorMcpServer } from "@escaperoom/mcp-server";
 import {
   createCatalogService,
+  createInMemoryRoomDraftStore,
   createInMemoryRoomPackageRepository,
+  createRoomDraftService,
   type Actor,
   type FeaturedRoom,
 } from "@escaperoom/shared/services";
@@ -52,7 +54,8 @@ async function viaRest(): Promise<FeaturedRoom> {
 
 async function viaMcp(): Promise<FeaturedRoom> {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const server = createCreatorMcpServer({ catalog, actor });
+  const drafts = createRoomDraftService({ store: createInMemoryRoomDraftStore() });
+  const server = createCreatorMcpServer({ catalog, drafts, actor });
   const client = new Client({ name: "parity-test", version: "0.0.0" });
 
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);

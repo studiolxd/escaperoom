@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Servidor MCP del creador (@slxd/mcp-server adaptado). Placeholder del ticket 0.1; Fase 4.",
+  "description": "Servidor MCP del creador (specs/10): toolset sobre los servicios de dominio, transporte stdio (Claude Desktop) y HTTP streamable (/mcp/creator).",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -21,7 +21,9 @@
     "@escaperoom/config": "workspace:*",
     "@types/node": "^26.6.2",
     "eslint": "^10.11.0",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "yjs": "^13.6.32"
   }
 }
