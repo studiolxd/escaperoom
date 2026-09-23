@@ -568,6 +568,14 @@
       "governedBy": "Objeto que la gobierna",
       "noObject": "Siempre encendida",
       "removeTorch": "Quitar antorcha"
+    },
+    "toolHints": {
+      "brush": "Pinta el suelo casilla a casilla.",
+      "fill": "Rellena una zona conectada del mismo tile.",
+      "eraser": "Borra tiles de la capa activa.",
+      "place": "Coloca objetos interactivos (llaves, candados, muebles…).",
+      "decorate": "Añade decoración visual, sin lógica de juego.",
+      "torch": "Coloca antorchas que iluminan la habitación."
     }
   },
   "Inspector": {
@@ -1248,6 +1256,94 @@
       "ALREADY_REVIEWED": "Otra persona ya lo ha resuelto.",
       "VALIDATION_ERROR": "La decisión no es válida para este contenido.",
       "UNKNOWN": "Algo ha fallado. Inténtalo de nuevo."
+    }
+  },
+  "Landing": {
+    "kicker": "EscapeRoom Creator",
+    "heroTitle": "Crea y juega escape rooms cooperativos en el navegador",
+    "heroSubtitle": "Publica y monetiza salas sin saber programar — el editor es el propio motor del juego — o crea una sala entera conversando con un agente IA.",
+    "ctaStartCreating": "Crea tu primera sala",
+    "ctaBrowseCatalog": "Explorar catálogo",
+    "valuePropsTitle": "Una plataforma, tres formas de jugar",
+    "valueProps": {
+      "creator": {
+        "title": "Para creadores",
+        "body": "Publica y monetiza salas sin saber programar; el editor es el propio motor del juego (WYSIWYG real) y el MCP te deja crear una sala entera describiéndola al chat."
+      },
+      "player": {
+        "title": "Para jugadores",
+        "body": "Escape rooms cooperativos de 1 a 4 jugadores en el navegador, con voz y webcam, sin instalar nada."
+      },
+      "organizer": {
+        "title": "Para profes y empresas",
+        "body": "Compra por jugador con descuentos por tramos, reparte claves de acceso y vigila el progreso de tu grupo en directo."
+      }
+    },
+    "waitlist": {
+      "title": "Sé el primero en enterarte",
+      "subtitle": "Apúntate a la lista de espera y te avisamos cuando puedas crear tu primera sala.",
+      "emailLabel": "Tu email",
+      "submit": "Apuntarme",
+      "sending": "Enviando…",
+      "success": "¡Listo! Te avisaremos en cuanto abramos.",
+      "alreadyIn": "Ya estabas en la lista — te avisaremos igual.",
+      "error": "No se pudo guardar tu email. Inténtalo de nuevo."
+    }
+  },
+  "Onboarding": {
+    "title": "Crea tu primera sala",
+    "progress": "Paso {step} de 5",
+    "stepLabels": {
+      "theme": "Tema",
+      "firstRoom": "Primera sala",
+      "firstPuzzle": "Primer puzzle",
+      "playtest": "Playtest",
+      "publish": "Publicar"
+    },
+    "back": "Atrás",
+    "loginRequired": {
+      "intro": "Inicia sesión para empezar a crear.",
+      "google": "Continuar con Google",
+      "emailLabel": "O con un enlace mágico por email",
+      "emailSubmit": "Enviar enlace",
+      "emailSent": "Te hemos enviado un enlace a tu email.",
+      "error": "No se pudo iniciar sesión. Inténtalo de nuevo."
+    },
+    "step1": {
+      "title": "1. Elige tema",
+      "body": "El pack temático de esta primera versión es medieval: castillo, mazmorra y objetos de época. Es el punto de partida de todas las salas.",
+      "medievalLabel": "Medieval",
+      "cta": "Continuar"
+    },
+    "step2": {
+      "title": "2. Pinta tu primera sala",
+      "body": "Empieza de una plantilla pre-rellena en vez de un lienzo en blanco: una copia editable de «La Maldición del Rey Aldric», la sala de referencia de la plataforma. Puedes desmontarla, borrar lo que no te sirva y hacerla tuya, o empezar en blanco.",
+      "templateOption": "Copia del Rey Aldric (recomendado)",
+      "templateDesc": "3 habitaciones, 8 puzzles ya resueltos como ejemplo — mira cómo está hecha y edítala.",
+      "blankOption": "Empezar en blanco",
+      "blankDesc": "Sala vacía con la metadata mínima.",
+      "cta": "Crear sala y abrir el editor",
+      "creating": "Creando tu sala…",
+      "error": "No se pudo crear la sala. Inténtalo de nuevo.",
+      "openEditor": "Abrir en el editor →"
+    },
+    "step3": {
+      "title": "3. Coloca 1 puzzle guiado",
+      "body": "En el editor, prueba la herramienta «Decorar» o «Colocar» para añadir un objeto y engancharle un puzzle (por ejemplo, un candado). Cada herramienta tiene un tooltip la primera vez que la usas.",
+      "hint": "Consejo: la copia del Rey Aldric ya trae 8 puzzles resueltos — abre uno en el inspector para ver cómo está montado.",
+      "cta": "Ya coloqué mi puzzle, continuar"
+    },
+    "step4": {
+      "title": "4. Playtest",
+      "body": "Juega tu propia sala en una partida temporal antes de publicarla, sin que cuente como partida real.",
+      "cta": "Abrir playtest",
+      "done": "Ya la he probado, continuar"
+    },
+    "step5": {
+      "title": "5. Publicar",
+      "body": "Cuando estés lista, publica tu sala desde el editor — el validador te explica cada aviso antes de bloquear la publicación. Si todavía no está lista, guarda el borrador y vuelve cuando quieras.",
+      "ctaOpenEditor": "Abrir el editor para publicar",
+      "ctaFinish": "Terminar"
     }
   },
   "Legal": {

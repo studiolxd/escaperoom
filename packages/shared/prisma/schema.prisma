@@ -571,6 +571,19 @@ model moderationStrike {
   @@index([userId, createdAt], map: "ixModerationStrikeUser")
 }
 
+/// Waitlist de la landing pública (ticket 6.7, specs/20 §1, §5): captura el
+/// email de un visitante interesado antes de registrarse. Sin usuario ni
+/// relación con `user`: puede rellenarla cualquiera, autenticado o no.
+model waitlistSignup {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String   @db.Citext
+  locale    String
+  source    String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([email])
+}
+
 enum accessKeyStatus {
   generated
   sent
