@@ -40,3 +40,27 @@ export {
   type AnalyticsEventType,
   type AnalyticsValidation,
 } from "../schemas/analytics";
+export {
+  ANALYTICS_EVENT_TABLE,
+  ANALYTICS_PARTITIONS_AHEAD,
+  ANALYTICS_PARTITIONS_LOCK_KEY,
+  ANALYTICS_RETENTION_MONTHS,
+  addMonths,
+  createPartitionSql,
+  detachPartitionSql,
+  dropPartitionSql,
+  maintainAnalyticsPartitions,
+  parsePartitionName,
+  partitionBounds,
+  partitionName,
+  planPartitionMaintenance,
+  retentionCutoff,
+  yearMonthOf,
+  type PartitionMaintenanceDb,
+  type PartitionMaintenanceOptions,
+  type PartitionMaintenanceResult,
+  type PartitionMaintenanceTx,
+  type PartitionPlan,
+  type YearMonth,
+} from "./partitions";
+export { createPrismaPartitionMaintenanceDb } from "./partitions-prisma";

@@ -634,8 +634,14 @@ analyticsEvent                                         (sin FK, alto volumen)
   admin, creador de ejemplo y publica el Rey Aldric como `roomVersion` real.
 - CI: cada PR levanta Postgres efímero, aplica todas las migraciones desde cero y corre el test
   E2E del Rey Aldric.
-- **Job de purga de `analyticsEvent`** (pendiente, Fase 6): la partición ya existe; falta el
-  cron (pg_cron o scheduler del backend) con retención de 24 meses en detalle.
+- **Job de particiones y purga de `analyticsEvent`** (ticket 6.11): scheduler de BullMQ en
+  `packages/worker` (`analytics.partitions`, día 1 de cada mes a las 03:00 UTC, más una pasada al
+  arrancar el worker). Cada pasada, en una transacción con advisory lock (`pg_try_advisory_xact_lock`;
+  si otra pasada lo tiene, se omite), crea con `CREATE TABLE IF NOT EXISTS … PARTITION OF` las
+  particiones del mes actual y el siguiente (`analyticsEvent_AAAA_MM`, límites en UTC) y hace
+  `DETACH` + `DROP` de las mensuales cuyo mes es anterior a *mes actual − 24*: solo se borra lo que
+  tiene más de 24 meses. Las particiones con otro nombre (p. ej. una DEFAULT) nunca se tocan.
+  Lógica y SQL en `@escaperoom/shared/analytics` (`partitions.ts`). Sin migración nueva.
 
 ## 13. Dependencias
 

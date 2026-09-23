@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { createQueueRedis } from "@escaperoom/kit/redis";
 import { logger } from "@escaperoom/kit/logger";
 import { storage } from "@escaperoom/kit/storage";
+import { createPrismaPartitionMaintenanceDb } from "@escaperoom/shared/analytics";
 import { prisma } from "@escaperoom/shared/db";
 import { createMailTransportFromEnv, readConfirmationTokenConfig } from "@escaperoom/shared/mail";
 import {
@@ -11,14 +12,16 @@ import {
   createPrismaInvitationStore,
 } from "@escaperoom/shared/services";
 import { createAccessKeyCardsWorker } from "./access-key-cards";
+import { createAnalyticsPartitionsWorker } from "./analytics-partitions";
 import { createAccessKeyExpiryWorker } from "./access-key-expiry";
 import { createInvitationEmailWorker } from "./invitation-email";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
 
 /**
  * Arranque de los workers de cola: analítica (specs/16), caducidad de claves
- * (ticket 5.5, job repetitivo), envíos de invitación por email (ticket 5.6) y
- * PDF de tarjetas-clave (ticket 5.7).
+ * (ticket 5.5, job repetitivo), envíos de invitación por email (ticket 5.6),
+ * PDF de tarjetas-clave (ticket 5.7) y particiones/purga de analítica (ticket
+ * 6.11, job mensual).
  *
  *   pnpm --filter @escaperoom/worker dev
  *
@@ -99,6 +102,13 @@ async function main(): Promise<void> {
     connection: cardsConnection,
   });
 
+  // Particiones de analyticsEvent: crea la del mes siguiente y purga > 24 meses.
+  const partitionsConnection = createQueueRedis();
+  const partitions = await createAnalyticsPartitionsWorker({
+    db: createPrismaPartitionMaintenanceDb(prisma),
+    connection: partitionsConnection,
+  });
+
   let closing = false;
   const shutdown = async (signal: string): Promise<void> => {
     if (closing) return;
@@ -109,10 +119,13 @@ async function main(): Promise<void> {
     await expiry.queue.close();
     await invitations?.close();
     await cards.close();
+    await partitions.worker.close();
+    await partitions.queue.close();
     await connection.quit().catch(() => undefined);
     await expiryConnection.quit().catch(() => undefined);
     await mailConnection?.quit().catch(() => undefined);
     await cardsConnection.quit().catch(() => undefined);
+    await partitionsConnection.quit().catch(() => undefined);
     await prisma.$disconnect().catch(() => undefined);
   };
 
