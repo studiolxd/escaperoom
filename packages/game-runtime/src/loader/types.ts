@@ -52,6 +52,9 @@ export interface RuntimeAmbientLight {
 
 export type RuntimeLight = RuntimeTorchLight | RuntimeAmbientLight;
 
+/** Acción del menú contextual de un objeto (specs/05 §3). */
+export type RuntimeObjectAction = "inspect" | "use_item";
+
 /**
  * `WorldObject` con el sprite del estado inicial ya resuelto.
  *
@@ -84,6 +87,18 @@ export interface RuntimeObject {
   inspectPanelPuzzleId?: string;
   /** `true` si la regla de inspección tiene condiciones (las evalúa el motor de 1.4). */
   inspectConditioned?: boolean;
+  /**
+   * Acciones del menú contextual derivadas de los **triggers** de las reglas
+   * (`on_interact` → `inspect`, `on_use_item` → `use_item`); sin reglas, las
+   * dos. Solo tipos de trigger: nada de condiciones ni acciones.
+   */
+  actions?: RuntimeObjectAction[];
+  /**
+   * Panel de puzzle asociado al objeto: el `hidden_key` que lo usa de
+   * escondite, el puzzle que lo bloquea (`lockedBy`) o el `split_clue` que lo
+   * usa como mirilla (lo mismo que `RoomSession.panelForObject`).
+   */
+  panelPuzzleId?: string;
 }
 
 export interface RuntimeItem {
@@ -114,6 +129,25 @@ export interface RuntimePuzzle {
   requiresSolved: string[];
   unlocks: string[];
   grantsItems: string[];
+  /**
+   * Geometría pública de las mecánicas de posición (el cliente de red coloca
+   * al jugador sobre una placa o tras una mirilla): son posiciones del mundo,
+   * no soluciones.
+   */
+  plates?: { objectId: string; x: number; y: number }[];
+  viewpoints?: { objectId: string; x: number; y: number }[];
+  /** Objeto-puente del modo solitario (cáliz, espejo), si la sala lo admite. */
+  soloBridgeItemId?: string;
+}
+
+/**
+ * Pista declarada **sin texto**: el texto solo llega cuando el servidor la
+ * entrega (`hint_delivered`). Sirve para saber cuántos tiers hay y su coste.
+ */
+export interface RuntimeHint {
+  puzzleId: string;
+  tier: number;
+  cost: number;
 }
 
 export interface RuntimeSubRoom {
@@ -156,6 +190,8 @@ export interface RuntimeModel {
   dialogsById: Record<string, RuntimeDialog>;
   puzzles: RuntimePuzzle[];
   puzzlesById: Record<string, RuntimePuzzle>;
+  /** Pistas sin texto, ordenadas por puzzle y tier. */
+  hints?: RuntimeHint[];
 }
 
 export type {

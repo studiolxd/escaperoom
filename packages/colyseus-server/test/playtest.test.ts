@@ -182,6 +182,27 @@ describe("registro de playtests", () => {
   });
 });
 
+describe("GET /internal/playtests/:playtestId/package", () => {
+  function getPackage(playtestId: string, secret: string | null = DEV_PLAYTEST_SECRET) {
+    return fetch(`http://localhost:${port}${PLAYTEST_INTERNAL_PATH}/${playtestId}/package`, {
+      headers: secret ? { authorization: `Bearer ${secret}` } : {},
+    });
+  }
+
+  it("devuelve el paquete congelado solo con el secreto compartido", async () => {
+    const created = await createOk();
+    expect((await getPackage(created.playtestId, null)).status).toBe(401);
+    expect((await getPackage(created.playtestId, "no-es-el-secreto")).status).toBe(401);
+    expect((await getPackage("no-existe")).status).toBe(404);
+
+    const res = await getPackage(created.playtestId);
+    expect(res.status).toBe(200);
+    const { roomPackage } = (await res.json()) as { roomPackage: RoomPackage };
+    expect(roomPackage.meta.id).toBe("draft-sala-de-prueba");
+    expect(roomPackage.objects.length).toBe(draftPackage().objects.length);
+  });
+});
+
 describe("POST /internal/playtests", () => {
   it("exige el secreto compartido y un RoomPackage válido", async () => {
     const body = { roomPackage: draftPackage(), authorId: "autora", draftRoomId: "sala-1" };

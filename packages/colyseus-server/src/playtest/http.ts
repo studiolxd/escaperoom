@@ -97,5 +97,29 @@ export function createPlaytestRouter(): Router {
       );
     }
   });
+
+  /**
+   * `GET /internal/playtests/:playtestId/package` (web → Colyseus): el paquete
+   * **congelado** de un playtest vivo, para que la página del link calcule en
+   * servidor el modelo del runtime (sin soluciones) que pinta el cliente de
+   * red. Misma autenticación que el alta; el navegador nunca llega aquí.
+   */
+  router.get(`${PLAYTEST_INTERNAL_PATH}/:playtestId/package`, (req, res) => {
+    const config = readPlaytestConfig();
+    if (!config) {
+      fail(res, 503, "PLAYTEST_DISABLED", "El playtest no está configurado (PLAYTEST_SECRET).");
+      return;
+    }
+    if (!isInternalSecret(config.secret, req.header("authorization"))) {
+      fail(res, 401, "UNAUTHORIZED", "Ruta interna: falta el secreto compartido.");
+      return;
+    }
+    const roomPackage = playtestRegistry.packageFor(req.params.playtestId);
+    if (!roomPackage) {
+      fail(res, 404, "PLAYTEST_NOT_FOUND", "El playtest no existe o ha caducado.");
+      return;
+    }
+    res.status(200).json({ roomPackage });
+  });
   return router;
 }

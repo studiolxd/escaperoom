@@ -120,3 +120,55 @@ export function getPlaytestLauncher(env: LauncherEnv = process.env): PlaytestLau
   if (!secret) return null;
   return createHttpPlaytestLauncher({ baseUrl: resolveColyseusHttpUrl(env), secret });
 }
+
+/** Lectura del paquete congelado de un playtest (para el modelo de la página del link). */
+export interface PlaytestPackageReader {
+  /** `null` si el playtest no existe o ya caducó. */
+  read(playtestId: string): Promise<RoomPackage | null>;
+}
+
+/**
+ * `GET /internal/playtests/:playtestId/package` (web → Colyseus): la página
+ * del link de prueba lee en **servidor** el paquete congelado para calcular el
+ * modelo del runtime sin soluciones; el navegador nunca recibe el paquete.
+ */
+export function createHttpPlaytestPackageReader(options: {
+  baseUrl: string;
+  secret: string;
+  fetch?: typeof fetch;
+}): PlaytestPackageReader {
+  const doFetch = options.fetch ?? fetch;
+  return {
+    async read(playtestId) {
+      let res: Response;
+      try {
+        res = await doFetch(
+          `${options.baseUrl}${PLAYTEST_INTERNAL_PATH}/${encodeURIComponent(playtestId)}/package`,
+          { headers: { authorization: `Bearer ${options.secret}` }, cache: "no-store" },
+        );
+      } catch (err) {
+        throw new PlaytestLaunchError(
+          "UNAVAILABLE",
+          "El servidor de partidas no responde",
+          err instanceof Error ? err.message : undefined,
+        );
+      }
+      if (res.status === 404) return null;
+      const json = (await res.json().catch(() => null)) as { roomPackage?: RoomPackage } | null;
+      if (res.status === 200 && json?.roomPackage) return json.roomPackage;
+      throw new PlaytestLaunchError(
+        "UNAVAILABLE",
+        `El servidor de partidas no devolvió el borrador (${res.status})`,
+      );
+    },
+  };
+}
+
+/** Lector del entorno; `null` si el playtest no está configurado. */
+export function getPlaytestPackageReader(
+  env: LauncherEnv = process.env,
+): PlaytestPackageReader | null {
+  const secret = resolvePlaytestSecret(env);
+  if (!secret) return null;
+  return createHttpPlaytestPackageReader({ baseUrl: resolveColyseusHttpUrl(env), secret });
+}

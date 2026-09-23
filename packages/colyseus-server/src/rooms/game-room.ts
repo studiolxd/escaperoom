@@ -10,6 +10,7 @@ import {
 } from "@escaperoom/shared/session";
 import { createSlidingRng, visibleFragmentsByIndex } from "@escaperoom/shared/templates";
 import {
+  CHAT_MESSAGE,
   ERROR_MESSAGE,
   GAME_DOOR_REACH,
   GAME_ERRORS,
@@ -19,7 +20,9 @@ import {
   GAME_TIME_LIMIT_SEC,
   MAX_PLAYERS,
 } from "../constants.js";
+import { RoomChat } from "../chat.js";
 import { resolveRoomPackage } from "../game/room-packages.js";
+import { MEDIA_TOKEN_REQUEST_MESSAGE, sendMediaTokenToClient } from "../media/index.js";
 import { distance, validateMove } from "../movement.js";
 import {
   GameInventoryState,
@@ -122,6 +125,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   private ended = false;
   /** Paneles abiertos por jugador: tras cada acción se les reenvía la vista. */
   private readonly openPanels = new Map<string, Set<string>>();
+  /** Chat de la partida (specs/11 §4.4): en cualquier fase, también en el lobby. */
+  private readonly chat = new RoomChat();
 
   override onCreate(options: GameRoomOptions = {}): void {
     const roomPackage = this.loadRoomPackage(options);
@@ -171,6 +176,15 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.onMessage(GAME_MESSAGES.hintRequest, (client, payload) =>
       this.withPayload(client, puzzlePayload, payload, (data) => this.handleHint(client, data)),
     );
+    this.onMessage(CHAT_MESSAGE, (client, payload) => {
+      const player = this.state.players.get(client.sessionId);
+      if (player) this.chat.handle(client, player.name, payload, this.state.chat);
+    });
+    // Medios (specs/11 §8, ticket 2.2): token LiveKit de la room derivada de
+    // `this.roomId`; sin claves llega `configured: false` y se juega sin medios.
+    this.onMessage(MEDIA_TOKEN_REQUEST_MESSAGE, (client, payload) => {
+      void sendMediaTokenToClient(client, this.roomId, payload);
+    });
 
     this.setTimestep(() => this.handleTick(), GAME_TICK_MS);
   }
@@ -205,6 +219,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.state.players.set(client.sessionId, player);
     if (!this.state.hostId) this.state.hostId = client.sessionId;
     this.openPanels.set(client.sessionId, new Set());
+    this.chat.join(client.sessionId);
 
     this.publish(moved.engine);
   }
@@ -215,6 +230,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     const player = this.state.players.get(client.sessionId);
     if (player) player.connected = false;
     this.openPanels.delete(client.sessionId);
+    this.chat.leave(client.sessionId);
   }
 
   // — Handlers ————————————————————————————————————————————————————

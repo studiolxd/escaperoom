@@ -108,7 +108,9 @@
     "alreadyApplied": "You had already done that: {item}",
     "invalid": "Those objects do not combine",
     "missingItems": "You are missing objects for that recipe",
-    "unavailable": "The combination is not available"
+    "unavailable": "The combination is not available",
+    "close": "Close",
+    "dropOn": "Drop on {item}"
   },
   "Hints": {
     "title": "Hints",
@@ -793,35 +795,9 @@
     "page": {
       "title": "Test game",
       "subtitle": "Unpublished draft: it does not appear in the catalog.",
-      "connecting": "Connecting to the game…",
       "invalidLink": "This test link is not valid.",
       "expired": "This test link has expired. Ask the author for a new one.",
-      "closed": "The test game has been closed.",
-      "phase": {
-        "lobby": "Waiting",
-        "playing": "Playing",
-        "ended": "Finished"
-      },
-      "result": "Result: {result}",
-      "start": "Start game",
-      "waitingHost": "Waiting for the host to start…",
-      "objects": "Objects",
-      "noObjects": "The room has no objects.",
-      "interact": "Interact",
-      "players": "Players",
-      "you": "you",
-      "host": "host",
-      "inventory": "Inventory",
-      "emptyInventory": "Empty",
-      "log": "Events"
-    },
-    "log": {
-      "dialog": "Dialog “{id}”",
-      "objectState": "“{id}” → {state}",
-      "item": "You get “{item}”",
-      "solved": "Puzzle solved: “{id}”",
-      "ended": "Game over: {result}",
-      "error": "Notice: {message}"
+      "unavailable": "The game server is not responding. Try again in a moment."
     }
   },
   "TemplateConfig": {
@@ -863,5 +839,74 @@
       "ACCESS_KEY_EXPIRED": "This key is no longer valid. Ask the organizer for a new one.",
       "UNKNOWN": "We could not confirm. Please try again in a few minutes."
     }
+  },
+  "Game": {
+    "page": {
+      "subtitle": "Online co-op game: invite your group with the link."
+    },
+    "join": {
+      "createSubtitle": "Create a game and share the link with your group (up to 4 players).",
+      "joinSubtitle": "You have been invited to a game in progress.",
+      "nameLabel": "Your name",
+      "namePlaceholder": "e.g. Ana",
+      "create": "Create game",
+      "join": "Join"
+    },
+    "connection": {
+      "idle": "Not connected",
+      "connecting": "Connecting…",
+      "connected": "Online",
+      "reconnecting": "Reconnecting…",
+      "disconnected": "Disconnected",
+      "expired": "Game closed",
+      "error": "No connection",
+      "retry": "Retry"
+    },
+    "status": {
+      "connecting": "Connecting to the game…",
+      "error": "Could not connect to the game server.",
+      "expired": "This game has been closed."
+    },
+    "lobby": {
+      "title": "Waiting room",
+      "players": "{count, plural, one {# player} other {# players}}",
+      "start": "Start game",
+      "waitingHost": "Waiting for the host to start…",
+      "invite": "Copy invite link",
+      "copied": "Link copied!",
+      "you": "you",
+      "host": "host",
+      "offline": "offline"
+    },
+    "hud": {
+      "loadingPanel": "Loading…"
+    },
+    "log": {
+      "itemGranted": "You receive {item}",
+      "itemGrantedOther": "{player} receives {item}"
+    },
+    "errors": {
+      "NOT_AVAILABLE": "You can't do that yet",
+      "INVALID_STATE": "The game is not in progress",
+      "PERMISSION_DENIED": "Only the host can do that",
+      "MOVE_TOO_FAST": "Movement corrected by the server",
+      "OUT_OF_BOUNDS": "You can't leave the room",
+      "ROOM_LOCKED": "The door is closed or too far away",
+      "RATE_LIMITED": "Too many messages: wait a moment",
+      "generic": "The server rejected the action"
+    },
+    "event": {
+      "missingToken": "The session access code is missing. Redeem your key again to join."
+    }
+  },
+  "Chat": {
+    "title": "Chat",
+    "empty": "No messages yet",
+    "placeholder": "Write a message…",
+    "disconnected": "Connect to chat",
+    "send": "Send",
+    "filtered": "filtered",
+    "filteredTitle": "The language filter censored part of this message",
+    "hint": "Max. {max} characters · 2 messages per second"
   }
 }

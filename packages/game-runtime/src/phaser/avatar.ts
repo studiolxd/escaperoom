@@ -115,6 +115,39 @@ export class AvatarController {
     this.syncPosition();
   }
 
+  /**
+   * Avatar remoto (fase 2): se desliza hacia la posición autoritativa que
+   * sincroniza el servidor, sin colisiones (el servidor ya validó el paso) y
+   * con la animación de andar mientras se mueve.
+   */
+  glideToward(target: { x: number; y: number }, delta: number): void {
+    const dx = target.x - this.cell.x;
+    const dy = target.y - this.cell.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > 4) {
+      // Salto largo (cambio de sala, reaparición): sin animación intermedia.
+      this.cell = { x: target.x, y: target.y };
+      this.moving = false;
+    } else if (distance > 0.02) {
+      const step = Math.min(distance, this.speed * 1.25 * (delta / 1000));
+      this.cell = {
+        x: this.cell.x + (dx / distance) * step,
+        y: this.cell.y + (dy / distance) * step,
+      };
+      this.direction = directionFromGridDelta(Math.sign(dx), Math.sign(dy));
+      this.moving = true;
+    } else {
+      this.moving = false;
+    }
+    this.play(avatarAnimKey(this.direction, this.moving ? "walk" : "idle"));
+    this.syncPosition();
+  }
+
+  /** Cambia el tinte (color del jugador asignado por el servidor). */
+  setTint(tint: number): void {
+    this.sprite.setTint(tint);
+  }
+
   /** Dispara la animación de interacción una vez. */
   interact(): void {
     if (this.interacting) {

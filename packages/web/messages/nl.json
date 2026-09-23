@@ -108,7 +108,9 @@
     "alreadyApplied": "Dat had je al gedaan: {item}",
     "invalid": "Die voorwerpen combineren niet",
     "missingItems": "Je mist voorwerpen voor dat recept",
-    "unavailable": "De combinatie is niet beschikbaar"
+    "unavailable": "De combinatie is niet beschikbaar",
+    "close": "Sluiten",
+    "dropOn": "Laat los op {item}"
   },
   "Playtest": {
     "badge": "playtest Koning Aldric (2.8)",
@@ -762,35 +764,109 @@
     "page": {
       "title": "Testspel",
       "subtitle": "Niet-gepubliceerd concept: het verschijnt niet in de catalogus.",
-      "connecting": "Verbinden met het spel…",
       "invalidLink": "Deze testlink is ongeldig.",
       "expired": "Deze testlink is verlopen. Vraag de auteur om een nieuwe.",
-      "closed": "Het testspel is gesloten.",
-      "phase": {
-        "lobby": "Wachten",
-        "playing": "Bezig",
-        "ended": "Afgelopen"
-      },
-      "result": "Resultaat: {result}",
+      "unavailable": "De spelserver reageert niet. Probeer het zo opnieuw."
+    }
+  },
+  "Game": {
+    "page": {
+      "subtitle": "Coöperatief online spel: nodig je groep uit met de link."
+    },
+    "join": {
+      "createSubtitle": "Maak een spel aan en deel de link met je groep (tot 4 spelers).",
+      "joinSubtitle": "Je bent uitgenodigd voor een lopend spel.",
+      "nameLabel": "Je naam",
+      "namePlaceholder": "bijv. Ana",
+      "create": "Spel aanmaken",
+      "join": "Meedoen"
+    },
+    "connection": {
+      "idle": "Niet verbonden",
+      "connecting": "Verbinden…",
+      "connected": "Online",
+      "reconnecting": "Opnieuw verbinden…",
+      "disconnected": "Verbinding verbroken",
+      "expired": "Spel gesloten",
+      "error": "Geen verbinding",
+      "retry": "Opnieuw proberen"
+    },
+    "status": {
+      "connecting": "Verbinden met het spel…",
+      "error": "Kan geen verbinding maken met de spelserver.",
+      "expired": "Dit spel is gesloten."
+    },
+    "lobby": {
+      "title": "Wachtkamer",
+      "players": "{count, plural, one {# speler} other {# spelers}}",
       "start": "Spel starten",
       "waitingHost": "Wachten tot de host start…",
-      "objects": "Objecten",
-      "noObjects": "De kamer heeft geen objecten.",
-      "interact": "Gebruiken",
-      "players": "Spelers",
+      "invite": "Uitnodigingslink kopiëren",
+      "copied": "Link gekopieerd!",
       "you": "jij",
       "host": "host",
-      "inventory": "Inventaris",
-      "emptyInventory": "Leeg",
-      "log": "Gebeurtenissen"
+      "offline": "offline"
+    },
+    "hud": {
+      "loadingPanel": "Laden…"
     },
     "log": {
-      "dialog": "Dialoog ‘{id}’",
-      "objectState": "‘{id}’ → {state}",
-      "item": "Je krijgt ‘{item}’",
-      "solved": "Puzzel opgelost: ‘{id}’",
-      "ended": "Einde van het spel: {result}",
-      "error": "Melding: {message}"
+      "itemGranted": "Je ontvangt {item}",
+      "itemGrantedOther": "{player} ontvangt {item}"
+    },
+    "errors": {
+      "NOT_AVAILABLE": "Dat kan nog niet",
+      "INVALID_STATE": "Het spel is niet bezig",
+      "PERMISSION_DENIED": "Alleen de host kan dat",
+      "MOVE_TOO_FAST": "Beweging gecorrigeerd door de server",
+      "OUT_OF_BOUNDS": "Je kunt de kamer niet verlaten",
+      "ROOM_LOCKED": "De deur is dicht of te ver weg",
+      "RATE_LIMITED": "Te veel berichten: wacht even",
+      "generic": "De server heeft de actie geweigerd"
+    },
+    "event": {
+      "missingToken": "De toegangscode van de sessie ontbreekt. Wissel je sleutel opnieuw in om mee te doen."
+    }
+  },
+  "Chat": {
+    "title": "Chat",
+    "empty": "Nog geen berichten",
+    "placeholder": "Schrijf een bericht…",
+    "disconnected": "Maak verbinding om te chatten",
+    "send": "Versturen",
+    "filtered": "gefilterd",
+    "filteredTitle": "Het taalfilter heeft een deel van dit bericht gecensureerd",
+    "hint": "Max. {max} tekens · 2 berichten per seconde"
+  },
+  "Hints": {
+    "title": "Hints",
+    "empty": "Je hebt nog geen hint gevraagd",
+    "remaining": "Resterende hints: {count}",
+    "request": "Hint vragen",
+    "requestCost": "Hint vragen · kost {cost}",
+    "pending": "Hint wordt geleverd…",
+    "tier": "Hint niveau {tier}",
+    "exhausted": "Er zijn geen hints meer voor deze puzzel",
+    "unavailable": "Deze puzzel heeft geen hints",
+    "errors": {
+      "insufficient_hints": "Deze hint kost {cost} en er zijn er nog maar {remaining}",
+      "no_more_tiers": "Je hebt al alle hints voor deze puzzel gevraagd",
+      "unknown_puzzle": "Er zijn geen hints voor deze puzzel"
+    }
+  },
+  "Results": {
+    "title": "Resultaten",
+    "time": "Tijd",
+    "hints": "Gebruikte hints",
+    "puzzles": "Opgeloste puzzels",
+    "puzzlesValue": "{solved}/{total}",
+    "items": "Verzamelde voorwerpen",
+    "exit": "Afsluiten",
+    "review": "Recensie schrijven",
+    "result": {
+      "victory": "Overwinning!",
+      "timeout": "De tijd is om",
+      "aborted": "Spel afgebroken"
     }
   },
   "TemplateConfig": {

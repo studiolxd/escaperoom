@@ -108,7 +108,9 @@
     "alreadyApplied": "Tu l'avais déjà fait : {item}",
     "invalid": "Ces objets ne se combinent pas",
     "missingItems": "Il te manque des objets pour cette recette",
-    "unavailable": "La combinaison n'est pas disponible"
+    "unavailable": "La combinaison n'est pas disponible",
+    "close": "Fermer",
+    "dropOn": "Déposer sur {item}"
   },
   "Playtest": {
     "badge": "playtest Roi Aldric (2.8)",
@@ -762,35 +764,109 @@
     "page": {
       "title": "Partie de test",
       "subtitle": "Brouillon non publié : il n'apparaît pas dans le catalogue.",
-      "connecting": "Connexion à la partie…",
       "invalidLink": "Ce lien de test n'est pas valide.",
       "expired": "Ce lien de test a expiré. Demandez-en un nouveau à l'auteur.",
-      "closed": "La partie de test a été fermée.",
-      "phase": {
-        "lobby": "En attente",
-        "playing": "En cours",
-        "ended": "Terminée"
-      },
-      "result": "Résultat : {result}",
-      "start": "Lancer la partie",
+      "unavailable": "Le serveur de parties ne répond pas. Réessayez dans un instant."
+    }
+  },
+  "Game": {
+    "page": {
+      "subtitle": "Partie coopérative en ligne : invitez votre groupe avec le lien."
+    },
+    "join": {
+      "createSubtitle": "Créez une partie et partagez le lien avec votre groupe (jusqu'à 4 joueurs).",
+      "joinSubtitle": "Vous êtes invité à une partie en cours.",
+      "nameLabel": "Votre nom",
+      "namePlaceholder": "ex. Ana",
+      "create": "Créer une partie",
+      "join": "Rejoindre"
+    },
+    "connection": {
+      "idle": "Non connecté",
+      "connecting": "Connexion…",
+      "connected": "En ligne",
+      "reconnecting": "Reconnexion…",
+      "disconnected": "Déconnecté",
+      "expired": "Partie fermée",
+      "error": "Pas de connexion",
+      "retry": "Réessayer"
+    },
+    "status": {
+      "connecting": "Connexion à la partie…",
+      "error": "Impossible de se connecter au serveur de parties.",
+      "expired": "Cette partie a été fermée."
+    },
+    "lobby": {
+      "title": "Salle d'attente",
+      "players": "{count, plural, one {# joueur} other {# joueurs}}",
+      "start": "Commencer la partie",
       "waitingHost": "En attente du lancement par l'hôte…",
-      "objects": "Objets",
-      "noObjects": "La salle n'a pas d'objets.",
-      "interact": "Interagir",
-      "players": "Joueurs",
+      "invite": "Copier le lien d'invitation",
+      "copied": "Lien copié !",
       "you": "vous",
       "host": "hôte",
-      "inventory": "Inventaire",
-      "emptyInventory": "Vide",
-      "log": "Événements"
+      "offline": "déconnecté"
+    },
+    "hud": {
+      "loadingPanel": "Chargement…"
     },
     "log": {
-      "dialog": "Dialogue « {id} »",
-      "objectState": "« {id} » → {state}",
-      "item": "Vous obtenez « {item} »",
-      "solved": "Énigme résolue : « {id} »",
-      "ended": "Fin de la partie : {result}",
-      "error": "Avis : {message}"
+      "itemGranted": "Vous recevez {item}",
+      "itemGrantedOther": "{player} reçoit {item}"
+    },
+    "errors": {
+      "NOT_AVAILABLE": "Impossible pour l'instant",
+      "INVALID_STATE": "La partie n'est pas en cours",
+      "PERMISSION_DENIED": "Seul l'hôte peut le faire",
+      "MOVE_TOO_FAST": "Déplacement corrigé par le serveur",
+      "OUT_OF_BOUNDS": "Vous ne pouvez pas sortir de la salle",
+      "ROOM_LOCKED": "La porte est fermée ou trop loin",
+      "RATE_LIMITED": "Trop de messages : patientez un instant",
+      "generic": "Le serveur a refusé l'action"
+    },
+    "event": {
+      "missingToken": "Le code d'accès de la session est manquant. Échangez à nouveau votre clé pour entrer."
+    }
+  },
+  "Chat": {
+    "title": "Chat",
+    "empty": "Aucun message pour l'instant",
+    "placeholder": "Écrivez un message…",
+    "disconnected": "Connectez-vous pour discuter",
+    "send": "Envoyer",
+    "filtered": "filtré",
+    "filteredTitle": "Le filtre de langage a censuré une partie de ce message",
+    "hint": "Max. {max} caractères · 2 messages par seconde"
+  },
+  "Hints": {
+    "title": "Indices",
+    "empty": "Vous n'avez encore demandé aucun indice",
+    "remaining": "Indices restants : {count}",
+    "request": "Demander un indice",
+    "requestCost": "Demander un indice · coût {cost}",
+    "pending": "Envoi de l'indice…",
+    "tier": "Indice niveau {tier}",
+    "exhausted": "Plus d'indices pour cette énigme",
+    "unavailable": "Cette énigme n'a pas d'indices",
+    "errors": {
+      "insufficient_hints": "Cet indice coûte {cost} et il n'en reste que {remaining}",
+      "no_more_tiers": "Vous avez déjà demandé tous les indices de cette énigme",
+      "unknown_puzzle": "Aucun indice défini pour cette énigme"
+    }
+  },
+  "Results": {
+    "title": "Résultats",
+    "time": "Temps",
+    "hints": "Indices utilisés",
+    "puzzles": "Énigmes résolues",
+    "puzzlesValue": "{solved}/{total}",
+    "items": "Objets récupérés",
+    "exit": "Quitter",
+    "review": "Laisser un avis",
+    "result": {
+      "victory": "Victoire !",
+      "timeout": "Temps écoulé",
+      "aborted": "Partie abandonnée"
     }
   },
   "TemplateConfig": {

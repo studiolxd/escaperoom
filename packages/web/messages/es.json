@@ -806,35 +806,68 @@
     "page": {
       "title": "Partida de prueba",
       "subtitle": "Borrador sin publicar: no aparece en el catálogo.",
-      "connecting": "Conectando con la partida…",
       "invalidLink": "Este link de prueba no es válido.",
       "expired": "Este link de prueba ha caducado. Pide al autor uno nuevo.",
-      "closed": "La partida de prueba se ha cerrado.",
-      "phase": {
-        "lobby": "En espera",
-        "playing": "En juego",
-        "ended": "Terminada"
-      },
-      "result": "Resultado: {result}",
+      "unavailable": "El servidor de partidas no responde. Inténtalo de nuevo en un momento."
+    }
+  },
+  "Game": {
+    "page": {
+      "subtitle": "Partida cooperativa en red: invita a tu grupo con el link."
+    },
+    "join": {
+      "createSubtitle": "Crea una partida y comparte el link con tu grupo (hasta 4 jugadores).",
+      "joinSubtitle": "Te han invitado a una partida en curso.",
+      "nameLabel": "Tu nombre",
+      "namePlaceholder": "p. ej. Ana",
+      "create": "Crear partida",
+      "join": "Unirme"
+    },
+    "connection": {
+      "idle": "Sin conectar",
+      "connecting": "Conectando…",
+      "connected": "En línea",
+      "reconnecting": "Reconectando…",
+      "disconnected": "Desconectado",
+      "expired": "Partida cerrada",
+      "error": "Sin conexión",
+      "retry": "Reintentar"
+    },
+    "status": {
+      "connecting": "Conectando con la partida…",
+      "error": "No se pudo conectar con el servidor de partidas.",
+      "expired": "Esta partida se ha cerrado."
+    },
+    "lobby": {
+      "title": "Sala de espera",
+      "players": "{count, plural, one {# jugador} other {# jugadores}}",
       "start": "Empezar partida",
       "waitingHost": "Esperando a que el anfitrión empiece…",
-      "objects": "Objetos",
-      "noObjects": "La sala no tiene objetos.",
-      "interact": "Interactuar",
-      "players": "Jugadores",
+      "invite": "Copiar link de invitación",
+      "copied": "¡Link copiado!",
       "you": "tú",
       "host": "anfitrión",
-      "inventory": "Inventario",
-      "emptyInventory": "Vacío",
-      "log": "Eventos"
+      "offline": "desconectado"
+    },
+    "hud": {
+      "loadingPanel": "Cargando…"
     },
     "log": {
-      "dialog": "Diálogo «{id}»",
-      "objectState": "«{id}» → {state}",
-      "item": "Obtienes «{item}»",
-      "solved": "Puzzle resuelto: «{id}»",
-      "ended": "Fin de la partida: {result}",
-      "error": "Aviso: {message}"
+      "itemGranted": "Recibes {item}",
+      "itemGrantedOther": "{player} recibe {item}"
+    },
+    "errors": {
+      "NOT_AVAILABLE": "Aún no se puede hacer eso",
+      "INVALID_STATE": "La partida no está en juego",
+      "PERMISSION_DENIED": "Solo el anfitrión puede hacerlo",
+      "MOVE_TOO_FAST": "Movimiento corregido por el servidor",
+      "OUT_OF_BOUNDS": "No puedes salir de la sala",
+      "ROOM_LOCKED": "La puerta está cerrada o lejos",
+      "RATE_LIMITED": "Demasiados mensajes: espera un momento",
+      "generic": "El servidor rechazó la acción"
+    },
+    "event": {
+      "missingToken": "Falta el código de acceso de la sesión. Vuelve a canjear tu clave para entrar."
     }
   },
   "TemplateConfig": {

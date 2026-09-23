@@ -88,6 +88,33 @@ export interface RoomSceneOptions {
    * emite como `edit:event` (celda + objeto debajo) para la capa de comandos.
    */
   mode?: "play" | "edit";
+  /**
+   * Emite `avatar-move` con la posición del avatar local mientras se mueve
+   * (como mucho cada `AVATAR_MOVE_EMIT_MS`). Lo activa el cliente de red.
+   */
+  emitAvatarMoves?: boolean;
+}
+
+/** Otro jugador de la partida, tal como lo sincroniza el servidor (fase 2). */
+export interface ScenePlayer {
+  id: string;
+  name: string;
+  roomId: string;
+  x: number;
+  y: number;
+  /** `#rrggbb`. */
+  tint: string;
+  connected: boolean;
+}
+
+/** Cadencia máxima del evento `avatar-move` (≈10 msg/s, specs/11 §9). */
+export const AVATAR_MOVE_EMIT_MS = 100;
+
+/** Avatar de otro jugador: se interpola hacia la última posición del servidor. */
+interface RemoteAvatar {
+  controller: AvatarController;
+  label: Phaser.GameObjects.Text;
+  target: { x: number; y: number };
 }
 
 /** Vista de un objeto en la escena: sprite, brillo de hover y profundidad. */
@@ -176,6 +203,16 @@ export class RoomScene extends Phaser.Scene {
   private hoverCell?: EditCell;
   private editCursor?: Phaser.GameObjects.Graphics;
   private editSelection?: Phaser.GameObjects.Graphics;
+  // — Multijugador (fase 2) —
+  private readonly emitAvatarMoves: boolean;
+  private lastEmittedMove?: { roomId: string; x: number; y: number; at: number };
+  /** Posición autoritativa pendiente de aplicar al avatar local (tras reconstruir la sala). */
+  private pendingAvatarCell?: { x: number; y: number };
+  private localTint?: number;
+  private players: ScenePlayer[] = [];
+  private readonly remoteAvatars = new Map<string, RemoteAvatar>();
+  /** Estados que llegaron (del servidor) antes de que Phaser creara la escena. */
+  private readonly earlyObjectStates = new Map<string, string>();
 
   constructor(options: RoomSceneOptions) {
     super("room-preview");
@@ -189,6 +226,7 @@ export class RoomScene extends Phaser.Scene {
     this.intentOnly = options.intentOnly ?? false;
     this.localInputEnabled = options.inputEnabled ?? true;
     this.localPlayerId = options.localPlayerId ?? "p0";
+    this.emitAvatarMoves = options.emitAvatarMoves ?? false;
     this.manifest = options.pack?.manifest ?? buildPlaceholderManifest(options.model);
 
     const initialRoomId = options.initialRoomId ?? this.model.subrooms[0]?.id;
@@ -220,6 +258,12 @@ export class RoomScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
 
     this.objectState = createObjectStateMap(this.model);
+    for (const [objectId, state] of this.earlyObjectStates) {
+      const object = this.model.objectsById[objectId];
+      if (!object?.states.includes(state)) continue; // estado no declarado: se ignora
+      this.objectState = applyObjectState(this.objectState, object, state);
+    }
+    this.earlyObjectStates.clear();
     this.containers = createContainerStateMap(this.model);
     this.setupInput();
     this.buildRoom();
@@ -230,7 +274,11 @@ export class RoomScene extends Phaser.Scene {
     if (this.dialogBox && time > this.dialogHideAt) {
       this.hideDialog();
     }
-    if (!this.built || this.transitioning || !this.avatar) {
+    if (!this.built || this.transitioning) {
+      return;
+    }
+    this.updateRemoteAvatars(delta);
+    if (!this.avatar) {
       return;
     }
     if (!this.localInputEnabled) {
@@ -238,8 +286,124 @@ export class RoomScene extends Phaser.Scene {
       return;
     }
     this.avatar.update(delta, this.readMove());
+    this.emitAvatarMove(time);
     this.resolvePendingInteraction();
     this.checkDoor(time);
+  }
+
+  /**
+   * Recoloca el avatar local en la posición autoritativa del servidor (spawn,
+   * cruce de sala o movimiento rechazado). Si la sala se está reconstruyendo,
+   * se aplica al crear el avatar.
+   */
+  placeAvatar(x: number, y: number): void {
+    this.clickTarget = undefined;
+    this.pendingObjectId = undefined;
+    if (this.avatar && !this.transitioning) {
+      this.avatar.setCell(x, y);
+      this.lastEmittedMove = { roomId: this.activeRoomId, x, y, at: this.time?.now ?? 0 };
+    } else {
+      this.pendingAvatarCell = { x, y };
+    }
+  }
+
+  /** Posición actual del avatar local (celdas), si existe. */
+  get avatarCell(): { x: number; y: number } | undefined {
+    return this.avatar?.cellPosition;
+  }
+
+  /** Tinte del avatar local (color asignado por el servidor). */
+  setLocalTint(tint: number): void {
+    this.localTint = tint;
+    this.avatar?.setTint(tint);
+  }
+
+  /**
+   * Jugadores de la partida (sin el local). Se pintan los de la sala visible y
+   * se interpolan hacia su última posición sincronizada.
+   */
+  setPlayers(players: readonly ScenePlayer[]): void {
+    this.players = players.map((player) => ({ ...player }));
+    if (!this.built || this.transitioning) {
+      return;
+    }
+    this.syncRemoteAvatars();
+  }
+
+  private syncRemoteAvatars(): void {
+    const visible = new Map(
+      this.players
+        .filter((player) => player.roomId === this.activeRoomId && player.connected)
+        .map((player) => [player.id, player]),
+    );
+    for (const [id, remote] of this.remoteAvatars) {
+      if (!visible.has(id)) {
+        remote.controller.destroy();
+        this.remoteAvatars.delete(id);
+      }
+    }
+    for (const player of visible.values()) {
+      const existing = this.remoteAvatars.get(player.id);
+      if (existing) {
+        existing.target = { x: player.x, y: player.y };
+        existing.label.setText(player.name);
+        continue;
+      }
+      const controller = new AvatarController({
+        scene: this,
+        resolver: this.resolver,
+        manifest: this.manifest,
+        collision: this.collision,
+        start: { x: player.x, y: player.y },
+        tint: Phaser.Display.Color.HexStringToColor(player.tint).color,
+      });
+      const label = this.add
+        .text(0, -100, player.name, {
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "13px",
+          color: "#f8fafc",
+          backgroundColor: "rgba(2, 6, 23, 0.65)",
+          padding: { x: 4, y: 1 },
+        })
+        .setOrigin(0.5, 1);
+      controller.container.add(label);
+      this.remoteAvatars.set(player.id, {
+        controller,
+        label,
+        target: { x: player.x, y: player.y },
+      });
+    }
+  }
+
+  private updateRemoteAvatars(delta: number): void {
+    for (const remote of this.remoteAvatars.values()) {
+      remote.controller.glideToward(remote.target, delta);
+    }
+  }
+
+  private clearRemoteAvatars(): void {
+    for (const remote of this.remoteAvatars.values()) {
+      remote.controller.destroy();
+    }
+    this.remoteAvatars.clear();
+  }
+
+  /** Emite `avatar-move` si el avatar local se desplazó (throttle ≈10/s). */
+  private emitAvatarMove(time: number): void {
+    if (!this.emitAvatarMoves || !this.avatar) {
+      return;
+    }
+    const cell = this.avatar.cellPosition;
+    const last = this.lastEmittedMove;
+    const moved =
+      !last ||
+      last.roomId !== this.activeRoomId ||
+      Math.hypot(cell.x - last.x, cell.y - last.y) > 0.05;
+    if (!moved || (last && time - last.at < AVATAR_MOVE_EMIT_MS)) {
+      return;
+    }
+    this.lastEmittedMove = { roomId: this.activeRoomId, x: cell.x, y: cell.y, at: time };
+    this.emit({ type: "avatar-move", roomId: this.activeRoomId, x: cell.x, y: cell.y });
   }
 
   /**
@@ -311,11 +475,13 @@ export class RoomScene extends Phaser.Scene {
     this.buildAvatar(room);
 
     this.built = true;
+    this.syncRemoteAvatars();
   }
 
   private clearRoom(): void {
     this.avatar?.destroy();
     this.avatar = undefined;
+    this.clearRemoteAvatars();
     this.clickTarget = undefined;
     this.pendingObjectId = undefined;
     this.hoveredObjectId = undefined;
@@ -587,6 +753,11 @@ export class RoomScene extends Phaser.Scene {
     const object = this.model.objectsById[objectId];
     if (!object) {
       throw new Error(`RoomScene: el objeto "${objectId}" no existe en el modelo.`);
+    }
+    if (!this.built) {
+      // Phaser aún no ha llamado a `create`: se aplica al construir la escena.
+      this.earlyObjectStates.set(objectId, state);
+      return;
     }
     const next = applyObjectState(this.objectState, object, state);
     if (next === this.objectState) {
@@ -981,15 +1152,17 @@ export class RoomScene extends Phaser.Scene {
     if (!this.avatarEnabled) {
       return;
     }
-    const spawn = room.spawns[0] ?? { x: 0, y: 0 };
+    const spawn = this.pendingAvatarCell ?? room.spawns[0] ?? { x: 0, y: 0 };
+    this.pendingAvatarCell = undefined;
     this.avatar = new AvatarController({
       scene: this,
       resolver: this.resolver,
       manifest: this.manifest,
       collision: this.collision,
       start: { x: spawn.x, y: spawn.y },
-      tint: playerColor(0),
+      tint: this.localTint ?? playerColor(0),
     });
+    this.lastEmittedMove = { roomId: room.id, x: spawn.x, y: spawn.y, at: this.time?.now ?? 0 };
   }
 
   private setupInput(): void {
