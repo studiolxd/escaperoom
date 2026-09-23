@@ -18,11 +18,11 @@ en la misma capa.
 | **Muros** (sprites con altura, no tiles; pivote abajo-centro, dos caras visibles, `collides`) | | |
 | `tile-10.png` | 64×64 | Muro recto (tileable); 2 caras + canto |
 | `muro-esquina.png` | 64×64 | Muro en esquina (L) |
-| `muro-antorcha.png` | 64×96 | Muro con antorcha |
-| `muro-tapiz.png` | 64×96 | Muro con tapiz/estandarte |
-| `muro-ventana.png` | 64×96 | Muro con ventana/mirilla |
-| `muro-arco.png` | 64×96 | Muro con arco/paso |
-| `muro-remate.png` | 64×96 | Remate de muro (canto al girar) |
+| `muro-antorcha.png` | 64×64 | Muro con antorcha (soporte, anilla, mango, llama, hollín) |
+| `muro-tapiz.png` | 64×64 | Muro con tapiz (barra, paño rojo, ribete y rombo dorados) |
+| `muro-ventana.png` | 64×64 | Muro con ventana (aspillera con arco en marco de sillares) |
+| `muro-arco.png` | 64×64 | Muro con arco (hueco recortado, dovelas, jambas/intradós; suelo de detrás transparente) |
+| `muro-remate.png` | 64×64 | Remate de muro (brazo único, canto a mitad de celda) |
 | `columna.png` | 64×128 | Columna (fuste) |
 | `columna-base.png` | 64×48 | Base de columna |
 | `columna-capital.png` | 64×48 | Capital de columna |
