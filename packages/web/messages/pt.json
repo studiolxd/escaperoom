@@ -1261,6 +1261,7 @@
     "messageLabel": "Mensagem",
     "submit": "Enviar mensagem",
     "success": "Obrigado! Recebemos a tua mensagem e responderemos em breve.",
-    "placeholderNotice": "Este formulário é um placeholder: ainda não envia para nenhum sistema real."
+    "sending": "A enviar…",
+    "error": "Não foi possível enviar a mensagem. Tenta novamente."
   }
 }

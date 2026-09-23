@@ -54,3 +54,4 @@ export * from "./creator-connect";
 export * from "./creator-connect-prisma-store";
 export * from "./stripe-gateway";
 export * from "./stripe-webhook-dedupe";
+export * from "./contact";
