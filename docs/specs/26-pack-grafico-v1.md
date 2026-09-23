@@ -102,15 +102,23 @@ Los muros **no** son tiles del tileset de suelo: se pintan como **sprites con ov
 abajo-centro, depth-sort por `x+y`, `collides: true`), porque **suben** por encima de la celda.
 
 - **Celda/huella:** rombo **2:1** (64×32 a 1×), igual que el suelo.
-- **Lienzo:** más alto que la huella — **64×64** a 1× (**128×128** a 2×); muros altos (con cornisa o
-  viga) hasta **64×96 / 128×192**. Base apoyada en la celda, cuerpo creciendo **hacia arriba** con
-  padding transparente alrededor.
+- **Lienzo:** más alto que la huella — **64×64** a 1× (**128×128** a 2×). Un muro más alto (con
+  cornisa o viga) es cambiar el preset (`height`/`canvas_h`); v1 no lo necesita porque **ningún
+  elemento decorativo sobresale del alto del muro**. Base apoyada en la celda, cuerpo creciendo
+  **hacia arriba** con padding transparente alrededor.
 - **Dos caras visibles:** un muro iso enseña **cara izquierda** y **cara derecha** (y opcionalmente
   el **canto superior**). Solo esas dos: dibujar las cuatro taparía la sala. Las dos caras siguen la
   **luz única del pack** (a igual luz: una más clara, otra más oscura).
 - **Tileable y con piezas:** tramo **recto** sin costuras (repetible a lo largo del grid), **esquina**
   (L) y, si se puede, cruce y **arco/paso**. Variantes: muro **normal**, **con antorcha**,
   **con tapiz/estandarte**, **con ventana/mirilla**. La **puerta** sigue siendo objeto, no muro.
+- **Decoración sobre la cara:** antorcha, tapiz, ventana, arco y remate se dibujan **sobre la cara
+  larga** del muro, en su mismo espacio 2D (heredan la luz de esa cara) y **sin desplazar el pivote**
+  (la base sigue siendo el rombo 2:1 abajo-centro). El **arco** es un **hueco de medio punto
+  recortado de verdad** del muro: se ve el suelo de detrás (transparente) y dentro se pintan la
+  jamba interior y el intradós del lado que toca según la cara.
+- **Remate (`muro-remate`):** brazo único con el canto del extremo a **mitad de celda** (para
+  cerrar el final de un tramo); hay variante vertical.
 - **Transparencia real** en el fondo (nunca un color plano opaco; ver §4.1 — un PNG con fondo opaco
   deja huecos oscuros entre tiles) y **sin outline en el borde inferior** (se duplicaría entre
   piezas). Bordes limpios al 0–100 % de alpha para que la **oclusión** (`04` §1) los desvanezca bien.
