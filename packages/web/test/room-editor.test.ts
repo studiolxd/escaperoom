@@ -198,9 +198,11 @@ describe("<RoomEditorWorkspace> — decoración e iluminación de la habitación
     expect(html).toContain('data-room-panel="salon-trono"');
     expect(html).toContain(`Habitación «${salon.name}»`);
     expect(count(html, "data-decoration=")).toBe(salon.decorations.length);
-    // Antorcha del brasero: celda y objeto que la gobierna.
+    // Antorcha del brasero: celda y objeto que la gobierna (el <select> de
+    // objeto es un Select de shadcn — su valor seleccionado se cubre en
+    // test/room-editor-select.test.ts, con jsdom, ya que Radix monta el
+    // listbox en un Portal que `renderToStaticMarkup` no renderiza).
     expect(count(html, "data-torch=")).toBe(1);
-    expect(html).toMatch(/<option value="brasero" selected="">brasero<\/option>/);
     expect(html).toContain('value="#3a2f22"');
     expect(html).toContain("data-ambient-light");
     expect(html).toContain("Quitar luz ambiente");

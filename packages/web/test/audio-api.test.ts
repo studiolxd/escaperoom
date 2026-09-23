@@ -1,5 +1,4 @@
-import { ensureLocalizedField, initRoomLanguages, setEntryAudio } from "@escaperoom/editor";
-import { AUDIO_LIBRARY, createSilentMp3, libraryAudioRef } from "@escaperoom/shared/audio";
+import { AUDIO_LIBRARY, createSilentMp3 } from "@escaperoom/shared/audio";
 import {
   ANONYMOUS_ACTOR,
   createAudioAssetService,
@@ -11,14 +10,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import * as Y from "yjs";
 import es from "../messages/es.json";
-import {
-  AudioSourceSelect,
-  AudioUploadButton,
-  LocalizedAudioField,
-  type AudioUploadSummary,
-} from "../src/components/editor/audio-field";
+import { AudioUploadButton } from "../src/components/editor/audio-field";
 import { createAudioHandlers } from "../src/server/rest/audio";
 
 const ana: Actor = { userId: "ana", organizationId: null, role: "member" };
@@ -236,70 +229,11 @@ function render(element: ReactElement): string {
   );
 }
 
-const UPLOADS: AudioUploadSummary[] = [
-  {
-    ref: "upload:0f8fad5b-d9cb-469f-a165-70867728950e",
-    originalFilename: "narrador.mp3",
-    status: "pending",
-    rejectionReason: null,
-  },
-  {
-    ref: "upload:7c9e6679-7425-40de-944b-e07fc1f90ae7",
-    originalFilename: "voz-famosa.mp3",
-    status: "rejected",
-    rejectionReason: "Voz de un tercero",
-  },
-];
-
-describe("<LocalizedAudioField>", () => {
-  it("muestra el audio del idioma activo y marca los idiomas con audio", () => {
-    const doc = new Y.Doc();
-    initRoomLanguages(doc, ["es", "en"], "es");
-    const text = ensureLocalizedField(doc, "dialogs", "intro", { es: { text: "Hola" } });
-    setEntryAudio(doc, "dialogs", "intro", "es", libraryAudioRef("music-dungeon-ambience"));
-
-    const html = render(
-      createElement(LocalizedAudioField, {
-        text,
-        languages: ["es", "en"],
-        defaultLanguage: "es",
-        label: "Audio del diálogo",
-        library: AUDIO_LIBRARY,
-        uploads: UPLOADS,
-      }),
-    );
-    expect(html.match(/data-has-audio="true"/g)).toHaveLength(1);
-    expect(html).toMatch(/data-language="es"[^>]*data-has-audio="true"/);
-    expect(html).toMatch(/value="library:music-dungeon-ambience" selected=""/);
-    expect(html).toContain("Biblioteca · Música");
-    expect(html).toContain("Licencia CC0-1.0");
-    // El rechazado aparece deshabilitado.
-    expect(html).toMatch(/<option[^>]*disabled=""[^>]*>voz-famosa\.mp3 \(rechazado\)/);
-  });
-});
-
-describe("<AudioSourceSelect> y <AudioUploadButton>", () => {
-  it("avisa de que un audio pendiente no se puede publicar y muestra el motivo de un rechazo", () => {
-    const pending = render(
-      createElement(AudioSourceSelect, {
-        value: UPLOADS[0]!.ref,
-        onChange: () => undefined,
-        library: AUDIO_LIBRARY,
-        uploads: UPLOADS,
-      }),
-    );
-    expect(pending).toContain("Pendiente de moderación");
-    const rejected = render(
-      createElement(AudioSourceSelect, {
-        value: UPLOADS[1]!.ref,
-        onChange: () => undefined,
-        library: AUDIO_LIBRARY,
-        uploads: UPLOADS,
-      }),
-    );
-    expect(rejected).toContain("Rechazado en moderación: Voz de un tercero");
-  });
-
+// Cobertura de <LocalizedAudioField> y <AudioSourceSelect> (el <select> de la
+// biblioteca/subidas): test/audio-field-select.test.ts, con jsdom + Testing
+// Library — el Select de shadcn (Radix) monta su listbox en un Portal que
+// `renderToStaticMarkup` no renderiza.
+describe("<AudioUploadButton>", () => {
   it("pinta la subida con los límites y la declaración de derechos", () => {
     const html = render(
       createElement(AudioUploadButton, {

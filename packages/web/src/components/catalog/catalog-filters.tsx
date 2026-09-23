@@ -1,6 +1,3 @@
-"use client";
-
-import { useState } from "react";
 import { CATALOG_SORTS, type CatalogSort } from "@escaperoom/shared/services";
 import { LOCALES } from "@escaperoom/config/locales";
 import { useFormatter, useTranslations } from "next-intl";
@@ -10,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CatalogFilterSelect } from "./catalog-filter-select";
 import { languageName } from "./language-name";
 
 /** Valores de los filtros tal y como están en la URL del listado. */
@@ -33,57 +31,15 @@ const SORT_LABEL: Record<CatalogSort, string> = {
   price_desc: "sortPriceDesc",
 };
 
-/** Sentinel del `SelectItem` "cualquiera" (Radix no admite `value=""`); el input oculto sí manda "" a la URL. */
-const ANY = "__any__";
-
-/**
- * Campo de un `Select` de shadcn que sigue enviándose como GET nativo: el
- * `Select` es solo presentación (controlado en estado local) y un
- * `<input type="hidden">` con el mismo `name` lleva el valor real al formulario
- * ("" cuando el usuario elige "cualquiera", igual que el `<select>` nativo).
- */
-function FilterSelect({
-  id,
-  name,
-  label,
-  anyLabel,
-  initialValue,
-  options,
-}: {
-  id: string;
-  name: string;
-  label: string;
-  anyLabel: string;
-  initialValue: string;
-  options: { value: string; label: string }[];
-}) {
-  const [value, setValue] = useState(initialValue || ANY);
-
-  return (
-    <div className="flex flex-col gap-1 text-sm">
-      <Label htmlFor={id}>{label}</Label>
-      <Input type="hidden" name={name} value={value === ANY ? "" : value} />
-      <Select value={value} onValueChange={setValue}>
-        <SelectTrigger id={id} className="w-full">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ANY}>{anyLabel}</SelectItem>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
-
 /**
  * Filtros del catálogo como formulario GET: funcionan sin JavaScript y cada
  * combinación tiene una URL propia (enlazable e indexable). Los parámetros son
  * los mismos que los de `GET /api/rooms`.
+ *
+ * Server Component: solo `CatalogFilterSelect` (idioma/dificultad/jugadores/
+ * precio) se hidrata en cliente, en su propio archivo — este componente no
+ * puede llevar `"use client"` sin arrastrar `@escaperoom/shared/services`
+ * (Prisma, `node:fs`, …) al bundle del navegador.
  */
 export function CatalogFilters({
   values,
@@ -113,7 +69,7 @@ export function CatalogFilters({
           maxLength={100}
         />
       </div>
-      <FilterSelect
+      <CatalogFilterSelect
         id="filter-language"
         name="language"
         label={t("language")}
@@ -121,7 +77,7 @@ export function CatalogFilters({
         initialValue={values.language ?? ""}
         options={LOCALES.map((code) => ({ value: code, label: languageName(code, locale) }))}
       />
-      <FilterSelect
+      <CatalogFilterSelect
         id="filter-difficulty"
         name="difficulty"
         label={t("difficulty")}
@@ -132,7 +88,7 @@ export function CatalogFilters({
           label: t(`difficulty${level}`),
         }))}
       />
-      <FilterSelect
+      <CatalogFilterSelect
         id="filter-players"
         name="players"
         label={t("players")}
@@ -140,7 +96,7 @@ export function CatalogFilters({
         initialValue={values.players ?? ""}
         options={PLAYER_OPTIONS.map((n) => ({ value: String(n), label: String(n) }))}
       />
-      <FilterSelect
+      <CatalogFilterSelect
         id="filter-max-price"
         name="maxPrice"
         label={t("price")}
