@@ -49,6 +49,26 @@
     "locked": "O esconderijo ainda não está disponível",
     "unavailable": "O esconderijo já não pode ser revelado"
   },
+  "SimultaneousPlates": {
+    "title": "Placas simultâneas",
+    "prompt": "Ativa todas as placas ao mesmo tempo",
+    "progress": "Placas ativas: {active}/{total}",
+    "progressLabel": "Progresso das placas",
+    "countdown": "Faltam {seconds} s",
+    "windowClosed": "A janela fechou-se",
+    "platesLabel": "Placas",
+    "plate": "Placa {id}",
+    "active": "Ativa",
+    "inactive": "Inativa",
+    "bridged": "Fixada",
+    "placeBridge": "Colocar o objeto-ponte",
+    "pending": "A ativar…",
+    "solved": "Todas as placas ativas!",
+    "locked": "As placas ainda não estão disponíveis",
+    "unavailable": "As placas já não aceitam mais ativações",
+    "expired": "A janela fechou · tenta novamente",
+    "alreadyActive": "Essa placa já estava ativa"
+  },
   "Inventory": {
     "title": "Inventário",
     "recipes": "Receitas: {found}/{total}",

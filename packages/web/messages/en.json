@@ -49,6 +49,26 @@
     "locked": "The hiding spot is not available yet",
     "unavailable": "The hiding spot can no longer be revealed"
   },
+  "SimultaneousPlates": {
+    "title": "Simultaneous plates",
+    "prompt": "Activate every plate at once",
+    "progress": "Active plates: {active}/{total}",
+    "progressLabel": "Plates progress",
+    "countdown": "{seconds}s left",
+    "windowClosed": "The window has closed",
+    "platesLabel": "Plates",
+    "plate": "Plate {id}",
+    "active": "Active",
+    "inactive": "Inactive",
+    "bridged": "Fixed",
+    "placeBridge": "Place the bridge item",
+    "pending": "Activating…",
+    "solved": "All plates active!",
+    "locked": "The plates are not available yet",
+    "unavailable": "The plates accept no more activations",
+    "expired": "The window closed · try again",
+    "alreadyActive": "That plate was already active"
+  },
   "Inventory": {
     "title": "Inventory",
     "recipes": "Recipes: {found}/{total}",

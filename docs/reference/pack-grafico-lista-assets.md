@@ -15,8 +15,18 @@ en la misma capa.
 | `tile-1.png` | 64×32 | Tile: suelo de piedra (tablero A) |
 | `tile-2.png` | 64×32 | Tile: suelo de loseta/piedra (tablero B) |
 | `tile-3.png` | 64×32 | Tile: alfombra roja |
+| **Muros** (sprites con altura, no tiles; pivote abajo-centro, dos caras visibles, `collides`) | | |
+| `tile-10.png` | 64×64 | Muro recto (tileable); 2 caras + canto |
+| `muro-esquina.png` | 64×64 | Muro en esquina (L) |
+| `muro-antorcha.png` | 64×96 | Muro con antorcha |
+| `muro-tapiz.png` | 64×96 | Muro con tapiz/estandarte |
+| `muro-ventana.png` | 64×96 | Muro con ventana/mirilla |
+| `muro-arco.png` | 64×96 | Muro con arco/paso |
+| `muro-remate.png` | 64×96 | Remate de muro (canto al girar) |
+| `columna.png` | 64×128 | Columna (fuste) |
+| `columna-base.png` | 64×48 | Base de columna |
+| `columna-capital.png` | 64×48 | Capital de columna |
 | **Sprites con altura** (no son tiles; lienzo libre, pivote abajo-centro) | | |
-| `tile-10.png` | 64×64 | Sprite: muro (colisiona) |
 | `tile-20.png` | 64×48 | Sprite: umbral de puerta |
 | `tile-21.png` | 64×48 | Sprite: escalón / peldaño |
 | `tile-22.png` | 64×48 | Sprite: reja / trampilla en el suelo |

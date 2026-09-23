@@ -49,6 +49,26 @@
     "locked": "Das Versteck ist noch nicht verfügbar",
     "unavailable": "Das Versteck kann nicht mehr aufgedeckt werden"
   },
+  "SimultaneousPlates": {
+    "title": "Simultane Platten",
+    "prompt": "Aktiviere alle Platten gleichzeitig",
+    "progress": "Aktive Platten: {active}/{total}",
+    "progressLabel": "Fortschritt der Platten",
+    "countdown": "Noch {seconds} s",
+    "windowClosed": "Das Zeitfenster ist geschlossen",
+    "platesLabel": "Platten",
+    "plate": "Platte {id}",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
+    "bridged": "Fixiert",
+    "placeBridge": "Brückengegenstand platzieren",
+    "pending": "Aktivierung …",
+    "solved": "Alle Platten sind aktiv!",
+    "locked": "Die Platten sind noch nicht verfügbar",
+    "unavailable": "Die Platten nehmen keine weiteren Aktivierungen an",
+    "expired": "Das Zeitfenster ist zu · versuche es erneut",
+    "alreadyActive": "Diese Platte war bereits aktiv"
+  },
   "Inventory": {
     "title": "Inventar",
     "recipes": "Rezepte: {found}/{total}",
