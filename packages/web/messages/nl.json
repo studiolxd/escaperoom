@@ -347,5 +347,33 @@
         "invalidId": "De regel-id mag niet leeg zijn"
       }
     }
+  },
+  "EditorAudio": {
+    "none": "Geen audio",
+    "library": "Bibliotheek",
+    "myUploads": "Mijn uploads",
+    "kinds": {
+      "music": "Muziek",
+      "sfx": "Geluidseffecten",
+      "voice": "Stemmen"
+    },
+    "optionPending": "{name} (wacht op moderatie)",
+    "optionRejected": "{name} (afgewezen)",
+    "credits": "Licentie {license} · {author}",
+    "noAudioIn": "Geen audio in het {language}",
+    "status": {
+      "pending": "Wacht op moderatie: je kunt het in het concept proberen, maar je kunt de kamer pas publiceren na goedkeuring.",
+      "rejected": "Afgewezen bij moderatie: {reason}. Kies andere audio."
+    },
+    "upload": "MP3 uploaden",
+    "uploading": "Bezig met uploaden…",
+    "uploadHint": "Alleen MP3, tot {maxMb} MB en {maxMinutes} min. We controleren het voordat je de kamer ermee kunt publiceren.",
+    "rightsDeclared": "Ik verklaar dat ik de rechten op deze audio heb en dat er geen stemmen van derden in zitten zonder hun toestemming.",
+    "errors": {
+      "tooLarge": "Het bestand is groter dan de limiet van {maxMb} MB.",
+      "notMp3": "Alleen MP3-bestanden worden geaccepteerd.",
+      "rightsRequired": "Verklaar vóór het uploaden dat je de rechten op de audio hebt.",
+      "generic": "De audio kon niet worden geüpload. Probeer het opnieuw."
+    }
   }
 }

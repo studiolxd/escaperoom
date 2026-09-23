@@ -15,6 +15,7 @@
     "./session": "./src/session/index.ts",
     "./services": "./src/services/index.ts",
     "./analytics": "./src/analytics/index.ts",
+    "./audio": "./src/audio/index.ts",
     "./db": "./src/db/index.ts"
   },
   "scripts": {

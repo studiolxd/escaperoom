@@ -516,6 +516,38 @@ CREATE TABLE "moderationAppeal" (
 CREATE INDEX "ixModerationAppealStatus" ON "moderationAppeal"(status) WHERE status = 'pending';
 ```
 
+### 10.1 Audio subido por el creador (ticket 3.11)
+
+Migración posterior a esta spec, `0011_audio_assets` (`specs/15` §1 y §4, `specs/17` §1): las
+subidas de assets custom pasan por la cola humana **antes** de poder usarse en una sala publicada.
+La biblioteca incluida no vive en la base de datos (manifiesto en código, binarios en R2).
+
+```sql
+-- 0011_audio_assets.sql
+CREATE TABLE "audioAsset" (
+  id                  uuid PRIMARY KEY,               -- generado en el servicio (forma la clave de R2)
+  "ownerId"           text NOT NULL REFERENCES "user"(id),
+  "organizationId"    text REFERENCES "organization"(id),
+  "storageKey"        text NOT NULL UNIQUE,           -- uploads/audio/{ownerId}/{id}.mp3
+  "originalFilename"  text NOT NULL,
+  "contentType"       text NOT NULL,
+  "byteSize"          int NOT NULL CHECK ("byteSize" > 0),
+  "durationMs"        int NOT NULL CHECK ("durationMs" > 0),
+  status              text NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending','approved','rejected')),
+  "moderationFlags"   text[] NOT NULL DEFAULT '{}',
+  "rejectionReason"   text,
+  "reviewedBy"        text REFERENCES "user"(id),
+  "reviewedAt"        timestamptz,
+  "rightsDeclaredAt"  timestamptz NOT NULL,
+  "createdAt"         timestamptz NOT NULL DEFAULT now(),
+  CHECK (status <> 'rejected' OR "rejectionReason" IS NOT NULL),
+  CHECK ((status = 'pending') = ("reviewedAt" IS NULL))
+);
+CREATE INDEX "ixAudioAssetOwner" ON "audioAsset"("ownerId", "createdAt" DESC);
+CREATE INDEX "ixAudioAssetPending" ON "audioAsset"("createdAt") WHERE status = 'pending';
+```
+
 ## 11. Relaciones — vista de conjunto
 
 ```
@@ -540,6 +572,7 @@ user ──< review >── room
 
 user ──< contentReport >── roomVersion
 user ──< moderationAppeal >── room | contentReport
+user ──< audioAsset                                (dueño; revisor = user moderador)
 
 pricingTier / platformSetting / stripeWebhookEvent     (independientes)
 analyticsEvent                                         (sin FK, alto volumen)

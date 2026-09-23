@@ -71,6 +71,30 @@ model analyticsEvent {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model audioAsset {
+  id                               String        @id @db.Uuid
+  ownerId                          String
+  organizationId                   String?
+  storageKey                       String        @unique
+  originalFilename                 String
+  contentType                      String
+  byteSize                         Int
+  durationMs                       Int
+  status                           String        @default("pending")
+  moderationFlags                  String[]      @default([])
+  rejectionReason                  String?
+  reviewedBy                       String?
+  reviewedAt                       DateTime?     @db.Timestamptz(6)
+  rightsDeclaredAt                 DateTime      @db.Timestamptz(6)
+  createdAt                        DateTime      @default(now()) @db.Timestamptz(6)
+  organization                     organization? @relation(fields: [organizationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_audioAsset_ownerIdTouser    user          @relation("audioAsset_ownerIdTouser", fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_audioAsset_reviewedByTouser user?         @relation("audioAsset_reviewedByTouser", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([ownerId, createdAt(sort: Desc)], map: "ixAudioAssetOwner")
+  @@index([createdAt], map: "ixAudioAssetPending")
+}
+
 model contentReport {
   id                                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   reporterId                          String
@@ -248,6 +272,7 @@ model organization {
   stripeCustomerId String?
   dpaSignedAt      DateTime?       @db.Timestamptz(6)
   createdAt        DateTime        @default(now()) @db.Timestamptz(6)
+  audioAsset       audioAsset[]
   creditAccount    creditAccount[]
   invitation       invitation[]
   member           member[]
@@ -450,6 +475,8 @@ model user {
   updatedAt                                          DateTime           @default(now()) @db.Timestamptz(6)
   deletedAt                                          DateTime?          @db.Timestamptz(6)
   account                                            account[]
+  audioAsset_audioAsset_ownerIdTouser                audioAsset[]       @relation("audioAsset_ownerIdTouser")
+  audioAsset_audioAsset_reviewedByTouser             audioAsset[]       @relation("audioAsset_reviewedByTouser")
   contentReport_contentReport_reporterIdTouser       contentReport[]    @relation("contentReport_reporterIdTouser")
   contentReport_contentReport_reviewedByTouser       contentReport[]    @relation("contentReport_reviewedByTouser")
   creditAccount                                      creditAccount[]

@@ -391,5 +391,33 @@
         "invalidId": "El id de la regla no puede estar vacío"
       }
     }
+  },
+  "EditorAudio": {
+    "none": "Sin audio",
+    "library": "Biblioteca",
+    "myUploads": "Mis subidas",
+    "kinds": {
+      "music": "Música",
+      "sfx": "Efectos",
+      "voice": "Voces"
+    },
+    "optionPending": "{name} (pendiente de moderación)",
+    "optionRejected": "{name} (rechazado)",
+    "credits": "Licencia {license} · {author}",
+    "noAudioIn": "Sin audio en {language}",
+    "status": {
+      "pending": "Pendiente de moderación: puedes probarlo en el borrador, pero no podrás publicar la sala hasta que se apruebe.",
+      "rejected": "Rechazado en moderación: {reason}. Elige otro audio."
+    },
+    "upload": "Subir MP3",
+    "uploading": "Subiendo…",
+    "uploadHint": "Solo MP3, hasta {maxMb} MB y {maxMinutes} min. Lo revisamos antes de que puedas publicar la sala con él.",
+    "rightsDeclared": "Declaro que tengo los derechos de este audio y que no incluye voces de terceros sin su consentimiento.",
+    "errors": {
+      "tooLarge": "El fichero supera el máximo de {maxMb} MB.",
+      "notMp3": "Solo se aceptan ficheros MP3.",
+      "rightsRequired": "Antes de subir, declara que tienes los derechos del audio.",
+      "generic": "No se pudo subir el audio. Inténtalo de nuevo."
+    }
   }
 }
