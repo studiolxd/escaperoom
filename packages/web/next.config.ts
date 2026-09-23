@@ -4,6 +4,7 @@ import createNextIntlPlugin from "next-intl/plugin";
 const nextConfig: NextConfig = {
   transpilePackages: [
     "@escaperoom/config",
+    "@escaperoom/editor",
     "@escaperoom/env",
     "@escaperoom/game-runtime",
     "@escaperoom/kit",

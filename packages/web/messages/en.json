@@ -289,5 +289,94 @@
       "DEFAULT_LANGUAGE": "You can't remove the default language; pick another one first.",
       "LAST_LANGUAGE": "The room needs at least one language."
     }
+  },
+  "RulesGraph": {
+    "title": "Rules graph (demo)",
+    "description": "King Aldric's Hall rules on a local Yjs doc. Development only.",
+    "externalChange": "Simulate external change (MCP)",
+    "labels": {
+      "kinds": {
+        "trigger": "When",
+        "condition": "If",
+        "action": "Then",
+        "draft": "draft"
+      },
+      "triggers": {
+        "on_interact": "On interacting with an object",
+        "on_use_item": "On using an item on an object",
+        "on_enter_room": "On entering a room",
+        "on_puzzle_solved": "On solving a puzzle",
+        "on_item_collected": "On collecting an item",
+        "on_timer": "Timer milestone",
+        "on_timer_end": "On timer end",
+        "on_time_remaining_below": "When time remaining is below",
+        "on_all_players_in_zone": "All players in a zone",
+        "on_game_start": "On game start"
+      },
+      "conditions": {
+        "item_in_inventory": "Item in inventory",
+        "puzzle_state_is": "Puzzle state is",
+        "object_state_is": "Object state is",
+        "flag_is": "Flag is",
+        "player_count_min": "Minimum players",
+        "player_count_max": "Maximum players",
+        "time_remaining_below": "Time remaining below"
+      },
+      "actions": {
+        "set_object_state": "Set object state",
+        "unlock_door": "Unlock door",
+        "grant_item": "Grant item",
+        "consume_item": "Consume item",
+        "show_dialog": "Show dialog",
+        "start_timer": "Start timer",
+        "pause_timer": "Pause timer",
+        "stop_timer": "Stop timer",
+        "play_sound": "Play sound",
+        "spawn_effect": "Spawn effect",
+        "open_panel_puzzle": "Open puzzle panel",
+        "set_flag": "Set flag",
+        "reveal_number": "Reveal number",
+        "delay": "Wait",
+        "end_game": "End game"
+      },
+      "fields": {
+        "objectId": "Object",
+        "itemId": "Item",
+        "roomId": "Room",
+        "puzzleId": "Puzzle",
+        "timerId": "Timer",
+        "seconds": "Seconds",
+        "zone": "Zone",
+        "consumed": "Consumed",
+        "state": "State",
+        "flag": "Flag",
+        "value": "Value",
+        "n": "Players",
+        "to": "To",
+        "dialogId": "Dialog",
+        "id": "Id",
+        "durationSec": "Duration (s)",
+        "soundId": "Sound",
+        "effectId": "Effect",
+        "position": "Position",
+        "result": "Result"
+      },
+      "ui": {
+        "ruleId": "Rule id",
+        "priority": "Priority",
+        "once": "Only once",
+        "yes": "Yes",
+        "no": "No",
+        "unset": "—",
+        "delete": "Delete",
+        "newRule": "New rule",
+        "newCondition": "New condition",
+        "newAction": "New action",
+        "empty": "No rules yet. Create one with “New rule”.",
+        "readOnly": "Read only",
+        "draftHint": "Drag from a rule to this node to connect it.",
+        "invalidId": "The rule id cannot be empty"
+      }
+    }
   }
 }

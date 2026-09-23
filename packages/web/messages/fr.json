@@ -258,5 +258,94 @@
       "DEFAULT_LANGUAGE": "Impossible de retirer la langue par défaut ; choisissez-en d'abord une autre.",
       "LAST_LANGUAGE": "La salle doit avoir au moins une langue."
     }
+  },
+  "RulesGraph": {
+    "title": "Graphe de règles (démo)",
+    "description": "Règles de la salle du roi Aldric sur un doc Yjs local. Développement uniquement.",
+    "externalChange": "Simuler un changement externe (MCP)",
+    "labels": {
+      "kinds": {
+        "trigger": "Quand",
+        "condition": "Si",
+        "action": "Alors",
+        "draft": "brouillon"
+      },
+      "triggers": {
+        "on_interact": "En interagissant avec un objet",
+        "on_use_item": "En utilisant un objet sur un objet",
+        "on_enter_room": "En entrant dans une pièce",
+        "on_puzzle_solved": "En résolvant une énigme",
+        "on_item_collected": "En ramassant un objet",
+        "on_timer": "Étape d'un minuteur",
+        "on_timer_end": "À la fin d'un minuteur",
+        "on_time_remaining_below": "Quand le temps restant est inférieur à",
+        "on_all_players_in_zone": "Tous les joueurs dans une zone",
+        "on_game_start": "Au début de la partie"
+      },
+      "conditions": {
+        "item_in_inventory": "Objet dans l'inventaire",
+        "puzzle_state_is": "État de l'énigme",
+        "object_state_is": "État de l'objet",
+        "flag_is": "Valeur du drapeau",
+        "player_count_min": "Joueurs minimum",
+        "player_count_max": "Joueurs maximum",
+        "time_remaining_below": "Temps restant inférieur à"
+      },
+      "actions": {
+        "set_object_state": "Changer l'état de l'objet",
+        "unlock_door": "Ouvrir la porte",
+        "grant_item": "Donner un objet",
+        "consume_item": "Consommer un objet",
+        "show_dialog": "Afficher un dialogue",
+        "start_timer": "Démarrer le minuteur",
+        "pause_timer": "Mettre en pause le minuteur",
+        "stop_timer": "Arrêter le minuteur",
+        "play_sound": "Jouer un son",
+        "spawn_effect": "Lancer un effet",
+        "open_panel_puzzle": "Ouvrir le panneau d'énigme",
+        "set_flag": "Définir un drapeau",
+        "reveal_number": "Révéler un nombre",
+        "delay": "Attendre",
+        "end_game": "Terminer la partie"
+      },
+      "fields": {
+        "objectId": "Objet",
+        "itemId": "Objet d'inventaire",
+        "roomId": "Pièce",
+        "puzzleId": "Énigme",
+        "timerId": "Minuteur",
+        "seconds": "Secondes",
+        "zone": "Zone",
+        "consumed": "Consommé",
+        "state": "État",
+        "flag": "Drapeau",
+        "value": "Valeur",
+        "n": "Joueurs",
+        "to": "Pour",
+        "dialogId": "Dialogue",
+        "id": "Id",
+        "durationSec": "Durée (s)",
+        "soundId": "Son",
+        "effectId": "Effet",
+        "position": "Position",
+        "result": "Résultat"
+      },
+      "ui": {
+        "ruleId": "Id de la règle",
+        "priority": "Priorité",
+        "once": "Une seule fois",
+        "yes": "Oui",
+        "no": "Non",
+        "unset": "—",
+        "delete": "Supprimer",
+        "newRule": "Nouvelle règle",
+        "newCondition": "Nouvelle condition",
+        "newAction": "Nouvelle action",
+        "empty": "Aucune règle pour l'instant. Créez-en une avec « Nouvelle règle ».",
+        "readOnly": "Lecture seule",
+        "draftHint": "Faites glisser depuis une règle jusqu'à ce nœud pour le connecter.",
+        "invalidId": "L'id de la règle ne peut pas être vide"
+      }
+    }
   }
 }

@@ -258,5 +258,94 @@
       "DEFAULT_LANGUAGE": "Não pode remover o idioma predefinido; escolha outro primeiro.",
       "LAST_LANGUAGE": "A sala precisa de pelo menos um idioma."
     }
+  },
+  "RulesGraph": {
+    "title": "Grafo de regras (demo)",
+    "description": "Regras do Salão do Rei Aldric num doc Yjs local. Só em desenvolvimento.",
+    "externalChange": "Simular alteração externa (MCP)",
+    "labels": {
+      "kinds": {
+        "trigger": "Quando",
+        "condition": "Se",
+        "action": "Então",
+        "draft": "rascunho"
+      },
+      "triggers": {
+        "on_interact": "Ao interagir com um objeto",
+        "on_use_item": "Ao usar um item num objeto",
+        "on_enter_room": "Ao entrar numa sala",
+        "on_puzzle_solved": "Ao resolver um puzzle",
+        "on_item_collected": "Ao recolher um item",
+        "on_timer": "Marco de um temporizador",
+        "on_timer_end": "Ao terminar um temporizador",
+        "on_time_remaining_below": "Quando o tempo restante for inferior a",
+        "on_all_players_in_zone": "Todos os jogadores numa zona",
+        "on_game_start": "Ao iniciar a partida"
+      },
+      "conditions": {
+        "item_in_inventory": "Item no inventário",
+        "puzzle_state_is": "Estado do puzzle",
+        "object_state_is": "Estado do objeto",
+        "flag_is": "Valor da flag",
+        "player_count_min": "Mínimo de jogadores",
+        "player_count_max": "Máximo de jogadores",
+        "time_remaining_below": "Tempo restante inferior a"
+      },
+      "actions": {
+        "set_object_state": "Mudar estado do objeto",
+        "unlock_door": "Abrir porta",
+        "grant_item": "Dar item",
+        "consume_item": "Consumir item",
+        "show_dialog": "Mostrar diálogo",
+        "start_timer": "Iniciar temporizador",
+        "pause_timer": "Pausar temporizador",
+        "stop_timer": "Parar temporizador",
+        "play_sound": "Tocar som",
+        "spawn_effect": "Lançar efeito",
+        "open_panel_puzzle": "Abrir painel de puzzle",
+        "set_flag": "Definir flag",
+        "reveal_number": "Revelar número",
+        "delay": "Esperar",
+        "end_game": "Terminar partida"
+      },
+      "fields": {
+        "objectId": "Objeto",
+        "itemId": "Item",
+        "roomId": "Sala",
+        "puzzleId": "Puzzle",
+        "timerId": "Temporizador",
+        "seconds": "Segundos",
+        "zone": "Zona",
+        "consumed": "Consumido",
+        "state": "Estado",
+        "flag": "Flag",
+        "value": "Valor",
+        "n": "Jogadores",
+        "to": "Para",
+        "dialogId": "Diálogo",
+        "id": "Id",
+        "durationSec": "Duração (s)",
+        "soundId": "Som",
+        "effectId": "Efeito",
+        "position": "Posição",
+        "result": "Resultado"
+      },
+      "ui": {
+        "ruleId": "Id da regra",
+        "priority": "Prioridade",
+        "once": "Só uma vez",
+        "yes": "Sim",
+        "no": "Não",
+        "unset": "—",
+        "delete": "Apagar",
+        "newRule": "Nova regra",
+        "newCondition": "Nova condição",
+        "newAction": "Nova ação",
+        "empty": "Ainda não há regras. Cria uma com «Nova regra».",
+        "readOnly": "Só leitura",
+        "draftHint": "Arrasta a partir de uma regra até este nó para o ligar.",
+        "invalidId": "O id da regra não pode estar vazio"
+      }
+    }
   }
 }

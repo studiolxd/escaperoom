@@ -258,5 +258,94 @@
       "DEFAULT_LANGUAGE": "Je kunt de standaardtaal niet verwijderen; kies eerst een andere.",
       "LAST_LANGUAGE": "De kamer heeft minstens één taal nodig."
     }
+  },
+  "RulesGraph": {
+    "title": "Regelgraaf (demo)",
+    "description": "Regels van de zaal van koning Aldric op een lokaal Yjs-document. Alleen in ontwikkeling.",
+    "externalChange": "Externe wijziging simuleren (MCP)",
+    "labels": {
+      "kinds": {
+        "trigger": "Wanneer",
+        "condition": "Als",
+        "action": "Dan",
+        "draft": "concept"
+      },
+      "triggers": {
+        "on_interact": "Bij interactie met een object",
+        "on_use_item": "Bij gebruik van een voorwerp op een object",
+        "on_enter_room": "Bij het betreden van een kamer",
+        "on_puzzle_solved": "Bij het oplossen van een puzzel",
+        "on_item_collected": "Bij het oppakken van een voorwerp",
+        "on_timer": "Mijlpaal van een timer",
+        "on_timer_end": "Als een timer afloopt",
+        "on_time_remaining_below": "Als de resterende tijd lager is dan",
+        "on_all_players_in_zone": "Alle spelers in een zone",
+        "on_game_start": "Bij de start van het spel"
+      },
+      "conditions": {
+        "item_in_inventory": "Voorwerp in inventaris",
+        "puzzle_state_is": "Puzzelstatus is",
+        "object_state_is": "Objectstatus is",
+        "flag_is": "Vlag is",
+        "player_count_min": "Minimum aantal spelers",
+        "player_count_max": "Maximum aantal spelers",
+        "time_remaining_below": "Resterende tijd lager dan"
+      },
+      "actions": {
+        "set_object_state": "Objectstatus instellen",
+        "unlock_door": "Deur openen",
+        "grant_item": "Voorwerp geven",
+        "consume_item": "Voorwerp verbruiken",
+        "show_dialog": "Dialoog tonen",
+        "start_timer": "Timer starten",
+        "pause_timer": "Timer pauzeren",
+        "stop_timer": "Timer stoppen",
+        "play_sound": "Geluid afspelen",
+        "spawn_effect": "Effect starten",
+        "open_panel_puzzle": "Puzzelpaneel openen",
+        "set_flag": "Vlag instellen",
+        "reveal_number": "Getal onthullen",
+        "delay": "Wachten",
+        "end_game": "Spel beëindigen"
+      },
+      "fields": {
+        "objectId": "Object",
+        "itemId": "Voorwerp",
+        "roomId": "Kamer",
+        "puzzleId": "Puzzel",
+        "timerId": "Timer",
+        "seconds": "Seconden",
+        "zone": "Zone",
+        "consumed": "Verbruikt",
+        "state": "Status",
+        "flag": "Vlag",
+        "value": "Waarde",
+        "n": "Spelers",
+        "to": "Aan",
+        "dialogId": "Dialoog",
+        "id": "Id",
+        "durationSec": "Duur (s)",
+        "soundId": "Geluid",
+        "effectId": "Effect",
+        "position": "Positie",
+        "result": "Resultaat"
+      },
+      "ui": {
+        "ruleId": "Regel-id",
+        "priority": "Prioriteit",
+        "once": "Maar één keer",
+        "yes": "Ja",
+        "no": "Nee",
+        "unset": "—",
+        "delete": "Verwijderen",
+        "newRule": "Nieuwe regel",
+        "newCondition": "Nieuwe voorwaarde",
+        "newAction": "Nieuwe actie",
+        "empty": "Nog geen regels. Maak er een met ‘Nieuwe regel’.",
+        "readOnly": "Alleen-lezen",
+        "draftHint": "Sleep vanaf een regel naar deze knoop om hem te verbinden.",
+        "invalidId": "De regel-id mag niet leeg zijn"
+      }
+    }
   }
 }

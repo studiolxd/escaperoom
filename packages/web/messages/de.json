@@ -258,5 +258,94 @@
       "DEFAULT_LANGUAGE": "Die Standardsprache kann nicht entfernt werden; wähle zuerst eine andere.",
       "LAST_LANGUAGE": "Der Raum braucht mindestens eine Sprache."
     }
+  },
+  "RulesGraph": {
+    "title": "Regelgraph (Demo)",
+    "description": "Regeln des Saals von König Aldric auf einem lokalen Yjs-Dokument. Nur in der Entwicklung.",
+    "externalChange": "Externe Änderung simulieren (MCP)",
+    "labels": {
+      "kinds": {
+        "trigger": "Wenn",
+        "condition": "Falls",
+        "action": "Dann",
+        "draft": "Entwurf"
+      },
+      "triggers": {
+        "on_interact": "Beim Interagieren mit einem Objekt",
+        "on_use_item": "Beim Benutzen eines Gegenstands an einem Objekt",
+        "on_enter_room": "Beim Betreten eines Raums",
+        "on_puzzle_solved": "Beim Lösen eines Rätsels",
+        "on_item_collected": "Beim Aufheben eines Gegenstands",
+        "on_timer": "Timer-Meilenstein",
+        "on_timer_end": "Wenn ein Timer endet",
+        "on_time_remaining_below": "Wenn die Restzeit unter",
+        "on_all_players_in_zone": "Alle Spieler in einer Zone",
+        "on_game_start": "Beim Spielstart"
+      },
+      "conditions": {
+        "item_in_inventory": "Gegenstand im Inventar",
+        "puzzle_state_is": "Rätselstatus ist",
+        "object_state_is": "Objektstatus ist",
+        "flag_is": "Flag ist",
+        "player_count_min": "Mindestanzahl Spieler",
+        "player_count_max": "Höchstanzahl Spieler",
+        "time_remaining_below": "Restzeit unter"
+      },
+      "actions": {
+        "set_object_state": "Objektstatus setzen",
+        "unlock_door": "Tür öffnen",
+        "grant_item": "Gegenstand geben",
+        "consume_item": "Gegenstand verbrauchen",
+        "show_dialog": "Dialog anzeigen",
+        "start_timer": "Timer starten",
+        "pause_timer": "Timer pausieren",
+        "stop_timer": "Timer stoppen",
+        "play_sound": "Ton abspielen",
+        "spawn_effect": "Effekt auslösen",
+        "open_panel_puzzle": "Rätselpanel öffnen",
+        "set_flag": "Flag setzen",
+        "reveal_number": "Zahl enthüllen",
+        "delay": "Warten",
+        "end_game": "Spiel beenden"
+      },
+      "fields": {
+        "objectId": "Objekt",
+        "itemId": "Gegenstand",
+        "roomId": "Raum",
+        "puzzleId": "Rätsel",
+        "timerId": "Timer",
+        "seconds": "Sekunden",
+        "zone": "Zone",
+        "consumed": "Verbraucht",
+        "state": "Status",
+        "flag": "Flag",
+        "value": "Wert",
+        "n": "Spieler",
+        "to": "An",
+        "dialogId": "Dialog",
+        "id": "Id",
+        "durationSec": "Dauer (s)",
+        "soundId": "Ton",
+        "effectId": "Effekt",
+        "position": "Position",
+        "result": "Ergebnis"
+      },
+      "ui": {
+        "ruleId": "Regel-Id",
+        "priority": "Priorität",
+        "once": "Nur einmal",
+        "yes": "Ja",
+        "no": "Nein",
+        "unset": "—",
+        "delete": "Löschen",
+        "newRule": "Neue Regel",
+        "newCondition": "Neue Bedingung",
+        "newAction": "Neue Aktion",
+        "empty": "Noch keine Regeln. Erstelle eine mit „Neue Regel“.",
+        "readOnly": "Schreibgeschützt",
+        "draftHint": "Ziehe von einer Regel zu diesem Knoten, um ihn zu verbinden.",
+        "invalidId": "Die Regel-Id darf nicht leer sein"
+      }
+    }
   }
 }
