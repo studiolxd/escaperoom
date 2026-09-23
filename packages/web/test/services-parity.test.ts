@@ -5,8 +5,10 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { GET_FEATURED_ROOM_TOOL, createCreatorMcpServer } from "@escaperoom/mcp-server";
 import {
   createCatalogService,
+  createInMemoryReviewStore,
   createInMemoryRoomDraftStore,
   createInMemoryRoomPackageRepository,
+  createReviewService,
   createRoomDraftService,
   type Actor,
   type FeaturedRoom,
@@ -38,7 +40,11 @@ const catalog = createCatalogService({
 });
 
 async function viaTrpc(): Promise<FeaturedRoom> {
-  const caller = appRouter.createCaller({ actor, catalog });
+  const caller = appRouter.createCaller({
+    actor,
+    catalog,
+    reviews: createReviewService({ store: createInMemoryReviewStore({ rooms: [] }) }),
+  });
   return caller.catalog.getFeaturedRoom();
 }
 

@@ -8,6 +8,9 @@ import {
   createPrismaAudioAssetStore,
   createCatalogService,
   createPrismaPublishedRoomListing,
+  createPrismaReviewStore,
+  createReviewService,
+  type ReviewService,
   createJsonFileRoomPackageRepository,
   createPlatformSettingsService,
   createPricingTierService,
@@ -44,6 +47,7 @@ let pricingTiers: PricingTierService | undefined;
 let audioAssets: AudioAssetService | undefined;
 let roomPublish: RoomPublishService | undefined;
 let events: EventService | undefined;
+let reviews: ReviewService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -55,6 +59,12 @@ export function getCatalogService(): CatalogService {
     listing: createPrismaPublishedRoomListing(prisma),
   });
   return catalog;
+}
+
+/** Reseñas de salas (specs/13 §3): upsert por usuario y sala, elegibilidad por compra/partida. */
+export function getReviewService(): ReviewService {
+  reviews ??= createReviewService({ store: createPrismaReviewStore(prisma) });
+  return reviews;
 }
 
 /** Servicio del draft Yjs del editor (specs/09 §2) sobre Postgres. */

@@ -67,7 +67,7 @@ const ids = (rooms: Array<{ id: string }>) => rooms.map((room) => room.id);
 
 describe("catalogService.listRooms — filtro por idioma", () => {
   it("sin filtro lista todas las salas publicadas (más recientes primero)", async () => {
-    const { rooms } = await service().listRooms(ANONYMOUS_ACTOR);
+    const { items: rooms } = await service().listRooms(ANONYMOUS_ACTOR);
     expect(ids(rooms)).toEqual(["retira-en", "en-fr", "es-en", "solo-es"]);
     expect(rooms[0]).toMatchObject({
       title: "Retira en",
@@ -78,19 +78,19 @@ describe("catalogService.listRooms — filtro por idioma", () => {
   });
 
   it("devuelve solo las salas que incluyen el idioma pedido", async () => {
-    const { rooms } = await service().listRooms(ANONYMOUS_ACTOR, { language: "en" });
+    const { items: rooms } = await service().listRooms(ANONYMOUS_ACTOR, { language: "en" });
     expect(ids(rooms)).toEqual(["en-fr", "es-en"]);
     expect(rooms.every((room) => room.languages.includes("en"))).toBe(true);
   });
 
   it("con varios idiomas exige todos (languages @> ARRAY[...])", async () => {
     expect(
-      ids((await service().listRooms(ANONYMOUS_ACTOR, { language: ["es", "en"] })).rooms),
+      ids((await service().listRooms(ANONYMOUS_ACTOR, { language: ["es", "en"] })).items),
     ).toEqual(["es-en"]);
-    expect(ids((await service().listRooms(ANONYMOUS_ACTOR, { language: "en,fr" })).rooms)).toEqual([
+    expect(ids((await service().listRooms(ANONYMOUS_ACTOR, { language: "en,fr" })).items)).toEqual([
       "en-fr",
     ]);
-    expect((await service().listRooms(ANONYMOUS_ACTOR, { language: "de" })).rooms).toEqual([]);
+    expect((await service().listRooms(ANONYMOUS_ACTOR, { language: "de" })).items).toEqual([]);
   });
 
   it("rechaza códigos de idioma no válidos", async () => {
@@ -108,7 +108,8 @@ describe("catalogService.listRooms — filtro por idioma", () => {
       rooms: createInMemoryRoomPackageRepository(fixture),
     });
     expect(await onlyFeatured.listRooms(ANONYMOUS_ACTOR, { language: "es" })).toEqual({
-      rooms: [],
+      items: [],
+      nextCursor: null,
     });
   });
 });

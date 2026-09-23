@@ -10,7 +10,9 @@ import {
   ANONYMOUS_ACTOR,
   createCatalogService,
   createInMemoryPublishedRoomListing,
+  createInMemoryReviewStore,
   createInMemoryRoomPackageRepository,
+  createReviewService,
   type CatalogRoom,
 } from "@escaperoom/shared/services";
 import { NextIntlClientProvider } from "next-intl";
@@ -133,15 +135,15 @@ describe("GET /api/rooms?language=", () => {
 
   it("devuelve solo las salas que incluyen el idioma pedido", async () => {
     const all = await list("");
-    expect((all.body as { rooms: CatalogRoom[] }).rooms.map((r) => r.id)).toEqual([
+    expect((all.body as { items: CatalogRoom[] }).items.map((r) => r.id)).toEqual([
       "sala-es-en",
       "sala-es",
     ]);
     const en = await list("?language=en");
     expect(en.status).toBe(200);
-    expect((en.body as { rooms: CatalogRoom[] }).rooms.map((r) => r.id)).toEqual(["sala-es-en"]);
+    expect((en.body as { items: CatalogRoom[] }).items.map((r) => r.id)).toEqual(["sala-es-en"]);
     const both = await list("?language=es&language=en");
-    expect((both.body as { rooms: CatalogRoom[] }).rooms.map((r) => r.id)).toEqual(["sala-es-en"]);
+    expect((both.body as { items: CatalogRoom[] }).items.map((r) => r.id)).toEqual(["sala-es-en"]);
   });
 
   it("responde 422 con un código de idioma no válido", async () => {
@@ -151,7 +153,11 @@ describe("GET /api/rooms?language=", () => {
   });
 
   it("tRPC devuelve lo mismo que REST", async () => {
-    const caller = appRouter.createCaller({ actor: ANONYMOUS_ACTOR, catalog });
+    const caller = appRouter.createCaller({
+      actor: ANONYMOUS_ACTOR,
+      catalog,
+      reviews: createReviewService({ store: createInMemoryReviewStore({ rooms: [] }) }),
+    });
     const viaTrpc = await caller.catalog.listRooms({ language: "en" });
     const viaRest = await list("?language=en");
     expect(viaTrpc).toEqual(viaRest.body);
