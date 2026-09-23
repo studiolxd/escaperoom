@@ -455,5 +455,68 @@
         "unknown": "Unknown id"
       }
     }
+  },
+  "RoomEditor": {
+    "untitledRoom": "Untitled room",
+    "loading": "Loading canvas…",
+    "connecting": "Connecting to the draft…",
+    "status": {
+      "local": "Local (not synced)",
+      "connecting": "Connecting…",
+      "connected": "Autosaved",
+      "offline": "Offline: changes will sync when you reconnect"
+    },
+    "header": {
+      "validate": "Validate",
+      "playtest": "Play",
+      "comingSoon": "Coming soon"
+    },
+    "tools": {
+      "label": "Tools",
+      "select": "Select",
+      "brush": "Brush",
+      "fill": "Fill",
+      "eraser": "Eraser",
+      "place": "Place"
+    },
+    "layers": {
+      "label": "Layer",
+      "ground": "Floor",
+      "walls": "Wall",
+      "decor": "Decoration"
+    },
+    "rooms": {
+      "label": "Rooms"
+    },
+    "palette": {
+      "title": "Palette",
+      "pack": "Pack “{packId}”",
+      "tiles": "Tiles",
+      "objects": "Objects",
+      "tileTitle": "Tile {tileId} · {layer}",
+      "placed": "{count, plural, one {# placed} other {# placed}}",
+      "empty": "This pack has no objects."
+    },
+    "selection": {
+      "title": "Selection",
+      "none": "Select an object on the canvas or place one from the palette.",
+      "id": "ID",
+      "rename": "Rename",
+      "sprite": "Sprite",
+      "room": "Room",
+      "position": "Cell",
+      "delete": "Delete object",
+      "inspectorSoon": "States, rules and other properties will be edited in the inspector."
+    },
+    "errors": {
+      "connection": "The draft could not be opened. Check your session and that you may edit this room; we keep retrying.",
+      "invalidModel": "The draft is in a state the runtime cannot render; showing the last valid version.",
+      "UNKNOWN_ROOM": "That room no longer exists.",
+      "UNKNOWN_OBJECT": "That object no longer exists.",
+      "OUT_OF_BOUNDS": "That cell is outside the room.",
+      "DUPLICATE_ID": "Something already uses that ID.",
+      "INVALID_ID": "Use only lowercase letters, digits and hyphens (e.g. throne-chest).",
+      "REFERENCED_ID": "That object is already used by rules or puzzles; rename it from the inspector."
+    }
   }
 }

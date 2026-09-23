@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { EDIT_EVENT, type EditCell, type EditSceneEvent } from "../edit";
 import type { RuntimeModel } from "../loader";
 import { RoomScene, type RoomScenePack } from "./room-scene";
 import { WORLD_EVENT, type WorldSceneEvent } from "./world-events";
@@ -24,6 +25,8 @@ export interface RoomRuntimeOptions {
   inputEnabled?: boolean;
   /** Id del jugador local, para el reparto de inventario (`distribution`). */
   localPlayerId?: string;
+  /** `play` (por defecto) o `edit`: lienzo del editor (specs/09 §1). */
+  mode?: "play" | "edit";
 }
 
 /**
@@ -49,6 +52,7 @@ export class RoomRuntime {
       intentOnly: options.intentOnly,
       inputEnabled: options.inputEnabled,
       localPlayerId: options.localPlayerId,
+      mode: options.mode,
     });
 
     this.game = new Phaser.Game({
@@ -110,11 +114,38 @@ export class RoomRuntime {
    * `READY` del juego), así que si aún no está listo se difiere la suscripción.
    */
   onWorldEvent(handler: (event: WorldSceneEvent) => void): () => void {
+    return this.onSceneEvent(WORLD_EVENT, handler);
+  }
+
+  /**
+   * Modo edición: suscribe un manejador a los eventos de puntero de la escena
+   * (celda + objeto debajo). Devuelve la función para cancelar la suscripción.
+   */
+  onEditEvent(handler: (event: EditSceneEvent) => void): () => void {
+    return this.onSceneEvent(EDIT_EVENT, handler);
+  }
+
+  /** Modo edición: repinta la sala con un modelo nuevo (el doc Yjs cambió). */
+  setModel(model: RuntimeModel): void {
+    this.scene.setModel(model);
+  }
+
+  /** Modo edición: objeto seleccionado (o ninguno). */
+  setSelection(objectId: string | undefined): void {
+    this.scene.setSelection(objectId);
+  }
+
+  /** Modo edición: pinta un objeto arrastrado en otra celda sin cambiar el modelo. */
+  setDragPreview(objectId: string | undefined, cell?: EditCell): void {
+    this.scene.setDragPreview(objectId, cell);
+  }
+
+  private onSceneEvent<T>(name: string, handler: (event: T) => void): () => void {
     const scene = this.scene;
     if (scene.events) {
-      scene.events.on(WORLD_EVENT, handler);
+      scene.events.on(name, handler);
       return () => {
-        scene.events.off(WORLD_EVENT, handler);
+        scene.events.off(name, handler);
       };
     }
 
@@ -124,14 +155,14 @@ export class RoomRuntime {
         return;
       }
       attached = true;
-      scene.events.on(WORLD_EVENT, handler);
+      scene.events.on(name, handler);
     };
     this.game.events.once(Phaser.Core.Events.READY, attach);
 
     return () => {
       this.game.events.off(Phaser.Core.Events.READY, attach);
       if (attached) {
-        scene.events.off(WORLD_EVENT, handler);
+        scene.events.off(name, handler);
       }
     };
   }

@@ -26,6 +26,7 @@ import {
   type ContainerStateMap,
   type ObjectStateMap,
 } from "../world";
+import { EDIT_EVENT, type EditCell, type EditSceneEvent } from "../edit";
 import { AvatarController } from "./avatar";
 import {
   ISO_TILE_HEIGHT,
@@ -80,6 +81,13 @@ export interface RoomSceneOptions {
   inputEnabled?: boolean;
   /** Id del jugador local, para el reparto de inventario (`distribution`). */
   localPlayerId?: string;
+  /**
+   * `play` (por defecto) o `edit` (specs/09 §1: el editor ES el runtime). En
+   * edición no hay avatar, diálogos ni puertas: se pinta la rejilla, los
+   * spawns y los ids, todos los objetos son seleccionables y el puntero se
+   * emite como `edit:event` (celda + objeto debajo) para la capa de comandos.
+   */
+  mode?: "play" | "edit";
 }
 
 /** Vista de un objeto en la escena: sprite, brillo de hover y profundidad. */
@@ -101,6 +109,9 @@ const DEPTH = {
   ambient: 9000,
   halo: 9001,
   dialog: 9500,
+  /** Solo en modo edición. */
+  editGrid: 2,
+  editCursor: 9100,
 } as const;
 
 const FLOOR_TILE_SIZE = { width: ISO_TILE_WIDTH, height: ISO_TILE_HEIGHT };
@@ -109,7 +120,7 @@ const SPRITE_SIZE = { width: 64, height: 96 };
 const SPAWN_MARKER_DEPTH_SUB = 90;
 
 /**
- * Escena del runtime de producto (modo play): pinta un `RuntimeSubRoom` con el
+ * Escena del runtime de producto: pinta un `RuntimeSubRoom` con el
  * tilemap isométrico real (tiles + muros del pack, o placeholders automáticos),
  * depth-sort con sprites, colisiones por celda, avatar animado, cámara y
  * transición de sala (specs/04 §1, specs/26).
@@ -117,9 +128,14 @@ const SPAWN_MARKER_DEPTH_SUB = 90;
  * El loader puro de 1.1 (`RuntimeModel`) es la única fuente del mundo; el pack
  * solo aporta frames. Sin pack, cada frame se sustituye por una textura de
  * color con su nombre, así que la sala se ve sin arte real.
+ *
+ * Con `mode: 'edit'` es el lienzo del editor (specs/09 §1): mismo render, sin
+ * avatar ni lógica de juego, y el modelo se sustituye (`setModel`) cada vez que
+ * cambia el doc Yjs.
  */
 export class RoomScene extends Phaser.Scene {
-  private readonly model: RuntimeModel;
+  private model: RuntimeModel;
+  readonly mode: "play" | "edit";
   private readonly showLabels: boolean;
   private readonly pack?: RoomScenePack;
   private readonly avatarEnabled: boolean;
@@ -154,13 +170,22 @@ export class RoomScene extends Phaser.Scene {
   private dialogBox?: Phaser.GameObjects.Container;
   private dialogHideAt = 0;
 
+  // Estado del modo edición (lo decide la capa de comandos, no la escena).
+  private selectedObjectId?: string;
+  private dragPreview?: { objectId: string; cell: EditCell };
+  private hoverCell?: EditCell;
+  private editCursor?: Phaser.GameObjects.Graphics;
+  private editSelection?: Phaser.GameObjects.Graphics;
+
   constructor(options: RoomSceneOptions) {
     super("room-preview");
     this.model = options.model;
-    this.showLabels = options.showLabels ?? false;
+    this.mode = options.mode ?? "play";
+    const editing = this.mode === "edit";
+    this.showLabels = options.showLabels ?? editing;
     this.pack = options.pack;
-    this.avatarEnabled = options.avatar ?? true;
-    this.dialogOverlayEnabled = options.dialogOverlay ?? true;
+    this.avatarEnabled = editing ? false : (options.avatar ?? true);
+    this.dialogOverlayEnabled = editing ? false : (options.dialogOverlay ?? true);
     this.intentOnly = options.intentOnly ?? false;
     this.localInputEnabled = options.inputEnabled ?? true;
     this.localPlayerId = options.localPlayerId ?? "p0";
@@ -275,10 +300,13 @@ export class RoomScene extends Phaser.Scene {
     this.drawWalls(room);
     this.drawDecorations(room);
     this.drawObjects(room);
-    if (this.showLabels) {
+    if (this.showLabels || this.mode === "edit") {
       this.drawSpawns(room);
     }
     this.drawLighting(room);
+    if (this.mode === "edit") {
+      this.drawEditOverlay(room);
+    }
     this.applyCamera(room);
     this.buildAvatar(room);
 
@@ -300,6 +328,8 @@ export class RoomScene extends Phaser.Scene {
     this.roomObjects = [];
     this.clearReactive();
     this.ambientOverlay = undefined;
+    this.editCursor = undefined;
+    this.editSelection = undefined;
   }
 
   private teardown(): void {
@@ -426,7 +456,11 @@ export class RoomScene extends Phaser.Scene {
       };
       this.objectViews.set(object.id, view);
 
-      if (object.interactable) {
+      if (this.mode === "edit") {
+        // En edición todo objeto es seleccionable (también los no interactuables).
+        sprite.setInteractive({ useHandCursor: true });
+        sprite.setData("objectId", object.id);
+      } else if (object.interactable) {
         this.wireInteraction(view);
       }
 
@@ -959,6 +993,10 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private setupInput(): void {
+    if (this.mode === "edit") {
+      this.setupEditInput();
+      return;
+    }
     this.input.on(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.off(Phaser.Input.Events.POINTER_DOWN, this.handlePointerDown, this);
@@ -1118,6 +1156,180 @@ export class RoomScene extends Phaser.Scene {
     this.track(label);
   }
 
+  // -------------------------------------------------------------------------
+  // Modo edición
+  // -------------------------------------------------------------------------
+
+  /**
+   * Sustituye el modelo y repinta la habitación activa sin fundido. El editor
+   * lo llama cada vez que cambia el doc Yjs (propio o remoto). Si la habitación
+   * activa ya no existe, pasa a la primera.
+   */
+  setModel(model: RuntimeModel): void {
+    this.model = model;
+    if (!model.subroomsById[this.activeRoomId]) {
+      const first = model.subrooms[0]?.id;
+      if (!first) {
+        return;
+      }
+      this.activeRoomId = first;
+    }
+    this.objectState = createObjectStateMap(model);
+    this.containers = createContainerStateMap(model);
+    if (this.built && !this.transitioning) {
+      this.buildRoom();
+    }
+  }
+
+  /** Objeto seleccionado en el editor (contorno en su celda). */
+  setSelection(objectId: string | undefined): void {
+    this.selectedObjectId = objectId;
+    if (this.built) {
+      this.drawEditSelection();
+    }
+  }
+
+  /**
+   * Previsualización de arrastre: pinta el objeto en otra celda sin tocar el
+   * modelo (el doc cambia al soltar). `undefined` lo devuelve a su sitio.
+   */
+  setDragPreview(objectId: string | undefined, cell?: EditCell): void {
+    const previous = this.dragPreview;
+    this.dragPreview = objectId && cell ? { objectId, cell } : undefined;
+    if (previous && previous.objectId !== objectId) {
+      this.placeObjectView(previous.objectId);
+    }
+    if (objectId) {
+      this.placeObjectView(objectId);
+    }
+    if (this.built) {
+      this.drawEditSelection();
+    }
+  }
+
+  private placeObjectView(objectId: string): void {
+    const view = this.objectViews.get(objectId);
+    if (!view) {
+      return;
+    }
+    const cell =
+      this.dragPreview?.objectId === objectId ? this.dragPreview.cell : view.object.position;
+    const anchor = tileAnchor(cell.x, cell.y);
+    view.sprite.setPosition(anchor.x, anchor.y);
+    view.sprite.setDepth(isoDepth(cell.x, cell.y, DEPTH.objectSub) + 1);
+    view.sprite.setAlpha(this.dragPreview?.objectId === objectId ? 0.7 : 1);
+  }
+
+  private setupEditInput(): void {
+    const onDown = (pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) =>
+      this.emitEditPointer("down", pointer, over);
+    const onMove = (pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) =>
+      this.emitEditPointer("move", pointer, over);
+    const onUp = (pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) =>
+      this.emitEditPointer("up", pointer, over);
+    this.input.on(Phaser.Input.Events.POINTER_DOWN, onDown);
+    this.input.on(Phaser.Input.Events.POINTER_MOVE, onMove);
+    this.input.on(Phaser.Input.Events.POINTER_UP, onUp);
+    this.input.on(Phaser.Input.Events.POINTER_UP_OUTSIDE, onUp);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.input.off(Phaser.Input.Events.POINTER_DOWN, onDown);
+      this.input.off(Phaser.Input.Events.POINTER_MOVE, onMove);
+      this.input.off(Phaser.Input.Events.POINTER_UP, onUp);
+      this.input.off(Phaser.Input.Events.POINTER_UP_OUTSIDE, onUp);
+    });
+  }
+
+  private emitEditPointer(
+    phase: "down" | "move" | "up",
+    pointer: Phaser.Input.Pointer,
+    over: Phaser.GameObjects.GameObject[] = [],
+  ): void {
+    if (this.transitioning || !this.built) {
+      return;
+    }
+    const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const tile = worldToTile(world.x, world.y);
+    const cell = { x: tile.tx, y: tile.ty };
+    const room = this.model.subroomsById[this.activeRoomId];
+    const inside =
+      !!room && cell.x >= 0 && cell.y >= 0 && cell.x < room.width && cell.y < room.height;
+
+    const moved = this.hoverCell?.x !== cell.x || this.hoverCell?.y !== cell.y;
+    this.hoverCell = cell;
+    if (moved) {
+      this.drawEditCursor(inside);
+    }
+    // Sin botón pulsado solo interesa el movimiento entre celdas.
+    if (phase === "move" && !moved) {
+      return;
+    }
+
+    const hit = over.find((object) => typeof object.getData?.("objectId") === "string");
+    const objectId = hit?.getData("objectId") as string | undefined;
+    const event: EditSceneEvent = {
+      type: "pointer",
+      phase,
+      cell,
+      inside,
+      roomId: this.activeRoomId,
+      ...(objectId ? { objectId } : {}),
+    };
+    this.events.emit(EDIT_EVENT, event);
+  }
+
+  /** Rejilla de celdas, cursor y selección (solo en edición). */
+  private drawEditOverlay(room: RuntimeSubRoom): void {
+    const grid = this.track(this.add.graphics());
+    grid.setDepth(DEPTH.editGrid);
+    grid.lineStyle(1, 0xe2e8f0, 0.18);
+    for (let ty = 0; ty < room.height; ty += 1) {
+      for (let tx = 0; tx < room.width; tx += 1) {
+        const { x, y } = tileToWorld(tx, ty);
+        strokeDiamond(grid, x, y, ISO_TILE_WIDTH / 2, ISO_TILE_HEIGHT / 2);
+      }
+    }
+    this.editCursor = this.track(this.add.graphics()).setDepth(DEPTH.editCursor);
+    this.editSelection = this.track(this.add.graphics()).setDepth(DEPTH.editCursor);
+    if (this.dragPreview) {
+      this.placeObjectView(this.dragPreview.objectId);
+    }
+    this.drawEditCursor(false);
+    this.drawEditSelection();
+  }
+
+  private drawEditCursor(inside: boolean): void {
+    const cursor = this.editCursor;
+    if (!cursor) {
+      return;
+    }
+    cursor.clear();
+    if (!this.hoverCell || !inside) {
+      return;
+    }
+    const { x, y } = tileToWorld(this.hoverCell.x, this.hoverCell.y);
+    cursor.lineStyle(2, 0x38bdf8, 0.9);
+    strokeDiamond(cursor, x, y, ISO_TILE_WIDTH / 2, ISO_TILE_HEIGHT / 2);
+  }
+
+  private drawEditSelection(): void {
+    const selection = this.editSelection;
+    if (!selection) {
+      return;
+    }
+    selection.clear();
+    const id = this.selectedObjectId;
+    const object = id ? this.model.objectsById[id] : undefined;
+    if (!id || !object || object.roomId !== this.activeRoomId) {
+      return;
+    }
+    const cell = this.dragPreview?.objectId === id ? this.dragPreview.cell : object.position;
+    const { x, y } = tileToWorld(cell.x, cell.y);
+    selection.fillStyle(0xfacc15, 0.18);
+    fillDiamond(selection, x, y, ISO_TILE_WIDTH / 2, ISO_TILE_HEIGHT / 2);
+    selection.lineStyle(2, 0xfacc15, 1);
+    strokeDiamond(selection, x, y, ISO_TILE_WIDTH / 2, ISO_TILE_HEIGHT / 2);
+  }
+
   private handleResize(): void {
     if (this.ambientOverlay) {
       this.ambientOverlay.setSize(this.scale.width, this.scale.height);
@@ -1149,6 +1361,23 @@ function fillDiamond(
   graphics.lineTo(x - halfW, y);
   graphics.closePath();
   graphics.fillPath();
+}
+
+/** Contorno de un rombo isométrico centrado en `(x, y)`. */
+function strokeDiamond(
+  graphics: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  halfW: number,
+  halfH: number,
+): void {
+  graphics.beginPath();
+  graphics.moveTo(x, y - halfH);
+  graphics.lineTo(x + halfW, y);
+  graphics.lineTo(x, y + halfH);
+  graphics.lineTo(x - halfW, y);
+  graphics.closePath();
+  graphics.strokePath();
 }
 
 function parseColor(color: string): number {

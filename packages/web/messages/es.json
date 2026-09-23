@@ -468,5 +468,68 @@
         "unknown": "Id inexistente"
       }
     }
+  },
+  "RoomEditor": {
+    "untitledRoom": "Sala sin título",
+    "loading": "Cargando el lienzo…",
+    "connecting": "Conectando con el borrador…",
+    "status": {
+      "local": "Local (sin sincronizar)",
+      "connecting": "Conectando…",
+      "connected": "Guardado automático",
+      "offline": "Sin conexión: los cambios se sincronizarán al volver"
+    },
+    "header": {
+      "validate": "Validar",
+      "playtest": "Jugar",
+      "comingSoon": "Disponible próximamente"
+    },
+    "tools": {
+      "label": "Herramientas",
+      "select": "Seleccionar",
+      "brush": "Pincel",
+      "fill": "Relleno",
+      "eraser": "Borrador",
+      "place": "Colocar"
+    },
+    "layers": {
+      "label": "Capa",
+      "ground": "Suelo",
+      "walls": "Muro",
+      "decor": "Decoración"
+    },
+    "rooms": {
+      "label": "Habitaciones"
+    },
+    "palette": {
+      "title": "Palette",
+      "pack": "Pack «{packId}»",
+      "tiles": "Tiles",
+      "objects": "Objetos",
+      "tileTitle": "Tile {tileId} · {layer}",
+      "placed": "{count, plural, one {# colocado} other {# colocados}}",
+      "empty": "El pack no tiene objetos."
+    },
+    "selection": {
+      "title": "Selección",
+      "none": "Selecciona un objeto en el lienzo o coloca uno desde la palette.",
+      "id": "ID",
+      "rename": "Renombrar",
+      "sprite": "Sprite",
+      "room": "Habitación",
+      "position": "Celda",
+      "delete": "Borrar objeto",
+      "inspectorSoon": "Estados, reglas y demás propiedades se editarán en el inspector."
+    },
+    "errors": {
+      "connection": "No se pudo abrir el borrador. Comprueba tu sesión y que tienes permiso para editar esta sala; seguimos reintentando.",
+      "invalidModel": "El borrador tiene un estado que el runtime no puede pintar; se muestra la última versión válida.",
+      "UNKNOWN_ROOM": "La habitación ya no existe.",
+      "UNKNOWN_OBJECT": "El objeto ya no existe.",
+      "OUT_OF_BOUNDS": "Esa celda está fuera de la habitación.",
+      "DUPLICATE_ID": "Ya hay algo con ese ID.",
+      "INVALID_ID": "Usa solo minúsculas, números y guiones (p. ej. arca-trono).",
+      "REFERENCED_ID": "Ese objeto ya se usa en reglas o puzzles; cámbiale el ID desde el inspector."
+    }
   }
 }
