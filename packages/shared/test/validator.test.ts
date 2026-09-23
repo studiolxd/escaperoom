@@ -118,8 +118,11 @@ describe("validador — Rey Aldric", () => {
     );
 
     // El puente del modo solitario se usa (cáliz en la placa, espejo en la mirilla).
-    expect(route.steps[solve("p-placas-estatuas")]!.itemsConsumed).toContain("caliz-real");
-    expect(route.steps[solve("p-reja-mirillas")]!.itemsConsumed).toContain("espejo");
+    // El puente se presenta y no se gasta (mismo criterio que `RoomSession`).
+    expect(route.steps[solve("p-placas-estatuas")]!.itemsUsed).toEqual(["caliz-real"]);
+    expect(route.steps[solve("p-placas-estatuas")]!.itemsConsumed).not.toContain("caliz-real");
+    expect(route.steps[solve("p-reja-mirillas")]!.itemsUsed).toEqual(["espejo"]);
+    expect(route.steps[solve("p-reja-mirillas")]!.itemsConsumed).not.toContain("espejo");
 
     const last = route.steps[route.steps.length - 1]!;
     expect(last.victory).toBe(true);
@@ -132,6 +135,7 @@ describe("validador — Rey Aldric", () => {
     const group = report.solvability.find((result) => result.playerCount === 2)!;
     const plates = group.route!.find((step) => step.subjectId === "p-placas-estatuas")!;
     expect(plates.itemsConsumed).toEqual([]);
+    expect(plates.itemsUsed).toEqual([]);
     expect(group.route!.length).toBeLessThan(report.criticalRoute!.steps.length);
   });
 
@@ -163,14 +167,9 @@ describe("validador — Rey Aldric", () => {
     expect(estimate.expectedDifficulty).toBe(2);
   });
 
-  it("marca el cáliz como doble uso resuelto por r-recoger-caliz (sin aviso)", () => {
-    expect(report.doubleUse).toEqual([
-      expect.objectContaining({
-        itemId: "caliz-real",
-        resolvedBy: "r-recoger-caliz",
-        conflict: false,
-      }),
-    ]);
+  it("el cáliz no es doble uso conflictivo: el puente se presenta y no se gasta (sin aviso)", () => {
+    expect(report.doubleUse.filter((item) => item.conflict)).toEqual([]);
+    expect(report.doubleUse.map((item) => item.itemId)).not.toContain("caliz-real");
     expect(text).not.toContain("doble uso conflictivo");
   });
 
@@ -326,9 +325,15 @@ describe("validador — huérfanos, reglas y referencias", () => {
     expect(renderValidationReport(report)).toContain("🟡 Reglas sin condición de corte: r-bucle");
   });
 
-  it("avisa del doble uso del cáliz si se quita la regla de recuperación", () => {
+  it("avisa del doble uso del cáliz si la ranura lo gasta y se quita la regla de recuperación", () => {
     const pkg = cloneFixture();
     pkg.rules = pkg.rules.filter((rule) => rule.id !== "r-recoger-caliz");
+    const slot = pkg.rules.find((rule) => rule.id === "r-caliz-en-ranura")!;
+    slot.conditions = slot.conditions.map((condition) =>
+      condition.type === "item_in_inventory" && condition.itemId === "caliz-real"
+        ? { ...condition, consumed: true }
+        : condition,
+    );
 
     const report = validateRoomPackage(pkg);
     const doubleUse = checkOf(report, "double_use");

@@ -35,7 +35,7 @@ import { objectAccessible, type ModelState, type PuzzleOracle, type RoomIndex } 
 /** RNG fijo para las plantillas que lo exigen (el oráculo no depende del orden). */
 const fixedRng = (): number => 0.5;
 
-type Verdict = { ok: true; consumes: string[] } | { ok: false; reasons: string[] };
+type Verdict = { ok: true; uses: string[] } | { ok: false; reasons: string[] };
 
 function templateSolvable(puzzle: PuzzleDefinition, heldItems: readonly string[]): boolean {
   switch (puzzle.type) {
@@ -86,8 +86,9 @@ export interface OracleOptions {
 }
 
 /**
- * Construye el oráculo del modelo: `ok` con los ítems que el paso gasta
- * (objetos-puente) o todos los motivos por los que aún no se puede resolver.
+ * Construye el oráculo del modelo: `ok` con los ítems que el paso presenta sin
+ * gastarlos (objetos-puente) o todos los motivos por los que aún no se puede
+ * resolver.
  */
 export function createOracle(index: RoomIndex, options: OracleOptions = {}): PuzzleOracle {
   const templateCache = new Map<string, boolean>();
@@ -122,7 +123,7 @@ export function createOracle(index: RoomIndex, options: OracleOptions = {}): Puz
 
   return (puzzle: PuzzleDefinition, state: ModelState): Verdict => {
     const reasons: string[] = [];
-    const consumes: string[] = [];
+    const uses: string[] = [];
 
     for (const required of puzzle.requiresSolved) {
       if (!state.isSolved(required)) reasons.push(`requiere «${required}» resuelto`);
@@ -158,12 +159,14 @@ export function createOracle(index: RoomIndex, options: OracleOptions = {}): Puz
             reasons.push(
               `necesita ${puzzle.plates.length} jugadores a la vez y no declara soloBridgeItemId`,
             );
-          } else if (state.itemCount(bridge) < missing) {
+          } else if (state.itemCount(bridge) <= 0) {
             reasons.push(
               `con ${state.playerCount} jugador(es) necesita el objeto-puente «${bridge}» en el inventario`,
             );
           } else {
-            for (let i = 0; i < missing; i++) consumes.push(bridge);
+            // El puente se presenta y no se gasta (igual que en `RoomSession`):
+            // el mismo objeto puede fijar todas las placas que falten.
+            uses.push(bridge);
           }
         }
         break;
@@ -181,7 +184,7 @@ export function createOracle(index: RoomIndex, options: OracleOptions = {}): Puz
               `en solitario necesita el objeto-puente «${puzzle.soloBridgeItemId}» en el inventario`,
             );
           } else {
-            consumes.push(puzzle.soloBridgeItemId);
+            uses.push(puzzle.soloBridgeItemId);
           }
         }
         break;
@@ -211,6 +214,6 @@ export function createOracle(index: RoomIndex, options: OracleOptions = {}): Puz
         break;
     }
 
-    return reasons.length === 0 ? { ok: true, consumes } : { ok: false, reasons };
+    return reasons.length === 0 ? { ok: true, uses } : { ok: false, reasons };
   };
 }
