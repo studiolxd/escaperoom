@@ -562,7 +562,7 @@ mencionan "landing + email" sin modelo). Decisión de diseño: tabla mínima, si
 reintentar el alta sea idempotente en vez de un error.
 
 ```sql
--- 0017_waitlist.sql
+-- 0018_waitlist.sql
 CREATE TABLE "waitlistSignup" (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email       citext NOT NULL,

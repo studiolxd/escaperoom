@@ -15,6 +15,9 @@ allowBuilds:
   msgpackr-extract: false
   sharp: false
   unrs-resolver: false
+  # El binario nativo de @sentry/cli solo hace falta para subir source maps
+  # (SENTRY_AUTH_TOKEN, ticket 6.4); sin él el build funciona igual.
+  '@sentry/cli': false
 
 # pnpm 12 exige un día mínimo de antigüedad de las releases; estas se publicaron
 # hoy y son necesarias para el toolchain (añadido por `pnpm install`).

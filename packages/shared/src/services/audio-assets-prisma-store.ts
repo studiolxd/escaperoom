@@ -1,11 +1,11 @@
 import type { PrismaClient, audioAsset } from "../../generated/client";
-import type { AudioAssetRow, AudioAssetStatus, AudioAssetStore } from "./audio-assets";
+import type { AudioAssetRow, AudioAssetSource, AudioAssetStatus, AudioAssetStore } from "./audio-assets";
 
 function toRow(row: audioAsset): AudioAssetRow {
-  return { ...row, status: row.status as AudioAssetStatus };
+  return { ...row, status: row.status as AudioAssetStatus, source: row.source as AudioAssetSource };
 }
 
-/** Implementación Prisma de `audioAsset` (migración 0011). */
+/** Implementación Prisma de `audioAsset` (migraciones 0011 y 0017). */
 export function createPrismaAudioAssetStore(prisma: PrismaClient): AudioAssetStore {
   return {
     async canModerate(userId) {
@@ -17,7 +17,9 @@ export function createPrismaAudioAssetStore(prisma: PrismaClient): AudioAssetSto
       return user?.isModerator === true || user?.isAdmin === true;
     },
     async insertAsset(asset) {
-      return toRow(await prisma.audioAsset.create({ data: asset }));
+      return toRow(
+        await prisma.audioAsset.create({ data: { ...asset, source: asset.source ?? "upload" } }),
+      );
     },
     async findAsset(id) {
       const row = await prisma.audioAsset.findUnique({ where: { id } });
@@ -47,6 +49,9 @@ export function createPrismaAudioAssetStore(prisma: PrismaClient): AudioAssetSto
       if (count === 0) return null;
       const row = await prisma.audioAsset.findUnique({ where: { id } });
       return row ? toRow(row) : null;
+    },
+    async deleteAsset(id) {
+      await prisma.audioAsset.deleteMany({ where: { id } });
     },
   };
 }

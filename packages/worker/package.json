@@ -17,6 +17,7 @@
   "dependencies": {
     "@escaperoom/kit": "workspace:*",
     "@escaperoom/shared": "workspace:*",
+    "@sentry/node": "^10.69.0",
     "bullmq": "^6.3.8",
     "ioredis": "^6.0.0"
   },

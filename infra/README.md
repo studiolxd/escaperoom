@@ -60,6 +60,7 @@ pnpm dev:env && pnpm db:reset
 | LiveKit (ws)        | 7880                    | 7880        |
 | LiveKit RTC         | 7881 (tcp) / 7882 (udp) | idem        |
 | coturn              | 3478 (tcp/udp) / 5349   | idem        |
+| Uptime Kuma         | 59003                   | 3001        |
 
 ## URLs
 
@@ -78,3 +79,7 @@ pnpm dev:env && pnpm db:reset
 - **coturn en macOS**: el networking de Docker limita TURN; sirve para probar el
   flujo, no como espejo de producción (donde va en el VPS con red host).
 - **LiveKit**: claves de desarrollo (`devkey`/`secret`) en `livekit/livekit.yaml`.
+- **Uptime Kuma** (ticket 6.4): monitor de disponibilidad, autohospedado, sin
+  cuenta preconfigurada — se configura a mano desde `http://localhost:59003`.
+  Procedimiento de alerta y prueba de caída simulada:
+  `docs/reference/alertas-uptime-kuma.md`.

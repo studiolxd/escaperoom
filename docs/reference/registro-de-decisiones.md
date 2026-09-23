@@ -416,3 +416,50 @@ se persiste ni pasa por cola humana (`specs/17` §8).
 
 **Alternativas descartadas:** descartar el mensaje completo (el usuario no entiende por qué y se
 pierde contexto no tóxico); bloquear el envío con error (misma fricción y peor UX).
+
+---
+
+## ADR-024 — Generación de audio por IA (ticket 4.9): tarifa, síntesis y alcance del MCP
+
+**Contexto:** `specs/15` §2 fija la fórmula de coste («nº de caracteres × tarifa ElevenLabs →
+créditos internos, redondeo a la unidad, mínimo 1 crédito, margen ≥ 50 %») pero deja abierta la
+tarifa exacta: ni `specs/02` ni `specs/15` fijan cuántos caracteres vale un crédito, y el precio en
+euros de un crédito depende de los packs de compra (tickets 5.1/5.2), aún sin implementar.
+`specs/10` (MCP del creador) tampoco prevé una tool de generación de audio; `specs/15` §3 describe
+la integración como un botón en el editor («texto → previsualización → confirmar»).
+
+**Decisiones:**
+
+1. **Tarifa provisional: 1 crédito = 40 caracteres** (redondeo hacia arriba, mínimo 1 crédito por
+   generación), en `CHARACTERS_PER_CREDIT` (`packages/shared/src/services/audio-generation.ts`).
+   Es una cifra de trabajo para poder implementar y testear el servicio; **hay que revisarla contra
+   el contrato real con ElevenLabs y el precio en euros de un crédito cuando 5.1/5.2 fijen los
+   packs de compra**, para garantizar el margen ≥ 50 % que pide la spec.
+2. **Cuenta que se cobra:** si el actor tiene una organización activa, se cobra a la cuenta de esa
+   organización; si no, a su cuenta personal. No hay lógica adicional de reparto (no hace falta:
+   una única cuenta por organización, migración 0004).
+3. **Síntesis y confirmación son síncronas** (mismo patrón que la subida manual de audio, 3.11):
+   no se encola en BullMQ/worker. La llamada a ElevenLabs (unos segundos) ocurre dentro de la
+   petición HTTP de `/api/audio/generate/preview` y `/api/audio/generate/confirm`. No hace falta
+   cola: no hay generación en lote ni fan-out, y la UX pedida (previsualizar antes de confirmar) ya
+   es una interacción síncrona en el editor.
+4. **El audio generado reutiliza la tabla `audioAsset`** (migración 0011) con una columna `source`
+   nueva (`'upload' | 'ai_generated'`, migración 0017) en vez de una tabla o un espacio de
+   referencias (`ref`) aparte: así reutiliza sin cambios el MISMO pipeline de moderación de 3.11
+   (nace `pending`, cola humana, bloquea publicación hasta aprobarse) y la MISMA resolución de
+   referencias del editor (`upload:<id>`) — la publicación, el editor y el MCP no distinguen el
+   origen del audio.
+5. **Sin tool MCP nueva en esta iteración.** `specs/10` no la pide y `specs/15` describe la
+   generación como una interacción de editor (previsualizar antes de cobrar), que no encaja bien en
+   una tool MCP de una sola llamada sin exponer también el paso de previsualización al agente.
+   Queda para una iteración futura si el creador necesita pedirlo desde el chat.
+
+**Consecuencias:** el coste en créditos de una generación cambiará cuando se revise el punto 1 (es
+un cambio de constante, no de arquitectura). El endpoint de generación bloquea la petición HTTP
+mientras dura la síntesis (unos segundos); si en el futuro se generan lotes de audio (p. ej. localizar
+una sala entera a la vez) sí hará falta una cola, como el resto de trabajos largos del repo.
+
+**Alternativas descartadas:** cola BullMQ desde ya (sobreingeniería para una interacción de un solo
+audio con previsualización síncrona); tabla `audioAssetGeneration` separada (duplica moderación,
+referencias y publicación sin necesidad); tool MCP de generación de una sola llamada (no puede
+ofrecer la previsualización sin cobrar que pide la spec).

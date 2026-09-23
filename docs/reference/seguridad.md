@@ -44,6 +44,7 @@ canjea sus claves detrás del mismo NAT: los canjes correctos no la tocan.
 | `invitation-confirm` | `POST /api/access-keys/:code/confirm` (público, enlace del email) | 20 / 10 min | — | 10 / 10 min |
 | `invitation-resend` | `POST /api/access-keys/:code/resend` | 60 / 10 min | 30 / 10 min | — |
 | `invitation-resend-pending` | `POST /api/events/:id/invitations/resend` (recordatorio masivo) | 10 / 1 h | 5 / 1 h | — |
+| `account-rights` | `GET /api/me/data-export`, `DELETE /api/me` (ticket 6.2) | 20 / 1 h | 5 / 1 h | — |
 
 Razonamiento de los números:
 
@@ -54,6 +55,8 @@ Razonamiento de los números:
 - **Confirmación.** El token va firmado (HMAC); la cuota de fallos frena el tanteo de tokens.
 - **Reenvíos.** Cada uno encola emails reales (coste y reputación del dominio): el masivo es el más
   estricto.
+- **Derechos RGPD.** Ambas exigen sesión y no hay un motivo legítimo para pedirlas muchas veces
+  seguidas; 5/hora por usuario basta y deja margen para reintentos tras un fallo de red.
 
 **Fuera de este limitador**, a propósito:
 
