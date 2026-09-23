@@ -502,6 +502,39 @@ CREATE INDEX "ixAnalyticsEventType" ON "analyticsEvent"("eventType", "createdAt"
 CREATE INDEX "ixAnalyticsEventSession" ON "analyticsEvent"("sessionId");
 ```
 
+### 8.1 Hitos de la partida de evento (ticket 5.12)
+
+Migración `0015_progress_milestones`: la room `event` de Colyseus persiste cada hito de la partida
+en `progressEvent` (de forma asíncrona, sin bloquear el bucle de juego) para que el panel del
+organizador y el ranking del evento (`specs/21` §4) sobrevivan a un reinicio de Colyseus. Además de
+los hitos de puzzle hacen falta el inicio, la apertura de una puerta y el fin con su resultado.
+
+```sql
+-- 0015_progress_milestones.sql
+ALTER TYPE "progressEventKind" ADD VALUE IF NOT EXISTS 'game_started';
+ALTER TYPE "progressEventKind" ADD VALUE IF NOT EXISTS 'door_opened';
+ALTER TYPE "progressEventKind" ADD VALUE IF NOT EXISTS 'game_ended';
+ALTER TABLE "progressEvent"
+  ALTER COLUMN "puzzleId" DROP NOT NULL,
+  ADD COLUMN "objectId" text,        -- puerta abierta (`door_opened`)
+  ADD COLUMN "result"   text,        -- desenlace (`game_ended`)
+  ADD CONSTRAINT "ckProgressEventResult"
+    CHECK (result IS NULL OR result IN ('victory', 'timeout', 'aborted')),
+  ADD CONSTRAINT "ckProgressEventTarget"
+    CHECK ("eventKind" NOT IN ('solved', 'hint_used', 'attempt_failed') OR "puzzleId" IS NOT NULL);
+```
+
+- `createdAt` es el instante del hito en el servidor de partida (no el de la escritura);
+  `durationMs`, el tiempo jugado hasta ese hito; `hintsUsed`, el coste **acumulado** de pistas de la
+  sesión en ese momento. `groupId`/`playerId` salen del `joinToken` de quien lo provocó (`playerId`
+  solo para jugadores con cuenta).
+- `game_started` pasa `gameSession` a `in_progress` (`startedAt`, `colyseusRoomId`); `game_ended`
+  la cierra (`ended`, o `aborted` si se abandona) con `endedAt`.
+- Al terminar con `victory` o `timeout`, el servidor de partida escribe `group."completedAt"` de los
+  grupos que jugaron (§6.1) y, en la misma transacción, caduca sus claves vivas si el evento tiene
+  la regla `on_group_complete` (el job de 5.5 aplica la misma regla en cada pasada).
+- El panel reconstruye el progreso de cada sesión desde su **último** `game_started`.
+
 ## 9. Reseñas
 
 ```sql

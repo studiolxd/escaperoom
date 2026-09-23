@@ -77,6 +77,11 @@ export { PLAYTEST_FORBIDDEN_CODE, PlaytestRoom } from "./rooms/playtest-room.js"
 export { EVENT_JOIN_FORBIDDEN_CODE, EventRoom, JOIN_TOKEN_ERRORS } from "./rooms/event-room.js";
 export type { EventClientAuth, EventRoomMetadata, EventRoomOptions } from "./rooms/event-room.js";
 export { createEventProgressRouter } from "./events/http.js";
+export {
+  configureEventRuntime,
+  FIXTURE_EVENT_RUNTIME,
+  getEventRuntime,
+} from "./events/runtime.js";
 export type { PlaytestJoinOptions, PlaytestRoomOptions } from "./rooms/playtest-room.js";
 export {
   DEFAULT_PLAYTEST_TTL_SECONDS,
@@ -94,7 +99,12 @@ export {
 export type { PlaytestEntry } from "./playtest/registry.js";
 export { signPlaytestToken, verifyPlaytestToken } from "./playtest/token.js";
 export type { PlaytestTokenPayload, PlaytestTokenResult } from "./playtest/token.js";
-export type { GameJoinOptions, GameRoomOptions } from "./rooms/game-room.js";
+export type {
+  GameJoinOptions,
+  GameMilestone,
+  GameMilestoneClock,
+  GameRoomOptions,
+} from "./rooms/game-room.js";
 export {
   GameInventoryState,
   GamePlayerState,
