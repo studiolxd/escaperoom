@@ -3,9 +3,15 @@ import { prisma } from "@escaperoom/shared/db";
 import {
   createCatalogService,
   createJsonFileRoomPackageRepository,
+  createPlatformSettingsService,
+  createPricingTierService,
+  createPrismaPlatformSettingStore,
+  createPrismaPricingTierStore,
   createPrismaRoomDraftStore,
   createRoomDraftService,
   type CatalogService,
+  type PlatformSettingsService,
+  type PricingTierService,
   type RoomDraftService,
 } from "@escaperoom/shared/services";
 
@@ -18,6 +24,8 @@ const FEATURED_ROOM_FIXTURE = "../../docs/reference/roompackage-rey-aldric.v1.js
 
 let catalog: CatalogService | undefined;
 let roomDrafts: RoomDraftService | undefined;
+let platformSettings: PlatformSettingsService | undefined;
+let pricingTiers: PricingTierService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -34,4 +42,18 @@ export function getCatalogService(): CatalogService {
 export function getRoomDraftService(): RoomDraftService {
   roomDrafts ??= createRoomDraftService({ store: createPrismaRoomDraftStore(prisma) });
   return roomDrafts;
+}
+
+/** Ajustes de plataforma (`platformSetting`, specs/13 §10) sobre Postgres. */
+export function getPlatformSettingsService(): PlatformSettingsService {
+  platformSettings ??= createPlatformSettingsService({
+    store: createPrismaPlatformSettingStore(prisma),
+  });
+  return platformSettings;
+}
+
+/** Tramos de precio versionados (`pricingTier`, specs/02 §3.2) sobre Postgres. */
+export function getPricingTierService(): PricingTierService {
+  pricingTiers ??= createPricingTierService({ store: createPrismaPricingTierStore(prisma) });
+  return pricingTiers;
 }
