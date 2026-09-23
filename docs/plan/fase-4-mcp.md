@@ -30,6 +30,12 @@ es publicable con confirmación humana. La paridad editor↔MCP está verificada
 La **paridad es el criterio de aceptación**, no una feature aparte: si el MCP no puede hacer algo que
 el editor sí, o viceversa, la fase no está cerrada (`specs/10` §1).
 
+**4.9** implementado sobre servicios propios (no se copió código de SLXD: su ledger de créditos es
+multi-tenant y mucho más grande de lo que este repo necesita; solo se reutilizó la FORMA del cliente
+HTTP de ElevenLabs). La tarifa caracteres→créditos, la cuenta que se cobra y por qué no hay tool MCP
+en esta iteración son decisiones abiertas documentadas en `docs/reference/registro-de-decisiones.md`
+(ADR-024) — revisar la tarifa cuando 5.1/5.2 fijen el precio en euros de un crédito.
+
 ## Reutilización SLXD (ADR-017)
 
 - **4.1 / 4.4 / 4.5** → `@slxd/mcp-server` (pipeline de petición, registro de tools, gate de

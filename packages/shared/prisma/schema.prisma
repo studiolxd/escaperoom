@@ -91,6 +91,10 @@ model audioAsset {
   reviewedAt                       DateTime?     @db.Timestamptz(6)
   rightsDeclaredAt                 DateTime      @db.Timestamptz(6)
   createdAt                        DateTime      @default(now()) @db.Timestamptz(6)
+  source                           String        @default("upload")
+  generationText                   String?
+  generationVoiceId                String?
+  generationCreditsCost            Int?
   organization                     organization? @relation(fields: [organizationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   user_audioAsset_ownerIdTouser    user          @relation("audioAsset_ownerIdTouser", fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   user_audioAsset_reviewedByTouser user?         @relation("audioAsset_reviewedByTouser", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)

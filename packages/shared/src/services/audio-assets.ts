@@ -28,7 +28,10 @@ import { isAnonymous, type Actor } from "./actor";
 
 export type AudioAssetStatus = "pending" | "approved" | "rejected";
 
-/** Fila persistida de `audioAsset` (migración 0011). */
+/** De dónde viene el fichero (ticket 4.9, migración 0017): subida propia o generación IA. */
+export type AudioAssetSource = "upload" | "ai_generated";
+
+/** Fila persistida de `audioAsset` (migraciones 0011 y 0017). */
 export type AudioAssetRow = {
   id: string;
   ownerId: string;
@@ -46,12 +49,32 @@ export type AudioAssetRow = {
   reviewedAt: Date | null;
   rightsDeclaredAt: Date;
   createdAt: Date;
+  source: AudioAssetSource;
+  /** Solo `ai_generated`: el texto sintetizado (contexto para moderación) y la voz usada. */
+  generationText: string | null;
+  generationVoiceId: string | null;
+  /** Solo `ai_generated`: créditos cobrados por esta generación (ya descontados al confirmar). */
+  generationCreditsCost: number | null;
 };
 
 export type NewAudioAsset = Omit<
   AudioAssetRow,
-  "createdAt" | "status" | "rejectionReason" | "reviewedBy" | "reviewedAt"
->;
+  | "createdAt"
+  | "status"
+  | "rejectionReason"
+  | "reviewedBy"
+  | "reviewedAt"
+  | "source"
+  | "generationText"
+  | "generationVoiceId"
+  | "generationCreditsCost"
+> & {
+  /** Por defecto `"upload"` (los llamantes existentes no la pasan). */
+  source?: AudioAssetSource;
+  generationText?: string | null;
+  generationVoiceId?: string | null;
+  generationCreditsCost?: number | null;
+};
 
 export type AudioReview = {
   status: Exclude<AudioAssetStatus, "pending">;
@@ -73,6 +96,8 @@ export interface AudioAssetStore {
    * condicional); `null` si otro moderador se adelantó.
    */
   reviewIfPending(id: string, review: AudioReview): Promise<AudioAssetRow | null>;
+  /** Deshace un alta (ticket 4.9: la generación se cobra después de insertar; si el cobro falla, no debe quedar disponible). */
+  deleteAsset(id: string): Promise<void>;
 }
 
 /** Puerto de almacenamiento de binarios (el adaptador S3/R2 de `@escaperoom/kit/storage`). */
@@ -509,6 +534,10 @@ export function createInMemoryAudioAssetStore(
     async insertAsset(asset) {
       const row: AudioAssetRow = {
         ...asset,
+        source: asset.source ?? "upload",
+        generationText: asset.generationText ?? null,
+        generationVoiceId: asset.generationVoiceId ?? null,
+        generationCreditsCost: asset.generationCreditsCost ?? null,
         status: "pending",
         rejectionReason: null,
         reviewedBy: null,
@@ -537,6 +566,9 @@ export function createInMemoryAudioAssetStore(
       const next = { ...row, ...review };
       rows.set(id, next);
       return { ...next };
+    },
+    async deleteAsset(id) {
+      rows.delete(id);
     },
   };
 }
