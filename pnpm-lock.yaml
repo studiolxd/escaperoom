@@ -583,6 +583,9 @@ importers:
       '@better-auth/cli':
         specifier: 1.4.21
         version: 1.4.21(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.6.5))(jose@6.2.12)(kysely@0.28.17)(nanostores@1.5.3)(next@16.3.5(@babel/core@7.29.7)(@types/node@26.6.2)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(prisma@6.19.3(typescript@6.0.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2)(jiti@2.7.0)(tsx@4.23.15)))
+      '@escaperoom/colyseus-server':
+        specifier: workspace:*
+        version: link:../colyseus-server
       '@escaperoom/worker':
         specifier: workspace:*
         version: link:../worker

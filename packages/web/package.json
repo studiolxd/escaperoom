@@ -45,6 +45,7 @@
   },
   "devDependencies": {
     "@better-auth/cli": "1.4.21",
+    "@escaperoom/colyseus-server": "workspace:*",
     "@escaperoom/worker": "workspace:*",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^26.6.2",

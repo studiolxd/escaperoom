@@ -604,5 +604,62 @@
     "ownRoom": "Es tu sala: no puedes reseñarla.",
     "errorContent": "La reseña contiene lenguaje no permitido. Reformúlala para publicarla.",
     "errorGeneric": "No se ha podido guardar la reseña. Inténtalo de nuevo."
+  },
+  "EditorPlaytest": {
+    "editor": {
+      "creating": "Preparando…",
+      "localDraft": "Este borrador es local: guárdalo en el servidor para jugarlo.",
+      "ready": "Partida de prueba lista",
+      "shareHint": "Comparte el link con un amigo: podrá jugar el borrador sin que la sala aparezca en el catálogo.",
+      "linkLabel": "Link de prueba",
+      "expires": "El link caduca a las {time}.",
+      "copy": "Copiar link",
+      "copied": "¡Copiado!",
+      "open": "Abrir partida",
+      "dismiss": "Cerrar",
+      "errors": {
+        "UNAUTHORIZED": "Inicia sesión para jugar tu borrador.",
+        "FORBIDDEN": "Solo el autor de la sala puede crear una partida de prueba.",
+        "NOT_FOUND": "La sala no existe.",
+        "INVALID_DRAFT": "El borrador aún no forma una sala válida: revisa los avisos del validador.",
+        "PLAYTEST_UNPLAYABLE": "El servidor de partidas no puede montar este borrador.",
+        "PLAYTEST_DISABLED": "El playtest no está disponible en este entorno.",
+        "PLAYTEST_UNAVAILABLE": "El servidor de partidas no responde. Inténtalo de nuevo.",
+        "UNKNOWN": "No se pudo crear la partida de prueba."
+      }
+    },
+    "page": {
+      "title": "Partida de prueba",
+      "subtitle": "Borrador sin publicar: no aparece en el catálogo.",
+      "connecting": "Conectando con la partida…",
+      "invalidLink": "Este link de prueba no es válido.",
+      "expired": "Este link de prueba ha caducado. Pide al autor uno nuevo.",
+      "closed": "La partida de prueba se ha cerrado.",
+      "phase": {
+        "lobby": "En espera",
+        "playing": "En juego",
+        "ended": "Terminada"
+      },
+      "result": "Resultado: {result}",
+      "start": "Empezar partida",
+      "waitingHost": "Esperando a que el anfitrión empiece…",
+      "objects": "Objetos",
+      "noObjects": "La sala no tiene objetos.",
+      "interact": "Interactuar",
+      "players": "Jugadores",
+      "you": "tú",
+      "host": "anfitrión",
+      "inventory": "Inventario",
+      "emptyInventory": "Vacío",
+      "log": "Eventos"
+    },
+    "log": {
+      "dialog": "Diálogo «{id}»",
+      "objectState": "«{id}» → {state}",
+      "item": "Obtienes «{item}»",
+      "solved": "Puzzle resuelto: «{id}»",
+      "ended": "Fin de la partida: {result}",
+      "error": "Aviso: {message}"
+    }
   }
 }

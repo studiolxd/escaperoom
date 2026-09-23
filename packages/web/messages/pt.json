@@ -560,5 +560,62 @@
     "ownRoom": "É a tua sala: não a podes avaliar.",
     "errorContent": "A avaliação contém linguagem não permitida. Reformula-a para a publicar.",
     "errorGeneric": "Não foi possível guardar a avaliação. Tenta novamente."
+  },
+  "EditorPlaytest": {
+    "editor": {
+      "creating": "A preparar…",
+      "localDraft": "Este rascunho é local: guarda-o no servidor para o jogar.",
+      "ready": "Jogo de teste pronto",
+      "shareHint": "Partilha o link com um amigo: poderá jogar o rascunho sem que a sala apareça no catálogo.",
+      "linkLabel": "Link de teste",
+      "expires": "O link expira às {time}.",
+      "copy": "Copiar link",
+      "copied": "Copiado!",
+      "open": "Abrir jogo",
+      "dismiss": "Fechar",
+      "errors": {
+        "UNAUTHORIZED": "Inicia sessão para jogar o teu rascunho.",
+        "FORBIDDEN": "Só o autor da sala pode criar um jogo de teste.",
+        "NOT_FOUND": "A sala não existe.",
+        "INVALID_DRAFT": "O rascunho ainda não forma uma sala válida: revê os avisos do validador.",
+        "PLAYTEST_UNPLAYABLE": "O servidor de jogo não consegue carregar este rascunho.",
+        "PLAYTEST_DISABLED": "O playtest não está disponível neste ambiente.",
+        "PLAYTEST_UNAVAILABLE": "O servidor de jogo não responde. Tenta novamente.",
+        "UNKNOWN": "Não foi possível criar o jogo de teste."
+      }
+    },
+    "page": {
+      "title": "Jogo de teste",
+      "subtitle": "Rascunho não publicado: não aparece no catálogo.",
+      "connecting": "A ligar ao jogo…",
+      "invalidLink": "Este link de teste não é válido.",
+      "expired": "Este link de teste expirou. Pede um novo ao autor.",
+      "closed": "O jogo de teste foi fechado.",
+      "phase": {
+        "lobby": "Em espera",
+        "playing": "Em jogo",
+        "ended": "Terminado"
+      },
+      "result": "Resultado: {result}",
+      "start": "Começar jogo",
+      "waitingHost": "À espera de que o anfitrião comece…",
+      "objects": "Objetos",
+      "noObjects": "A sala não tem objetos.",
+      "interact": "Interagir",
+      "players": "Jogadores",
+      "you": "tu",
+      "host": "anfitrião",
+      "inventory": "Inventário",
+      "emptyInventory": "Vazio",
+      "log": "Eventos"
+    },
+    "log": {
+      "dialog": "Diálogo «{id}»",
+      "objectState": "«{id}» → {state}",
+      "item": "Obténs «{item}»",
+      "solved": "Puzzle resolvido: «{id}»",
+      "ended": "Fim do jogo: {result}",
+      "error": "Aviso: {message}"
+    }
   }
 }

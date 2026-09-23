@@ -21,6 +21,7 @@ import type { EditorPalette } from "@escaperoom/game-runtime";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { Button } from "@/components/ui/button";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
+import { PlaytestButton } from "./playtest-button";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
 import { RoomEditorWorkspace, type RoomEditorStatus } from "./room-editor-workspace";
 
@@ -153,6 +154,7 @@ export function RoomEditorShell(props: RoomEditorShellProps) {
   }
   return (
     <ValidatedWorkspace
+      roomId={roomId}
       session={session}
       palette={props.palette}
       pack={props.pack}
@@ -167,11 +169,13 @@ export function RoomEditorShell(props: RoomEditorShellProps) {
  * y un clic en un objeto señalado lo selecciona en el lienzo.
  */
 function ValidatedWorkspace({
+  roomId,
   session,
   palette,
   pack,
   status,
 }: {
+  roomId: string;
   session: Session;
   palette: EditorPalette;
   pack?: RoomPreviewPack;
@@ -213,15 +217,7 @@ function ValidatedWorkspace({
           >
             {t("header.validate")}
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="border border-white/15 text-white hover:bg-white/10"
-            disabled
-            title={t("header.comingSoon")}
-          >
-            {t("header.playtest")}
-          </Button>
+          <PlaytestButton roomId={roomId} disabled={!session.provider} />
         </>
       }
     />

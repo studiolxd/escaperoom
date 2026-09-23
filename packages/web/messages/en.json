@@ -591,5 +591,62 @@
     "ownRoom": "This is your room: you cannot review it.",
     "errorContent": "The review contains language that is not allowed. Please rephrase it.",
     "errorGeneric": "The review could not be saved. Please try again."
+  },
+  "EditorPlaytest": {
+    "editor": {
+      "creating": "Preparing…",
+      "localDraft": "This draft is local: save it to the server to play it.",
+      "ready": "Test game ready",
+      "shareHint": "Share the link with a friend: they can play the draft without the room showing up in the catalog.",
+      "linkLabel": "Test link",
+      "expires": "The link expires at {time}.",
+      "copy": "Copy link",
+      "copied": "Copied!",
+      "open": "Open game",
+      "dismiss": "Close",
+      "errors": {
+        "UNAUTHORIZED": "Sign in to play your draft.",
+        "FORBIDDEN": "Only the room's author can create a test game.",
+        "NOT_FOUND": "The room does not exist.",
+        "INVALID_DRAFT": "The draft is not a valid room yet: check the validator warnings.",
+        "PLAYTEST_UNPLAYABLE": "The game server cannot load this draft.",
+        "PLAYTEST_DISABLED": "Playtest is not available in this environment.",
+        "PLAYTEST_UNAVAILABLE": "The game server is not responding. Please try again.",
+        "UNKNOWN": "The test game could not be created."
+      }
+    },
+    "page": {
+      "title": "Test game",
+      "subtitle": "Unpublished draft: it does not appear in the catalog.",
+      "connecting": "Connecting to the game…",
+      "invalidLink": "This test link is not valid.",
+      "expired": "This test link has expired. Ask the author for a new one.",
+      "closed": "The test game has been closed.",
+      "phase": {
+        "lobby": "Waiting",
+        "playing": "Playing",
+        "ended": "Finished"
+      },
+      "result": "Result: {result}",
+      "start": "Start game",
+      "waitingHost": "Waiting for the host to start…",
+      "objects": "Objects",
+      "noObjects": "The room has no objects.",
+      "interact": "Interact",
+      "players": "Players",
+      "you": "you",
+      "host": "host",
+      "inventory": "Inventory",
+      "emptyInventory": "Empty",
+      "log": "Events"
+    },
+    "log": {
+      "dialog": "Dialog “{id}”",
+      "objectState": "“{id}” → {state}",
+      "item": "You get “{item}”",
+      "solved": "Puzzle solved: “{id}”",
+      "ended": "Game over: {result}",
+      "error": "Notice: {message}"
+    }
   }
 }

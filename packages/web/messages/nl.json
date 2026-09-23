@@ -560,5 +560,62 @@
     "ownRoom": "Dit is jouw kamer: je kunt hem niet beoordelen.",
     "errorContent": "De review bevat taal die niet is toegestaan. Herformuleer hem.",
     "errorGeneric": "De review kon niet worden opgeslagen. Probeer het opnieuw."
+  },
+  "EditorPlaytest": {
+    "editor": {
+      "creating": "Voorbereiden…",
+      "localDraft": "Dit concept is lokaal: sla het op de server op om het te spelen.",
+      "ready": "Testspel klaar",
+      "shareHint": "Deel de link met een vriend: die kan het concept spelen zonder dat de kamer in de catalogus verschijnt.",
+      "linkLabel": "Testlink",
+      "expires": "De link verloopt om {time}.",
+      "copy": "Link kopiëren",
+      "copied": "Gekopieerd!",
+      "open": "Spel openen",
+      "dismiss": "Sluiten",
+      "errors": {
+        "UNAUTHORIZED": "Log in om je concept te spelen.",
+        "FORBIDDEN": "Alleen de auteur van de kamer kan een testspel maken.",
+        "NOT_FOUND": "De kamer bestaat niet.",
+        "INVALID_DRAFT": "Het concept is nog geen geldige kamer: bekijk de meldingen van de validator.",
+        "PLAYTEST_UNPLAYABLE": "De spelserver kan dit concept niet laden.",
+        "PLAYTEST_DISABLED": "Playtest is niet beschikbaar in deze omgeving.",
+        "PLAYTEST_UNAVAILABLE": "De spelserver reageert niet. Probeer het opnieuw.",
+        "UNKNOWN": "Het testspel kon niet worden gemaakt."
+      }
+    },
+    "page": {
+      "title": "Testspel",
+      "subtitle": "Niet-gepubliceerd concept: het verschijnt niet in de catalogus.",
+      "connecting": "Verbinden met het spel…",
+      "invalidLink": "Deze testlink is ongeldig.",
+      "expired": "Deze testlink is verlopen. Vraag de auteur om een nieuwe.",
+      "closed": "Het testspel is gesloten.",
+      "phase": {
+        "lobby": "Wachten",
+        "playing": "Bezig",
+        "ended": "Afgelopen"
+      },
+      "result": "Resultaat: {result}",
+      "start": "Spel starten",
+      "waitingHost": "Wachten tot de host start…",
+      "objects": "Objecten",
+      "noObjects": "De kamer heeft geen objecten.",
+      "interact": "Gebruiken",
+      "players": "Spelers",
+      "you": "jij",
+      "host": "host",
+      "inventory": "Inventaris",
+      "emptyInventory": "Leeg",
+      "log": "Gebeurtenissen"
+    },
+    "log": {
+      "dialog": "Dialoog ‘{id}’",
+      "objectState": "‘{id}’ → {state}",
+      "item": "Je krijgt ‘{item}’",
+      "solved": "Puzzel opgelost: ‘{id}’",
+      "ended": "Einde van het spel: {result}",
+      "error": "Melding: {message}"
+    }
   }
 }

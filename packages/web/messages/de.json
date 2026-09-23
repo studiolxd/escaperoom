@@ -560,5 +560,62 @@
     "ownRoom": "Das ist dein Raum: Du kannst ihn nicht bewerten.",
     "errorContent": "Die Bewertung enthält unzulässige Sprache. Bitte formuliere sie um.",
     "errorGeneric": "Die Bewertung konnte nicht gespeichert werden. Bitte versuche es erneut."
+  },
+  "EditorPlaytest": {
+    "editor": {
+      "creating": "Wird vorbereitet…",
+      "localDraft": "Dieser Entwurf ist lokal: Speichere ihn auf dem Server, um ihn zu spielen.",
+      "ready": "Testspiel bereit",
+      "shareHint": "Teile den Link mit einem Freund: Er kann den Entwurf spielen, ohne dass der Raum im Katalog erscheint.",
+      "linkLabel": "Testlink",
+      "expires": "Der Link läuft um {time} ab.",
+      "copy": "Link kopieren",
+      "copied": "Kopiert!",
+      "open": "Spiel öffnen",
+      "dismiss": "Schließen",
+      "errors": {
+        "UNAUTHORIZED": "Melde dich an, um deinen Entwurf zu spielen.",
+        "FORBIDDEN": "Nur der Autor des Raums kann ein Testspiel erstellen.",
+        "NOT_FOUND": "Der Raum existiert nicht.",
+        "INVALID_DRAFT": "Der Entwurf ist noch kein gültiger Raum: Prüfe die Hinweise des Validators.",
+        "PLAYTEST_UNPLAYABLE": "Der Spielserver kann diesen Entwurf nicht laden.",
+        "PLAYTEST_DISABLED": "Der Playtest ist in dieser Umgebung nicht verfügbar.",
+        "PLAYTEST_UNAVAILABLE": "Der Spielserver antwortet nicht. Versuche es erneut.",
+        "UNKNOWN": "Das Testspiel konnte nicht erstellt werden."
+      }
+    },
+    "page": {
+      "title": "Testspiel",
+      "subtitle": "Unveröffentlichter Entwurf: Er erscheint nicht im Katalog.",
+      "connecting": "Verbindung zum Spiel wird hergestellt…",
+      "invalidLink": "Dieser Testlink ist ungültig.",
+      "expired": "Dieser Testlink ist abgelaufen. Bitte den Autor um einen neuen.",
+      "closed": "Das Testspiel wurde beendet.",
+      "phase": {
+        "lobby": "Wartet",
+        "playing": "Läuft",
+        "ended": "Beendet"
+      },
+      "result": "Ergebnis: {result}",
+      "start": "Spiel starten",
+      "waitingHost": "Warten, bis der Host startet…",
+      "objects": "Objekte",
+      "noObjects": "Der Raum hat keine Objekte.",
+      "interact": "Interagieren",
+      "players": "Spieler",
+      "you": "du",
+      "host": "Host",
+      "inventory": "Inventar",
+      "emptyInventory": "Leer",
+      "log": "Ereignisse"
+    },
+    "log": {
+      "dialog": "Dialog „{id}“",
+      "objectState": "„{id}“ → {state}",
+      "item": "Du erhältst „{item}“",
+      "solved": "Rätsel gelöst: „{id}“",
+      "ended": "Spielende: {result}",
+      "error": "Hinweis: {message}"
+    }
   }
 }
