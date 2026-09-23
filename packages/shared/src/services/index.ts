@@ -27,3 +27,5 @@ export * from "./join-token";
 export * from "./redeem";
 export * from "./room-license";
 export * from "./room-license-prisma-store";
+export * from "./invitations";
+export * from "./invitations-prisma-store";

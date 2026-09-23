@@ -815,5 +815,22 @@
         "pipes": "Irrésoluble : aucun chemin d'eau du départ à l'arrivée (même vannes ouvertes)."
       }
     }
+  },
+  "InvitationConfirm": {
+    "title": "Confirmez votre présence",
+    "intro": "Appuyez sur le bouton pour indiquer à l’organisateur que vous participerez à l’événement avec cette clé.",
+    "keyLabel": "Votre clé",
+    "cta": "Confirmer ma présence",
+    "confirming": "Confirmation…",
+    "success": "C’est fait ! Votre présence est confirmée. Conservez votre clé pour le jour de l’événement.",
+    "already": "Votre présence était déjà confirmée. Conservez votre clé pour le jour de l’événement.",
+    "errors": {
+      "CONFIRMATION_INVALID": "Ce lien n’est pas valide. Vérifiez que vous l’avez copié en entier ou demandez à l’organisateur de vous le renvoyer.",
+      "CONFIRMATION_EXPIRED": "Ce lien a expiré. Demandez à l’organisateur de vous renvoyer l’invitation.",
+      "CONFIRMATION_UNAVAILABLE": "La confirmation n’est pas disponible pour le moment. Réessayez plus tard.",
+      "ACCESS_KEY_INVALID": "Cette clé n’existe pas.",
+      "ACCESS_KEY_EXPIRED": "Cette clé n’est plus valide. Demandez-en une nouvelle à l’organisateur.",
+      "UNKNOWN": "La confirmation a échoué. Réessayez dans quelques minutes."
+    }
   }
 }

@@ -846,5 +846,22 @@
         "pipes": "Unsolvable: there is no water path from start to end (even with the gates open)."
       }
     }
+  },
+  "InvitationConfirm": {
+    "title": "Confirm your attendance",
+    "intro": "Press the button to let the organizer know you will attend the event with this key.",
+    "keyLabel": "Your key",
+    "cta": "Confirm attendance",
+    "confirming": "Confirming…",
+    "success": "Done! Your attendance is confirmed. Keep your key for the day of the event.",
+    "already": "Your attendance was already confirmed. Keep your key for the day of the event.",
+    "errors": {
+      "CONFIRMATION_INVALID": "This link is not valid. Check that you copied all of it or ask the organizer to resend it.",
+      "CONFIRMATION_EXPIRED": "This link has expired. Ask the organizer to resend the invitation.",
+      "CONFIRMATION_UNAVAILABLE": "Confirmation is not available right now. Please try again later.",
+      "ACCESS_KEY_INVALID": "This key does not exist.",
+      "ACCESS_KEY_EXPIRED": "This key is no longer valid. Ask the organizer for a new one.",
+      "UNKNOWN": "We could not confirm. Please try again in a few minutes."
+    }
   }
 }

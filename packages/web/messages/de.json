@@ -815,5 +815,22 @@
         "pipes": "Nicht lösbar: kein Wasserweg vom Start zum Ziel (auch mit offenen Schleusen)."
       }
     }
+  },
+  "InvitationConfirm": {
+    "title": "Bestätige deine Teilnahme",
+    "intro": "Drücke den Button, um der Organisation mitzuteilen, dass du mit diesem Schlüssel am Event teilnimmst.",
+    "keyLabel": "Dein Schlüssel",
+    "cta": "Teilnahme bestätigen",
+    "confirming": "Wird bestätigt…",
+    "success": "Fertig! Deine Teilnahme ist bestätigt. Bewahre deinen Schlüssel für den Tag des Events auf.",
+    "already": "Deine Teilnahme war bereits bestätigt. Bewahre deinen Schlüssel für den Tag des Events auf.",
+    "errors": {
+      "CONFIRMATION_INVALID": "Dieser Link ist ungültig. Prüfe, ob du ihn vollständig kopiert hast, oder bitte die Organisation, ihn erneut zu senden.",
+      "CONFIRMATION_EXPIRED": "Dieser Link ist abgelaufen. Bitte die Organisation, dir die Einladung erneut zu senden.",
+      "CONFIRMATION_UNAVAILABLE": "Die Bestätigung ist gerade nicht verfügbar. Versuche es später noch einmal.",
+      "ACCESS_KEY_INVALID": "Diesen Schlüssel gibt es nicht.",
+      "ACCESS_KEY_EXPIRED": "Dieser Schlüssel ist nicht mehr gültig. Bitte die Organisation um einen neuen.",
+      "UNKNOWN": "Die Bestätigung hat nicht geklappt. Versuche es in ein paar Minuten noch einmal."
+    }
   }
 }

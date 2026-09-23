@@ -6,6 +6,7 @@ import {
   type AccessKeyService,
   type Actor,
   type GameSessionRef,
+  type InvitationService,
   type RedeemResult,
   type RedeemService,
 } from "@escaperoom/shared/services";
@@ -15,6 +16,11 @@ import { eventJson, type EventRouteContext } from "./events";
 export type AccessKeyHandlerDeps = {
   accessKeys: AccessKeyService;
   resolveActor: (request: Request) => Promise<Actor>;
+  /**
+   * Invitaciones por email (5.6). Con ellas, activar o generar claves con
+   * `emails` encola además el envío; sin ellas (tests de 5.5), solo genera.
+   */
+  invitations?: InvitationService;
 };
 
 export type AccessKeyRouteContext = { params: Promise<{ code: string }> };
@@ -34,6 +40,10 @@ const STATUS_BY_CODE: Record<AccessKeyErrorCode, number> = {
   ACCESS_KEY_NOT_CONFIRMED: 409,
   SESSION_FULL: 409,
   SESSION_REQUIRED: 422,
+  ACCESS_KEY_NO_EMAIL: 409,
+  CONFIRMATION_INVALID: 403,
+  CONFIRMATION_EXPIRED: 410,
+  CONFIRMATION_UNAVAILABLE: 503,
   CONFLICT: 409,
 };
 
@@ -96,6 +106,7 @@ export function accessKeyJson(k: AccessKeyRow) {
     singleUse: k.singleUse,
     seats: k.seats,
     redeemedCount: k.redeemedCount,
+    sentAt: k.sentAt?.toISOString() ?? null,
     requireConfirmation: k.requireConfirmation,
     regeneratedFrom: k.regeneratedFrom,
     confirmedAt: k.confirmedAt?.toISOString() ?? null,
@@ -125,16 +136,16 @@ export function createAccessKeyHandlers(deps: AccessKeyHandlerDeps) {
         const { id } = await ctx.params;
         const actor = await deps.resolveActor(request);
         deps.accessKeys.authorize(actor);
-        const result = await deps.accessKeys.activateEvent(
-          actor,
-          id,
-          await readJson(request, true),
-        );
+        const body = await readJson(request, true);
+        const result = deps.invitations
+          ? await deps.invitations.activateAndInvite(actor, id, body)
+          : { ...(await deps.accessKeys.activateEvent(actor, id, body)), emails: undefined };
         return Response.json(
           {
             ...eventJson(result.event),
             sessions: result.sessions.map(sessionJson),
             accessKeys: { generated: result.keys.length },
+            ...(result.emails ? { emails: result.emails } : {}),
           },
           { headers: NO_STORE },
         );
@@ -147,9 +158,16 @@ export function createAccessKeyHandlers(deps: AccessKeyHandlerDeps) {
         const { id } = await ctx.params;
         const actor = await deps.resolveActor(request);
         deps.accessKeys.authorize(actor);
-        const keys = await deps.accessKeys.generateKeys(actor, id, await readJson(request));
+        const body = await readJson(request);
+        // Con `emails`, además encola un envío por clave (5.6).
+        const result = deps.invitations
+          ? await deps.invitations.generateAndInvite(actor, id, body)
+          : { keys: await deps.accessKeys.generateKeys(actor, id, body), emails: undefined };
         return Response.json(
-          { items: keys.map(accessKeyJson) },
+          {
+            items: result.keys.map(accessKeyJson),
+            ...(result.emails ? { emails: result.emails } : {}),
+          },
           { status: 201, headers: NO_STORE },
         );
       });
@@ -182,6 +200,62 @@ export function createAccessKeyHandlers(deps: AccessKeyHandlerDeps) {
         const actor = await deps.resolveActor(request);
         const key = await deps.accessKeys.regenerateKey(actor, decodeURIComponent(code));
         return Response.json(accessKeyJson(key), { status: 201, headers: NO_STORE });
+      });
+    },
+  };
+}
+
+/**
+ * Handlers REST de invitaciones por email y confirmación (ticket 5.6, specs/13
+ * §6.2). El envío real lo hace el worker: estas rutas solo encolan (202).
+ */
+export function createInvitationHandlers(deps: {
+  invitations: InvitationService;
+  resolveActor: (request: Request) => Promise<Actor>;
+}) {
+  return {
+    /** `POST /api/access-keys/:code/resend` — reenvía la invitación (organizador). */
+    async postResend(request: Request, ctx: AccessKeyRouteContext): Promise<Response> {
+      return handle(async () => {
+        const { code } = await ctx.params;
+        const actor = await deps.resolveActor(request);
+        const result = await deps.invitations.resend(actor, decodeURIComponent(code));
+        return Response.json(result, { status: 202, headers: NO_STORE });
+      });
+    },
+
+    /**
+     * `POST /api/access-keys/:code/confirm` — público, desde el enlace del email:
+     * `{ token }` → `pending_confirmation → confirmed`.
+     */
+    async postConfirm(request: Request, ctx: AccessKeyRouteContext): Promise<Response> {
+      return handle(async () => {
+        const { code } = await ctx.params;
+        const result = await deps.invitations.confirm(
+          decodeURIComponent(code),
+          await readJson(request),
+        );
+        return Response.json(result, { headers: NO_STORE });
+      });
+    },
+
+    /** `GET /api/events/:id/invitations` — resumen del panel ("28/30 confirmados"). */
+    async getSummary(request: Request, ctx: EventRouteContext): Promise<Response> {
+      return handle(async () => {
+        const { id } = await ctx.params;
+        const actor = await deps.resolveActor(request);
+        const summary = await deps.invitations.summary(actor, id);
+        return Response.json(summary, { headers: NO_STORE });
+      });
+    },
+
+    /** `POST /api/events/:id/invitations/resend` — recordatorio a los pendientes de confirmar. */
+    async postResendPending(request: Request, ctx: EventRouteContext): Promise<Response> {
+      return handle(async () => {
+        const { id } = await ctx.params;
+        const actor = await deps.resolveActor(request);
+        const result = await deps.invitations.resendPending(actor, id);
+        return Response.json(result, { status: 202, headers: NO_STORE });
       });
     },
   };

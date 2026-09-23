@@ -384,6 +384,22 @@ ALTER TABLE "group" ADD COLUMN "completedAt" timestamptz;  -- lo escribe el serv
 - Al rotar, la clave vieja pasa a `expired` con `seats = "redeemedCount"` (puede quedar en 0) y la
   nueva (`regeneratedFrom`) hereda el resto: rotar no crea ni destruye asientos.
 
+### 6.2 Envío de invitaciones (ticket 5.6)
+
+Migración `0013_access_key_sent_at` (`specs/02` §4.4): sin confirmación obligatoria la clave nace
+`active` y enviarla por email no cambia su estado (`sent` no es canjeable), así que el panel necesita
+saber aparte si la invitación salió.
+
+```sql
+-- 0013_access_key_sent_at.sql
+ALTER TABLE "accessKey" ADD COLUMN "sentAt" timestamptz;  -- último envío correcto del email
+```
+
+- Con `requireConfirmation`, el envío lleva además la clave de `generated`/`sent` a
+  `pending_confirmation`; el enlace firmado del email la pasa a `confirmed` (`confirmedAt`).
+- No se guarda el cuerpo del email ni un historial de envíos; la cola (Redis) solo lleva el código y
+  el tipo de email, nunca la dirección (minimización, `specs/18` §3).
+
 ## 7. Compras y pagos
 
 ```sql

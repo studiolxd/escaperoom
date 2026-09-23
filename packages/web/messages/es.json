@@ -859,5 +859,22 @@
         "pipes": "No se puede resolver: no hay camino de agua del origen al destino (ni abriendo las compuertas)."
       }
     }
+  },
+  "InvitationConfirm": {
+    "title": "Confirma tu asistencia",
+    "intro": "Pulsa el botón para confirmar al organizador que asistirás al evento con esta clave.",
+    "keyLabel": "Tu clave",
+    "cta": "Confirmar asistencia",
+    "confirming": "Confirmando…",
+    "success": "¡Listo! Tu asistencia está confirmada. Guarda tu clave para el día del evento.",
+    "already": "Tu asistencia ya estaba confirmada. Guarda tu clave para el día del evento.",
+    "errors": {
+      "CONFIRMATION_INVALID": "El enlace no es válido. Revisa que lo hayas copiado entero o pide al organizador que te lo reenvíe.",
+      "CONFIRMATION_EXPIRED": "El enlace ha caducado. Pide al organizador que te reenvíe la invitación.",
+      "CONFIRMATION_UNAVAILABLE": "La confirmación no está disponible ahora mismo. Inténtalo más tarde.",
+      "ACCESS_KEY_INVALID": "Esta clave no existe.",
+      "ACCESS_KEY_EXPIRED": "Esta clave ya no es válida. Pide al organizador una nueva.",
+      "UNKNOWN": "No se pudo confirmar. Inténtalo de nuevo en unos minutos."
+    }
   }
 }

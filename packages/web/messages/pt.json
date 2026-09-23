@@ -815,5 +815,22 @@
         "pipes": "Irresolúvel: não há caminho de água da origem ao destino (nem abrindo as comportas)."
       }
     }
+  },
+  "InvitationConfirm": {
+    "title": "Confirma a tua presença",
+    "intro": "Carrega no botão para avisar o organizador de que vais participar no evento com esta chave.",
+    "keyLabel": "A tua chave",
+    "cta": "Confirmar presença",
+    "confirming": "A confirmar…",
+    "success": "Pronto! A tua presença está confirmada. Guarda a tua chave para o dia do evento.",
+    "already": "A tua presença já estava confirmada. Guarda a tua chave para o dia do evento.",
+    "errors": {
+      "CONFIRMATION_INVALID": "Esta ligação não é válida. Verifica se a copiaste por inteiro ou pede ao organizador que a reenvie.",
+      "CONFIRMATION_EXPIRED": "Esta ligação expirou. Pede ao organizador que te reenvie o convite.",
+      "CONFIRMATION_UNAVAILABLE": "A confirmação não está disponível neste momento. Tenta mais tarde.",
+      "ACCESS_KEY_INVALID": "Esta chave não existe.",
+      "ACCESS_KEY_EXPIRED": "Esta chave já não é válida. Pede uma nova ao organizador.",
+      "UNKNOWN": "Não foi possível confirmar. Tenta novamente dentro de alguns minutos."
+    }
   }
 }

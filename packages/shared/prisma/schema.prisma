@@ -27,6 +27,7 @@ model accessKey {
   createdAt           DateTime        @default(now()) @db.Timestamptz(6)
   seats               Int             @default(1)
   redeemedCount       Int             @default(0)
+  sentAt              DateTime?       @db.Timestamptz(6)
   event               event           @relation(fields: [eventId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   group               group?          @relation(fields: [groupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   accessKey           accessKey?      @relation("accessKeyToaccessKey", fields: [regeneratedFrom], references: [code], onDelete: NoAction, onUpdate: NoAction)
