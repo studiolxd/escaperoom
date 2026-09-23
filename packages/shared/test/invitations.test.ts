@@ -17,7 +17,11 @@ import {
   deliverInvitationEmail,
   type Actor,
   type PricingTierRow,
+  type DpaGate,
 } from "../src/services";
+
+/** DPA de la organización en regla: la puerta de 5.11 se prueba en `organizations.test.ts`. */
+const DPA_SIGNED: DpaGate = { requireDpa: async () => {} };
 
 const author: Actor = { userId: "autora", organizationId: null, role: "member" };
 const other: Actor = { userId: "otra", organizationId: null, role: "member" };
@@ -68,7 +72,7 @@ function setup(opts: { organizerLocale?: string; queueEnabled?: boolean } = {}) 
     now,
   });
   const keyStore = createInMemoryAccessKeyStore({ events: eventStore });
-  const accessKeys = createAccessKeyService({ store: keyStore, events, now });
+  const accessKeys = createAccessKeyService({ store: keyStore, events, dpa: DPA_SIGNED, now });
   const store = createInMemoryInvitationStore({
     keys: keyStore,
     organizerLocales: opts.organizerLocale ? { [author.userId]: opts.organizerLocale } : {},

@@ -79,6 +79,16 @@ minimizar el requisito.
 
 Endpoint: `POST /api/organizations/:id/dpa/sign`.
 
+**Implementación (ticket 5.11).** Firma el propietario o un administrador de la organización
+(`member.role` `owner`/`admin`; un miembro normal recibe 403) enviando `{ version }`, la versión del
+texto que se le ha mostrado; si no es la vigente responde 409 `DPA_VERSION_MISMATCH`. Se registran
+`dpaSignedAt`, `dpaVersion` y `dpaSignedBy` (migración `0014_organization_dpa`). La puerta aplica a la
+**organización activa** del organizador (la sesión de Better Auth): sin ella, o sin DPA vigente,
+generar claves con `emails` (cualquier tipo), activar con un `keyPlan` que los lleve, reenviar una
+invitación o mandar recordatorios responde 403 `DPA_REQUIRED`; las claves sin email siguen libres.
+**Cambio de versión:** subir `CURRENT_DPA_VERSION` exige **re-firma** — una firma de una versión
+anterior deja de habilitar las claves con email hasta que un owner/admin acepte el texto nuevo.
+
 ### 3.2 Bases legales por categoría de dato
 
 | Dato | Base legal | Nota |

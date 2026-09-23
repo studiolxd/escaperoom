@@ -40,6 +40,9 @@ import type { EventRow } from "./events";
  *   rechaza.
  * - **Reenvío**: una clave (`POST /api/access-keys/:code/resend`) o todas las
  *   pendientes de confirmar de un evento (recordatorio).
+ * - **DPA** (5.11): generar, reenviar o recordar exige el DPA vigente de la
+ *   organización activa (`DPA_REQUIRED`, vía la puerta de 5.5). El worker no lo
+ *   vuelve a comprobar: solo entrega lo que ya se encoló con el DPA en regla.
  * - **Resumen** para el panel: invitadas, enviadas, confirmadas ("28/30").
  */
 
@@ -234,7 +237,7 @@ export async function deliverInvitationEmail(
 export function createInvitationService(deps: {
   store: InvitationStore;
   /** Generación de claves de 5.5 (valida organizador, límite de asientos, estado). */
-  accessKeys: Pick<AccessKeyService, "generateKeys" | "activateEvent">;
+  accessKeys: Pick<AccessKeyService, "generateKeys" | "activateEvent" | "requireDpa">;
   queue: InvitationQueue;
   /** `null` = confirmación desactivada (falta el secreto en producción). */
   confirmation: ConfirmationTokenConfig | null;
@@ -323,6 +326,7 @@ export function createInvitationService(deps: {
       if (!key.email) {
         throw new AccessKeyError("ACCESS_KEY_NO_EMAIL", "La clave no tiene email al que reenviar");
       }
+      await deps.accessKeys.requireDpa(actor);
       if (key.status === "used") {
         throw new AccessKeyError("ACCESS_KEY_USED", "La clave ya se canjeó");
       }
@@ -344,6 +348,7 @@ export function createInvitationService(deps: {
       if (event.status !== "active") {
         throw new AccessKeyError("EVENT_NOT_ACTIVE", "El evento no está activo");
       }
+      await deps.accessKeys.requireDpa(actor);
       const codes = await store.listPendingConfirmation(event.id, MAX_REMINDERS_PER_REQUEST);
       return enqueue(codes, "reminder");
     },

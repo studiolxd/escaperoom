@@ -3,6 +3,7 @@ import { z } from "zod";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
 import { isAnonymous, type Actor } from "./actor";
 import type { EventRow, EventService, EventStatus, EventStore, EventView } from "./events";
+import type { DpaGate } from "./organizations";
 
 /**
  * Claves de acceso de un evento (ticket 5.5, specs/02 §4, specs/13 §6.2, specs/14 §6).
@@ -20,6 +21,9 @@ import type { EventRow, EventService, EventStatus, EventStore, EventView } from 
  * - **Caducidad** (specs/02 §4.3): `hours_after_start` se sella en `expiresAt` al
  *   generar; `on_session_end` y `on_group_complete` las aplica el job de
  *   `@escaperoom/worker` con `expireAccessKeys`.
+ * - **DPA** (5.11, specs/18 §3.1): generar claves con `emails` (o activar con un
+ *   plan que los lleve) exige que la organización activa del actor tenga el DPA
+ *   vigente firmado (`DPA_REQUIRED`); sin email no hay PII y no se exige.
  * - **Canje** (5.8): `checkRedeemable` + `applyRedemption` son la función de estado
  *   pura y `consumeSeat` la escritura condicional que la usa; con sesión, el
  *   store comprueba el aforo bajo bloqueo de la fila de la sesión (`redeemSeat`).
@@ -238,6 +242,7 @@ export type AccessKeyErrorCode =
   | "SESSION_FULL"
   | "SESSION_REQUIRED"
   | "ACCESS_KEY_NO_EMAIL"
+  | "DPA_REQUIRED"
   | "CONFIRMATION_INVALID"
   | "CONFIRMATION_EXPIRED"
   | "CONFIRMATION_UNAVAILABLE"
@@ -517,6 +522,8 @@ export function createAccessKeyService(deps: {
   store: AccessKeyStore;
   /** `activate` de 5.4 (organizador, pago saldado, `draft → active`). */
   events: Pick<EventService, "activate">;
+  /** DPA de la organización (5.11): obligatorio antes de tratar emails de participantes. */
+  dpa: DpaGate;
   now?: () => Date;
   random?: RandomBytes;
 }) {
@@ -537,6 +544,11 @@ export function createAccessKeyService(deps: {
       throw new AccessKeyError("FORBIDDEN", "Solo el organizador gestiona las claves del evento");
     }
     return event;
+  }
+
+  /** Claves con email = PII de participantes tratada por encargo: exige el DPA (5.11). */
+  async function requireDpaFor(actor: Actor, requests: KeyRequestLike[]): Promise<void> {
+    if (requests.some((req) => req.emails !== undefined)) await deps.dpa.requireDpa(actor);
   }
 
   function requireStatus(event: EventRow, status: EventStatus): void {
@@ -694,6 +706,11 @@ export function createAccessKeyService(deps: {
       requireUser(actor);
     },
 
+    /** Puerta del DPA (5.11) para quien envía emails sobre claves ya generadas (5.6). */
+    requireDpa(actor: Actor): Promise<void> {
+      return deps.dpa.requireDpa(actor);
+    },
+
     /**
      * `POST /api/events/:id/activate` — `draft → active` (5.4) y, a partir de ahí,
      * crea las sesiones (`maxSimultaneousSessions`) y genera las claves del
@@ -716,6 +733,8 @@ export function createAccessKeyService(deps: {
         throw seatLimitError(requested, 0, event.playersPurchased);
       }
       assertNotExpired(event);
+      // Antes de activar: no dejar el evento activo con un plan que no se puede generar.
+      await requireDpaFor(actor, plan);
 
       const view = await deps.events.activate(actor, eventId);
       const active: EventRow = { ...event, status: view.status };
@@ -743,6 +762,7 @@ export function createAccessKeyService(deps: {
     async generateKeys(actor: Actor, eventId: string, input: unknown): Promise<AccessKeyRow[]> {
       const event = await findOwnEvent(actor, eventId);
       const data = parseOrThrow(GenerateAccessKeysInput, input);
+      await requireDpaFor(actor, [data]);
       requireStatus(event, "active");
       assertNotExpired(event);
       const assignment = await resolveAssignment(event, data);

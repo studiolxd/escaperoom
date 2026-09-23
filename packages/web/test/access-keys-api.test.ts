@@ -9,9 +9,13 @@ import {
   createPricingTierService,
   type Actor,
   type PricingTierRow,
+  type DpaGate,
 } from "@escaperoom/shared/services";
 import { describe, expect, it } from "vitest";
 import { createAccessKeyHandlers } from "../src/server/rest/access-keys";
+
+/** DPA de la organización en regla: la puerta de 5.11 se prueba en `organizations.test.ts`. */
+const DPA_SIGNED: DpaGate = { requireDpa: async () => {} };
 
 const author: Actor = { userId: "autora", organizationId: null, role: "member" };
 const other: Actor = { userId: "otra", organizationId: null, role: "member" };
@@ -68,6 +72,7 @@ function setup() {
   const accessKeys = createAccessKeyService({
     store: createInMemoryAccessKeyStore({ events: eventStore }),
     events,
+    dpa: DPA_SIGNED,
     now,
   });
   const actors: Record<string, Actor> = { autora: author, otra: other };

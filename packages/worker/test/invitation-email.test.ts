@@ -19,11 +19,15 @@ import {
   createInMemoryPricingTierStore,
   createPricingTierService,
   type Actor,
+  type DpaGate,
 } from "@escaperoom/shared/services";
 import {
   createInvitationEmailProcessor,
   createInvitationEmailWorker,
 } from "../src/invitation-email";
+
+/** DPA de la organización en regla: la puerta de 5.11 se prueba en `organizations.test.ts`. */
+const DPA_SIGNED: DpaGate = { requireDpa: async () => {} };
 
 const author: Actor = { userId: "autora", organizationId: null, role: "member" };
 const VERSION = "10000000-0000-4000-8000-000000000001";
@@ -68,7 +72,7 @@ async function fixture(n: number) {
     now,
   });
   const keyStore = createInMemoryAccessKeyStore({ events: eventStore });
-  const accessKeys = createAccessKeyService({ store: keyStore, events, now });
+  const accessKeys = createAccessKeyService({ store: keyStore, events, dpa: DPA_SIGNED, now });
   const event = await events.createEvent(author, {
     roomVersionId: VERSION,
     title: "Jornada",

@@ -13,6 +13,7 @@ import {
   createPricingTierService,
   createRedeemService,
   type Actor,
+  type DpaGate,
 } from "@escaperoom/shared/services";
 import { EVENT_ROOM_NAME, GAME_MESSAGES, GAME_ROOM_NAME } from "../src/constants";
 import { EventRoom, JOIN_TOKEN_ERRORS } from "../src/rooms/event-room";
@@ -20,6 +21,9 @@ import { GameRoom } from "../src/rooms/game-room";
 import type { GameRoomState } from "../src/schema/game-state";
 import { defineEventRoom } from "../src/server";
 import { getFreePort } from "./helpers/free-port";
+
+/** DPA de la organización en regla: la puerta de 5.11 se prueba en `organizations.test.ts`. */
+const DPA_SIGNED: DpaGate = { requireDpa: async () => {} };
 
 /**
  * Room de evento (ticket 5.8) sobre Colyseus real (puerto libre del SO): un
@@ -91,7 +95,7 @@ async function eventWithKeys() {
     payments: createFakePaymentGateway(),
   });
   const store = createInMemoryAccessKeyStore({ events: eventStore });
-  const accessKeys = createAccessKeyService({ store, events });
+  const accessKeys = createAccessKeyService({ store, events, dpa: DPA_SIGNED });
   const redeem = createRedeemService({
     store,
     accessKeys,

@@ -132,7 +132,9 @@ CREATE TABLE "organization" (
   logo                text,
   metadata            text,
   "stripeCustomerId"  text,
-  "dpaSignedAt"       timestamptz,
+  "dpaSignedAt"       timestamptz,               -- requisito para claves con email (specs/18 §3.1)
+  "dpaVersion"        text,                      -- versión del texto del DPA firmada (0014)
+  "dpaSignedBy"       text REFERENCES "user"(id) ON DELETE SET NULL,  -- owner/admin firmante (0014)
   "createdAt"         timestamptz NOT NULL DEFAULT now()
 );
 

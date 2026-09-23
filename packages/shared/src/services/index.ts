@@ -32,3 +32,5 @@ export * from "./invitations-prisma-store";
 export * from "./access-key-cards";
 export * from "./access-key-cards-pdf";
 export * from "./access-key-cards-prisma-store";
+export * from "./organizations";
+export * from "./organizations-prisma-store";
