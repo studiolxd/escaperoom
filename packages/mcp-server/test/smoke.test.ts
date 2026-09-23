@@ -24,7 +24,10 @@ const room: FeaturedRoom = {
   viewer: { userId: "anonymous", organizationId: null, role: "anonymous" },
 };
 
-const catalog: CatalogService = { getFeaturedRoom: async () => room };
+const catalog: CatalogService = {
+  getFeaturedRoom: async () => room,
+  listRooms: async () => ({ rooms: [] }),
+};
 
 describe("mcp-server", () => {
   it("expone el endpoint del conector del creador", () => {

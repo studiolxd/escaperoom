@@ -173,5 +173,27 @@
     "alreadyOpen": "A comporta já está aberta",
     "notAGate": "Aí não há nenhuma comporta",
     "alreadySolved": "O canal já está resolvido"
+  },
+  "EditorI18n": {
+    "placeholder": "Texto em {language}",
+    "missingOne": "Falta a tradução para {language}",
+    "missingSummary": "Falta tradução em: {languages}",
+    "languagesTitle": "Idiomas da sala",
+    "default": "Idioma predefinido",
+    "makeDefault": "Tornar predefinido",
+    "remove": "Remover",
+    "removeWarning": "Remover {language}? {count, plural, =0 {Não tem textos traduzidos.} one {Tem # texto traduzido: será mantido no rascunho, mas não será publicado.} other {Tem # textos traduzidos: serão mantidos no rascunho, mas não serão publicados.}}",
+    "removeKeep": "Remover e manter textos",
+    "removePurge": "Remover e apagar os seus textos",
+    "cancel": "Cancelar",
+    "addLabel": "Código de idioma",
+    "addPlaceholder": "ex. en",
+    "add": "Adicionar idioma",
+    "errors": {
+      "INVALID_LANGUAGE": "Código de idioma inválido (ex. es, en, pt-BR).",
+      "UNKNOWN_LANGUAGE": "Esse idioma não está declarado na sala.",
+      "DEFAULT_LANGUAGE": "Não pode remover o idioma predefinido; escolha outro primeiro.",
+      "LAST_LANGUAGE": "A sala precisa de pelo menos um idioma."
+    }
   }
 }

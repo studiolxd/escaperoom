@@ -272,5 +272,27 @@
     "alreadyOpen": "La compuerta ya está abierta",
     "notAGate": "Ahí no hay ninguna compuerta",
     "alreadySolved": "El canal ya está resuelto"
+  },
+  "EditorI18n": {
+    "placeholder": "Texto en {language}",
+    "missingOne": "Falta la traducción a {language}",
+    "missingSummary": "Falta traducción en: {languages}",
+    "languagesTitle": "Idiomas de la sala",
+    "default": "Idioma por defecto",
+    "makeDefault": "Hacer por defecto",
+    "remove": "Retirar",
+    "removeWarning": "¿Retirar {language}? {count, plural, =0 {No tiene textos traducidos.} one {Tiene # texto traducido: se conservará en el borrador, pero no se publicará.} other {Tiene # textos traducidos: se conservarán en el borrador, pero no se publicarán.}}",
+    "removeKeep": "Retirar y conservar textos",
+    "removePurge": "Retirar y borrar sus textos",
+    "cancel": "Cancelar",
+    "addLabel": "Código de idioma",
+    "addPlaceholder": "p. ej. en",
+    "add": "Añadir idioma",
+    "errors": {
+      "INVALID_LANGUAGE": "Código de idioma no válido (p. ej. es, en, pt-BR).",
+      "UNKNOWN_LANGUAGE": "Ese idioma no está declarado en la sala.",
+      "DEFAULT_LANGUAGE": "No puedes retirar el idioma por defecto; elige antes otro.",
+      "LAST_LANGUAGE": "La sala debe tener al menos un idioma."
+    }
   }
 }

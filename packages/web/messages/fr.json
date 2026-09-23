@@ -173,5 +173,27 @@
     "alreadyOpen": "La vanne est déjà ouverte",
     "notAGate": "Il n’y a pas de vanne ici",
     "alreadySolved": "Le canal est déjà résolu"
+  },
+  "EditorI18n": {
+    "placeholder": "Texte en {language}",
+    "missingOne": "Traduction manquante en {language}",
+    "missingSummary": "Traduction manquante en : {languages}",
+    "languagesTitle": "Langues de la salle",
+    "default": "Langue par défaut",
+    "makeDefault": "Définir par défaut",
+    "remove": "Retirer",
+    "removeWarning": "Retirer {language} ? {count, plural, =0 {Aucun texte traduit.} one {# texte traduit : il sera conservé dans le brouillon mais pas publié.} other {# textes traduits : ils seront conservés dans le brouillon mais pas publiés.}}",
+    "removeKeep": "Retirer et garder les textes",
+    "removePurge": "Retirer et supprimer ses textes",
+    "cancel": "Annuler",
+    "addLabel": "Code de langue",
+    "addPlaceholder": "ex. en",
+    "add": "Ajouter une langue",
+    "errors": {
+      "INVALID_LANGUAGE": "Code de langue invalide (ex. es, en, pt-BR).",
+      "UNKNOWN_LANGUAGE": "Cette langue n'est pas déclarée dans la salle.",
+      "DEFAULT_LANGUAGE": "Impossible de retirer la langue par défaut ; choisissez-en d'abord une autre.",
+      "LAST_LANGUAGE": "La salle doit avoir au moins une langue."
+    }
   }
 }

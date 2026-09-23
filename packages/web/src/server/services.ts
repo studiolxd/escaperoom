@@ -2,6 +2,7 @@ import path from "node:path";
 import { prisma } from "@escaperoom/shared/db";
 import {
   createCatalogService,
+  createPrismaPublishedRoomListing,
   createJsonFileRoomPackageRepository,
   createPlatformSettingsService,
   createPricingTierService,
@@ -34,6 +35,7 @@ let pricingTiers: PricingTierService | undefined;
 export function getCatalogService(): CatalogService {
   catalog ??= createCatalogService({
     rooms: createJsonFileRoomPackageRepository(path.resolve(process.cwd(), FEATURED_ROOM_FIXTURE)),
+    listing: createPrismaPublishedRoomListing(prisma),
   });
   return catalog;
 }

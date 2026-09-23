@@ -6,6 +6,7 @@
  * el schema solo exige su presencia (specs/08 §6, decisión abierta).
  */
 export * from "./common";
+export * from "./localized-text";
 export * from "./world";
 export * from "./puzzle";
 export * from "./rules";

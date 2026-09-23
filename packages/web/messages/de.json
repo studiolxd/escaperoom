@@ -173,5 +173,27 @@
     "alreadyOpen": "Die Schleuse ist bereits offen",
     "notAGate": "Dort gibt es keine Schleuse",
     "alreadySolved": "Der Kanal ist bereits gelöst"
+  },
+  "EditorI18n": {
+    "placeholder": "Text auf {language}",
+    "missingOne": "Übersetzung auf {language} fehlt",
+    "missingSummary": "Fehlende Übersetzung: {languages}",
+    "languagesTitle": "Sprachen des Raums",
+    "default": "Standardsprache",
+    "makeDefault": "Als Standard festlegen",
+    "remove": "Entfernen",
+    "removeWarning": "{language} entfernen? {count, plural, =0 {Keine übersetzten Texte.} one {# übersetzter Text: bleibt im Entwurf erhalten, wird aber nicht veröffentlicht.} other {# übersetzte Texte: bleiben im Entwurf erhalten, werden aber nicht veröffentlicht.}}",
+    "removeKeep": "Entfernen, Texte behalten",
+    "removePurge": "Entfernen und Texte löschen",
+    "cancel": "Abbrechen",
+    "addLabel": "Sprachcode",
+    "addPlaceholder": "z. B. en",
+    "add": "Sprache hinzufügen",
+    "errors": {
+      "INVALID_LANGUAGE": "Ungültiger Sprachcode (z. B. es, en, pt-BR).",
+      "UNKNOWN_LANGUAGE": "Diese Sprache ist im Raum nicht deklariert.",
+      "DEFAULT_LANGUAGE": "Die Standardsprache kann nicht entfernt werden; wähle zuerst eine andere.",
+      "LAST_LANGUAGE": "Der Raum braucht mindestens eine Sprache."
+    }
   }
 }

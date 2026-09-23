@@ -173,5 +173,27 @@
     "alreadyOpen": "De sluis is al open",
     "notAGate": "Daar is geen sluis",
     "alreadySolved": "Het kanaal is al opgelost"
+  },
+  "EditorI18n": {
+    "placeholder": "Tekst in het {language}",
+    "missingOne": "Vertaling in het {language} ontbreekt",
+    "missingSummary": "Ontbrekende vertaling in: {languages}",
+    "languagesTitle": "Talen van de kamer",
+    "default": "Standaardtaal",
+    "makeDefault": "Als standaard instellen",
+    "remove": "Verwijderen",
+    "removeWarning": "{language} verwijderen? {count, plural, =0 {Er zijn geen vertaalde teksten.} one {# vertaalde tekst: blijft bewaard in het concept, maar wordt niet gepubliceerd.} other {# vertaalde teksten: blijven bewaard in het concept, maar worden niet gepubliceerd.}}",
+    "removeKeep": "Verwijderen, teksten bewaren",
+    "removePurge": "Verwijderen en teksten wissen",
+    "cancel": "Annuleren",
+    "addLabel": "Taalcode",
+    "addPlaceholder": "bijv. en",
+    "add": "Taal toevoegen",
+    "errors": {
+      "INVALID_LANGUAGE": "Ongeldige taalcode (bijv. es, en, pt-BR).",
+      "UNKNOWN_LANGUAGE": "Die taal is niet gedeclareerd in de kamer.",
+      "DEFAULT_LANGUAGE": "Je kunt de standaardtaal niet verwijderen; kies eerst een andere.",
+      "LAST_LANGUAGE": "De kamer heeft minstens één taal nodig."
+    }
   }
 }
