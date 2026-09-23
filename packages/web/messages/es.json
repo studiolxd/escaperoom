@@ -13,6 +13,16 @@
     "lobbyCta": "Lobby multijugador (0.5)",
     "fallbackDemo": "Esta clave solo existe en el catálogo 'es': los demás idiomas caen aquí."
   },
+  "Chat": {
+    "title": "Chat",
+    "empty": "Aún no hay mensajes",
+    "placeholder": "Escribe un mensaje…",
+    "disconnected": "Conéctate para chatear",
+    "send": "Enviar",
+    "filtered": "filtrado",
+    "filteredTitle": "El filtro de lenguaje ha censurado parte de este mensaje",
+    "hint": "Máx. {max} caracteres · 2 mensajes por segundo"
+  },
   "RoomPreview": {
     "badge": "previsualización isométrica (1.2)",
     "loading": "Cargando habitaciones…",
@@ -49,6 +59,26 @@
     "alreadyRevealed": "Ya habías encontrado este objeto",
     "locked": "El escondite aún no está disponible",
     "unavailable": "El escondite ya no puede revelarse"
+  },
+  "SimultaneousPlates": {
+    "title": "Placas simultáneas",
+    "prompt": "Activa todas las placas a la vez",
+    "progress": "Placas activas: {active}/{total}",
+    "progressLabel": "Progreso de las placas",
+    "countdown": "Quedan {seconds} s",
+    "windowClosed": "La ventana se ha cerrado",
+    "platesLabel": "Placas",
+    "plate": "Placa {id}",
+    "active": "Activa",
+    "inactive": "Inactiva",
+    "bridged": "Fijada",
+    "placeBridge": "Colocar el objeto-puente",
+    "pending": "Activando…",
+    "solved": "¡Todas las placas activas!",
+    "locked": "Las placas aún no están disponibles",
+    "unavailable": "Las placas no aceptan más activaciones",
+    "expired": "La ventana se cerró · vuelve a intentarlo",
+    "alreadyActive": "Esa placa ya estaba activa"
   },
   "Inventory": {
     "title": "Inventario",

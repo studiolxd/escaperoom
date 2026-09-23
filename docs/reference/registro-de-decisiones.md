@@ -394,3 +394,25 @@ ruta; la API pública es una puerta más, no el centro. `specs/13` pasa a descri
 
 **Alternativas descartadas:** REST único como contrato de todo (pierde ergonomía tipada en la UI y
 obliga a exponer de más); tRPC para todo (no sirve a terceros, webhooks ni MCP).
+
+---
+
+## ADR-023 — Chat en partida: censura + flag, no descarte
+
+**Contexto:** `specs/11` §4.4 y `specs/17` §3 exigen un filtro de lenguaje en el chat en vivo, pero
+no fijan qué hacer con un mensaje que contiene un término prohibido (descartarlo, censurarlo o
+bloquear el envío).
+
+**Decisión:** el servidor **censura** el término (lo sustituye por `*`) y difunde el mensaje con
+`filtered: true`; nunca reenvía el texto original. El filtro es una lista de términos con variantes
+simples (acentos, mayúsculas, leetspeak y separadores entre letras), y antes de censurar desinfecta
+HTML y caracteres de control. El rate limit (2 msg/s, `specs/11` §9) se evalúa antes del schema y
+del filtro, con una ventana móvil de los últimos 50 mensajes como historial.
+
+**Consecuencias:** el grupo ve que hubo un mensaje filtrado (transparencia y pedagogía) sin exponer
+el término; el original no viaja por el WebSocket. Un filtro básico no sustituye al clasificador de
+toxicidad de `specs/17` §3, que se integrará más adelante. No es moderación retroactiva: el chat no
+se persiste ni pasa por cola humana (`specs/17` §8).
+
+**Alternativas descartadas:** descartar el mensaje completo (el usuario no entiende por qué y se
+pierde contexto no tóxico); bloquear el envío con error (misma fricción y peor UX).

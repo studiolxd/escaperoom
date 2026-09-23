@@ -5,4 +5,5 @@ export * from "./schemas";
 export * from "./engine";
 export * from "./templates";
 export * from "./hints";
+export * from "./chat";
 export * from "./session";

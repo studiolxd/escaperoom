@@ -49,6 +49,26 @@
     "locked": "De verstopplaats is nog niet beschikbaar",
     "unavailable": "De verstopplaats kan niet meer onthuld worden"
   },
+  "SimultaneousPlates": {
+    "title": "Gelijktijdige platen",
+    "prompt": "Activeer alle platen tegelijk",
+    "progress": "Actieve platen: {active}/{total}",
+    "progressLabel": "Voortgang van de platen",
+    "countdown": "Nog {seconds} s",
+    "windowClosed": "Het venster is gesloten",
+    "platesLabel": "Platen",
+    "plate": "Plaat {id}",
+    "active": "Actief",
+    "inactive": "Inactief",
+    "bridged": "Vastgezet",
+    "placeBridge": "Brugvoorwerp plaatsen",
+    "pending": "Activeren…",
+    "solved": "Alle platen zijn actief!",
+    "locked": "De platen zijn nog niet beschikbaar",
+    "unavailable": "De platen accepteren geen activeringen meer",
+    "expired": "Het venster is gesloten · probeer opnieuw",
+    "alreadyActive": "Die plaat was al actief"
+  },
   "Inventory": {
     "title": "Inventaris",
     "recipes": "Recepten: {found}/{total}",

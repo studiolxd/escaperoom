@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import Phaser from "phaser";
 import { Client, type Room } from "@colyseus/sdk";
+import { CHAT_MESSAGE, CHAT_RATE_LIMITED_ERROR } from "@escaperoom/shared/chat";
 import { COLYSEUS_URL, LOBBY_ROOM_NAME } from "@/lib/colyseus";
 import { collectPlayers, type LobbyStateLike } from "@/lib/lobby-net";
 import {
@@ -11,6 +12,7 @@ import {
   parseMediaTokenPayload,
   type MediaRole,
 } from "@/lib/media";
+import { collectChat, collectPlayers, type LobbyStateLike } from "@/lib/lobby-net";
 import { useLobbyStore } from "@/store/lobby-store";
 import { useMediaStore } from "@/store/media-store";
 import { LobbyTestScene } from "./lobby-scene";
@@ -77,17 +79,30 @@ export default function LobbyCanvas() {
 
         const sync = (state: LobbyStateLike) => {
           if (!disposed) {
-            useLobbyStore.getState().setPlayers(collectPlayers(state));
+            const store = useLobbyStore.getState();
+            store.setPlayers(collectPlayers(state));
+            store.setChat(collectChat(state));
           }
         };
 
         store.setStatus("connected");
         store.setSelfId(joined.sessionId);
+        store.setSendChat((text) => {
+          useLobbyStore.getState().setChatError(null);
+          joined.send(CHAT_MESSAGE, { text });
+        });
         joined.onStateChange((state) => sync(state));
         sync(joined.state);
-        joined.onMessage<{ code?: string }>("error", (message) => {
-          if (!disposed) {
-            useLobbyStore.getState().setError(message.code ?? "error");
+        joined.onMessage<{ code?: string; message?: string }>("error", (message) => {
+          if (disposed) {
+            return;
+          }
+          const code = message.code ?? "error";
+          const store = useLobbyStore.getState();
+          if (code === CHAT_RATE_LIMITED_ERROR) {
+            store.setChatError(message.message ?? code);
+          } else {
+            store.setError(code);
           }
         });
         // Medios (specs/11 §8): pedimos el token al servidor en el join y
