@@ -78,6 +78,7 @@ vi.mock("@/i18n/navigation", () => ({
         : `${href.pathname}${href.query ? `?${new URLSearchParams(href.query).toString()}` : ""}`;
     return createElement("a", { ...rest, href: `/es${url}` }, children as never);
   },
+  useRouter: () => ({ push: () => {}, refresh: () => {} }),
 }));
 vi.mock("next-intl/server", () => ({
   setRequestLocale: () => {},
@@ -223,7 +224,7 @@ describe("detalle de sala — render SSR", () => {
     expect(html).not.toMatch(/Brutal <\/script>/);
   });
 
-  it("sin reseñas no emite aggregateRating; anónimo ve la invitación a iniciar sesión", async () => {
+  it("sin reseñas no emite aggregateRating; anónimo no ve el formulario de reseña", async () => {
     const store = createInMemoryReviewStore({ rooms: [{ roomId: ROOM_ID, authorId: "autora" }] });
     state.reviews = createReviewService({ store });
     state.catalog = createCatalogService({
@@ -245,7 +246,7 @@ describe("detalle de sala — render SSR", () => {
     const jsonLd = extractJsonLd(html);
     expect(jsonLd).not.toHaveProperty("aggregateRating");
     expect(jsonLd).not.toHaveProperty("offers");
-    expect(html).toContain("Sign in to review this room.");
+    expect(html).not.toContain("Your review");
     expect(html).toContain("No reviews yet");
   });
 

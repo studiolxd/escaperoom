@@ -71,6 +71,9 @@ export type CatalogCommerce = {
   licensePriceCents: number | null;
 };
 
+/** Clave de storage de la imagen de portada; `null` sin imagen subida (ticket UX). */
+export type CatalogMedia = { coverImageKey: string | null };
+
 /** Valoración agregada de las reseñas (`review`, specs/14 §9). */
 export type RatingSummary = {
   /** Media redondeada a un decimal; `null` sin reseñas. */
@@ -85,9 +88,11 @@ export type RatingSummary = {
  * (`GET /api/rooms/:roomId`).
  */
 export type CatalogRoom = CatalogCommerce &
+  CatalogMedia &
   RatingSummary & {
     id: string;
     title: string;
+    authorId: string;
     authorDisplayName: string;
     description: string;
     theme: string;
@@ -157,14 +162,17 @@ export function toCatalogRoom(input: {
   roomId: string;
   meta: RoomPackageMeta;
   version: { id: string; semver: string; publishedAt: Date };
+  authorId: string;
   authorDisplayName: string;
   commerce: CatalogCommerce;
+  media?: CatalogMedia;
   rating: { avg: number | null; count: number };
 }): CatalogRoom {
   const { roomId, meta, version, commerce, rating } = input;
   return {
     id: roomId,
     title: meta.title,
+    authorId: input.authorId,
     authorDisplayName: input.authorDisplayName,
     description: meta.description,
     theme: meta.theme,
@@ -178,6 +186,7 @@ export function toCatalogRoom(input: {
     saleIndividual: commerce.saleIndividual,
     saleEvents: commerce.saleEvents,
     licensePriceCents: commerce.licensePriceCents,
+    coverImageKey: input.media?.coverImageKey ?? null,
     ratingAvg: roundRating(rating.avg, rating.count),
     ratingCount: rating.count,
     latestVersion: {

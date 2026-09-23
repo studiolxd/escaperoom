@@ -283,7 +283,9 @@ describe("rating agregado en el listado y el detalle", () => {
     expect(detail).toEqual({
       id: "castillo",
       title: "El Castillo",
+      authorId: "author",
       authorDisplayName: "Autor de El Castillo",
+      coverImageKey: null,
       description: fixture.meta.description,
       theme: "medieval",
       difficulty: 2,
