@@ -118,6 +118,15 @@ describe("token del link de prueba", () => {
     expect(verifyPlaytestToken("s3cret", 42, now)).toEqual({ ok: false, error: "MALFORMED" });
   });
 
+  it("no caduca antes que el registro aunque la caducidad no caiga en segundo exacto", () => {
+    // Playtest creado al final de un segundo: el registro caduca en `expiresAt`
+    // (ms) y el token, en segundos, no puede adelantarse (flaky de CI con TTL=1).
+    const expiresAt = 1_000_000_000_999;
+    const token = signPlaytestToken("s3cret", { playtestId: "pt-1", expiresAt });
+    expect(verifyPlaytestToken("s3cret", token, expiresAt - 1)).toMatchObject({ ok: true });
+    expect(verifyPlaytestToken("s3cret", token, expiresAt - 998)).toMatchObject({ ok: true });
+  });
+
   it("sin PLAYTEST_SECRET en producción el playtest queda desactivado", () => {
     expect(readPlaytestConfig({ NODE_ENV: "production" })).toBeNull();
     expect(readPlaytestConfig({ NODE_ENV: "production", PLAYTEST_SECRET: "x" })?.secret).toBe("x");
