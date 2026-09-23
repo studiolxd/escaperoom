@@ -9,6 +9,8 @@ import {
   type LiveProgressSource,
   type LiveResult,
   type SessionLiveProgress,
+  type SessionStoredProgress,
+  type StoredProgressSource,
 } from "./event-progress";
 import {
   SPECTATOR_TOKEN_TTL_SECONDS,
@@ -24,7 +26,10 @@ import {
  *
  * El panel no calcula nada que no exista ya: los contadores de claves salen de
  * 5.5/5.6 y el progreso, de la proyección pública que publica cada `EventRoom`
- * (`SessionLiveProgress`). Solo el organizador del evento accede.
+ * (`SessionLiveProgress`) y, desde 5.12, de los hitos que la room persiste en
+ * `progressEvent` (`SessionStoredProgress`): lo vivo manda y lo persistido
+ * cubre las sesiones sin room (terminadas o tras un reinicio de Colyseus).
+ * Solo el organizador del evento accede.
  */
 
 // ── Puertos ────────────────────────────────────────────────────────────────
@@ -38,6 +43,8 @@ export type EventPanelDeps = {
   /** Claves del evento por estado y cuántas se han canjeado al menos una vez. */
   keyCounts: (eventId: string) => Promise<KeyCountsRow>;
   live: LiveProgressSource;
+  /** Progreso persistido (`progressEvent`, 5.12); sin él, solo lo vivo. */
+  stored?: StoredProgressSource;
   /** Secreto de los tokens de evento; `null` desactiva el modo observador. */
   spectator: JoinTokenConfig | null;
   /** Endpoint WebSocket de Colyseus que se devuelve al observador. */
@@ -164,15 +171,40 @@ function storedState(status: SessionSeats["status"]): PanelSessionState {
 
 const iso = (ms: number | null) => (ms === null ? null : new Date(ms).toISOString());
 
-/** Cruza las sesiones persistidas con el progreso en vivo y las ordena por ranking. */
+/**
+ * Estado de una sesión sin room viva según sus hitos persistidos: terminada si
+ * llegó al final; si no, la partida se quedó a medias (`offline`).
+ */
+function persistedState(progress: SessionStoredProgress): PanelSessionState {
+  return progress.phase === "ended" ? "ended" : "offline";
+}
+
+/**
+ * Cruza las sesiones con el progreso en vivo y el persistido y las ordena por
+ * ranking. Por sesión manda la room viva; sin ella, lo persistido; sin nada,
+ * el estado de `gameSession`.
+ */
 export function buildSessionRows(
   sessions: readonly SessionSeats[],
   live: readonly SessionLiveProgress[],
+  stored: readonly SessionStoredProgress[] = [],
 ): EventSessionRow[] {
-  const bySession = new Map(live.map((progress) => [progress.sessionId, progress]));
+  const liveBySession = new Map(live.map((progress) => [progress.sessionId, progress]));
+  const storedBySession = new Map(stored.map((progress) => [progress.sessionId, progress]));
   const rows = sessions.map((session) => {
-    const progress = bySession.get(session.id);
-    const state = progress ? liveState(progress) : storedState(session.status);
+    const room = liveBySession.get(session.id);
+    const saved = storedBySession.get(session.id);
+    // Una room recién recreada (tras un reinicio) en la sala de espera no borra
+    // la partida que ya consta: hasta que empiece, se muestra lo persistido.
+    const liveProgress = room && !(room.phase === "lobby" && saved) ? room : undefined;
+    const persisted = liveProgress ? undefined : saved;
+    const progress: SessionStoredProgress | undefined =
+      liveProgress ?? persisted;
+    const state = liveProgress
+      ? liveState(liveProgress)
+      : persisted
+        ? persistedState(persisted)
+        : storedState(session.status);
     return {
       sessionId: session.id,
       name: session.name,
@@ -183,12 +215,12 @@ export function buildSessionRows(
       puzzlesSolved: progress?.puzzlesSolved ?? 0,
       puzzlesTotal: progress?.puzzlesTotal ?? 0,
       hintsUsed: progress?.hintsUsed ?? 0,
-      players: progress?.players ?? 0,
+      players: room?.players ?? 0,
       elapsedMs: progress?.elapsedMs ?? 0,
       startedAt: iso(progress?.startedAt ?? null),
       endedAt: iso(progress?.endedAt ?? null),
       started: progress ? progress.startedAt !== null : state !== "not_started",
-      observable: progress !== undefined && state !== "ended",
+      observable: room !== undefined && room.phase !== "ended",
     };
   });
   return rankEventGroups(rows).map((row): EventSessionRow => {
@@ -417,13 +449,14 @@ export function createEventPanelService(deps: EventPanelDeps) {
   }
 
   async function dashboardFor(event: EventRow): Promise<EventDashboard> {
-    const [sessions, live, counts, invitations] = await Promise.all([
+    const [sessions, live, stored, counts, invitations] = await Promise.all([
       deps.keys.listSessionSeats(event.id),
       deps.live.forEvent(event.id),
+      deps.stored?.forEvent(event.id) ?? [],
       deps.keyCounts(event.id),
       deps.invitations.invitationStats(event.id),
     ]);
-    const rows = buildSessionRows(sessions, live ?? []);
+    const rows = buildSessionRows(sessions, live ?? [], stored);
     const byStatus = counts.byStatus;
     const escaped = rows.filter((row) => row.result === "victory").map((row) => row.elapsedMs);
     const started = rows.filter((row) => row.rank !== null).map((row) => row.hintsUsed);

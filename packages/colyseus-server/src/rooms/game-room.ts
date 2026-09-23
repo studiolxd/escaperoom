@@ -52,6 +52,27 @@ export interface GameJoinOptions {
   name?: string;
 }
 
+/** Tiempo y pistas de la partida en el instante de un hito. */
+export interface GameMilestoneClock {
+  /** Epoch ms del hito (reloj lógico de la sala: `createdAt` + ms de juego). */
+  at: number;
+  /** Tiempo jugado desde el inicio. */
+  elapsedMs: number;
+  /** Coste acumulado de las pistas (`GameState.hintsUsed`). */
+  hintsUsed: number;
+}
+
+/**
+ * Hito de la partida (ticket 5.12): lo que la `EventRoom` persiste en
+ * `progressEvent`. `actorId` es el `sessionId` de Colyseus de quien lo provocó
+ * (si se sabe). Nunca lleva datos que resuelvan un puzzle.
+ */
+export type GameMilestone =
+  | { kind: "game_started"; at: number }
+  | ({ kind: "solved" | "hint_used"; puzzleId: string; actorId: string | null } & GameMilestoneClock)
+  | ({ kind: "door_opened"; objectId: string; actorId: string | null } & GameMilestoneClock)
+  | ({ kind: "game_ended"; result: SessionResult } & GameMilestoneClock);
+
 const movePayload = z.object({
   x: z.number(),
   y: z.number(),
@@ -261,6 +282,28 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   /**
+   * Gancho de hitos (ticket 5.12): no hace nada en la `GameRoom`; la
+   * `EventRoom` lo sobrescribe para persistirlos. Se llama de forma síncrona
+   * desde el bucle de juego, así que quien lo implemente no debe bloquear.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- punto de extensión
+  protected onMilestone(milestone: GameMilestone): void {}
+
+  /** Reloj de un hito: ahora, tiempo jugado y pistas acumuladas. */
+  private milestoneClock(): GameMilestoneClock {
+    const game = this.session?.state;
+    const now = this.logicalNow();
+    const started = Boolean(game?.flags.game_started);
+    const end = game?.endedAt ?? now;
+    return {
+      // Mismo reloj que `progressCounters`: lo persistido cuadra con lo vivo.
+      at: this.createdAt + end,
+      elapsedMs: started && game ? Math.max(0, end - game.startedAt) : 0,
+      hintsUsed: game ? Object.values(game.hintsUsed).reduce((sum, cost) => sum + cost, 0) : 0,
+    };
+  }
+
+  /**
    * Progreso público de la partida (ticket 5.9): contadores y tiempos, nunca
    * soluciones. Lo lee el panel del organizador a través de la `EventRoom`.
    */
@@ -346,7 +389,11 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       this.fail(client, GAME_ERRORS.invalidState, "La partida ya ha empezado.");
       return;
     }
-    this.publish(this.session.start(this.logicalNow()));
+    const started = this.session.start(this.logicalNow());
+    if (this.session.state.flags.game_started) {
+      this.onMilestone({ kind: "game_started", at: this.createdAt + this.session.state.startedAt });
+    }
+    this.publish(started);
   }
 
   private handleMove(client: Client, payload: z.infer<typeof movePayload>): void {
@@ -643,6 +690,12 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       tier: delivered?.tier ?? null,
       text: delivered?.text ?? null,
     });
+    this.onMilestone({
+      kind: "hint_used",
+      puzzleId: payload.puzzleId,
+      actorId: client.sessionId,
+      ...this.milestoneClock(),
+    });
     this.syncState();
   }
 
@@ -679,12 +732,14 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
               objectId: effect.objectId,
               state: effect.state,
             });
+            if (effect.state === "open") this.doorOpened(effect.objectId);
             break;
           case "unlock_door":
             this.broadcast(GAME_MESSAGES.objectStateChanged, {
               objectId: effect.objectId,
               state: "open",
             });
+            this.doorOpened(effect.objectId);
             break;
           case "grant_item":
             this.broadcast(GAME_MESSAGES.itemGranted, {
@@ -705,11 +760,24 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
           grantsItems: def?.grantsItems ?? [],
           unlocks: def?.unlocks ?? [],
         });
+        this.onMilestone({
+          kind: "solved",
+          puzzleId: event.puzzleId,
+          actorId: event.playerId ?? null,
+          ...this.milestoneClock(),
+        });
       }
     }
     this.syncState();
     this.refreshOpenPanels();
     this.announceEnd();
+  }
+
+  /** Hito de puerta abierta: solo objetos que llevan a otra habitación. */
+  private doorOpened(objectId: string): void {
+    const door = this.roomPackage.objects.find((object) => object.id === objectId);
+    if (!door?.leadsTo) return;
+    this.onMilestone({ kind: "door_opened", objectId, actorId: null, ...this.milestoneClock() });
   }
 
   private syncState(): void {
@@ -787,6 +855,11 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.broadcast(GAME_MESSAGES.gameEnded, {
       result: session.state.result,
       stats: summary?.stats ?? null,
+    });
+    this.onMilestone({
+      kind: "game_ended",
+      result: toSessionResult(session.state.result) ?? "aborted",
+      ...this.milestoneClock(),
     });
   }
 

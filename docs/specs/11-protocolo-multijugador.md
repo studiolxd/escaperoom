@@ -201,6 +201,12 @@ Cliente                          Servidor (GameRoom)                Externo
   │── conecta LiveKit (voz/webcam)─┼─────────────────────────────────>│
 ```
 
+- **Room `event` (ticket 5.12):** al crearse, la room lee en servidor el `roomVersion.package`
+  congelado del evento del `joinToken` (`event.roomVersionId`) y juega esa versión exacta; el
+  cliente no elige ni envía paquete. Cada hito (inicio, puzzle resuelto, pista, puerta abierta,
+  fin con resultado y tiempo) se persiste en `progressEvent` (`specs/14` §8.1) sin bloquear el
+  bucle, y el fin de la partida escribe `group.completedAt`. Sin base de datos configurada en
+  producción, la room `event` no se crea (`EVENT_UNAVAILABLE`).
 - El token LiveKit tiene `room = gameRoom.name`, permisos de publicación de audio/vídeo y
   TTL = duración máxima de la sesión.
 - En eventos educativos: token con vídeo desactivado por defecto (`canPublishVideo: false` hasta

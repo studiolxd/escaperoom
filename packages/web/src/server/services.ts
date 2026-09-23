@@ -35,6 +35,7 @@ import {
   createRedeemService,
   createColyseusLiveProgressSource,
   createEventPanelService,
+  createPrismaEventRuntimeStore,
   type EventPanelService,
   createInvitationService,
   createPrismaInvitationStore,
@@ -324,7 +325,8 @@ export function getExportBlobStore(): Pick<CardExportBlobStore, "get"> {
  * Colyseus (`COLYSEUS_INTERNAL_URL` o la pública con `ws` → `http`), autenticada
  * con una credencial derivada de `JOIN_TOKEN_SECRET`, el mismo secreto que
  * firma los tokens de observador. Sin secreto (producción mal configurada) el
- * panel sigue funcionando sin progreso en vivo ni modo observador.
+ * panel sigue funcionando sin progreso en vivo ni modo observador. El progreso
+ * persistido (`progressEvent`, ticket 5.12) cubre las sesiones sin room viva.
  */
 export function getEventPanelService(): EventPanelService {
   if (!eventPanel) {
@@ -346,6 +348,7 @@ export function getEventPanelService(): EventPanelService {
             secret: joinToken.secret,
           })
         : { forEvent: async () => null },
+      stored: createPrismaEventRuntimeStore(prisma),
       spectator: joinToken,
       colyseusEndpoint: process.env.NEXT_PUBLIC_COLYSEUS_URL?.trim() || "ws://localhost:2567",
       roomName: EVENT_ROOM_NAME,

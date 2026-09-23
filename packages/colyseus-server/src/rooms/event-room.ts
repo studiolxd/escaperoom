@@ -1,6 +1,11 @@
 import { ServerError, type Client } from "@colyseus/core";
 import type { SessionLiveProgress } from "@escaperoom/shared/event-progress";
 import {
+  accountUserId,
+  createProgressRecorder,
+  type ProgressRecorder,
+} from "@escaperoom/shared/event-runtime";
+import {
   readJoinTokenConfig,
   verifyJoinToken,
   verifySpectatorToken,
@@ -10,7 +15,8 @@ import {
 } from "@escaperoom/shared/join-token";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { MAX_EVENT_SPECTATORS } from "../constants.js";
-import { GameRoom, type GameRoomOptions } from "./game-room.js";
+import { getEventRuntime } from "../events/runtime.js";
+import { GameRoom, type GameMilestone, type GameRoomOptions } from "./game-room.js";
 
 /**
  * Opciones de la room de evento: la sesión del evento (para el `filterBy` del
@@ -44,6 +50,8 @@ export const JOIN_TOKEN_ERRORS = {
   wrongSession: "JOIN_TOKEN_WRONG_SESSION",
   sessionFull: "SESSION_FULL",
   spectatorInvalid: "SPECTATOR_TOKEN_INVALID",
+  /** El evento no existe, no está activo o no hay de dónde leer su paquete. */
+  eventUnavailable: "EVENT_UNAVAILABLE",
 } as const;
 
 /**
@@ -56,9 +64,15 @@ export const JOIN_TOKEN_ERRORS = {
  * - Una room por `gameSession` (matchmaking por `sessionId`); crearla también
  *   exige token, así nadie levanta la room de una sesión ajena.
  * - El nombre visible sale del token (lo fijó el canje), no de las opciones.
- * - Paquete: el mismo resolver que la `GameRoom` (hoy el fixture del Rey
- *   Aldric); cargar la versión publicada del evento llega con el catálogo en
- *   Colyseus. El cliente no puede elegir paquete.
+ * - Paquete (ticket 5.12): al crearse, la room pide al runtime de eventos el
+ *   `roomVersion.package` congelado del evento del token y juega esa versión
+ *   exacta. El cliente no puede elegir ni enviar paquete; `packageId` se
+ *   ignora.
+ * - Progreso (ticket 5.12): cada hito de la partida se encola en un
+ *   `ProgressRecorder` que lo escribe en `progressEvent` sin bloquear el
+ *   bucle; al terminar, el hito `game_ended` cierra la sesión y los grupos que
+ *   jugaron (`group.completedAt`). La room espera a vaciar la cola al
+ *   destruirse.
  *
  * **Modo observador** (ticket 5.9, specs/19 §2): el organizador entra con un
  * `spectatorToken` (firmado por web tras comprobar que es el organizador, otra
@@ -81,20 +95,79 @@ export class EventRoom extends GameRoom {
   /** Plazas de juego (las del paquete); las de observador van aparte. */
   private playerCapacity = 0;
   private readonly spectators = new Set<string>();
+  private eventPackage!: RoomPackage;
+  private roomVersionId = "";
+  private recorder?: ProgressRecorder;
+  /** Claims de cada jugador que ha entrado (grupo y cuenta para los hitos). */
+  private readonly playerClaims = new Map<string, JoinClaims>();
 
-  protected override loadRoomPackage(options: EventRoomOptions): RoomPackage {
-    const claims = authorize(options);
-    this.eventSessionId = claims.sessionId;
-    this.eventId = claims.eventId;
-    return super.loadRoomPackage({});
+  protected override loadRoomPackage(): RoomPackage {
+    return this.eventPackage;
   }
 
-  override onCreate(options: EventRoomOptions = {}): void {
+  override async onCreate(options: EventRoomOptions = {}): Promise<void> {
+    const claims = authorize(options);
+    const runtime = getEventRuntime();
+    // Un fallo de base de datos tampoco llega al cliente como stack trace (specs/11 §7).
+    const loaded = runtime
+      ? await runtime.loadEventPackage(claims.eventId).catch(() => null)
+      : null;
+    if (!runtime || !loaded) {
+      throw new ServerError(EVENT_JOIN_FORBIDDEN_CODE, JOIN_TOKEN_ERRORS.eventUnavailable);
+    }
+    this.eventSessionId = claims.sessionId;
+    this.eventId = claims.eventId;
+    this.eventPackage = loaded.roomPackage;
+    this.roomVersionId = loaded.roomVersionId;
+    this.recorder = createProgressRecorder(runtime, claims.sessionId);
+
     super.onCreate(options);
     this.playerCapacity = this.maxClients;
     this.maxClients = this.playerCapacity + MAX_EVENT_SPECTATORS;
     const metadata: EventRoomMetadata = { sessionId: this.eventSessionId, eventId: this.eventId };
     void this.setMetadata(metadata);
+  }
+
+  /** Vacía la cola de hitos antes de destruir la room (también al apagar el servidor). */
+  async onDispose(): Promise<void> {
+    await this.recorder?.flush();
+  }
+
+  /** Versión publicada que juega la room. */
+  get playingRoomVersionId(): string {
+    return this.roomVersionId;
+  }
+
+  /** Espera a que se persistan los hitos encolados (tests y apagado). */
+  flushProgress(): Promise<void> {
+    return this.recorder?.flush() ?? Promise.resolve();
+  }
+
+  protected override onMilestone(milestone: GameMilestone): void {
+    const recorder = this.recorder;
+    if (!recorder) return;
+    switch (milestone.kind) {
+      case "game_started":
+        recorder.record({ kind: "game_started", at: milestone.at, roomId: this.roomId });
+        return;
+      case "game_ended": {
+        const groupIds = new Set<string>();
+        for (const claims of this.playerClaims.values()) {
+          if (claims.groupId) groupIds.add(claims.groupId);
+        }
+        recorder.record({ ...milestone, groupIds: [...groupIds] });
+        return;
+      }
+      default: {
+        const { actorId, ...rest } = milestone;
+        const claims = actorId ? this.playerClaims.get(actorId) : undefined;
+        recorder.record({
+          ...rest,
+          groupId: claims?.groupId ?? null,
+          userId: claims ? accountUserId(claims.playerId) : null,
+        });
+      }
+    }
   }
 
   override onAuth(_client: Client, options: EventRoomOptions = {}): EventClientAuth {
@@ -124,6 +197,7 @@ export class EventRoom extends GameRoom {
       this.spectators.add(client.sessionId);
       return;
     }
+    this.playerClaims.set(client.sessionId, auth.claims);
     super.onJoin(client, { name: auth.claims.displayName });
   }
 

@@ -12,6 +12,10 @@ import { z } from "zod";
  * (`createEventPanelService`). Este módulo no depende de Prisma (subpath
  * `@escaperoom/shared/event-progress`), así que Colyseus lo importa sin
  * arrastrar el cliente de base de datos.
+ *
+ * Desde el ticket 5.12 la room además persiste cada hito en `progressEvent`
+ * (`event-runtime.ts`) y el panel cruza el vivo con el persistido
+ * (`StoredProgressSource`), así que el progreso sobrevive a un reinicio.
  */
 
 /** Ruta interna de Colyseus con el progreso de las rooms de un evento. */
@@ -106,6 +110,21 @@ export function createColyseusLiveProgressSource(options: {
       }
     },
   };
+}
+
+// ── Progreso persistido (ticket 5.12) ──────────────────────────────────────
+
+/**
+ * Progreso de una sesión reconstruido desde `progressEvent` (Postgres): lo
+ * que sobrevive a un reinicio de Colyseus. Misma forma que el vivo salvo lo
+ * que solo existe con una room viva (`roomId`, jugadores conectados).
+ */
+export type SessionStoredProgress = Omit<SessionLiveProgress, "roomId" | "players">;
+
+/** Fuente del progreso persistido de las sesiones de un evento. */
+export interface StoredProgressSource {
+  /** Una entrada por sesión con hitos persistidos (las demás no aparecen). */
+  forEvent(eventId: string): Promise<SessionStoredProgress[]>;
 }
 
 /** Fuente en memoria (tests y superficies sin Colyseus). */

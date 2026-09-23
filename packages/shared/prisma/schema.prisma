@@ -309,17 +309,20 @@ model pricingTier {
   @@index([activeFrom, activeUntil], map: "ixPricingTierActive")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model progressEvent {
   id            BigInt            @id @default(autoincrement())
   sessionId     String            @db.Uuid
   groupId       String?           @db.Uuid
   playerId      String?
   accessKeyCode String?
-  puzzleId      String
+  puzzleId      String?
   eventKind     progressEventKind
   durationMs    Int?
   hintsUsed     Int               @default(0)
   createdAt     DateTime          @default(now()) @db.Timestamptz(6)
+  objectId      String?
+  result        String?
   accessKey     accessKey?        @relation(fields: [accessKeyCode], references: [code], onDelete: NoAction, onUpdate: NoAction)
   group         group?            @relation(fields: [groupId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   user          user?             @relation(fields: [playerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -569,6 +572,9 @@ enum progressEventKind {
   solved
   hint_used
   attempt_failed
+  game_started
+  door_opened
+  game_ended
 }
 
 enum purchaseStatus {
