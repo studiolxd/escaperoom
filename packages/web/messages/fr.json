@@ -49,6 +49,26 @@
     "locked": "La cachette n'est pas encore disponible",
     "unavailable": "La cachette ne peut plus être révélée"
   },
+  "SimultaneousPlates": {
+    "title": "Plaques simultanées",
+    "prompt": "Active toutes les plaques en même temps",
+    "progress": "Plaques actives : {active}/{total}",
+    "progressLabel": "Progression des plaques",
+    "countdown": "{seconds} s restantes",
+    "windowClosed": "La fenêtre s'est refermée",
+    "platesLabel": "Plaques",
+    "plate": "Plaque {id}",
+    "active": "Active",
+    "inactive": "Inactive",
+    "bridged": "Fixée",
+    "placeBridge": "Placer l'objet-pont",
+    "pending": "Activation…",
+    "solved": "Toutes les plaques sont actives !",
+    "locked": "Les plaques ne sont pas encore disponibles",
+    "unavailable": "Les plaques n'acceptent plus d'activations",
+    "expired": "La fenêtre s'est refermée · réessaie",
+    "alreadyActive": "Cette plaque était déjà active"
+  },
   "Inventory": {
     "title": "Inventaire",
     "recipes": "Recettes : {found}/{total}",
