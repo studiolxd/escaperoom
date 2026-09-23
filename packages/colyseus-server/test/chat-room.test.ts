@@ -9,6 +9,7 @@ import {
   LOBBY_ROOM_NAME,
 } from "../src/constants";
 import { LobbyTestRoom } from "../src/rooms/lobby-test-room";
+import { getFreePort } from "./helpers/free-port";
 
 let colyseus: ColyseusTestServer;
 
@@ -19,7 +20,8 @@ const config = defineConfig({
 });
 
 beforeAll(async () => {
-  colyseus = await boot(config);
+  // Puerto libre asignado por el SO: evita EADDRINUSE entre procesos en paralelo.
+  colyseus = await boot(config, await getFreePort());
 });
 
 afterEach(async () => {
