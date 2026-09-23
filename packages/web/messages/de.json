@@ -347,5 +347,33 @@
         "invalidId": "Die Regel-Id darf nicht leer sein"
       }
     }
+  },
+  "EditorAudio": {
+    "none": "Kein Audio",
+    "library": "Bibliothek",
+    "myUploads": "Meine Uploads",
+    "kinds": {
+      "music": "Musik",
+      "sfx": "Soundeffekte",
+      "voice": "Stimmen"
+    },
+    "optionPending": "{name} (wartet auf Moderation)",
+    "optionRejected": "{name} (abgelehnt)",
+    "credits": "Lizenz {license} · {author}",
+    "noAudioIn": "Kein Audio auf {language}",
+    "status": {
+      "pending": "Wartet auf Moderation: Du kannst es im Entwurf testen, den Raum aber erst nach der Freigabe veröffentlichen.",
+      "rejected": "In der Moderation abgelehnt: {reason}. Wähle ein anderes Audio."
+    },
+    "upload": "MP3 hochladen",
+    "uploading": "Wird hochgeladen…",
+    "uploadHint": "Nur MP3, bis {maxMb} MB und {maxMinutes} Min. Wir prüfen es, bevor du den Raum damit veröffentlichen kannst.",
+    "rightsDeclared": "Ich erkläre, dass ich die Rechte an diesem Audio besitze und es keine Stimmen Dritter ohne deren Einwilligung enthält.",
+    "errors": {
+      "tooLarge": "Die Datei überschreitet das Limit von {maxMb} MB.",
+      "notMp3": "Es werden nur MP3-Dateien akzeptiert.",
+      "rightsRequired": "Erkläre vor dem Hochladen, dass du die Rechte am Audio besitzt.",
+      "generic": "Das Audio konnte nicht hochgeladen werden. Versuche es erneut."
+    }
   }
 }

@@ -378,5 +378,33 @@
         "invalidId": "The rule id cannot be empty"
       }
     }
+  },
+  "EditorAudio": {
+    "none": "No audio",
+    "library": "Library",
+    "myUploads": "My uploads",
+    "kinds": {
+      "music": "Music",
+      "sfx": "Sound effects",
+      "voice": "Voices"
+    },
+    "optionPending": "{name} (awaiting moderation)",
+    "optionRejected": "{name} (rejected)",
+    "credits": "License {license} · {author}",
+    "noAudioIn": "No audio in {language}",
+    "status": {
+      "pending": "Awaiting moderation: you can try it in the draft, but you can't publish the room until it's approved.",
+      "rejected": "Rejected in moderation: {reason}. Pick another audio."
+    },
+    "upload": "Upload MP3",
+    "uploading": "Uploading…",
+    "uploadHint": "MP3 only, up to {maxMb} MB and {maxMinutes} min. We review it before you can publish the room with it.",
+    "rightsDeclared": "I declare that I own the rights to this audio and that it contains no third-party voices without their consent.",
+    "errors": {
+      "tooLarge": "The file exceeds the {maxMb} MB limit.",
+      "notMp3": "Only MP3 files are accepted.",
+      "rightsRequired": "Before uploading, declare that you own the rights to the audio.",
+      "generic": "The audio couldn't be uploaded. Please try again."
+    }
   }
 }

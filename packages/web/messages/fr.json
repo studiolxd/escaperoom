@@ -347,5 +347,33 @@
         "invalidId": "L'id de la règle ne peut pas être vide"
       }
     }
+  },
+  "EditorAudio": {
+    "none": "Sans audio",
+    "library": "Bibliothèque",
+    "myUploads": "Mes envois",
+    "kinds": {
+      "music": "Musique",
+      "sfx": "Effets sonores",
+      "voice": "Voix"
+    },
+    "optionPending": "{name} (en attente de modération)",
+    "optionRejected": "{name} (refusé)",
+    "credits": "Licence {license} · {author}",
+    "noAudioIn": "Pas d'audio en {language}",
+    "status": {
+      "pending": "En attente de modération : vous pouvez l'essayer dans le brouillon, mais vous ne pourrez pas publier la salle avant son approbation.",
+      "rejected": "Refusé en modération : {reason}. Choisissez un autre audio."
+    },
+    "upload": "Envoyer un MP3",
+    "uploading": "Envoi…",
+    "uploadHint": "MP3 uniquement, jusqu'à {maxMb} Mo et {maxMinutes} min. Nous le vérifions avant que vous puissiez publier la salle avec.",
+    "rightsDeclared": "Je déclare détenir les droits de cet audio et qu'il ne contient pas de voix de tiers sans leur consentement.",
+    "errors": {
+      "tooLarge": "Le fichier dépasse la limite de {maxMb} Mo.",
+      "notMp3": "Seuls les fichiers MP3 sont acceptés.",
+      "rightsRequired": "Avant l'envoi, déclarez que vous détenez les droits de l'audio.",
+      "generic": "Impossible d'envoyer l'audio. Réessayez."
+    }
   }
 }

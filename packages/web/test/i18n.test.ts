@@ -119,6 +119,17 @@ describe("i18n", () => {
         "RulesGraph.labels.actions.set_object_state",
         "RulesGraph.labels.fields.objectId",
         "RulesGraph.labels.ui.newRule",
+        "EditorAudio.none",
+        "EditorAudio.library",
+        "EditorAudio.myUploads",
+        "EditorAudio.kinds.music",
+        "EditorAudio.status.pending",
+        "EditorAudio.status.rejected",
+        "EditorAudio.upload",
+        "EditorAudio.uploadHint",
+        "EditorAudio.rightsDeclared",
+        "EditorAudio.errors.tooLarge",
+        "EditorAudio.errors.notMp3",
       ]),
     );
   });

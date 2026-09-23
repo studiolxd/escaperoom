@@ -104,6 +104,22 @@ alrededor de la edición:
 | POST | `/api/rooms/:roomId/gift-copy` | autor | Envía copia gratuita a otro creador (`{ recipientEmail }`) — sin Stripe, fork inmediato |
 | GET | `/api/rooms/:roomId/access` | usuario | `{ owned, playable }` — `playable: false` si ya se consumió la única partida (B2C) |
 
+### 4.1 Audio del creador (ticket 3.11)
+
+Biblioteca incluida + subida propia de MP3 con **moderación previa** (`specs/15` §1, `specs/17` §1).
+En el borrador, `LocalizedText.audioUrl` y los efectos (`play_sound`) guardan una referencia estable
+(`library:<trackId>` o `upload:<uuid>`), no una URL firmada; la publicación la resuelve a R2.
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| GET | `/api/audio/library` | público | Biblioteca incluida (`?kind=music\|sfx\|voice`), con licencia, créditos y `ref` |
+| GET | `/api/audio/uploads` | usuario | Subidas propias con `status` (`pending`/`approved`/`rejected`) y `rejectionReason` |
+| POST | `/api/audio/uploads` | usuario | Multipart: `file` (MP3) + `rightsDeclared=true`. Valida el contenido real, tamaño y duración → 201 `pending`. `415 UNSUPPORTED_MEDIA_TYPE`, `413 PAYLOAD_TOO_LARGE`, `422 VALIDATION_ERROR`/`UPLOAD_BLOCKED` |
+| GET | `/api/audio/uploads/:id` | dueño o moderador | Metadatos + `previewUrl` firmada (nula si está rechazado); 404 para cualquier otro usuario |
+
+Un audio subido solo lo puede usar su dueño; `pending` sirve en el borrador pero bloquea
+publicar (`AUDIO_PENDING_MODERATION`) y `rejected` no es usable (`AUDIO_REJECTED`, con motivo).
+
 ## 5. Compras (venta individual de salas)
 
 Checkout con **Stripe Checkout** hospedado (no se gestionan tarjetas directamente).
@@ -196,6 +212,8 @@ los mismos que usa el `join` de Colyseus, porque `redeem` es el paso previo inme
 | POST | `/api/me/appeal` | usuario | Apela una suspensión de cuenta |
 | GET | `/api/admin/appeals` | `is_admin \| is_moderator` | Cola de apelaciones pendientes |
 | PATCH | `/api/admin/appeals/:id` | `is_admin \| is_moderator` | Resuelve: `upheld` u `overturned` |
+| GET | `/api/admin/audio` | `is_admin \| is_moderator` | Cola de audio subido (`?status=pending` por defecto, las más antiguas primero) |
+| PATCH | `/api/admin/audio/:id` | `is_admin \| is_moderator` | `{ decision: 'approved' \| 'rejected', reason? }` (motivo obligatorio al rechazar); `409 ALREADY_REVIEWED` si ya se revisó |
 | GET/POST/PATCH | `/api/admin/pricing-tiers` | `isAdmin` | Gestión de tramos de precio editables |
 | GET/PATCH | `/api/admin/settings/:key` | `isAdmin` | Ajustes de plataforma (p. ej. `maxPlayersPerRoom`) |
 

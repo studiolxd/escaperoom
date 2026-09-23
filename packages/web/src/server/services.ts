@@ -1,6 +1,9 @@
 import path from "node:path";
+import { storage } from "@escaperoom/kit/storage";
 import { prisma } from "@escaperoom/shared/db";
 import {
+  createAudioAssetService,
+  createPrismaAudioAssetStore,
   createCatalogService,
   createPrismaPublishedRoomListing,
   createJsonFileRoomPackageRepository,
@@ -10,6 +13,8 @@ import {
   createPrismaPricingTierStore,
   createPrismaRoomDraftStore,
   createRoomDraftService,
+  type AudioAssetService,
+  type AudioBlobStore,
   type CatalogService,
   type PlatformSettingsService,
   type PricingTierService,
@@ -27,6 +32,7 @@ let catalog: CatalogService | undefined;
 let roomDrafts: RoomDraftService | undefined;
 let platformSettings: PlatformSettingsService | undefined;
 let pricingTiers: PricingTierService | undefined;
+let audioAssets: AudioAssetService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -58,4 +64,24 @@ export function getPlatformSettingsService(): PlatformSettingsService {
 export function getPricingTierService(): PricingTierService {
   pricingTiers ??= createPricingTierService({ store: createPrismaPricingTierStore(prisma) });
   return pricingTiers;
+}
+
+/** Binarios de audio sobre el adaptador S3/R2 de `@escaperoom/kit/storage` (bucket privado). */
+const audioBlobs: AudioBlobStore = {
+  put: (key, bytes, contentType) => storage.putObject({ key, body: Buffer.from(bytes), contentType }),
+  delete: (key) => storage.deleteObject(key),
+  signedReadUrl: (key) => storage.getSignedReadUrl(key, { expiresIn: 600 }),
+};
+
+/**
+ * Audio del creador (biblioteca + subida propia con moderación previa, ticket
+ * 3.11). El pre-filtro automático es el manual por defecto (no hay proveedor
+ * externo cableado): toda subida queda para la cola humana.
+ */
+export function getAudioAssetService(): AudioAssetService {
+  audioAssets ??= createAudioAssetService({
+    store: createPrismaAudioAssetStore(prisma),
+    blobs: audioBlobs,
+  });
+  return audioAssets;
 }

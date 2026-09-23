@@ -347,5 +347,33 @@
         "invalidId": "O id da regra não pode estar vazio"
       }
     }
+  },
+  "EditorAudio": {
+    "none": "Sem áudio",
+    "library": "Biblioteca",
+    "myUploads": "Os meus envios",
+    "kinds": {
+      "music": "Música",
+      "sfx": "Efeitos sonoros",
+      "voice": "Vozes"
+    },
+    "optionPending": "{name} (a aguardar moderação)",
+    "optionRejected": "{name} (rejeitado)",
+    "credits": "Licença {license} · {author}",
+    "noAudioIn": "Sem áudio em {language}",
+    "status": {
+      "pending": "A aguardar moderação: podes testá-lo no rascunho, mas só poderás publicar a sala depois de ser aprovado.",
+      "rejected": "Rejeitado na moderação: {reason}. Escolhe outro áudio."
+    },
+    "upload": "Enviar MP3",
+    "uploading": "A enviar…",
+    "uploadHint": "Apenas MP3, até {maxMb} MB e {maxMinutes} min. Revemo-lo antes de poderes publicar a sala com ele.",
+    "rightsDeclared": "Declaro que tenho os direitos deste áudio e que não inclui vozes de terceiros sem o seu consentimento.",
+    "errors": {
+      "tooLarge": "O ficheiro excede o limite de {maxMb} MB.",
+      "notMp3": "Só são aceites ficheiros MP3.",
+      "rightsRequired": "Antes de enviar, declara que tens os direitos do áudio.",
+      "generic": "Não foi possível enviar o áudio. Tenta novamente."
+    }
   }
 }

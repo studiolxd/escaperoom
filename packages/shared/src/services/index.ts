@@ -13,3 +13,5 @@ export * from "./admin";
 export * from "./platform-settings";
 export * from "./pricing-tiers";
 export * from "./admin-prisma-store";
+export * from "./audio-assets";
+export * from "./audio-assets-prisma-store";
