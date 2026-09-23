@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { cn } from "cn";
 import { CHAT_HISTORY_LIMIT, CHAT_MAX_LENGTH } from "@escaperoom/shared/chat";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useLobbyStore, type ChatEntry } from "@/store/lobby-store";
 
 /**
@@ -117,14 +118,14 @@ export function ChatWindow({
       </ul>
 
       <form onSubmit={submit} className="flex items-center gap-2">
-        <input
+        <Input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           maxLength={CHAT_MAX_LENGTH}
           disabled={!connected}
           placeholder={connected ? t("placeholder") : t("disconnected")}
           aria-label={t("placeholder")}
-          className="min-w-0 flex-1 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-sm text-white placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30 disabled:opacity-50"
+          className="h-auto min-w-0 flex-1 rounded-md border-white/15 bg-white/5 px-2 py-1 text-sm text-white placeholder:text-white/40 focus-visible:border-white/30 focus-visible:ring-1 focus-visible:ring-white/30 disabled:opacity-50"
         />
         <Button
           type="submit"

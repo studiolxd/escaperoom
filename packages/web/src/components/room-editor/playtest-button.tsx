@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { RoomPlaytestResponse } from "@/server/rest/room-playtest";
 
 /** Códigos de error de `POST /api/rooms/:roomId/playtest` con mensaje propio. */
@@ -99,11 +100,11 @@ export function PlaytestButton({ roomId, disabled }: PlaytestButtonProps) {
             <>
               <p className="font-medium">{t("editor.ready")}</p>
               <p className="text-white/70">{t("editor.shareHint")}</p>
-              <input
+              <Input
                 readOnly
                 value={state.url}
                 aria-label={t("editor.linkLabel")}
-                className="w-full rounded border border-white/15 bg-transparent px-2 py-1 text-xs"
+                className="h-auto w-full rounded border-white/15 bg-transparent px-2 py-1 text-xs"
                 onFocus={(event) => event.currentTarget.select()}
               />
               <p className="text-xs text-white/60">
@@ -129,13 +130,14 @@ export function PlaytestButton({ roomId, disabled }: PlaytestButtonProps) {
               </div>
             </>
           )}
-          <button
+          <Button
             type="button"
-            className="text-xs text-white/50 underline"
+            variant="link"
+            className="h-auto p-0 text-xs text-white/50"
             onClick={() => setState({ kind: "idle" })}
           >
             {t("editor.dismiss")}
-          </button>
+          </Button>
         </div>
       ) : null}
     </div>

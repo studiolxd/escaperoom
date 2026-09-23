@@ -1,8 +1,10 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
 import type { MemoryFlipOutcome, MemoryPublicView } from "@escaperoom/shared/templates";
+import { Button } from "@/components/ui/button";
 
 /** Resultado del último volteo, tal como lo devolvió el servidor. */
 export type MemoryFeedback = MemoryFlipOutcome | null;
@@ -82,13 +84,9 @@ export function MemoryPanel({
             {t("pairs", { found: view.matchedCount, total: view.targetCount })}
           </span>
           {onClose ? (
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded px-1 text-xs text-white/60 hover:text-white"
-            >
+            <Button size="xs" variant="overlayGhost" onClick={onClose}>
               {t("close")}
-            </button>
+            </Button>
           ) : null}
         </div>
       </header>
@@ -103,8 +101,8 @@ export function MemoryPanel({
       >
         <span
           data-slot="memory-progress"
-          className="block h-full rounded-full bg-amber-300/80 transition-[width] duration-150"
-          style={{ width: `${Math.round(progress * 100)}%` }}
+          className="progress-fill block h-full rounded-full bg-amber-300/80 transition-[width] duration-150"
+          style={{ "--progress": `${Math.round(progress * 100)}%` } as CSSProperties}
         />
       </div>
 
@@ -113,17 +111,18 @@ export function MemoryPanel({
       </p>
 
       <div
-        className="grid gap-2"
-        style={{ gridTemplateColumns: `repeat(${view.cols}, minmax(0, 1fr))` }}
+        className="grid-cols-dynamic grid gap-2"
+        style={{ "--cols": view.cols } as CSSProperties}
         role="list"
         aria-label={t("boardLabel")}
       >
         {view.cards.map((card) => {
           const faceUp = card.flipped;
           return (
-            <button
+            <Button
               key={card.id}
               type="button"
+              variant="overlayGhost"
               role="listitem"
               aria-label={faceUp ? t("cardUp", { id: card.id }) : t("cardDown", { id: card.id })}
               aria-pressed={faceUp}
@@ -133,7 +132,7 @@ export function MemoryPanel({
               disabled={disabled || faceUp}
               onClick={() => onFlip(card.id)}
               className={cn(
-                "grid aspect-square place-items-center rounded-lg border text-2xl transition-colors",
+                "grid aspect-square h-auto place-items-center rounded-lg border p-0 text-2xl transition-colors",
                 card.matched
                   ? "border-emerald-300/60 bg-emerald-300/10 text-emerald-100"
                   : faceUp
@@ -148,7 +147,7 @@ export function MemoryPanel({
               ) : (
                 <span aria-hidden>◆</span>
               )}
-            </button>
+            </Button>
           );
         })}
       </div>

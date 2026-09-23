@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { COLYSEUS_URL } from "@/lib/colyseus";
 import { useLobbyStore, type LobbyStatus } from "@/store/lobby-store";
 import { ChatPanel } from "@/components/chat/chat-panel";
@@ -52,8 +53,8 @@ export function LobbyHud() {
             {list.map((player) => (
               <li key={player.id} className="flex items-center gap-2 text-sm">
                 <span
-                  className="size-3 rounded-full border border-white/40"
-                  style={{ backgroundColor: player.tint }}
+                  className="tint-dot size-3 rounded-full border border-white/40"
+                  style={{ "--tint": player.tint } as CSSProperties}
                 />
                 <span className="font-mono">{player.id.slice(0, 8)}</span>
                 {player.id === selfId ? <span className="text-white/50">(tú)</span> : null}

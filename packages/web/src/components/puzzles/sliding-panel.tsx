@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
+import { Button } from "@/components/ui/button";
 import {
   slidingNeighborIndices,
   type SlidingMoveOutcome,
@@ -104,8 +105,8 @@ export function SlidingPanel({
         role="group"
         aria-label={t("boardLabel")}
         data-slot="sliding-board"
-        className="grid w-fit gap-1 rounded-lg bg-black/40 p-1"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        className="grid-cols-dynamic grid w-fit gap-1 rounded-lg bg-black/40 p-1"
+        style={{ "--cols": cols } as CSSProperties}
       >
         {view.tiles.map((tile, index) => {
           const isBlank = tile === 0;
@@ -139,9 +140,10 @@ export function SlidingPanel({
           }
 
           return (
-            <button
+            <Button
               key={index}
               type="button"
+              variant="overlayGhost"
               aria-label={t("tile", { tile })}
               data-tile={tile}
               data-movable={canMove}
@@ -154,7 +156,7 @@ export function SlidingPanel({
               onDragEnd={() => setDragIndex(null)}
               onClick={() => tryMove(index)}
               className={cn(
-                "relative size-16 overflow-hidden rounded-md border text-sm font-semibold transition",
+                "relative size-16 h-auto overflow-hidden rounded-md border p-0 text-sm font-semibold transition",
                 canMove
                   ? "cursor-pointer border-amber-200/40 hover:border-amber-200/80"
                   : "cursor-default border-white/10",
@@ -175,7 +177,7 @@ export function SlidingPanel({
                   {tile}
                 </span>
               ) : null}
-            </button>
+            </Button>
           );
         })}
       </div>

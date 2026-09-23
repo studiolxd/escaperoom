@@ -3,6 +3,11 @@ import { LOCALES } from "@escaperoom/config/locales";
 import { useFormatter, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { CATALOG_PATH } from "@/lib/catalog-seo";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CatalogFilterSelect } from "./catalog-filter-select";
 import { languageName } from "./language-name";
 
 /** Valores de los filtros tal y como están en la URL del listado. */
@@ -26,13 +31,15 @@ const SORT_LABEL: Record<CatalogSort, string> = {
   price_desc: "sortPriceDesc",
 };
 
-const fieldClass =
-  "h-9 rounded-lg border border-input bg-background px-2 text-sm text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 outline-none";
-
 /**
  * Filtros del catálogo como formulario GET: funcionan sin JavaScript y cada
  * combinación tiene una URL propia (enlazable e indexable). Los parámetros son
  * los mismos que los de `GET /api/rooms`.
+ *
+ * Server Component: solo `CatalogFilterSelect` (idioma/dificultad/jugadores/
+ * precio) se hidrata en cliente, en su propio archivo — este componente no
+ * puede llevar `"use client"` sin arrastrar `@escaperoom/shared/services`
+ * (Prisma, `node:fs`, …) al bundle del navegador.
  */
 export function CatalogFilters({
   values,
@@ -52,77 +59,73 @@ export function CatalogFilters({
       aria-label={t("filtersLabel")}
       className="grid gap-3 rounded-xl border border-border bg-muted/40 p-4 sm:grid-cols-2 lg:grid-cols-4"
     >
-      <label className="flex flex-col gap-1 text-sm sm:col-span-2 lg:col-span-4">
-        {t("search")}
-        <input
+      <div className="flex flex-col gap-1 text-sm sm:col-span-2 lg:col-span-4">
+        <Label htmlFor="filter-q">{t("search")}</Label>
+        <Input
+          id="filter-q"
           type="search"
           name="q"
           defaultValue={values.q ?? ""}
           maxLength={100}
-          className={fieldClass}
         />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        {t("language")}
-        <select name="language" defaultValue={values.language ?? ""} className={fieldClass}>
-          <option value="">{t("anyLanguage")}</option>
-          {LOCALES.map((code) => (
-            <option key={code} value={code}>
-              {languageName(code, locale)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        {t("difficulty")}
-        <select name="difficulty" defaultValue={values.difficulty ?? ""} className={fieldClass}>
-          <option value="">{t("anyDifficulty")}</option>
-          {([1, 2, 3] as const).map((level) => (
-            <option key={level} value={String(level)}>
-              {t(`difficulty${level}`)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        {t("players")}
-        <select name="players" defaultValue={values.players ?? ""} className={fieldClass}>
-          <option value="">{t("anyPlayers")}</option>
-          {PLAYER_OPTIONS.map((n) => (
-            <option key={n} value={String(n)}>
-              {n}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        {t("price")}
-        <select name="maxPrice" defaultValue={values.maxPrice ?? ""} className={fieldClass}>
-          <option value="">{t("anyPrice")}</option>
-          {PRICE_CAPS.map((cents) => (
-            <option key={cents} value={String(cents)}>
-              {cents === 0 ? t("priceFree") : t("priceUpTo", { price: euros(cents) })}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
-        {t("sort")}
-        <select name="sort" defaultValue={values.sort ?? "recent"} className={fieldClass}>
-          {CATALOG_SORTS.map((sort) => (
-            <option key={sort} value={sort}>
-              {t(SORT_LABEL[sort])}
-            </option>
-          ))}
-        </select>
-      </label>
+      </div>
+      <CatalogFilterSelect
+        id="filter-language"
+        name="language"
+        label={t("language")}
+        anyLabel={t("anyLanguage")}
+        initialValue={values.language ?? ""}
+        options={LOCALES.map((code) => ({ value: code, label: languageName(code, locale) }))}
+      />
+      <CatalogFilterSelect
+        id="filter-difficulty"
+        name="difficulty"
+        label={t("difficulty")}
+        anyLabel={t("anyDifficulty")}
+        initialValue={values.difficulty ?? ""}
+        options={([1, 2, 3] as const).map((level) => ({
+          value: String(level),
+          label: t(`difficulty${level}`),
+        }))}
+      />
+      <CatalogFilterSelect
+        id="filter-players"
+        name="players"
+        label={t("players")}
+        anyLabel={t("anyPlayers")}
+        initialValue={values.players ?? ""}
+        options={PLAYER_OPTIONS.map((n) => ({ value: String(n), label: String(n) }))}
+      />
+      <CatalogFilterSelect
+        id="filter-max-price"
+        name="maxPrice"
+        label={t("price")}
+        anyLabel={t("anyPrice")}
+        initialValue={values.maxPrice ?? ""}
+        options={PRICE_CAPS.map((cents) => ({
+          value: String(cents),
+          label: cents === 0 ? t("priceFree") : t("priceUpTo", { price: euros(cents) }),
+        }))}
+      />
+      <div className="flex flex-col gap-1 text-sm">
+        <Label htmlFor="filter-sort">{t("sort")}</Label>
+        <Select name="sort" defaultValue={values.sort ?? "recent"}>
+          <SelectTrigger id="filter-sort" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {CATALOG_SORTS.map((sort) => (
+              <SelectItem key={sort} value={sort}>
+                {t(SORT_LABEL[sort])}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="flex items-end gap-3 sm:col-span-2 lg:col-span-3">
-        <button
-          type="submit"
-          className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/80"
-        >
+        <Button type="submit" size="lg">
           {t("apply")}
-        </button>
+        </Button>
         <Link href={CATALOG_PATH} className="text-sm underline-offset-4 hover:underline">
           {t("reset")}
         </Link>

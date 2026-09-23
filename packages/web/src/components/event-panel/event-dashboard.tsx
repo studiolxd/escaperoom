@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import type { EventDashboard, EventSessionRow } from "@escaperoom/shared/services";
 import { Button } from "@/components/ui/button";
@@ -320,7 +320,10 @@ function SessionRow({ row, eventId }: { row: EventSessionRow; eventId: string })
             aria-label={t("table.progress")}
             className="h-2 w-24 overflow-hidden rounded-full bg-white/10"
           >
-            <div className="h-full bg-emerald-400" style={{ width: `${percent}%` }} />
+            <div
+              className="progress-fill h-full bg-emerald-400"
+              style={{ "--progress": `${percent}%` } as CSSProperties}
+            />
           </div>
           <span className="text-xs text-white/70">
             {t("table.progressValue", { solved: row.puzzlesSolved, total: row.puzzlesTotal })}

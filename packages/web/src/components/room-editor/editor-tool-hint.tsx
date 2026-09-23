@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 
 /**
  * Ayuda contextual del editor (ticket 6.7, specs/20 §4): "el primer uso de
@@ -82,13 +83,14 @@ export function EditorToolHint({ id, text, children }: EditorToolHintProps) {
           className="absolute left-1/2 top-full z-20 mt-1.5 w-44 -translate-x-1/2 rounded-lg border border-white/15 bg-slate-900 p-2 text-left text-[0.7rem] text-white shadow-lg"
         >
           {text}
-          <button
+          <Button
             type="button"
+            variant="link"
             onClick={dismiss}
-            className="mt-1 block text-[0.65rem] font-medium text-amber-300 underline"
+            className="mt-1 h-auto p-0 text-[0.65rem] font-medium text-amber-300"
           >
             OK
-          </button>
+          </Button>
         </span>
       )}
     </span>

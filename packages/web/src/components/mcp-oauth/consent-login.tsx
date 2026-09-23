@@ -3,6 +3,8 @@
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type State = { kind: "idle" } | { kind: "sending" } | { kind: "sent" } | { kind: "error" };
 
@@ -64,17 +66,17 @@ export function ConsentLogin({ callbackURL }: ConsentLoginProps) {
         {t("google")}
       </Button>
       <form onSubmit={sendMagicLink} className="space-y-2">
-        <label className="block text-sm" htmlFor="mcp-consent-email">
+        <Label htmlFor="mcp-consent-email" className="text-sm">
           {t("emailLabel")}
-        </label>
+        </Label>
         <div className="flex gap-2">
-          <input
+          <Input
             id="mcp-consent-email"
             type="email"
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="min-w-0 flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white"
+            className="h-auto min-w-0 flex-1 rounded-lg border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white"
           />
           <Button type="submit" disabled={state.kind === "sending"}>
             {t("emailSubmit")}

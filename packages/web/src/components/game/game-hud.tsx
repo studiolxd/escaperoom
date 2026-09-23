@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { Flame, Minus, Plus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TORCH_MAX, TORCH_MIN, useGameStore } from "@/store/game-store";
@@ -27,8 +28,8 @@ export function GameHud() {
       <div className="pointer-events-auto flex w-fit flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-white backdrop-blur">
         <div className="flex items-center gap-2">
           <Flame
-            className="size-5 text-amber-300"
-            style={{ opacity: 0.25 + (torchLevel / TORCH_MAX) * 0.75 }}
+            className="torch-flame size-5 text-amber-300"
+            style={{ "--torch-opacity": 0.25 + (torchLevel / TORCH_MAX) * 0.75 } as CSSProperties}
           />
           <div className="leading-tight">
             <p className="text-xs text-white/60">Luz de la antorcha</p>

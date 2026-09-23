@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { cn } from "cn";
 
 /**
@@ -49,10 +49,15 @@ export function ItemIcon({ frame, baseUrl, name, size = 28, className }: ItemIco
         data-icon-fallback="true"
         title={name}
         className={cn(
-          "grid shrink-0 place-items-center rounded-md bg-amber-200/15 font-semibold text-amber-100",
+          "icon-fallback-size grid shrink-0 place-items-center rounded-md bg-amber-200/15 font-semibold text-amber-100",
           className,
         )}
-        style={{ width: size, height: size, fontSize: Math.max(10, Math.round(size * 0.42)) }}
+        style={
+          {
+            "--icon-size": `${size}px`,
+            "--icon-font-size": `${Math.max(10, Math.round(size * 0.42))}px`,
+          } as CSSProperties
+        }
       >
         {name.slice(0, 1).toUpperCase()}
       </span>
@@ -69,7 +74,6 @@ export function ItemIcon({ frame, baseUrl, name, size = 28, className }: ItemIco
       title={name}
       onError={() => setStage((current) => current + 1)}
       className={cn("shrink-0 object-contain", className)}
-      style={{ width: size, height: size }}
     />
   );
 }

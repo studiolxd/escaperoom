@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -786,8 +787,8 @@ export function GameSessionShell({
             <li key={player.id} className="flex items-center gap-2">
               <span
                 aria-hidden
-                className="inline-block size-2.5 rounded-full"
-                style={{ backgroundColor: player.tint }}
+                className="tint-dot inline-block size-2.5 rounded-full"
+                style={{ "--tint": player.tint } as CSSProperties}
               />
               <span className={player.connected ? "text-white/90" : "text-white/40"}>
                 {player.name}
@@ -927,19 +928,20 @@ export function GameSessionShell({
       ) : null}
 
       {dialog ? (
-        <button
+        <Button
           type="button"
+          variant="ghost"
           data-testid="game-dialog"
           data-intro={introOpen}
           onClick={() => setDialog(null)}
-          className="absolute inset-x-4 bottom-40 z-30 mx-auto max-w-2xl cursor-pointer rounded-xl border border-amber-200/40 bg-slate-950/90 px-5 py-4 text-left text-sm text-white shadow-lg backdrop-blur"
+          className="absolute inset-x-4 bottom-40 z-30 mx-auto block h-auto max-w-2xl cursor-pointer rounded-xl border border-amber-200/40 bg-slate-950/90 px-5 py-4 text-left text-sm whitespace-normal text-white shadow-lg backdrop-blur hover:bg-slate-950/90"
         >
           <span className="block text-[0.65rem] uppercase tracking-wide text-amber-200/70">
             {dialog.id === INTRO_DIALOG_ID ? tp("intro") : tp("dialog")}
           </span>
           {dialog.text}
           <span className="mt-1 block text-[0.65rem] text-white/40">{tp("close")}</span>
-        </button>
+        </Button>
       ) : null}
 
       {inventoryOpen ? (

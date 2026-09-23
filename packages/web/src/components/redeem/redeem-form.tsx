@@ -3,6 +3,8 @@
 import { useState, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { eventPlayPath } from "@/lib/game-net";
 
 /** Códigos de error de `POST /api/access-keys/redeem` con mensaje propio. */
@@ -65,28 +67,28 @@ export function RedeemForm({ initialCode }: RedeemFormProps) {
 
   return (
     <form className="space-y-3" onSubmit={(event) => void redeem(event)}>
-      <label className="flex flex-col gap-1 text-sm">
+      <Label className="flex-col items-start gap-1 text-sm">
         <span className="text-white/80">{t("codeLabel")}</span>
-        <input
+        <Input
           value={code}
           onChange={(event) => setCode(event.target.value)}
           required
           maxLength={64}
           autoComplete="off"
           spellCheck={false}
-          className="rounded-md border border-white/15 bg-white/5 px-2 py-1.5 font-mono text-base uppercase tracking-widest text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
+          className="h-auto border-white/15 bg-white/5 px-2 py-1.5 font-mono text-base uppercase tracking-widest text-white focus-visible:border-white/30 focus-visible:ring-1 focus-visible:ring-white/30"
         />
-      </label>
-      <label className="flex flex-col gap-1 text-sm">
+      </Label>
+      <Label className="flex-col items-start gap-1 text-sm">
         <span className="text-white/80">{t("nameLabel")}</span>
-        <input
+        <Input
           value={name}
           onChange={(event) => setName(event.target.value)}
           maxLength={32}
           placeholder={t("namePlaceholder")}
-          className="rounded-md border border-white/15 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
+          className="h-auto border-white/15 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-white/40 focus-visible:border-white/30 focus-visible:ring-1 focus-visible:ring-white/30"
         />
-      </label>
+      </Label>
       <Button type="submit" variant="overlay" disabled={state.kind === "redeeming"}>
         {state.kind === "redeeming" ? t("redeeming") : t("cta")}
       </Button>

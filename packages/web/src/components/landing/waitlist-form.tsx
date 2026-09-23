@@ -3,6 +3,8 @@
 import { useState, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type State = { kind: "idle" } | { kind: "sending" } | { kind: "sent" } | { kind: "error" };
 
@@ -46,17 +48,17 @@ export function WaitlistForm({ source = "landing-hero" }: { source?: string }) {
 
   return (
     <form onSubmit={submit} className="flex w-full max-w-sm flex-col gap-2 sm:flex-row">
-      <label className="sr-only" htmlFor="waitlist-email">
+      <Label className="sr-only" htmlFor="waitlist-email">
         {t("emailLabel")}
-      </label>
-      <input
+      </Label>
+      <Input
         id="waitlist-email"
         type="email"
         required
         placeholder={t("emailLabel")}
         value={email}
         onChange={(event) => setEmail(event.target.value)}
-        className="min-w-0 flex-1 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50"
+        className="h-auto min-w-0 flex-1 rounded-lg border-white/20 bg-white/10 px-3 py-2 text-sm text-white placeholder:text-white/50"
       />
       <Button type="submit" variant="overlay" disabled={state.kind === "sending"}>
         {state.kind === "sending" ? t("sending") : t("submit")}

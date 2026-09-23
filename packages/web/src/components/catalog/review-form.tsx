@@ -4,6 +4,9 @@ import type { ReviewViewerState } from "@escaperoom/shared/services";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 type Status = "idle" | "saving" | "created" | "updated" | "errorContent" | "errorGeneric";
 
@@ -62,7 +65,7 @@ export function ReviewForm({ roomId, initial }: { roomId: string; initial: Revie
         <legend className="text-sm">{t("ratingLabel")}</legend>
         <div className="flex gap-1" role="radiogroup">
           {[1, 2, 3, 4, 5].map((n) => (
-            <label key={n} className="cursor-pointer text-2xl leading-none">
+            <Label key={n} className="cursor-pointer text-2xl leading-none font-normal">
               <input
                 type="radio"
                 name="rating"
@@ -79,29 +82,24 @@ export function ReviewForm({ roomId, initial }: { roomId: string; initial: Revie
                 ★
               </span>
               <span className="sr-only">{t("star", { n })}</span>
-            </label>
+            </Label>
           ))}
         </div>
       </fieldset>
-      <label className="flex flex-col gap-1 text-sm">
+      <Label className="flex flex-col items-start gap-1 text-sm">
         {t("textLabel")}
-        <textarea
+        <Textarea
           name="text"
           value={text}
           onChange={(event) => setText(event.target.value)}
           maxLength={2000}
           rows={4}
-          className="rounded-lg border border-input bg-background p-2 text-sm"
         />
-      </label>
+      </Label>
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={status === "saving" || rating < 1}
-          className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-50"
-        >
+        <Button type="submit" size="lg" disabled={status === "saving" || rating < 1}>
           {status === "saving" ? t("saving") : hasReview ? t("update") : t("submit")}
-        </button>
+        </Button>
         {status !== "idle" && status !== "saving" ? (
           <p
             role={status.startsWith("error") ? "alert" : "status"}

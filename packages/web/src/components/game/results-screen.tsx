@@ -6,6 +6,7 @@ import { cn } from "cn";
 import type { ReactNode } from "react";
 import type { SessionSummary } from "@escaperoom/shared/session";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Link } from "@/i18n/navigation";
 import { formatDuration } from "@/lib/session-format";
 
@@ -50,17 +51,20 @@ export function ResultsScreen({
   const { stats } = summary;
 
   return (
-    <section
-      role="dialog"
-      aria-modal="true"
-      aria-label={t("title")}
-      className={cn(
-        "absolute inset-0 z-20 grid place-items-center bg-black/70 p-4 backdrop-blur",
-        className,
-      )}
-    >
-      <div className="flex w-[min(92vw,26rem)] flex-col items-center gap-5 rounded-2xl border border-white/15 bg-slate-950/95 px-6 py-7 text-center text-white shadow-2xl">
+    <Dialog open>
+      <DialogContent
+        showCloseButton={false}
+        className={cn(
+          "flex w-[min(92vw,26rem)] max-w-none flex-col items-center gap-5 rounded-2xl border-white/15 bg-slate-950/95 px-6 py-7 text-center text-white shadow-2xl sm:max-w-none",
+          className,
+        )}
+      >
         <Icon className={cn("size-12", RESULT_TONE[summary.result])} aria-hidden="true" />
+
+        <DialogTitle className="sr-only">{t("title")}</DialogTitle>
+        <DialogDescription className="sr-only">
+          {t(`result.${summary.result}`)}
+        </DialogDescription>
 
         <header className="flex flex-col gap-1">
           <p className="text-[0.65rem] uppercase tracking-[0.2em] text-white/50">{t("title")}</p>
@@ -110,8 +114,8 @@ export function ResultsScreen({
             </Link>
           </Button>
         </div>
-      </div>
-    </section>
+      </DialogContent>
+    </Dialog>
   );
 }
 

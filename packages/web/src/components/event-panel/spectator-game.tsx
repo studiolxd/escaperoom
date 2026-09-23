@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import { remainingMs, type GameClient } from "@escaperoom/game-runtime/session";
@@ -244,8 +244,8 @@ export function SpectatorView({ client, model }: { client: GameClient; model: Ru
                 <li key={player.id} className="flex items-center gap-2">
                   <span
                     aria-hidden
-                    className="inline-block size-3 rounded-full"
-                    style={{ backgroundColor: player.tint }}
+                    className="tint-dot inline-block size-3 rounded-full"
+                    style={{ "--tint": player.tint } as CSSProperties}
                   />
                   <span>{player.name}</span>
                   <span className="text-xs text-white/50">
