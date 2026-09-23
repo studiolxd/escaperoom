@@ -96,6 +96,25 @@ alfombra roja), 4 variantes de muro, 2 muros decorados (antorcha, tapiz) y trans
 escalera. La **puerta de madera** es un `WorldObject` (sprite suelto `puerta-cerrada`/`puerta-abierta`),
 no un tile.
 
+#### Muros (sprites con altura, no tiles del suelo)
+
+Los muros **no** son tiles del tileset de suelo: se pintan como **sprites con overhang** (pivote
+abajo-centro, depth-sort por `x+y`, `collides: true`), porque **suben** por encima de la celda.
+
+- **Celda/huella:** rombo **2:1** (64×32 a 1×), igual que el suelo.
+- **Lienzo:** más alto que la huella — **64×64** a 1× (**128×128** a 2×); muros altos (con cornisa o
+  viga) hasta **64×96 / 128×192**. Base apoyada en la celda, cuerpo creciendo **hacia arriba** con
+  padding transparente alrededor.
+- **Dos caras visibles:** un muro iso enseña **cara izquierda** y **cara derecha** (y opcionalmente
+  el **canto superior**). Solo esas dos: dibujar las cuatro taparía la sala. Las dos caras siguen la
+  **luz única del pack** (a igual luz: una más clara, otra más oscura).
+- **Tileable y con piezas:** tramo **recto** sin costuras (repetible a lo largo del grid), **esquina**
+  (L) y, si se puede, cruce y **arco/paso**. Variantes: muro **normal**, **con antorcha**,
+  **con tapiz/estandarte**, **con ventana/mirilla**. La **puerta** sigue siendo objeto, no muro.
+- **Transparencia real** en el fondo (nunca un color plano opaco; ver §4.1 — un PNG con fondo opaco
+  deja huecos oscuros entre tiles) y **sin outline en el borde inferior** (se duplicaría entre
+  piezas). Bordes limpios al 0–100 % de alpha para que la **oclusión** (`04` §1) los desvanezca bien.
+
 ### 4.2 Sprites de objetos, estados y decoración
 
 Checklist exacto tomado del fixture: **57 frames únicos**. Cada uno es un sprite isométrico
