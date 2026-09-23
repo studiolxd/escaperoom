@@ -58,7 +58,7 @@ vi.mock("@/i18n/navigation", () => ({
     createElement("a", { href }, children as never),
 }));
 
-const { default: PlayPage } = await import("../src/app/[locale]/play/page");
+const { default: PlayPage } = await import("../src/app/[locale]/(play)/play/page");
 
 const roomPackage = loadRoomPackage(readReyAldricRoomPackageJson());
 const LOCK_CODES = roomPackage.puzzles.flatMap((puzzle) =>

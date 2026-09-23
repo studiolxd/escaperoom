@@ -86,10 +86,12 @@ vi.mock("next-intl/server", () => ({
     createTranslator({ locale, messages: MESSAGES[locale] ?? es, namespace: namespace as never }),
 }));
 
-const { default: RoomDetailPage, generateMetadata: roomMetadata } =
-  await import("../src/app/[locale]/rooms/[roomId]/page");
-const { default: CatalogPage, generateMetadata: catalogMetadata } =
-  await import("../src/app/[locale]/rooms/page");
+const { default: RoomDetailPage, generateMetadata: roomMetadata } = await import(
+  "../src/app/[locale]/(public)/rooms/[roomId]/page"
+);
+const { default: CatalogPage, generateMetadata: catalogMetadata } = await import(
+  "../src/app/[locale]/(public)/rooms/page"
+);
 
 const member = (userId: string): Actor => ({ userId, organizationId: null, role: "member" });
 
