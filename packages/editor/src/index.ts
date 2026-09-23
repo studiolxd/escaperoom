@@ -14,3 +14,4 @@ export * from "./audio-fields";
 export * from "./validation";
 export * from "./room-doc";
 export * from "./inspector";
+export * from "./template-config";

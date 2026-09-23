@@ -565,7 +565,49 @@
         "seconds": "Seconds",
         "zone": "Zone",
         "w": "Width",
-        "h": "Height"
+        "h": "Height",
+        "revealAnimation": "Reveal animation",
+        "keyItemId": "Item granted",
+        "length": "Length",
+        "code": "Code",
+        "maxAttempts": "Max attempts",
+        "lockoutSec": "Lockout after failing (s)",
+        "hints": "Hints",
+        "plates": "Plates",
+        "windowMs": "Simultaneous window (ms)",
+        "soloBridgeItemId": "Bridge item (solo)",
+        "holdMode": "Hold mode",
+        "recipes": "Recipes",
+        "inputs": "Inputs",
+        "output": "Output",
+        "consumeInputs": "Consumes inputs",
+        "description": "Description",
+        "grid": "Grid",
+        "cols": "Columns",
+        "rows": "Rows",
+        "imageAsset": "Image",
+        "scramble": "Scramble",
+        "seed": "Seed",
+        "blankPosition": "Blank position",
+        "pairs": "Pairs",
+        "id": "ID",
+        "symbol": "Symbol",
+        "decoys": "Decoy cards",
+        "maxFlipsPerTurn": "Flips per turn",
+        "winCondition": "Win condition",
+        "targetPairIds": "Target pairs",
+        "turnMode": "Turn mode",
+        "viewpoints": "Viewpoints",
+        "fragments": "Fragments",
+        "visibleByViewpoint": "Visible per viewpoint",
+        "wallOccluder": "Occluding wall",
+        "inputUI": "Answer input",
+        "cellTypes": "Piece types",
+        "startCell": "Start cell",
+        "endCell": "End cell",
+        "blockedCells": "Blocked cells",
+        "opensWithItem": "Opens with",
+        "solution": "Solution (rotations)"
       },
       "options": {
         "first_click": "First player to open it",
@@ -582,7 +624,25 @@
         "sliding_puzzle": "Sliding puzzle",
         "memory": "Memory",
         "split_clue": "Split clue",
-        "pipes": "Pipes"
+        "pipes": "Pipes",
+        "slide": "Slide",
+        "fade": "Fade",
+        "shake": "Shake",
+        "press": "Press (lasts the window)",
+        "stand": "Stand on it",
+        "random": "Random",
+        "fixed_seed": "Fixed seed",
+        "last": "Last cell",
+        "find_all_pairs": "Find all pairs",
+        "find_target_pairs": "Find the target pairs",
+        "shared": "Shared",
+        "per_player": "Per player",
+        "symbols": "Symbols",
+        "code": "Code",
+        "straight": "Straight",
+        "curve": "Curve",
+        "tee": "Tee",
+        "cross": "Cross"
       },
       "texts": {
         "dialogs": "Dialog",
@@ -762,6 +822,29 @@
       "solved": "Puzzle solved: “{id}”",
       "ended": "Game over: {result}",
       "error": "Notice: {message}"
+    }
+  },
+  "TemplateConfig": {
+    "preview": {
+      "title": "Playable preview (as in game)",
+      "solved": "Solved!",
+      "reset": "Restart",
+      "viewpoint": "View from",
+      "unavailable": "The preview will appear once the configuration is valid."
+    },
+    "issues": {
+      "ok": "Configuration is solvable.",
+      "schema": "Incomplete or invalid configuration: {fields}.",
+      "unsolvable": {
+        "hidden_key": "Unsolvable: the hiding spot grants no item (set “Item granted” or “Grants items”).",
+        "code_lock": "Unsolvable: the code must be digits only and match the length.",
+        "simultaneous_plates": "Unsolvable: check the plates (at least one, no duplicates) and the window.",
+        "combine_items": "Unsolvable: at least one recipe with inputs and an output is required.",
+        "sliding_puzzle": "Unsolvable: the scramble is unreachable (parity) or the image, grid or seed is missing.",
+        "memory": "Unsolvable: pairs are empty, duplicated or the targets don't exist.",
+        "split_clue": "Unsolvable: the viewpoints together don't reveal the whole clue.",
+        "pipes": "Unsolvable: there is no water path from start to end (even with the gates open)."
+      }
     }
   }
 }

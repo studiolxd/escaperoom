@@ -281,6 +281,7 @@ function ValidatedWorkspace({
           onOpenRule={openRule}
           onDelete={inspectorTarget?.kind === "puzzle" ? undefined : deleteTarget}
           loadUploads={status !== "local"}
+          pack={pack}
         />
       }
       validation={

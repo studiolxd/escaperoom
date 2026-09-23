@@ -534,7 +534,49 @@
         "seconds": "Sekunden",
         "zone": "Zone",
         "w": "Breite",
-        "h": "Höhe"
+        "h": "Höhe",
+        "revealAnimation": "Aufdeck-Animation",
+        "keyItemId": "Gegebener Gegenstand",
+        "length": "Länge",
+        "code": "Code",
+        "maxAttempts": "Max. Versuche",
+        "lockoutSec": "Sperre nach Fehlversuch (s)",
+        "hints": "Hinweise",
+        "plates": "Platten",
+        "windowMs": "Gleichzeitigkeitsfenster (ms)",
+        "soloBridgeItemId": "Brückengegenstand (solo)",
+        "holdMode": "Haltemodus",
+        "recipes": "Rezepte",
+        "inputs": "Zutaten",
+        "output": "Ergebnis",
+        "consumeInputs": "Verbraucht die Zutaten",
+        "description": "Beschreibung",
+        "grid": "Raster",
+        "cols": "Spalten",
+        "rows": "Zeilen",
+        "imageAsset": "Bild",
+        "scramble": "Mischung",
+        "seed": "Seed",
+        "blankPosition": "Position der Lücke",
+        "pairs": "Paare",
+        "id": "ID",
+        "symbol": "Symbol",
+        "decoys": "Täuschungskarten",
+        "maxFlipsPerTurn": "Aufdeckungen pro Zug",
+        "winCondition": "Siegbedingung",
+        "targetPairIds": "Zielpaare",
+        "turnMode": "Zugmodus",
+        "viewpoints": "Blickpunkte",
+        "fragments": "Fragmente",
+        "visibleByViewpoint": "Sichtbar je Blickpunkt",
+        "wallOccluder": "Verdeckende Wand",
+        "inputUI": "Antworteingabe",
+        "cellTypes": "Teiltypen",
+        "startCell": "Startfeld",
+        "endCell": "Zielfeld",
+        "blockedCells": "Blockierte Felder",
+        "opensWithItem": "Öffnet mit",
+        "solution": "Lösung (Drehungen)"
       },
       "options": {
         "first_click": "Wer es zuerst öffnet",
@@ -551,7 +593,25 @@
         "sliding_puzzle": "Schiebepuzzle",
         "memory": "Memory",
         "split_clue": "Geteilter Hinweis",
-        "pipes": "Rohre"
+        "pipes": "Rohre",
+        "slide": "Gleiten",
+        "fade": "Einblenden",
+        "shake": "Wackeln",
+        "press": "Drücken (hält das Fenster)",
+        "stand": "Draufstehen",
+        "random": "Zufällig",
+        "fixed_seed": "Fester Seed",
+        "last": "Letztes Feld",
+        "find_all_pairs": "Alle Paare finden",
+        "find_target_pairs": "Die Zielpaare finden",
+        "shared": "Gemeinsam",
+        "per_player": "Pro Spieler",
+        "symbols": "Symbole",
+        "code": "Code",
+        "straight": "Gerade",
+        "curve": "Kurve",
+        "tee": "T-Stück",
+        "cross": "Kreuz"
       },
       "texts": {
         "dialogs": "Dialog",
@@ -731,6 +791,29 @@
       "solved": "Rätsel gelöst: „{id}“",
       "ended": "Spielende: {result}",
       "error": "Hinweis: {message}"
+    }
+  },
+  "TemplateConfig": {
+    "preview": {
+      "title": "Spielbare Vorschau (wie im Spiel)",
+      "solved": "Gelöst!",
+      "reset": "Neu starten",
+      "viewpoint": "Ansehen von",
+      "unavailable": "Die Vorschau erscheint, sobald die Konfiguration gültig ist."
+    },
+    "issues": {
+      "ok": "Konfiguration ist lösbar.",
+      "schema": "Unvollständige oder ungültige Konfiguration: {fields}.",
+      "unsolvable": {
+        "hidden_key": "Nicht lösbar: das Versteck gibt keinen Gegenstand (setze „Gegebener Gegenstand“ oder „Gibt Gegenstände“).",
+        "code_lock": "Nicht lösbar: der Code darf nur Ziffern enthalten und muss der Länge entsprechen.",
+        "simultaneous_plates": "Nicht lösbar: prüfe die Platten (mindestens eine, keine Duplikate) und das Fenster.",
+        "combine_items": "Nicht lösbar: mindestens ein Rezept mit Zutaten und Ergebnis ist nötig.",
+        "sliding_puzzle": "Nicht lösbar: die Mischung ist nicht erreichbar (Parität) oder Bild, Raster oder Seed fehlen.",
+        "memory": "Nicht lösbar: Paare sind leer, doppelt oder die Ziele existieren nicht.",
+        "split_clue": "Nicht lösbar: alle Blickpunkte zusammen zeigen nicht den ganzen Hinweis.",
+        "pipes": "Nicht lösbar: kein Wasserweg vom Start zum Ziel (auch mit offenen Schleusen)."
+      }
     }
   }
 }

@@ -8,11 +8,14 @@ import {
   type InspectorLabelsInput,
   type InspectorTarget,
   type LinkedTextSlotProps,
+  type PuzzleConfiguratorSlotProps,
   type RulesGraphLabelsInput,
 } from "@escaperoom/editor";
 import { AUDIO_LIBRARY } from "@escaperoom/shared/audio";
 import { LocalizedAudioField, type AudioUploadSummary } from "@/components/editor/audio-field";
 import { LocalizedTextField } from "@/components/editor/localized-text-field";
+import { PuzzleConfigurator } from "@/components/template-config/puzzle-configurator";
+import type { RoomPreviewPack } from "@/lib/room-preview-pack";
 
 /** Variables CSS del inspector sobre el fondo oscuro del editor. */
 const INSPECTOR_STYLE = {
@@ -48,13 +51,16 @@ export interface RoomEditorInspectorProps {
   onDelete?: (target: InspectorTarget) => void;
   /** Cargar las subidas de audio propias (necesita sesión; no en el demo local). */
   loadUploads?: boolean;
+  /** Pack gráfico de la sala: la vista previa de las plantillas (3.5) lo usa como en juego. */
+  pack?: RoomPreviewPack;
 }
 
 /**
  * Inspector de propiedades (3.4) montado en el editor: los textos salen del
  * namespace `Inspector.labels` (los tipos de trigger, de `RulesGraph.labels`)
  * y los textos localizados usan los campos de 3.10 (texto por idioma) y 3.11
- * (audio por idioma).
+ * (audio por idioma). El slot de la plantilla monta su configurador (3.5): formulario,
+ * aviso del oráculo y vista previa jugable con el componente de juego.
  */
 export function RoomEditorInspector({
   doc,
@@ -63,6 +69,7 @@ export function RoomEditorInspector({
   onOpenRule,
   onDelete,
   loadUploads = false,
+  pack,
 }: RoomEditorInspectorProps) {
   const t = useTranslations("Inspector");
   const tGraph = useTranslations("RulesGraph");
@@ -95,6 +102,10 @@ export function RoomEditorInspector({
     </div>
   );
 
+  const renderPuzzleConfigurator = (slot: PuzzleConfiguratorSlotProps) => (
+    <PuzzleConfigurator doc={slot.doc} puzzle={slot.puzzle} labels={labels} pack={pack} />
+  );
+
   return (
     <div className="dark text-sm" data-testid="room-editor-inspector">
       <Inspector
@@ -105,6 +116,7 @@ export function RoomEditorInspector({
         onOpenRule={onOpenRule}
         onDelete={onDelete}
         renderLocalizedText={renderLocalizedText}
+        renderPuzzleConfigurator={renderPuzzleConfigurator}
         style={INSPECTOR_STYLE}
       />
     </div>
