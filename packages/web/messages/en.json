@@ -1361,5 +1361,26 @@
       "accept": "Accept and continue",
       "error": "Couldn't record your acceptance. Please try again."
     }
+  },
+  "Auth": {
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Continue with Google or a magic link by email"
+    },
+    "signup": {
+      "title": "Create your account",
+      "subtitle": "Sign up with Google or a magic link by email"
+    },
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "emailSubmit": "Send magic link",
+    "continueWith": "Or continue with",
+    "google": "Continue with Google",
+    "emailSent": "We've sent a link to your email.",
+    "error": "Couldn't sign in. Please try again.",
+    "switchToSignupPrompt": "Don't have an account?",
+    "switchToSignupLink": "Create one",
+    "switchToLoginPrompt": "Already have an account?",
+    "switchToLoginLink": "Sign in"
   }
 }
