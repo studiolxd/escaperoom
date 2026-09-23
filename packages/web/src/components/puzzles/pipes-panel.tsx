@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
 import {
@@ -119,8 +119,8 @@ export function PipesPanel({
         aria-label={t("boardLabel")}
         data-slot="pipes-board"
         data-connected={view.connected}
-        className="grid w-fit gap-1 rounded-lg bg-black/40 p-1"
-        style={{ gridTemplateColumns: `repeat(${view.grid.cols}, minmax(0, 1fr))` }}
+        className="grid-cols-dynamic grid w-fit gap-1 rounded-lg bg-black/40 p-1"
+        style={{ "--cols": view.grid.cols } as CSSProperties}
       >
         {view.cells.map((cell) => {
           const depth = wetDepth.get(cell.index);
@@ -210,19 +210,17 @@ function PipeGlyph({
 
   const isGate = cell.gate !== null;
   const openings = isGate ? cell.openings : pipeOpenings(cell.kind, 0);
-  const transform = isGate ? undefined : `rotate(${cell.rotation * 90}deg)`;
-  const waterStyle = {
-    transitionProperty: "stroke, opacity",
-    transitionDuration: "240ms",
-    transitionDelay: wet ? `${delayMs}ms` : "0ms",
-  };
+  const rotate = isGate ? undefined : `rotate(${cell.rotation * 90}deg)`;
+  const waterDelayStyle = {
+    "--water-delay": wet ? `${delayMs}ms` : "0ms",
+  } as CSSProperties;
 
   return (
     <svg
       viewBox="0 0 64 64"
       aria-hidden
-      className="size-full transition-transform duration-200"
-      style={{ transform }}
+      className="pipe-cell-rotate size-full transition-transform duration-200"
+      style={{ "--rotate": rotate } as CSSProperties}
     >
       {ARMS.filter(([bit]) => (openings & bit) !== 0).map(([bit, d]) => (
         <path
@@ -239,8 +237,8 @@ function PipeGlyph({
           d={d}
           strokeWidth={7}
           strokeLinecap="round"
-          className={wet ? "stroke-sky-400" : "stroke-stone-800"}
-          style={waterStyle}
+          className={cn("pipe-water-path", wet ? "stroke-sky-400" : "stroke-stone-800")}
+          style={waterDelayStyle}
         />
       ))}
       {openings !== 0 ? (
@@ -248,8 +246,8 @@ function PipeGlyph({
           cx="32"
           cy="32"
           r="9"
-          className={wet ? "fill-sky-400" : "fill-stone-700"}
-          style={{ ...waterStyle, transitionProperty: "fill" }}
+          className={cn("pipe-water-fill", wet ? "fill-sky-400" : "fill-stone-700")}
+          style={waterDelayStyle}
         />
       ) : null}
       {cell.gate === "closed" ? (

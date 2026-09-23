@@ -4,6 +4,7 @@ import type { ReviewViewerState } from "@escaperoom/shared/services";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Button } from "@/components/ui/button";
 
 type Status = "idle" | "saving" | "created" | "updated" | "errorContent" | "errorGeneric";
 
@@ -95,13 +96,9 @@ export function ReviewForm({ roomId, initial }: { roomId: string; initial: Revie
         />
       </label>
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={status === "saving" || rating < 1}
-          className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-50"
-        >
+        <Button type="submit" size="lg" disabled={status === "saving" || rating < 1}>
           {status === "saving" ? t("saving") : hasReview ? t("update") : t("submit")}
-        </button>
+        </Button>
         {status !== "idle" && status !== "saving" ? (
           <p
             role={status.startsWith("error") ? "alert" : "status"}

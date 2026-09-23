@@ -3,6 +3,7 @@ import { LOCALES } from "@escaperoom/config/locales";
 import { useFormatter, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { CATALOG_PATH } from "@/lib/catalog-seo";
+import { Button } from "@/components/ui/button";
 import { languageName } from "./language-name";
 
 /** Valores de los filtros tal y como están en la URL del listado. */
@@ -117,12 +118,9 @@ export function CatalogFilters({
         </select>
       </label>
       <div className="flex items-end gap-3 sm:col-span-2 lg:col-span-3">
-        <button
-          type="submit"
-          className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/80"
-        >
+        <Button type="submit" size="lg">
           {t("apply")}
-        </button>
+        </Button>
         <Link href={CATALOG_PATH} className="text-sm underline-offset-4 hover:underline">
           {t("reset")}
         </Link>

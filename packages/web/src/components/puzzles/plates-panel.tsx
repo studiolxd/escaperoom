@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
 import type { PlateOutcome, SimultaneousPlatesPublicView } from "@escaperoom/shared/templates";
@@ -93,8 +93,8 @@ export function PlatesPanel({
       >
         <span
           data-slot="plates-progress"
-          className="block h-full rounded-full bg-amber-300/80 transition-[width] duration-150"
-          style={{ width: `${Math.round(progress * 100)}%` }}
+          className="progress-fill block h-full rounded-full bg-amber-300/80 transition-[width] duration-150"
+          style={{ "--progress": `${Math.round(progress * 100)}%` } as CSSProperties}
         />
       </div>
 

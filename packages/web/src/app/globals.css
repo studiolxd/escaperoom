@@ -127,3 +127,49 @@
     @apply font-sans;
   }
 }
+
+/*
+ * Utilidades para valores de estilo calculados en runtime (color de
+ * jugador, columnas de grid, % de progreso, rotación de piezas, etc.).
+ * Se pasan como custom properties vía `style` en vez de propiedades CSS
+ * directas, para mantener la declaración visual en esta hoja de estilos.
+ */
+@layer utilities {
+  .tint-dot {
+    background-color: var(--tint);
+  }
+
+  .grid-cols-dynamic {
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  }
+
+  .progress-fill {
+    width: var(--progress);
+  }
+
+  .pipe-cell-rotate {
+    transform: var(--rotate, none);
+  }
+
+  .pipe-water-path {
+    transition-property: stroke, opacity;
+    transition-duration: 240ms;
+    transition-delay: var(--water-delay, 0ms);
+  }
+
+  .pipe-water-fill {
+    transition-property: fill;
+    transition-duration: 240ms;
+    transition-delay: var(--water-delay, 0ms);
+  }
+
+  .torch-flame {
+    opacity: var(--torch-opacity);
+  }
+
+  .icon-fallback-size {
+    width: var(--icon-size);
+    height: var(--icon-size);
+    font-size: var(--icon-font-size);
+  }
+}

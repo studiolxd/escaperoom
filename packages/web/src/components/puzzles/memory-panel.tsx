@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
 import type { MemoryFlipOutcome, MemoryPublicView } from "@escaperoom/shared/templates";
@@ -103,8 +104,8 @@ export function MemoryPanel({
       >
         <span
           data-slot="memory-progress"
-          className="block h-full rounded-full bg-amber-300/80 transition-[width] duration-150"
-          style={{ width: `${Math.round(progress * 100)}%` }}
+          className="progress-fill block h-full rounded-full bg-amber-300/80 transition-[width] duration-150"
+          style={{ "--progress": `${Math.round(progress * 100)}%` } as CSSProperties}
         />
       </div>
 
@@ -113,8 +114,8 @@ export function MemoryPanel({
       </p>
 
       <div
-        className="grid gap-2"
-        style={{ gridTemplateColumns: `repeat(${view.cols}, minmax(0, 1fr))` }}
+        className="grid-cols-dynamic grid gap-2"
+        style={{ "--cols": view.cols } as CSSProperties}
         role="list"
         aria-label={t("boardLabel")}
       >

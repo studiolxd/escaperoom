@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
 import {
@@ -104,8 +104,8 @@ export function SlidingPanel({
         role="group"
         aria-label={t("boardLabel")}
         data-slot="sliding-board"
-        className="grid w-fit gap-1 rounded-lg bg-black/40 p-1"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        className="grid-cols-dynamic grid w-fit gap-1 rounded-lg bg-black/40 p-1"
+        style={{ "--cols": cols } as CSSProperties}
       >
         {view.tiles.map((tile, index) => {
           const isBlank = tile === 0;

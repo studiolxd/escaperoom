@@ -5,6 +5,7 @@ import type { EditTool, EditorTileLayer } from "@escaperoom/editor";
 import type { EditorPalette } from "@escaperoom/game-runtime";
 import type { WorldObject } from "@escaperoom/shared/schemas";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 export interface RoomEditorPaletteProps {
   palette: EditorPalette;
@@ -51,10 +52,11 @@ export function RoomEditorPalette({
           const active = paintsTiles && tile.tileId === tileId;
           return (
             <li key={tile.tileId}>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 className={cn(
-                  "flex w-full flex-col items-center rounded border p-1 text-[10px] text-white/70",
+                  "h-auto w-full flex-col items-center rounded border p-1 text-[10px] text-white/70",
                   active ? "border-sky-400 bg-sky-400/15" : "border-white/10 hover:border-white/30",
                 )}
                 aria-pressed={active}
@@ -66,7 +68,7 @@ export function RoomEditorPalette({
               >
                 <Thumbnail src={tile.thumbnail} label={String(tile.tileId)} />
                 {tile.tileId}
-              </button>
+              </Button>
             </li>
           );
         })}
@@ -94,10 +96,11 @@ export function RoomEditorPalette({
             const count = placed.get(entry.sprite) ?? 0;
             return (
               <li key={entry.sprite}>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   className={cn(
-                    "flex w-full flex-col items-center rounded border p-1 text-[10px] text-white/70",
+                    "h-auto w-full flex-col items-center rounded border p-1 text-[10px] text-white/70",
                     active && decorating
                       ? "border-emerald-400 bg-emerald-400/15"
                       : active
@@ -112,7 +115,7 @@ export function RoomEditorPalette({
                   {count > 0 && (
                     <span className="text-white/50">{t("palette.placed", { count })}</span>
                   )}
-                </button>
+                </Button>
               </li>
             );
           })}

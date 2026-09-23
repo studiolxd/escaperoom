@@ -129,13 +129,14 @@ export function PlaytestButton({ roomId, disabled }: PlaytestButtonProps) {
               </div>
             </>
           )}
-          <button
+          <Button
             type="button"
-            className="text-xs text-white/50 underline"
+            variant="link"
+            className="h-auto p-0 text-xs text-white/50"
             onClick={() => setState({ kind: "idle" })}
           >
             {t("editor.dismiss")}
-          </button>
+          </Button>
         </div>
       ) : null}
     </div>

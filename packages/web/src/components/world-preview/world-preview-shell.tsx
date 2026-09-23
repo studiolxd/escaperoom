@@ -112,17 +112,18 @@ export function WorldPreviewShell({ model }: { model: RuntimeModel }) {
       </div>
 
       {dialog ? (
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => setDialog(null)}
-          className="absolute inset-x-4 bottom-4 mx-auto max-w-2xl cursor-pointer rounded-xl border border-amber-200/40 bg-slate-950/90 px-5 py-4 text-left text-sm text-white shadow-lg backdrop-blur"
+          className="absolute inset-x-4 bottom-4 mx-auto block h-auto max-w-2xl cursor-pointer rounded-xl border border-amber-200/40 bg-slate-950/90 px-5 py-4 text-left text-sm whitespace-normal text-white shadow-lg backdrop-blur hover:bg-slate-950/90"
         >
           <span className="block text-[0.65rem] uppercase tracking-wide text-amber-200/70">
             Diálogo (React)
           </span>
           {dialog}
           <span className="mt-1 block text-[0.65rem] text-white/40">Clic para cerrar</span>
-        </button>
+        </Button>
       ) : null}
 
       {panel ? (

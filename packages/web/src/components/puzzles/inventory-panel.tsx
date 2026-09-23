@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type DragEvent, type ReactNode } from "react";
+import { useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
 import type { CombinationOutcome, CombineItemsPublicView } from "@escaperoom/shared/templates";
@@ -149,8 +149,8 @@ export function InventoryPanel({
       </header>
 
       <div
-        className="grid gap-2"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        className="grid-cols-dynamic grid gap-2"
+        style={{ "--cols": cols } as CSSProperties}
         role="list"
         aria-label={t("gridLabel")}
       >

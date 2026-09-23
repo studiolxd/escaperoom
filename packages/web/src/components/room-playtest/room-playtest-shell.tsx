@@ -651,13 +651,14 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
                       name={labelForItem(model, itemId)}
                       size={16}
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="link"
                       onClick={openInventory}
-                      className="cursor-pointer hover:underline"
+                      className="h-auto p-0 text-[0.7rem] text-amber-100"
                     >
                       {labelForItem(model, itemId)}
-                    </button>
+                    </Button>
                   </li>
                 ))
               )}
@@ -759,19 +760,20 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
       ) : null}
 
       {dialog ? (
-        <button
+        <Button
           type="button"
+          variant="ghost"
           data-testid="playtest-dialog"
           data-intro={introOpen}
           onClick={closeDialog}
-          className="absolute inset-x-4 bottom-40 z-30 mx-auto max-w-2xl cursor-pointer rounded-xl border border-amber-200/40 bg-slate-950/90 px-5 py-4 text-left text-sm text-white shadow-lg backdrop-blur"
+          className="absolute inset-x-4 bottom-40 z-30 mx-auto block h-auto max-w-2xl cursor-pointer rounded-xl border border-amber-200/40 bg-slate-950/90 px-5 py-4 text-left text-sm whitespace-normal text-white shadow-lg backdrop-blur hover:bg-slate-950/90"
         >
           <span className="block text-[0.65rem] uppercase tracking-wide text-amber-200/70">
             {introOpen ? t("intro") : t("dialog")}
           </span>
           {dialog.text}
           <span className="mt-1 block text-[0.65rem] text-white/40">{t("close")}</span>
-        </button>
+        </Button>
       ) : null}
 
       {inventoryOpen ? (

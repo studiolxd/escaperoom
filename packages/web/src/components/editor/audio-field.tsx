@@ -4,6 +4,7 @@ import { useId, useState, type ChangeEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { cn } from "cn";
 import { setLocalizedAudioUrl, type YLocalizedText } from "@escaperoom/editor";
+import { Button } from "@/components/ui/button";
 import {
   AUDIO_KINDS,
   libraryAudioRef,
@@ -242,9 +243,10 @@ export function LocalizedAudioField({
         {languages.map((code) => {
           const hasAudio = Boolean(value[code]?.audioUrl);
           return (
-            <button
+            <Button
               key={code}
               type="button"
+              variant="ghost"
               role="tab"
               aria-selected={code === active}
               data-language={code}
@@ -256,13 +258,13 @@ export function LocalizedAudioField({
               }
               onClick={() => setSelected(code)}
               className={cn(
-                "inline-flex h-7 items-center gap-1 rounded-md border px-2 text-xs font-medium uppercase",
+                "h-7 items-center gap-1 rounded-md border px-2 text-xs font-medium uppercase",
                 code === active ? "border-primary bg-primary/10" : "border-border hover:bg-muted",
               )}
             >
               {code}
               {hasAudio && <span aria-hidden="true">♪</span>}
-            </button>
+            </Button>
           );
         })}
       </div>
