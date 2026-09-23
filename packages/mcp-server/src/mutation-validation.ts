@@ -36,8 +36,12 @@ import type { DraftDoc, RoomDocToPackage } from "./room-draft-reader";
 export type SchemaProblem = { key: string; path: string; message: string };
 
 /** Foto del draft para el validador incremental. */
-export type DraftSnapshot =
-  { status: "valid"; report: ValidationReport } | { status: "invalid"; problems: SchemaProblem[] };
+export type DraftSnapshot = (
+  { status: "valid"; report: ValidationReport } | { status: "invalid"; problems: SchemaProblem[] }
+) & {
+  /** Hash del RoomPackage serializado: mismo contenido ⇒ mismo informe. */
+  digest: string;
+};
 
 /** Colecciones del RoomPackage cuyas entradas tienen `id` (para huellas estables). */
 const ID_COLLECTIONS = new Set([
@@ -74,19 +78,29 @@ function stablePath(raw: unknown, path: string): string {
 
 /**
  * Serializa el doc UNA vez (`roomDocToPackage`), lo pasa por el esquema y, si
- * es un RoomPackage, corre el validador.
+ * es un RoomPackage, corre el validador. Si el paquete es idéntico al de
+ * `previous` (p. ej. un `replace` con el mismo contenido), reutiliza su foto
+ * sin volver a validar.
  */
-export function snapshotDraft(doc: DraftDoc, toPackage: RoomDocToPackage): DraftSnapshot {
+export function snapshotDraft(
+  doc: DraftDoc,
+  toPackage: RoomDocToPackage,
+  previous?: DraftSnapshot,
+): DraftSnapshot {
   const raw = toPackage(doc);
+  const digest = createHash("sha256")
+    .update(JSON.stringify(raw) ?? "")
+    .digest("base64url");
+  if (previous?.digest === digest) return previous;
   const parsed = safeParseRoomPackage(raw);
   if (!parsed.success) {
     const problems = toReadableIssues(parsed.error).map(({ path, message }) => {
       const stable = stablePath(raw, path);
       return { key: `${stable}|${message}`, path: stable || "(raíz)", message };
     });
-    return { status: "invalid", problems };
+    return { status: "invalid", problems, digest };
   }
-  return { status: "valid", report: validateRoomPackage(parsed.data) };
+  return { status: "valid", report: validateRoomPackage(parsed.data), digest };
 }
 
 /**

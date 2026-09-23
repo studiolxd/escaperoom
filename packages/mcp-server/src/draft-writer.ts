@@ -133,7 +133,8 @@ export type MutationOutcome<T> = {
  *    del draft (una copia en memoria: el doc real es el del canal del editor)
  *    y serializa el resultado una sola vez;
  * 3. validador incremental: compara la foto de después con la de antes (de la
- *    caché si la hay; si no, de una segunda reconstrucción del draft);
+ *    caché si la hay; si no, de una segunda reconstrucción del draft). Si el
+ *    paquete no cambia (un `replace` idéntico), se reutiliza el informe;
  * 4. si introduce ❌ nuevos lanza `VALIDATION_FAILED` con el error accionable
  *    (nada se escribe); si solo introduce 🟡, sigue y los devuelve;
  * 5. commit del update de la transacción al canal del editor (salvo `dryRun`).
@@ -182,9 +183,9 @@ export async function mutateDraft<T>(
     let validation: MutationValidation | null = null;
     let afterEntry: { key: string; snapshot: DraftSnapshot } | null = null;
     if (toPackage && beforeKey) {
-      const after = snapshotDraft(doc, toPackage);
       const before = cache.get(beforeKey) ?? snapshotBaseline(draft, toPackage);
       cache.set(beforeKey, before);
+      const after = snapshotDraft(doc, toPackage, before);
       validation = judgeMutation(tool, before, after, { dryRun });
       afterEntry = { key: DraftSnapshotCache.key(roomId, doc), snapshot: after };
     }

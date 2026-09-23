@@ -201,7 +201,8 @@ describe("toolset de lógica y consulta (4.3)", () => {
       const result = await call(client, "add_rule", { roomId, rule, replace: true });
       expect(result.isError, `${rule.id}: ${result.text}`).toBe(false);
     }
-  });
+    // Una llamada por regla, cada una con el validador incremental de 4.4: margen para CI.
+  }, 30_000);
 
   it("vistas filtradas: get_puzzle con sus pistas y reglas", async () => {
     const { deps } = await createAldricDeps();
