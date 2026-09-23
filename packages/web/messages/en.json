@@ -1333,5 +1333,26 @@
       "ctaOpenEditor": "Open the editor to publish",
       "ctaFinish": "Finish"
     }
+  },
+  "PublicNav": {
+    "logo": "Escape room",
+    "catalog": "Catalog",
+    "contact": "Contact",
+    "createCta": "Create your room",
+    "footer": {
+      "tagline": "Cooperative escape rooms made by our community.",
+      "rights": "© {year} Escape room. All rights reserved."
+    }
+  },
+  "Contact": {
+    "metaTitle": "Contact",
+    "title": "Contact",
+    "subtitle": "Questions, suggestions, or want to collaborate? Write to us.",
+    "nameLabel": "Name",
+    "emailLabel": "Email",
+    "messageLabel": "Message",
+    "submit": "Send message",
+    "success": "Thanks! We received your message and will get back to you soon.",
+    "placeholderNotice": "This form is a placeholder: it doesn't send to any real system yet."
   }
 }

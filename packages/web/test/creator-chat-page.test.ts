@@ -54,7 +54,9 @@ vi.mock("next-intl/server", () => ({
     createTranslator({ locale, messages: MESSAGES[locale] ?? es, namespace: namespace as never }),
 }));
 
-const { default: CreatorChatPage } = await import("../src/app/[locale]/creator/chat/page");
+const { default: CreatorChatPage } = await import(
+  "../src/app/[locale]/(creator)/creator/chat/page"
+);
 const { CreatorChat } = await import("../src/components/creator-chat/creator-chat");
 
 const AUTHOR: Actor = { userId: "autora", organizationId: null, role: "member" };

@@ -1243,5 +1243,26 @@
       "VALIDATION_ERROR": "Cette décision n'est pas valable pour ce contenu.",
       "UNKNOWN": "Une erreur s'est produite. Réessayez."
     }
+  },
+  "PublicNav": {
+    "logo": "Escape room",
+    "catalog": "Catalogue",
+    "contact": "Contact",
+    "createCta": "Crée ta salle",
+    "footer": {
+      "tagline": "Escape rooms coopératifs créés par notre communauté.",
+      "rights": "© {year} Escape room. Tous droits réservés."
+    }
+  },
+  "Contact": {
+    "metaTitle": "Contact",
+    "title": "Contact",
+    "subtitle": "Des questions, des suggestions ou envie de collaborer ? Écrivez-nous.",
+    "nameLabel": "Nom",
+    "emailLabel": "Email",
+    "messageLabel": "Message",
+    "submit": "Envoyer le message",
+    "success": "Merci ! Nous avons bien reçu votre message et nous vous répondrons bientôt.",
+    "placeholderNotice": "Ce formulaire est un placeholder : il n'envoie encore rien à un système réel."
   }
 }
