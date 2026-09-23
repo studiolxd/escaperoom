@@ -449,7 +449,9 @@
       "brush": "Penseel",
       "fill": "Vullen",
       "eraser": "Gum",
-      "place": "Plaatsen"
+      "place": "Plaatsen",
+      "decorate": "Decoreren",
+      "torch": "Fakkel"
     },
     "layers": {
       "label": "Laag",
@@ -467,7 +469,11 @@
       "objects": "Objecten",
       "tileTitle": "Tegel {tileId} · {layer}",
       "placed": "{count, plural, one {# geplaatst} other {# geplaatst}}",
-      "empty": "Dit pack heeft geen objecten."
+      "empty": "Dit pack heeft geen objecten.",
+      "decorations": "Decoratie",
+      "placeHint": "Kies een sprite om die als interactief object te plaatsen.",
+      "decoratePick": "Kies een sprite om die als decoratie te plaatsen.",
+      "decorateHint": "Klik op het canvas om ‘{sprite}’ als decoratie te plaatsen."
     },
     "selection": {
       "title": "Selectie",
@@ -488,12 +494,37 @@
       "OUT_OF_BOUNDS": "Dat vak ligt buiten de kamer.",
       "DUPLICATE_ID": "Die ID is al in gebruik.",
       "INVALID_ID": "Gebruik alleen kleine letters, cijfers en koppeltekens (bijv. kist-troon).",
-      "REFERENCED_ID": "Dat object wordt al gebruikt in regels of puzzels; hernoem het vanuit de inspector."
+      "REFERENCED_ID": "Dat object wordt al gebruikt in regels of puzzels; hernoem het vanuit de inspector.",
+      "UNKNOWN_DECORATION": "Die decoratie bestaat niet meer.",
+      "UNKNOWN_LIGHT": "Dat licht bestaat niet meer.",
+      "INVALID_VALUE": "Ongeldige waarde: de kleur is #rrggbb en de intensiteit loopt van 0 tot 1."
     },
     "canvas": {
       "label": "Weergave",
       "map": "Kaart",
       "rules": "Regels"
+    },
+    "roomPanel": {
+      "title": "Kamer ‘{room}’",
+      "decorations": "Decoratie",
+      "decorationsEmpty": "Geen decoratie.",
+      "decorationsHint": "Gebruik het gereedschap Decoreren en kies een sprite uit het palet om meer te plaatsen.",
+      "sprite": "Sprite",
+      "x": "Kolom",
+      "y": "Rij",
+      "removeDecoration": "Decoratie ‘{sprite}’ verwijderen",
+      "lighting": "Verlichting",
+      "ambient": "Omgevingslicht",
+      "color": "Kleur van het omgevingslicht",
+      "intensity": "Intensiteit",
+      "removeAmbient": "Omgevingslicht verwijderen",
+      "addAmbient": "Omgevingslicht toevoegen",
+      "torches": "Fakkels",
+      "torchesEmpty": "Geen fakkels.",
+      "torchesHint": "Gebruik het gereedschap Fakkel: op een object geplaatst gaat de fakkel mee aan en uit.",
+      "governedBy": "Object dat hem bestuurt",
+      "noObject": "Altijd aan",
+      "removeTorch": "Fakkel verwijderen"
     }
   },
   "Inspector": {

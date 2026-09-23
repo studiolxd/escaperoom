@@ -68,6 +68,7 @@ Organizado por fase de creación, con esquemas Zod (compartidos desde `packages/
 | `add_puzzle({id, type, config})` | Las plantillas con su config (code, recetas, placas…) |
 | `add_dialog({id, text, conditions?})` | Textos narrativos |
 | `add_hint({puzzleId, tier, text, cost})` | Sistema de pistas |
+| `decorate_subroom({subroomId, decorations?, lighting?})` | Decoración (sprites sin interacción) e iluminación (antorchas por celda u objeto + luz ambiente) de una habitación; cada lista sustituye a la actual |
 
 ### Fase C — Lógica
 

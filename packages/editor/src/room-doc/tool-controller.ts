@@ -12,6 +12,7 @@ import {
   type Cell,
   type RoomDocErrorCode,
 } from "./commands";
+import { addDecoration, addTorch } from "./decor";
 import type { EditorTileLayer } from "./doc-model";
 
 /**
@@ -25,7 +26,15 @@ import type { EditorTileLayer } from "./doc-model";
  * curso); la sala vive siempre en el doc.
  */
 
-export const EDIT_TOOLS = ["select", "brush", "fill", "eraser", "place"] as const;
+export const EDIT_TOOLS = [
+  "select",
+  "brush",
+  "fill",
+  "eraser",
+  "place",
+  "decorate",
+  "torch",
+] as const;
 export type EditTool = (typeof EDIT_TOOLS)[number];
 
 /** Evento de puntero del runtime en modo edición (misma forma que `EditPointerEvent`). */
@@ -47,7 +56,7 @@ export type ToolState = {
   tool: EditTool;
   layer: EditorTileLayer;
   tileId: number;
-  /** Sprite que coloca la herramienta `place`. */
+  /** Sprite que coloca la herramienta `place` (objeto) o `decorate` (decoración). */
   sprite?: string;
   roomId: string;
   selectedObjectId?: string;
@@ -59,6 +68,8 @@ export type ToolState = {
   drag?: { objectId: string; cell: Cell; grab: Cell; from: Cell };
   /** Último id colocado (para enfocar el campo de renombrado). */
   lastPlacedId?: string;
+  /** Última decoración o antorcha colocada (índice en su lista de la habitación). */
+  lastPlacedDecor?: { kind: "decoration" | "torch"; roomId: string; index: number };
   /**
    * Último error de un comando. `code` es el de `RoomDocError` (la UI lo
    * traduce) o `UNKNOWN`.
@@ -122,10 +133,20 @@ export class EditToolController {
     });
   }
 
-  /** Elige un objeto de la palette: la herramienta pasa a `place`. */
+  /**
+   * Elige un sprite de la palette: la herramienta pasa a `place` (objeto),
+   * salvo que ya estuviera en `decorate`, que lo coloca como decoración.
+   */
   selectSprite(sprite: string): void {
     this.stroke = undefined;
-    this.update({ sprite, tool: "place", drag: undefined, error: undefined });
+    const tool = this.state.tool === "decorate" ? "decorate" : "place";
+    this.update({ sprite, tool, drag: undefined, error: undefined });
+  }
+
+  /** Elige un sprite de la palette para colocarlo como decoración (herramienta `decorate`). */
+  selectDecorationSprite(sprite: string): void {
+    this.stroke = undefined;
+    this.update({ sprite, tool: "decorate", drag: undefined, error: undefined });
   }
 
   setRoom(roomId: string): void {
@@ -170,6 +191,12 @@ export class EditToolController {
       case "place":
         if (event.phase === "down") this.handlePlace(event.cell);
         return;
+      case "decorate":
+        if (event.phase === "down") this.handleDecorate(event.cell);
+        return;
+      case "torch":
+        if (event.phase === "down") this.handleTorch(event);
+        return;
       case "select":
         this.handleSelect(event);
         return;
@@ -204,6 +231,28 @@ export class EditToolController {
     if (!sprite || !isCellInRoom(this.doc, roomId, cell)) return;
     const id = placeObject(this.doc, { roomId, sprite, position: cell });
     this.update({ selectedObjectId: id, lastPlacedId: id, error: undefined });
+  }
+
+  private handleDecorate(cell: Cell): void {
+    const { sprite, roomId } = this.state;
+    if (!sprite || !isCellInRoom(this.doc, roomId, cell)) return;
+    const index = addDecoration(this.doc, roomId, { sprite, x: cell.x, y: cell.y });
+    this.update({ lastPlacedDecor: { kind: "decoration", roomId, index }, error: undefined });
+  }
+
+  /** Antorcha en la celda; si se pulsa sobre un objeto, queda gobernada por él (specs/04 §3.4). */
+  private handleTorch(event: ToolPointerEvent): void {
+    const { roomId } = this.state;
+    const { cell } = event;
+    if (!isCellInRoom(this.doc, roomId, cell)) return;
+    const objectId =
+      event.objectId && readObject(this.doc, event.objectId) ? event.objectId : undefined;
+    const index = addTorch(this.doc, roomId, {
+      x: cell.x,
+      y: cell.y,
+      ...(objectId ? { objectId } : {}),
+    });
+    this.update({ lastPlacedDecor: { kind: "torch", roomId, index }, error: undefined });
   }
 
   private handleSelect(event: ToolPointerEvent): void {

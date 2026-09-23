@@ -449,7 +449,9 @@
       "brush": "Pinsel",
       "fill": "Füllen",
       "eraser": "Radierer",
-      "place": "Platzieren"
+      "place": "Platzieren",
+      "decorate": "Dekorieren",
+      "torch": "Fackel"
     },
     "layers": {
       "label": "Ebene",
@@ -467,7 +469,11 @@
       "objects": "Objekte",
       "tileTitle": "Kachel {tileId} · {layer}",
       "placed": "{count, plural, one {# platziert} other {# platziert}}",
-      "empty": "Dieses Pack hat keine Objekte."
+      "empty": "Dieses Pack hat keine Objekte.",
+      "decorations": "Dekoration",
+      "placeHint": "Wähle ein Sprite, um es als interaktives Objekt zu platzieren.",
+      "decoratePick": "Wähle ein Sprite, um es als Dekoration zu platzieren.",
+      "decorateHint": "Klicke auf die Zeichenfläche, um „{sprite}“ als Dekoration zu platzieren."
     },
     "selection": {
       "title": "Auswahl",
@@ -488,12 +494,37 @@
       "OUT_OF_BOUNDS": "Dieses Feld liegt außerhalb des Raums.",
       "DUPLICATE_ID": "Diese ID wird bereits verwendet.",
       "INVALID_ID": "Nur Kleinbuchstaben, Ziffern und Bindestriche (z. B. truhe-thron).",
-      "REFERENCED_ID": "Dieses Objekt wird bereits von Regeln oder Rätseln verwendet; benenne es im Inspektor um."
+      "REFERENCED_ID": "Dieses Objekt wird bereits von Regeln oder Rätseln verwendet; benenne es im Inspektor um.",
+      "UNKNOWN_DECORATION": "Diese Dekoration existiert nicht mehr.",
+      "UNKNOWN_LIGHT": "Dieses Licht existiert nicht mehr.",
+      "INVALID_VALUE": "Ungültiger Wert: Die Farbe ist #rrggbb und die Intensität reicht von 0 bis 1."
     },
     "canvas": {
       "label": "Ansicht",
       "map": "Karte",
       "rules": "Regeln"
+    },
+    "roomPanel": {
+      "title": "Raum „{room}“",
+      "decorations": "Dekoration",
+      "decorationsEmpty": "Keine Dekoration.",
+      "decorationsHint": "Nutze das Werkzeug Dekorieren und wähle ein Sprite aus der Palette, um weitere zu platzieren.",
+      "sprite": "Sprite",
+      "x": "Spalte",
+      "y": "Zeile",
+      "removeDecoration": "Dekoration „{sprite}“ entfernen",
+      "lighting": "Beleuchtung",
+      "ambient": "Umgebungslicht",
+      "color": "Farbe des Umgebungslichts",
+      "intensity": "Intensität",
+      "removeAmbient": "Umgebungslicht entfernen",
+      "addAmbient": "Umgebungslicht hinzufügen",
+      "torches": "Fackeln",
+      "torchesEmpty": "Keine Fackeln.",
+      "torchesHint": "Nutze das Werkzeug Fackel: Auf einem Objekt platziert, geht die Fackel mit ihm an und aus.",
+      "governedBy": "Steuerndes Objekt",
+      "noObject": "Immer an",
+      "removeTorch": "Fackel entfernen"
     }
   },
   "Inspector": {

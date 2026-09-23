@@ -30,7 +30,10 @@ export type RoomDocErrorCode =
   | "UNKNOWN_PUZZLE"
   | "UNKNOWN_ITEM"
   | "UNKNOWN_DIALOG"
-  | "UNKNOWN_LANGUAGE";
+  | "UNKNOWN_LANGUAGE"
+  | "UNKNOWN_DECORATION"
+  | "UNKNOWN_LIGHT"
+  | "INVALID_VALUE";
 
 export class RoomDocError extends Error {
   readonly code: RoomDocErrorCode;

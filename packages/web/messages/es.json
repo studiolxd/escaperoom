@@ -491,7 +491,9 @@
       "brush": "Pincel",
       "fill": "Relleno",
       "eraser": "Borrador",
-      "place": "Colocar"
+      "place": "Colocar",
+      "decorate": "Decorar",
+      "torch": "Antorcha"
     },
     "layers": {
       "label": "Capa",
@@ -509,7 +511,11 @@
       "objects": "Objetos",
       "tileTitle": "Tile {tileId} · {layer}",
       "placed": "{count, plural, one {# colocado} other {# colocados}}",
-      "empty": "El pack no tiene objetos."
+      "empty": "El pack no tiene objetos.",
+      "decorations": "Decoración",
+      "placeHint": "Elige un sprite para colocarlo como objeto interactuable.",
+      "decoratePick": "Elige un sprite para colocarlo como decoración.",
+      "decorateHint": "Haz clic en el lienzo para colocar «{sprite}» como decoración."
     },
     "selection": {
       "title": "Selección",
@@ -530,12 +536,37 @@
       "OUT_OF_BOUNDS": "Esa celda está fuera de la habitación.",
       "DUPLICATE_ID": "Ya hay algo con ese ID.",
       "INVALID_ID": "Usa solo minúsculas, números y guiones (p. ej. arca-trono).",
-      "REFERENCED_ID": "Ese objeto ya se usa en reglas o puzzles; cámbiale el ID desde el inspector."
+      "REFERENCED_ID": "Ese objeto ya se usa en reglas o puzzles; cámbiale el ID desde el inspector.",
+      "UNKNOWN_DECORATION": "Esa decoración ya no existe.",
+      "UNKNOWN_LIGHT": "Esa luz ya no existe.",
+      "INVALID_VALUE": "Valor no válido: el color es #rrggbb y la intensidad va de 0 a 1."
     },
     "canvas": {
       "label": "Vista",
       "map": "Mapa",
       "rules": "Reglas"
+    },
+    "roomPanel": {
+      "title": "Habitación «{room}»",
+      "decorations": "Decoración",
+      "decorationsEmpty": "Sin decoración.",
+      "decorationsHint": "Usa la herramienta Decorar y elige un sprite de la palette para colocar más.",
+      "sprite": "Sprite",
+      "x": "Columna",
+      "y": "Fila",
+      "removeDecoration": "Quitar decoración «{sprite}»",
+      "lighting": "Iluminación",
+      "ambient": "Luz ambiente",
+      "color": "Color de la luz ambiente",
+      "intensity": "Intensidad",
+      "removeAmbient": "Quitar luz ambiente",
+      "addAmbient": "Añadir luz ambiente",
+      "torches": "Antorchas",
+      "torchesEmpty": "Sin antorchas.",
+      "torchesHint": "Usa la herramienta Antorcha: sobre un objeto, la antorcha se enciende o apaga con él.",
+      "governedBy": "Objeto que la gobierna",
+      "noObject": "Siempre encendida",
+      "removeTorch": "Quitar antorcha"
     }
   },
   "Inspector": {
