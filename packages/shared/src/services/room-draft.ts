@@ -101,6 +101,21 @@ export type AppendUpdateResult = {
 };
 
 /**
+ * Puerto (ADR-022) para avisar a OTROS procesos de que un update se acaba de
+ * persistir — el adaptador Redis es `@escaperoom/kit/room-sync`
+ * (`publishDraftUpdate`), inyectado por cada composition root (web,
+ * `mcp-server` por stdio). Sin él, el servicio persiste igual: la propagación
+ * entre procesos del `editor-sync` (specs/09 §2, decisión 2026-09-23) es un
+ * extra, nunca un requisito de la escritura. Debe fallar en silencio: un
+ * error aquí no debe impedir que el update quede persistido.
+ */
+export type DraftUpdatePublisher = (event: {
+  roomId: string;
+  update: Uint8Array;
+  authorId: string | null;
+}) => void | Promise<void>;
+
+/**
  * Punto del historial al que restaurar: un snapshot (`GET …/history`) o un
  * `roomUpdate.id` concreto. `{ updateId: 0n }` = el doc vacío inicial.
  */
@@ -225,10 +240,26 @@ export function createRoomDraftService(deps: {
   store: RoomDraftStore;
   snapshotEvery?: number;
   maxUpdateBytes?: number;
+  /** Ver `DraftUpdatePublisher`; opcional (sin él, no hay propagación entre procesos). */
+  publish?: DraftUpdatePublisher;
 }) {
   const { store } = deps;
   const snapshotEvery = deps.snapshotEvery ?? DEFAULT_SNAPSHOT_EVERY;
   const maxUpdateBytes = deps.maxUpdateBytes ?? DEFAULT_MAX_UPDATE_BYTES;
+
+  /** Avisa a otros procesos; nunca lanza (best-effort, ver `DraftUpdatePublisher`). */
+  async function notifyPublished(
+    roomId: string,
+    update: Uint8Array,
+    authorId: string | null,
+  ): Promise<void> {
+    if (!deps.publish) return;
+    try {
+      await deps.publish({ roomId, update, authorId });
+    } catch {
+      // Best-effort: la propagación entre procesos nunca debe romper la escritura.
+    }
+  }
 
   /** Resuelve el `roomUpdate.id` hasta el que llega el punto de restauración. */
   async function resolveRestorePoint(roomId: string, target: RestoreTarget): Promise<bigint> {
@@ -345,7 +376,11 @@ export function createRoomDraftService(deps: {
       }
       const authorId = opts.authorId === undefined ? actor.userId : opts.authorId;
 
-      return store.withRoomLock(roomId, (tx) => appendInTx(tx, roomId, data, authorId));
+      const result = await store.withRoomLock(roomId, (tx) =>
+        appendInTx(tx, roomId, data, authorId),
+      );
+      await notifyPublished(roomId, data, authorId);
+      return result;
     },
 
     /**
@@ -384,10 +419,15 @@ export function createRoomDraftService(deps: {
     ): Promise<AppendUpdateResult | null> {
       await authorize(actor, roomId);
       const through = await resolveRestorePoint(roomId, target);
-      return store.withRoomLock(roomId, async (tx) => {
+      let restoreUpdate: Uint8Array | null = null;
+      const result = await store.withRoomLock(roomId, async (tx) => {
         const update = await planRestoreInTx(tx, roomId, through);
-        return update ? appendInTx(tx, roomId, update, actor.userId) : null;
+        if (!update) return null;
+        restoreUpdate = update;
+        return appendInTx(tx, roomId, update, actor.userId);
       });
+      if (result && restoreUpdate) await notifyPublished(roomId, restoreUpdate, actor.userId);
+      return result;
     },
 
     /** Fuerza una compactación (p. ej. al cerrar la última sesión de edición). */

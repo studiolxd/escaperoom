@@ -38,6 +38,24 @@ import {
  * permiso se resuelven en el handshake con las mismas funciones que las rutas
  * REST (`resolveActor` + `RoomDraftService.checkAccess`).
  */
+/** Update de otro proceso `editor-sync` (o de un writer sin sesión viva) recibido por Redis. */
+export type RemoteDraftUpdate = { roomId: string; update: Uint8Array; originId: string };
+
+/**
+ * Puerto de propagación ENTRE procesos `editor-sync` (specs/09 §2, decisión
+ * 2026-09-23): el adaptador es `@escaperoom/kit/room-sync` (Redis pub/sub),
+ * inyectado desde `createWebEditorSyncServer`. La publicación hacia otros
+ * procesos NO pasa por aquí — la hace `RoomDraftService.appendUpdate` al
+ * persistir (así cubre también las escrituras del MCP/REST sin sesión viva
+ * en este proceso); este puerto es solo para RECIBIR lo que otros publicaron.
+ */
+export type RemoteDraftSync = {
+  /** Se suscribe a updates de otros procesos; devuelve una función para desuscribirse. */
+  subscribe(onUpdate: (event: RemoteDraftUpdate) => void): () => void;
+  /** Id de ESTE proceso: los eventos con este `originId` son un eco propio y se ignoran. */
+  originId: string;
+};
+
 export type EditorSyncServerOptions = {
   drafts: RoomDraftService;
   /** Deriva el actor de la petición HTTP de upgrade (cookies / Authorization). */
@@ -49,7 +67,17 @@ export type EditorSyncServerOptions = {
   /** Intervalo de ping para detectar conexiones muertas (0 lo desactiva). */
   pingIntervalMs?: number;
   logger?: Pick<Console, "warn" | "error">;
+  /**
+   * Canal de sincronización entre procesos (Redis). Sin él, este proceso solo
+   * ve lo que pasa por sus propios WebSockets y `applyUpdate` — sigue
+   * funcionando para sus clientes conectados, pero no se entera de updates
+   * escritos en otro proceso hasta que el cliente recarga.
+   */
+  remoteUpdates?: RemoteDraftSync;
 };
+
+/** Origen de una transacción aplicada porque llegó de OTRO proceso por Redis: nunca se repersiste ni se republica. */
+const REMOTE_ORIGIN = Symbol("remote-draft-update");
 
 const DEFAULT_MAX_MESSAGE_BYTES = 1024 * 1024 + 1024;
 const DEFAULT_PING_INTERVAL_MS = 30_000;
@@ -137,6 +165,27 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
   const loading = new Map<string, Promise<SyncRoom>>();
   let ownServer: Server | null = null;
   let shuttingDown = false;
+
+  /**
+   * Aplica un update recibido de OTRO proceso al doc vivo de la sala, si esta
+   * la tiene cargada (si no, nadie conectado a este proceso necesita verlo:
+   * cuando alguien la abra aquí, la recargará de Postgres, donde el proceso
+   * de origen ya lo persistió). Con `REMOTE_ORIGIN` el handler de `doc.on
+   * ("update")` de abajo difunde a los clientes de este proceso pero NO
+   * vuelve a persistir ni a republicar — evita el bucle de reenvío.
+   */
+  function applyRemoteUpdate(event: RemoteDraftUpdate): void {
+    if (options.remoteUpdates && event.originId === options.remoteUpdates.originId) return;
+    const room = rooms.get(event.roomId);
+    if (!room || room.closed) return;
+    try {
+      Y.applyUpdate(room.doc, event.update, REMOTE_ORIGIN);
+    } catch (err) {
+      logger.warn(`[editor-sync] update remoto inválido en ${event.roomId}`, err);
+    }
+  }
+
+  const unsubscribeRemote = options.remoteUpdates?.subscribe(applyRemoteUpdate);
 
   const pingTimer =
     pingIntervalMs > 0
@@ -505,6 +554,7 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
 
     async close() {
       shuttingDown = true;
+      unsubscribeRemote?.();
       if (pingTimer) clearInterval(pingTimer);
       const all = [...rooms.values()];
       for (const room of all) {

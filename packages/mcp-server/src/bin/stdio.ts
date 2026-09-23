@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { roomDocToPackage } from "@escaperoom/editor/room-doc";
+import { publishDraftUpdate } from "@escaperoom/kit/room-sync";
 import { prisma } from "@escaperoom/shared/db";
 import {
   createAudioAssetService,
@@ -74,7 +76,18 @@ await runStdioServer({
     rooms: createJsonFileRoomPackageRepository(FEATURED_ROOM_FIXTURE),
     listing: createPrismaPublishedRoomListing(prisma),
   }),
-  drafts: createRoomDraftService({ store: createPrismaRoomDraftStore(prisma) }),
+  // Cada proceso stdio del MCP es SU PROPIO proceso (no comparte el
+  // `editor-sync` de web): publica en Redis (specs/09 §2, decisión
+  // 2026-09-23) para que el `editor-sync` que sí tenga la sala abierta
+  // aplique el update y lo reenvíe a sus clientes sin que recarguen. Sin
+  // `REDIS_URL`, `publishDraftUpdate` es un no-op — el draft se persiste
+  // igual, solo se pierde la propagación en vivo.
+  drafts: createRoomDraftService({
+    store: createPrismaRoomDraftStore(prisma),
+    publish: async (event) => {
+      await publishDraftUpdate({ ...event, originId: randomUUID() });
+    },
+  }),
   roomDocToPackage,
   actor,
   appUrl: process.env[MCP_ENV.appUrl]?.trim() || "http://localhost:3000",

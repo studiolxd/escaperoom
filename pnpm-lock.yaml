@@ -472,6 +472,9 @@ importers:
       '@escaperoom/editor':
         specifier: workspace:*
         version: link:../editor
+      '@escaperoom/kit':
+        specifier: workspace:*
+        version: link:../kit
       '@escaperoom/shared':
         specifier: workspace:*
         version: link:../shared

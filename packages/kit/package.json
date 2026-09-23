@@ -20,6 +20,7 @@
     "./queue": "./src/queue/index.ts",
     "./queue/health": "./src/queue/health.ts",
     "./events": "./src/events/index.ts",
+    "./room-sync": "./src/room-sync/index.ts",
     "./health": "./src/health/index.ts",
     "./observability/instrumentation": "./src/observability/instrumentation.ts",
     "./observability/sentry-nextjs": "./src/observability/sentry-nextjs.ts",

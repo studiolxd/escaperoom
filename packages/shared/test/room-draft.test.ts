@@ -381,3 +381,79 @@ describe("createDraft (alta de una sala en borrador, 4.2)", () => {
     );
   });
 });
+
+describe("publish (propagación entre procesos editor-sync, decisión 2026-09-23)", () => {
+  function setupWithPublisher(snapshotEvery = 100) {
+    const store = createInMemoryRoomDraftStore([{ id: ROOM_ID, authorId: author.userId }]);
+    const published: Array<{ roomId: string; update: Uint8Array; authorId: string | null }> = [];
+    const service = createRoomDraftService({
+      store,
+      snapshotEvery,
+      publish: (event) => {
+        published.push(event);
+      },
+    });
+    return { store, service, published };
+  }
+
+  it("appendUpdate avisa al publicador con el mismo update y autor persistidos", async () => {
+    const { service, published } = setupWithPublisher();
+    const doc = new Y.Doc();
+    doc.getMap("meta").set("title", "Sala nueva");
+    const update = Y.encodeStateAsUpdate(doc);
+
+    await service.appendUpdate(author, ROOM_ID, update);
+
+    expect(published).toHaveLength(1);
+    expect(published[0]).toEqual({ roomId: ROOM_ID, update, authorId: author.userId });
+  });
+
+  it("restoreDraft avisa al publicador con el update de restauración calculado", async () => {
+    const { service, published } = setupWithPublisher(1000);
+    const { doc, emitted } = createEditorDoc();
+    for (let i = 0; i < 3; i++) edit(doc, i);
+    for (const u of emitted) await service.appendUpdate(author, ROOM_ID, u);
+    published.length = 0;
+
+    const result = await service.restoreDraft(author, ROOM_ID, { updateId: 1n });
+
+    expect(result).not.toBeNull();
+    expect(published).toHaveLength(1);
+    expect(published[0]!.roomId).toBe(ROOM_ID);
+    expect(published[0]!.authorId).toBe(author.userId);
+  });
+
+  it("restoreDraft NO avisa cuando no hay nada que restaurar (el doc ya está en ese punto)", async () => {
+    const { service, published } = setupWithPublisher(1000);
+    const result = await service.restoreDraft(author, ROOM_ID, { updateId: 0n });
+    expect(result).toBeNull();
+    expect(published).toHaveLength(0);
+  });
+
+  it("un publicador que lanza no rompe la escritura: el update queda persistido igual", async () => {
+    const store = createInMemoryRoomDraftStore([{ id: ROOM_ID, authorId: author.userId }]);
+    const service = createRoomDraftService({
+      store,
+      publish: () => {
+        throw new Error("redis caído");
+      },
+    });
+    const doc = new Y.Doc();
+    doc.getMap("meta").set("title", "Se persiste igual");
+    const update = Y.encodeStateAsUpdate(doc);
+
+    await expect(service.appendUpdate(author, ROOM_ID, update)).resolves.toMatchObject({
+      snapshot: null,
+    });
+    expect(await store.countUpdatesAfter(ROOM_ID, 0n)).toBe(1);
+  });
+
+  it("sin publicador (por defecto) todo sigue funcionando", async () => {
+    const { service } = setup();
+    const doc = new Y.Doc();
+    doc.getMap("meta").set("title", "sin publish");
+    await expect(
+      service.appendUpdate(author, ROOM_ID, Y.encodeStateAsUpdate(doc)),
+    ).resolves.toMatchObject({ snapshot: null });
+  });
+});

@@ -81,6 +81,25 @@ al de Colyseus), que persiste incrementalmente en `roomUpdate` (ver `specs/14-mo
 - **Cliente:** `EditorSyncProvider` (`@escaperoom/editor`), headless: autosave, offline con
   merge CRDT al reconectar, reconexión con backoff y `restore()`.
 
+**Sincronización entre procesos (ADR-029).** El MCP (stdio o HTTP) y
+`POST /api/rooms/:id/update` escriben el draft con `RoomDraftService.appendUpdate` directamente,
+sin pasar por `editor-sync`; lo mismo pasaría entre dos instancias de `editor-sync` si se escala.
+Para que un editor con WebSocket abierto vea esos cambios EN VIVO (sin recargar):
+
+- `RoomDraftService` publica cada update aplicado (`appendUpdate`/`restoreDraft`) en un canal
+  Redis pub/sub — `@escaperoom/kit/room-sync`, el mismo patrón y la misma conexión que
+  `@escaperoom/kit/events` — con el `roomId`, el update Yjs y el id del proceso que lo produjo.
+- Cada proceso `editor-sync` se suscribe a ese canal. Si la sala del evento está cargada en su
+  memoria, aplica el update al doc vivo (se reenvía a sus clientes por WebSocket igual que uno
+  propio) SIN volver a persistirlo ni a republicarlo — evita el bucle de reenvío.
+- **Sin `REDIS_URL` (o con Redis caído): degradación, no rotura.** El draft se sigue
+  persistiendo con normalidad (`publish` falla en silencio) y cada `editor-sync` sigue sirviendo a
+  sus propios clientes conectados; lo único que se pierde es la propagación EN VIVO entre
+  procesos — un cambio hecho en el MCP o en otra instancia se ve al recargar, como antes de esto.
+
+Detalle de diseño (canal, formato del mensaje, por qué no hay ack) en ADR-029
+(`docs/reference/registro-de-decisiones.md`).
+
 ## 3. Flujo de creación (UX)
 
 ```
