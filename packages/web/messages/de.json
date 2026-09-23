@@ -69,6 +69,28 @@
     "expired": "Das Zeitfenster ist zu · versuche es erneut",
     "alreadyActive": "Diese Platte war bereits aktiv"
   },
+  "Memory": {
+    "title": "Kelchgedächtnis",
+    "prompt": "Drehe Karten um, um die Paare zu finden",
+    "boardLabel": "Gedächtnisbrett",
+    "pairs": "Paare: {found}/{total}",
+    "progressLabel": "Fortschritt der Paare",
+    "cardUp": "Karte {id} offen",
+    "cardDown": "Karte {id} verdeckt",
+    "turn": "{name} ist am Zug · {flips} Umdrehungen",
+    "sharedTurn": "Gemeinsamer Zug · {flips} Umdrehungen",
+    "anyPlayer": "beliebiger Spieler",
+    "pending": "Umdrehen …",
+    "match": "Ein Paar!",
+    "mismatch": "Kein Paar · der Zug wechselt",
+    "alreadyFlipped": "Diese Karte war bereits offen",
+    "notYourTurn": "Du bist nicht am Zug",
+    "unknownCard": "Diese Karte existiert nicht",
+    "close": "Schließen",
+    "solved": "Alle Paare gefunden!",
+    "locked": "Das Brett ist noch nicht verfügbar",
+    "unavailable": "Das Brett nimmt keine weiteren Umdrehungen an"
+  },
   "Inventory": {
     "title": "Inventar",
     "recipes": "Rezepte: {found}/{total}",

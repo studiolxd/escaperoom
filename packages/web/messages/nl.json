@@ -69,6 +69,28 @@
     "expired": "Het venster is gesloten · probeer opnieuw",
     "alreadyActive": "Die plaat was al actief"
   },
+  "Memory": {
+    "title": "Geheugen van bekers",
+    "prompt": "Draai kaarten om de paren te vinden",
+    "boardLabel": "Geheugenbord",
+    "pairs": "Paren: {found}/{total}",
+    "progressLabel": "Voortgang van de paren",
+    "cardUp": "Kaart {id} open",
+    "cardDown": "Kaart {id} gesloten",
+    "turn": "{name} is aan de beurt · {flips} omdraaien",
+    "sharedTurn": "Gedeelde beurt · {flips} omdraaien",
+    "anyPlayer": "elke speler",
+    "pending": "Omdraaien…",
+    "match": "Een paar!",
+    "mismatch": "Geen paar · de beurt gaat door",
+    "alreadyFlipped": "Die kaart lag al open",
+    "notYourTurn": "Het is niet jouw beurt",
+    "unknownCard": "Die kaart bestaat niet",
+    "close": "Sluiten",
+    "solved": "Alle paren gevonden!",
+    "locked": "Het bord is nog niet beschikbaar",
+    "unavailable": "Het bord accepteert geen omdraaien meer"
+  },
   "Inventory": {
     "title": "Inventaris",
     "recipes": "Recepten: {found}/{total}",

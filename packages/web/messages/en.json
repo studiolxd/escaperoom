@@ -69,6 +69,28 @@
     "expired": "The window closed · try again",
     "alreadyActive": "That plate was already active"
   },
+  "Memory": {
+    "title": "Memory of goblets",
+    "prompt": "Flip cards to find the pairs",
+    "boardLabel": "Memory board",
+    "pairs": "Pairs: {found}/{total}",
+    "progressLabel": "Pairs progress",
+    "cardUp": "Card {id} face up",
+    "cardDown": "Card {id} face down",
+    "turn": "{name}'s turn · {flips} flips",
+    "sharedTurn": "Shared turn · {flips} flips",
+    "anyPlayer": "any player",
+    "pending": "Flipping…",
+    "match": "A pair!",
+    "mismatch": "No match · turn passes",
+    "alreadyFlipped": "That card was already face up",
+    "notYourTurn": "It is not your turn",
+    "unknownCard": "That card does not exist",
+    "close": "Close",
+    "solved": "All pairs found!",
+    "locked": "The board is not available yet",
+    "unavailable": "The board accepts no more flips"
+  },
   "Inventory": {
     "title": "Inventory",
     "recipes": "Recipes: {found}/{total}",

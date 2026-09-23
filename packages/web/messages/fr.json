@@ -69,6 +69,28 @@
     "expired": "La fenêtre s'est refermée · réessaie",
     "alreadyActive": "Cette plaque était déjà active"
   },
+  "Memory": {
+    "title": "Mémoire des coupes",
+    "prompt": "Retourne les cartes pour trouver les paires",
+    "boardLabel": "Plateau de mémoire",
+    "pairs": "Paires : {found}/{total}",
+    "progressLabel": "Progression des paires",
+    "cardUp": "Carte {id} face visible",
+    "cardDown": "Carte {id} face cachée",
+    "turn": "Tour de {name} · {flips} retours",
+    "sharedTurn": "Tour partagé · {flips} retours",
+    "anyPlayer": "n'importe quel joueur",
+    "pending": "Retournement…",
+    "match": "Une paire !",
+    "mismatch": "Pas de paire · le tour passe",
+    "alreadyFlipped": "Cette carte était déjà face visible",
+    "notYourTurn": "Ce n'est pas ton tour",
+    "unknownCard": "Cette carte n'existe pas",
+    "close": "Fermer",
+    "solved": "Toutes les paires trouvées !",
+    "locked": "Le plateau n'est pas encore disponible",
+    "unavailable": "Le plateau n'accepte plus de retours"
+  },
   "Inventory": {
     "title": "Inventaire",
     "recipes": "Recettes : {found}/{total}",
