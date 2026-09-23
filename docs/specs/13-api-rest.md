@@ -246,8 +246,21 @@ Colyseus rechaza el `join` sin token válido, caducado o de otra sesión (`JOIN_
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| POST | `/api/events/:id/access-keys/export-pdf` | organizador | `{ codes?: string[] }` (omitir = todas). <50 tarjetas: PDF directo (`@react-pdf/renderer`); mayor: job async → `{ jobId }` |
-| GET | `/api/exports/:jobId` | organizador | `{ status, downloadUrl? }` (URL firmada de R2, expira en 24 h) |
+| POST | `/api/events/:id/access-keys/export-pdf` | organizador | `{ codes?: string[], locale? }` (omitir `codes` = todas las claves vivas). <50 tarjetas: 200 con el PDF (`pdf-lib` + `qrcode`); mayor: job async → 202 `{ jobId, status: "queued", cards }` |
+| GET | `/api/exports/:jobId` | organizador que lo pidió | `{ jobId, eventId, status, cards, downloadUrl, expiresAt }`; `status`: `queued`/`processing`/`completed`/`failed`/`expired` |
+| GET | `/api/exports/:jobId/download?expires&signature` | enlace firmado (sin sesión) | El PDF del job. Firma manipulada → 403 `EXPORT_LINK_INVALID`; caducada → 410 `EXPORT_LINK_EXPIRED` |
+
+**Tarjetas (ticket 5.7).** A4 con 2 × 4 tarjetas y líneas de corte. Cada tarjeta lleva el título del
+evento y de la sala, la clave `XXXX-XXXX-XXXX` en grande, un QR con la URL de canje
+(`/{locale}/redeem?code=…`), los asientos si la clave es compartida, la caducidad si la tiene y
+unas instrucciones breves. Idioma: el por defecto de la versión de sala (`meta.defaultLanguage`) si
+es uno de los 6 locales, o el que pida `locale`. Sin `codes` se imprimen solo las claves vivas; con
+`codes`, esas en ese orden (reimpresión). El job va por la cola BullMQ `access-keys.cards-pdf` del
+worker, que sube el PDF al bucket privado (`exports/access-key-cards/<jobId>.pdf`). La
+`downloadUrl` la firma la app (HMAC-SHA256 con clave derivada de `APP_SECRET`) y caduca 24 h después
+de terminar el job; la ruta de descarga lee el objeto del bucket y lo sirve. Sin cola
+(`QUEUES_ENABLED=false`) o sin `APP_SECRET` en producción, pedir 50 tarjetas o más responde 503
+`EXPORT_UNAVAILABLE`.
 
 ## 10. Moderación y apelaciones (admin/moderador)
 

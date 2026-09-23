@@ -16,6 +16,7 @@
     "./services": "./src/services/index.ts",
     "./join-token": "./src/services/join-token.ts",
     "./mail": "./src/mail/index.ts",
+    "./access-key-cards-queue": "./src/services/access-key-cards-queue.ts",
     "./analytics": "./src/analytics/index.ts",
     "./audio": "./src/audio/index.ts",
     "./db": "./src/db/index.ts"
@@ -39,16 +40,20 @@
     "@escaperoom/kit": "workspace:*",
     "@prisma/client": "6.19.3",
     "nodemailer": "^10.0.10",
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.4",
     "yjs": "^13.6.32",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
     "@types/nodemailer": "^8.0.2",
+    "@types/qrcode": "^1.5.6",
     "eslint": "^10.11.0",
     "prisma": "6.19.3",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
+    "unpdf": "^1.8.1",
     "vitest": "^5.0.1"
   }
 }

@@ -29,3 +29,6 @@ export * from "./room-license";
 export * from "./room-license-prisma-store";
 export * from "./invitations";
 export * from "./invitations-prisma-store";
+export * from "./access-key-cards";
+export * from "./access-key-cards-pdf";
+export * from "./access-key-cards-prisma-store";

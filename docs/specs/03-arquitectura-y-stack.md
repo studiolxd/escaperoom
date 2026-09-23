@@ -25,7 +25,7 @@ Caché / presencia / colas:                                        Redis
 Assets:                                                           Cloudflare R2 (compatible S3)
 Pagos:                                                            Stripe + Stripe Connect
 Emails transaccionales:                                           Nodemailer (SMTP) por defecto; Resend opcional
-PDF de tarjetas-clave:                                            @react-pdf/renderer
+PDF de tarjetas-clave:                                            pdf-lib + qrcode (JS puro; ticket 5.7)
 Auth:                                                             Better Auth — email mágico + Google + organizaciones
 UI / estilos:                                                     Tailwind CSS + shadcn/ui
 i18n:                                                             next-intl (locales en, es, fr, de, nl, pt; por defecto es)
