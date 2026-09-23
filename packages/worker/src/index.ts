@@ -24,3 +24,11 @@ export {
   processAccessKeyCardsExport,
   type AccessKeyCardsWorkerOptions,
 } from "./access-key-cards";
+export {
+  ANALYTICS_PARTITIONS_QUEUE_NAME,
+  ANALYTICS_PARTITIONS_SCHEDULER_ID,
+  DEFAULT_ANALYTICS_PARTITIONS_CRON,
+  createAnalyticsPartitionsWorker,
+  processAnalyticsPartitions,
+  type AnalyticsPartitionsWorkerOptions,
+} from "./analytics-partitions";
