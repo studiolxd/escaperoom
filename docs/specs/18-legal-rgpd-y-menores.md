@@ -173,8 +173,8 @@ que falta encima:
 - [ ] Confirmar plazos exactos de retención fiscal de `purchase` (§3.3) con asesoría fiscal. **Sigue
       pendiente de asesoría real**: ningún cambio de código en este ticket; el borrador de privacidad
       deja el plazo como `[PENDIENTE ASESORÍA LEGAL: …]` en vez de fijar un número.
-- [x] Redactar plantilla de DPA para organizaciones que usen claves individuales con email (§3.1).
-      **Borrador técnico completado**: `packages/web/src/content/legal/dpa-template.ts`, servido en
+- [x] Redactar el anexo de encargo de tratamiento (DPA, antes "plantilla de DPA") para organizaciones que usen claves individuales con email (§3.1).
+      **Borrador técnico completado**: `packages/web/src/content/legal/dpa.ts`, servido en
       `/[locale]/legal/dpa`. El MECANISMO de firma (quién firma, versión aceptada, puerta
       `DPA_REQUIRED`) ya existía del ticket 5.11 y no cambia; esta página solo añade el texto que se
       le muestra al organizador. Transferencias internacionales de subprocesadores sigue

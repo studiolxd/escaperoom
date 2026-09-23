@@ -1247,10 +1247,11 @@
     }
   },
   "Legal": {
+    "onlyInSpanishNotice": "Der Inhalt der rechtlichen Dokumente ist nur auf Spanisch verfügbar; der Rest der Plattform ist übersetzt.",
     "nav": {
       "terms": "Nutzungsbedingungen",
       "privacy": "Datenschutzerklärung",
-      "dpa": "DPA-Vorlage",
+      "dpa": "Auftragsverarbeitung",
       "legalNotice": "Rechtlicher Hinweis",
       "cookies": "Cookie-Richtlinie"
     },
@@ -1261,7 +1262,7 @@
       "title": "Datenschutzerklärung"
     },
     "dpa": {
-      "title": "Vorlage für den Auftragsverarbeitungsvertrag (DPA)"
+      "title": "Anlage zur Auftragsverarbeitung (AVV)"
     },
     "legalNotice": {
       "title": "Rechtlicher Hinweis"

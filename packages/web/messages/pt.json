@@ -1247,10 +1247,11 @@
     }
   },
   "Legal": {
+    "onlyInSpanishNotice": "O conteúdo dos documentos legais só está disponível em espanhol; o resto da plataforma está traduzido.",
     "nav": {
       "terms": "Termos de serviço",
       "privacy": "Política de privacidade",
-      "dpa": "Modelo de DPA",
+      "dpa": "Anexo de subcontratação",
       "legalNotice": "Aviso legal",
       "cookies": "Política de cookies"
     },
@@ -1261,7 +1262,7 @@
       "title": "Política de Privacidade"
     },
     "dpa": {
-      "title": "Modelo de Contrato de Subcontratação de Tratamento de Dados (DPA)"
+      "title": "Anexo de Subcontratação do Tratamento de Dados"
     },
     "legalNotice": {
       "title": "Aviso Legal"
