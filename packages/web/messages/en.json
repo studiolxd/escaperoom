@@ -203,6 +203,7 @@
       "enterRoom": "You enter {room}",
       "solved": "Solved: {puzzle}",
       "roomLocked": "The door is still closed",
+      "rateLimited": "You're going too fast: wait a moment",
       "rejected": "You can't do that here"
     }
   },

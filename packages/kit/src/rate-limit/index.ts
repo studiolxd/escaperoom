@@ -1,6 +1,10 @@
 /**
  * Rate limiter for the API layer (tRPC procedures and REST route handlers).
  *
+ * Dos limitadores por defecto: `rateLimiter` (ventana fija, el heredado de
+ * SLXD) y `slidingRateLimiter` (ventana deslizante, ticket 6.3: el que usan las
+ * rutas sensibles de web con 429 + `Retry-After`).
+ *
  * The default store is picked by environment: Redis (fixed window, atomic,
  * multi-instance safe) when REDIS_URL is set, otherwise an in-memory counter
  * that is correct for a single instance only.
@@ -21,6 +25,8 @@ import {
   type RateLimitStore,
 } from "./memory";
 import { RedisRateLimitStore } from "./redis-store";
+import { MemorySlidingWindowStore, type SlidingWindowStore } from "./sliding";
+import { RedisSlidingWindowStore } from "./sliding-redis";
 
 export {
   createRateLimiter,
@@ -28,10 +34,10 @@ export {
   type RateLimitResult,
   type RateLimitStore,
 } from "./memory";
+export { MemorySlidingWindowStore, retryAfterSeconds, type SlidingWindowStore } from "./sliding";
+export { RedisSlidingWindowStore } from "./sliding-redis";
 
-function defaultStore(): RateLimitStore {
-  const redis = getRedis();
-  if (redis) return new RedisRateLimitStore(redis, redisPrefix());
+function warnPerProcess(): void {
   if (process.env.NODE_ENV !== "development" && process.env.NODE_ENV !== "test") {
     logger.warn(
       {},
@@ -39,11 +45,37 @@ function defaultStore(): RateLimitStore {
         "En un despliegue con varias réplicas el límite efectivo se multiplica por el número de réplicas.",
     );
   }
+}
+
+function defaultStore(): RateLimitStore {
+  const redis = getRedis();
+  if (redis) return new RedisRateLimitStore(redis, redisPrefix());
+  warnPerProcess();
   return new MemoryRateLimitStore();
+}
+
+function defaultSlidingStore(): SlidingWindowStore {
+  const redis = getRedis();
+  if (redis) return new RedisSlidingWindowStore(redis, redisPrefix());
+  warnPerProcess();
+  return new MemorySlidingWindowStore();
 }
 
 /** Process-wide default limiter — Redis when REDIS_URL is set, else memory. */
 export const rateLimiter = createRateLimiter(defaultStore());
+
+/**
+ * Process-wide sliding-window limiter — Redis when REDIS_URL is set, else
+ * memory. Lazy: the store is built on first use, so importing the module from
+ * a route that never limits opens no Redis connection.
+ */
+let slidingStore: SlidingWindowStore | undefined;
+export const slidingRateLimiter: SlidingWindowStore = {
+  hit: (key, limit, windowSeconds) =>
+    (slidingStore ??= defaultSlidingStore()).hit(key, limit, windowSeconds),
+  peek: (key, limit, windowSeconds) =>
+    (slidingStore ??= defaultSlidingStore()).peek(key, limit, windowSeconds),
+};
 
 /**
  * Rate-limit guard for REST route handlers (uploads, signed-URL reads), which

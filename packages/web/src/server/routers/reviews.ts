@@ -42,12 +42,20 @@ export const reviewsRouter = router({
     ),
   upsert: publicProcedure
     .input(z.object({ roomId: z.string(), rating: z.unknown(), text: z.unknown().optional() }))
-    .mutation(({ ctx, input }) =>
-      translate(() =>
+    .mutation(async ({ ctx, input }) => {
+      // Mismo cubo que `POST /api/rooms/:roomId/reviews` (ticket 6.3).
+      const limited = await ctx.rateLimit?.("review-write");
+      if (limited && !limited.ok) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: `Demasiadas reseñas: vuelve a intentarlo en ${limited.retryAfter} s.`,
+        });
+      }
+      return translate(() =>
         ctx.reviews.upsertReview(ctx.actor, input.roomId, {
           rating: input.rating,
           text: input.text,
         }),
-      ),
-    ),
+      );
+    }),
 });

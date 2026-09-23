@@ -214,6 +214,7 @@
       "enterRoom": "Entras en {room}",
       "solved": "Resuelto: {puzzle}",
       "roomLocked": "La puerta sigue cerrada",
+      "rateLimited": "Vas demasiado rápido: espera un momento",
       "rejected": "No puedes hacer eso aquí"
     }
   },

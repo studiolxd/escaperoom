@@ -1,5 +1,6 @@
 import type { CatalogRoomRouteContext } from "@/server/rest/rooms-list";
 import { resolveActorFromRequest } from "@/server/context";
+import { withRateLimit } from "@/server/rate-limit";
 import { createRoomReviewsHandlers } from "@/server/rest/room-reviews";
 import { getReviewService } from "@/server/services";
 
@@ -19,6 +20,7 @@ export function GET(request: Request, ctx: CatalogRoomRouteContext) {
 }
 
 /** POST /api/rooms/:roomId/reviews — crea o edita la reseña del usuario (comprador/jugador). */
-export function POST(request: Request, ctx: CatalogRoomRouteContext) {
-  return handlers().postReview(request, ctx);
-}
+export const POST = withRateLimit(
+  "review-write",
+  (request: Request, ctx: CatalogRoomRouteContext) => handlers().postReview(request, ctx),
+);

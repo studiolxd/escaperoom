@@ -105,7 +105,14 @@ export type GameEvent =
       fragments: Record<string, string>;
     }
   | { type: "hint_delivered"; puzzleId: string; tier: number | null; text: string | null }
-  | { type: "error"; code: string; message: string; retryAfterMs?: number }
+  | {
+      type: "error";
+      code: string;
+      message: string;
+      retryAfterMs?: number;
+      /** Mensaje rechazado por el rate limit del servidor (`RATE_LIMITED`, specs/11 §9). */
+      messageType?: string;
+    }
   | { type: "media_token"; payload: unknown };
 
 export type GameEventType = GameEvent["type"];

@@ -1,5 +1,6 @@
 import { ANONYMOUS_ACTOR, actorFromSession, type Actor } from "@escaperoom/shared/services";
 import { auth } from "@/lib/auth";
+import { consumeRateLimit, userIdOf } from "./rate-limit";
 import { getCatalogService, getReviewService } from "./services";
 import type { Context } from "./trpc";
 
@@ -48,5 +49,12 @@ export function hasAuthorizationHeader(headers: Headers): boolean {
 /** Contexto de tRPC por petición: actor + servicios de dominio compartidos. */
 export async function createContext(opts: { req: Request }): Promise<Context> {
   const actor = await resolveActorFromRequest(opts.req);
-  return { actor, catalog: getCatalogService(), reviews: getReviewService() };
+  return {
+    actor,
+    catalog: getCatalogService(),
+    reviews: getReviewService(),
+    // El actor ya está resuelto: el límite por usuario no vuelve a leer la sesión.
+    rateLimit: (policy) =>
+      consumeRateLimit(policy, opts.req, { resolveUserId: async () => userIdOf(actor) }),
+  };
 }

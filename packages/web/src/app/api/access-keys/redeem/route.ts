@@ -1,4 +1,5 @@
 import { resolveActorFromRequest } from "@/server/context";
+import { withRateLimit } from "@/server/rate-limit";
 import { createRedeemHandler } from "@/server/rest/access-keys";
 import { getRedeemService } from "@/server/services";
 
@@ -10,9 +11,9 @@ export const dynamic = "force-dynamic";
  * displayName?, sessionId?, groupId? }` → consume un asiento y devuelve
  * `{ sessionId, groupId, colyseusEndpoint, roomName, joinToken, expiresAt, player }`.
  */
-export function POST(request: Request) {
-  return createRedeemHandler({
+export const POST = withRateLimit("redeem", (request: Request) =>
+  createRedeemHandler({
     redeem: getRedeemService(),
     resolveActor: resolveActorFromRequest,
-  })(request);
-}
+  })(request),
+);
