@@ -109,11 +109,13 @@ export const termsOfService: LegalDocument = {
     {
       heading: "6. Licencia sobre el contenido publicado por el creador (UGC)",
       paragraphs: [
-        "El creador conserva la propiedad de su sala (diseño, textos, configuración de puzzles). Al " +
-          "publicarla, concede a la plataforma una licencia no exclusiva y mundial para alojarla, " +
-          "reproducirla, distribuirla y venderla a jugadores y organizadores mientras la cuenta y la " +
-          "sala permanezcan activas. La licencia no es exclusiva: el creador puede llevar el mismo " +
-          "contenido a otro sitio.",
+        "El creador conserva la propiedad de su sala (diseño, textos, configuración de puzzles) y de " +
+          "cualquier contenido que genere con las herramientas de IA de la plataforma consumiendo sus " +
+          "créditos (voces y las que se añadan en el futuro), lo haya creado él mismo o con esas " +
+          "herramientas. Al publicarla, concede a la plataforma una licencia no exclusiva y mundial " +
+          "para alojarla, reproducirla, distribuirla y venderla a jugadores y organizadores mientras " +
+          "la cuenta y la sala permanezcan activas. La licencia no es exclusiva: el creador puede " +
+          "llevar el mismo contenido a otro sitio.",
         "Si el creador retira su sala voluntariamente, quienes ya la compraron conservan el acceso. " +
           "Si la retirada es por moderación de severidad normal o alta, ocurre lo mismo. Si es por " +
           "severidad crítica (contenido ilegal o que compromete la seguridad de menores), el acceso " +
@@ -122,10 +124,6 @@ export const termsOfService: LegalDocument = {
           "plataforma, el creador declara tener los derechos necesarios sobre ese contenido. La " +
           "plataforma no hace una verificación legal previa de esa declaración; el pipeline de " +
           "moderación automática y los reportes de usuarios son el mecanismo de control posterior.",
-        "[PENDIENTE ASESORÍA LEGAL: revisar los Términos de Servicio vigentes de ElevenLabs sobre la " +
-          "titularidad del audio generado por IA antes de activar la función de voces en producción " +
-          "y reflejar sus condiciones aquí — no se puede asumir titularidad plena de ese audio solo " +
-          "por haberlo generado].",
       ],
     },
     {

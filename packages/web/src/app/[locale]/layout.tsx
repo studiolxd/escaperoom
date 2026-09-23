@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { cn } from "@/lib/utils";
 import { routing } from "@/i18n/routing";
+import { ConsentProvider } from "@/components/consent/consent-provider";
+import { CookieBanner, CookiePreferencesDialog } from "@/components/consent/cookie-consent-ui";
 import "../globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -48,7 +50,13 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <html lang={locale} className={cn("font-sans", geist.variable)}>
       <body>
-        <NextIntlClientProvider messages={messages}>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}>
+          <ConsentProvider>
+            {children}
+            <CookieBanner />
+            <CookiePreferencesDialog />
+          </ConsentProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

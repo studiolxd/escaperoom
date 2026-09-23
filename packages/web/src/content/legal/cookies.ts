@@ -91,9 +91,10 @@ export const cookiesPolicy: LegalDocument = {
           "plataforma (no podrías mantener sesión iniciada ni conservar tu idioma). Cuando se activen " +
           "las analíticas planificadas de la sección 3, Google Analytics solo se cargará si das tu " +
           "consentimiento explícito, y podrás retirarlo en cualquier momento.",
-        "[PENDIENTE: definir el mecanismo concreto de gestión de consentimiento (banner, panel de " +
-          "preferencias) antes de activar Google Analytics — hoy no existe porque no hay ninguna " +
-          "cookie opcional que gestionar].",
+        "El mecanismo de gestión (banda de consentimiento y panel de preferencias) ya está construido " +
+          "y listo para cuando se active la primera cookie opcional; hasta entonces no le aparece a " +
+          "nadie porque no hay ninguna categoría opcional activa. Puedes revisarlo o cambiarlo en " +
+          "cualquier momento desde «Preferencias de cookies», debajo y en el pie de la plataforma.",
         "También puedes bloquear cookies desde los ajustes de tu navegador, aunque las cookies " +
           "necesarias no se pueden desactivar sin romper el funcionamiento de la plataforma.",
         "Más información sobre cookies en la guía de la Agencia Española de Protección de Datos: " +

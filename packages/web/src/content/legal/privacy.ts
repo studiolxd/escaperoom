@@ -194,7 +194,10 @@ export const privacyPolicy: LegalDocument = {
       ],
       list: [
         "Stripe — pagos y verificación de creadores (Connect).",
-        "ElevenLabs — conversión de texto a audio (generación de voces por IA).",
+        "ElevenLabs — conversión de texto a audio (generación de voces por IA). Sus condiciones de " +
+          "uso vigentes en plan de pago reconocen la titularidad de EscapeRoom Creator sobre el audio " +
+          "generado, pero ElevenLabs se reserva una licencia perpetua sobre las voces y el contenido " +
+          "que se le envía para entrenar sus propios modelos.",
         "Anthropic, OpenAI o Google — modelo de lenguaje del editor asistido por IA. La plataforma " +
           "usa uno solo de los tres a la vez, según su configuración, y solo recibe datos cuando un " +
           "creador usa el chat del editor. Los tres tienen sede en Estados Unidos y tratan los datos " +

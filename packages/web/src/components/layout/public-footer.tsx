@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { CookieSettingsLink } from "@/components/consent/cookie-consent-ui";
 
 /**
  * Pie compartido por las páginas públicas de marketing (grupo de rutas
@@ -27,6 +28,7 @@ export async function PublicFooter() {
           <Link href="/legal/cookies" className="hover:text-foreground">
             {legal("nav.cookies")}
           </Link>
+          <CookieSettingsLink className="hover:text-foreground" />
         </nav>
       </div>
     </footer>
