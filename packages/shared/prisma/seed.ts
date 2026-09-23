@@ -29,6 +29,37 @@ const ID = {
   room: "00000000-0000-0000-0000-000000000301",
 } as const;
 
+/**
+ * Tramos iniciales de specs/02 §3.2 (precio por jugador en céntimos). `update`
+ * vacío: re-sembrar nunca reescribe un tramo existente (no se altera el histórico).
+ */
+const PRICING_TIERS = [
+  {
+    id: "00000000-0000-0000-0000-000000000401",
+    minPlayers: 1,
+    maxPlayers: 15,
+    priceCentsPerPlayer: 100,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000402",
+    minPlayers: 16,
+    maxPlayers: 50,
+    priceCentsPerPlayer: 90,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000403",
+    minPlayers: 51,
+    maxPlayers: 150,
+    priceCentsPerPlayer: 75,
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000404",
+    minPlayers: 151,
+    maxPlayers: null,
+    priceCentsPerPlayer: 60,
+  },
+] as const;
+
 async function main() {
   const fixtureRaw = readFileSync(fixturePath, "utf8");
   const roomPackage = JSON.parse(fixtureRaw) as RoomPackageFixture;
@@ -115,7 +146,17 @@ async function main() {
     },
   });
 
-  console.log(`Seed OK: admin + creador + sala "${roomPackage.meta.title}" publicada`);
+  for (const tier of PRICING_TIERS) {
+    await prisma.pricingTier.upsert({
+      where: { id: tier.id },
+      update: {},
+      create: { ...tier, currency: "EUR", createdBy: ID.admin },
+    });
+  }
+
+  console.log(
+    `Seed OK: admin + creador + sala "${roomPackage.meta.title}" publicada + ${PRICING_TIERS.length} tramos de precio`,
+  );
 }
 
 main()
