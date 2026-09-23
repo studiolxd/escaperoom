@@ -43,7 +43,10 @@ export function signPlaytestToken(
   const payload: PlaytestTokenPayload = {
     v: 1,
     pid: input.playtestId,
-    exp: Math.floor(input.expiresAt / 1000),
+    // Redondeo hacia arriba: el link nunca caduca antes que el registro (que
+    // es quien manda y cierra la room). Hacia abajo, con un TTL corto, un
+    // playtest creado al final de un segundo nacía con el token ya caducado.
+    exp: Math.ceil(input.expiresAt / 1000),
   };
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${body}${PLAYTEST_TOKEN_SEPARATOR}${sign(secret, body)}`;
