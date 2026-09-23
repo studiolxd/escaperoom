@@ -69,6 +69,20 @@
     "expired": "Het venster is gesloten · probeer opnieuw",
     "alreadyActive": "Die plaat was al actief"
   },
+  "SlidingPuzzle": {
+    "title": "Schuifpuzzel",
+    "prompt": "Schuif de stukjes tot de muurschildering klopt",
+    "boardLabel": "Schuifpuzzelbord",
+    "tile": "Stukje {tile}",
+    "blank": "Leeg vak",
+    "moves": "Zetten: {count}",
+    "pending": "Verschuiven…",
+    "solved": "Muurschildering hersteld!",
+    "locked": "De muurschildering is nog niet beschikbaar",
+    "unavailable": "De muurschildering accepteert geen zetten meer",
+    "notAdjacent": "Dat stukje kan niet schuiven",
+    "alreadySolved": "De muurschildering is al opgelost"
+  },
   "Inventory": {
     "title": "Inventaris",
     "recipes": "Recepten: {found}/{total}",

@@ -69,6 +69,20 @@
     "expired": "Das Zeitfenster ist zu · versuche es erneut",
     "alreadyActive": "Diese Platte war bereits aktiv"
   },
+  "SlidingPuzzle": {
+    "title": "Schiebepuzzle",
+    "prompt": "Schiebe die Plättchen, bis das Wandbild wieder stimmt",
+    "boardLabel": "Schiebepuzzle-Brett",
+    "tile": "Plättchen {tile}",
+    "blank": "Leeres Feld",
+    "moves": "Züge: {count}",
+    "pending": "Verschieben…",
+    "solved": "Wandbild wiederhergestellt!",
+    "locked": "Das Wandbild ist noch nicht verfügbar",
+    "unavailable": "Das Wandbild nimmt keine Züge mehr an",
+    "notAdjacent": "Dieses Plättchen lässt sich nicht schieben",
+    "alreadySolved": "Das Wandbild ist bereits gelöst"
+  },
   "Inventory": {
     "title": "Inventar",
     "recipes": "Rezepte: {found}/{total}",

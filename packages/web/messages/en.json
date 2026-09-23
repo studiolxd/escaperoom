@@ -69,6 +69,20 @@
     "expired": "The window closed · try again",
     "alreadyActive": "That plate was already active"
   },
+  "SlidingPuzzle": {
+    "title": "Sliding puzzle",
+    "prompt": "Slide the tiles to restore the mural",
+    "boardLabel": "Sliding puzzle board",
+    "tile": "Tile {tile}",
+    "blank": "Blank",
+    "moves": "Moves: {count}",
+    "pending": "Moving…",
+    "solved": "Mural restored!",
+    "locked": "The mural is not available yet",
+    "unavailable": "The mural accepts no more moves",
+    "notAdjacent": "That tile cannot slide",
+    "alreadySolved": "The mural is already solved"
+  },
   "Inventory": {
     "title": "Inventory",
     "recipes": "Recipes: {found}/{total}",
