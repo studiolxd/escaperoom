@@ -86,6 +86,7 @@ export const termsOfService: LegalDocument = {
           "confirmado el evento, pierdes el derecho de desistimiento sobre ellos (artículo 103.m) del " +
           "Real Decreto Legislativo 1/2007, de 16 de noviembre, por el que se aprueba el texto " +
           "refundido de la Ley General para la Defensa de los Consumidores y Usuarios).",
+        "Los precios se muestran en euros (EUR) con el IVA incluido.",
         "Los pagos se procesan a través de Stripe; los datos de tu tarjeta no llegan a los " +
           "servidores de la plataforma.",
       ],
