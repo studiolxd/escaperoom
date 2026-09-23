@@ -248,5 +248,29 @@
     "unavailable": "El mural no acepta más movimientos",
     "notAdjacent": "Esa pieza no se puede deslizar",
     "alreadySolved": "El mural ya está resuelto"
+  },
+  "Pipes": {
+    "title": "Canal de tuberías",
+    "prompt": "Gira las piezas para llevar el agua hasta el final",
+    "boardLabel": "Tablero de tuberías",
+    "cell": "Tubería en {x}, {y}",
+    "rock": "Roca",
+    "start": "Entrada del agua",
+    "end": "Destino del agua",
+    "gateClosed": "Compuerta cerrada",
+    "gateOpen": "Compuerta abierta",
+    "wall": "Muro",
+    "useItem": "Usar objeto en la compuerta",
+    "rotations": "Giros: {count}",
+    "pending": "Girando…",
+    "solved": "¡El agua fluye hasta el final!",
+    "locked": "El canal aún no está disponible",
+    "unavailable": "El canal no acepta más cambios",
+    "notRotatable": "Esa pieza no gira",
+    "missingItem": "Te falta el objeto que abre la compuerta",
+    "gateOpened": "La compuerta se abre",
+    "alreadyOpen": "La compuerta ya está abierta",
+    "notAGate": "Ahí no hay ninguna compuerta",
+    "alreadySolved": "El canal ya está resuelto"
   }
 }
