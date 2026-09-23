@@ -1260,7 +1260,7 @@
     "heroTitle": "Crea y juega escape rooms cooperativos en el navegador",
     "heroSubtitle": "Publica y monetiza salas sin saber programar — el editor es el propio motor del juego — o crea una sala entera conversando con un agente IA.",
     "ctaStartCreating": "Crea tu primera sala",
-    "ctaBrowseCatalog": "Explorar catálogo",
+    "ctaBrowseCatalog": "Explorar salas",
     "valueProps": {
       "creator": {
         "title": "Para creadores",
@@ -1357,7 +1357,7 @@
   },
   "PublicNav": {
     "logo": "Escape room",
-    "catalog": "Catálogo",
+    "catalog": "Explorar salas",
     "contact": "Contacto",
     "createCta": "Crea tu sala"
   },

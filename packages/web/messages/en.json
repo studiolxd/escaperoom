@@ -1259,7 +1259,7 @@
     "heroTitle": "Create and play cooperative isometric escape rooms in the browser",
     "heroSubtitle": "Publish and monetize rooms without writing code — the editor IS the game engine — or build a whole room by chatting with an AI agent.",
     "ctaStartCreating": "Create your first room",
-    "ctaBrowseCatalog": "Browse the catalog",
+    "ctaBrowseCatalog": "Browse rooms",
     "valueProps": {
       "creator": {
         "title": "For creators",
@@ -1337,7 +1337,7 @@
   },
   "PublicNav": {
     "logo": "Escape room",
-    "catalog": "Catalog",
+    "catalog": "Browse rooms",
     "contact": "Contact",
     "createCta": "Create your room"
   },

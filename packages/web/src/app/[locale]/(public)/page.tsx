@@ -30,7 +30,7 @@ export default async function HomePage({ params }: Props) {
 
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
-            <Link href="/creator/onboarding">{l("ctaStartCreating")} →</Link>
+            <Link href="/creator/onboarding">{l("ctaStartCreating")}</Link>
           </Button>
           <Button asChild variant="outline" size="lg">
             <Link href="/rooms">{l("ctaBrowseCatalog")}</Link>
