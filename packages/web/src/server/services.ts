@@ -1,6 +1,6 @@
 import path from "node:path";
 import { storage } from "@escaperoom/kit/storage";
-import { roomDocToPackage } from "@escaperoom/editor/room-doc";
+import { roomDocToPackage, roomPackageToDoc } from "@escaperoom/editor/room-doc";
 import type { RoomPackageSerializer } from "@escaperoom/editor/validation";
 import { prisma } from "@escaperoom/shared/db";
 import { EVENT_ROOM_NAME } from "@/lib/colyseus";
@@ -33,6 +33,9 @@ import {
   type AccessKeyService,
   type RedeemService,
   type EventService,
+  createPrismaRoomLicenseStore,
+  createRoomLicenseService,
+  type RoomLicenseService,
   type CatalogService,
   type PlatformSettingsService,
   type PricingTierService,
@@ -57,6 +60,7 @@ let events: EventService | undefined;
 let reviews: ReviewService | undefined;
 let accessKeys: AccessKeyService | undefined;
 let redeem: RedeemService | null | undefined;
+let roomLicenses: RoomLicenseService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -200,4 +204,20 @@ export function getRedeemService(): RedeemService | null {
       })
     : null;
   return redeem;
+}
+
+/**
+ * Licencias entre creadores (specs/02 §5, specs/13 §4) sobre Postgres. El fork
+ * se siembra con `roomPackageToDoc` (3.1) a partir del `package` congelado.
+ * `payments: null` hasta que 5.1 cablee Stripe (mismo puerto que eventos): una
+ * licencia con precio responde 501 `PAYMENT_GATEWAY_UNAVAILABLE`; el regalo y
+ * la licencia gratuita no lo necesitan.
+ */
+export function getRoomLicenseService(): RoomLicenseService {
+  roomLicenses ??= createRoomLicenseService({
+    store: createPrismaRoomLicenseStore(prisma),
+    buildDoc: (pkg) => roomPackageToDoc(pkg),
+    payments: null,
+  });
+  return roomLicenses;
 }

@@ -146,7 +146,7 @@ export interface EventStore extends AdminDirectory {
 }
 
 /**
- * Pasarela de pago (Stripe Checkout en 5.1). Este ticket no la implementa:
+ * Pasarela de pago (Stripe Checkout en 5.1). Ni 5.4 ni 5.10 la implementan:
  * web la cablea a `null` y los tests usan `createFakePaymentGateway`.
  */
 export interface PaymentGateway {
@@ -155,6 +155,20 @@ export interface PaymentGateway {
     organizerId: string;
     title: string;
     players: number;
+    amountCents: number;
+    currency: string;
+  }): Promise<{ checkoutRef: string; url: string }>;
+  /**
+   * Licencia de sala entre creadores (5.10, `purchase_type: 'room_license'`).
+   * El `purchaseId` viaja en la metadata del checkout: al confirmarse el pago,
+   * el webhook de 5.1 llama a `RoomLicenseService.confirmLicensePayment`.
+   */
+  createLicenseCheckout(input: {
+    purchaseId: string;
+    buyerId: string;
+    roomId: string;
+    roomVersionId: string;
+    title: string;
     amountCents: number;
     currency: string;
   }): Promise<{ checkoutRef: string; url: string }>;
@@ -597,16 +611,27 @@ export type EventService = ReturnType<typeof createEventService>;
 
 // ── Implementaciones en memoria (tests y superficies sin base de datos) ────
 
+type EventCheckoutInput = Parameters<PaymentGateway["createEventCheckout"]>[0];
+type LicenseCheckoutInput = Parameters<PaymentGateway["createLicenseCheckout"]>[0];
+
 /** Pasarela falsa: registra las llamadas y devuelve una URL ficticia. Nunca toca Stripe. */
 export function createFakePaymentGateway(): PaymentGateway & {
-  calls: Array<Parameters<PaymentGateway["createEventCheckout"]>[0]>;
+  calls: EventCheckoutInput[];
+  licenseCalls: LicenseCheckoutInput[];
 } {
-  const calls: Array<Parameters<PaymentGateway["createEventCheckout"]>[0]> = [];
+  const calls: EventCheckoutInput[] = [];
+  const licenseCalls: LicenseCheckoutInput[] = [];
   return {
     calls,
+    licenseCalls,
     async createEventCheckout(input) {
       calls.push(input);
       const checkoutRef = `fake_cs_${calls.length}`;
+      return { checkoutRef, url: `https://checkout.example.test/${checkoutRef}` };
+    },
+    async createLicenseCheckout(input) {
+      licenseCalls.push(input);
+      const checkoutRef = `fake_cs_license_${licenseCalls.length}`;
       return { checkoutRef, url: `https://checkout.example.test/${checkoutRef}` };
     },
   };

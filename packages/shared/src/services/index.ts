@@ -25,3 +25,5 @@ export * from "./access-keys";
 export * from "./access-keys-prisma-store";
 export * from "./join-token";
 export * from "./redeem";
+export * from "./room-license";
+export * from "./room-license-prisma-store";

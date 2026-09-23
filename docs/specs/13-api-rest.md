@@ -120,6 +120,25 @@ En el borrador, `LocalizedText.audioUrl` y los efectos (`play_sound`) guardan un
 Un audio subido solo lo puede usar su dueño; `pending` sirve en el borrador pero bloquea
 publicar (`AUDIO_PENDING_MODERATION`) y `rejected` no es usable (`AUDIO_REJECTED`, con motivo).
 
+### 4.2 Licencias entre creadores (ticket 5.10)
+
+Reglas en `specs/02` §5. El fork es una sala **nueva** en `draft` del comprador/receptor, con
+`forkedFromRoomId`/`forkedFromVersionId`, cuyo draft Yjs se siembra con el `package` congelado de la
+versión (`roomPackageToDoc`) como primer `roomUpdate` (`meta.id`/`meta.authorId` pasan a ser los del
+fork). Los assets publicados (`r2://…`) se referencian, no se copian.
+
+- `license-checkout` — cuerpo opcional `{ roomVersionId? }` (por defecto, la última versión). Exige
+  `licensable = true` y `licensePriceCents` no nulo (`422 LICENSE_NOT_AVAILABLE`); el autor no compra
+  la suya (`409 LICENSE_OWN_ROOM`). Con precio: crea `purchase` `room_license` `pending` y abre el
+  pago en el puerto `PaymentGateway` → `200 { purchase, checkoutUrl }`; el fork se crea al confirmar
+  el pago (webhook de 5.1 → `confirmLicensePayment`, idempotente). A precio 0: `201 { purchase, room }`.
+  Sin pasarela cableada: `501 PAYMENT_GATEWAY_UNAVAILABLE`.
+- `gift-copy` — `{ recipientEmail, roomVersionId? }`, solo el autor (`403`). `201 { purchase, room }`
+  con `purchase` a precio 0. No exige `licensable`. `404 RECIPIENT_NOT_FOUND`, `422 INVALID_RECIPIENT`
+  (a sí mismo).
+- Ambas: `409 LICENSE_ALREADY_OWNED` (con `resultingRoomId`) si el receptor ya tiene esa versión;
+  `422 ROOM_VERSION_UNAVAILABLE` si la sala no tiene esa versión publicada.
+
 ## 5. Compras (venta individual de salas)
 
 Checkout con **Stripe Checkout** hospedado (no se gestionan tarjetas directamente).
