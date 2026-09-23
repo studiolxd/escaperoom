@@ -1011,5 +1011,126 @@
       "MODEL_ERROR": "Het taalmodel is mislukt. Probeer het opnieuw.",
       "UNKNOWN": "Er is iets misgegaan. Probeer het opnieuw."
     }
+  },
+  "EventPanel": {
+    "metaTitle": "Evenementoverzicht",
+    "title": "Evenementoverzicht",
+    "loading": "Overzicht laden…",
+    "updatedAt": "Bijgewerkt om {time}",
+    "liveUnavailable": "De spelserver is niet bereikbaar: alleen opgeslagen gegevens worden getoond.",
+    "status": {
+      "draft": "Concept",
+      "active": "Actief",
+      "closed": "Gesloten"
+    },
+    "activeSessions": "{count, plural, one {# actieve sessie} other {# actieve sessies}}",
+    "metrics": {
+      "title": "Samenvatting",
+      "keys": "Gegenereerde codes",
+      "sent": "Verstuurde uitnodigingen",
+      "confirmed": "Bevestigd",
+      "confirmedOf": "{confirmed}/{invited} bevestigd",
+      "redeemed": "Ingewisselde codes",
+      "sessions": "Sessies",
+      "sessionsValue": "{active} actief van {total}",
+      "averageTime": "Gemiddelde tijd (ontsnapt)",
+      "averageHints": "Hints per groep",
+      "none": "—"
+    },
+    "table": {
+      "title": "Voortgang en ranglijst",
+      "empty": "Het evenement heeft nog geen sessies.",
+      "rank": "Plaats",
+      "group": "Groep",
+      "progress": "Voortgang",
+      "progressValue": "{solved}/{total} puzzels",
+      "state": "Status",
+      "time": "Tijd",
+      "hints": "Hints",
+      "players": "Spelers",
+      "playersValue": "{online} online · {occupied}/{capacity} plaatsen",
+      "action": "Actie"
+    },
+    "states": {
+      "not_started": "Niet gestart",
+      "lobby": "In de wachtruimte",
+      "playing": "Bezig",
+      "ended": "Afgelopen",
+      "offline": "Offline"
+    },
+    "results": {
+      "victory": "Ontsnapt",
+      "timeout": "Tijd op",
+      "aborted": "Afgebroken"
+    },
+    "actions": {
+      "observe": "Meekijken",
+      "observeHint": "Het spel alleen-lezen bekijken"
+    },
+    "footer": {
+      "resend": "Openstaande uitnodigingen opnieuw versturen",
+      "resending": "Opnieuw versturen…",
+      "resent": "{count, plural, =0 {Er wachten geen uitnodigingen op bevestiging} one {# herinnering in de wachtrij} other {# herinneringen in de wachtrij}}",
+      "exportCsv": "Voortgang exporteren (CSV)",
+      "exportPdf": "Codes exporteren (PDF)",
+      "exportingPdf": "PDF genereren…",
+      "pdfQueued": "PDF met {cards} kaarten wordt gegenereerd…",
+      "pdfReady": "PDF met codes downloaden"
+    },
+    "errors": {
+      "UNAUTHORIZED": "Log in om het evenementoverzicht te zien.",
+      "FORBIDDEN": "Alleen de organisator van het evenement kan dit overzicht zien.",
+      "NOT_FOUND": "Dit evenement bestaat niet.",
+      "SESSION_NOT_FOUND": "Die sessie hoort niet bij dit evenement.",
+      "SESSION_NOT_LIVE": "In die sessie loopt geen spel.",
+      "SPECTATOR_UNAVAILABLE": "De meekijkmodus is nu niet beschikbaar.",
+      "NO_PRINTABLE_KEYS": "Er zijn geen codes om af te drukken.",
+      "UNKNOWN": "Er ging iets mis. Probeer het over een paar seconden opnieuw."
+    },
+    "observer": {
+      "title": "Meekijkmodus",
+      "readOnly": "Alleen-lezen: je ziet het spel maar kunt niet handelen of de oplossingen zien.",
+      "back": "Terug naar het overzicht",
+      "connecting": "Meekijken starten…",
+      "error": "Het spel kon niet worden bekeken.",
+      "retry": "Opnieuw proberen",
+      "phase": {
+        "lobby": "In de wachtruimte",
+        "playing": "Bezig",
+        "paused": "Gepauzeerd",
+        "ended": "Afgelopen"
+      },
+      "timeLeft": "Resterende tijd",
+      "elapsed": "Gespeelde tijd",
+      "solved": "{solved}/{total} puzzels opgelost",
+      "players": "Spelers",
+      "noPlayers": "Er is nog niemand binnen.",
+      "offline": "offline",
+      "host": "host",
+      "puzzles": "Puzzels",
+      "puzzleStates": {
+        "locked": "Vergrendeld",
+        "available": "Beschikbaar",
+        "in_progress": "Bezig",
+        "solved": "Opgelost",
+        "failed": "Mislukt"
+      },
+      "chat": "Groepschat",
+      "noChat": "Nog geen berichten.",
+      "log": "Activiteit",
+      "noLog": "Nog geen activiteit.",
+      "logSolved": "Opgelost: {puzzle}",
+      "logEnded": "Einde van het spel: {result}"
+    },
+    "puzzleTypes": {
+      "code_lock": "Slot",
+      "hidden_key": "Verborgen voorwerp",
+      "simultaneous_plates": "Gelijktijdige platen",
+      "sliding_puzzle": "Schuifpuzzel",
+      "memory": "Memory",
+      "split_clue": "Gedeelde aanwijzing",
+      "pipes": "Buizen",
+      "combine_items": "Voorwerpen combineren"
+    }
   }
 }

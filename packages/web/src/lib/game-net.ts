@@ -19,12 +19,16 @@ import {
  *   firmado del link de prueba.
  * - Evento (`event`, ticket 5.8): se empareja por `sessionId` con el `joinToken`
  *   del canje; el nombre visible lo fija el token, no el cliente.
+ * - Observador (`spectate`, ticket 5.9): el organizador entra en la room `event`
+ *   de una sesión **ya creada** con el `spectatorToken` del panel; nunca la crea
+ *   ni ocupa plaza de jugador, y la room rechaza cualquier acción suya.
  */
 
 export type GameJoinTarget =
   | { kind: "game"; roomId?: string; packageId?: string }
   | { kind: "playtest"; playtestId: string; token: string }
-  | { kind: "event"; sessionId: string; joinToken: string };
+  | { kind: "event"; sessionId: string; joinToken: string }
+  | { kind: "spectate"; sessionId: string; spectatorToken: string };
 
 export type GameRoomHandle = Room<unknown, GameRoomStateLike>;
 
@@ -43,12 +47,15 @@ export function joinOptions(target: GameJoinTarget, name?: string): Record<strin
   if (target.kind === "event") {
     return { sessionId: target.sessionId, joinToken: target.joinToken };
   }
+  if (target.kind === "spectate") {
+    return { sessionId: target.sessionId, spectatorToken: target.spectatorToken };
+  }
   return target.roomId || !target.packageId ? base : { ...base, packageId: target.packageId };
 }
 
 /** Une a la room pedida; lanza si el servidor rechaza (link caducado, sala llena…). */
 export async function joinGameRoom(
-  client: Pick<Client, "create" | "joinById" | "joinOrCreate">,
+  client: Pick<Client, "create" | "join" | "joinById" | "joinOrCreate">,
   target: GameJoinTarget,
   name?: string,
 ): Promise<GameRoomHandle> {
@@ -58,6 +65,10 @@ export async function joinGameRoom(
   }
   if (target.kind === "event") {
     return client.joinOrCreate<GameRoomStateLike>(EVENT_ROOM, options);
+  }
+  if (target.kind === "spectate") {
+    // `join` (no `joinOrCreate`): sin partida en curso no hay nada que observar.
+    return client.join<GameRoomStateLike>(EVENT_ROOM, options);
   }
   if (target.roomId) {
     return client.joinById<GameRoomStateLike>(target.roomId, options);

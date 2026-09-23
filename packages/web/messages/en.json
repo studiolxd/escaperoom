@@ -1011,5 +1011,126 @@
       "MODEL_ERROR": "The language model failed. Please try again.",
       "UNKNOWN": "Something went wrong. Please try again."
     }
+  },
+  "EventPanel": {
+    "metaTitle": "Event dashboard",
+    "title": "Event dashboard",
+    "loading": "Loading the dashboard…",
+    "updatedAt": "Updated at {time}",
+    "liveUnavailable": "The game server can't be reached: showing saved data only.",
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "closed": "Closed"
+    },
+    "activeSessions": "{count, plural, one {# active session} other {# active sessions}}",
+    "metrics": {
+      "title": "Summary",
+      "keys": "Keys generated",
+      "sent": "Invitations sent",
+      "confirmed": "Confirmed",
+      "confirmedOf": "{confirmed}/{invited} confirmed",
+      "redeemed": "Keys redeemed",
+      "sessions": "Sessions",
+      "sessionsValue": "{active} active of {total}",
+      "averageTime": "Average time (escaped)",
+      "averageHints": "Hints per group",
+      "none": "—"
+    },
+    "table": {
+      "title": "Progress and ranking",
+      "empty": "This event has no sessions yet.",
+      "rank": "Rank",
+      "group": "Group",
+      "progress": "Progress",
+      "progressValue": "{solved}/{total} puzzles",
+      "state": "Status",
+      "time": "Time",
+      "hints": "Hints",
+      "players": "Players",
+      "playersValue": "{online} online · {occupied}/{capacity} seats",
+      "action": "Action"
+    },
+    "states": {
+      "not_started": "Not started",
+      "lobby": "In the lobby",
+      "playing": "Playing",
+      "ended": "Finished",
+      "offline": "Offline"
+    },
+    "results": {
+      "victory": "Escaped",
+      "timeout": "Out of time",
+      "aborted": "Abandoned"
+    },
+    "actions": {
+      "observe": "Watch",
+      "observeHint": "Watch the game in read-only mode"
+    },
+    "footer": {
+      "resend": "Resend pending invitations",
+      "resending": "Resending…",
+      "resent": "{count, plural, =0 {No invitations are waiting for confirmation} one {# reminder queued} other {# reminders queued}}",
+      "exportCsv": "Export progress (CSV)",
+      "exportPdf": "Export keys (PDF)",
+      "exportingPdf": "Generating PDF…",
+      "pdfQueued": "Generating the PDF with {cards} cards…",
+      "pdfReady": "Download the keys PDF"
+    },
+    "errors": {
+      "UNAUTHORIZED": "Sign in to see the event dashboard.",
+      "FORBIDDEN": "Only the event organizer can see this dashboard.",
+      "NOT_FOUND": "This event doesn't exist.",
+      "SESSION_NOT_FOUND": "That session doesn't belong to this event.",
+      "SESSION_NOT_LIVE": "That session has no game in progress.",
+      "SPECTATOR_UNAVAILABLE": "Watch mode isn't available right now.",
+      "NO_PRINTABLE_KEYS": "There are no keys to print.",
+      "UNKNOWN": "Something went wrong. Try again in a few seconds."
+    },
+    "observer": {
+      "title": "Watch mode",
+      "readOnly": "Read-only: you can see the game but you can't act or see the solutions.",
+      "back": "Back to the dashboard",
+      "connecting": "Joining as an observer…",
+      "error": "Couldn't watch the game.",
+      "retry": "Retry",
+      "phase": {
+        "lobby": "In the lobby",
+        "playing": "Playing",
+        "paused": "Paused",
+        "ended": "Finished"
+      },
+      "timeLeft": "Time left",
+      "elapsed": "Time played",
+      "solved": "{solved}/{total} puzzles solved",
+      "players": "Players",
+      "noPlayers": "Nobody has joined yet.",
+      "offline": "offline",
+      "host": "host",
+      "puzzles": "Puzzles",
+      "puzzleStates": {
+        "locked": "Locked",
+        "available": "Available",
+        "in_progress": "In progress",
+        "solved": "Solved",
+        "failed": "Failed"
+      },
+      "chat": "Group chat",
+      "noChat": "No messages yet.",
+      "log": "Activity",
+      "noLog": "No activity yet.",
+      "logSolved": "Solved: {puzzle}",
+      "logEnded": "Game over: {result}"
+    },
+    "puzzleTypes": {
+      "code_lock": "Lock",
+      "hidden_key": "Hidden object",
+      "simultaneous_plates": "Simultaneous plates",
+      "sliding_puzzle": "Sliding puzzle",
+      "memory": "Memory",
+      "split_clue": "Split clue",
+      "pipes": "Pipes",
+      "combine_items": "Combine items"
+    }
   }
 }

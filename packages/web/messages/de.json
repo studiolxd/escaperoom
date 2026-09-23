@@ -1011,5 +1011,126 @@
       "MODEL_ERROR": "Das Sprachmodell ist fehlgeschlagen. Bitte versuche es erneut.",
       "UNKNOWN": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     }
+  },
+  "EventPanel": {
+    "metaTitle": "Event-Übersicht",
+    "title": "Event-Übersicht",
+    "loading": "Übersicht wird geladen…",
+    "updatedAt": "Aktualisiert um {time}",
+    "liveUnavailable": "Der Spielserver ist nicht erreichbar: Es werden nur gespeicherte Daten angezeigt.",
+    "status": {
+      "draft": "Entwurf",
+      "active": "Aktiv",
+      "closed": "Geschlossen"
+    },
+    "activeSessions": "{count, plural, one {# aktive Sitzung} other {# aktive Sitzungen}}",
+    "metrics": {
+      "title": "Zusammenfassung",
+      "keys": "Erzeugte Schlüssel",
+      "sent": "Gesendete Einladungen",
+      "confirmed": "Bestätigt",
+      "confirmedOf": "{confirmed}/{invited} bestätigt",
+      "redeemed": "Eingelöste Schlüssel",
+      "sessions": "Sitzungen",
+      "sessionsValue": "{active} von {total} aktiv",
+      "averageTime": "Durchschnittszeit (entkommen)",
+      "averageHints": "Hinweise pro Gruppe",
+      "none": "—"
+    },
+    "table": {
+      "title": "Fortschritt und Rangliste",
+      "empty": "Das Event hat noch keine Sitzungen.",
+      "rank": "Platz",
+      "group": "Gruppe",
+      "progress": "Fortschritt",
+      "progressValue": "{solved}/{total} Rätsel",
+      "state": "Status",
+      "time": "Zeit",
+      "hints": "Hinweise",
+      "players": "Spieler",
+      "playersValue": "{online} online · {occupied}/{capacity} Plätze",
+      "action": "Aktion"
+    },
+    "states": {
+      "not_started": "Nicht begonnen",
+      "lobby": "Im Warteraum",
+      "playing": "Läuft",
+      "ended": "Beendet",
+      "offline": "Offline"
+    },
+    "results": {
+      "victory": "Entkommen",
+      "timeout": "Zeit abgelaufen",
+      "aborted": "Abgebrochen"
+    },
+    "actions": {
+      "observe": "Zuschauen",
+      "observeHint": "Das Spiel schreibgeschützt ansehen"
+    },
+    "footer": {
+      "resend": "Ausstehende Einladungen erneut senden",
+      "resending": "Wird gesendet…",
+      "resent": "{count, plural, =0 {Keine Einladungen warten auf Bestätigung} one {# Erinnerung in der Warteschlange} other {# Erinnerungen in der Warteschlange}}",
+      "exportCsv": "Fortschritt exportieren (CSV)",
+      "exportPdf": "Schlüssel exportieren (PDF)",
+      "exportingPdf": "PDF wird erstellt…",
+      "pdfQueued": "PDF mit {cards} Karten wird erstellt…",
+      "pdfReady": "Schlüssel-PDF herunterladen"
+    },
+    "errors": {
+      "UNAUTHORIZED": "Melde dich an, um die Event-Übersicht zu sehen.",
+      "FORBIDDEN": "Nur der Veranstalter des Events kann diese Übersicht sehen.",
+      "NOT_FOUND": "Dieses Event existiert nicht.",
+      "SESSION_NOT_FOUND": "Diese Sitzung gehört nicht zu diesem Event.",
+      "SESSION_NOT_LIVE": "In dieser Sitzung läuft kein Spiel.",
+      "SPECTATOR_UNAVAILABLE": "Der Zuschauermodus ist gerade nicht verfügbar.",
+      "NO_PRINTABLE_KEYS": "Es gibt keine Schlüssel zum Drucken.",
+      "UNKNOWN": "Etwas ist schiefgelaufen. Versuche es in ein paar Sekunden erneut."
+    },
+    "observer": {
+      "title": "Zuschauermodus",
+      "readOnly": "Schreibgeschützt: Du siehst das Spiel, kannst aber weder handeln noch Lösungen sehen.",
+      "back": "Zurück zur Übersicht",
+      "connecting": "Als Zuschauer beitreten…",
+      "error": "Das Spiel konnte nicht angesehen werden.",
+      "retry": "Erneut versuchen",
+      "phase": {
+        "lobby": "Im Warteraum",
+        "playing": "Läuft",
+        "paused": "Pausiert",
+        "ended": "Beendet"
+      },
+      "timeLeft": "Verbleibende Zeit",
+      "elapsed": "Gespielte Zeit",
+      "solved": "{solved}/{total} Rätsel gelöst",
+      "players": "Spieler",
+      "noPlayers": "Noch niemand ist beigetreten.",
+      "offline": "offline",
+      "host": "Gastgeber",
+      "puzzles": "Rätsel",
+      "puzzleStates": {
+        "locked": "Gesperrt",
+        "available": "Verfügbar",
+        "in_progress": "In Arbeit",
+        "solved": "Gelöst",
+        "failed": "Fehlgeschlagen"
+      },
+      "chat": "Gruppenchat",
+      "noChat": "Noch keine Nachrichten.",
+      "log": "Aktivität",
+      "noLog": "Noch keine Aktivität.",
+      "logSolved": "Gelöst: {puzzle}",
+      "logEnded": "Spielende: {result}"
+    },
+    "puzzleTypes": {
+      "code_lock": "Schloss",
+      "hidden_key": "Verstecktes Objekt",
+      "simultaneous_plates": "Gleichzeitige Platten",
+      "sliding_puzzle": "Schiebepuzzle",
+      "memory": "Memory",
+      "split_clue": "Geteilter Hinweis",
+      "pipes": "Rohre",
+      "combine_items": "Gegenstände kombinieren"
+    }
   }
 }

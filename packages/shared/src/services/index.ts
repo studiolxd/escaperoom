@@ -35,3 +35,5 @@ export * from "./access-key-cards-pdf";
 export * from "./access-key-cards-prisma-store";
 export * from "./organizations";
 export * from "./organizations-prisma-store";
+export * from "./event-progress";
+export * from "./event-panel";

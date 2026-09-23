@@ -7,6 +7,7 @@ import {
   LOBBY_ROOM_NAME,
   PLAYTEST_ROOM_NAME,
 } from "./constants.js";
+import { createEventProgressRouter } from "./events/http.js";
 import { createPlaytestRouter } from "./playtest/http.js";
 import { EventRoom } from "./rooms/event-room.js";
 import { GameRoom } from "./rooms/game-room.js";
@@ -20,7 +21,9 @@ import { PlaytestRoom } from "./rooms/playtest-room.js";
  * arrancarlo. La room de playtest se empareja por
  * `playtestId` (quien entra con el link se une a la partida de ese playtest o
  * la recrea desde el paquete congelado si se había vaciado), y la ruta interna
- * `POST /internal/playtests` la usa web para crear playtests.
+ * `POST /internal/playtests` la usa web para crear playtests;
+ * `GET /internal/events/:eventId/progress` alimenta el panel del organizador
+ * (ticket 5.9).
  * Colyseus ya responde con cabeceras CORS a las peticiones de matchmaking, así
  * que el cliente web puede conectar desde otro origen (p. ej. `localhost:3000`).
  */
@@ -29,6 +32,7 @@ export function createGameServer(): Server {
     transport: new WebSocketTransport(),
     express: (app) => {
       app.use(createPlaytestRouter());
+      app.use(createEventProgressRouter());
     },
   });
   server.define(LOBBY_ROOM_NAME, LobbyTestRoom);

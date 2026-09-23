@@ -171,3 +171,114 @@ function isPayload(value: unknown): value is JoinTokenPayload {
     Number.isFinite(c.exp)
   );
 }
+
+// ── Token de observador (ticket 5.9) ───────────────────────────────────────
+
+/**
+ * Audiencia del token de observador: la misma room de evento, pero en **modo
+ * observador** (specs/19 §2: "observar nunca añade un jugador"). Una audiencia
+ * distinta impide usar un token de observador como `joinToken` y viceversa.
+ */
+export const SPECTATOR_TOKEN_AUDIENCE = "escaperoom:event-spectator";
+
+/** Caducidad del token de observador: solo sirve para hacer el `join` (5 min). */
+export const SPECTATOR_TOKEN_TTL_SECONDS = 5 * 60;
+
+/** Lo que la room necesita saber de un observador (el organizador del evento). */
+export type SpectatorClaims = {
+  /** `user.id` del organizador. */
+  organizerId: string;
+  eventId: string;
+  sessionId: string;
+};
+
+type SpectatorTokenPayload = {
+  iss: typeof ISSUER;
+  aud: typeof SPECTATOR_TOKEN_AUDIENCE;
+  sub: string;
+  eid: string;
+  sid: string;
+  iat: number;
+  exp: number;
+};
+
+export type SpectatorTokenResult =
+  { ok: true; claims: SpectatorClaims; expiresAt: number } | { ok: false; error: JoinTokenError };
+
+/** Clave de firma propia del observador (separación de dominio respecto al `joinToken`). */
+function spectatorKey(secret: string): Buffer {
+  return createHmac("sha256", secret).update("escaperoom/spectator-token/v1").digest();
+}
+
+function signSpectator(secret: string, input: string): string {
+  return createHmac("sha256", spectatorKey(secret)).update(input).digest("base64url");
+}
+
+/** Firma un token de observador (web, tras comprobar que el actor es el organizador). */
+export function signSpectatorToken(
+  secret: string,
+  claims: SpectatorClaims,
+  opts: { now: number; expiresAt: number },
+): string {
+  const payload: SpectatorTokenPayload = {
+    iss: ISSUER,
+    aud: SPECTATOR_TOKEN_AUDIENCE,
+    sub: claims.organizerId,
+    eid: claims.eventId,
+    sid: claims.sessionId,
+    iat: Math.floor(opts.now / 1000),
+    exp: Math.floor(opts.expiresAt / 1000),
+  };
+  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const input = `${HEADER}.${body}`;
+  return `${input}.${signSpectator(secret, input)}`;
+}
+
+/** Verifica un token de observador (mismas reglas que `verifyJoinToken`). */
+export function verifySpectatorToken(
+  secret: string,
+  token: unknown,
+  now: number = Date.now(),
+): SpectatorTokenResult {
+  if (typeof token !== "string" || token.length > MAX_TOKEN_LENGTH) {
+    return { ok: false, error: "MALFORMED" };
+  }
+  const [header, body, signature, extra] = token.split(".");
+  if (!header || !body || !signature || extra !== undefined || header !== HEADER) {
+    return { ok: false, error: "MALFORMED" };
+  }
+  const expected = Buffer.from(signSpectator(secret, `${header}.${body}`));
+  const received = Buffer.from(signature);
+  if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+    return { ok: false, error: "BAD_SIGNATURE" };
+  }
+  let payload: unknown;
+  try {
+    payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+  } catch {
+    return { ok: false, error: "MALFORMED" };
+  }
+  if (!isSpectatorPayload(payload)) return { ok: false, error: "MALFORMED" };
+  if (payload.exp * 1000 <= now) return { ok: false, error: "EXPIRED" };
+  return {
+    ok: true,
+    expiresAt: payload.exp * 1000,
+    claims: { organizerId: payload.sub, eventId: payload.eid, sessionId: payload.sid },
+  };
+}
+
+function isSpectatorPayload(value: unknown): value is SpectatorTokenPayload {
+  if (typeof value !== "object" || value === null) return false;
+  const c = value as Record<string, unknown>;
+  const text = (v: unknown) => typeof v === "string" && v.length > 0 && v.length <= 128;
+  return (
+    c.iss === ISSUER &&
+    c.aud === SPECTATOR_TOKEN_AUDIENCE &&
+    text(c.sub) &&
+    text(c.eid) &&
+    text(c.sid) &&
+    typeof c.iat === "number" &&
+    typeof c.exp === "number" &&
+    Number.isFinite(c.exp)
+  );
+}

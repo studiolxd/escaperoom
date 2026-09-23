@@ -1012,5 +1012,126 @@
       "MODEL_ERROR": "El modelo de lenguaje ha fallado. Inténtalo de nuevo.",
       "UNKNOWN": "Algo ha fallado. Inténtalo de nuevo."
     }
+  },
+  "EventPanel": {
+    "metaTitle": "Panel del evento",
+    "title": "Panel del evento",
+    "loading": "Cargando el panel…",
+    "updatedAt": "Actualizado a las {time}",
+    "liveUnavailable": "No se puede contactar con el servidor de partidas: se muestran solo los datos guardados.",
+    "status": {
+      "draft": "Borrador",
+      "active": "Activo",
+      "closed": "Cerrado"
+    },
+    "activeSessions": "{count, plural, one {# sesión activa} other {# sesiones activas}}",
+    "metrics": {
+      "title": "Resumen",
+      "keys": "Claves generadas",
+      "sent": "Invitaciones enviadas",
+      "confirmed": "Confirmadas",
+      "confirmedOf": "{confirmed}/{invited} confirmados",
+      "redeemed": "Claves canjeadas",
+      "sessions": "Sesiones",
+      "sessionsValue": "{active} activas de {total}",
+      "averageTime": "Tiempo medio (escaparon)",
+      "averageHints": "Pistas por grupo",
+      "none": "—"
+    },
+    "table": {
+      "title": "Progreso y ranking",
+      "empty": "El evento aún no tiene sesiones.",
+      "rank": "Puesto",
+      "group": "Grupo",
+      "progress": "Progreso",
+      "progressValue": "{solved}/{total} puzzles",
+      "state": "Estado",
+      "time": "Tiempo",
+      "hints": "Pistas",
+      "players": "Jugadores",
+      "playersValue": "{online} en línea · {occupied}/{capacity} plazas",
+      "action": "Acción"
+    },
+    "states": {
+      "not_started": "Sin empezar",
+      "lobby": "En la sala de espera",
+      "playing": "Jugando",
+      "ended": "Terminada",
+      "offline": "Sin conexión"
+    },
+    "results": {
+      "victory": "Escapó",
+      "timeout": "Sin tiempo",
+      "aborted": "Abandonada"
+    },
+    "actions": {
+      "observe": "Observar",
+      "observeHint": "Ver la partida en solo lectura"
+    },
+    "footer": {
+      "resend": "Reenviar invitaciones pendientes",
+      "resending": "Reenviando…",
+      "resent": "{count, plural, =0 {No hay invitaciones pendientes de confirmar} one {# recordatorio en cola} other {# recordatorios en cola}}",
+      "exportCsv": "Exportar progreso (CSV)",
+      "exportPdf": "Exportar claves (PDF)",
+      "exportingPdf": "Generando PDF…",
+      "pdfQueued": "Generando el PDF de {cards} tarjetas…",
+      "pdfReady": "Descargar el PDF de claves"
+    },
+    "errors": {
+      "UNAUTHORIZED": "Inicia sesión para ver el panel del evento.",
+      "FORBIDDEN": "Solo el organizador del evento puede ver este panel.",
+      "NOT_FOUND": "Este evento no existe.",
+      "SESSION_NOT_FOUND": "Esa sesión no es de este evento.",
+      "SESSION_NOT_LIVE": "Esa sesión no tiene ninguna partida en curso.",
+      "SPECTATOR_UNAVAILABLE": "El modo observador no está disponible ahora mismo.",
+      "NO_PRINTABLE_KEYS": "No hay claves que imprimir.",
+      "UNKNOWN": "Algo ha fallado. Inténtalo de nuevo en unos segundos."
+    },
+    "observer": {
+      "title": "Modo observador",
+      "readOnly": "Solo lectura: ves la partida pero no puedes actuar ni ver las soluciones.",
+      "back": "Volver al panel",
+      "connecting": "Entrando como observador…",
+      "error": "No se pudo observar la partida.",
+      "retry": "Reintentar",
+      "phase": {
+        "lobby": "En la sala de espera",
+        "playing": "Jugando",
+        "paused": "En pausa",
+        "ended": "Terminada"
+      },
+      "timeLeft": "Tiempo restante",
+      "elapsed": "Tiempo jugado",
+      "solved": "{solved}/{total} puzzles resueltos",
+      "players": "Jugadores",
+      "noPlayers": "Aún no hay nadie en la partida.",
+      "offline": "desconectado",
+      "host": "anfitrión",
+      "puzzles": "Puzzles",
+      "puzzleStates": {
+        "locked": "Bloqueado",
+        "available": "Disponible",
+        "in_progress": "En curso",
+        "solved": "Resuelto",
+        "failed": "Fallido"
+      },
+      "chat": "Chat del grupo",
+      "noChat": "Sin mensajes todavía.",
+      "log": "Actividad",
+      "noLog": "Sin actividad todavía.",
+      "logSolved": "Resuelto: {puzzle}",
+      "logEnded": "Fin de la partida: {result}"
+    },
+    "puzzleTypes": {
+      "code_lock": "Candado",
+      "hidden_key": "Objeto oculto",
+      "simultaneous_plates": "Placas simultáneas",
+      "sliding_puzzle": "Puzzle deslizante",
+      "memory": "Memoria",
+      "split_clue": "Pista repartida",
+      "pipes": "Tuberías",
+      "combine_items": "Combinar objetos"
+    }
   }
 }

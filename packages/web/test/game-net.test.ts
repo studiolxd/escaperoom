@@ -18,6 +18,7 @@ import { loadRoomPackage, toRuntimeModel } from "@escaperoom/game-runtime";
 import {
   CHAT_PROTOCOL_MESSAGE,
   createNetworkGameClient,
+  createReadOnlyGameClient,
   EVENT_ROOM,
   GAME_MAX_STEP_CELLS,
   GAME_PROTOCOL,
@@ -33,7 +34,11 @@ import {
   type GameSnapshot,
   type NetworkGameClient,
 } from "@escaperoom/game-runtime/session";
-import { DEV_JOIN_TOKEN_SECRET, signJoinToken } from "@escaperoom/shared/join-token";
+import {
+  DEV_JOIN_TOKEN_SECRET,
+  signJoinToken,
+  signSpectatorToken,
+} from "@escaperoom/shared/join-token";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { EVENT_ROOM_NAME as WEB_EVENT_ROOM_NAME } from "../src/lib/colyseus";
 import {
@@ -166,6 +171,10 @@ describe("protocolo espejo del runtime = constantes del servidor", () => {
       sessionId: "s1",
       joinToken: "jwt",
     });
+    // El observador (5.9) solo presenta su token: ni nombre ni joinToken.
+    expect(
+      joinOptions({ kind: "spectate", sessionId: "s1", spectatorToken: "spt" }, "Profe"),
+    ).toEqual({ sessionId: "s1", spectatorToken: "spt" });
   });
 
   it("el link de evento lleva el joinToken en el fragmento (no llega al servidor web)", () => {
@@ -205,6 +214,71 @@ describe("cliente de red contra una GameRoom real", () => {
     await expect(
       joinGameRoom(new Client(url), { kind: "event", sessionId: "otra", joinToken }),
     ).rejects.toThrow();
+  });
+
+  it("el organizador observa la room `event` en solo lectura (5.9): ve el estado, no actúa", async () => {
+    const now = Date.now();
+    const joinToken = signJoinToken(
+      DEV_JOIN_TOKEN_SECRET,
+      {
+        playerId: "guest:2",
+        displayName: "Lía",
+        eventId: "e-2",
+        sessionId: "sesion-2",
+        groupId: null,
+      },
+      { now, expiresAt: now + 60_000 },
+    );
+    const spectatorToken = signSpectatorToken(
+      DEV_JOIN_TOKEN_SECRET,
+      { organizerId: "profe", eventId: "e-2", sessionId: "sesion-2" },
+      { now, expiresAt: now + 60_000 },
+    );
+    const target = { kind: "spectate" as const, sessionId: "sesion-2", spectatorToken };
+
+    // Sin partida no hay nada que observar: el observador no crea la room.
+    await expect(joinGameRoom(new Client(url), target)).rejects.toThrow();
+
+    const guest = await join({ kind: "event", sessionId: "sesion-2", joinToken }, "");
+    await until(guest, (snapshot) => snapshot.self !== null);
+    const intro = nextEvent(guest, "dialog_show");
+    guest.client.startGame();
+    await intro;
+
+    const room = await joinGameRoom(new Client(url), target);
+    expect(room.roomId).toBe(guest.room.roomId);
+    const network = createNetworkGameClient(room);
+    const watcher = createReadOnlyGameClient(network);
+    const spectator: Player = { room, client: watcher, events: [] };
+    watcher.onEvent((event) => spectator.events.push(event));
+    opened.push({ room, client: network });
+    await until(spectator, (snapshot) => snapshot.phase === "playing");
+    expect(watcher.getSnapshot().players.map((player) => player.name)).toEqual(["Lía"]);
+    expect(watcher.getSnapshot().self).toBeNull();
+
+    // El cliente de solo lectura no envía nada…
+    const sent: string[] = [];
+    const send = room.send.bind(room);
+    room.send = ((type: string, payload?: unknown) => {
+      sent.push(type);
+      send(type, payload);
+    }) as typeof room.send;
+    watcher.startGame();
+    watcher.interact("cuadro-aurelio");
+    watcher.attempt("p-candado-arca", { code: "4732" });
+    watcher.requestHint("p-candado-arca");
+    watcher.sendChat("hola");
+    watcher.requestMediaToken();
+    expect(sent).toEqual([]);
+
+    // …y si algo lo enviara igualmente, la room lo rechaza.
+    const denied = nextEvent(spectator, "error");
+    room.send(GAME_PROTOCOL.interact, { objectId: "cuadro-aurelio" });
+    expect((await denied).code).toBe(GAME_PROTOCOL_ERRORS.permissionDenied);
+
+    // Lo que hace el jugador sí lo ve.
+    guest.client.interact("cuadro-aurelio");
+    await until(spectator, (snapshot) => snapshot.puzzles["p-llave-cuadro"]?.state === "solved");
   });
 
   it("se une, aplica el estado sincronizado al modelo del runtime y el servidor acepta sus acciones", async () => {

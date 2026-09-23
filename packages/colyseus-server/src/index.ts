@@ -21,6 +21,7 @@ export {
   GAME_TICK_MS,
   GAME_TIME_LIMIT_SEC,
   LOBBY_ROOM_NAME,
+  MAX_EVENT_SPECTATORS,
   MAX_PLAYERS,
   MAX_STEP_PER_TICK,
   MOVE_MESSAGE,
@@ -74,7 +75,8 @@ export { LobbyTestRoom } from "./rooms/lobby-test-room.js";
 export { GameRoom } from "./rooms/game-room.js";
 export { PLAYTEST_FORBIDDEN_CODE, PlaytestRoom } from "./rooms/playtest-room.js";
 export { EVENT_JOIN_FORBIDDEN_CODE, EventRoom, JOIN_TOKEN_ERRORS } from "./rooms/event-room.js";
-export type { EventRoomOptions } from "./rooms/event-room.js";
+export type { EventClientAuth, EventRoomMetadata, EventRoomOptions } from "./rooms/event-room.js";
+export { createEventProgressRouter } from "./events/http.js";
 export type { PlaytestJoinOptions, PlaytestRoomOptions } from "./rooms/playtest-room.js";
 export {
   DEFAULT_PLAYTEST_TTL_SECONDS,

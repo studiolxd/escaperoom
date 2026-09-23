@@ -1011,5 +1011,126 @@
       "MODEL_ERROR": "O modelo de linguagem falhou. Tenta novamente.",
       "UNKNOWN": "Algo correu mal. Tenta novamente."
     }
+  },
+  "EventPanel": {
+    "metaTitle": "Painel do evento",
+    "title": "Painel do evento",
+    "loading": "A carregar o painel…",
+    "updatedAt": "Atualizado às {time}",
+    "liveUnavailable": "Não é possível contactar o servidor de jogos: só são mostrados os dados guardados.",
+    "status": {
+      "draft": "Rascunho",
+      "active": "Ativo",
+      "closed": "Fechado"
+    },
+    "activeSessions": "{count, plural, one {# sessão ativa} other {# sessões ativas}}",
+    "metrics": {
+      "title": "Resumo",
+      "keys": "Chaves geradas",
+      "sent": "Convites enviados",
+      "confirmed": "Confirmados",
+      "confirmedOf": "{confirmed}/{invited} confirmados",
+      "redeemed": "Chaves resgatadas",
+      "sessions": "Sessões",
+      "sessionsValue": "{active} ativas de {total}",
+      "averageTime": "Tempo médio (escaparam)",
+      "averageHints": "Pistas por grupo",
+      "none": "—"
+    },
+    "table": {
+      "title": "Progresso e classificação",
+      "empty": "O evento ainda não tem sessões.",
+      "rank": "Posição",
+      "group": "Grupo",
+      "progress": "Progresso",
+      "progressValue": "{solved}/{total} puzzles",
+      "state": "Estado",
+      "time": "Tempo",
+      "hints": "Pistas",
+      "players": "Jogadores",
+      "playersValue": "{online} ligados · {occupied}/{capacity} lugares",
+      "action": "Ação"
+    },
+    "states": {
+      "not_started": "Não iniciada",
+      "lobby": "Na sala de espera",
+      "playing": "A jogar",
+      "ended": "Terminada",
+      "offline": "Sem ligação"
+    },
+    "results": {
+      "victory": "Escapou",
+      "timeout": "Sem tempo",
+      "aborted": "Abandonada"
+    },
+    "actions": {
+      "observe": "Observar",
+      "observeHint": "Ver o jogo só em leitura"
+    },
+    "footer": {
+      "resend": "Reenviar convites pendentes",
+      "resending": "A reenviar…",
+      "resent": "{count, plural, =0 {Não há convites à espera de confirmação} one {# lembrete em fila} other {# lembretes em fila}}",
+      "exportCsv": "Exportar progresso (CSV)",
+      "exportPdf": "Exportar chaves (PDF)",
+      "exportingPdf": "A gerar o PDF…",
+      "pdfQueued": "A gerar o PDF com {cards} cartões…",
+      "pdfReady": "Descarregar o PDF de chaves"
+    },
+    "errors": {
+      "UNAUTHORIZED": "Inicia sessão para ver o painel do evento.",
+      "FORBIDDEN": "Só o organizador do evento pode ver este painel.",
+      "NOT_FOUND": "Este evento não existe.",
+      "SESSION_NOT_FOUND": "Essa sessão não pertence a este evento.",
+      "SESSION_NOT_LIVE": "Essa sessão não tem nenhum jogo em curso.",
+      "SPECTATOR_UNAVAILABLE": "O modo observador não está disponível neste momento.",
+      "NO_PRINTABLE_KEYS": "Não há chaves para imprimir.",
+      "UNKNOWN": "Algo correu mal. Tenta novamente dentro de alguns segundos."
+    },
+    "observer": {
+      "title": "Modo observador",
+      "readOnly": "Só leitura: vês o jogo mas não podes agir nem ver as soluções.",
+      "back": "Voltar ao painel",
+      "connecting": "A entrar como observador…",
+      "error": "Não foi possível observar o jogo.",
+      "retry": "Tentar novamente",
+      "phase": {
+        "lobby": "Na sala de espera",
+        "playing": "A jogar",
+        "paused": "Em pausa",
+        "ended": "Terminada"
+      },
+      "timeLeft": "Tempo restante",
+      "elapsed": "Tempo de jogo",
+      "solved": "{solved}/{total} puzzles resolvidos",
+      "players": "Jogadores",
+      "noPlayers": "Ainda ninguém entrou no jogo.",
+      "offline": "desligado",
+      "host": "anfitrião",
+      "puzzles": "Puzzles",
+      "puzzleStates": {
+        "locked": "Bloqueado",
+        "available": "Disponível",
+        "in_progress": "Em curso",
+        "solved": "Resolvido",
+        "failed": "Falhado"
+      },
+      "chat": "Chat do grupo",
+      "noChat": "Ainda sem mensagens.",
+      "log": "Atividade",
+      "noLog": "Ainda sem atividade.",
+      "logSolved": "Resolvido: {puzzle}",
+      "logEnded": "Fim do jogo: {result}"
+    },
+    "puzzleTypes": {
+      "code_lock": "Cadeado",
+      "hidden_key": "Objeto escondido",
+      "simultaneous_plates": "Placas simultâneas",
+      "sliding_puzzle": "Puzzle deslizante",
+      "memory": "Memória",
+      "split_clue": "Pista repartida",
+      "pipes": "Canos",
+      "combine_items": "Combinar objetos"
+    }
   }
 }
