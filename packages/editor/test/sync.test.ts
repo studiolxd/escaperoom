@@ -254,13 +254,19 @@ describe("WebSocket de edición: restauración del historial", () => {
     const expected = stateOf(a.doc);
     await waitFor(async () => same(await persistedState(drafts), expected));
     const checkpoint = (await store.updatesAfter(ROOM_ID, 0n)).at(-1)!.id;
+    // Que el servidor haya persistido no implica que B lo haya recibido: el
+    // broadcast viaja por otro socket. Sin esto, B borra de un array vacío.
+    await waitFor(() => same(stateOf(b.doc), expected));
 
     b.doc.transact(() => {
       b.doc.getMap("meta").set("title", "Versión de hoy");
       b.doc.getArray<number>("tiles").delete(0, 1);
       b.doc.getText("notas").insert(0, "cambios");
     });
-    await waitFor(async () => (await persistedState(drafts)).meta.title === "Versión de hoy");
+    const today = stateOf(b.doc);
+    await waitFor(async () => same(await persistedState(drafts), today));
+    // A debe ver lo de B antes de restaurar; si no, "A == expected" se cumpliría sin restaurar nada.
+    await waitFor(() => same(stateOf(a.doc), today));
     const history = await store.updatesAfter(ROOM_ID, 0n);
 
     await expect(a.restore({ updateId: checkpoint.toString() })).resolves.toEqual({
