@@ -47,13 +47,24 @@ function toUpdate(row: UpdateRow): DraftUpdate {
 
 function txOps(db: Db): RoomDraftTx {
   return {
-    async latestSnapshot(roomId) {
-      const row = await db.roomSnapshot.findFirst({ where: { roomId }, orderBy: { id: "desc" } });
+    async latestSnapshot(roomId, atOrBeforeUpdateId) {
+      const row = await db.roomSnapshot.findFirst({
+        where: {
+          roomId,
+          ...(atOrBeforeUpdateId === undefined
+            ? {}
+            : { updatesAppliedThrough: { lte: atOrBeforeUpdateId } }),
+        },
+        orderBy: { id: "desc" },
+      });
       return row ? toSnapshot(row) : null;
     },
-    async updatesAfter(roomId, afterId) {
+    async updatesAfter(roomId, afterId, throughId) {
       const rows = await db.roomUpdate.findMany({
-        where: { roomId, id: { gt: afterId } },
+        where: {
+          roomId,
+          id: throughId === undefined ? { gt: afterId } : { gt: afterId, lte: throughId },
+        },
         orderBy: { id: "asc" },
       });
       return rows.map(toUpdate);
@@ -91,6 +102,12 @@ export function createPrismaRoomDraftStore(prisma: PrismaClient): RoomDraftStore
         select: { id: true, authorId: true },
       });
       return room ?? null;
+    },
+    findSnapshot(roomId, snapshotId) {
+      return prisma.roomSnapshot.findFirst({
+        where: { id: snapshotId, roomId },
+        select: { id: true, roomId: true, updatesAppliedThrough: true, createdAt: true },
+      });
     },
     async listSnapshots(roomId, limit): Promise<DraftSnapshotMeta[]> {
       const rows = await prisma.$queryRaw<

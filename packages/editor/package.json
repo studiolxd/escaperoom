@@ -3,9 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "UI del editor (Next.js + Yjs + React Flow). Placeholder del ticket 0.1.",
+  "description": "Editor de salas: colaboración Yjs (proveedor cliente + servidor del WebSocket de edición) y, en 3.1, la UI.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./sync-server": "./src/sync/server.ts"
   },
   "scripts": {
     "lint": "eslint .",
@@ -15,8 +16,16 @@
   "devDependencies": {
     "@escaperoom/config": "workspace:*",
     "@types/node": "^26.6.2",
+    "@types/ws": "^8.18.1",
     "eslint": "^10.11.0",
     "typescript": "^6.0.3",
     "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "@escaperoom/shared": "workspace:*",
+    "lib0": "^0.2.117",
+    "ws": "^8.21.3",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.32"
   }
 }
