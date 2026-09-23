@@ -158,7 +158,7 @@ El servidor responde dirigido al emisor y, si procede, con broadcast:
 ### 5.1 `sliding_puzzle` y `pipes`: una acción por clic, no el estado final
 
 > **Desviación aceptada del spec original** (registrada en `docs/reference/registro-de-decisiones.md`
-> ADR-024). Una versión anterior de este documento describía `sliding_puzzle` y `pipes` mandando el
+> ADR-026). Una versión anterior de este documento describía `sliding_puzzle` y `pipes` mandando el
 > estado final completo resuelto en el cliente (`{positions}` con todas las fichas, `{rotations}` con
 > todas las tuberías). La implementación real (ticket 2.8) es pieza a pieza: cada clic manda **una
 > sola acción**, el servidor lleva el tablero (`RoomSession` en `packages/shared/src/session/
