@@ -80,6 +80,28 @@
     "expired": "La ventana se cerró · vuelve a intentarlo",
     "alreadyActive": "Esa placa ya estaba activa"
   },
+  "Memory": {
+    "title": "Memoria de copas",
+    "prompt": "Voltea cartas para encontrar las parejas",
+    "boardLabel": "Tablero de memoria",
+    "pairs": "Parejas: {found}/{total}",
+    "progressLabel": "Progreso de las parejas",
+    "cardUp": "Carta {id} boca arriba",
+    "cardDown": "Carta {id} boca abajo",
+    "turn": "Turno de {name} · {flips} volteos",
+    "sharedTurn": "Turno compartido · {flips} volteos",
+    "anyPlayer": "cualquier jugador",
+    "pending": "Volteando…",
+    "match": "¡Pareja!",
+    "mismatch": "No coinciden · pasa el turno",
+    "alreadyFlipped": "Esa carta ya estaba boca arriba",
+    "notYourTurn": "No es tu turno",
+    "unknownCard": "Esa carta no existe",
+    "close": "Cerrar",
+    "solved": "¡Todas las parejas encontradas!",
+    "locked": "El tablero aún no está disponible",
+    "unavailable": "El tablero no acepta más volteos"
+  },
   "Inventory": {
     "title": "Inventario",
     "recipes": "Recetas: {found}/{total}",
