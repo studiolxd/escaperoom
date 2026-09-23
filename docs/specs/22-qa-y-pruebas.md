@@ -104,6 +104,8 @@ de playtest de §4, revisadas al acumular sesiones reales).
 - **`packages/game-runtime/__tests__/e2e.*.spec.ts`**: cliente de test de Colyseus hablando el
   protocolo directamente, **sin navegador**. Rápido (segundos); corre en cada PR contra el Rey
   Aldric como suite de regresión del motor de reglas.
+  > **Ubicación real (ticket 2.12):** `packages/colyseus-server/test/e2e.reyaldric.spec.ts`, junto
+  > al servidor (`GameRoom`) y sus dependencias de test (`@colyseus/testing`, puerto libre).
 - **`packages/e2e/*.spec.ts`** (Playwright): navegador real, UI real; valida que lo anterior
   funciona **a través de la aplicación** (clics, WebSocket real, checkout Stripe test mode, emails
   simulados). Más lento; subset en PR, completo en nightly.
