@@ -14,3 +14,8 @@ export {
   processAccessKeyExpiry,
   type AccessKeyExpiryWorkerOptions,
 } from "./access-key-expiry";
+export {
+  createInvitationEmailProcessor,
+  createInvitationEmailWorker,
+  type InvitationEmailWorkerOptions,
+} from "./invitation-email";

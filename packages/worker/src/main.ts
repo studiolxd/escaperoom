@@ -2,13 +2,18 @@ import { existsSync } from "node:fs";
 import { createQueueRedis } from "@escaperoom/kit/redis";
 import { logger } from "@escaperoom/kit/logger";
 import { prisma } from "@escaperoom/shared/db";
-import { createPrismaAccessKeyStore } from "@escaperoom/shared/services";
+import { createMailTransportFromEnv, readConfirmationTokenConfig } from "@escaperoom/shared/mail";
+import {
+  createPrismaAccessKeyStore,
+  createPrismaInvitationStore,
+} from "@escaperoom/shared/services";
 import { createAccessKeyExpiryWorker } from "./access-key-expiry";
+import { createInvitationEmailWorker } from "./invitation-email";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
 
 /**
- * Arranque de los workers de cola: analítica (specs/16) y caducidad de claves
- * (ticket 5.5, job repetitivo).
+ * Arranque de los workers de cola: analítica (specs/16), caducidad de claves
+ * (ticket 5.5, job repetitivo) y envíos de invitación por email (ticket 5.6).
  *
  *   pnpm --filter @escaperoom/worker dev
  *
@@ -52,6 +57,28 @@ async function main(): Promise<void> {
     connection: expiryConnection,
   });
 
+  // Envíos de invitación: sin transporte (config de email incompleta en
+  // producción) no se consume la cola y los jobs esperan a que se configure.
+  const transport = createMailTransportFromEnv();
+  const mailConnection = transport ? createQueueRedis() : null;
+  const invitations =
+    transport && mailConnection
+      ? createInvitationEmailWorker({
+          deps: {
+            store: createPrismaInvitationStore(prisma),
+            transport,
+            confirmation: readConfirmationTokenConfig(),
+            appUrl: process.env.APP_URL?.trim() || "http://localhost:3000",
+          },
+          connection: mailConnection,
+        })
+      : null;
+  if (!invitations) {
+    logger.warn("invitation email: EMAIL_* incompleto; los envíos quedan en cola sin procesar");
+  } else {
+    logger.info({ provider: transport?.provider }, "invitation email: consumiendo la cola");
+  }
+
   let closing = false;
   const shutdown = async (signal: string): Promise<void> => {
     if (closing) return;
@@ -60,8 +87,10 @@ async function main(): Promise<void> {
     await worker.close();
     await expiry.worker.close();
     await expiry.queue.close();
+    await invitations?.close();
     await connection.quit().catch(() => undefined);
     await expiryConnection.quit().catch(() => undefined);
+    await mailConnection?.quit().catch(() => undefined);
     await prisma.$disconnect().catch(() => undefined);
   };
 

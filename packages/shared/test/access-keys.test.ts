@@ -405,6 +405,7 @@ describe("estados y canje (función de estado para 5.8)", () => {
       regeneratedFrom: null,
       seats: 1,
       redeemedCount: 0,
+      sentAt: null,
       confirmedAt: at,
       activatedAt: null,
       usedAt: null,

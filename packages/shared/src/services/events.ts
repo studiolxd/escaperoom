@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LOCALES, type Locale } from "@escaperoom/config/locales";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
 import { isAnonymous, type Actor } from "./actor";
 import type { AdminDirectory } from "./admin";
@@ -63,6 +64,11 @@ export type EventConfig = {
   recordingAcceptedAt: string | null;
   /** Congelado al crear: el organizador era el autor de la sala. */
   selfSale: boolean;
+  /**
+   * Idioma de los emails de invitación (5.6). Sin él se usa el del organizador
+   * (`user.locale`) y, en último caso, `es`.
+   */
+  locale?: Locale;
   payment: {
     status: EventPaymentStatus;
     /** Referencia opaca del checkout abierto en la pasarela (5.1). */
@@ -259,6 +265,8 @@ export const CreateEventInput = z
     /** Por defecto `false` en cualquier evento (specs/12 §4). */
     allowVideo: z.boolean().default(false),
     recordingEnabled: z.boolean().default(false),
+    /** Idioma de los emails de invitación (5.6). */
+    locale: z.enum(LOCALES).optional(),
   })
   .strict()
   .refine((e) => !(e.recordingEnabled && e.audience === "educational"), RECORDING_EDUCATIONAL);
@@ -275,6 +283,7 @@ export const UpdateEventInput = z
     audience: z.enum(EVENT_AUDIENCES).optional(),
     allowVideo: z.boolean().optional(),
     recordingEnabled: z.boolean().optional(),
+    locale: z.enum(LOCALES).optional(),
   })
   .strict()
   .refine((p) => Object.keys(p).length > 0, { message: "No hay cambios que aplicar" });
@@ -448,6 +457,7 @@ export function createEventService(deps: {
           recordingEnabled: data.recordingEnabled,
           recordingAcceptedAt: data.recordingEnabled ? at.toISOString() : null,
           selfSale,
+          ...(data.locale ? { locale: data.locale } : {}),
           payment: {
             status: selfSale ? "not_required" : "pending",
             checkoutRef: null,
@@ -529,6 +539,7 @@ export function createEventService(deps: {
             : recordingTurnedOn
               ? now().toISOString()
               : event.config.recordingAcceptedAt,
+          ...(data.locale ? { locale: data.locale } : {}),
         },
       };
       const updated = await store.updateEvent(event.id, "draft", patch);

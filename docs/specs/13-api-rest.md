@@ -168,17 +168,37 @@ El reparto 70/30 y el `stripeTransferId` se resuelven en el webhook (§7), no en
 |---|---|---|---|
 | POST | `/api/events/:id/sessions` | organizador | Crea una o varias sesiones (`{ name, capacity }[]`), hasta `maxSimultaneousSessions` |
 | POST | `/api/events/:id/sessions/:sessionId/groups` | organizador | Crea grupo dentro de una sesión |
-| POST | `/api/events/:id/access-keys` | organizador | Generación en lote: `{ type, count, sessionId?, groupAssignment, emails? }`. Aplica `groupingMode`; con `emails` dispara el envío (Resend/Postmark) |
+| POST | `/api/events/:id/access-keys` | organizador | Generación en lote: `{ type, count, sessionId?, groupAssignment, emails? }`. Aplica `groupingMode`; con `emails` encola el envío de cada invitación (Nodemailer/SMTP por defecto, Resend opcional — ADR-020) |
 | GET | `/api/events/:id/access-keys` | organizador | Listado paginado con estado — alimenta el panel |
-| POST | `/api/access-keys/:code/resend` | organizador | Reenvía el email de invitación |
+| POST | `/api/access-keys/:code/resend` | organizador | Reenvía el email de invitación (202; recordatorio si aún no confirmó) |
+| GET | `/api/events/:id/invitations` | organizador | Resumen de invitaciones por email para el panel: `{ requireConfirmation, invited, sent, confirmed, pending, expired }` ("28/30 confirmados") |
+| POST | `/api/events/:id/invitations/resend` | organizador | Recordatorio a todas las claves en `pending_confirmation` (202) |
 | POST | `/api/access-keys/:code/regenerate` | organizador | Solo `type = rotating`: invalida la actual y crea nueva con `regeneratedFrom` |
-| POST | `/api/access-keys/:code/confirm` | público (enlace del email) | `pending_confirmation → confirmed` |
+| POST | `/api/access-keys/:code/confirm` | público (enlace del email) | `{ token }` firmado → `pending_confirmation → confirmed` |
 | POST | `/api/access-keys/redeem` | público (puede no tener cuenta) | `{ code }` → valida estado y caducidad, marca `used`/`active`, devuelve `{ sessionId, colyseusEndpoint, joinToken }` (`joinToken` = JWT corto, no la clave en claro) |
 | GET | `/api/events/:id/dashboard` | organizador | Resumen en vivo: estado de cada sesión, progreso por grupo (`progressEvent`), ranking |
 
 **Códigos de error de claves:** `ACCESS_KEY_INVALID`, `ACCESS_KEY_USED`, `ACCESS_KEY_EXPIRED`,
 `ACCESS_KEY_NOT_CONFIRMED` (si `requireConfirmation = true` y aún no confirmó), `SESSION_FULL` —
 los mismos que usa el `join` de Colyseus, porque `redeem` es el paso previo inmediato.
+
+**Invitaciones y confirmación (ticket 5.6).** Activar (`POST /api/events/:id/activate` con
+`keyPlan[].emails`) o generar claves con `emails` encola un job por clave en la cola BullMQ
+`mail.invitation` y responde además `emails: { requested, queued }` (`queued: 0` con
+`QUEUES_ENABLED=false`); lo entrega `@escaperoom/worker` con 5 intentos y backoff exponencial. Una sola
+dirección usa la plantilla de invitación individual y varias la masiva; el reenvío de una clave
+pendiente de confirmar, la de recordatorio. Idioma: `event.config.locale` (campo `locale` opcional de
+`POST`/`PATCH /api/events`), si no el del organizador, si no `es`. El envío correcto sella
+`accessKey.sentAt` y, con `requireConfirmation`, pasa la clave de `generated` a
+`pending_confirmation`. El email lleva un enlace a la página pública
+`/{locale}/invitations/{code}/confirm?token=…`, que confirma con un POST explícito (los escáneres de
+enlaces del correo hacen GET y no deben confirmar por el asistente). El token es un HMAC-SHA256
+(`CONFIRMATION_TOKEN_SECRET`, por defecto `APP_SECRET`) sobre `{ código, exp }`; caduca a los 30 días
+(`CONFIRMATION_TOKEN_TTL_SECONDS`) o con la clave, lo que llegue antes. Errores: 403
+`CONFIRMATION_INVALID` (firma alterada, token de otra clave), 410 `CONFIRMATION_EXPIRED`, 409
+`ACCESS_KEY_EXPIRED` (clave caducada o rotada), 409 `ACCESS_KEY_NO_EMAIL` al reenviar una clave sin
+email, 503 `CONFIRMATION_UNAVAILABLE` sin secreto en producción. Confirmar dos veces responde 200 con
+`alreadyConfirmed: true`.
 
 **Canje (ticket 5.8).** Cuerpo `{ code, displayName?, sessionId?, groupId? }`: `sessionId`/`groupId`
 solo cuentan en `groupingMode: free` (el asistente elige); sin `sessionId` en `free` responde

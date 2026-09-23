@@ -3,6 +3,7 @@ import { storage } from "@escaperoom/kit/storage";
 import { roomDocToPackage, roomPackageToDoc } from "@escaperoom/editor/room-doc";
 import type { RoomPackageSerializer } from "@escaperoom/editor/validation";
 import { prisma } from "@escaperoom/shared/db";
+import { createInvitationEmailQueue, readConfirmationTokenConfig } from "@escaperoom/shared/mail";
 import { EVENT_ROOM_NAME } from "@/lib/colyseus";
 import {
   createAudioAssetService,
@@ -29,7 +30,10 @@ import {
   createAccessKeyService,
   createPrismaAccessKeyStore,
   createRedeemService,
+  createInvitationService,
+  createPrismaInvitationStore,
   readJoinTokenConfig,
+  type InvitationService,
   type AccessKeyService,
   type RedeemService,
   type EventService,
@@ -61,6 +65,7 @@ let reviews: ReviewService | undefined;
 let accessKeys: AccessKeyService | undefined;
 let redeem: RedeemService | null | undefined;
 let roomLicenses: RoomLicenseService | undefined;
+let invitations: InvitationService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -220,4 +225,20 @@ export function getRoomLicenseService(): RoomLicenseService {
     payments: null,
   });
   return roomLicenses;
+}
+
+/**
+ * Invitaciones por email y confirmación (ticket 5.6): encola en `mail.invitation`
+ * (BullMQ; con `QUEUES_ENABLED=false` el encolado es un no-op y la respuesta
+ * dice `queued: 0`) y lo entrega `@escaperoom/worker`. El enlace de
+ * confirmación se firma con `CONFIRMATION_TOKEN_SECRET` o `APP_SECRET`.
+ */
+export function getInvitationService(): InvitationService {
+  invitations ??= createInvitationService({
+    store: createPrismaInvitationStore(prisma),
+    accessKeys: getAccessKeyService(),
+    queue: createInvitationEmailQueue(),
+    confirmation: readConfirmationTokenConfig(),
+  });
+  return invitations;
 }

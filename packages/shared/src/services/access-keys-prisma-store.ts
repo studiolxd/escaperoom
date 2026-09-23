@@ -24,6 +24,7 @@ function toRow(row: DbAccessKey): AccessKeyRow {
     regeneratedFrom: row.regeneratedFrom,
     seats: row.seats,
     redeemedCount: row.redeemedCount,
+    sentAt: row.sentAt,
     confirmedAt: row.confirmedAt,
     activatedAt: row.activatedAt,
     usedAt: row.usedAt,

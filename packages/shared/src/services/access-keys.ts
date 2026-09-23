@@ -82,6 +82,8 @@ export type AccessKeyRow = {
   /** Asientos que concede (1 en individual/batch). Tras rotar, la vieja se queda con los canjeados. */
   seats: number;
   redeemedCount: number;
+  /** Último envío correcto del email de invitación (5.6); `null` si nunca salió. */
+  sentAt: Date | null;
   confirmedAt: Date | null;
   activatedAt: Date | null;
   usedAt: Date | null;
@@ -98,6 +100,7 @@ export type AccessKeyPatch = Partial<
     | "redeemedCount"
     | "sessionId"
     | "groupId"
+    | "sentAt"
     | "confirmedAt"
     | "activatedAt"
     | "usedAt"
@@ -234,6 +237,10 @@ export type AccessKeyErrorCode =
   | "ACCESS_KEY_NOT_CONFIRMED"
   | "SESSION_FULL"
   | "SESSION_REQUIRED"
+  | "ACCESS_KEY_NO_EMAIL"
+  | "CONFIRMATION_INVALID"
+  | "CONFIRMATION_EXPIRED"
+  | "CONFIRMATION_UNAVAILABLE"
   | "CONFLICT";
 
 /** Error de dominio de claves; los adaptadores lo traducen a HTTP/tRPC/MCP. */
@@ -582,6 +589,7 @@ export function createAccessKeyService(deps: {
       regeneratedFrom: null,
       seats: singleUse ? 1 : (req.seats ?? 1),
       redeemedCount: 0,
+      sentAt: null,
       confirmedAt: null,
       activatedAt: active ? at : null,
       usedAt: null,
@@ -795,6 +803,8 @@ export function createAccessKeyService(deps: {
           regeneratedFrom: key.code,
           seats: key.seats - key.redeemedCount,
           redeemedCount: 0,
+          // El código nuevo aún no ha salido por email.
+          sentAt: null,
           usedAt: null,
           createdAt: now(),
         };

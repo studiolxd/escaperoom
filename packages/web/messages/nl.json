@@ -815,5 +815,22 @@
         "pipes": "Onoplosbaar: geen waterpad van start naar einde (ook niet met open sluizen)."
       }
     }
+  },
+  "InvitationConfirm": {
+    "title": "Bevestig je aanwezigheid",
+    "intro": "Druk op de knop om de organisator te laten weten dat je met deze sleutel naar het evenement komt.",
+    "keyLabel": "Je sleutel",
+    "cta": "Aanwezigheid bevestigen",
+    "confirming": "Bezig met bevestigen…",
+    "success": "Klaar! Je aanwezigheid is bevestigd. Bewaar je sleutel voor de dag van het evenement.",
+    "already": "Je aanwezigheid was al bevestigd. Bewaar je sleutel voor de dag van het evenement.",
+    "errors": {
+      "CONFIRMATION_INVALID": "Deze link is ongeldig. Controleer of je hem volledig hebt gekopieerd of vraag de organisator hem opnieuw te sturen.",
+      "CONFIRMATION_EXPIRED": "Deze link is verlopen. Vraag de organisator de uitnodiging opnieuw te sturen.",
+      "CONFIRMATION_UNAVAILABLE": "Bevestigen is nu niet mogelijk. Probeer het later opnieuw.",
+      "ACCESS_KEY_INVALID": "Deze sleutel bestaat niet.",
+      "ACCESS_KEY_EXPIRED": "Deze sleutel is niet meer geldig. Vraag de organisator om een nieuwe.",
+      "UNKNOWN": "Bevestigen is niet gelukt. Probeer het over een paar minuten opnieuw."
+    }
   }
 }
