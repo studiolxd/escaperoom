@@ -149,5 +149,29 @@
     "unavailable": "Das Wandbild nimmt keine Züge mehr an",
     "notAdjacent": "Dieses Plättchen lässt sich nicht schieben",
     "alreadySolved": "Das Wandbild ist bereits gelöst"
+  },
+  "Pipes": {
+    "title": "Rohrkanal",
+    "prompt": "Drehe die Teile, um das Wasser bis ans Ende zu leiten",
+    "boardLabel": "Rohrspielfeld",
+    "cell": "Rohr bei {x}, {y}",
+    "rock": "Fels",
+    "start": "Wasserzulauf",
+    "end": "Wasserziel",
+    "gateClosed": "Geschlossene Schleuse",
+    "gateOpen": "Offene Schleuse",
+    "wall": "Mauer",
+    "useItem": "Gegenstand an der Schleuse benutzen",
+    "rotations": "Drehungen: {count}",
+    "pending": "Dreht…",
+    "solved": "Das Wasser fließt bis ans Ende!",
+    "locked": "Der Kanal ist noch nicht verfügbar",
+    "unavailable": "Der Kanal nimmt keine Änderungen mehr an",
+    "notRotatable": "Dieses Teil lässt sich nicht drehen",
+    "missingItem": "Dir fehlt der Gegenstand, der die Schleuse öffnet",
+    "gateOpened": "Die Schleuse öffnet sich",
+    "alreadyOpen": "Die Schleuse ist bereits offen",
+    "notAGate": "Dort gibt es keine Schleuse",
+    "alreadySolved": "Der Kanal ist bereits gelöst"
   }
 }

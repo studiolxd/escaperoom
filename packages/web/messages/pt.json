@@ -149,5 +149,29 @@
     "unavailable": "O mural não aceita mais movimentos",
     "notAdjacent": "Essa peça não pode deslizar",
     "alreadySolved": "O mural já está resolvido"
+  },
+  "Pipes": {
+    "title": "Canal de canos",
+    "prompt": "Gira as peças para levar a água até ao fim",
+    "boardLabel": "Tabuleiro de canos",
+    "cell": "Cano em {x}, {y}",
+    "rock": "Rocha",
+    "start": "Entrada da água",
+    "end": "Destino da água",
+    "gateClosed": "Comporta fechada",
+    "gateOpen": "Comporta aberta",
+    "wall": "Muro",
+    "useItem": "Usar objeto na comporta",
+    "rotations": "Rotações: {count}",
+    "pending": "A girar…",
+    "solved": "A água flui até ao fim!",
+    "locked": "O canal ainda não está disponível",
+    "unavailable": "O canal não aceita mais alterações",
+    "notRotatable": "Essa peça não gira",
+    "missingItem": "Falta-te o objeto que abre a comporta",
+    "gateOpened": "A comporta abre-se",
+    "alreadyOpen": "A comporta já está aberta",
+    "notAGate": "Aí não há nenhuma comporta",
+    "alreadySolved": "O canal já está resolvido"
   }
 }

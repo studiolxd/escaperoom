@@ -149,5 +149,29 @@
     "unavailable": "De muurschildering accepteert geen zetten meer",
     "notAdjacent": "Dat stukje kan niet schuiven",
     "alreadySolved": "De muurschildering is al opgelost"
+  },
+  "Pipes": {
+    "title": "Buizenkanaal",
+    "prompt": "Draai de stukken om het water tot het einde te leiden",
+    "boardLabel": "Buizenbord",
+    "cell": "Buis op {x}, {y}",
+    "rock": "Rots",
+    "start": "Waterinlaat",
+    "end": "Waterbestemming",
+    "gateClosed": "Gesloten sluis",
+    "gateOpen": "Open sluis",
+    "wall": "Muur",
+    "useItem": "Voorwerp gebruiken op de sluis",
+    "rotations": "Draaiingen: {count}",
+    "pending": "Draaien…",
+    "solved": "Het water stroomt tot het einde!",
+    "locked": "Het kanaal is nog niet beschikbaar",
+    "unavailable": "Het kanaal accepteert geen wijzigingen meer",
+    "notRotatable": "Dat stuk draait niet",
+    "missingItem": "Je mist het voorwerp dat de sluis opent",
+    "gateOpened": "De sluis gaat open",
+    "alreadyOpen": "De sluis is al open",
+    "notAGate": "Daar is geen sluis",
+    "alreadySolved": "Het kanaal is al opgelost"
   }
 }

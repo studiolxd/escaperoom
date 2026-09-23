@@ -180,5 +180,29 @@
     "unavailable": "The mural accepts no more moves",
     "notAdjacent": "That tile cannot slide",
     "alreadySolved": "The mural is already solved"
+  },
+  "Pipes": {
+    "title": "Pipe channel",
+    "prompt": "Rotate the pieces to bring the water to the end",
+    "boardLabel": "Pipe board",
+    "cell": "Pipe at {x}, {y}",
+    "rock": "Rock",
+    "start": "Water inlet",
+    "end": "Water destination",
+    "gateClosed": "Closed floodgate",
+    "gateOpen": "Open floodgate",
+    "wall": "Wall",
+    "useItem": "Use an item on the floodgate",
+    "rotations": "Turns: {count}",
+    "pending": "Turning…",
+    "solved": "The water flows all the way!",
+    "locked": "The channel is not available yet",
+    "unavailable": "The channel accepts no more changes",
+    "notRotatable": "That piece does not turn",
+    "missingItem": "You lack the item that opens the floodgate",
+    "gateOpened": "The floodgate opens",
+    "alreadyOpen": "The floodgate is already open",
+    "notAGate": "There is no floodgate there",
+    "alreadySolved": "The channel is already solved"
   }
 }

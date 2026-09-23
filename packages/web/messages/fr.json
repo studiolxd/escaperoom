@@ -149,5 +149,29 @@
     "unavailable": "La fresque n'accepte plus de coups",
     "notAdjacent": "Cette pièce ne peut pas glisser",
     "alreadySolved": "La fresque est déjà résolue"
+  },
+  "Pipes": {
+    "title": "Canal de tuyaux",
+    "prompt": "Tourne les pièces pour amener l’eau jusqu’au bout",
+    "boardLabel": "Plateau de tuyaux",
+    "cell": "Tuyau en {x}, {y}",
+    "rock": "Rocher",
+    "start": "Arrivée d’eau",
+    "end": "Destination de l’eau",
+    "gateClosed": "Vanne fermée",
+    "gateOpen": "Vanne ouverte",
+    "wall": "Mur",
+    "useItem": "Utiliser un objet sur la vanne",
+    "rotations": "Rotations : {count}",
+    "pending": "Rotation…",
+    "solved": "L’eau coule jusqu’au bout !",
+    "locked": "Le canal n’est pas encore disponible",
+    "unavailable": "Le canal n’accepte plus de changements",
+    "notRotatable": "Cette pièce ne tourne pas",
+    "missingItem": "Il te manque l’objet qui ouvre la vanne",
+    "gateOpened": "La vanne s’ouvre",
+    "alreadyOpen": "La vanne est déjà ouverte",
+    "notAGate": "Il n’y a pas de vanne ici",
+    "alreadySolved": "Le canal est déjà résolu"
   }
 }
