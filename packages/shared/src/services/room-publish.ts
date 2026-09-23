@@ -1,0 +1,669 @@
+import { createHash } from "node:crypto";
+import type * as Y from "yjs";
+import { safeParseRoomPackage, type RoomPackage } from "../schemas";
+import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
+import { renderValidationReport, validateRoomPackage, type ValidationReport } from "../validator";
+import { isAnonymous, type Actor } from "./actor";
+import type { AdminDirectory } from "./admin";
+import type { AudioAssetService } from "./audio-assets";
+import { buildDraftDoc, type RoomDraftTx } from "./room-draft";
+
+/**
+ * Publicación de salas (ticket 3.9, specs/08 §5–6, specs/13 §4).
+ *
+ * Publicar = tomar el draft Yjs, serializarlo a `RoomPackage`, repetir el
+ * validador en servidor (❌ bloquea), comprobar que los audios están aprobados
+ * por moderación, empaquetar los assets en el bucket (claves direccionadas por
+ * contenido) con un `assetsHash` determinista y congelar el resultado en una
+ * fila INMUTABLE de `roomVersion`. Lo publicado nunca se reescribe: seguir
+ * editando el draft no lo toca y cada publicación crea una versión nueva.
+ */
+
+// ── Puertos ────────────────────────────────────────────────────────────────
+
+/**
+ * Serialización doc Yjs → `RoomPackage` (candidato; se valida con Zod aquí).
+ *
+ * **Contrato para el ticket 3.1** (mapeo del mapa/objetos del doc): la
+ * publicación NO conoce el layout del doc; recibe una implementación de este
+ * puerto. Debe devolver el `RoomPackage` completo tal cual lo definen los
+ * esquemas de `@escaperoom/shared/schemas`, con `meta.packageFormat` a un valor
+ * de `SUPPORTED_PACKAGE_FORMATS` y los audios como referencias `library:`/
+ * `upload:` (3.11) en `LocalizedText.audioUrl`. `meta.id`, `meta.authorId` y
+ * `meta.version` los fija el servidor al congelar (lo que traiga el doc se
+ * ignora). Es síncrono y puro: no debe mutar el doc.
+ */
+export type RoomPackageSerializer = (
+  doc: Y.Doc,
+  room: { roomId: string; authorId: string },
+) => unknown;
+
+/** Motivo por el que una referencia de asset no se puede publicar. */
+export type PublishAssetProblem = {
+  ref: string;
+  /** p. ej. `AUDIO_PENDING_MODERATION`, `AUDIO_REJECTED`, `FORBIDDEN`. */
+  code: string;
+  message: string;
+  rejectionReason: string | null;
+};
+
+/**
+ * Origen de los assets del creador referenciados por el draft. Su
+ * `checkRefsForPublish` tiene la misma forma que el de `AudioAssetService`
+ * (3.11): un audio pendiente o rechazado en moderación bloquea la publicación.
+ */
+export interface PublishAssetSource {
+  /** Revisa las referencias; no lanza: devuelve los problemas (vacío = todo publicable). */
+  checkRefsForPublish(actor: Actor, refs: readonly string[]): Promise<PublishAssetProblem[]>;
+  /** Bytes del asset ya comprobado (el servicio solo lo llama si no hubo problemas). */
+  load(actor: Actor, ref: string): Promise<{ bytes: Uint8Array; contentType: string }>;
+}
+
+/** Almacenamiento de objetos (R2/S3 en producción, en memoria en tests). */
+export interface PublishedAssetStorage {
+  put(key: string, bytes: Uint8Array, contentType: string): Promise<void>;
+}
+
+export type PublishRoomRef = {
+  id: string;
+  authorId: string;
+  status: "draft" | "published" | "unlisted" | "archived" | "removed";
+};
+
+/** Fila de `roomVersion` (el `package` es el JSONB congelado). */
+export type RoomVersionRow = {
+  id: string;
+  roomId: string;
+  semver: string;
+  package: RoomPackage;
+  assetsHash: string;
+  changelog: string | null;
+  publishedBy: string;
+  publishedAt: Date;
+};
+
+export type NewRoomVersion = Omit<RoomVersionRow, "id" | "publishedAt">;
+
+/** Metadata pública de una versión (nunca el `package`, specs/13 §3). */
+export type RoomVersionMeta = {
+  id: string;
+  semver: string;
+  changelog: string | null;
+  packageFormat: string;
+  assetsHash: string;
+  publishedAt: Date;
+};
+
+/** Operaciones dentro del lock de la sala. */
+export interface RoomPublishTx {
+  /** `semver` de todas las versiones de la sala (para calcular la siguiente). */
+  listSemvers(roomId: string): Promise<string[]>;
+  insertVersion(version: NewRoomVersion): Promise<RoomVersionRow>;
+  /** `draft` → `published` en la primera publicación; otros estados no cambian. */
+  markPublished(roomId: string): Promise<void>;
+}
+
+/**
+ * Puerto de persistencia de la publicación. `withRoomLock` serializa las
+ * publicaciones de una misma sala (Postgres: `SELECT … FOR UPDATE` sobre
+ * `room`), de modo que dos publicaciones simultáneas obtienen semver distintos.
+ */
+export interface RoomPublishStore extends AdminDirectory, Pick<RoomPublishTx, "listSemvers"> {
+  findRoom(roomId: string): Promise<PublishRoomRef | null>;
+  listVersions(roomId: string): Promise<RoomVersionMeta[]>;
+  findVersion(roomId: string, versionId: string): Promise<RoomVersionRow | null>;
+  withRoomLock<T>(roomId: string, fn: (tx: RoomPublishTx) => Promise<T>): Promise<T>;
+}
+
+/** Lectura del draft (el mismo puerto que usa `RoomDraftService`). */
+export type PublishDraftReader = Pick<RoomDraftTx, "latestSnapshot" | "updatesAfter">;
+
+// ── Errores ────────────────────────────────────────────────────────────────
+
+export type RoomPublishErrorCode =
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "NOT_FOUND"
+  | "VALIDATION_ERROR"
+  | "VERSION_CONFLICT"
+  | "ROOM_NOT_PUBLISHABLE"
+  | "INVALID_PACKAGE"
+  | "UNSUPPORTED_PACKAGE_FORMAT"
+  | "VALIDATION_FAILED"
+  | "ASSETS_NOT_PUBLISHABLE"
+  | "SERIALIZER_UNAVAILABLE";
+
+export type RoomPublishErrorDetails = {
+  /** Campos inválidos (entrada o `RoomPackage` que no cumple el esquema). */
+  issues?: ReadableIssue[];
+  /** Informe del validador cuando `code === "VALIDATION_FAILED"`. */
+  report?: ValidationReport;
+  /** El mismo informe renderizado en texto (✅/🟡/❌). */
+  reportText?: string;
+  /** Assets que bloquean cuando `code === "ASSETS_NOT_PUBLISHABLE"`. */
+  problems?: PublishAssetProblem[];
+};
+
+/** Error de dominio de la publicación; los adaptadores lo traducen a HTTP/tRPC/MCP. */
+export class RoomPublishError extends Error {
+  readonly code: RoomPublishErrorCode;
+  readonly details: RoomPublishErrorDetails;
+  constructor(code: RoomPublishErrorCode, message: string, details: RoomPublishErrorDetails = {}) {
+    super(message);
+    this.name = "RoomPublishError";
+    this.code = code;
+    this.details = details;
+  }
+}
+
+// ── Piezas puras ───────────────────────────────────────────────────────────
+
+/**
+ * Valores de `meta.packageFormat` que el servidor sabe publicar (specs/08 §6:
+ * valor inicial `"1"`, el que usa el fixture del Rey Aldric). Un bump breaking
+ * del formato añade aquí el nuevo valor cuando el runtime lo soporte.
+ */
+export const SUPPORTED_PACKAGE_FORMATS: readonly string[] = ["1"];
+
+/** Longitud máxima del changelog de una versión. */
+export const MAX_CHANGELOG_LENGTH = 5000;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SEMVER_RE = /^(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})$/;
+/** Referencias de asset del creador que se empaquetan (3.11: `library:`/`upload:`). */
+const ASSET_REF_RE = /^(library|upload):\S+$/;
+
+type Semver = [number, number, number];
+
+/** `[major, minor, patch]` de un semver `X.Y.Z`, o `null` si no lo es. */
+export function parseSemver(value: string): Semver | null {
+  const m = SEMVER_RE.exec(value);
+  return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+
+export function compareSemver(a: Semver, b: Semver): number {
+  return a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+}
+
+/**
+ * Semver de la próxima versión: el pedido (debe ser mayor que todos los
+ * existentes) o, si no se pide, el parche siguiente al mayor (`1.0.0` la
+ * primera vez).
+ */
+export function nextSemver(existing: readonly string[], requested?: string): string {
+  const parsed = existing.map(parseSemver).filter((v): v is Semver => v !== null);
+  const latest = parsed.sort(compareSemver).at(-1) ?? null;
+  if (requested === undefined) {
+    return latest ? `${latest[0]}.${latest[1]}.${latest[2] + 1}` : "1.0.0";
+  }
+  const wanted = parseSemver(requested);
+  if (!wanted) {
+    throw new RoomPublishError("VALIDATION_ERROR", `"${requested}" no es un semver X.Y.Z`, {
+      issues: [{ path: "semver", message: "Formato X.Y.Z" }],
+    });
+  }
+  if (latest && compareSemver(wanted, latest) <= 0) {
+    throw new RoomPublishError(
+      "VERSION_CONFLICT",
+      `La versión ${requested} no es posterior a la última publicada (${latest.join(".")})`,
+    );
+  }
+  return requested;
+}
+
+/**
+ * Referencias de asset del creador (`audioUrl` de cualquier `LocalizedText`:
+ * diálogos, pistas, textos de objetos…), únicas y ordenadas.
+ */
+export function collectAssetRefs(pkg: RoomPackage): string[] {
+  const refs = new Set<string>();
+  const walk = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const v of value) walk(v);
+    } else if (value && typeof value === "object") {
+      for (const [key, v] of Object.entries(value)) {
+        if (key === "audioUrl" && typeof v === "string" && ASSET_REF_RE.test(v)) refs.add(v);
+        else walk(v);
+      }
+    }
+  };
+  walk(pkg);
+  return [...refs].sort();
+}
+
+/** Sustituye cada `audioUrl` referenciado en `replacements` (devuelve una copia). */
+export function rewriteAssetRefs(
+  pkg: RoomPackage,
+  replacements: ReadonlyMap<string, string>,
+): RoomPackage {
+  const walk = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(walk);
+    if (value && typeof value === "object") {
+      return Object.fromEntries(
+        Object.entries(value).map(([key, v]) => [
+          key,
+          key === "audioUrl" && typeof v === "string" && replacements.has(v)
+            ? replacements.get(v)
+            : walk(v),
+        ]),
+      );
+    }
+    return value;
+  };
+  return walk(pkg) as RoomPackage;
+}
+
+const EXT_BY_TYPE: Record<string, string> = {
+  "audio/mpeg": "mp3",
+  "audio/mp3": "mp3",
+  "audio/ogg": "ogg",
+  "audio/wav": "wav",
+  "image/png": "png",
+  "image/webp": "webp",
+  "application/json": "json",
+};
+
+const sha256 = (data: Uint8Array | string) => createHash("sha256").update(data).digest("hex");
+
+/** Asset empaquetado: clave direccionada por contenido dentro del bucket. */
+export type PackagedAsset = {
+  ref: string;
+  key: string;
+  sha256: string;
+  contentType: string;
+  byteSize: number;
+};
+
+/**
+ * Clave del bucket de un asset publicado de la sala. Direccionada por
+ * contenido: el mismo fichero siempre cae en la misma clave (subir dos veces
+ * es idempotente) y un fichero publicado nunca se sobrescribe con otro.
+ */
+export function publishedAssetKey(roomId: string, digest: string, contentType: string): string {
+  const ext = EXT_BY_TYPE[contentType.split(";")[0]!.trim().toLowerCase()] ?? "bin";
+  return `assets/rooms/${roomId}/${digest}.${ext}`;
+}
+
+/**
+ * `assetsHash` determinista de una versión: SHA-256 de una lista canónica
+ * (ordenada) con el manifiesto del pack gráfico y el `sha256` de cada asset
+ * empaquetado. No depende del orden de aparición, de las referencias del draft
+ * ni de la fecha: mismo contenido ⇒ mismo hash; cambia un byte ⇒ cambia.
+ */
+export function computeAssetsHash(input: {
+  assetsManifest: string;
+  assets: ReadonlyArray<Pick<PackagedAsset, "key" | "sha256">>;
+}): string {
+  const lines = [
+    `manifest\t${input.assetsManifest}`,
+    ...input.assets.map((a) => `asset\t${a.key}\t${a.sha256}`).sort(),
+  ];
+  return `sha256:${sha256(lines.join("\n"))}`;
+}
+
+// ── Servicio ───────────────────────────────────────────────────────────────
+
+export type PublishInput = { semver?: string; changelog?: string | null };
+
+export type PublishResult = {
+  version: RoomVersionMeta;
+  /** Informe del validador (sin ❌; puede traer avisos 🟡). */
+  report: ValidationReport;
+  assets: PackagedAsset[];
+};
+
+function parsePublishInput(input: unknown): PublishInput {
+  if (input === undefined || input === null) return {};
+  if (typeof input !== "object" || Array.isArray(input)) {
+    throw new RoomPublishError("VALIDATION_ERROR", "El cuerpo debe ser un objeto JSON");
+  }
+  const { semver, changelog } = input as Record<string, unknown>;
+  const issues: ReadableIssue[] = [];
+  if (semver !== undefined && typeof semver !== "string") {
+    issues.push({ path: "semver", message: "Debe ser un string X.Y.Z" });
+  }
+  if (changelog !== undefined && changelog !== null && typeof changelog !== "string") {
+    issues.push({ path: "changelog", message: "Debe ser un string" });
+  } else if (typeof changelog === "string" && changelog.length > MAX_CHANGELOG_LENGTH) {
+    issues.push({ path: "changelog", message: `Máximo ${MAX_CHANGELOG_LENGTH} caracteres` });
+  }
+  if (issues.length > 0)
+    throw new RoomPublishError("VALIDATION_ERROR", "Datos no válidos", { issues });
+  return {
+    semver: semver as string | undefined,
+    changelog: typeof changelog === "string" && changelog.trim() ? changelog.trim() : null,
+  };
+}
+
+function toMeta(row: RoomVersionRow): RoomVersionMeta {
+  return {
+    id: row.id,
+    semver: row.semver,
+    changelog: row.changelog,
+    packageFormat: row.package.meta.packageFormat,
+    assetsHash: row.assetsHash,
+    publishedAt: row.publishedAt,
+  };
+}
+
+/**
+ * Servicio de publicación. Autorización: solo el autor publica y lee el
+ * `RoomPackage` de sus versiones (también un admin de plataforma); el
+ * histórico de versiones (solo metadata) es público.
+ */
+export function createRoomPublishService(deps: {
+  store: RoomPublishStore;
+  drafts: PublishDraftReader;
+  /** `null` mientras no exista el mapeo doc → RoomPackage (ticket 3.1). */
+  serializer: RoomPackageSerializer | null;
+  assets: PublishAssetSource;
+  storage: PublishedAssetStorage;
+  supportedPackageFormats?: readonly string[];
+}) {
+  const { store, drafts, assets, storage } = deps;
+  const supportedFormats = deps.supportedPackageFormats ?? SUPPORTED_PACKAGE_FORMATS;
+
+  async function findRoom(roomId: string): Promise<PublishRoomRef> {
+    const room = UUID_RE.test(roomId) ? await store.findRoom(roomId) : null;
+    if (!room) throw new RoomPublishError("NOT_FOUND", "Sala no encontrada");
+    return room;
+  }
+
+  async function authorizeAuthor(actor: Actor, roomId: string): Promise<PublishRoomRef> {
+    if (isAnonymous(actor)) throw new RoomPublishError("UNAUTHORIZED", "No hay sesión");
+    const room = await findRoom(roomId);
+    if (room.authorId !== actor.userId) {
+      throw new RoomPublishError("FORBIDDEN", "Solo el autor puede publicar esta sala");
+    }
+    return room;
+  }
+
+  /** Draft actual → `RoomPackage` validado por esquema (sin congelar). */
+  async function serializeDraft(room: PublishRoomRef): Promise<RoomPackage> {
+    if (!deps.serializer) {
+      throw new RoomPublishError(
+        "SERIALIZER_UNAVAILABLE",
+        "La serialización del draft a RoomPackage aún no está disponible",
+      );
+    }
+    const snapshot = await drafts.latestSnapshot(room.id);
+    const updates = await drafts.updatesAfter(room.id, snapshot?.updatesAppliedThrough ?? 0n);
+    const doc = buildDraftDoc({ snapshot, updates });
+    let candidate: unknown;
+    try {
+      candidate = deps.serializer(doc, { roomId: room.id, authorId: room.authorId });
+    } finally {
+      doc.destroy();
+    }
+    const parsed = safeParseRoomPackage(candidate);
+    if (!parsed.success) {
+      throw new RoomPublishError("INVALID_PACKAGE", "El draft no forma un RoomPackage válido", {
+        issues: toReadableIssues(parsed.error),
+      });
+    }
+    // Copia propia: nada de lo que se congela comparte referencias con el doc.
+    return structuredClone(parsed.data);
+  }
+
+  async function packageAssets(
+    actor: Actor,
+    roomId: string,
+    refs: readonly string[],
+  ): Promise<PackagedAsset[]> {
+    const packaged: PackagedAsset[] = [];
+    for (const ref of refs) {
+      const { bytes, contentType } = await assets.load(actor, ref);
+      const digest = sha256(bytes);
+      const key = publishedAssetKey(roomId, digest, contentType);
+      await storage.put(key, bytes, contentType);
+      packaged.push({ ref, key, sha256: digest, contentType, byteSize: bytes.byteLength });
+    }
+    return packaged;
+  }
+
+  return {
+    /**
+     * `POST /api/rooms/:roomId/publish` — `{ semver?, changelog? }`. Orden:
+     * autorización → serialización → `packageFormat` → validador (❌ bloquea,
+     * `VALIDATION_FAILED` con el informe) → moderación de assets → subida al
+     * bucket → `roomVersion` inmutable. Nada se sube si algo antes falla.
+     */
+    async publish(actor: Actor, roomId: string, input?: unknown): Promise<PublishResult> {
+      const room = await authorizeAuthor(actor, roomId);
+      const { semver, changelog } = parsePublishInput(input);
+      if (room.status === "removed") {
+        throw new RoomPublishError(
+          "ROOM_NOT_PUBLISHABLE",
+          "La sala fue retirada por moderación; no se puede publicar",
+        );
+      }
+      // Falla pronto si el semver pedido no es válido o no es posterior.
+      nextSemver(await store.listSemvers(roomId), semver);
+
+      const draftPackage = await serializeDraft(room);
+      const format = draftPackage.meta.packageFormat;
+      if (!supportedFormats.includes(format)) {
+        throw new RoomPublishError(
+          "UNSUPPORTED_PACKAGE_FORMAT",
+          `packageFormat "${format}" no soportado (se admite: ${supportedFormats.join(", ")})`,
+        );
+      }
+
+      const report = validateRoomPackage(draftPackage);
+      if (!report.ok) {
+        throw new RoomPublishError(
+          "VALIDATION_FAILED",
+          "La sala no pasa la validación: corrige los errores ❌ antes de publicar",
+          { report, reportText: renderValidationReport(report) },
+        );
+      }
+
+      const refs = collectAssetRefs(draftPackage);
+      const problems = refs.length > 0 ? await assets.checkRefsForPublish(actor, refs) : [];
+      if (problems.length > 0) {
+        throw new RoomPublishError(
+          "ASSETS_NOT_PUBLISHABLE",
+          "Hay audios que no se pueden publicar (pendientes o rechazados en moderación)",
+          { problems },
+        );
+      }
+
+      const packaged = await packageAssets(actor, room.id, refs);
+      const assetsHash = computeAssetsHash({
+        assetsManifest: draftPackage.meta.assetsManifest,
+        assets: packaged,
+      });
+
+      const version = await store.withRoomLock(roomId, async (tx) => {
+        const resolved = nextSemver(await tx.listSemvers(roomId), semver);
+        const frozen = rewriteAssetRefs(
+          {
+            ...draftPackage,
+            meta: { ...draftPackage.meta, id: room.id, authorId: room.authorId, version: resolved },
+          },
+          new Map(packaged.map((a) => [a.ref, `r2://${a.key}`])),
+        );
+        const row = await tx.insertVersion({
+          roomId: room.id,
+          semver: resolved,
+          package: frozen,
+          assetsHash,
+          changelog: changelog ?? null,
+          publishedBy: actor.userId,
+        });
+        await tx.markPublished(room.id);
+        return row;
+      });
+
+      return { version: toMeta(version), report, assets: packaged };
+    },
+
+    /** `GET /api/rooms/:roomId/versions` — histórico público, de la más reciente a la más antigua. */
+    async listVersions(actor: Actor, roomId: string): Promise<RoomVersionMeta[]> {
+      const room = await findRoom(roomId);
+      // Una sala retirada por moderación solo la ve su autor.
+      if (room.status === "removed" && room.authorId !== actor.userId) {
+        throw new RoomPublishError("NOT_FOUND", "Sala no encontrada");
+      }
+      return store.listVersions(room.id);
+    },
+
+    /**
+     * `GET /api/rooms/:roomId/versions/:versionId/package` — el `RoomPackage`
+     * congelado. Solo el autor o un admin de plataforma.
+     */
+    async getVersionPackage(
+      actor: Actor,
+      roomId: string,
+      versionId: string,
+    ): Promise<{ version: RoomVersionMeta; package: RoomPackage }> {
+      if (isAnonymous(actor)) throw new RoomPublishError("UNAUTHORIZED", "No hay sesión");
+      const room = await findRoom(roomId);
+      if (room.authorId !== actor.userId && !(await store.isAdmin(actor.userId))) {
+        throw new RoomPublishError("FORBIDDEN", "Solo el autor puede leer el paquete de la sala");
+      }
+      const row = UUID_RE.test(versionId) ? await store.findVersion(room.id, versionId) : null;
+      if (!row) throw new RoomPublishError("NOT_FOUND", "Versión no encontrada");
+      return { version: toMeta(row), package: row.package };
+    },
+  };
+}
+
+export type RoomPublishService = ReturnType<typeof createRoomPublishService>;
+
+// ── Implementaciones en memoria (tests y superficies sin infraestructura) ──
+
+/**
+ * Store en memoria con la semántica del de Prisma (lock por sala, `UNIQUE
+ * (roomId, semver)`). Guarda y devuelve copias: lo publicado no se puede
+ * mutar desde fuera.
+ */
+export function createInMemoryRoomPublishStore(
+  rooms: PublishRoomRef[] = [],
+  adminIds: Iterable<string> = [],
+): RoomPublishStore & {
+  addRoom(room: PublishRoomRef): void;
+  rooms: Map<string, PublishRoomRef>;
+} {
+  const roomById = new Map(rooms.map((r) => [r.id, { ...r }]));
+  const admins = new Set(adminIds);
+  const versions: RoomVersionRow[] = [];
+  const locks = new Map<string, Promise<unknown>>();
+  let seq = 0;
+  let clock = Date.UTC(2026, 0, 1);
+
+  const clone = (row: RoomVersionRow): RoomVersionRow => structuredClone(row);
+
+  const tx: RoomPublishTx = {
+    async listSemvers(roomId) {
+      return versions.filter((v) => v.roomId === roomId).map((v) => v.semver);
+    },
+    async insertVersion(input) {
+      if (versions.some((v) => v.roomId === input.roomId && v.semver === input.semver)) {
+        throw new Error(`UNIQUE (roomId, semver) violado: ${input.semver}`);
+      }
+      seq += 1;
+      const row: RoomVersionRow = {
+        ...structuredClone(input),
+        id: `00000000-0000-4000-8000-${String(seq).padStart(12, "0")}`,
+        publishedAt: new Date((clock += 1000)),
+      };
+      versions.push(row);
+      return clone(row);
+    },
+    async markPublished(roomId) {
+      const room = roomById.get(roomId);
+      if (room?.status === "draft") room.status = "published";
+    },
+  };
+
+  return {
+    listSemvers: tx.listSemvers,
+    rooms: roomById,
+    addRoom(room) {
+      roomById.set(room.id, { ...room });
+    },
+    async isAdmin(userId) {
+      return admins.has(userId);
+    },
+    async findRoom(roomId) {
+      const room = roomById.get(roomId);
+      return room ? { ...room } : null;
+    },
+    async listVersions(roomId) {
+      return versions
+        .filter((v) => v.roomId === roomId)
+        .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
+        .map(toMeta);
+    },
+    async findVersion(roomId, versionId) {
+      const row = versions.find((v) => v.roomId === roomId && v.id === versionId);
+      return row ? clone(row) : null;
+    },
+    async withRoomLock(roomId, fn) {
+      const previous = locks.get(roomId) ?? Promise.resolve();
+      const run = previous.then(
+        () => fn(tx),
+        () => fn(tx),
+      );
+      locks.set(
+        roomId,
+        run.catch(() => undefined),
+      );
+      return run;
+    },
+  };
+}
+
+/** Almacenamiento en memoria (fake del bucket en tests). */
+export function createInMemoryPublishedAssetStorage(): PublishedAssetStorage & {
+  objects: Map<string, { bytes: Uint8Array; contentType: string }>;
+} {
+  const objects = new Map<string, { bytes: Uint8Array; contentType: string }>();
+  return {
+    objects,
+    async put(key, bytes, contentType) {
+      objects.set(key, { bytes: bytes.slice(), contentType });
+    },
+  };
+}
+
+/**
+ * Fuente de assets sobre el servicio de audio de 3.11: la moderación la decide
+ * `checkRefsForPublish` (pendiente o rechazado ⇒ problema) y los bytes se leen
+ * del bucket con la clave que resuelve `resolveAudioRef(…, "publish")`
+ * (biblioteca incluida o subida propia aprobada).
+ */
+export function createAudioPublishAssetSource(deps: {
+  audio: Pick<AudioAssetService, "checkRefsForPublish" | "resolveAudioRef">;
+  readObject(key: string): Promise<{ bytes: Uint8Array; contentType: string }>;
+}): PublishAssetSource {
+  return {
+    checkRefsForPublish: (actor, refs) => deps.audio.checkRefsForPublish(actor, refs),
+    async load(actor, ref) {
+      const resolved = await deps.audio.resolveAudioRef(actor, ref, "publish");
+      return deps.readObject(resolved.storageKey);
+    },
+  };
+}
+
+/**
+ * Fuente de assets para superficies sin servicio de audio cableado: cualquier
+ * referencia se reporta como no publicable (conservador: nunca se publica un
+ * audio sin pasar por moderación). Las salas sin audio publican igual.
+ */
+export function createUnavailablePublishAssetSource(): PublishAssetSource {
+  return {
+    async checkRefsForPublish(_actor, refs) {
+      return [...new Set(refs)].map((ref) => ({
+        ref,
+        code: "ASSET_SOURCE_UNAVAILABLE",
+        message: `No se puede comprobar la moderación de "${ref}" en este servidor`,
+        rejectionReason: null,
+      }));
+    },
+    async load(_actor, ref) {
+      throw new Error(`Fuente de assets no disponible para "${ref}"`);
+    },
+  };
+}

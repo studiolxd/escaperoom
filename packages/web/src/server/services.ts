@@ -12,13 +12,17 @@ import {
   createPrismaPlatformSettingStore,
   createPrismaPricingTierStore,
   createPrismaRoomDraftStore,
+  createPrismaRoomPublishStore,
   createRoomDraftService,
   type AudioAssetService,
   type AudioBlobStore,
+  createAudioPublishAssetSource,
+  createRoomPublishService,
   type CatalogService,
   type PlatformSettingsService,
   type PricingTierService,
   type RoomDraftService,
+  type RoomPublishService,
 } from "@escaperoom/shared/services";
 
 /**
@@ -33,6 +37,7 @@ let roomDrafts: RoomDraftService | undefined;
 let platformSettings: PlatformSettingsService | undefined;
 let pricingTiers: PricingTierService | undefined;
 let audioAssets: AudioAssetService | undefined;
+let roomPublish: RoomPublishService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -68,7 +73,8 @@ export function getPricingTierService(): PricingTierService {
 
 /** Binarios de audio sobre el adaptador S3/R2 de `@escaperoom/kit/storage` (bucket privado). */
 const audioBlobs: AudioBlobStore = {
-  put: (key, bytes, contentType) => storage.putObject({ key, body: Buffer.from(bytes), contentType }),
+  put: (key, bytes, contentType) =>
+    storage.putObject({ key, body: Buffer.from(bytes), contentType }),
   delete: (key) => storage.deleteObject(key),
   signedReadUrl: (key) => storage.getSignedReadUrl(key, { expiresIn: 600 }),
 };
@@ -84,4 +90,33 @@ export function getAudioAssetService(): AudioAssetService {
     blobs: audioBlobs,
   });
   return audioAssets;
+}
+
+/**
+ * Publicación de salas (specs/08 §5, specs/13 §4) sobre Postgres y el bucket
+ * (R2/S3 vía `@escaperoom/kit/storage`). Piezas pendientes de otros tickets:
+ * `serializer: null` hasta que 3.1 aporte el mapeo doc Yjs → RoomPackage
+ * (mientras, `POST /publish` responde 501 `SERIALIZER_UNAVAILABLE`). Los audios
+ * pasan por el servicio de 3.11: pendientes o rechazados bloquean la publicación.
+ */
+export function getRoomPublishService(): RoomPublishService {
+  if (!roomPublish) {
+    roomPublish = createRoomPublishService({
+      store: createPrismaRoomPublishStore(prisma),
+      drafts: createPrismaRoomDraftStore(prisma),
+      serializer: null,
+      assets: createAudioPublishAssetSource({
+        audio: getAudioAssetService(),
+        readObject: async (key) => {
+          const { buffer, contentType } = await storage.getObjectBuffer(key);
+          return { bytes: new Uint8Array(buffer), contentType };
+        },
+      }),
+      storage: {
+        put: (key, bytes, contentType) =>
+          storage.putObject({ key, body: Buffer.from(bytes), contentType }),
+      },
+    });
+  }
+  return roomPublish;
 }
