@@ -17,7 +17,10 @@ import {
   currentObjectState,
   inspectObject,
   nearestInteractable,
+  reactiveObjectIds,
   resolveObjectStateAnimation,
+  resolveTorchLights,
+  resolveWaterChannels,
   resolveObjectStateSprite,
   setObjectState as applyObjectState,
   type ContainerStateMap,
@@ -90,6 +93,7 @@ interface ObjectView {
 
 const DEPTH = {
   ground: 0,
+  water: 1,
   tileSub: 10,
   decorationSub: 20,
   objectGlowSub: 29,
@@ -127,6 +131,9 @@ export class RoomScene extends Phaser.Scene {
 
   private activeRoomId: string;
   private roomObjects: Phaser.GameObjects.GameObject[] = [];
+  /** Antorchas y agua: se repintan cuando cambia un objeto del que dependen. */
+  private reactiveObjects: Phaser.GameObjects.GameObject[] = [];
+  private reactiveIds = new Set<string>();
   private ambientOverlay?: Phaser.GameObjects.Rectangle;
   private resolver!: PackFrameResolver;
   private collision!: CollisionGrid;
@@ -291,6 +298,7 @@ export class RoomScene extends Phaser.Scene {
       object.destroy();
     }
     this.roomObjects = [];
+    this.clearReactive();
     this.ambientOverlay = undefined;
   }
 
@@ -552,6 +560,10 @@ export class RoomScene extends Phaser.Scene {
     }
     this.objectState = next;
     this.syncObjectView(object);
+    if (this.built && this.reactiveIds.has(objectId)) {
+      const room = this.model.subroomsById[this.activeRoomId];
+      if (room) this.drawReactive(room);
+    }
     this.emit({ type: "state", objectId, state });
   }
 
@@ -855,19 +867,80 @@ export class RoomScene extends Phaser.Scene {
       );
     }
 
-    for (const light of room.lighting) {
-      if (light.type !== "torch") {
+    this.drawReactive(room);
+  }
+
+  /**
+   * Capa reactiva (specs/04 §3.4): antorchas encendidas/apagadas según el
+   * objeto que las gobierna (brasero, `mesa-catas`) y el canal de agua de los
+   * puzzles `pipes`, que corre animado hacia el altar cuando fluye.
+   */
+  private drawReactive(room: RuntimeSubRoom): void {
+    this.clearReactive();
+    this.reactiveIds = reactiveObjectIds(this.model, room.id);
+
+    for (const channel of resolveWaterChannels(this.model, room.id, this.objectState)) {
+      channel.cells.forEach((cell, index) => {
+        const { x, y } = tileToWorld(cell.x, cell.y);
+        const bed = this.reactive(this.add.graphics());
+        bed.setDepth(DEPTH.water);
+        bed.fillStyle(channel.flowing ? 0x2f7fd8 : 0x3b3326, channel.flowing ? 0.85 : 0.9);
+        fillDiamond(bed, x, y, ISO_TILE_WIDTH * 0.42, ISO_TILE_HEIGHT * 0.42);
+        if (!channel.flowing) {
+          return;
+        }
+        // El agua avanza celda a celda desde la entrada: brillo que recorre el canal.
+        const shine = this.reactive(this.add.graphics());
+        shine.setDepth(DEPTH.water).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+        shine.fillStyle(0x9ad7ff, 0.9);
+        fillDiamond(shine, x, y, ISO_TILE_WIDTH * 0.28, ISO_TILE_HEIGHT * 0.28);
+        this.tweens.add({
+          targets: shine,
+          alpha: { from: 0, to: 0.8 },
+          duration: 420,
+          delay: index * 90,
+          yoyo: true,
+          repeat: -1,
+          repeatDelay: channel.cells.length * 90,
+        });
+      });
+    }
+
+    for (const torch of resolveTorchLights(this.model, room.id, this.objectState)) {
+      const { x, y } = tileToWorld(torch.x, torch.y);
+      const halo = this.reactive(this.add.graphics());
+      halo.setDepth(DEPTH.halo).setBlendMode(Phaser.BlendModes.ADD);
+      if (!torch.lit) {
+        // Antorcha apagada: solo un punto de brasa tenue.
+        halo.fillStyle(0x7a4a22, 0.25);
+        halo.fillCircle(x, y, 8);
         continue;
       }
-      const { x, y } = tileToWorld(light.x, light.y);
-      const halo = this.track(this.add.graphics());
-      halo.setDepth(DEPTH.halo).setBlendMode(Phaser.BlendModes.ADD);
-
       for (let ring = 4; ring >= 1; ring -= 1) {
         halo.fillStyle(0xffd27f, 0.05);
         halo.fillCircle(x, y, ring * 42);
       }
+      this.tweens.add({
+        targets: halo,
+        alpha: { from: 0.85, to: 1 },
+        duration: 380,
+        yoyo: true,
+        repeat: -1,
+      });
     }
+  }
+
+  private reactive<T extends Phaser.GameObjects.GameObject>(object: T): T {
+    this.reactiveObjects.push(object);
+    return object;
+  }
+
+  private clearReactive(): void {
+    for (const object of this.reactiveObjects) {
+      this.tweens.killTweensOf(object);
+      object.destroy();
+    }
+    this.reactiveObjects = [];
   }
 
   private buildAvatar(room: RuntimeSubRoom): void {
@@ -1000,8 +1073,14 @@ export class RoomScene extends Phaser.Scene {
         Math.round(object.position.y) === cell.y,
     );
     if (door?.leadsTo) {
+      // Dirigida por motor: solo se cruza una puerta que el servidor ha abierto.
+      if (this.intentOnly && currentObjectState(this.objectState, door) !== "open") {
+        return;
+      }
       this.doorCooldownUntil = time + 600;
+      const fromRoomId = this.activeRoomId;
       this.setRoom(door.leadsTo);
+      this.emit({ type: "enter-room", roomId: door.leadsTo, fromRoomId });
     }
   }
 
@@ -1053,6 +1132,23 @@ export class RoomScene extends Phaser.Scene {
       );
     }
   }
+}
+
+/** Rombo isométrico centrado en `(x, y)` con semiejes `halfW`/`halfH`. */
+function fillDiamond(
+  graphics: Phaser.GameObjects.Graphics,
+  x: number,
+  y: number,
+  halfW: number,
+  halfH: number,
+): void {
+  graphics.beginPath();
+  graphics.moveTo(x, y - halfH);
+  graphics.lineTo(x + halfW, y);
+  graphics.lineTo(x, y + halfH);
+  graphics.lineTo(x - halfW, y);
+  graphics.closePath();
+  graphics.fillPath();
 }
 
 function parseColor(color: string): number {

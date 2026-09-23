@@ -109,6 +109,69 @@
     "missingItems": "Dir fehlen Objekte für dieses Rezept",
     "unavailable": "Die Kombination ist nicht verfügbar"
   },
+  "Playtest": {
+    "badge": "Playtest König Aldric (2.8)",
+    "subtitle": "Alle 3 Räume mit den 8 Vorlagen: Thronsaal → Weinkeller → Katakomben. Öffne das Reliquiar mit dem letzten Siegel.",
+    "controls": "WASD/Pfeiltasten zum Bewegen · Leertaste oder Klick zum Interagieren · I Inventar · ESC schließen",
+    "steps": "Kritischer Pfad",
+    "complete": "Sieg! König Aldric ist frei",
+    "inProgress": "Läuft",
+    "room": "Raum: {room}",
+    "objects": "Objekte im Raum",
+    "step": {
+      "cuadro": "Gemälde untersuchen",
+      "armario": "Schrank öffnen",
+      "antorcha": "Feuerstein + Kerze kombinieren",
+      "brasero": "Kohlebecken anzünden",
+      "arca": "Truhenschloss",
+      "placas": "Gleichzeitige Platten",
+      "mural": "Weinlese-Wandbild",
+      "llaveOro": "Schlüssel im Schlüssel",
+      "ranura": "Kelch in den Schlitz",
+      "copas": "Gedächtnis-Kelche",
+      "mirillas": "Gucklöcher am Gitter",
+      "canal": "Wasserkanal",
+      "sarcofago": "Urnen und Sarkophag",
+      "sello": "Letztes Siegel"
+    },
+    "action": {
+      "goTo": "Gehe zu {room}",
+      "reset": "Neu starten",
+      "hints": "Hinweise"
+    },
+    "inventory": "Inventar",
+    "inventoryButton": "Öffnen (I)",
+    "emptyInventory": "Leer",
+    "stats": {
+      "puzzles": "Gelöste Rätsel",
+      "items": "Gegenstände"
+    },
+    "dialog": "Dialog",
+    "intro": "Einleitung",
+    "close": "Schließen",
+    "menu": {
+      "title": "Aktionen für das Objekt",
+      "object": "Objekt: {object}",
+      "inspect": "Untersuchen",
+      "useItem": "Gegenstand benutzen…",
+      "openPanel": "Panel öffnen",
+      "chooseItem": "Wähle einen Gegenstand für {object}",
+      "dragHint": "Zieh ihn aus dem Inventar in die Welt oder wähle hier einen aus.",
+      "dropHint": "Lege {item} auf ein Objekt der Welt",
+      "noItems": "Dein Inventar ist leer",
+      "cancel": "Abbrechen"
+    },
+    "log": {
+      "title": "Protokoll",
+      "interact": "Du interagierst mit {object}",
+      "useItem": "Du benutzt {item} mit {object}",
+      "combine": "Du kombinierst {input}",
+      "enterRoom": "Du betrittst {room}",
+      "solved": "Gelöst: {puzzle}",
+      "roomLocked": "Die Tür ist noch verschlossen",
+      "rejected": "Das geht hier nicht"
+    }
+  },
   "SplitClue": {
     "title": "Geteilter Hinweis",
     "prompt": "Kombiniert die Fragmente, die jeder sieht",

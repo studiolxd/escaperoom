@@ -1,6 +1,7 @@
 /**
  * Servidor autoritativo de salas (Colyseus). El ticket 0.5 añade la room
- * `lobby_test` con movimiento validado; el motor de reglas llega en el 1.4.
+ * `lobby_test` con movimiento validado; el 2.8, la room `game` que ejecuta la
+ * partida completa (motor de reglas + 8 plantillas) sobre `RoomSession`.
  */
 export {
   CHAT_HISTORY_LIMIT,
@@ -10,6 +11,13 @@ export {
   CHAT_RATE_LIMITED_ERROR,
   DEFAULT_PORT,
   ERROR_MESSAGE,
+  GAME_DOOR_REACH,
+  GAME_ERRORS,
+  GAME_MAX_STEP,
+  GAME_MESSAGES,
+  GAME_ROOM_NAME,
+  GAME_TICK_MS,
+  GAME_TIME_LIMIT_SEC,
   LOBBY_ROOM_NAME,
   MAX_PLAYERS,
   MAX_STEP_PER_TICK,
@@ -58,6 +66,19 @@ export type {
   MediaTokenPayload,
 } from "./media/index.js";
 export { LobbyTestRoom } from "./rooms/lobby-test-room.js";
+export { GameRoom } from "./rooms/game-room.js";
+export type { GameJoinOptions, GameRoomOptions } from "./rooms/game-room.js";
+export {
+  GameInventoryState,
+  GamePlayerState,
+  GamePuzzleState,
+  GameRoomState,
+} from "./schema/game-state.js";
+export {
+  loadReyAldricRoomPackage,
+  resolveRoomPackage,
+  REY_ALDRIC_PACKAGE_ID,
+} from "./game/room-packages.js";
 export { ChatMessageState, LobbyState, PlayerState } from "./schema/lobby-state.js";
 export { createGameServer, resolvePort, startGameServer } from "./server.js";
 export { pickPlayerTint } from "./tints.js";

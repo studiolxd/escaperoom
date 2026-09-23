@@ -140,6 +140,69 @@
     "review": "Leave a review",
     "exit": "Exit"
   },
+  "Playtest": {
+    "badge": "Rey Aldric playtest (2.8)",
+    "subtitle": "All 3 rooms with the 8 templates: Throne Hall → Cellar → Catacombs. Open the reliquary with the final seal.",
+    "controls": "WASD/arrows to move · Space or click to interact · I inventory · ESC close",
+    "steps": "Critical path",
+    "complete": "Victory! King Aldric is free",
+    "inProgress": "In progress",
+    "room": "Room: {room}",
+    "objects": "Room objects",
+    "step": {
+      "cuadro": "Inspect the painting",
+      "armario": "Open the wardrobe",
+      "antorcha": "Combine flint + candle",
+      "brasero": "Light the brazier",
+      "arca": "Chest lock",
+      "placas": "Simultaneous plates",
+      "mural": "Harvest mural",
+      "llaveOro": "Key within the key",
+      "ranura": "Chalice in the slot",
+      "copas": "Memory goblets",
+      "mirillas": "Gate peepholes",
+      "canal": "Water channel",
+      "sarcofago": "Urns and sarcophagus",
+      "sello": "Final seal"
+    },
+    "action": {
+      "goTo": "Go to {room}",
+      "reset": "Restart",
+      "hints": "Hints"
+    },
+    "inventory": "Inventory",
+    "inventoryButton": "Open (I)",
+    "emptyInventory": "Empty",
+    "stats": {
+      "puzzles": "Puzzles solved",
+      "items": "Items"
+    },
+    "dialog": "Dialogue",
+    "intro": "Introduction",
+    "close": "Close",
+    "menu": {
+      "title": "Object actions",
+      "object": "Object: {object}",
+      "inspect": "Inspect",
+      "useItem": "Use item…",
+      "openPanel": "Open panel",
+      "chooseItem": "Choose an item to use on {object}",
+      "dragHint": "Drag it from the inventory onto the world or pick one here.",
+      "dropHint": "Drop {item} on a world object",
+      "noItems": "Your inventory is empty",
+      "cancel": "Cancel"
+    },
+    "log": {
+      "title": "Log",
+      "interact": "You interact with {object}",
+      "useItem": "You use {item} on {object}",
+      "combine": "You combine {input}",
+      "enterRoom": "You enter {room}",
+      "solved": "Solved: {puzzle}",
+      "roomLocked": "The door is still closed",
+      "rejected": "You can't do that here"
+    }
+  },
   "SplitClue": {
     "title": "Split clue",
     "prompt": "Combine the fragments you each see",

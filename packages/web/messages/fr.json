@@ -109,6 +109,69 @@
     "missingItems": "Il te manque des objets pour cette recette",
     "unavailable": "La combinaison n'est pas disponible"
   },
+  "Playtest": {
+    "badge": "playtest Roi Aldric (2.8)",
+    "subtitle": "Les 3 salles avec les 8 modèles : Salle du Trône → Cave → Catacombes. Ouvrez le reliquaire avec le sceau final.",
+    "controls": "ZQSD/flèches pour bouger · Espace ou clic pour interagir · I inventaire · Échap fermer",
+    "steps": "Chemin critique",
+    "complete": "Victoire ! Le roi Aldric est libre",
+    "inProgress": "En cours",
+    "room": "Salle : {room}",
+    "objects": "Objets de la salle",
+    "step": {
+      "cuadro": "Examiner le tableau",
+      "armario": "Ouvrir l'armoire",
+      "antorcha": "Combiner briquet + bougie",
+      "brasero": "Allumer le brasero",
+      "arca": "Cadenas du coffre",
+      "placas": "Plaques simultanées",
+      "mural": "Fresque des vendanges",
+      "llaveOro": "La clé dans la clé",
+      "ranura": "Calice dans la fente",
+      "copas": "Coupes de mémoire",
+      "mirillas": "Judas de la grille",
+      "canal": "Canal d'eau",
+      "sarcofago": "Vases et sarcophage",
+      "sello": "Sceau final"
+    },
+    "action": {
+      "goTo": "Aller à {room}",
+      "reset": "Recommencer",
+      "hints": "Indices"
+    },
+    "inventory": "Inventaire",
+    "inventoryButton": "Ouvrir (I)",
+    "emptyInventory": "Vide",
+    "stats": {
+      "puzzles": "Énigmes résolues",
+      "items": "Objets"
+    },
+    "dialog": "Dialogue",
+    "intro": "Introduction",
+    "close": "Fermer",
+    "menu": {
+      "title": "Actions sur l'objet",
+      "object": "Objet : {object}",
+      "inspect": "Examiner",
+      "useItem": "Utiliser un objet…",
+      "openPanel": "Ouvrir le panneau",
+      "chooseItem": "Choisissez un objet à utiliser sur {object}",
+      "dragHint": "Faites-le glisser de l'inventaire vers le monde ou choisissez-en un ici.",
+      "dropHint": "Déposez {item} sur un objet du monde",
+      "noItems": "Votre inventaire est vide",
+      "cancel": "Annuler"
+    },
+    "log": {
+      "title": "Journal",
+      "interact": "Vous interagissez avec {object}",
+      "useItem": "Vous utilisez {item} sur {object}",
+      "combine": "Vous combinez {input}",
+      "enterRoom": "Vous entrez dans {room}",
+      "solved": "Résolu : {puzzle}",
+      "roomLocked": "La porte est encore fermée",
+      "rejected": "Impossible de faire cela ici"
+    }
+  },
   "SplitClue": {
     "title": "Indice partagé",
     "prompt": "Combinez les fragments que chacun voit",

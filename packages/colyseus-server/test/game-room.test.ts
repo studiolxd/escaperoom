@@ -1,0 +1,218 @@
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { boot, type ColyseusTestServer } from "@colyseus/testing";
+import defineConfig from "@colyseus/tools";
+import { ERROR_MESSAGE, GAME_ERRORS, GAME_MESSAGES, GAME_ROOM_NAME } from "../src/constants";
+import { GameRoom } from "../src/rooms/game-room";
+import { getFreePort } from "./helpers/free-port";
+
+/**
+ * Integración de la `GameRoom` (ticket 2.8): la partida del Rey Aldric sobre
+ * Colyseus real (puerto libre del SO). Cubre la conexión de las plantillas a
+ * los mensajes de specs/11 y las proyecciones públicas por jugador; la ruta
+ * completa hasta la victoria la cubre el test de `RoomSession` en `shared`
+ * (sin red) y, por protocolo, el E2E del ticket 2.12.
+ */
+
+let colyseus: ColyseusTestServer;
+
+const config = defineConfig({
+  initializeGameServer: (server) => {
+    server.define(GAME_ROOM_NAME, GameRoom);
+  },
+});
+
+beforeAll(async () => {
+  colyseus = await boot(config, await getFreePort());
+});
+
+afterEach(async () => {
+  await colyseus.cleanup();
+});
+
+afterAll(async () => {
+  await colyseus.shutdown();
+});
+
+/** Conecta un cliente de test tipado con el estado de la `GameRoom`. */
+function join(room: GameRoom, options: object = {}) {
+  return colyseus.connectTo(room, options);
+}
+
+type TestClient = Awaited<ReturnType<typeof join>>;
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+/** Camina en pasos cortos (≤ 2,5 celdas, por debajo del salto máximo) hasta `to`. */
+async function walk(room: GameRoom, client: TestClient, to: Point): Promise<void> {
+  const player = room.state.players.get(client.sessionId)!;
+  const from = { x: player.x, y: player.y };
+  const steps = Math.max(1, Math.ceil(Math.hypot(to.x - from.x, to.y - from.y) / 2.5));
+  for (let step = 1; step <= steps; step += 1) {
+    client.send(GAME_MESSAGES.move, {
+      x: from.x + ((to.x - from.x) * step) / steps,
+      y: from.y + ((to.y - from.y) * step) / steps,
+    });
+  }
+  await expect
+    .poll(() => {
+      const current = room.state.players.get(client.sessionId)!;
+      return Math.hypot(current.x - to.x, current.y - to.y);
+    })
+    .toBeLessThan(0.01);
+}
+
+async function startGame(): Promise<{ room: GameRoom; a: TestClient; b: TestClient }> {
+  const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {});
+  const a = await join(room, { name: "Ana" });
+  const b = await join(room, { name: "Bruno" });
+  const intro = a.waitForMessage(GAME_MESSAGES.dialogShow);
+  a.send(GAME_MESSAGES.startGame, {});
+  expect(await intro).toEqual({ dialogId: "d-intro" });
+  await expect.poll(() => b.state.phase).toBe("playing");
+  return { room, a, b };
+}
+
+/** Placas cooperativas: un jugador en cada una. */
+async function solvePlates(room: GameRoom, a: TestClient, b: TestClient): Promise<void> {
+  await walk(room, a, { x: 6, y: 11 });
+  await walk(room, b, { x: 14, y: 11 });
+  await expect.poll(() => b.state.puzzles.get("p-placas-estatuas")?.state).toBe("solved");
+}
+
+async function enterBodega(room: GameRoom, client: TestClient): Promise<void> {
+  await walk(room, client, { x: 10, y: 12 });
+  client.send(GAME_MESSAGES.move, { x: 0, y: 0, roomId: "bodega" });
+  await expect.poll(() => room.state.players.get(client.sessionId)?.roomId).toBe("bodega");
+}
+
+describe("GameRoom — Rey Aldric sobre Colyseus", () => {
+  it("solo el anfitrión empieza; la intro y el cronómetro llegan a todos", async () => {
+    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {});
+    const a = await join(room);
+    const b = await join(room);
+
+    const denied = b.waitForMessage(ERROR_MESSAGE);
+    b.send(GAME_MESSAGES.startGame, {});
+    expect((await denied).code).toBe(GAME_ERRORS.permissionDenied);
+
+    const blocked = a.waitForMessage(ERROR_MESSAGE);
+    a.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    expect((await blocked).code).toBe(GAME_ERRORS.invalidState);
+
+    a.send(GAME_MESSAGES.startGame, {});
+    await expect.poll(() => b.state.phase).toBe("playing");
+    expect(b.state.endsAt - b.state.startedAt).toBe(3600 * 1000);
+    expect(b.state.players.size).toBe(2);
+    expect(b.state.objects.get("puerta-bodega")).toBe("closed");
+    expect(b.state.puzzles.get("p-reja-mirillas")?.state).toBe("locked");
+  });
+
+  it("placas cooperativas por posición abren la puerta; una puerta cerrada no se cruza", async () => {
+    const { room, a, b } = await startGame();
+
+    const locked = a.waitForMessage(ERROR_MESSAGE);
+    await walk(room, a, { x: 10, y: 12 });
+    a.send(GAME_MESSAGES.move, { x: 0, y: 0, roomId: "bodega" });
+    expect((await locked).code).toBe(GAME_ERRORS.roomLocked);
+
+    const opened = b.waitForMessage(GAME_MESSAGES.puzzleSolved);
+    await solvePlates(room, a, b);
+    expect(await opened).toMatchObject({
+      puzzleId: "p-placas-estatuas",
+      unlocks: ["puerta-bodega"],
+    });
+    await expect.poll(() => a.state.objects.get("puerta-bodega")).toBe("open");
+    expect(a.state.objects.get("placa-izq")).toBe("down");
+
+    await enterBodega(room, a);
+    await expect.poll(() => b.state.players.get(a.sessionId)?.roomId).toBe("bodega");
+  });
+
+  it("el inventario y los candados se validan en el servidor sin filtrar el código", async () => {
+    const { room, a, b } = await startGame();
+
+    const granted = b.waitForMessage(GAME_MESSAGES.itemGranted);
+    a.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    expect(await granted).toEqual({ playerId: a.sessionId, itemId: "llave-bronce" });
+    await expect
+      .poll(() => [...(b.state.inventories.get(a.sessionId)?.items ?? [])])
+      .toEqual(["llave-bronce"]);
+
+    const wrong = a.waitForMessage(GAME_MESSAGES.attemptResult);
+    a.send(GAME_MESSAGES.puzzleAttempt, { puzzleId: "p-candado-arca", attempt: { code: "0000" } });
+    expect(await wrong).toMatchObject({ ok: false, error: "wrong_code" });
+    await expect.poll(() => b.state.puzzles.get("p-candado-arca")?.attempts).toBe(1);
+
+    // El sello vive en las Catacumbas: desde el Salón no se puede ni intentar.
+    const elsewhere = a.waitForMessage(ERROR_MESSAGE);
+    a.send(GAME_MESSAGES.puzzleAttempt, { puzzleId: "p-sello-final", attempt: { code: "4538" } });
+    expect((await elsewhere).code).toBe(GAME_ERRORS.notAvailable);
+
+    const serialized = JSON.stringify(b.state.toJSON());
+    expect(serialized).not.toContain("4732");
+    expect(serialized).not.toContain("4538");
+    expect(serialized).not.toContain("solution");
+    expect(room.state.puzzles.get("p-sello-final")?.state).toBe("locked");
+  });
+
+  it("memory y split_clue: cada jugador recibe solo lo que le corresponde", async () => {
+    const { room, a, b } = await startGame();
+    await solvePlates(room, a, b);
+    await enterBodega(room, a);
+    await enterBodega(room, b);
+
+    // Memory: el panel no trae símbolos boca abajo; el volteo revela solo al emisor.
+    const opened = a.waitForMessage(GAME_MESSAGES.puzzleView);
+    a.send(GAME_MESSAGES.puzzleOpen, { puzzleId: "p-copas-memoria" });
+    const view = (await opened) as { view: { cards: { id: string; symbol: string | null }[] } };
+    expect(view.view.cards).toHaveLength(6);
+    expect(view.view.cards.every((card) => card.symbol === null)).toBe(true);
+
+    const flipped = a.waitForMessage(GAME_MESSAGES.attemptResult);
+    a.send(GAME_MESSAGES.puzzleAttempt, {
+      puzzleId: "p-copas-memoria",
+      attempt: { flip: view.view.cards[0]!.id },
+    });
+    const flip = (await flipped) as { ok: boolean; revealedSymbol?: string };
+    expect(flip.ok).toBe(true);
+    expect(["uva", "sol", "llave"]).toContain(flip.revealedSymbol);
+    await expect.poll(() => b.state.puzzles.get("p-copas-memoria")?.state).toBe("in_progress");
+    expect(JSON.stringify(b.state.toJSON())).not.toContain(`"${flip.revealedSymbol}"`);
+
+    // Mirillas: bloqueadas hasta resolver las copas, pero cada una deja ver su mitad.
+    await walk(room, a, { x: 9, y: 10 });
+    await walk(room, b, { x: 13, y: 10 });
+    const fragmentsA = a.waitForMessage(GAME_MESSAGES.splitFragments);
+    a.send(GAME_MESSAGES.splitView, {});
+    expect(await fragmentsA).toEqual({
+      puzzleId: "p-reja-mirillas",
+      viewpointId: "mirilla-a",
+      fragments: { 0: "luna", 2: "luna" },
+    });
+    const fragmentsB = b.waitForMessage(GAME_MESSAGES.splitFragments);
+    b.send(GAME_MESSAGES.splitView, {});
+    expect(await fragmentsB).toEqual({
+      puzzleId: "p-reja-mirillas",
+      viewpointId: "mirilla-b",
+      fragments: { 1: "corona", 3: "espada" },
+    });
+
+    const early = b.waitForMessage(GAME_MESSAGES.attemptResult);
+    b.send(GAME_MESSAGES.puzzleAttempt, {
+      puzzleId: "p-reja-mirillas",
+      attempt: { symbols: ["luna", "corona", "luna", "espada"] },
+    });
+    expect(await early).toMatchObject({ ok: false, error: "not_available" });
+    expect(room.state.objects.get("reja-escalera")).toBe("closed");
+  });
+
+  it("rechaza mensajes con forma inválida", async () => {
+    const { a } = await startGame();
+    const invalid = a.waitForMessage(ERROR_MESSAGE);
+    a.send(GAME_MESSAGES.puzzleAttempt, { puzzleId: "p-candado-arca", attempt: { code: 4732 } });
+    expect((await invalid).code).toBe(GAME_ERRORS.invalidState);
+  });
+});

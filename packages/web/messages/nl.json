@@ -109,6 +109,69 @@
     "missingItems": "Je mist voorwerpen voor dat recept",
     "unavailable": "De combinatie is niet beschikbaar"
   },
+  "Playtest": {
+    "badge": "playtest Koning Aldric (2.8)",
+    "subtitle": "Alle 3 kamers met de 8 sjablonen: Troonzaal → Wijnkelder → Catacomben. Open de reliekschrijn met het laatste zegel.",
+    "controls": "WASD/pijltjes om te bewegen · Spatie of klik om te interacteren · I inventaris · ESC sluiten",
+    "steps": "Kritiek pad",
+    "complete": "Overwinning! Koning Aldric is vrij",
+    "inProgress": "Bezig",
+    "room": "Kamer: {room}",
+    "objects": "Objecten in de kamer",
+    "step": {
+      "cuadro": "Het schilderij bekijken",
+      "armario": "De kast openen",
+      "antorcha": "Vuursteen + kaars combineren",
+      "brasero": "Het komfoor aansteken",
+      "arca": "Slot van de kist",
+      "placas": "Gelijktijdige platen",
+      "mural": "Oogstmuurschildering",
+      "llaveOro": "Sleutel in de sleutel",
+      "ranura": "Kelk in de gleuf",
+      "copas": "Geheugenbekers",
+      "mirillas": "Kijkgaten van het hek",
+      "canal": "Waterkanaal",
+      "sarcofago": "Urnen en sarcofaag",
+      "sello": "Laatste zegel"
+    },
+    "action": {
+      "goTo": "Ga naar {room}",
+      "reset": "Opnieuw",
+      "hints": "Hints"
+    },
+    "inventory": "Inventaris",
+    "inventoryButton": "Openen (I)",
+    "emptyInventory": "Leeg",
+    "stats": {
+      "puzzles": "Opgeloste puzzels",
+      "items": "Voorwerpen"
+    },
+    "dialog": "Dialoog",
+    "intro": "Introductie",
+    "close": "Sluiten",
+    "menu": {
+      "title": "Acties voor het object",
+      "object": "Object: {object}",
+      "inspect": "Bekijken",
+      "useItem": "Voorwerp gebruiken…",
+      "openPanel": "Paneel openen",
+      "chooseItem": "Kies een voorwerp om op {object} te gebruiken",
+      "dragHint": "Sleep het uit de inventaris naar de wereld of kies er hier een.",
+      "dropHint": "Laat {item} los op een object in de wereld",
+      "noItems": "Je inventaris is leeg",
+      "cancel": "Annuleren"
+    },
+    "log": {
+      "title": "Logboek",
+      "interact": "Je gebruikt {object}",
+      "useItem": "Je gebruikt {item} op {object}",
+      "combine": "Je combineert {input}",
+      "enterRoom": "Je gaat {room} binnen",
+      "solved": "Opgelost: {puzzle}",
+      "roomLocked": "De deur is nog dicht",
+      "rejected": "Dat kan hier niet"
+    }
+  },
   "SplitClue": {
     "title": "Gedeelde aanwijzing",
     "prompt": "Combineer de fragmenten die ieder ziet",

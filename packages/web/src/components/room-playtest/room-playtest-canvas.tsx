@@ -12,10 +12,12 @@ import {
 export interface RoomPlaytestHandle {
   inspectObject(objectId: string): void;
   setObjectState(objectId: string, state: string): void;
+  /** Cambia la habitación visible (cruce autorizado por `RoomSession`). */
+  showRoom(roomId: string): void;
 }
 
 /**
- * Canvas del playtest de la Sala 1 (ticket 1.10): monta el runtime de producto
+ * Canvas del playtest del Rey Aldric (tickets 1.10 y 2.8): monta el runtime de producto
  * con avatar jugable (teclado) y reenvía cada `world:event` al overlay React
  * (`dialogOverlay: false`), que es quien decide qué hace el motor de reglas.
  *
@@ -70,6 +72,7 @@ export default function RoomPlaytestCanvas({
     onReadyRef.current?.({
       inspectObject: (objectId) => runtime.inspectObject(objectId),
       setObjectState: (objectId, state) => runtime.setObjectState(objectId, state),
+      showRoom: (roomId) => runtime.showRoom(roomId),
     });
 
     return () => {

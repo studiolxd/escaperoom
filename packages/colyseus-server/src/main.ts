@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { LOBBY_ROOM_NAME } from "./constants.js";
+import { GAME_ROOM_NAME, LOBBY_ROOM_NAME } from "./constants.js";
 import { resolvePort, startGameServer } from "./server.js";
 
 /**
@@ -25,4 +25,6 @@ function loadLocalEnv(): void {
 loadLocalEnv();
 const port = resolvePort();
 await startGameServer(port);
-console.log(`[colyseus] room '${LOBBY_ROOM_NAME}' escuchando en ws://localhost:${port}`);
+console.log(
+  `[colyseus] rooms «${LOBBY_ROOM_NAME}» y «${GAME_ROOM_NAME}» escuchando en ws://localhost:${port}`,
+);

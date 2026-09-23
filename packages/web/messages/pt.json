@@ -109,6 +109,69 @@
     "missingItems": "Faltam-te objetos para essa receita",
     "unavailable": "A combinação não está disponível"
   },
+  "Playtest": {
+    "badge": "playtest Rei Aldric (2.8)",
+    "subtitle": "As 3 salas com os 8 modelos: Salão do Trono → Adega → Catacumbas. Abre o relicário com o selo final.",
+    "controls": "WASD/setas para mover · Espaço ou clique para interagir · I inventário · ESC fechar",
+    "steps": "Caminho crítico",
+    "complete": "Vitória! O Rei Aldric está livre",
+    "inProgress": "Em curso",
+    "room": "Sala: {room}",
+    "objects": "Objetos da sala",
+    "step": {
+      "cuadro": "Inspecionar o quadro",
+      "armario": "Abrir o armário",
+      "antorcha": "Combinar isqueiro + vela",
+      "brasero": "Acender o braseiro",
+      "arca": "Cadeado da arca",
+      "placas": "Placas simultâneas",
+      "mural": "Mural da vindima",
+      "llaveOro": "Chave dentro da chave",
+      "ranura": "Cálice na ranhura",
+      "copas": "Taças de memória",
+      "mirillas": "Visores da grade",
+      "canal": "Canal de água",
+      "sarcofago": "Vasos e sarcófago",
+      "sello": "Selo final"
+    },
+    "action": {
+      "goTo": "Ir para {room}",
+      "reset": "Reiniciar",
+      "hints": "Pistas"
+    },
+    "inventory": "Inventário",
+    "inventoryButton": "Abrir (I)",
+    "emptyInventory": "Vazio",
+    "stats": {
+      "puzzles": "Enigmas resolvidos",
+      "items": "Objetos"
+    },
+    "dialog": "Diálogo",
+    "intro": "Introdução",
+    "close": "Fechar",
+    "menu": {
+      "title": "Ações sobre o objeto",
+      "object": "Objeto: {object}",
+      "inspect": "Inspecionar",
+      "useItem": "Usar objeto…",
+      "openPanel": "Abrir painel",
+      "chooseItem": "Escolhe um objeto para usar em {object}",
+      "dragHint": "Arrasta-o do inventário para o mundo ou escolhe um aqui.",
+      "dropHint": "Larga {item} sobre um objeto do mundo",
+      "noItems": "O teu inventário está vazio",
+      "cancel": "Cancelar"
+    },
+    "log": {
+      "title": "Registo",
+      "interact": "Interages com {object}",
+      "useItem": "Usas {item} em {object}",
+      "combine": "Combinas {input}",
+      "enterRoom": "Entras em {room}",
+      "solved": "Resolvido: {puzzle}",
+      "roomLocked": "A porta continua fechada",
+      "rejected": "Não podes fazer isso aqui"
+    }
+  },
   "SplitClue": {
     "title": "Pista dividida",
     "prompt": "Combina os fragmentos que cada um vê",
