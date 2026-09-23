@@ -17,6 +17,7 @@ type PurchaseRow = {
   platformFeeCents: number;
   creatorShareCents: number | null;
   stripePaymentIntentId: string | null;
+  stripeTransferId: string | null;
   status: LicensePurchaseRow["status"];
   createdAt: Date;
 };
@@ -33,6 +34,7 @@ function toPurchase(row: PurchaseRow): LicensePurchaseRow {
     platformFeeCents: row.platformFeeCents,
     creatorShareCents: row.creatorShareCents,
     paymentRef: row.stripePaymentIntentId,
+    transferRef: row.stripeTransferId,
     status: row.status,
     createdAt: row.createdAt,
   };
@@ -121,6 +123,34 @@ export function createPrismaRoomLicenseStore(prisma: PrismaClient): RoomLicenseS
         orderBy: { createdAt: "asc" },
       });
       return row ? toPurchase(row) : null;
+    },
+    async findCreatorAccountForVersion(roomVersionId) {
+      const version = await prisma.roomVersion.findUnique({
+        where: { id: roomVersionId },
+        select: {
+          room_roomVersion_roomIdToroom: {
+            select: { authorId: true, user: { select: { stripeAccountId: true } } },
+          },
+        },
+      });
+      if (!version) return null;
+      const room = version.room_roomVersion_roomIdToroom;
+      return { authorId: room.authorId, stripeAccountId: room.user.stripeAccountId };
+    },
+    async attachTransfer(purchaseId, transferRef) {
+      const row = await prisma.purchase
+        .update({ where: { id: purchaseId }, data: { stripeTransferId: transferRef } })
+        .catch(() => null);
+      return row ? toPurchase(row) : null;
+    },
+    async markFailed(purchaseId) {
+      const { count } = await prisma.purchase.updateMany({
+        where: { id: purchaseId, purchaseType: "room_license", status: "pending" },
+        data: { status: "failed" },
+      });
+      if (count === 0) return null;
+      const row = await prisma.purchase.findUniqueOrThrow({ where: { id: purchaseId } });
+      return toPurchase(row);
     },
     async insertPendingPurchase({ paymentRef, ...purchase }) {
       const row = await prisma.purchase.create({
