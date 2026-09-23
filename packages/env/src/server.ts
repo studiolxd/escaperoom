@@ -60,3 +60,72 @@ export const baseServerSchema = coreSchema
   .extend(redisSchema.shape)
   .extend(emailSchema.shape)
   .extend(storageSchema.shape);
+
+// ---------------------------------------------------------------------------
+// Fragmentos de producto de `web` (ticket de saneamiento del esquema de
+// entorno). Documentan la forma real de variables que ya se leen en runtime
+// vía `process.env` disperso (o vía `readXConfig(env)` en @escaperoom/shared),
+// cada una con su propia degradación con gracia si falta. Todas opcionales:
+// ninguna de ellas debe volverse obligatoria solo por aparecer aquí.
+// ---------------------------------------------------------------------------
+
+export const editorSyncSchema = z.object({
+  // Puerto del proceso `pnpm dev:editor-sync`. Por defecto 2568 si falta.
+  EDITOR_SYNC_PORT: z.coerce.number().int().positive().optional(),
+  // Orígenes permitidos en el handshake (CSV). Por defecto, NEXT_PUBLIC_APP_URL.
+  EDITOR_SYNC_ALLOWED_ORIGINS: z.string().optional(),
+});
+
+export const tokensSchema = z.object({
+  // Secreto de playtest compartido con colyseus-server. Obligatorio en
+  // producción (sin él, playtest responde 503); en desarrollo hay uno fijo.
+  PLAYTEST_SECRET: z.string().optional(),
+  // Firma los enlaces de confirmación de asistencia. Por defecto APP_SECRET.
+  CONFIRMATION_TOKEN_SECRET: z.string().optional(),
+  // Secreto del joinToken de canje de claves. Obligatorio en producción (sin
+  // él, /api/access-keys/redeem responde 503); en desarrollo hay uno fijo.
+  JOIN_TOKEN_SECRET: z.string().optional(),
+  JOIN_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().optional(),
+  // Secreto del enlace de confirmación de publicación por MCP. Obligatorio en
+  // producción (sin él, la tool `publish` responde «no disponible»); en
+  // desarrollo hay uno fijo.
+  PUBLISH_CONFIRM_SECRET: z.string().optional(),
+  PUBLISH_CONFIRM_TTL_SECONDS: z.coerce.number().int().positive().optional(),
+});
+
+export const creatorChatSchema = z.object({
+  CREATOR_CHAT_PROVIDER: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
+  CREATOR_CHAT_MODEL: z.string().optional(),
+  CREATOR_CHAT_MAX_TURNS: z.coerce.number().int().positive().optional(),
+  CREATOR_CHAT_MAX_TOKENS: z.coerce.number().int().positive().optional(),
+  CREATOR_CHAT_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
+  CREATOR_CHAT_TOOL_RESULT_MAX_CHARS: z.coerce.number().int().positive().optional(),
+  // Solo si el MCP (/mcp/creator) vive en otro proceso; por defecto el chat
+  // le entrega las peticiones HTTP en el mismo proceso.
+  CREATOR_CHAT_MCP_URL: z.string().optional(),
+});
+
+export const observabilitySchema = z.object({
+  // Sin ella, Sentry queda deshabilitado; la app funciona igual.
+  SENTRY_DSN: z.string().optional(),
+  // Solo de build (subida de source maps con @sentry/webpack-plugin).
+  SENTRY_ORG: z.string().optional(),
+  SENTRY_PROJECT: z.string().optional(),
+  SENTRY_AUTH_TOKEN: z.string().optional(),
+});
+
+export const elevenLabsSchema = z.object({
+  // Sin ella, /api/audio/generate/* responde 503; no rompe el resto de la app.
+  ELEVENLABS_API_KEY: z.string().optional(),
+  ELEVENLABS_VOICE_ID: z.string().optional(),
+  ELEVENLABS_MODEL_ID: z.string().optional(),
+});
+
+export const stripeSchema = z.object({
+  // Sin ellas, el checkout y el reparto con Connect no están disponibles.
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+});
