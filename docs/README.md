@@ -16,7 +16,8 @@ docs/
 ├── README.md                  ← este índice
 ├── specs/                     ← especificaciones consolidadas (fuente de verdad)
 ├── plan/                      ← plan de implementación por fases y tickets
-└── reference/                 ← material de referencia (fixture, catálogos, ADR, reutilización SLXD)
+├── reference/                 ← material de referencia (fixture, catálogos, ADR, reutilización SLXD)
+└── notas/                     ← notas de trabajo fechadas (sesiones, decisiones pendientes de revisar)
 ```
 
 Regla de oro del repositorio: **`docs/specs/` es la única fuente de verdad.** Si algo no está
@@ -82,6 +83,15 @@ después en código.
 | [Catálogo de ideas de puzzles](reference/catalogo-ideas-puzzles.md) | Repertorio original de minijuegos y puzzles (fuente de futuras plantillas) |
 | [Seguridad](reference/seguridad.md) | Rate limiting (tabla por ruta y por mensaje de partida), CSP y cabeceras, auditoría de admin (ticket 6.3) |
 | [Rotación de secretos](reference/rotacion-de-secretos.md) | Procedimiento y efecto de rotar cada secreto (join token, playtest, confirmación, OAuth…) |
+
+## Notas de trabajo (`docs/notas/`)
+
+Notas fechadas de sesiones de trabajo. No son fuente de verdad: lo que se decida en ellas se lleva a
+`specs/`, `plan/` o al registro de decisiones.
+
+| Nota | Contenido |
+|---|---|
+| [Noche 2026-09-23](notas/2026-09-23-noche-decisiones.md) | Sesión autónoma de agentes: PR integrados, decisiones tomadas por el coordinador y pendientes para revisar |
 
 ---
 
