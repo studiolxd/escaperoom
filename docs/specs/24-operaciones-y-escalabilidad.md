@@ -123,11 +123,20 @@ cifras exactas para fases 1–4 porque dependen de precios de proveedores en el 
 
 ## 6. Observabilidad y operaciones
 
-- **Logs, métricas y alertas** (p. ej. Uptime Kuma + Sentry) — ticket de Fase 6.
+- **Logs, métricas y alertas** — Sentry (errores/logs de `packages/web`, `colyseus-server` y
+  `worker`, deshabilitado sin `SENTRY_DSN`) + Uptime Kuma (disponibilidad, autohospedado) sobre
+  `GET /api/health` de `packages/web` (ticket 6.4). Un corte de conexión a Postgres se reporta a
+  Sentry como aviso agrupado, no como error por petición
+  (`packages/kit/src/observability/db-connectivity.ts`) — quien vigila que Postgres esté arriba es
+  Uptime Kuma, no Sentry evento a evento. Procedimiento de alerta y prueba de caída simulada:
+  `docs/reference/alertas-uptime-kuma.md`.
 - Métricas de LiveKit (bitrate, packet loss, participantes) exportadas junto al resto de analítica
-  de infraestructura.
-- **Backups de PostgreSQL** con restauración probada (no solo configurada) antes de producción.
-- **Rotación de secretos** y auditoría de endpoints admin.
+  de infraestructura — pendiente de ticket (fuera de 6.4).
+- **Backups de PostgreSQL** con restauración probada (no solo configurada) antes de producción —
+  `scripts/backup-postgres.sh` / `scripts/restore-postgres.sh` (ticket 6.4); procedimiento y prueba
+  real ejecutada en `docs/reference/backups-postgres.md`.
+- **Rotación de secretos** y auditoría de endpoints admin — `docs/reference/rotacion-de-secretos.md`
+  (ticket 6.3).
 - Sin guardia 24/7 formal en el MVP: el modelo realista es degradación con gracia + alertas.
 
 ## 7. Dependencias

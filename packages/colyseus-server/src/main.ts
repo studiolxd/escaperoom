@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { initNodeSentry } from "@escaperoom/kit/observability/sentry-node";
 import {
   EVENT_ROOM_NAME,
   GAME_ROOM_NAME,
@@ -47,6 +48,8 @@ async function configureEvents(): Promise<string> {
  * (o `COLYSEUS_PORT`/`PORT`).
  */
 loadLocalEnv();
+// Sentry (ticket 6.4): sin SENTRY_DSN queda deshabilitado, sin romper nada.
+initNodeSentry({ dsn: process.env.SENTRY_DSN });
 const events = await configureEvents();
 const port = resolvePort();
 await startGameServer(port);

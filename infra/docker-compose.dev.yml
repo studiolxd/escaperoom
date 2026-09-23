@@ -119,6 +119,19 @@ services:
     volumes:
       - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
 
+  # Monitor de disponibilidad (ticket 6.4, docs/specs/24 §6). Autohospedado,
+  # sin API a integrar en código: se configura a mano desde su UI
+  # (http://localhost:59003 en dev) contra `GET http://host.docker.internal:3000/api/health`
+  # de `pnpm --filter @escaperoom/web dev` (fuera de Docker, en el host). Ver
+  # docs/reference/alertas-uptime-kuma.md para el procedimiento de alerta.
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    ports:
+      - "${UPTIME_KUMA_PORT:-59003}:3001"
+    volumes:
+      - uptime-kuma-data:/app/data
+
 volumes:
   postgres-data:
   minio-data:
+  uptime-kuma-data:

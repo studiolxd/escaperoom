@@ -23,7 +23,9 @@
     "pack:build": "pnpm --filter @escaperoom/game-runtime pack:build",
     "db:migrate": "pnpm --filter @escaperoom/shared db:migrate",
     "db:seed": "pnpm --filter @escaperoom/shared db:seed",
-    "db:reset": "pnpm --filter @escaperoom/shared db:reset"
+    "db:reset": "pnpm --filter @escaperoom/shared db:reset",
+    "db:backup": "bash scripts/backup-postgres.sh",
+    "db:restore": "bash scripts/restore-postgres.sh"
   },
   "devDependencies": {
     "@escaperoom/config": "workspace:*",

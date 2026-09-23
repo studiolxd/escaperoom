@@ -37,6 +37,9 @@ test-results/
 # Local infra data
 docker-data/
 
+# Dumps de scripts/backup-postgres.sh (ticket 6.4): nunca al repo.
+/backups/
+
 # Packs gráficos generados con `pnpm pack:build` (el pack real se publica en R2)
 packages/web/public/packs/**/atlas-*.png
 packages/web/public/packs/**/atlas-*.json

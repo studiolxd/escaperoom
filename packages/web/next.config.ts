@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import { API_CONTENT_SECURITY_POLICY, staticSecurityHeaders } from "./src/lib/security-headers";
 
 const nextConfig: NextConfig = {
@@ -31,4 +32,21 @@ const nextConfig: NextConfig = {
 
 const withNextIntl = createNextIntlPlugin();
 
-export default withNextIntl(nextConfig);
+/**
+ * Sentry (ticket 6.4). `org`/`project`/`authToken` solo hacen falta para subir
+ * source maps en el build; sin ellos el build funciona igual, sin subida. Sin
+ * `SENTRY_DSN` en runtime, Sentry queda deshabilitado del todo
+ * (`@escaperoom/kit/observability/sentry-nextjs`).
+ * https://www.npmjs.com/package/@sentry/webpack-plugin#options
+ */
+export default withSentryConfig(withNextIntl(nextConfig), {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  // Solo imprime logs de subida de source maps en CI.
+  silent: !process.env.CI,
+  widenClientFileUpload: false,
+  webpack: {
+    treeshake: { removeDebugLogging: true },
+  },
+});
