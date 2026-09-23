@@ -32,6 +32,31 @@ export type {
   MoveValidationResult,
   Vector2,
 } from "./movement.js";
+export {
+  DEFAULT_LIVEKIT_ROOM_PREFIX,
+  DEFAULT_TOKEN_TTL_SECONDS,
+  buildVideoGrant,
+  deriveLiveKitRoomName,
+  gameRoomIdFromLiveKitRoomName,
+  isMediaConfigured,
+  MEDIA_TOKEN_MESSAGE,
+  MEDIA_TOKEN_REQUEST_MESSAGE,
+  mediaPermissionsForRole,
+  parseMediaJoinOptions,
+  readMediaConfig,
+  resolveMediaToken,
+  sendMediaTokenToClient,
+  signLiveKitToken,
+} from "./media/index.js";
+export type {
+  MediaConfig,
+  MediaJoinOptions,
+  MediaPermissions,
+  MediaRole,
+  MediaTokenClient,
+  MediaTokenInput,
+  MediaTokenPayload,
+} from "./media/index.js";
 export { LobbyTestRoom } from "./rooms/lobby-test-room.js";
 export { ChatMessageState, LobbyState, PlayerState } from "./schema/lobby-state.js";
 export { createGameServer, resolvePort, startGameServer } from "./server.js";

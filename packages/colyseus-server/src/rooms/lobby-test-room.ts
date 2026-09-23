@@ -20,6 +20,7 @@ import {
   MOVE_MESSAGE,
   WORLD_BOUNDS,
 } from "../constants.js";
+import { MEDIA_TOKEN_REQUEST_MESSAGE, sendMediaTokenToClient } from "../media/index.js";
 import { MOVE_TOO_FAST, validateMove, type MoveLimits } from "../movement.js";
 import { ChatMessageState, LobbyState, PlayerState } from "../schema/lobby-state.js";
 import { pickPlayerTint } from "../tints.js";
@@ -49,6 +50,10 @@ const SPAWN_POINTS = [
 
 /**
  * Room de prueba `lobby_test`: estado autoritativo de jugadores y validación de
+ * movimiento con rechazo de teletransporte (ticket 0.5, specs/11 §3–4).
+ *
+ * También integra el módulo de medios (ticket 2.2): al pedir `request_media_token`
+ * firma un token LiveKit para la room derivada de `this.roomId` (specs/12 §1).
  * movimiento con rechazo de teletransporte (ticket 0.5, specs/11 §3–4), más el
  * chat en partida (ticket 2.1, specs/11 §4.4 y §9; specs/17 §3).
  */
@@ -63,6 +68,10 @@ export class LobbyTestRoom extends Room<{ state: LobbyState }> {
 
     this.onMessage(MOVE_MESSAGE, movePayload, (client, payload) => {
       this.handleMove(client, payload);
+    });
+
+    this.onMessage(MEDIA_TOKEN_REQUEST_MESSAGE, (client, payload) => {
+      void sendMediaTokenToClient(client, this.roomId, payload);
     });
 
     this.onMessage(CHAT_MESSAGE, (client, payload) => {

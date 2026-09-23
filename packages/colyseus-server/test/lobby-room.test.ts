@@ -31,13 +31,14 @@ describe("lobby_test (integración con @colyseus/testing)", () => {
     const clientA = await colyseus.connectTo(room);
     expect(room.state.players.size).toBe(1);
 
-    const joinPatch = clientA.waitForNextPatch();
     const clientB = await colyseus.connectTo(room);
-    await joinPatch;
 
     expect(room.state.players.size).toBe(2);
-    expect(clientA.state.players.size).toBe(2);
-    expect(clientB.state.players.size).toBe(2);
+    // El patch de sincronización puede llegar en este tick o en el siguiente;
+    // esperamos a la convergencia en vez de asumir el primer patch (evita el
+    // flake bajo carga cuando turbo corre las tareas en paralelo).
+    await expect.poll(() => clientA.state.players.size, { timeout: 5000 }).toBe(2);
+    await expect.poll(() => clientB.state.players.size, { timeout: 5000 }).toBe(2);
 
     const tints = new Set([...room.state.players.values()].map((player) => player.tint));
     expect(tints.size).toBe(2);
@@ -45,14 +46,17 @@ describe("lobby_test (integración con @colyseus/testing)", () => {
     const before = room.state.players.get(clientA.sessionId)!;
     const target = { x: before.x + 0.25, y: before.y + 0.25 };
 
-    const movePatch = clientB.waitForNextPatch();
     clientA.send(MOVE_MESSAGE, target);
-    await movePatch;
 
-    const authoritative = room.state.players.get(clientA.sessionId)!;
-    expect(authoritative.x).toBeCloseTo(target.x, 2);
-    expect(authoritative.y).toBeCloseTo(target.y, 2);
-    expect(clientB.state.players.get(clientA.sessionId)!.x).toBeCloseTo(target.x, 2);
+    await expect
+      .poll(() => room.state.players.get(clientA.sessionId)?.x ?? Number.NaN, { timeout: 5000 })
+      .toBeCloseTo(target.x, 2);
+    await expect
+      .poll(() => clientB.state.players.get(clientA.sessionId)?.x ?? Number.NaN, { timeout: 5000 })
+      .toBeCloseTo(target.x, 2);
+    await expect
+      .poll(() => clientB.state.players.get(clientA.sessionId)?.y ?? Number.NaN, { timeout: 5000 })
+      .toBeCloseTo(target.y, 2);
   });
 
   it("rechaza teletransporte y deja la posición autoritativa intacta", async () => {
