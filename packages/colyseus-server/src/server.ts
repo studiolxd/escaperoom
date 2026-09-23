@@ -1,16 +1,19 @@
 import { Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
-import { DEFAULT_PORT, LOBBY_ROOM_NAME } from "./constants.js";
+import { DEFAULT_PORT, GAME_ROOM_NAME, LOBBY_ROOM_NAME } from "./constants.js";
+import { GameRoom } from "./rooms/game-room.js";
 import { LobbyTestRoom } from "./rooms/lobby-test-room.js";
 
 /**
- * Crea el servidor Colyseus con la room `lobby_test` registrada, sin arrancarlo.
+ * Crea el servidor Colyseus con las rooms `lobby_test` y `game` (partida del
+ * Rey Aldric, ticket 2.8) registradas, sin arrancarlo.
  * Colyseus ya responde con cabeceras CORS a las peticiones de matchmaking, así
  * que el cliente web puede conectar desde otro origen (p. ej. `localhost:3000`).
  */
 export function createGameServer(): Server {
   const server = new Server({ transport: new WebSocketTransport() });
   server.define(LOBBY_ROOM_NAME, LobbyTestRoom);
+  server.define(GAME_ROOM_NAME, GameRoom);
   return server;
 }
 

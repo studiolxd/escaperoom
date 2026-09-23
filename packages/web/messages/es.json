@@ -154,27 +154,32 @@
     "exit": "Salir"
   },
   "Playtest": {
-    "badge": "playtest Sala 1 (1.10)",
-    "subtitle": "Recorre el Salón del Trono: cuadro → llave → armario → combinación → brasero → candado → cáliz → placas.",
+    "badge": "playtest Rey Aldric (2.8)",
+    "subtitle": "Las 3 salas con las 8 plantillas: Salón del Trono → Bodega → Catacumbas. Abre el relicario con el sello final.",
     "controls": "WASD/flechas para mover · Espacio o clic para interactuar · I inventario · ESC cerrar",
-    "steps": "Guion de la Sala 1",
-    "complete": "¡Sala 1 completada!",
+    "steps": "Ruta crítica",
+    "complete": "¡Victoria! El Rey Aldric es libre",
     "inProgress": "En curso",
+    "room": "Sala: {room}",
+    "objects": "Objetos de la sala",
     "step": {
       "cuadro": "Inspeccionar el cuadro",
       "armario": "Abrir el armario",
-      "combina": "Combinar mechero + vela",
+      "antorcha": "Combinar mechero + vela",
       "brasero": "Encender el brasero",
-      "arca": "Abrir el candado del arca",
-      "placas": "Resolver las placas"
+      "arca": "Candado del arca",
+      "placas": "Placas simultáneas",
+      "mural": "Mural de la vendimia",
+      "llaveOro": "Llave dentro de la llave",
+      "ranura": "Cáliz en la ranura",
+      "copas": "Copas de memoria",
+      "mirillas": "Mirillas de la reja",
+      "canal": "Canal de agua",
+      "sarcofago": "Vasijas y sarcófago",
+      "sello": "Sello final"
     },
     "action": {
-      "cuadro": "Inspeccionar cuadro",
-      "armario": "Abrir armario",
-      "combina": "Combinar (inventario)",
-      "brasero": "Encender brasero",
-      "arca": "Candado del arca",
-      "placas": "Resolver placas",
+      "goTo": "Ir a {room}",
       "reset": "Reiniciar",
       "hints": "Pistas"
     },
@@ -193,6 +198,7 @@
       "object": "Objeto: {object}",
       "inspect": "Inspeccionar",
       "useItem": "Usar objeto…",
+      "openPanel": "Abrir panel",
       "chooseItem": "Elige un objeto para usar sobre {object}",
       "dragHint": "Arrástralo del inventario sobre el mundo o elige uno aquí.",
       "dropHint": "Suelta {item} sobre un objeto del mundo",
@@ -204,8 +210,10 @@
       "interact": "Interactúas con {object}",
       "useItem": "Usas {item} sobre {object}",
       "combine": "Combinas {input}",
-      "arcaOpen": "El candado del arca se abre",
-      "plates": "Las placas ceden: la puerta a la Bodega se abre"
+      "enterRoom": "Entras en {room}",
+      "solved": "Resuelto: {puzzle}",
+      "roomLocked": "La puerta sigue cerrada",
+      "rejected": "No puedes hacer eso aquí"
     }
   },
   "SplitClue": {

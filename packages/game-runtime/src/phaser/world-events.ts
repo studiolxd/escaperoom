@@ -18,6 +18,8 @@ export type WorldSceneEvent =
   | { type: "interact"; objectId: string }
   /** Intención: el jugador ha soltado un item del inventario sobre un objeto. */
   | { type: "use-item"; itemId: string; objectId: string }
+  /** El avatar cruzó una puerta abierta: la capa React informa a `RoomSession`. */
+  | { type: "enter-room"; roomId: string; fromRoomId: string }
   | {
       type: "dialog";
       objectId: string;

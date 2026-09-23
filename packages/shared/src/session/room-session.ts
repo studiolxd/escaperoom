@@ -13,10 +13,31 @@ import {
   createCodeLockState,
   createCombineItemsState,
   createHiddenKeyState,
+  createMemoryState,
+  createPipesState,
+  createSimultaneousPlatesState,
+  createSlidingRng,
+  createSlidingState,
+  createSplitClueState,
+  flipCard,
+  moveSlidingTile,
+  openPipesGate,
+  pipesSeedFromId,
+  placeSoloBridge,
+  placeSplitClueBridge,
   revealHiddenKey,
+  rotatePipe,
+  setPlateActive,
+  submitCombination,
   toCombineItemsPublicView,
   toHiddenKeyPublicView,
+  toMemoryPublicView,
+  toPipesPuzzlePublicView,
   toPublicView,
+  toSimultaneousPlatesPublicView,
+  toSlidingPuzzlePublicView,
+  toSplitCluePublicView,
+  viewpointAt,
   type CodeLockAttemptOutcome,
   type CodeLockPublicView,
   type CodeLockState,
@@ -25,6 +46,23 @@ import {
   type CombineItemsState,
   type HiddenKeyPublicView,
   type HiddenKeyState,
+  type MemoryFlipOutcome,
+  type MemoryPublicView,
+  type MemoryState,
+  type PipesGateOutcome,
+  type PipesPuzzlePublicView,
+  type PipesPuzzleState,
+  type PipesRotateOutcome,
+  type PlateOutcome,
+  type SimultaneousPlatesPublicView,
+  type SimultaneousPlatesState,
+  type SlidingMoveOutcome,
+  type SlidingPuzzlePublicView,
+  type SlidingPuzzleState,
+  type SplitClueBridgeOutcome,
+  type SplitCluePublicView,
+  type SplitClueState,
+  type SplitClueSubmitOutcome,
 } from "../templates";
 import {
   createHintState,
@@ -34,35 +72,36 @@ import {
   type HintRequestResult,
   type HintState,
 } from "../hints";
-import type {
-  CodeLockDefinition,
-  CombineItemsDefinition,
-  HiddenKeyDefinition,
-  PuzzleDefinition,
-  RoomPackage,
-} from "../schemas";
+import type { PuzzleDefinition, PuzzleState, RoomPackage, WorldObject } from "../schemas";
 import { buildSessionSummary, type SessionSummary } from "./end-game";
 
 /**
  * Sesión de sala (host) — pegamento puro entre el motor de reglas (1.4), las
- * plantillas de puzzle (1.5–1.7), las pistas (1.8) y el fin de partida (1.9).
+ * **8 plantillas** de puzzle (1.5–1.7, 2.3–2.7), las pistas (1.8) y el fin de
+ * partida (1.9). Es el núcleo autoritativo que ejecuta `GameRoom` (Colyseus) y,
+ * en desarrollo, la página de playtest.
  *
  * **No reimplementa** ninguna de esas piezas: delega en ellas y se limita a
  * traducir acciones de jugador a eventos de motor + llamadas de plantilla, y a
  * reconciliar el estado del mundo (`GameState`) con el estado interno de cada
- * plantilla. Es el mismo rol que en producción ejercen Colyseus/Phaser/React.
+ * plantilla. Cada plantilla mantiene su estado propio (que **no** debe viajar
+ * al cliente): este coordinador lo guarda y solo proyecta vistas públicas
+ * (`to*PublicView`).
  *
- * Cada plantilla mantiene su estado propio (que **no** debe viajar al cliente):
- * este coordinador lo guarda y proyecta solo vistas públicas
- * (`to*PublicView`). Los ítems de una plantilla se reflejan en el inventario
- * del `GameState` para que las reglas (`item_in_inventory`) los vean.
+ * Multijugador (ticket 2.8): toda acción acepta el jugador que la ejecuta
+ * (`playerId`, por defecto el principal). Los ítems que otorga un puzzle van al
+ * inventario de quien lo resuelve; las condiciones `item_in_inventory` son
+ * cooperativas (cualquier jugador). La sesión también lleva la posición de cada
+ * jugador (`movePlayer`): de ella salen el cambio de habitación (validado por
+ * puertas abiertas), las placas en modo `stand` y el punto de vista de
+ * `split_clue`.
  *
  * Es determinista y sin infraestructura: el reloj lógico entra por `now`, igual
  * que en el motor, de modo que el mismo guion produce el mismo estado.
  */
 
 export interface RoomSessionOptions {
-  /** Jugador principal (el que interactúa). Por defecto `p1`. */
+  /** Jugador principal (el que interactúa por defecto). Por defecto `p1`. */
   playerId?: string;
   /** Todos los jugadores de la partida (se siembran en el estado). */
   playerIds?: string[];
@@ -70,13 +109,25 @@ export interface RoomSessionOptions {
   timeLimitSec?: number;
   /** Reloj lógico inicial. Por defecto `0`. */
   now?: number;
+  /**
+   * Fuente de azar por puzzle (reparto del `memory`, `sliding_puzzle` con
+   * `scramble: "random"`). Por defecto es **determinista por id** del puzzle,
+   * así que el mismo paquete produce siempre el mismo tablero; el servidor de
+   * producción inyecta una semilla aleatoria por partida.
+   */
+  rng?: (puzzleId: string) => () => number;
 }
+
+/** Motivo por el que la sesión rechaza una acción antes de llegar al motor. */
+export type RoomRejection = "wrong_room" | "missing_item" | "game_over";
 
 /** Resultado de una interacción de mundo: eventos de motor + diálogos abiertos. */
 export interface RoomInteractionResult {
   engine: EngineResult;
   /** Ids de diálogo que la interacción disparó (reglas `show_dialog`). */
   dialogIds: string[];
+  /** Presente si la sesión rechazó la acción (el motor no llegó a evaluarla). */
+  rejected?: RoomRejection;
 }
 
 /**
@@ -107,23 +158,97 @@ export interface RoomCombineResult {
   engine: EngineResult | null;
 }
 
-function findByType<T extends PuzzleDefinition["type"]>(
-  roomPackage: RoomPackage,
-  type: T,
-): Extract<PuzzleDefinition, { type: T }>[] {
-  return roomPackage.puzzles.filter(
-    (puzzle): puzzle is Extract<PuzzleDefinition, { type: T }> => puzzle.type === type,
-  );
+/** Resultado genérico de una acción de plantilla (desenlace + motor si resolvió). */
+export interface RoomPuzzleActionResult<Outcome extends string> {
+  outcome: Outcome;
+  /** Resultado del motor si la acción resolvió el puzzle (`on_puzzle_solved`). */
+  engine: EngineResult | null;
 }
+
+/** Resultado de voltear una carta de `memory`. */
+export interface RoomMemoryFlipResult extends RoomPuzzleActionResult<MemoryFlipOutcome> {
+  /** Símbolo revelado por esta acción (solo al emisor; nunca en el estado). */
+  revealedSymbol: string | null;
+}
+
+/** Posición de un jugador en el mundo (celdas del grid de su habitación). */
+export interface RoomPlayerPosition {
+  roomId: string;
+  x: number;
+  y: number;
+}
+
+/** Desenlace de mover a un jugador. */
+export type RoomMoveOutcome = "moved" | "room_locked" | "unknown_room" | "game_over";
+
+/** Resultado de `movePlayer`: motor (entrada en habitación, placas) + placas cambiadas. */
+export interface RoomMoveResult {
+  outcome: RoomMoveOutcome;
+  /** `true` si el jugador cambió de habitación (se disparó `on_enter_room`). */
+  enteredRoom: boolean;
+  engine: EngineResult;
+  /** Placas cuyo estado cambió por el movimiento (modo `stand`). */
+  plates: { puzzleId: string; plateObjectId: string; outcome: PlateOutcome }[];
+}
+
+/** Proyección pública de cualquier plantilla (lo que viaja al cliente). */
+export type RoomPuzzlePublicView =
+  | HiddenKeyPublicView
+  | CodeLockPublicView
+  | CombineItemsPublicView
+  | SimultaneousPlatesPublicView
+  | SlidingPuzzlePublicView
+  | MemoryPublicView
+  | SplitCluePublicView
+  | PipesPuzzlePublicView;
+
+type PuzzleOf<T extends PuzzleDefinition["type"]> = Extract<PuzzleDefinition, { type: T }>;
+
+/** Estado interno de cada plantilla, indexado por id de puzzle. */
+interface TemplateStates {
+  hidden_key: Map<string, HiddenKeyState>;
+  code_lock: Map<string, CodeLockState>;
+  combine_items: Map<string, CombineItemsState>;
+  simultaneous_plates: Map<string, SimultaneousPlatesState>;
+  sliding_puzzle: Map<string, SlidingPuzzleState>;
+  memory: Map<string, MemoryState>;
+  split_clue: Map<string, SplitClueState>;
+  pipes: Map<string, PipesPuzzleState>;
+}
+
+/** Estado de plantilla con el campo común `state` (todas lo tienen). */
+interface WithPuzzleState {
+  state: PuzzleState;
+}
+
+/** Semilla determinista por id (FNV-1a) + mulberry32: el azar por defecto. */
+function defaultRng(puzzleId: string): () => number {
+  return createSlidingRng(pipesSeedFromId(puzzleId));
+}
+
+/** Estado de puerta abierta (`unlock_door` del motor). */
+const DOOR_OPEN_STATE = "open";
 
 export class RoomSession {
   readonly roomPackage: RoomPackage;
   readonly playerId: string;
 
   private readonly engine: Engine;
-  private readonly hiddenKeyStates = new Map<string, HiddenKeyState>();
-  private readonly codeLockStates = new Map<string, CodeLockState>();
-  private readonly combineStates = new Map<string, CombineItemsState>();
+  private readonly templates: TemplateStates = {
+    hidden_key: new Map(),
+    code_lock: new Map(),
+    combine_items: new Map(),
+    simultaneous_plates: new Map(),
+    sliding_puzzle: new Map(),
+    memory: new Map(),
+    split_clue: new Map(),
+    pipes: new Map(),
+  };
+  private readonly puzzlesById = new Map<string, PuzzleDefinition>();
+  private readonly objectsById = new Map<string, WorldObject>();
+  /** Escondites sin `hidden_key` ya vaciados (se reparte su contenido una vez). */
+  private readonly emptiedHidingSpots = new Set<string>();
+  private readonly positions = new Map<string, RoomPlayerPosition>();
   private hintState: HintState;
   private now: number;
 
@@ -144,18 +269,44 @@ export class RoomSession {
       now: this.now,
     });
 
+    for (const object of roomPackage.objects) this.objectsById.set(object.id, object);
+
+    const rngFor = options.rng ?? defaultRng;
     for (const puzzle of roomPackage.puzzles) {
+      this.puzzlesById.set(puzzle.id, puzzle);
       switch (puzzle.type) {
         case "hidden_key":
-          this.hiddenKeyStates.set(puzzle.id, createHiddenKeyState(puzzle));
+          this.templates.hidden_key.set(puzzle.id, createHiddenKeyState(puzzle));
           break;
         case "code_lock":
-          this.codeLockStates.set(puzzle.id, createCodeLockState(puzzle));
+          this.templates.code_lock.set(puzzle.id, createCodeLockState(puzzle));
           break;
         case "combine_items":
-          this.combineStates.set(puzzle.id, createCombineItemsState(puzzle, this.inventory()));
+          this.templates.combine_items.set(
+            puzzle.id,
+            createCombineItemsState(puzzle, this.inventory()),
+          );
           break;
-        default:
+        case "simultaneous_plates":
+          this.templates.simultaneous_plates.set(puzzle.id, createSimultaneousPlatesState(puzzle));
+          break;
+        case "sliding_puzzle":
+          this.templates.sliding_puzzle.set(
+            puzzle.id,
+            createSlidingState(
+              puzzle,
+              puzzle.scramble === "random" ? rngFor(puzzle.id) : undefined,
+            ),
+          );
+          break;
+        case "memory":
+          this.templates.memory.set(puzzle.id, createMemoryState(puzzle, rngFor(puzzle.id)));
+          break;
+        case "split_clue":
+          this.templates.split_clue.set(puzzle.id, createSplitClueState(puzzle));
+          break;
+        case "pipes":
+          this.templates.pipes.set(puzzle.id, createPipesState(puzzle));
           break;
       }
     }
@@ -175,6 +326,16 @@ export class RoomSession {
     return this.engine.state;
   }
 
+  /** `true` si la partida ya terminó (`victory`, `timeout`, `abandoned`). */
+  get ended(): boolean {
+    return this.engine.state.result !== undefined;
+  }
+
+  /** Jugadores de la partida. */
+  players(): string[] {
+    return Object.keys(this.engine.state.players);
+  }
+
   /** Inventario de un jugador (por defecto, el principal). */
   inventory(playerId: string = this.playerId): string[] {
     return [...(this.engine.state.inventory[playerId] ?? [])];
@@ -190,31 +351,120 @@ export class RoomSession {
     return this.engine.state.flags[name];
   }
 
+  /** Estado del puzzle en el mundo (`locked`, `available`, …, `solved`). */
+  puzzleState(puzzleId: string): PuzzleState | undefined {
+    return this.engine.state.puzzleStates[puzzleId]?.state;
+  }
+
   /** `true` si el puzzle está resuelto. */
   isPuzzleSolved(puzzleId: string): boolean {
     return this.engine.state.puzzleStates[puzzleId]?.state === "solved";
   }
 
+  /** Posición conocida de un jugador (tras `movePlayer`/`spawnPlayer`). */
+  playerPosition(playerId: string = this.playerId): RoomPlayerPosition | undefined {
+    const position = this.positions.get(playerId);
+    return position ? { ...position } : undefined;
+  }
+
   /** Proyección pública de un `hidden_key`. */
   hiddenKeyView(puzzleId: string): HiddenKeyPublicView {
-    const def = this.hiddenKeyDefinition(puzzleId);
-    return toHiddenKeyPublicView(this.hiddenKeyStates.get(puzzleId)!, def);
+    const def = this.definition(puzzleId, "hidden_key");
+    return toHiddenKeyPublicView(this.templates.hidden_key.get(puzzleId)!, def);
   }
 
   /** Proyección pública de un `code_lock` (nunca incluye el código). */
   codeLockView(puzzleId: string): CodeLockPublicView {
-    const def = this.codeLockDefinition(puzzleId);
-    return toPublicView(this.codeLockStates.get(puzzleId)!, def);
+    const def = this.definition(puzzleId, "code_lock");
+    return toPublicView(this.templates.code_lock.get(puzzleId)!, def);
   }
 
-  /** Proyección pública de un `combine_items` (inventario del mundo). */
-  combineItemsView(puzzleId: string): CombineItemsPublicView {
-    const def = this.combineItemsDefinition(puzzleId);
+  /** Proyección pública de un `combine_items` sobre el inventario de un jugador. */
+  combineItemsView(puzzleId: string, playerId: string = this.playerId): CombineItemsPublicView {
+    const def = this.definition(puzzleId, "combine_items");
     const state: CombineItemsState = {
-      ...this.combineStates.get(puzzleId)!,
-      inventory: this.inventory(),
+      ...this.templates.combine_items.get(puzzleId)!,
+      inventory: this.inventory(playerId),
     };
     return toCombineItemsPublicView(state, def);
+  }
+
+  /** Proyección pública de un `simultaneous_plates` (sin el objeto-puente). */
+  platesView(puzzleId: string, now: number = this.now): SimultaneousPlatesPublicView {
+    const def = this.definition(puzzleId, "simultaneous_plates");
+    return toSimultaneousPlatesPublicView(
+      this.templates.simultaneous_plates.get(puzzleId)!,
+      def,
+      now,
+    );
+  }
+
+  /** Proyección pública de un `sliding_puzzle` (sin semilla). */
+  slidingView(puzzleId: string): SlidingPuzzlePublicView {
+    const def = this.definition(puzzleId, "sliding_puzzle");
+    return toSlidingPuzzlePublicView(this.templates.sliding_puzzle.get(puzzleId)!, def);
+  }
+
+  /** Proyección pública de un `memory` (sin símbolos de cartas boca abajo). */
+  memoryView(puzzleId: string): MemoryPublicView {
+    const def = this.definition(puzzleId, "memory");
+    return toMemoryPublicView(this.templates.memory.get(puzzleId)!, def);
+  }
+
+  /**
+   * Proyección pública de un `split_clue` **para un jugador**: el punto de vista
+   * sale de su posición en el servidor (zona de la mirilla). Fuera de toda zona
+   * no ve ningún fragmento (salvo que el espejo ya esté colocado).
+   */
+  splitClueView(puzzleId: string, playerId: string = this.playerId): SplitCluePublicView {
+    const def = this.definition(puzzleId, "split_clue");
+    return toSplitCluePublicView(
+      this.templates.split_clue.get(puzzleId)!,
+      def,
+      this.viewpointOf(puzzleId, playerId) ?? "",
+    );
+  }
+
+  /** Mirilla (viewpoint) que ocupa un jugador en un `split_clue`, o `null`. */
+  viewpointOf(puzzleId: string, playerId: string = this.playerId): string | null {
+    const def = this.definition(puzzleId, "split_clue");
+    const position = this.positions.get(playerId);
+    if (!position || position.roomId !== def.roomId) return null;
+    return viewpointAt(def, Math.round(position.x), Math.round(position.y));
+  }
+
+  /** Proyección pública de un `pipes` (sin `solution` ni semilla). */
+  pipesView(puzzleId: string): PipesPuzzlePublicView {
+    const def = this.definition(puzzleId, "pipes");
+    return toPipesPuzzlePublicView(this.templates.pipes.get(puzzleId)!, def);
+  }
+
+  /**
+   * Proyección pública de cualquier puzzle para un jugador (lo que el servidor
+   * envía al panel). Nunca incluye soluciones: delega en el `to*PublicView` de
+   * cada plantilla.
+   */
+  puzzleView(puzzleId: string, playerId: string = this.playerId): RoomPuzzlePublicView {
+    const def = this.puzzlesById.get(puzzleId);
+    if (!def) throw new Error(`No hay un puzzle con id «${puzzleId}».`);
+    switch (def.type) {
+      case "hidden_key":
+        return this.hiddenKeyView(puzzleId);
+      case "code_lock":
+        return this.codeLockView(puzzleId);
+      case "combine_items":
+        return this.combineItemsView(puzzleId, playerId);
+      case "simultaneous_plates":
+        return this.platesView(puzzleId);
+      case "sliding_puzzle":
+        return this.slidingView(puzzleId);
+      case "memory":
+        return this.memoryView(puzzleId);
+      case "split_clue":
+        return this.splitClueView(puzzleId, playerId);
+      case "pipes":
+        return this.pipesView(puzzleId);
+    }
   }
 
   /** Proyección pública de las pistas, resueltas al idioma pedido. */
@@ -224,15 +474,22 @@ export class RoomSession {
 
   /**
    * Panel asociado a un objeto del mundo, si lo hay: el `hidden_key` cuyo
-   * escondite es ese objeto, o el puzzle que lo bloquea (`lockedBy`).
+   * escondite es ese objeto, el puzzle que lo bloquea (`lockedBy`) o el
+   * `split_clue` que lo usa como mirilla.
    */
   panelForObject(objectId: string): string | undefined {
     const hiding = this.roomPackage.puzzles.find(
       (puzzle) => puzzle.type === "hidden_key" && puzzle.hidingSpot.objectId === objectId,
     );
     if (hiding) return hiding.id;
-    const object = this.roomPackage.objects.find((candidate) => candidate.id === objectId);
-    return object?.lockedBy;
+    const object = this.objectsById.get(objectId);
+    if (object?.lockedBy) return object.lockedBy;
+    const split = this.roomPackage.puzzles.find(
+      (puzzle) =>
+        puzzle.type === "split_clue" &&
+        puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === objectId),
+    );
+    return split?.id;
   }
 
   /**
@@ -255,6 +512,77 @@ export class RoomSession {
     return actions.length > 0 ? actions : ["inspect", "use_item"];
   }
 
+  // — Jugadores y movimiento ——————————————————————————————————————
+
+  /** Añade un jugador a la partida (join a mitad). Idempotente. */
+  addPlayer(playerId: string): void {
+    this.engine.state.players[playerId] ??= {};
+    this.engine.state.inventory[playerId] ??= [];
+  }
+
+  /**
+   * Coloca a un jugador en un punto de aparición de la habitación inicial (la
+   * primera del mapa) o de la pedida. No valida puertas: es la entrada a la
+   * partida, no un movimiento.
+   */
+  spawnPlayer(playerId: string, now: number = this.now, roomId?: string): RoomMoveResult {
+    this.addPlayer(playerId);
+    const room =
+      this.roomPackage.map.rooms.find((candidate) => candidate.id === roomId) ??
+      this.roomPackage.map.rooms[0];
+    if (!room) {
+      return { outcome: "unknown_room", enteredRoom: false, engine: emptyResult(now), plates: [] };
+    }
+    const index = [...this.positions.values()].filter((p) => p.roomId === room.id).length;
+    const spawn = room.spawnPoints[index % Math.max(1, room.spawnPoints.length)] ?? { x: 0, y: 0 };
+    return this.placePlayer(playerId, { roomId: room.id, x: spawn.x, y: spawn.y }, now);
+  }
+
+  /**
+   * ¿Puede un jugador pasar de `from` a `to`? Solo a través de una puerta
+   * abierta que conecte ambas habitaciones (en cualquier sentido): la puerta
+   * vive en una y su `leadsTo` apunta a la otra.
+   */
+  canEnterRoom(from: string | undefined, to: string): boolean {
+    if (!this.roomPackage.map.rooms.some((room) => room.id === to)) return false;
+    if (from === undefined) return to === this.roomPackage.map.rooms[0]?.id;
+    if (from === to) return true;
+    return this.roomPackage.objects.some(
+      (object) =>
+        object.leadsTo !== undefined &&
+        this.engine.state.objectStates[object.id] === DOOR_OPEN_STATE &&
+        ((object.roomId === from && object.leadsTo === to) ||
+          (object.roomId === to && object.leadsTo === from)),
+    );
+  }
+
+  /**
+   * Mueve a un jugador (posición autoritativa del servidor). Cambiar de
+   * habitación exige una puerta abierta y dispara `on_enter_room`; en modo
+   * `stand`, pisar o dejar una placa la activa o desactiva. La validación de
+   * velocidad (anti-teletransporte) es del transporte (Colyseus), no de aquí.
+   */
+  movePlayer(
+    playerId: string,
+    roomId: string,
+    x: number,
+    y: number,
+    now: number = this.now,
+  ): RoomMoveResult {
+    this.now = now;
+    if (this.ended) {
+      return { outcome: "game_over", enteredRoom: false, engine: emptyResult(now), plates: [] };
+    }
+    if (!this.roomPackage.map.rooms.some((room) => room.id === roomId)) {
+      return { outcome: "unknown_room", enteredRoom: false, engine: emptyResult(now), plates: [] };
+    }
+    const current = this.positions.get(playerId);
+    if (!this.canEnterRoom(current?.roomId, roomId)) {
+      return { outcome: "room_locked", enteredRoom: false, engine: emptyResult(now), plates: [] };
+    }
+    return this.placePlayer(playerId, { roomId, x, y }, now);
+  }
+
   // — Acciones de jugador ——————————————————————————————————————————
 
   /** Arranca la partida (`on_game_start`): timer, intro y fase `playing`. */
@@ -264,66 +592,116 @@ export class RoomSession {
 
   /**
    * Interactúa con un objeto del mundo: dispara `on_interact` (reglas) y, si el
-   * objeto es un escondite, revela el `hidden_key` correspondiente.
+   * objeto es un escondite, revela el `hidden_key` correspondiente (o reparte
+   * su contenido si el escondite no tiene plantilla, p. ej. el barril del
+   * espejo). Si la posición del jugador es conocida, el objeto debe estar en su
+   * habitación.
    */
-  interact(objectId: string, now: number = this.now): RoomInteractionResult {
+  interact(
+    objectId: string,
+    now: number = this.now,
+    playerId: string = this.playerId,
+  ): RoomInteractionResult {
+    const rejected = this.rejectWorldAction(objectId, playerId);
+    if (rejected) return { engine: emptyResult(now), dialogIds: [], rejected };
+
     const results: EngineResult[] = [
-      this.dispatch({ type: "on_interact", objectId, playerId: this.playerId }, now),
+      this.dispatch({ type: "on_interact", objectId, playerId }, now),
     ];
 
-    for (const puzzle of findByType(this.roomPackage, "hidden_key")) {
+    let hasTemplate = false;
+    for (const puzzle of this.puzzlesOfType("hidden_key")) {
       if (puzzle.hidingSpot.objectId !== objectId) continue;
-      const reveal = this.revealHiddenKey(puzzle.id, now);
+      hasTemplate = true;
+      const reveal = this.revealHiddenKey(puzzle.id, now, playerId);
       if (reveal.engine) results.push(reveal.engine);
+    }
+    if (!hasTemplate) {
+      const loot = this.emptyHidingSpot(objectId, now, playerId);
+      if (loot) results.push(loot);
     }
 
     const engine = mergeResults(now, results);
-    const dialogIds = effectsOf(engine, "show_dialog").map((effect) => effect.dialogId);
-    return { engine, dialogIds };
+    return { engine, dialogIds: dialogIdsOf(engine) };
   }
 
   /**
    * Usa un objeto del inventario sobre un objeto del mundo (drag&drop o acción
-   * "Usar objeto…"): dispara `on_use_item` con `{ itemId, objectId }`. Es pura e
-   * idempotente como `interact`: las reglas `once` no vuelven a disparar y las
-   * condiciones `item_in_inventory … consumed` gastan el ítem una sola vez.
+   * "Usar objeto…"): dispara `on_use_item` con `{ itemId, objectId }`. Si el
+   * ítem es el objeto-puente de una mecánica cooperativa (el cáliz sobre una
+   * placa, el espejo en una mirilla) o abre una compuerta de `pipes`, la
+   * plantilla correspondiente lo aplica. El puente **no se consume** (se
+   * presenta; mismo criterio que la compuerta de `pipes`), así el cáliz sigue
+   * sirviendo para la ranura del mural. Es pura e idempotente como `interact`.
    */
-  useItemOnObject(itemId: string, objectId: string, now: number = this.now): RoomInteractionResult {
-    const engine = this.dispatch(
-      { type: "on_use_item", itemId, objectId, playerId: this.playerId },
-      now,
-    );
-    const dialogIds = effectsOf(engine, "show_dialog").map((effect) => effect.dialogId);
-    return { engine, dialogIds };
+  useItemOnObject(
+    itemId: string,
+    objectId: string,
+    now: number = this.now,
+    playerId: string = this.playerId,
+  ): RoomInteractionResult {
+    const rejected =
+      this.rejectWorldAction(objectId, playerId) ??
+      (this.inventory(playerId).includes(itemId) ? undefined : ("missing_item" as const));
+    if (rejected) return { engine: emptyResult(now), dialogIds: [], rejected };
+
+    const results: EngineResult[] = [
+      this.dispatch({ type: "on_use_item", itemId, objectId, playerId }, now),
+    ];
+
+    for (const puzzle of this.puzzlesOfType("simultaneous_plates")) {
+      if (puzzle.soloBridgeItemId !== itemId) continue;
+      if (!puzzle.plates.some((plate) => plate.objectId === objectId)) continue;
+      const bridged = this.placePlatesBridge(puzzle.id, objectId, now, playerId);
+      if (bridged.engine) results.push(bridged.engine);
+    }
+    for (const puzzle of this.puzzlesOfType("split_clue")) {
+      if (puzzle.soloBridgeItemId !== itemId) continue;
+      if (!puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === objectId)) continue;
+      this.placeSplitClueBridge(puzzle.id, playerId);
+    }
+
+    const engine = mergeResults(now, results);
+    return { engine, dialogIds: dialogIdsOf(engine) };
   }
 
   /** Revela un `hidden_key` (plantilla) y sincroniza el mundo si procede. */
-  revealHiddenKey(puzzleId: string, now: number = this.now): RoomHiddenKeyResult {
-    const def = this.hiddenKeyDefinition(puzzleId);
-    const current = this.hiddenKeyStates.get(puzzleId)!;
-    const reveal = revealHiddenKey(current, def, now, this.playerId);
-    this.hiddenKeyStates.set(puzzleId, reveal.state);
+  revealHiddenKey(
+    puzzleId: string,
+    now: number = this.now,
+    playerId: string = this.playerId,
+  ): RoomHiddenKeyResult {
+    const def = this.definition(puzzleId, "hidden_key");
+    if (this.ended) return { outcome: "unavailable", grantedItemId: null, engine: null };
+    const reveal = revealHiddenKey(this.templates.hidden_key.get(puzzleId)!, def, now, playerId);
+    this.templates.hidden_key.set(puzzleId, reveal.state);
 
     if (reveal.outcome !== "revealed") {
-      return {
-        outcome: reveal.outcome,
-        grantedItemId: null,
-        engine: null,
-      };
+      return { outcome: reveal.outcome, grantedItemId: null, engine: null };
     }
 
-    const engine = this.completePuzzle(puzzleId, def, now);
+    const engine = this.completePuzzle(puzzleId, def, now, playerId);
     return { outcome: "revealed", grantedItemId: reveal.grantedItemId, engine };
   }
 
   /** Intenta abrir un `code_lock` con la plantilla (validación pura). */
-  attemptCode(puzzleId: string, code: string, now: number = this.now): RoomCodeLockResult {
-    const def = this.codeLockDefinition(puzzleId);
-    const current = this.codeLockStates.get(puzzleId)!;
+  attemptCode(
+    puzzleId: string,
+    code: string,
+    now: number = this.now,
+    playerId: string = this.playerId,
+  ): RoomCodeLockResult {
+    const def = this.definition(puzzleId, "code_lock");
+    const current = this.templates.code_lock.get(puzzleId)!;
+    if (this.ended) {
+      return { outcome: "unavailable", remainingAttempts: 0, lockedUntil: null, engine: null };
+    }
     const attempt = attemptCode(current, def, code, now);
-    this.codeLockStates.set(puzzleId, attempt.state);
+    this.templates.code_lock.set(puzzleId, attempt.state);
+    this.syncRuntime(puzzleId, attempt.state, attempt.state.attempts);
 
-    const engine = attempt.outcome === "correct" ? this.completePuzzle(puzzleId, def, now) : null;
+    const engine =
+      attempt.outcome === "correct" ? this.completePuzzle(puzzleId, def, now, playerId) : null;
 
     return {
       outcome: attempt.outcome,
@@ -333,12 +711,21 @@ export class RoomSession {
     };
   }
 
-  /** Combina dos ítems de un `combine_items` (plantilla) y sincroniza inventario. */
-  combine(puzzleId: string, inputs: readonly string[], now: number = this.now): RoomCombineResult {
-    const def = this.combineItemsDefinition(puzzleId);
-    const current = this.combineStates.get(puzzleId)!;
+  /** Combina ítems de un `combine_items` (plantilla) y sincroniza el inventario del jugador. */
+  combine(
+    puzzleId: string,
+    inputs: readonly string[],
+    now: number = this.now,
+    playerId: string = this.playerId,
+  ): RoomCombineResult {
+    const def = this.definition(puzzleId, "combine_items");
+    const current = this.templates.combine_items.get(puzzleId)!;
     // El inventario vive en el `GameState`; la plantilla evalúa sobre esa foto.
-    const seeded: CombineItemsState = { ...current, inventory: this.inventory() };
+    const seeded: CombineItemsState = {
+      ...current,
+      inventory: this.inventory(playerId),
+      ...(this.ended ? { state: "failed" as const } : {}),
+    };
     const result = applyCombination(seeded, def, [...inputs], now);
 
     if (result.outcome !== "combined") {
@@ -347,26 +734,165 @@ export class RoomSession {
 
     // Reconciliación: refleja consumo/entrega de la receta en el inventario del
     // mundo y persiste las recetas aplicadas (idempotencia de la plantilla).
-    this.combineStates.set(puzzleId, result.state);
-    this.engine.state.inventory[this.playerId] = [...result.state.inventory];
+    this.templates.combine_items.set(puzzleId, result.state);
+    this.engine.state.inventory[playerId] = [...result.state.inventory];
     const engine =
       result.state.state === "solved" && !this.isPuzzleSolved(puzzleId)
-        ? this.completePuzzle(puzzleId, def, now)
+        ? this.completePuzzle(puzzleId, def, now, playerId)
         : null;
 
     return { result, engine };
   }
 
   /**
-   * Resuelve un puzzle de mundo sin plantilla dedicada (p. ej. las placas
-   * cooperativas, 06 §2.3, cuyo host detecta la condición y lo marca). El
-   * servidor de producción lo hará desde su propia mecánica; aquí es el punto de
-   * entrada para completar una sala vertical.
+   * Activa o desactiva una placa (`plate_state`, specs/11 §4.3). Para activar,
+   * el jugador tiene que estar encima (±½ celda) si su posición es conocida:
+   * el cliente no puede pisar placas a distancia. En modo `stand` lo normal es
+   * que lo haga `movePlayer`.
    */
-  solveWorldPuzzle(puzzleId: string, now: number = this.now): EngineResult | null {
-    const def = this.roomPackage.puzzles.find((puzzle) => puzzle.id === puzzleId);
-    if (!def || this.isPuzzleSolved(puzzleId)) return null;
-    return this.completePuzzle(puzzleId, def, now);
+  setPlate(
+    puzzleId: string,
+    plateObjectId: string,
+    active: boolean,
+    now: number = this.now,
+    playerId: string = this.playerId,
+  ): RoomPuzzleActionResult<PlateOutcome> {
+    const def = this.definition(puzzleId, "simultaneous_plates");
+    if (this.ended) return { outcome: "unavailable", engine: null };
+    const plate = def.plates.find((candidate) => candidate.objectId === plateObjectId);
+    if (!plate) return { outcome: "unknown_plate", engine: null };
+    const position = this.positions.get(playerId);
+    if (
+      active &&
+      position &&
+      (position.roomId !== def.roomId || !isOnCell(position, plate.x, plate.y))
+    ) {
+      return { outcome: "unavailable", engine: null };
+    }
+    return this.applyPlate(puzzleId, plateObjectId, active, now, playerId);
+  }
+
+  /** Voltea una carta de `memory` (turnos y aciertos en la plantilla). */
+  flipMemoryCard(
+    puzzleId: string,
+    cardId: string,
+    now: number = this.now,
+    playerId: string = this.playerId,
+  ): RoomMemoryFlipResult {
+    const def = this.definition(puzzleId, "memory");
+    if (this.ended) return { outcome: "unavailable", engine: null, revealedSymbol: null };
+    const flip = flipCard(this.templates.memory.get(puzzleId)!, def, cardId, playerId, now);
+    this.templates.memory.set(puzzleId, flip.state);
+    this.syncRuntime(puzzleId, flip.state);
+    const engine = flip.solved ? this.completePuzzle(puzzleId, def, now, playerId) : null;
+    return { outcome: flip.outcome, engine, revealedSymbol: flip.revealedSymbol };
+  }
+
+  /** Desliza una ficha del `sliding_puzzle` hacia el hueco. */
+  moveSlidingTile(
+    puzzleId: string,
+    index: number,
+    now: number = this.now,
+    playerId: string = this.playerId,
+  ): RoomPuzzleActionResult<SlidingMoveOutcome> {
+    const def = this.definition(puzzleId, "sliding_puzzle");
+    if (this.ended) return { outcome: "unavailable", engine: null };
+    const moved = moveSlidingTile(this.templates.sliding_puzzle.get(puzzleId)!, def, index, now);
+    this.templates.sliding_puzzle.set(puzzleId, moved.state);
+    this.syncRuntime(puzzleId, moved.state);
+    const engine =
+      moved.outcome === "solved" ? this.completePuzzle(puzzleId, def, now, playerId) : null;
+    return { outcome: moved.outcome, engine };
+  }
+
+  /** Gira una pieza del `pipes` (cuartos de vuelta horarios). */
+  rotatePipe(
+    puzzleId: string,
+    index: number,
+    now: number = this.now,
+    playerId: string = this.playerId,
+    turns = 1,
+  ): RoomPuzzleActionResult<PipesRotateOutcome> {
+    const def = this.definition(puzzleId, "pipes");
+    if (this.ended) return { outcome: "unavailable", engine: null };
+    const rotated = rotatePipe(
+      this.templates.pipes.get(puzzleId)!,
+      def,
+      index,
+      now,
+      turns,
+      playerId,
+    );
+    this.templates.pipes.set(puzzleId, rotated.state);
+    this.syncRuntime(puzzleId, rotated.state);
+    const engine =
+      rotated.outcome === "solved" ? this.completePuzzle(puzzleId, def, now, playerId) : null;
+    return { outcome: rotated.outcome, engine };
+  }
+
+  /**
+   * Presenta el objeto de una compuerta de `pipes` (la `llave-oro`). Solo vale
+   * el inventario **de quien lo presenta**; el objeto no se consume.
+   */
+  openPipesGate(
+    puzzleId: string,
+    index: number,
+    now: number = this.now,
+    playerId: string = this.playerId,
+  ): RoomPuzzleActionResult<PipesGateOutcome> {
+    const def = this.definition(puzzleId, "pipes");
+    if (this.ended) return { outcome: "unavailable", engine: null };
+    const opened = openPipesGate(
+      this.templates.pipes.get(puzzleId)!,
+      def,
+      index,
+      this.inventory(playerId),
+      now,
+      playerId,
+    );
+    this.templates.pipes.set(puzzleId, opened.state);
+    this.syncRuntime(puzzleId, opened.state);
+    const engine =
+      opened.outcome === "solved" ? this.completePuzzle(puzzleId, def, now, playerId) : null;
+    return { outcome: opened.outcome, engine };
+  }
+
+  /** Envía la combinación de un `split_clue` (símbolos o código). */
+  submitSplitClue(
+    puzzleId: string,
+    input: string | string[],
+    now: number = this.now,
+    playerId: string = this.playerId,
+  ): RoomPuzzleActionResult<SplitClueSubmitOutcome> {
+    const def = this.definition(puzzleId, "split_clue");
+    if (this.ended) return { outcome: "unavailable", engine: null };
+    const submitted = submitCombination(
+      this.templates.split_clue.get(puzzleId)!,
+      def,
+      input,
+      now,
+      playerId,
+    );
+    this.templates.split_clue.set(puzzleId, submitted.state);
+    this.syncRuntime(puzzleId, submitted.state, submitted.attempts);
+    const engine =
+      submitted.outcome === "correct" ? this.completePuzzle(puzzleId, def, now, playerId) : null;
+    return { outcome: submitted.outcome, engine };
+  }
+
+  /**
+   * Resuelve un puzzle de mundo sin pasar por su plantilla. Se mantiene por
+   * compatibilidad con el playtest de la Sala 1 (1.10); las placas ya tienen su
+   * mecánica real en `movePlayer`/`setPlate`/puente.
+   */
+  solveWorldPuzzle(
+    puzzleId: string,
+    now: number = this.now,
+    playerId: string = this.playerId,
+  ): EngineResult | null {
+    const def = this.puzzlesById.get(puzzleId);
+    if (!def || this.isPuzzleSolved(puzzleId) || this.ended) return null;
+    return this.completePuzzle(puzzleId, def, now, playerId);
   }
 
   /** Pide la siguiente pista de un puzzle (1.8). */
@@ -402,14 +928,198 @@ export class RoomSession {
   }
 
   /**
+   * Rechazo previo al motor: partida terminada o, si la posición del jugador
+   * es conocida, objeto fuera de su habitación (servidor autoritativo).
+   */
+  private rejectWorldAction(objectId: string, playerId: string): RoomRejection | undefined {
+    if (this.ended) return "game_over";
+    const position = this.positions.get(playerId);
+    const object = this.objectsById.get(objectId);
+    if (position && object && object.roomId !== position.roomId) return "wrong_room";
+    return undefined;
+  }
+
+  private placePlayer(playerId: string, position: RoomPlayerPosition, now: number): RoomMoveResult {
+    this.addPlayer(playerId);
+    const previous = this.positions.get(playerId);
+    this.positions.set(playerId, { ...position });
+    const runtime = this.engine.state.players[playerId]!;
+    runtime.position = { x: position.x, y: position.y };
+
+    const results: EngineResult[] = [];
+    const enteredRoom = previous?.roomId !== position.roomId;
+    if (enteredRoom) {
+      results.push(
+        this.dispatch({ type: "on_enter_room", roomId: position.roomId, playerId }, now),
+      );
+    }
+    runtime.roomId = position.roomId;
+
+    const plates = this.syncStandingPlates(now, playerId, results);
+    return { outcome: "moved", enteredRoom, engine: mergeResults(now, results), plates };
+  }
+
+  /**
+   * Placas en modo `stand`: una placa está activa mientras **algún** jugador
+   * esté encima. Se recalcula tras cada movimiento.
+   */
+  private syncStandingPlates(
+    now: number,
+    actor: string,
+    results: EngineResult[],
+  ): RoomMoveResult["plates"] {
+    const changed: RoomMoveResult["plates"] = [];
+    for (const def of this.puzzlesOfType("simultaneous_plates")) {
+      if (def.holdMode !== "stand") continue;
+      const state = this.templates.simultaneous_plates.get(def.id)!;
+      if (state.state === "solved" || state.state === "locked") continue;
+      for (const plate of def.plates) {
+        const occupant = [...this.positions.entries()].find(
+          ([, position]) => position.roomId === def.roomId && isOnCell(position, plate.x, plate.y),
+        );
+        const runtime = this.templates.simultaneous_plates.get(def.id)!.plates[plate.objectId];
+        if (!runtime || runtime.bridged) continue;
+        const shouldBeActive = occupant !== undefined;
+        if (runtime.active === shouldBeActive) continue;
+        const applied = this.applyPlate(
+          def.id,
+          plate.objectId,
+          shouldBeActive,
+          now,
+          occupant?.[0] ?? actor,
+        );
+        changed.push({ puzzleId: def.id, plateObjectId: plate.objectId, outcome: applied.outcome });
+        if (applied.engine) results.push(applied.engine);
+        if (applied.outcome === "solved") break;
+      }
+    }
+    return changed;
+  }
+
+  private applyPlate(
+    puzzleId: string,
+    plateObjectId: string,
+    active: boolean,
+    now: number,
+    playerId: string,
+  ): RoomPuzzleActionResult<PlateOutcome> {
+    const def = this.definition(puzzleId, "simultaneous_plates");
+    const result = setPlateActive(
+      this.templates.simultaneous_plates.get(puzzleId)!,
+      def,
+      plateObjectId,
+      active,
+      now,
+      playerId,
+    );
+    return this.settlePlates(puzzleId, result.outcome, result.state, now, playerId);
+  }
+
+  private placePlatesBridge(
+    puzzleId: string,
+    plateObjectId: string,
+    now: number,
+    playerId: string,
+  ): RoomPuzzleActionResult<PlateOutcome> {
+    const def = this.definition(puzzleId, "simultaneous_plates");
+    const result = placeSoloBridge(
+      this.templates.simultaneous_plates.get(puzzleId)!,
+      def,
+      now,
+      plateObjectId,
+      playerId,
+    );
+    const settled = this.settlePlates(puzzleId, result.outcome, result.state, now, playerId);
+    if (settled.outcome === "solved") return settled;
+    // Con el puente puesto, quizá ya hay alguien de pie en la otra placa.
+    const results: EngineResult[] = settled.engine ? [settled.engine] : [];
+    this.syncStandingPlates(now, playerId, results);
+    return {
+      outcome: settled.outcome,
+      engine: results.length > 0 ? mergeResults(now, results) : null,
+    };
+  }
+
+  private settlePlates(
+    puzzleId: string,
+    outcome: PlateOutcome,
+    state: SimultaneousPlatesState,
+    now: number,
+    playerId: string,
+  ): RoomPuzzleActionResult<PlateOutcome> {
+    const def = this.definition(puzzleId, "simultaneous_plates");
+    const next = outcome === "solved" ? { ...state, solvedBy: playerId } : state;
+    this.templates.simultaneous_plates.set(puzzleId, next);
+    // Reflejo en el mundo: cada placa pisada/puenteada se hunde (`down`).
+    const effects: EngineEffect[] = [];
+    for (const plate of def.plates) {
+      const object = this.objectsById.get(plate.objectId);
+      if (!object || !("down" in object.states) || !("up" in object.states)) continue;
+      const runtime = next.plates[plate.objectId];
+      const down = next.state === "solved" || runtime?.active === true || runtime?.bridged === true;
+      const visual = down ? "down" : "up";
+      if (this.engine.state.objectStates[plate.objectId] === visual) continue;
+      this.engine.state.objectStates[plate.objectId] = visual;
+      effects.push({ type: "set_object_state", objectId: plate.objectId, state: visual });
+    }
+    this.syncRuntime(puzzleId, next);
+    const results: EngineResult[] = [];
+    if (effects.length > 0) results.push({ ...emptyResult(now), effects });
+    if (outcome === "solved") {
+      const solved = this.completePuzzle(puzzleId, def, now, playerId);
+      if (solved) results.push(solved);
+    }
+    return { outcome, engine: results.length > 0 ? mergeResults(now, results) : null };
+  }
+
+  private placeSplitClueBridge(puzzleId: string, playerId: string): SplitClueBridgeOutcome {
+    const def = this.definition(puzzleId, "split_clue");
+    const bridged = placeSplitClueBridge(this.templates.split_clue.get(puzzleId)!, def, playerId);
+    this.templates.split_clue.set(puzzleId, bridged.state);
+    return bridged.outcome;
+  }
+
+  /**
+   * Escondite sin plantilla `hidden_key` (p. ej. `barril-espejo`): la primera
+   * interacción reparte su `hidingSpot.contains` a quien lo registra y pasa el
+   * objeto a `open` si lo declara. Idempotente.
+   */
+  private emptyHidingSpot(objectId: string, now: number, playerId: string): EngineResult | null {
+    const object = this.objectsById.get(objectId);
+    const itemId = object?.hidingSpot?.contains;
+    if (!object || !itemId || this.emptiedHidingSpots.has(objectId)) return null;
+    this.emptiedHidingSpots.add(objectId);
+    const results: EngineResult[] = [];
+    if ("open" in object.states) {
+      this.engine.state.objectStates[objectId] = "open";
+      results.push({
+        ...emptyResult(now),
+        effects: [{ type: "set_object_state", objectId, state: "open" }],
+      });
+    }
+    results.push(this.engine.grantItem(itemId, playerId, now));
+    return mergeResults(now, results);
+  }
+
+  /** Refleja en el `GameState` el estado de la plantilla (salvo `solved`, que es del host). */
+  private syncRuntime(puzzleId: string, template: WithPuzzleState, attempts?: number): void {
+    const runtime = this.engine.state.puzzleStates[puzzleId];
+    if (!runtime || runtime.state === "solved") return;
+    if (template.state !== "solved") runtime.state = template.state;
+    if (attempts !== undefined) runtime.attempts = attempts;
+  }
+
+  /**
    * Marca un puzzle como resuelto, dispara `on_puzzle_solved` (reglas del
-   * fixture: transiciones de objeto, diálogos, flags) y otorga sus
-   * `grantsItems` al jugador que interactúa. Idempotente.
+   * fixture: transiciones de objeto, diálogos, flags), otorga sus `grantsItems`
+   * a quien lo resolvió, abre las puertas de `unlocks` y desbloquea los puzzles
+   * cuyo `requiresSolved` ya se cumple. Idempotente.
    */
   private completePuzzle(
     puzzleId: string,
     def: PuzzleDefinition,
     now: number,
+    playerId: string,
   ): EngineResult | null {
     if (this.isPuzzleSolved(puzzleId)) return null;
 
@@ -417,51 +1127,72 @@ export class RoomSession {
       state: "solved",
       attempts: this.engine.state.puzzleStates[puzzleId]?.attempts ?? 0,
       solvedAt: now,
-      solvedBy: this.playerId,
+      solvedBy: playerId,
     };
     const events: EngineResult[] = [
-      this.dispatch({ type: "on_puzzle_solved", puzzleId, playerId: this.playerId }, now),
+      this.dispatch({ type: "on_puzzle_solved", puzzleId, playerId }, now),
     ];
 
     for (const itemId of def.grantsItems) {
-      events.push(this.engine.grantItem(itemId, "interactor", now));
+      events.push(this.engine.grantItem(itemId, playerId, now));
     }
 
+    const doors: EngineEffect[] = [];
+    for (const objectId of def.unlocks) {
+      const object = this.objectsById.get(objectId);
+      if (!object?.leadsTo) continue;
+      if (this.engine.state.objectStates[objectId] === DOOR_OPEN_STATE) continue;
+      this.engine.state.objectStates[objectId] = DOOR_OPEN_STATE;
+      doors.push({ type: "unlock_door", objectId });
+    }
+    if (doors.length > 0) events.push({ ...emptyResult(now), effects: doors });
+
+    this.refreshAvailability();
     return mergeResults(now, events);
   }
 
-  private hiddenKeyDefinition(puzzleId: string): HiddenKeyDefinition {
-    const def = this.roomPackage.puzzles.find((puzzle) => puzzle.id === puzzleId);
-    if (!def || def.type !== "hidden_key") {
-      throw new Error(`No hay un hidden_key con id «${puzzleId}».`);
+  /** `locked → available` para los puzzles cuyo `requiresSolved` ya está resuelto. */
+  private refreshAvailability(): void {
+    for (const puzzle of this.roomPackage.puzzles) {
+      const runtime = this.engine.state.puzzleStates[puzzle.id];
+      if (runtime?.state !== "locked") continue;
+      if (!puzzle.requiresSolved.every((id) => this.isPuzzleSolved(id))) continue;
+      runtime.state = "available";
+      const states = this.templates[puzzle.type] as unknown as Map<string, WithPuzzleState>;
+      const template = states.get(puzzle.id);
+      if (template?.state === "locked") states.set(puzzle.id, { ...template, state: "available" });
     }
-    return def;
   }
 
-  private codeLockDefinition(puzzleId: string): CodeLockDefinition {
-    const def = this.roomPackage.puzzles.find((puzzle) => puzzle.id === puzzleId);
-    if (!def || def.type !== "code_lock") {
-      throw new Error(`No hay un code_lock con id «${puzzleId}».`);
-    }
-    return def;
+  private puzzlesOfType<T extends PuzzleDefinition["type"]>(type: T): PuzzleOf<T>[] {
+    return this.roomPackage.puzzles.filter((puzzle): puzzle is PuzzleOf<T> => puzzle.type === type);
   }
 
-  private combineItemsDefinition(puzzleId: string): CombineItemsDefinition {
-    const def = this.roomPackage.puzzles.find((puzzle) => puzzle.id === puzzleId);
-    if (!def || def.type !== "combine_items") {
-      throw new Error(`No hay un combine_items con id «${puzzleId}».`);
+  private definition<T extends PuzzleDefinition["type"]>(puzzleId: string, type: T): PuzzleOf<T> {
+    const def = this.puzzlesById.get(puzzleId);
+    if (!def || def.type !== type) {
+      throw new Error(`No hay un ${type} con id «${puzzleId}».`);
     }
-    return def;
+    return def as PuzzleOf<T>;
   }
 }
 
-function effectsOf<T extends EngineEffect["type"]>(
-  result: EngineResult,
-  type: T,
-): Extract<EngineEffect, { type: T }>[] {
-  return result.effects.filter(
-    (effect): effect is Extract<EngineEffect, { type: T }> => effect.type === type,
-  );
+/** `true` si la posición cae en la celda `(x, y)` (±½ celda). */
+function isOnCell(position: { x: number; y: number }, x: number, y: number): boolean {
+  return Math.abs(position.x - x) <= 0.5 && Math.abs(position.y - y) <= 0.5;
+}
+
+function emptyResult(now: number): EngineResult {
+  return { now, fired: [], aborted: [], effects: [], events: [], depthExceeded: false };
+}
+
+function dialogIdsOf(result: EngineResult): string[] {
+  return result.effects
+    .filter(
+      (effect): effect is Extract<EngineEffect, { type: "show_dialog" }> =>
+        effect.type === "show_dialog",
+    )
+    .map((effect) => effect.dialogId);
 }
 
 function mergeResults(now: number, results: EngineResult[]): EngineResult {

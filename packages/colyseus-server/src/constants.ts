@@ -56,3 +56,58 @@ export {
   CHAT_MESSAGE,
   CHAT_RATE_LIMITED_ERROR,
 } from "@escaperoom/shared/chat";
+
+/** Nombre de la room de partida (specs/11 §1: `GameRoom`, ticket 2.8). */
+export const GAME_ROOM_NAME = "game" as const;
+
+/** Cadencia del reloj de la partida (timers, `delay`, avisos), en milisegundos. */
+export const GAME_TICK_MS = 250;
+
+/** Límite de la partida por defecto, en segundos (el cronómetro lo fijan las reglas). */
+export const GAME_TIME_LIMIT_SEC = 3600;
+
+/** Salto máximo por mensaje `move` en partida (specs/11 §9: 3 celdas/tick). */
+export const GAME_MAX_STEP = 3;
+
+/** Distancia máxima, en celdas, a una puerta abierta para cruzar a otra habitación. */
+export const GAME_DOOR_REACH = 2;
+
+/**
+ * Mensajes de la `GameRoom` (specs/11 §4–6). Cliente → servidor: comandos; el
+ * servidor responde al emisor (`attempt_result`, `puzzle_view`,
+ * `split_fragments`, `hint_delivered`, `error`) o difunde a todos
+ * (`dialog_show`, `object_state_changed`, `item_granted`, `puzzle_solved`,
+ * `game_ended`).
+ */
+export const GAME_MESSAGES = {
+  startGame: "start_game",
+  move: "move",
+  interact: "interact",
+  useItem: "use_item",
+  combine: "combine",
+  puzzleOpen: "puzzle_open",
+  puzzleClose: "puzzle_close",
+  puzzleAttempt: "puzzle_attempt",
+  plateState: "plate_state",
+  splitView: "split_view",
+  hintRequest: "hint_request",
+  // Servidor → cliente
+  puzzleView: "puzzle_view",
+  attemptResult: "attempt_result",
+  splitFragments: "split_fragments",
+  hintDelivered: "hint_delivered",
+  dialogShow: "dialog_show",
+  objectStateChanged: "object_state_changed",
+  itemGranted: "item_granted",
+  puzzleSolved: "puzzle_solved",
+  gameEnded: "game_ended",
+} as const;
+
+/** Códigos de error de protocolo de la `GameRoom` (specs/11 §7). */
+export const GAME_ERRORS = {
+  notAvailable: "NOT_AVAILABLE",
+  invalidState: "INVALID_STATE",
+  permissionDenied: "PERMISSION_DENIED",
+  moveTooFast: "MOVE_TOO_FAST",
+  roomLocked: "ROOM_LOCKED",
+} as const;

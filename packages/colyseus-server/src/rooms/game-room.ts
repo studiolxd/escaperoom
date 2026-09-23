@@ -1,0 +1,750 @@
+import { randomInt } from "node:crypto";
+import { Room, type Client } from "@colyseus/core";
+import { z } from "zod";
+import type { EngineResult } from "@escaperoom/shared/engine";
+import type { PuzzleDefinition, RoomPackage } from "@escaperoom/shared/schemas";
+import {
+  createRoomSession,
+  type RoomPuzzleActionResult,
+  type RoomSession,
+} from "@escaperoom/shared/session";
+import { createSlidingRng, visibleFragmentsByIndex } from "@escaperoom/shared/templates";
+import {
+  ERROR_MESSAGE,
+  GAME_DOOR_REACH,
+  GAME_ERRORS,
+  GAME_MAX_STEP,
+  GAME_MESSAGES,
+  GAME_TICK_MS,
+  GAME_TIME_LIMIT_SEC,
+  MAX_PLAYERS,
+} from "../constants.js";
+import { resolveRoomPackage } from "../game/room-packages.js";
+import { distance, validateMove } from "../movement.js";
+import {
+  GameInventoryState,
+  GamePlayerState,
+  GamePuzzleState,
+  GameRoomState,
+} from "../schema/game-state.js";
+import { pickPlayerTint } from "../tints.js";
+
+/** Opciones de creación: el cliente solo elige **qué** paquete (por id), nunca lo envía. */
+export interface GameRoomOptions {
+  packageId?: string;
+}
+
+/** Opciones de join. */
+export interface GameJoinOptions {
+  name?: string;
+}
+
+const movePayload = z.object({
+  x: z.number(),
+  y: z.number(),
+  roomId: z.string().min(1).max(64).optional(),
+});
+const objectPayload = z.object({ objectId: z.string().min(1).max(64) });
+const useItemPayload = z.object({
+  itemId: z.string().min(1).max(64),
+  objectId: z.string().min(1).max(64),
+});
+const combinePayload = z.object({
+  puzzleId: z.string().min(1).max(64).optional(),
+  inputs: z.array(z.string().min(1).max(64)).min(1).max(2),
+});
+const puzzlePayload = z.object({ puzzleId: z.string().min(1).max(64) });
+const optionalPuzzlePayload = z.object({ puzzleId: z.string().min(1).max(64).optional() });
+const attemptPayload = z.object({ puzzleId: z.string().min(1).max(64), attempt: z.unknown() });
+const platePayload = z.object({
+  puzzleId: z.string().min(1).max(64).optional(),
+  plateId: z.string().min(1).max(64),
+  active: z.boolean(),
+});
+
+/** Forma de `attempt` por plantilla (specs/11 §5; `sliding`/`pipes` van pieza a pieza). */
+const codeAttempt = z.object({ code: z.string().max(32) });
+const slidingAttempt = z.object({ move: z.number().int().min(0).max(1024) });
+const memoryAttempt = z.object({ flip: z.string().min(1).max(64) });
+const pipesAttempt = z.union([
+  z.object({
+    rotate: z.number().int().min(0).max(1024),
+    turns: z.number().int().min(1).max(3).optional(),
+  }),
+  z.object({ gate: z.number().int().min(0).max(1024) }),
+]);
+const splitAttempt = z.union([
+  z.object({ symbols: z.array(z.string().max(32)).max(32) }),
+  z.object({ code: z.string().max(64) }),
+]);
+
+/** Desenlaces de plantilla que no son un error del jugador. */
+const OK_OUTCOMES = new Set([
+  "correct",
+  "solved",
+  "moved",
+  "rotated",
+  "opened",
+  "flipped",
+  "match",
+  "mismatch",
+  "turn_ended",
+  "revealed",
+  "activated",
+  "deactivated",
+]);
+
+/** Traducción de desenlaces de plantilla a errores de `attempt_result` (specs/11 §5). */
+const ATTEMPT_ERRORS: Record<string, string> = {
+  wrong: "wrong_code",
+  unavailable: "not_available",
+  already_solved: "already_resolved",
+  already_revealed: "already_resolved",
+};
+
+/**
+ * `GameRoom` (specs/11 §1): una partida. Ejecuta el `RoomSession` de `shared`
+ * como estado autoritativo —motor de reglas + las 8 plantillas— y sincroniza
+ * una proyección pública en el room state. Todo lo que resolvería un puzzle
+ * (códigos, reparto del `memory`, fragmentos de `split_clue`, testigo de
+ * `pipes`) solo sale en respuestas dirigidas al jugador autorizado.
+ *
+ * Reloj: lógico, en ms desde la creación de la sala; lo avanza la simulación
+ * cada `GAME_TICK_MS` (timers del cronómetro y el `delay` de la victoria).
+ */
+export class GameRoom extends Room<{ state: GameRoomState }> {
+  override maxClients = MAX_PLAYERS;
+
+  private roomPackage!: RoomPackage;
+  private session?: RoomSession;
+  private createdAt = 0;
+  private seed = 0;
+  private ended = false;
+  /** Paneles abiertos por jugador: tras cada acción se les reenvía la vista. */
+  private readonly openPanels = new Map<string, Set<string>>();
+
+  override onCreate(options: GameRoomOptions = {}): void {
+    const roomPackage = resolveRoomPackage(options.packageId);
+    if (!roomPackage) {
+      throw new Error(`Paquete de sala desconocido: «${options.packageId ?? ""}».`);
+    }
+    this.roomPackage = roomPackage;
+    this.maxClients = Math.min(MAX_PLAYERS, roomPackage.meta.players.max);
+    this.createdAt = Date.now();
+    this.seed = randomInt(0, 2 ** 31);
+
+    this.state = new GameRoomState();
+    this.state.phase = "lobby";
+    this.state.result = "";
+    this.state.roomPackageId = roomPackage.meta.id;
+    this.state.roomPackageVersion = roomPackage.meta.version;
+
+    this.onMessage(GAME_MESSAGES.startGame, (client) => this.handleStart(client));
+    this.onMessage(GAME_MESSAGES.move, (client, payload) =>
+      this.withPayload(client, movePayload, payload, (data) => this.handleMove(client, data)),
+    );
+    this.onMessage(GAME_MESSAGES.interact, (client, payload) =>
+      this.withPayload(client, objectPayload, payload, (data) => this.handleInteract(client, data)),
+    );
+    this.onMessage(GAME_MESSAGES.useItem, (client, payload) =>
+      this.withPayload(client, useItemPayload, payload, (data) => this.handleUseItem(client, data)),
+    );
+    this.onMessage(GAME_MESSAGES.combine, (client, payload) =>
+      this.withPayload(client, combinePayload, payload, (data) => this.handleCombine(client, data)),
+    );
+    this.onMessage(GAME_MESSAGES.puzzleOpen, (client, payload) =>
+      this.withPayload(client, puzzlePayload, payload, (data) => this.handleOpen(client, data)),
+    );
+    this.onMessage(GAME_MESSAGES.puzzleClose, (client, payload) =>
+      this.withPayload(client, puzzlePayload, payload, (data) => {
+        this.openPanels.get(client.sessionId)?.delete(data.puzzleId);
+      }),
+    );
+    this.onMessage(GAME_MESSAGES.puzzleAttempt, (client, payload) =>
+      this.withPayload(client, attemptPayload, payload, (data) => this.handleAttempt(client, data)),
+    );
+    this.onMessage(GAME_MESSAGES.plateState, (client, payload) =>
+      this.withPayload(client, platePayload, payload, (data) => this.handlePlate(client, data)),
+    );
+    this.onMessage(GAME_MESSAGES.splitView, (client, payload) =>
+      this.withPayload(client, optionalPuzzlePayload, payload ?? {}, (data) =>
+        this.handleSplitView(client, data),
+      ),
+    );
+    this.onMessage(GAME_MESSAGES.hintRequest, (client, payload) =>
+      this.withPayload(client, puzzlePayload, payload, (data) => this.handleHint(client, data)),
+    );
+
+    this.setTimestep(() => this.handleTick(), GAME_TICK_MS);
+  }
+
+  override onJoin(client: Client, options: GameJoinOptions = {}): void {
+    const session = this.ensureSession(client.sessionId);
+    const moved = session.spawnPlayer(client.sessionId, this.logicalNow());
+    const position = session.playerPosition(client.sessionId)!;
+
+    const usedTints: string[] = [];
+    this.state.players.forEach((player) => usedTints.push(player.tint));
+    const player = new GamePlayerState();
+    player.id = client.sessionId;
+    player.name = sanitizeName(options.name) ?? `Jugador ${this.state.players.size + 1}`;
+    player.x = position.x;
+    player.y = position.y;
+    player.roomId = position.roomId;
+    player.tint = pickPlayerTint(usedTints);
+    player.connected = true;
+    this.state.players.set(client.sessionId, player);
+    if (!this.state.hostId) this.state.hostId = client.sessionId;
+    this.openPanels.set(client.sessionId, new Set());
+
+    this.publish(moved.engine);
+  }
+
+  override onLeave(client: Client): void {
+    // El jugador conserva su inventario (puede llevar la llave de oro): solo se
+    // marca desconectado. La reconexión con gracia es de fase 6.
+    const player = this.state.players.get(client.sessionId);
+    if (player) player.connected = false;
+    this.openPanels.delete(client.sessionId);
+  }
+
+  // — Handlers ————————————————————————————————————————————————————
+
+  private handleStart(client: Client): void {
+    if (client.sessionId !== this.state.hostId) {
+      this.fail(
+        client,
+        GAME_ERRORS.permissionDenied,
+        "Solo el anfitrión puede empezar la partida.",
+      );
+      return;
+    }
+    if (this.state.phase !== "lobby" || !this.session) {
+      this.fail(client, GAME_ERRORS.invalidState, "La partida ya ha empezado.");
+      return;
+    }
+    this.publish(this.session.start(this.logicalNow()));
+  }
+
+  private handleMove(client: Client, payload: z.infer<typeof movePayload>): void {
+    const session = this.playing(client);
+    if (!session) return;
+    const current = session.playerPosition(client.sessionId);
+    if (!current) return;
+
+    const targetRoomId = payload.roomId ?? current.roomId;
+    if (targetRoomId !== current.roomId) {
+      this.handleRoomChange(client, session, current, targetRoomId);
+      return;
+    }
+
+    const grid = this.roomPackage.map.rooms.find((room) => room.id === current.roomId)!.grid;
+    const result = validateMove(current, payload, {
+      maxDistance: GAME_MAX_STEP,
+      bounds: { minX: 0, minY: 0, maxX: grid.cols - 1, maxY: grid.rows - 1 },
+    });
+    if (!result.ok) {
+      this.fail(client, result.error, "Movimiento rechazado por el servidor.");
+      return;
+    }
+    const moved = session.movePlayer(
+      client.sessionId,
+      current.roomId,
+      result.position.x,
+      result.position.y,
+      this.logicalNow(),
+    );
+    this.publish(moved.engine);
+  }
+
+  /**
+   * Cruce de habitación: el jugador debe estar junto a una puerta **abierta**
+   * que conecte ambas; aparece en un punto de spawn de la nueva habitación.
+   */
+  private handleRoomChange(
+    client: Client,
+    session: RoomSession,
+    current: { roomId: string; x: number; y: number },
+    targetRoomId: string,
+  ): void {
+    // Desde el lado de la puerta hay que estar a su alcance; desde el otro lado
+    // (la puerta vive en la habitación destino) no hay objeto con el que medir.
+    const door = this.roomPackage.objects.find(
+      (object) => object.roomId === current.roomId && object.leadsTo === targetRoomId,
+    );
+    const nearDoor = door === undefined || distance(current, door.position) <= GAME_DOOR_REACH;
+    if (!nearDoor || !session.canEnterRoom(current.roomId, targetRoomId)) {
+      this.fail(client, GAME_ERRORS.roomLocked, "La puerta está cerrada o demasiado lejos.");
+      return;
+    }
+    const target = this.roomPackage.map.rooms.find((room) => room.id === targetRoomId)!;
+    const index = [...this.state.players.values()].filter((p) => p.roomId === targetRoomId).length;
+    const spawn = target.spawnPoints[index % Math.max(1, target.spawnPoints.length)] ?? {
+      x: 0,
+      y: 0,
+    };
+    const moved = session.movePlayer(
+      client.sessionId,
+      targetRoomId,
+      spawn.x,
+      spawn.y,
+      this.logicalNow(),
+    );
+    this.publish(moved.engine);
+  }
+
+  private handleInteract(client: Client, payload: z.infer<typeof objectPayload>): void {
+    const session = this.playing(client);
+    if (!session) return;
+    const result = session.interact(payload.objectId, this.logicalNow(), client.sessionId);
+    if (result.rejected) {
+      this.fail(client, GAME_ERRORS.notAvailable, rejectionMessage(result.rejected));
+      return;
+    }
+    this.publish(result.engine);
+  }
+
+  private handleUseItem(client: Client, payload: z.infer<typeof useItemPayload>): void {
+    const session = this.playing(client);
+    if (!session) return;
+    const result = session.useItemOnObject(
+      payload.itemId,
+      payload.objectId,
+      this.logicalNow(),
+      client.sessionId,
+    );
+    if (result.rejected) {
+      this.fail(client, GAME_ERRORS.notAvailable, rejectionMessage(result.rejected));
+      return;
+    }
+    this.publish(result.engine);
+  }
+
+  private handleCombine(client: Client, payload: z.infer<typeof combinePayload>): void {
+    const session = this.playing(client);
+    if (!session) return;
+    const puzzle =
+      this.roomPackage.puzzles.find(
+        (candidate) =>
+          candidate.type === "combine_items" &&
+          (payload.puzzleId === undefined || candidate.id === payload.puzzleId),
+      ) ?? null;
+    if (!puzzle) {
+      this.fail(client, GAME_ERRORS.notAvailable, "No hay recetas en esta sala.");
+      return;
+    }
+    const combined = session.combine(
+      puzzle.id,
+      payload.inputs,
+      this.logicalNow(),
+      client.sessionId,
+    );
+    client.send(GAME_MESSAGES.attemptResult, {
+      puzzleId: puzzle.id,
+      ok: combined.result.outcome === "combined",
+      outcome: combined.result.outcome,
+      ...(combined.result.outcome === "combined" ? { output: combined.result.output } : {}),
+    });
+    this.publish(combined.engine);
+  }
+
+  private handleOpen(client: Client, payload: z.infer<typeof puzzlePayload>): void {
+    const session = this.playing(client);
+    if (!session) return;
+    const puzzle = this.accessiblePuzzle(client, session, payload.puzzleId);
+    if (!puzzle) return;
+    if (session.puzzleState(puzzle.id) === "locked") {
+      this.fail(client, GAME_ERRORS.notAvailable, "El puzzle aún está bloqueado.");
+      return;
+    }
+    this.openPanels.get(client.sessionId)?.add(puzzle.id);
+    client.send(GAME_MESSAGES.puzzleView, {
+      puzzleId: puzzle.id,
+      view: session.puzzleView(puzzle.id, client.sessionId),
+    });
+  }
+
+  private handleAttempt(client: Client, payload: z.infer<typeof attemptPayload>): void {
+    const session = this.playing(client);
+    if (!session) return;
+    const puzzle = this.accessiblePuzzle(client, session, payload.puzzleId);
+    if (!puzzle) return;
+
+    const now = this.logicalNow();
+    const actor = client.sessionId;
+    const outcome = this.runAttempt(session, puzzle, payload.attempt, now, actor);
+    if (!outcome) {
+      this.fail(client, GAME_ERRORS.invalidState, "Intento con forma inválida para este puzzle.");
+      return;
+    }
+
+    const ok = OK_OUTCOMES.has(outcome.outcome);
+    client.send(GAME_MESSAGES.attemptResult, {
+      puzzleId: puzzle.id,
+      ok,
+      outcome: outcome.outcome,
+      ...(ok ? {} : { error: ATTEMPT_ERRORS[outcome.outcome] ?? outcome.outcome }),
+      ...(outcome.retryAfterSec !== undefined ? { retryAfterSec: outcome.retryAfterSec } : {}),
+      ...(outcome.revealedSymbol ? { revealedSymbol: outcome.revealedSymbol } : {}),
+    });
+    this.publish(outcome.engine);
+  }
+
+  /** Despacha el `attempt` a la plantilla del puzzle; `null` si la forma no encaja. */
+  private runAttempt(
+    session: RoomSession,
+    puzzle: PuzzleDefinition,
+    attempt: unknown,
+    now: number,
+    actor: string,
+  ):
+    | (RoomPuzzleActionResult<string> & { retryAfterSec?: number; revealedSymbol?: string | null })
+    | null {
+    switch (puzzle.type) {
+      case "hidden_key":
+        return session.revealHiddenKey(puzzle.id, now, actor);
+      case "code_lock": {
+        const parsed = codeAttempt.safeParse(attempt);
+        if (!parsed.success) return null;
+        const result = session.attemptCode(puzzle.id, parsed.data.code, now, actor);
+        return {
+          outcome: result.outcome,
+          engine: result.engine,
+          ...(result.lockedUntil !== null
+            ? { retryAfterSec: Math.max(0, Math.ceil((result.lockedUntil - now) / 1000)) }
+            : {}),
+        };
+      }
+      case "sliding_puzzle": {
+        const parsed = slidingAttempt.safeParse(attempt);
+        if (!parsed.success) return null;
+        return session.moveSlidingTile(puzzle.id, parsed.data.move, now, actor);
+      }
+      case "memory": {
+        const parsed = memoryAttempt.safeParse(attempt);
+        if (!parsed.success) return null;
+        return session.flipMemoryCard(puzzle.id, parsed.data.flip, now, actor);
+      }
+      case "pipes": {
+        const parsed = pipesAttempt.safeParse(attempt);
+        if (!parsed.success) return null;
+        return "gate" in parsed.data
+          ? session.openPipesGate(puzzle.id, parsed.data.gate, now, actor)
+          : session.rotatePipe(puzzle.id, parsed.data.rotate, now, actor, parsed.data.turns ?? 1);
+      }
+      case "split_clue": {
+        const parsed = splitAttempt.safeParse(attempt);
+        if (!parsed.success) return null;
+        const input = "symbols" in parsed.data ? parsed.data.symbols : parsed.data.code;
+        return session.submitSplitClue(puzzle.id, input, now, actor);
+      }
+      // `combine_items` usa `combine`; `simultaneous_plates`, `plate_state` (specs/11 §5).
+      case "combine_items":
+      case "simultaneous_plates":
+        return null;
+    }
+  }
+
+  private handlePlate(client: Client, payload: z.infer<typeof platePayload>): void {
+    const session = this.playing(client);
+    if (!session) return;
+    const puzzle = this.roomPackage.puzzles.find(
+      (candidate) =>
+        candidate.type === "simultaneous_plates" &&
+        (payload.puzzleId === undefined || candidate.id === payload.puzzleId) &&
+        candidate.plates.some((plate) => plate.objectId === payload.plateId),
+    );
+    if (!puzzle) {
+      this.fail(client, GAME_ERRORS.notAvailable, "Esa placa no existe.");
+      return;
+    }
+    const result = session.setPlate(
+      puzzle.id,
+      payload.plateId,
+      payload.active,
+      this.logicalNow(),
+      client.sessionId,
+    );
+    client.send(GAME_MESSAGES.attemptResult, {
+      puzzleId: puzzle.id,
+      ok: OK_OUTCOMES.has(result.outcome),
+      outcome: result.outcome,
+    });
+    this.publish(result.engine);
+  }
+
+  /**
+   * `split_view` (specs/11 §4.3): el servidor calcula qué fragmentos ve **este**
+   * jugador según su posición (mirilla) y solo se los envía a él.
+   */
+  private handleSplitView(client: Client, payload: z.infer<typeof optionalPuzzlePayload>): void {
+    const session = this.playing(client);
+    if (!session) return;
+    const position = session.playerPosition(client.sessionId);
+    const puzzle = this.roomPackage.puzzles.find(
+      (candidate) =>
+        candidate.type === "split_clue" &&
+        (payload.puzzleId === undefined
+          ? candidate.roomId === position?.roomId
+          : candidate.id === payload.puzzleId),
+    );
+    if (!puzzle || puzzle.type !== "split_clue") {
+      this.fail(client, GAME_ERRORS.notAvailable, "No hay ninguna pista repartida aquí.");
+      return;
+    }
+    const view = session.splitClueView(puzzle.id, client.sessionId);
+    client.send(GAME_MESSAGES.splitFragments, {
+      puzzleId: puzzle.id,
+      viewpointId: view.viewpointId || null,
+      fragments:
+        view.viewpointId || view.bridged
+          ? visibleFragmentsByIndex(puzzle, view.viewpointId, view.bridged)
+          : {},
+    });
+  }
+
+  private handleHint(client: Client, payload: z.infer<typeof puzzlePayload>): void {
+    const session = this.playing(client);
+    if (!session) return;
+    const result = session.requestHint(payload.puzzleId);
+    if (!result.ok) {
+      this.fail(client, GAME_ERRORS.notAvailable, result.error.code);
+      return;
+    }
+    const view = session.hintView();
+    const delivered = view.puzzles
+      .find((entry) => entry.puzzleId === payload.puzzleId)
+      ?.hints.at(-1);
+    client.send(GAME_MESSAGES.hintDelivered, {
+      puzzleId: payload.puzzleId,
+      tier: delivered?.tier ?? null,
+      text: delivered?.text ?? null,
+    });
+    this.syncState();
+  }
+
+  private handleTick(): void {
+    if (!this.session || this.state.phase === "lobby") return;
+    this.publish(this.session.tick(this.logicalNow()));
+  }
+
+  // — Sincronización ——————————————————————————————————————————————
+
+  /** Crea la sesión con el primer jugador como principal (el motor lo siembra). */
+  private ensureSession(firstPlayerId: string): RoomSession {
+    this.session ??= createRoomSession(this.roomPackage, {
+      playerId: firstPlayerId,
+      playerIds: [firstPlayerId],
+      timeLimitSec: GAME_TIME_LIMIT_SEC,
+      now: this.logicalNow(),
+      // Reparto del `memory` (y mezclas `random`) distinto en cada partida.
+      rng: (puzzleId) => createSlidingRng(this.seed ^ hashId(puzzleId)),
+    });
+    return this.session;
+  }
+
+  /** Difunde los efectos del motor y refleja el estado en el room state. */
+  private publish(result: EngineResult | null | undefined): void {
+    if (result) {
+      for (const effect of result.effects) {
+        switch (effect.type) {
+          case "show_dialog":
+            this.broadcast(GAME_MESSAGES.dialogShow, { dialogId: effect.dialogId });
+            break;
+          case "set_object_state":
+            this.broadcast(GAME_MESSAGES.objectStateChanged, {
+              objectId: effect.objectId,
+              state: effect.state,
+            });
+            break;
+          case "unlock_door":
+            this.broadcast(GAME_MESSAGES.objectStateChanged, {
+              objectId: effect.objectId,
+              state: "open",
+            });
+            break;
+          case "grant_item":
+            this.broadcast(GAME_MESSAGES.itemGranted, {
+              playerId: effect.playerId,
+              itemId: effect.itemId,
+            });
+            break;
+          default:
+            break;
+        }
+      }
+      for (const event of result.events) {
+        if (event.type !== "on_puzzle_solved") continue;
+        const def = this.roomPackage.puzzles.find((puzzle) => puzzle.id === event.puzzleId);
+        this.broadcast(GAME_MESSAGES.puzzleSolved, {
+          puzzleId: event.puzzleId,
+          solvedBy: event.playerId ?? null,
+          grantsItems: def?.grantsItems ?? [],
+          unlocks: def?.unlocks ?? [],
+        });
+      }
+    }
+    this.syncState();
+    this.refreshOpenPanels();
+    this.announceEnd();
+  }
+
+  private syncState(): void {
+    const session = this.session;
+    if (!session) return;
+    const game = session.state;
+    this.state.clock = this.logicalNow();
+    this.state.phase = game.phase;
+    this.state.result = game.result ?? "";
+    this.state.startedAt = game.flags.game_started ? game.startedAt : 0;
+    this.state.endsAt =
+      game.flags.game_started && game.timeLimitSec !== undefined
+        ? game.startedAt + game.timeLimitSec * 1000
+        : 0;
+
+    for (const [objectId, objectState] of Object.entries(game.objectStates)) {
+      if (this.state.objects.get(objectId) !== objectState) {
+        this.state.objects.set(objectId, objectState);
+      }
+    }
+    for (const [puzzleId, runtime] of Object.entries(game.puzzleStates)) {
+      let puzzle = this.state.puzzles.get(puzzleId);
+      if (!puzzle) {
+        puzzle = new GamePuzzleState();
+        this.state.puzzles.set(puzzleId, puzzle);
+      }
+      puzzle.state = runtime.state;
+      puzzle.attempts = runtime.attempts;
+      puzzle.solvedBy = runtime.solvedBy ?? "";
+    }
+    for (const [playerId, items] of Object.entries(game.inventory)) {
+      if (!this.state.players.has(playerId)) continue;
+      let inventory = this.state.inventories.get(playerId);
+      if (!inventory) {
+        inventory = new GameInventoryState();
+        this.state.inventories.set(playerId, inventory);
+      }
+      if (inventory.items.join("\u0000") !== items.join("\u0000")) {
+        inventory.items.clear();
+        inventory.items.push(...items);
+      }
+    }
+    for (const [flag, value] of Object.entries(game.flags)) {
+      if (flag === "time_remaining") continue; // cambia cada tick; el cliente usa `endsAt`.
+      const encoded = JSON.stringify(value);
+      if (this.state.flags.get(flag) !== encoded) this.state.flags.set(flag, encoded);
+    }
+    this.state.players.forEach((player, playerId) => {
+      const position = session.playerPosition(playerId);
+      if (!position) return;
+      player.x = position.x;
+      player.y = position.y;
+      player.roomId = position.roomId;
+    });
+  }
+
+  private refreshOpenPanels(): void {
+    const session = this.session;
+    if (!session) return;
+    for (const client of this.clients) {
+      for (const puzzleId of this.openPanels.get(client.sessionId) ?? []) {
+        client.send(GAME_MESSAGES.puzzleView, {
+          puzzleId,
+          view: session.puzzleView(puzzleId, client.sessionId),
+        });
+      }
+    }
+  }
+
+  private announceEnd(): void {
+    const session = this.session;
+    if (this.ended || !session?.ended) return;
+    this.ended = true;
+    const summary = session.summary(this.logicalNow());
+    this.broadcast(GAME_MESSAGES.gameEnded, {
+      result: session.state.result,
+      stats: summary?.stats ?? null,
+    });
+  }
+
+  // — Utilidades ——————————————————————————————————————————————————
+
+  /** Reloj lógico de la sala (ms desde su creación). */
+  private logicalNow(): number {
+    return Date.now() - this.createdAt;
+  }
+
+  /** La sesión si la partida está en juego; si no, responde el error y devuelve `undefined`. */
+  private playing(client: Client): RoomSession | undefined {
+    if (!this.session || this.state.phase !== "playing") {
+      this.fail(client, GAME_ERRORS.invalidState, "La partida no está en juego.");
+      return undefined;
+    }
+    return this.session;
+  }
+
+  /** Puzzle de la habitación del jugador (no se juega un panel de otra sala). */
+  private accessiblePuzzle(
+    client: Client,
+    session: RoomSession,
+    puzzleId: string,
+  ): PuzzleDefinition | undefined {
+    const puzzle = this.roomPackage.puzzles.find((candidate) => candidate.id === puzzleId);
+    if (!puzzle) {
+      this.fail(client, GAME_ERRORS.notAvailable, "Ese puzzle no existe.");
+      return undefined;
+    }
+    const position = session.playerPosition(client.sessionId);
+    // `combine_items` es el inventario: se usa desde cualquier sala.
+    if (puzzle.type !== "combine_items" && position?.roomId !== puzzle.roomId) {
+      this.fail(client, GAME_ERRORS.notAvailable, "Ese puzzle está en otra habitación.");
+      return undefined;
+    }
+    return puzzle;
+  }
+
+  private withPayload<T>(
+    client: Client,
+    schema: z.ZodType<T>,
+    payload: unknown,
+    handler: (data: T) => void,
+  ): void {
+    const parsed = schema.safeParse(payload);
+    if (!parsed.success) {
+      this.fail(client, GAME_ERRORS.invalidState, "Mensaje con forma inválida.");
+      return;
+    }
+    handler(parsed.data);
+  }
+
+  private fail(client: Client, code: string, message: string): void {
+    client.send(ERROR_MESSAGE, { code, message });
+  }
+}
+
+function sanitizeName(name: unknown): string | undefined {
+  if (typeof name !== "string") return undefined;
+  const clean = name.replace(/[<>]/g, "").trim().slice(0, 32);
+  return clean.length > 0 ? clean : undefined;
+}
+
+function rejectionMessage(rejection: string): string {
+  switch (rejection) {
+    case "wrong_room":
+      return "Ese objeto está en otra habitación.";
+    case "missing_item":
+      return "No tienes ese objeto.";
+    default:
+      return "La partida ha terminado.";
+  }
+}
+
+/** Hash FNV-1a de 32 bits (semilla por puzzle a partir de la de la sala). */
+function hashId(id: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < id.length; i += 1) {
+    hash ^= id.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash >>> 0;
+}
