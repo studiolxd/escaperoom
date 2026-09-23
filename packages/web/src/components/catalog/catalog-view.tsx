@@ -1,7 +1,17 @@
 import type { CatalogRoom } from "@escaperoom/shared/services";
+import { SearchX } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { CATALOG_PATH } from "@/lib/catalog-seo";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { CatalogFilters, type CatalogFilterValues } from "./catalog-filters";
 import { RoomCard } from "./room-card";
 
@@ -45,7 +55,20 @@ export function CatalogView({
       ) : null}
 
       {rooms.length === 0 ? (
-        <p>{t("empty")}</p>
+        <Empty>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <SearchX />
+            </EmptyMedia>
+            <EmptyTitle>{t("emptyTitle")}</EmptyTitle>
+            <EmptyDescription>{t("emptyDescription")}</EmptyDescription>
+          </EmptyHeader>
+          <EmptyContent>
+            <Button variant="link" asChild>
+              <Link href={CATALOG_PATH}>{t("emptyClearFilters")}</Link>
+            </Button>
+          </EmptyContent>
+        </Empty>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rooms.map((room) => (
