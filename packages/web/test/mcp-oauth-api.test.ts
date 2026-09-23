@@ -277,6 +277,21 @@ describe("OAuth del MCP en la web (4.7)", () => {
     const noOrigin = await decide(handlers, params, { session: "autora", origin: null });
     expect(noOrigin.status).toBe(403);
 
+    // Un token (Bearer) nunca consiente por el humano, aunque haya sesión.
+    const withBearer = await handlers.decide(
+      new Request(`${ORIGIN}/api/mcp/oauth/authorize`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          origin: ORIGIN,
+          "x-test-session": "autora",
+          authorization: "Bearer mcpat_cualquiera",
+        },
+        body: new URLSearchParams({ ...Object.fromEntries(params), decision: "approve" }),
+      }),
+    );
+    expect(withBearer.status).toBe(403);
+
     const noSession = await decide(handlers, params);
     expect(noSession.status).toBe(303);
     expect(new URL(noSession.headers.get("location")!).pathname).toBe("/es/oauth/consent");

@@ -8,7 +8,7 @@ import { headers } from "next/headers";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { ConfirmPublish } from "@/components/publish-confirm/confirm-publish";
-import { resolveActorFromHeaders } from "@/server/context";
+import { resolveBrowserActorFromHeaders } from "@/server/context";
 import { getPublishConfirmationService } from "@/server/services";
 
 type Props = {
@@ -40,7 +40,7 @@ async function loadView(token: string | undefined): Promise<View> {
   if (!token) return { kind: "error", code: "INVALID_TOKEN" };
   const confirmations = getPublishConfirmationService();
   if (!confirmations) return { kind: "error", code: "PUBLISH_CONFIRM_DISABLED" };
-  const actor = await resolveActorFromHeaders(await headers());
+  const actor = await resolveBrowserActorFromHeaders(await headers());
   if (isAnonymous(actor)) return { kind: "error", code: "UNAUTHORIZED" };
   try {
     return { kind: "state", state: await confirmations.inspect(actor, token) };

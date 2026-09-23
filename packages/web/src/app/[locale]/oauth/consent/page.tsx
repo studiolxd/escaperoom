@@ -6,6 +6,7 @@ import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { ConsentLogin } from "@/components/mcp-oauth/consent-login";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
+import { hasAuthorizationHeader } from "@/server/context";
 import { getMcpOAuthProvider } from "@/server/mcp-oauth";
 
 type Props = {
@@ -48,9 +49,11 @@ export default async function McpConsentPage({ params, searchParams }: Props) {
   const requestHeaders = await headers();
   const provider = getMcpOAuthProvider({ url: requestOrigin(requestHeaders) });
   const parsed = await provider.parseAuthorizationRequest(query);
-  const session = parsed.ok
-    ? await auth.api.getSession({ headers: requestHeaders }).catch(() => null)
-    : null;
+  // Solo la sesión del navegador: con `Authorization` (un token) no hay humano.
+  const session =
+    parsed.ok && !hasAuthorizationHeader(requestHeaders)
+      ? await auth.api.getSession({ headers: requestHeaders }).catch(() => null)
+      : null;
 
   let body: ReactNode;
   if (!parsed.ok) {

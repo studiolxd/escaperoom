@@ -133,6 +133,16 @@ export function createMcpOAuthHandlers(deps: McpOAuthHandlerDeps) {
      */
     async decide(request: Request): Promise<Response> {
       const provider = deps.provider(request);
+      // El consentimiento lo da un humano en su navegador, nunca un token.
+      if (request.headers.has("authorization")) {
+        return Response.json(
+          {
+            error: "forbidden",
+            error_description: "El consentimiento exige la sesión del navegador",
+          },
+          { status: 403 },
+        );
+      }
       if (!isSameOrigin(request, [provider.issuer, new URL(request.url).origin])) {
         return Response.json(
           { error: "forbidden", error_description: "Origen no permitido" },

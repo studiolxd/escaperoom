@@ -239,6 +239,10 @@ web lo sirve así:
   `WWW-Authenticate: Bearer realm=…, resource_metadata="<origen>/.well-known/oauth-protected-resource/mcp/creator", scope="mcp:creator"`
   (y `error="invalid_token"` si se presentó un token): el cliente MCP descubre desde ahí el
   servidor de autorización y empieza el flujo.
+- **Confirmar una publicación o dar el consentimiento es cosa de un humano:** `POST
+  /api/publish-confirm` (4.5), su página y el formulario de consentimiento solo aceptan la cookie de
+  sesión del navegador; cualquier cabecera `Authorization` (el token OAuth del MCP) se rechaza con
+  403, así el agente no puede confirmar su propia publicación.
 - **Almacenamiento** (`OAuthStore`, clave → JSON con caducidad): en la web, la tabla
   `verification` de Better Auth (prefijo `mcp-oauth:`, sin migración); códigos y tokens solo por su
   hash SHA-256. En tests, `createInMemoryOAuthStore`.

@@ -10,7 +10,7 @@ import {
   type RateLimiter,
 } from "@escaperoom/mcp-server";
 import { prisma } from "@escaperoom/shared/db";
-import { resolveActorFromRequest } from "./context";
+import { resolveActorFromRequest, resolveBrowserActorFromRequest } from "./context";
 import { createPrismaOAuthStore } from "./mcp-oauth-store";
 import { createMcpOAuthHandlers } from "./rest/mcp-oauth";
 
@@ -72,7 +72,8 @@ export function getMcpOAuthHandlers() {
   registerLimiter ??= createRateLimiter({ limit: 20, windowSeconds: 60 * 60 });
   return createMcpOAuthHandlers({
     provider: getMcpOAuthProvider,
-    resolveActor: resolveActorFromRequest,
+    // El consentimiento es de un humano: solo la sesión del navegador.
+    resolveActor: resolveBrowserActorFromRequest,
     registerLimiter,
   });
 }
