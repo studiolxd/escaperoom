@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Editor de salas: colaboración Yjs (proveedor cliente + servidor del WebSocket de edición), sala en el doc Yjs (3.1), multidioma (3.10) grafo de reglas (3.6) e inspector de propiedades (3.4).",
+  "description": "Editor de salas: colaboración Yjs (proveedor cliente + servidor del WebSocket de edición), sala en el doc Yjs (3.1), multidioma (3.10), grafo de reglas (3.6) e inspector de propiedades (3.4).",
   "exports": {
     ".": "./src/index.ts",
     "./sync-server": "./src/sync/server.ts",
