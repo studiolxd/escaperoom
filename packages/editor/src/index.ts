@@ -13,3 +13,4 @@ export * from "./rules-graph";
 export * from "./audio-fields";
 export * from "./validation";
 export * from "./room-doc";
+export * from "./inspector";

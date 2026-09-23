@@ -57,4 +57,10 @@ La app debe cargar `@xyflow/react/dist/style.css`.
 un id de nodo o de regla (marca su trigger). El nodo recibe `data.severity`, la clase
 `rules-graph-node--<severidad>`, borde del color de la severidad y los mensajes como `title`.
 
+## Enlace con el inspector (3.4)
+
+`focusRuleId` selecciona los nodos de esa regla y centra la vista en ellos cada vez que cambia
+(«Ver en el grafo» del inspector); `onSelectRule(ruleId)` avisa de un clic en un nodo para que el
+inspector muestre la regla.
+
 Demo en desarrollo: `/<locale>/dev/rules-graph`.

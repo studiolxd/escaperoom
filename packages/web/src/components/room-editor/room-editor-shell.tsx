@@ -1,12 +1,15 @@
 "use client";
 
+import "@xyflow/react/dist/style.css";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import * as Y from "yjs";
 import {
   EditToolController,
   EditorSyncProvider,
+  RulesGraph,
+  deleteRule,
   initRoomDoc,
   isRoomDocEmpty,
   readObject,
@@ -14,6 +17,8 @@ import {
   roomPackageToDoc,
   useRoomValidation,
   ValidationPanel,
+  type InspectorTarget,
+  type RulesGraphLabelsInput,
   type ValidationPanelLabelsInput,
   type ValidationTarget,
 } from "@escaperoom/editor";
@@ -22,7 +27,12 @@ import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { Button } from "@/components/ui/button";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
-import { RoomEditorWorkspace, type RoomEditorStatus } from "./room-editor-workspace";
+import { RoomEditorInspector } from "./room-editor-inspector";
+import {
+  RoomEditorWorkspace,
+  type CanvasTab,
+  type RoomEditorStatus,
+} from "./room-editor-workspace";
 
 const RoomEditorCanvas = dynamic(() => import("./room-editor-canvas"), {
   ssr: false,
@@ -164,7 +174,13 @@ export function RoomEditorShell(props: RoomEditorShellProps) {
 /**
  * Workspace con el validador de 3.7 cableado a la serialización del editor:
  * revalida en cada cambio del doc (con debounce), «Validar» fuerza una pasada
- * y un clic en un objeto señalado lo selecciona en el lienzo.
+ * y un clic en un elemento señalado lo selecciona (objeto en el lienzo, puzzle
+ * o regla en el inspector).
+ *
+ * Selección del inspector (3.4): un objeto seleccionado en el lienzo manda
+ * (`EditToolController`); si no hay, se muestra el puzzle o la regla elegidos
+ * en el inspector, el grafo o el panel del validador. «Ver en el grafo» abre
+ * la pestaña de reglas centrada en esa regla.
  */
 function ValidatedWorkspace({
   session,
@@ -181,15 +197,56 @@ function ValidatedWorkspace({
   const panelLabels = useTranslations("ValidationPanel").raw(
     "labels",
   ) as ValidationPanelLabelsInput;
+  const graphLabels = useTranslations("RulesGraph").raw("labels") as RulesGraphLabelsInput;
   const { doc, controller } = session;
   const validation = useRoomValidation(doc, roomDocToPackage);
+  const tools = useSyncExternalStore(
+    controller.subscribe,
+    controller.getState,
+    controller.getState,
+  );
+  const [picked, setPicked] = useState<InspectorTarget | null>(null);
+  const [canvasTab, setCanvasTab] = useState<CanvasTab>("map");
+  const [focusRuleId, setFocusRuleId] = useState<string | undefined>(undefined);
+
+  // Seleccionar un objeto en el lienzo sustituye al puzzle/regla elegido.
+  const selectedObjectId = tools.selectedObjectId;
+  useEffect(() => {
+    if (selectedObjectId) setPicked(null);
+  }, [selectedObjectId]);
+  const inspectorTarget: InspectorTarget | null = selectedObjectId
+    ? { kind: "object", id: selectedObjectId }
+    : picked;
+
+  const select = (target: InspectorTarget | null) => {
+    if (target?.kind === "object") {
+      const object = readObject(doc, target.id);
+      if (!object) return;
+      controller.setRoom(object.roomId);
+      controller.select(object.id);
+      return;
+    }
+    controller.select(undefined);
+    setPicked(target);
+  };
+
+  const openRule = (ruleId: string) => {
+    setCanvasTab("rules");
+    setFocusRuleId(ruleId);
+  };
+
+  const deleteTarget = (target: InspectorTarget) => {
+    if (target.kind === "object") controller.deleteSelection();
+    else if (target.kind === "rule") {
+      deleteRule(doc, target.id);
+      setPicked(null);
+    }
+  };
 
   const selectTarget = (target: ValidationTarget) => {
-    if (target.kind !== "object") return;
-    const object = readObject(doc, target.id);
-    if (!object) return;
-    controller.setRoom(object.roomId);
-    controller.select(object.id);
+    if (target.kind === "object" || target.kind === "puzzle" || target.kind === "rule") {
+      select({ kind: target.kind, id: target.id });
+    }
   };
 
   return (
@@ -200,6 +257,28 @@ function ValidatedWorkspace({
       pack={pack}
       status={status}
       renderCanvas={renderCanvas}
+      canvasTab={canvasTab}
+      onCanvasTabChange={setCanvasTab}
+      rulesGraph={
+        <RulesGraph
+          doc={doc}
+          labels={graphLabels}
+          issues={validation.ruleGraphIssues}
+          height="100%"
+          focusRuleId={focusRuleId}
+          onSelectRule={(ruleId) => select({ kind: "rule", id: ruleId })}
+        />
+      }
+      inspector={
+        <RoomEditorInspector
+          doc={doc}
+          target={inspectorTarget}
+          onSelect={select}
+          onOpenRule={openRule}
+          onDelete={inspectorTarget?.kind === "puzzle" ? undefined : deleteTarget}
+          loadUploads={status !== "local"}
+        />
+      }
       validation={
         <ValidationPanel state={validation} labels={panelLabels} onSelectTarget={selectTarget} />
       }

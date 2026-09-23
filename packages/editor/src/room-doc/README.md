@@ -46,5 +46,6 @@ hints     Y.Map<id, Y.Map>   id, puzzleId, tier, cost, text, order         ← 3
 `mode: 'edit'` con `onEditEvent`). Pincel y borrador pintan en trazo (interpolando celdas),
 relleno es 4-conexo sobre la capa activa, colocar propone un id legible (`arca-trono`) y arrastrar
 solo toca el doc al soltar (mientras tanto el runtime pinta una previsualización). Renombrar un
-objeto referenciado por reglas o puzzles se rechaza (`REFERENCED_ID`): reescribir referencias es
-cosa del inspector (3.4).
+objeto referenciado por reglas o puzzles se rechaza (`REFERENCED_ID`): para eso está
+`renameElement` del inspector (3.4, `inspector/rename.ts`), que reescribe todas las referencias en
+la misma transacción.
