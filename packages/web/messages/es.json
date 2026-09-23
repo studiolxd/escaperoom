@@ -9,8 +9,6 @@
   "Home": {
     "showcase": "Página de prueba i18n (0.9)",
     "title": "EscapeRoom",
-    "subtitle": "Canvas híbrido (Phaser + overlay React) sobre un tilemap isométrico.",
-    "lobbyCta": "Lobby multijugador (0.5)",
     "fallbackDemo": "Esta clave solo existe en el catálogo 'es': los demás idiomas caen aquí.",
     "catalogCta": "Catálogo de salas"
   },
@@ -1274,9 +1272,13 @@
         "title": "Para jugadores",
         "body": "Escape rooms cooperativos de 1 a 4 jugadores en el navegador, con voz y webcam, sin instalar nada."
       },
-      "organizer": {
-        "title": "Para profes y empresas",
-        "body": "Compra por jugador con descuentos por tramos, reparte claves de acceso y vigila el progreso de tu grupo en directo."
+      "teacher": {
+        "title": "Para docentes",
+        "body": "Organiza partidas para tu clase, reparte claves de acceso y sigue el progreso de cada grupo sin salir del navegador."
+      },
+      "company": {
+        "title": "Para empresas",
+        "body": "Compra por jugador con descuentos por tramos y monta dinámicas de equipo en remoto o presenciales, sin instalar nada."
       }
     }
   },

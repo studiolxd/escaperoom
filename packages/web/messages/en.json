@@ -9,8 +9,6 @@
   "Home": {
     "showcase": "i18n test page (0.9)",
     "title": "EscapeRoom",
-    "subtitle": "Hybrid canvas (Phaser + React overlay) over an isometric tilemap.",
-    "lobbyCta": "Multiplayer lobby (0.5)",
     "catalogCta": "Room catalog"
   },
   "RoomPreview": {
@@ -1273,9 +1271,13 @@
         "title": "For players",
         "body": "Cooperative 1-4 player escape rooms in the browser, with voice and webcam, nothing to install."
       },
-      "organizer": {
-        "title": "For teachers and companies",
-        "body": "Buy per player with tiered discounts, hand out access keys and watch your group's progress live."
+      "teacher": {
+        "title": "For teachers",
+        "body": "Run games for your class, hand out access keys and follow each group's progress without leaving the browser."
+      },
+      "company": {
+        "title": "For companies",
+        "body": "Buy per player with tiered discounts and run team-building sessions remotely or in person, nothing to install."
       }
     }
   },

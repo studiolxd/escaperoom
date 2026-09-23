@@ -9,8 +9,6 @@
   "Home": {
     "showcase": "i18n-Testseite (0.9)",
     "title": "EscapeRoom",
-    "subtitle": "Hybride Canvas (Phaser + React-Overlay) über einer isometrischen Tilemap.",
-    "lobbyCta": "Mehrspieler-Lobby (0.5)",
     "catalogCta": "Raumkatalog"
   },
   "RoomPreview": {

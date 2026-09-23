@@ -17,7 +17,7 @@ export default async function HomePage({ params }: Props) {
   const t = await getTranslations({ locale, namespace: "Home" });
   const l = await getTranslations({ locale, namespace: "Landing" });
 
-  const audiences = ["creator", "player", "organizer"] as const;
+  const audiences = ["player", "creator", "teacher", "company"] as const;
 
   return (
     <main className="relative min-h-dvh bg-background">
@@ -70,15 +70,6 @@ export default async function HomePage({ params }: Props) {
               </p>
             </div>
           ))}
-        </div>
-        <p className="mt-8 text-center text-sm text-muted-foreground">{t("subtitle")}</p>
-        <div className="mt-4 flex justify-center gap-3">
-          <Link
-            href="/lobby"
-            className="rounded-full border border-border px-4 py-2 text-sm transition-colors hover:bg-muted"
-          >
-            {t("lobbyCta")} →
-          </Link>
         </div>
       </section>
     </main>
