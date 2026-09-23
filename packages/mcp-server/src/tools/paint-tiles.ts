@@ -1,8 +1,8 @@
 import { isCellInRoom, paintTiles, subRoom } from "@escaperoom/editor/room-doc";
 import { z } from "zod";
-import { mutateDraft } from "../draft-writer";
-import { textResult, ToolError } from "../results";
-import { defineTool, MUTATION, RoomIdSchema } from "./define";
+import { mutateDraft, mutationResult } from "../draft-writer";
+import { ToolError } from "../results";
+import { defineTool, DryRunSchema, MUTATION, RoomIdSchema } from "./define";
 
 /** Fase A — el "pincel" del agente sobre una capa de tiles (specs/10 §2). */
 export const paintTilesTool = defineTool({
@@ -25,11 +25,12 @@ export const paintTilesTool = defineTool({
         }),
       )
       .min(1),
+    dryRun: DryRunSchema,
   }),
   annotations: MUTATION,
-  async run({ roomId, subroomId, layer, cells }, { actor, deps }) {
-    const { result: changed } = await mutateDraft(
-      { actor, deps, tool: "paint_tiles" },
+  async run({ roomId, subroomId, layer, cells, dryRun }, { actor, deps }) {
+    const outcome = await mutateDraft(
+      { actor, deps, tool: "paint_tiles", dryRun },
       roomId,
       (doc) => {
         const room = subRoom(doc, subroomId);
@@ -57,7 +58,9 @@ export const paintTilesTool = defineTool({
         return total;
       },
     );
-    return textResult(
+    const { result: changed } = outcome;
+    return mutationResult(
+      outcome,
       `✅ paint_tiles — ${changed} celda(s) cambiadas en "${subroomId}", capa "${layer}"`,
       { roomId, subroomId, layer, changed },
     );

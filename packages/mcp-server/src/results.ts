@@ -12,6 +12,8 @@ export type ToolErrorCode =
   | "NOT_AVAILABLE"
   | "INVALID_DRAFT"
   | "INVALID_INPUT"
+  /** La mutación introduce errores nuevos en el validador (4.4): no se escribe. */
+  | "VALIDATION_FAILED"
   | "INTERNAL";
 
 /** Error de dominio que una tool traduce a resultado MCP con `isError`. */

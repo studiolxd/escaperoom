@@ -6,7 +6,7 @@ import { z } from "zod";
 import { commandErrorToToolError } from "../draft-writer";
 import { textResult, ToolError } from "../results";
 import { draftErrorToToolError } from "../room-draft-reader";
-import { defineTool, MUTATION } from "./define";
+import { defineTool, DryRunSchema, MUTATION } from "./define";
 
 const MetaInputSchema = RoomPackageMetaSchema.pick({
   title: true,
@@ -54,9 +54,9 @@ export const createRoomTool = defineTool({
     "Crea un draft de sala nuevo con su metadata: título, tema, idiomas, dificultad (1–3) y nº de jugadores. Devuelve el id del draft.",
   phase: "structure",
   ticket: "4.2",
-  inputSchema: z.object({ meta: MetaInputSchema }),
+  inputSchema: z.object({ meta: MetaInputSchema, dryRun: DryRunSchema }),
   annotations: MUTATION,
-  async run({ meta }, { actor, deps }) {
+  async run({ meta, dryRun }, { actor, deps }) {
     if (meta.players.min < 1 || meta.players.min > meta.players.max) {
       throw new ToolError(
         "INVALID_INPUT",
@@ -65,6 +65,12 @@ export const createRoomTool = defineTool({
     }
     // Se comprueba la metadata (idiomas) ANTES de dar de alta la sala.
     initialUpdate(meta, PROBE_ROOM_ID, actor.userId);
+    if (dryRun) {
+      return textResult(
+        `🧪 create_room (dry-run) — la metadata de "${meta.title}" es válida.\n🧪 dryRun: true — no se ha creado ningún draft.`,
+        { dryRun: true },
+      );
+    }
     let room;
     try {
       room = await deps.drafts.createDraft(actor, {

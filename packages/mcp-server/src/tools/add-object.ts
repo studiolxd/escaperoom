@@ -1,9 +1,8 @@
 import { addObject } from "@escaperoom/editor/room-doc";
 import { WorldObjectSchema } from "@escaperoom/shared/schemas";
 import { z } from "zod";
-import { mutateDraft } from "../draft-writer";
-import { textResult } from "../results";
-import { defineTool, MUTATION, ReplaceSchema, RoomIdSchema } from "./define";
+import { mutateDraft, mutationResult } from "../draft-writer";
+import { defineTool, DryRunSchema, MUTATION, ReplaceSchema, RoomIdSchema } from "./define";
 
 /** Fase B — interactuable del escenario (specs/10 §2, specs/08 §2). */
 export const addObjectTool = defineTool({
@@ -17,13 +16,16 @@ export const addObjectTool = defineTool({
     roomId: RoomIdSchema,
     object: WorldObjectSchema,
     replace: ReplaceSchema,
+    dryRun: DryRunSchema,
   }),
   annotations: MUTATION,
-  async run({ roomId, object, replace }, { actor, deps }) {
-    const { result } = await mutateDraft({ actor, deps, tool: "add_object" }, roomId, (doc) =>
+  async run({ roomId, object, replace, dryRun }, { actor, deps }) {
+    const outcome = await mutateDraft({ actor, deps, tool: "add_object", dryRun }, roomId, (doc) =>
       addObject(doc, object, { replace }),
     );
-    return textResult(
+    const { result } = outcome;
+    return mutationResult(
+      outcome,
       `✅ add_object — "${object.id}" ${result.replaced ? "sustituido" : "añadido"} en "${object.roomId}" (${object.position.x}, ${object.position.y})`,
       { roomId, id: object.id, replaced: result.replaced },
     );

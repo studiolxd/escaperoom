@@ -95,7 +95,7 @@ function expectSmallRoom(pkg: RoomPackage, roomId: string): void {
   expect(crypt?.layers.map((layer) => layer.name)).toEqual(["ground", "walls"]);
   expect(crypt?.layers[1]?.rle.slice(0, 2)).toEqual([8, 7]);
   expect(pkg.objects.map((object) => object.id)).toEqual(["cofre-lab", "puerta-cripta"]);
-  expect(pkg.objects[1]).toMatchObject({ lockedBy: "llave-cripta", leadsTo: CRYPT });
+  expect(pkg.objects[1]).toMatchObject({ lockedBy: "p-cofre", leadsTo: CRYPT });
   expect(pkg.items).toEqual([
     {
       id: "llave-cripta",
@@ -355,7 +355,7 @@ describe("errores legibles", () => {
     expect((await call(client, "set_map", { roomId, tileset: "cripta-v1" })).isError).toBe(false);
   });
 
-  it("el enganche previo al commit (4.4) puede rechazar la mutación sin escribir", async () => {
+  it("el enganche extra previo al commit (tras el validador de 4.4) puede rechazar sin escribir", async () => {
     const { deps, store } = createEmptyDeps(AUTHOR);
     const roomId = await buildSmallRoom(await connect(deps));
     const seen: string[] = [];

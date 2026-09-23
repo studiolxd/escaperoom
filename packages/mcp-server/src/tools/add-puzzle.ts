@@ -1,9 +1,8 @@
 import { addPuzzle } from "@escaperoom/editor/room-doc";
 import { PuzzleDefinitionSchema } from "@escaperoom/shared/schemas";
 import { z } from "zod";
-import { mutateDraft } from "../draft-writer";
-import { textResult } from "../results";
-import { defineTool, MUTATION, ReplaceSchema, RoomIdSchema } from "./define";
+import { mutateDraft, mutationResult } from "../draft-writer";
+import { defineTool, DryRunSchema, MUTATION, ReplaceSchema, RoomIdSchema } from "./define";
 
 /** Fase B — puzzle de una plantilla con su config (specs/10 §2, specs/06). */
 export const addPuzzleTool = defineTool({
@@ -17,13 +16,16 @@ export const addPuzzleTool = defineTool({
     roomId: RoomIdSchema,
     puzzle: PuzzleDefinitionSchema,
     replace: ReplaceSchema,
+    dryRun: DryRunSchema,
   }),
   annotations: MUTATION,
-  async run({ roomId, puzzle, replace }, { actor, deps }) {
-    const { result } = await mutateDraft({ actor, deps, tool: "add_puzzle" }, roomId, (doc) =>
+  async run({ roomId, puzzle, replace, dryRun }, { actor, deps }) {
+    const outcome = await mutateDraft({ actor, deps, tool: "add_puzzle", dryRun }, roomId, (doc) =>
       addPuzzle(doc, puzzle, { replace }),
     );
-    return textResult(
+    const { result } = outcome;
+    return mutationResult(
+      outcome,
       `✅ add_puzzle — "${puzzle.id}" (${puzzle.type}) ${result.replaced ? "sustituido" : "añadido"} en "${puzzle.roomId}"`,
       { roomId, id: puzzle.id, replaced: result.replaced },
     );

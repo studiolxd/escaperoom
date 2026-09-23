@@ -1,9 +1,8 @@
 import { addRule, proposeRuleId } from "@escaperoom/editor/room-doc";
 import { RuleSchema } from "@escaperoom/shared/schemas";
 import { z } from "zod";
-import { mutateDraft } from "../draft-writer";
-import { textResult } from "../results";
-import { defineTool, MUTATION, ReplaceSchema, RoomIdSchema } from "./define";
+import { mutateDraft, mutationResult } from "../draft-writer";
+import { defineTool, DryRunSchema, MUTATION, ReplaceSchema, RoomIdSchema } from "./define";
 
 /** Regla de entrada: `id`, `priority` y `once` opcionales (se proponen / toman el valor por defecto). */
 const AddRuleInputSchema = RuleSchema.extend({
@@ -29,15 +28,22 @@ export const addRuleTool = defineTool({
     "Añade una regla SI/ENTONCES al draft: disparador, condiciones y acciones (el mismo vocabulario que el grafo de reglas del editor). Todo objeto, item, puzzle, habitación o diálogo referenciado debe existir. Sin `id`, se propone uno a partir del trigger.",
   phase: "logic",
   ticket: "4.3",
-  inputSchema: z.object({ roomId: RoomIdSchema, rule: AddRuleInputSchema, replace: ReplaceSchema }),
+  inputSchema: z.object({
+    roomId: RoomIdSchema,
+    rule: AddRuleInputSchema,
+    replace: ReplaceSchema,
+    dryRun: DryRunSchema,
+  }),
   annotations: MUTATION,
-  async run({ roomId, rule, replace }, { actor, deps }) {
-    const { result } = await mutateDraft({ actor, deps, tool: "add_rule" }, roomId, (doc) => {
+  async run({ roomId, rule, replace, dryRun }, { actor, deps }) {
+    const outcome = await mutateDraft({ actor, deps, tool: "add_rule", dryRun }, roomId, (doc) => {
       const id = rule.id ?? proposeRuleId(doc, rule.trigger);
       const full = { ...rule, id, priority: rule.priority ?? 0, once: rule.once ?? true };
       return { id, ...addRule(doc, full, { replace }) };
     });
-    return textResult(
+    const { result } = outcome;
+    return mutationResult(
+      outcome,
       `✅ add_rule — "${result.id}" ${result.replaced ? "sustituida" : "añadida"} (${rule.trigger.type}, ${rule.conditions.length} condición(es), ${rule.actions.length} acción(es))`,
       { roomId, id: result.id, replaced: result.replaced },
     );
