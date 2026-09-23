@@ -101,12 +101,18 @@ export interface ChatFilterResult {
 /**
  * Censura los términos prohibidos de un texto ya desinfectado. Es puro y no
  * depende de Colyseus ni de red, así que se puede testear sin infraestructura.
+ * `terms` permite reutilizar el mismo emparejado (variantes, límites de
+ * palabra) con otra lista: el pre-check de moderación (ticket 6.1) lo usa con
+ * su lista de términos graves.
  */
-export function censorChatText(text: string): ChatFilterResult {
+export function censorChatText(
+  text: string,
+  terms: readonly string[] = CHAT_BANNED_TERMS,
+): ChatFilterResult {
   let output = text;
   const matches: string[] = [];
 
-  for (const term of CHAT_BANNED_TERMS) {
+  for (const term of terms) {
     const replaced = output.replace(termRegex(term), (match) =>
       CHAT_CENSOR_MASK.repeat(match.length),
     );

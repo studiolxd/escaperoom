@@ -29,6 +29,10 @@ export const PUBLISH_STATUS_BY_CODE: Record<RoomPublishErrorCode, number> = {
   SERIALIZER_UNAVAILABLE: 501,
   DRAFT_CHANGED: 409,
   VERSION_CHANGED: 409,
+  ACCOUNT_FROZEN: 403,
+  CREATOR_SUSPENDED: 403,
+  CREATOR_BANNED: 403,
+  CONTENT_BLOCKED: 422,
 };
 
 function errorResponse(code: string, message: string, status: number, extra: object = {}) {
@@ -95,6 +99,7 @@ export function createRoomPublishHandlers(deps: RoomPublishHandlerDeps) {
               contentType: a.contentType,
               byteSize: a.byteSize,
             })),
+            moderationFlags: result.moderationFlags,
           },
           { status: 201 },
         );

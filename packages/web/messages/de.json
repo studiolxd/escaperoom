@@ -985,7 +985,11 @@
       "ASSETS_NOT_PUBLISHABLE": "Einige Audiodateien sind in der Moderation ausstehend oder abgelehnt: Veröffentlichen ist noch nicht möglich.",
       "ROOM_NOT_PUBLISHABLE": "Der Raum wurde von der Moderation entfernt und kann nicht veröffentlicht werden.",
       "PUBLISH_CONFIRM_DISABLED": "Die Bestätigung von Veröffentlichungen ist in dieser Umgebung nicht verfügbar.",
-      "UNKNOWN": "Der Raum konnte nicht veröffentlicht werden. Bitte versuche es erneut."
+      "UNKNOWN": "Der Raum konnte nicht veröffentlicht werden. Bitte versuche es erneut.",
+      "CONTENT_BLOCKED": "Die Moderations-Vorprüfung hat einige Texte des Raums blockiert. Korrigiere sie oder lege Einspruch ein.",
+      "ACCOUNT_FROZEN": "Dein Konto ist eingefroren, während eine schwere Meldung geprüft wird: Du kannst nicht veröffentlichen.",
+      "CREATOR_SUSPENDED": "Das Veröffentlichen ist für dein Konto vorübergehend gesperrt.",
+      "CREATOR_BANNED": "Dein Konto kann keine Räume mehr veröffentlichen."
     }
   },
   "McpConsent": {
@@ -1183,6 +1187,66 @@
       "split_clue": "Geteilter Hinweis",
       "pipes": "Rohre",
       "combine_items": "Gegenstände kombinieren"
+    }
+  },
+  "Moderation": {
+    "metaTitle": "Moderationswarteschlange",
+    "title": "Moderationswarteschlange",
+    "intro": "Meldungen nach Schweregrad und SLA sortiert, offene Einsprüche und hochgeladenes Audio zur Prüfung.",
+    "forbidden": "Nur Moderatoren oder Administratoren können die Moderationswarteschlange sehen.",
+    "loading": "Warteschlange wird geladen…",
+    "empty": "Nichts ausstehend.",
+    "tabs": {
+      "reports": "Meldungen ({count})",
+      "appeals": "Einsprüche ({count})",
+      "audio": "Audio ({count})"
+    },
+    "severity": {
+      "critical": "Kritisch",
+      "high": "Hoch",
+      "normal": "Normal",
+      "low": "Niedrig"
+    },
+    "source": {
+      "user_report": "Nutzermeldung",
+      "precheck": "Automatische Vorprüfung",
+      "sampling": "Zufallsstichprobe"
+    },
+    "target": {
+      "room": "Raum",
+      "review": "Bewertung",
+      "user": "Nutzer"
+    },
+    "overdue": "SLA überschritten",
+    "activeEvent": "Aktives Event",
+    "auto": {
+      "unpublish": "Bis zur Prüfung depubliziert",
+      "hide": "Bis zur Prüfung ausgeblendet"
+    },
+    "meta": "Prüfen bis {due} · erstellt {created} · {count, plural, one {# Meldung} other {# Meldungen}} zu diesem Inhalt",
+    "note": "Entscheidungsnotiz (Begründung für den Ersteller)",
+    "rejectNeedsNote": "Zum Ablehnen eines Audios die Begründung in die Notiz schreiben",
+    "appeal": {
+      "room": "Einspruch zu einem Raum",
+      "account": "Kontoeinspruch (Sperre oder Bann)"
+    },
+    "actions": {
+      "confirm": "Verstoß bestätigen",
+      "warn": "Mit Verwarnung bestätigen",
+      "dismiss": "Verwerfen",
+      "restore": "Wiederherstellen (Fehlalarm)",
+      "uphold": "Entscheidung aufrechterhalten",
+      "overturn": "Maßnahme aufheben",
+      "approve": "Freigeben",
+      "reject": "Ablehnen"
+    },
+    "errors": {
+      "UNAUTHORIZED": "Melde dich an, um zu moderieren.",
+      "FORBIDDEN": "Du hast keine Moderationsrechte.",
+      "NOT_FOUND": "Der Eintrag existiert nicht mehr.",
+      "ALREADY_REVIEWED": "Jemand anderes hat ihn bereits bearbeitet.",
+      "VALIDATION_ERROR": "Diese Entscheidung ist für diesen Inhalt nicht gültig.",
+      "UNKNOWN": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     }
   }
 }

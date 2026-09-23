@@ -100,24 +100,40 @@ model audioAsset {
 }
 
 model contentReport {
-  id                                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  reporterId                          String
-  roomVersionId                       String              @db.Uuid
-  reason                              String
-  details                             String?
-  severity                            String              @default("normal")
-  category                            String              @default("other")
-  source                              String              @default("user_report")
-  status                              contentReportStatus @default(pending)
-  reviewedBy                          String?
-  createdAt                           DateTime            @default(now()) @db.Timestamptz(6)
-  reviewedAt                          DateTime?           @db.Timestamptz(6)
-  user_contentReport_reporterIdTouser user                @relation("contentReport_reporterIdTouser", fields: [reporterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user_contentReport_reviewedByTouser user?               @relation("contentReport_reviewedByTouser", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  roomVersion                         roomVersion         @relation(fields: [roomVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  moderationAppeal                    moderationAppeal[]
+  id                                    String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporterId                            String?
+  roomVersionId                         String?             @db.Uuid
+  reason                                String
+  details                               String?
+  severity                              String              @default("normal")
+  category                              String              @default("other")
+  source                                String              @default("user_report")
+  status                                contentReportStatus @default(pending)
+  reviewedBy                            String?
+  createdAt                             DateTime            @default(now()) @db.Timestamptz(6)
+  reviewedAt                            DateTime?           @db.Timestamptz(6)
+  targetType                            String              @default("room")
+  roomId                                String?             @db.Uuid
+  reviewId                              String?             @db.Uuid
+  targetUserId                          String?
+  slaDueAt                              DateTime?           @db.Timestamptz(6)
+  actionTaken                           String?
+  autoActioned                          Boolean             @default(false)
+  roomStatusBefore                      roomStatus?
+  contentHash                           String?
+  flags                                 String[]            @default([])
+  resolutionNote                        String?
+  user_contentReport_reporterIdTouser   user?               @relation("contentReport_reporterIdTouser", fields: [reporterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  review                                review?             @relation(fields: [reviewId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_contentReport_reviewedByTouser   user?               @relation("contentReport_reviewedByTouser", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  room                                  room?               @relation(fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roomVersion                           roomVersion?        @relation(fields: [roomVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_contentReport_targetUserIdTouser user?               @relation("contentReport_targetUserIdTouser", fields: [targetUserId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  moderationAppeal                      moderationAppeal[]
+  moderationStrike                      moderationStrike[]
 
   @@index([severity, createdAt], map: "ixContentReportSeverity")
+  @@index([targetUserId, status], map: "ixContentReportTargetUser")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -252,20 +268,23 @@ model member {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model moderationAppeal {
-  id                                     String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                                     String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   creatorId                              String
-  roomId                                 String?        @db.Uuid
-  contentReportId                        String?        @db.Uuid
+  roomId                                 String?           @db.Uuid
+  contentReportId                        String?           @db.Uuid
   reason                                 String
-  status                                 String         @default("pending")
+  status                                 String            @default("pending")
   reviewedBy                             String?
   resolutionNote                         String?
-  createdAt                              DateTime       @default(now()) @db.Timestamptz(6)
-  reviewedAt                             DateTime?      @db.Timestamptz(6)
-  contentReport                          contentReport? @relation(fields: [contentReportId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user_moderationAppeal_creatorIdTouser  user           @relation("moderationAppeal_creatorIdTouser", fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user_moderationAppeal_reviewedByTouser user?          @relation("moderationAppeal_reviewedByTouser", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  room                                   room?          @relation(fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  createdAt                              DateTime          @default(now()) @db.Timestamptz(6)
+  reviewedAt                             DateTime?         @db.Timestamptz(6)
+  strikeId                               String?           @db.Uuid
+  slaDueAt                               DateTime?         @db.Timestamptz(6)
+  contentReport                          contentReport?    @relation(fields: [contentReportId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_moderationAppeal_creatorIdTouser  user              @relation("moderationAppeal_creatorIdTouser", fields: [creatorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_moderationAppeal_reviewedByTouser user?             @relation("moderationAppeal_reviewedByTouser", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  room                                   room?             @relation(fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  moderationStrike                       moderationStrike? @relation(fields: [strikeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model organization {
@@ -360,15 +379,19 @@ model purchase {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model review {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String
-  roomId    String   @db.Uuid
-  rating    Int      @db.SmallInt
-  text      String?
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt DateTime @default(now()) @db.Timestamptz(6)
-  room      room     @relation(fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user      user     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                     String
+  roomId                     String          @db.Uuid
+  rating                     Int             @db.SmallInt
+  text                       String?
+  createdAt                  DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt                  DateTime        @default(now()) @db.Timestamptz(6)
+  hiddenAt                   DateTime?       @db.Timestamptz(6)
+  hiddenBy                   String?
+  contentReport              contentReport[]
+  user_review_hiddenByTouser user?           @relation("review_hiddenByTouser", fields: [hiddenBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  room                       room            @relation(fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user                       user            @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([userId, roomId])
   @@index([roomId], map: "ixReviewRoom")
@@ -391,6 +414,7 @@ model room {
   createdAt                                         DateTime           @default(now()) @db.Timestamptz(6)
   updatedAt                                         DateTime           @default(now()) @db.Timestamptz(6)
   deletedAt                                         DateTime?          @db.Timestamptz(6)
+  contentReport                                     contentReport[]
   moderationAppeal                                  moderationAppeal[]
   purchase                                          purchase[]
   review                                            review[]
@@ -490,18 +514,22 @@ model user {
   audioAsset_audioAsset_reviewedByTouser             audioAsset[]       @relation("audioAsset_reviewedByTouser")
   contentReport_contentReport_reporterIdTouser       contentReport[]    @relation("contentReport_reporterIdTouser")
   contentReport_contentReport_reviewedByTouser       contentReport[]    @relation("contentReport_reviewedByTouser")
+  contentReport_contentReport_targetUserIdTouser     contentReport[]    @relation("contentReport_targetUserIdTouser")
   creditAccount                                      creditAccount[]
   creditMovement                                     creditMovement[]
   event                                              event[]
   invitation                                         invitation[]
   member                                             member[]
-  organization                                       organization[]
   moderationAppeal_moderationAppeal_creatorIdTouser  moderationAppeal[] @relation("moderationAppeal_creatorIdTouser")
   moderationAppeal_moderationAppeal_reviewedByTouser moderationAppeal[] @relation("moderationAppeal_reviewedByTouser")
+  moderationStrike_moderationStrike_revokedByTouser  moderationStrike[] @relation("moderationStrike_revokedByTouser")
+  moderationStrike_moderationStrike_userIdTouser     moderationStrike[] @relation("moderationStrike_userIdTouser")
+  organization                                       organization[]
   platformSetting                                    platformSetting[]
   pricingTier                                        pricingTier[]
   progressEvent                                      progressEvent[]
   purchase                                           purchase[]
+  review_review_hiddenByTouser                       review[]           @relation("review_hiddenByTouser")
   review                                             review[]
   room                                               room[]
   roomUpdate                                         roomUpdate[]
@@ -518,6 +546,25 @@ model verification {
   updatedAt  DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([identifier], map: "ixVerificationIdentifier")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model moderationStrike {
+  id                                    String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                                String
+  contentReportId                       String?            @db.Uuid
+  severity                              String
+  consequence                           String
+  reason                                String
+  createdAt                             DateTime           @default(now()) @db.Timestamptz(6)
+  revokedAt                             DateTime?          @db.Timestamptz(6)
+  revokedBy                             String?
+  moderationAppeal                      moderationAppeal[]
+  contentReport                         contentReport?     @relation(fields: [contentReportId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_moderationStrike_revokedByTouser user?              @relation("moderationStrike_revokedByTouser", fields: [revokedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_moderationStrike_userIdTouser    user               @relation("moderationStrike_userIdTouser", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([userId, createdAt], map: "ixModerationStrikeUser")
 }
 
 enum accessKeyStatus {

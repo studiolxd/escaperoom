@@ -985,7 +985,11 @@
       "ASSETS_NOT_PUBLISHABLE": "Some audio files are pending or rejected in moderation: the room cannot be published yet.",
       "ROOM_NOT_PUBLISHABLE": "The room was removed by moderation and cannot be published.",
       "PUBLISH_CONFIRM_DISABLED": "Publication confirmation is not available in this environment.",
-      "UNKNOWN": "The room could not be published. Please try again."
+      "UNKNOWN": "The room could not be published. Please try again.",
+      "CONTENT_BLOCKED": "The moderation pre-check blocked some of the room's texts. Fix them or appeal the block.",
+      "ACCOUNT_FROZEN": "Your account is frozen while a serious report is reviewed: you can't publish.",
+      "CREATOR_SUSPENDED": "Publishing is temporarily suspended on your account by moderation.",
+      "CREATOR_BANNED": "Your account can no longer publish rooms."
     }
   },
   "McpConsent": {
@@ -1183,6 +1187,66 @@
       "split_clue": "Split clue",
       "pipes": "Pipes",
       "combine_items": "Combine items"
+    }
+  },
+  "Moderation": {
+    "metaTitle": "Moderation queue",
+    "title": "Moderation queue",
+    "intro": "Reports sorted by severity and SLA, pending appeals and uploaded audio awaiting review.",
+    "forbidden": "Only moderators or administrators can see the moderation queue.",
+    "loading": "Loading the queue…",
+    "empty": "Nothing pending.",
+    "tabs": {
+      "reports": "Reports ({count})",
+      "appeals": "Appeals ({count})",
+      "audio": "Audio ({count})"
+    },
+    "severity": {
+      "critical": "Critical",
+      "high": "High",
+      "normal": "Normal",
+      "low": "Low"
+    },
+    "source": {
+      "user_report": "User report",
+      "precheck": "Automatic pre-check",
+      "sampling": "Random sampling"
+    },
+    "target": {
+      "room": "Room",
+      "review": "Review",
+      "user": "User"
+    },
+    "overdue": "SLA overdue",
+    "activeEvent": "Active event",
+    "auto": {
+      "unpublish": "Unpublished pending review",
+      "hide": "Hidden pending review"
+    },
+    "meta": "Review before {due} · created {created} · {count, plural, one {# report} other {# reports}} on this content",
+    "note": "Resolution note (reason shown to the creator)",
+    "rejectNeedsNote": "To reject an audio, write the reason in the note",
+    "appeal": {
+      "room": "Appeal about a room",
+      "account": "Account appeal (suspension or ban)"
+    },
+    "actions": {
+      "confirm": "Confirm violation",
+      "warn": "Confirm with a warning",
+      "dismiss": "Dismiss",
+      "restore": "Restore (false positive)",
+      "uphold": "Uphold the decision",
+      "overturn": "Overturn the action",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "errors": {
+      "UNAUTHORIZED": "Sign in to moderate.",
+      "FORBIDDEN": "You don't have moderation permissions.",
+      "NOT_FOUND": "The item no longer exists.",
+      "ALREADY_REVIEWED": "Someone else has already resolved it.",
+      "VALIDATION_ERROR": "That decision isn't valid for this content.",
+      "UNKNOWN": "Something went wrong. Please try again."
     }
   }
 }

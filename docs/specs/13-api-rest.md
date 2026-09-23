@@ -60,7 +60,8 @@ Better Auth gestiona `/api/auth/*` (signin, callback OAuth, signout, session; pl
 | GET | `/api/rooms/:roomId/versions` | público | Histórico de versiones (solo metadata `semver`, `changelog`, `published_at`) |
 | GET | `/api/rooms/:roomId/reviews` | público | Listado paginado de reseñas |
 | POST | `/api/rooms/:roomId/reviews` | comprador/jugador | Crea/actualiza su reseña (`UNIQUE(user_id, room_id)`) |
-| POST | `/api/rooms/:roomId/report` | usuario | Crea `contentReport` (`REPORT_REASON_REQUIRED` si falta motivo) |
+| POST | `/api/rooms/:roomId/report` | usuario | Crea `contentReport` (`REPORT_REASON_REQUIRED` si falta motivo). Cuerpo `{ category, reason, details? }`; la severidad la fija el servidor según la categoría (specs/17 §4.1): `minor_safety`/`illegal_content` son críticas y despublican la sala al instante. Repetir el mismo reporte pendiente responde 200 con el existente |
+| POST | `/api/reports` | usuario | Igual para cualquier destino: `{ targetType: room\|review\|user, targetId, category, reason, details? }` (ticket 6.1) |
 
 Forma de respuesta de `GET /api/rooms/:roomId`:
 
@@ -283,10 +284,11 @@ de terminar el job; la ruta de descarga lee el objeto del bucket y lo sirve. Sin
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| GET | `/api/admin/reports` | `is_admin \| is_moderator` | Listado paginado de `contentReport`, filtrable por `status`/`severity` |
-| PATCH | `/api/admin/reports/:id` | `is_admin \| is_moderator` | `{ status, resolutionNote? }`; con `actioned` puede despublicar la sala |
-| POST | `/api/rooms/:roomId/appeal` | autor de la sala | Apela un bloqueo de pre-check o una retirada |
-| POST | `/api/me/appeal` | usuario | Apela una suspensión de cuenta |
+| GET | `/api/admin/reports` | `is_admin \| is_moderator` | Listado de `contentReport`, filtrable por `status` (por defecto `pending`)/`severity`, priorizado (severidad → evento activo → nº de reportes sobre el mismo contenido → antigüedad) con `slaDueAt` y `overdue` |
+| PATCH | `/api/admin/reports/:id` | `is_admin \| is_moderator` | `{ status: actioned\|dismissed, action?: unpublish\|hide\|warn, resolutionNote? }`. `dismissed` revierte la acción automática (restaura la sala o la reseña); `actioned` aplica la acción (por defecto: sala alta/crítica → `unpublish`, normal → `warn`; reseña → `hide`) y el strike de specs/17 §6. `409 ALREADY_REVIEWED` si ya se resolvió |
+| POST | `/api/rooms/:roomId/appeal` | autor de la sala | Apela un bloqueo de pre-check o una retirada: `{ reason, contentReportId? }` (sin id, la última acción sobre la sala). `409 APPEAL_NOT_ALLOWED` (crítico), `APPEAL_ALREADY_PENDING`, `NOTHING_TO_APPEAL` |
+| POST | `/api/me/appeal` | usuario | Apela una suspensión de cuenta: `{ reason }` (apela el strike que la causa) |
+| GET | `/api/me/moderation` | usuario | Estado del creador: `status` (`good\|warned\|suspended\|banned`), `suspendedUntil`, `activeStrikes`, `frozen` |
 | GET | `/api/admin/appeals` | `is_admin \| is_moderator` | Cola de apelaciones pendientes |
 | PATCH | `/api/admin/appeals/:id` | `is_admin \| is_moderator` | Resuelve: `upheld` u `overturned` |
 | GET | `/api/admin/audio` | `is_admin \| is_moderator` | Cola de audio subido (`?status=pending` por defecto, las más antiguas primero) |

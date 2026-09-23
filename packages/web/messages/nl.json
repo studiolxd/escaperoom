@@ -985,7 +985,11 @@
       "ASSETS_NOT_PUBLISHABLE": "Sommige audiobestanden zijn in moderatie of afgewezen: publiceren kan nog niet.",
       "ROOM_NOT_PUBLISHABLE": "De kamer is door moderatie verwijderd en kan niet worden gepubliceerd.",
       "PUBLISH_CONFIRM_DISABLED": "Het bevestigen van publicaties is niet beschikbaar in deze omgeving.",
-      "UNKNOWN": "De kamer kon niet worden gepubliceerd. Probeer het opnieuw."
+      "UNKNOWN": "De kamer kon niet worden gepubliceerd. Probeer het opnieuw.",
+      "CONTENT_BLOCKED": "De moderatie-voorcontrole heeft enkele teksten van de kamer geblokkeerd. Pas ze aan of maak bezwaar.",
+      "ACCOUNT_FROZEN": "Je account is bevroren terwijl een ernstige melding wordt beoordeeld: je kunt niet publiceren.",
+      "CREATOR_SUSPENDED": "Publiceren is tijdelijk geschorst voor je account.",
+      "CREATOR_BANNED": "Je account kan geen kamers meer publiceren."
     }
   },
   "McpConsent": {
@@ -1183,6 +1187,66 @@
       "split_clue": "Gedeelde aanwijzing",
       "pipes": "Buizen",
       "combine_items": "Voorwerpen combineren"
+    }
+  },
+  "Moderation": {
+    "metaTitle": "Moderatiewachtrij",
+    "title": "Moderatiewachtrij",
+    "intro": "Meldingen gesorteerd op ernst en SLA, openstaande bezwaren en geüploade audio die nog beoordeeld moet worden.",
+    "forbidden": "Alleen moderators of beheerders kunnen de moderatiewachtrij zien.",
+    "loading": "Wachtrij laden…",
+    "empty": "Niets openstaand.",
+    "tabs": {
+      "reports": "Meldingen ({count})",
+      "appeals": "Bezwaren ({count})",
+      "audio": "Audio ({count})"
+    },
+    "severity": {
+      "critical": "Kritiek",
+      "high": "Hoog",
+      "normal": "Normaal",
+      "low": "Laag"
+    },
+    "source": {
+      "user_report": "Melding van gebruiker",
+      "precheck": "Automatische voorcontrole",
+      "sampling": "Willekeurige steekproef"
+    },
+    "target": {
+      "room": "Kamer",
+      "review": "Recensie",
+      "user": "Gebruiker"
+    },
+    "overdue": "SLA verlopen",
+    "activeEvent": "Actief evenement",
+    "auto": {
+      "unpublish": "Offline gehaald tot beoordeling",
+      "hide": "Verborgen tot beoordeling"
+    },
+    "meta": "Beoordelen vóór {due} · aangemaakt {created} · {count, plural, one {# melding} other {# meldingen}} over deze inhoud",
+    "note": "Toelichting (reden die de maker ziet)",
+    "rejectNeedsNote": "Schrijf de reden in de toelichting om audio af te wijzen",
+    "appeal": {
+      "room": "Bezwaar over een kamer",
+      "account": "Accountbezwaar (schorsing of ban)"
+    },
+    "actions": {
+      "confirm": "Overtreding bevestigen",
+      "warn": "Bevestigen met waarschuwing",
+      "dismiss": "Afwijzen",
+      "restore": "Herstellen (vals positief)",
+      "uphold": "Besluit handhaven",
+      "overturn": "Maatregel terugdraaien",
+      "approve": "Goedkeuren",
+      "reject": "Afwijzen"
+    },
+    "errors": {
+      "UNAUTHORIZED": "Log in om te modereren.",
+      "FORBIDDEN": "Je hebt geen moderatierechten.",
+      "NOT_FOUND": "Het item bestaat niet meer.",
+      "ALREADY_REVIEWED": "Iemand anders heeft het al afgehandeld.",
+      "VALIDATION_ERROR": "Dit besluit is niet geldig voor deze inhoud.",
+      "UNKNOWN": "Er ging iets mis. Probeer het opnieuw."
     }
   }
 }
