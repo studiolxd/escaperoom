@@ -1247,10 +1247,11 @@
     }
   },
   "Legal": {
+    "onlyInSpanishNotice": "Le contenu des documents juridiques n'est disponible qu'en espagnol ; le reste de la plateforme est traduit.",
     "nav": {
       "terms": "Conditions d'utilisation",
       "privacy": "Politique de confidentialité",
-      "dpa": "Modèle de DPA",
+      "dpa": "Annexe de sous-traitance",
       "legalNotice": "Mentions légales",
       "cookies": "Politique de cookies"
     },
@@ -1261,7 +1262,7 @@
       "title": "Politique de confidentialité"
     },
     "dpa": {
-      "title": "Modèle de contrat de sous-traitance (DPA)"
+      "title": "Annexe relative à la sous-traitance des données (DPA)"
     },
     "legalNotice": {
       "title": "Mentions légales"

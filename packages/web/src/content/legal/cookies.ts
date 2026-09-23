@@ -1,4 +1,5 @@
-import type { LegalDocument } from "./types";
+import { languageVersionsSection } from "./language-versions";
+import { legalLink, type LegalDocument } from "./types";
 
 /**
  * Política de Cookies — BORRADOR TÉCNICO (ticket 6.2, specs/18).
@@ -7,8 +8,11 @@ import type { LegalDocument } from "./types";
  * de Better Auth (`better-auth.session_token`, sin configuración de nombre
  * propia en `src/lib/auth.ts`) y `NEXT_LOCALE` de next-intl (`src/i18n/`).
  * Plausible y Google Analytics se describen como PLANIFICADOS, no activos
- * todavía — mismo patrón de aviso que `dpa-template.ts`/`privacy.ts` usan
+ * todavía — mismo patrón de aviso que `dpa.ts`/`privacy.ts` usan
  * para LiveKit Cloud.
+ *
+ * `localStorage`/`sessionStorage` (sección 6) también verificados por grep:
+ * la guía de cookies de la AEPD los trata como "tecnologías similares".
  */
 export const cookiesPolicy: LegalDocument = {
   draftDate: "2026-09-23",
@@ -52,10 +56,13 @@ export const cookiesPolicy: LegalDocument = {
     {
       heading: "3. Analíticas planificadas (no activas todavía)",
       paragraphs: [
-        "La plataforma tiene planificada la incorporación de dos herramientas de analítica de " +
-          "producto. Mientras no se activen, ninguno de estos dos proveedores interviene y no se " +
-          "establece ninguna cookie relacionada con ellos — el mismo patrón que ya usa este documento " +
-          "para LiveKit Cloud en la Política de Privacidad.",
+        [
+          "La plataforma tiene planificada la incorporación de dos herramientas de analítica de " +
+            "producto. Mientras no se activen, ninguno de estos dos proveedores interviene y no se " +
+            "establece ninguna cookie relacionada con ellos — el mismo patrón que ya usa la ",
+          legalLink("Política de Privacidad", "/legal/privacy"),
+          " para LiveKit Cloud.",
+        ],
       ],
       list: [
         "Plausible: mide tráfico agregado sin usar cookies y sin identificar a nadie individualmente. " +
@@ -94,5 +101,25 @@ export const cookiesPolicy: LegalDocument = {
           "https://www.aepd.es/guias-y-herramientas/guias/guia-cookies",
       ],
     },
+    {
+      heading: "6. Otras tecnologías de almacenamiento en tu navegador",
+      paragraphs: [
+        "Además de las cookies, la plataforma guarda en el almacenamiento local de tu navegador " +
+          "(`localStorage` y `sessionStorage`) unos pocos datos para funcionalidades que tú mismo " +
+          "usas. No se envían a ningún tercero ni sirven para seguirte, y están exentos de " +
+          "consentimiento por ser necesarios para la función que pides o para personalizar la " +
+          "interfaz a tu elección:",
+      ],
+      list: [
+        "`escaperoom:join-token:<sesión>` (sessionStorage) — Necesario — Mantiene tu acceso a una " +
+          "partida de un evento si recargas la pestaña — Duración: hasta cerrar la pestaña.",
+        "`escaperoom:player-name` (localStorage) — Funcional — Recuerda el nombre que usaste en una " +
+          "partida para no pedírtelo otra vez — Duración: hasta que borres los datos del navegador.",
+        "`er.editorHint.seen.*` y `er.editorHint.disabled` (localStorage) — Preferencias de interfaz " +
+          "— Recuerdan qué pistas del editor has visto o si las has desactivado — Duración: hasta " +
+          "que borres los datos del navegador.",
+      ],
+    },
+    languageVersionsSection(7),
   ],
 };

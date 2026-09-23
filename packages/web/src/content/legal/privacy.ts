@@ -1,4 +1,5 @@
-import type { LegalDocument } from "./types";
+import { languageVersionsSection } from "./language-versions";
+import { legalLink, type LegalDocument } from "./types";
 
 /**
  * Política de Privacidad — BORRADOR TÉCNICO (ticket 6.2, specs/18 §3–§4).
@@ -6,6 +7,12 @@ import type { LegalDocument } from "./types";
  * Mismo aviso que `terms.ts`: no es un texto legal definitivo, es la base
  * técnica para que un abogado redacte el texto real antes del primer evento
  * educativo real o el primer pago.
+ *
+ * Contrastada con la política de slxd (`slxd/packages/legal/content/es/privacy.mdx`,
+ * mismo responsable): de ahí salen la lista completa de derechos con la
+ * reclamación ante la AEPD, los registros técnicos, el formulario de
+ * contacto y la sección de cambios, que el art. 13 RGPD exige o que la
+ * plataforma ya hace y no estaban descritos.
  */
 export const privacyPolicy: LegalDocument = {
   draftDate: "2026-09-23",
@@ -28,25 +35,56 @@ export const privacyPolicy: LegalDocument = {
           "(por ejemplo, alumnado de un centro educativo), la plataforma trata ese email por " +
           "encargo del organizador: el organizador es el responsable de ese tratamiento frente a sus " +
           "participantes y necesita su propia base legal frente a ellos.",
-        "Cuando se activa la grabación de una sesión (solo disponible fuera del contexto educativo, " +
-          "con consentimiento explícito y unánime de los participantes), la plataforma también trata " +
-          "esos datos por encargo de quien organiza la sesión.",
+        [
+          "Cuando se activa la grabación de una sesión (solo disponible fuera del contexto educativo, " +
+            "con consentimiento explícito y unánime de los participantes), la plataforma también " +
+            "trata esos datos por encargo de quien organiza la sesión. Las condiciones de ese encargo " +
+            "están en el ",
+          legalLink("Anexo de encargo de tratamiento", "/legal/dpa"),
+          ", que forma parte de los ",
+          legalLink("Términos de Servicio", "/legal/terms"),
+          ".",
+        ],
       ],
     },
     {
       heading: "2. Qué datos tratamos y con qué base legal",
       paragraphs: [
-        "Datos de cuenta (email, nombre): para ejecutar el contrato de uso de la plataforma.",
+        "Datos de cuenta (email, nombre): para ejecutar el contrato de uso de la plataforma " +
+          "(artículo 6.1.b del RGPD).",
         "Datos de pago: los procesa Stripe; la plataforma solo recibe referencias de la transacción, " +
-          "necesarias para ejecutar el contrato y cumplir obligaciones de facturación.",
-        "Analítica de producto: por interés legítimo, con mecanismo de oposición disponible.",
-        "Emails de participantes en claves de acceso individuales: tratados por encargo del " +
-          "organizador (véase la sección 1); exigen que el organizador tenga firmado un contrato de " +
-          "encargo de tratamiento (DPA) con la plataforma antes de poder usar esa función.",
+          "necesarias para ejecutar el contrato y cumplir obligaciones de facturación (artículo " +
+          "6.1.b y 6.1.c del RGPD).",
+        "Mensajes al editor asistido por IA: lo que el creador escribe en el chat del editor y el " +
+          "contenido de la sala sobre la que trabaja se envían al proveedor del modelo de lenguaje " +
+          "configurado (véase la sección 6) para ejecutar el contrato (artículo 6.1.b del RGPD).",
+        [
+          "Analítica de producto (planificada, no activa todavía): Plausible, que no usa cookies, por " +
+            "interés legítimo (artículo 6.1.f del RGPD) con mecanismo de oposición; Google " +
+            "Analytics, solo con tu consentimiento previo (artículo 6.1.a del RGPD). Véase la ",
+          legalLink("Política de Cookies", "/legal/cookies"),
+          ".",
+        ],
+        [
+          "Emails de participantes en claves de acceso individuales: tratados por encargo del " +
+            "organizador (véase la sección 1); exigen que el organizador haya aceptado el ",
+          legalLink("Anexo de encargo de tratamiento", "/legal/dpa"),
+          " antes de poder usar esa función.",
+        ],
         "Chat de la partida: por interés legítimo (es parte de la funcionalidad del juego), sujeto a " +
           "moderación automática y con una retención mínima (véase la sección 4).",
         "Grabación de sesión: solo con consentimiento explícito y unánime de los participantes; nunca " +
           "disponible para eventos con audiencia educativa.",
+        "Registros técnicos: la dirección IP y el navegador (user agent) de tus sesiones abiertas, y " +
+          "los de cada aceptación de los Términos de Servicio y de esta política, por interés " +
+          "legítimo en la seguridad de tu cuenta y en poder acreditar qué versión aceptaste y cuándo " +
+          "(artículo 6.1.f del RGPD).",
+        "Formulario de contacto: tu nombre, tu email y tu mensaje, que nos llegan por correo " +
+          "electrónico y no se guardan en la base de datos de la plataforma, para responderte " +
+          "(consentimiento, artículo 6.1.a del RGPD).",
+        "Salvo los datos necesarios para crear tu cuenta, prestar cada función que solicitas y " +
+          "procesar tus pagos, el resto son opcionales. Si no facilitas los datos necesarios, no " +
+          "podremos prestarte el servicio.",
       ],
     },
     {
@@ -91,30 +129,48 @@ export const privacyPolicy: LegalDocument = {
           "obligación de facturación.",
         "Facturas y registros de facturación: 6 años tras su emisión, conforme al artículo 30 del " +
           "Código de Comercio.",
-        "Clave de acceso con email de un participante: 12 meses tras el evento en general, y 3 " +
-          "meses cuando la audiencia del evento es educativa (minimización reforzada por la posible " +
-          "presencia de menores; véase la sección 6 del contrato de encargo de tratamiento). En " +
-          "ambos casos, pasado el plazo el email se sustituye por un valor no reversible (hash).",
+        [
+          "Clave de acceso con email de un participante: 12 meses tras el evento en general, y 3 " +
+            "meses cuando la audiencia del evento es educativa (minimización reforzada por la posible " +
+            "presencia de menores; véase la sección 10 del ",
+          legalLink("Anexo de encargo de tratamiento", "/legal/dpa"),
+          "). En ambos casos, pasado el plazo el email se sustituye por un valor no reversible " +
+            "(hash).",
+        ],
         "Grabación de sesión (cuando existe consentimiento): 90 días.",
         "Eventos de analítica detallados: 24 meses; los datos agregados y anonimizados se conservan " +
           "sin límite de tiempo.",
         "Reportes e historial de moderación: sin borrado automático, para poder detectar reincidencia.",
+        "Mensajes del formulario de contacto: hasta que la consulta quede resuelta y, como máximo, " +
+          "12 meses después.",
       ],
     },
     {
       heading: "5. Derechos de las personas usuarias",
       paragraphs: [
-        "Como titular de una cuenta, puedes ejercer los siguientes derechos directamente desde la " +
-          "plataforma:",
+        "Puedes ejercer en cualquier momento tus derechos de acceso, rectificación, supresión, " +
+          "limitación del tratamiento, oposición y portabilidad escribiendo a hello@studiolxd.com. " +
+          "Cuando un tratamiento se basa en tu consentimiento (por ejemplo, la grabación de una " +
+          "sesión o, cuando se active, Google Analytics), puedes retirarlo en cualquier momento, sin " +
+          "que eso afecte a la licitud del tratamiento anterior.",
+        "Si consideras que no hemos atendido correctamente tu solicitud, puedes presentar una " +
+          "reclamación ante la Agencia Española de Protección de Datos (aepd.es, calle Jorge Juan, " +
+          "6, 28001 Madrid).",
+        "Además, como titular de una cuenta, puedes ejercer dos de esos derechos directamente desde " +
+          "la plataforma:",
       ],
       list: [
         "Portabilidad: descargar un export completo de tus datos en formato JSON desde " +
           "GET /api/me/data-export.",
-        "Derecho al olvido: cerrar tu cuenta desde DELETE /api/me. Esto anonimiza de inmediato los " +
-          "datos que te identifican y revoca tus sesiones activas; no borra de forma instantánea los " +
-          "registros que la plataforma debe conservar por obligación legal (por ejemplo, de " +
-          "facturación) ni el contenido ya distribuido a terceros que compraron tu sala (véase la " +
-          "sección 4 de los Términos de Servicio).",
+        [
+          "Derecho al olvido: cerrar tu cuenta desde DELETE /api/me. Esto anonimiza de inmediato los " +
+            "datos que te identifican y revoca tus sesiones activas; no borra de forma instantánea los " +
+            "registros que la plataforma debe conservar por obligación legal (por ejemplo, de " +
+            "facturación) ni el contenido ya distribuido a terceros que compraron tu sala (véase la " +
+            "sección 6 de los ",
+          legalLink("Términos de Servicio", "/legal/terms"),
+          ").",
+        ],
       ],
     },
     {
@@ -142,23 +198,48 @@ export const privacyPolicy: LegalDocument = {
           "uso vigentes en plan de pago reconocen la titularidad de EscapeRoom Creator sobre el audio " +
           "generado, pero ElevenLabs se reserva una licencia perpetua sobre las voces y el contenido " +
           "que se le envía para entrenar sus propios modelos.",
+        "Anthropic, OpenAI o Google — modelo de lenguaje del editor asistido por IA. La plataforma " +
+          "usa uno solo de los tres a la vez, según su configuración, y solo recibe datos cuando un " +
+          "creador usa el chat del editor. Los tres tienen sede en Estados Unidos y tratan los datos " +
+          "con las mismas garantías de transferencia que Stripe y ElevenLabs.",
         "Resend/Postmark — envío de emails transaccionales.",
         "Cloudflare R2 — almacenamiento de assets y grabaciones.",
         "LiveKit Cloud — solo si se activa como plan de contingencia para audio/vídeo en tránsito; " +
           "mientras el servicio se opere en modo self-hosted, este proveedor no interviene.",
-        "Plausible — analítica de producto planificada, no activa todavía; no usa cookies. Mientras " +
-          "no se active, este proveedor no interviene (véase la Política de Cookies).",
-        "Google Analytics — analítica de producto planificada, no activa todavía; usa cookies " +
-          "(`_ga`/`_ga_*`) y solo se cargaría con consentimiento previo. Mientras no se active, este " +
-          "proveedor no interviene (véase la Política de Cookies).",
+        [
+          "Plausible — analítica de producto planificada, no activa todavía; no usa cookies. Mientras " +
+            "no se active, este proveedor no interviene (véase la ",
+          legalLink("Política de Cookies", "/legal/cookies"),
+          ").",
+        ],
+        [
+          "Google Analytics — analítica de producto planificada, no activa todavía; usa cookies " +
+            "(`_ga`/`_ga_*`) y solo se cargaría con consentimiento previo. Mientras no se active, este " +
+            "proveedor no interviene (véase la ",
+          legalLink("Política de Cookies", "/legal/cookies"),
+          ").",
+        ],
       ],
     },
     {
-      heading: "7. Contacto",
+      heading: "7. Responsable del tratamiento y contacto",
       paragraphs: [
-        "Responsable del tratamiento: Studio LXD, S.L. — NIF B24941411 — Avenida Menéndez Pelayo, 36, " +
-          "3.º, D. 28007 Madrid — hello@studiolxd.com. Más datos identificativos en el Aviso Legal.",
+        [
+          "Responsable del tratamiento: Studio LXD, S.L. — NIF B24941411 — Avenida Menéndez Pelayo, " +
+            "36, 3.º, D. 28007 Madrid — hello@studiolxd.com. Más datos identificativos en el ",
+          legalLink("Aviso Legal", "/legal/legal-notice"),
+          ".",
+        ],
       ],
     },
+    {
+      heading: "8. Cambios en esta política",
+      paragraphs: [
+        "Esta política puede actualizarse para reflejar cambios en el servicio o en la normativa " +
+          "aplicable. Cuando cambie su versión, la plataforma te pedirá que la leas y la aceptes al " +
+          "entrar en tu cuenta, junto con los Términos de Servicio.",
+      ],
+    },
+    languageVersionsSection(9),
   ],
 };

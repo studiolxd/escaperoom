@@ -1336,11 +1336,11 @@
     }
   },
   "Legal": {
-    "onlyInSpanishNotice": "Este contenido legal solo existe en español por ahora; specs/18 fija España como jurisdicción de referencia.",
+    "onlyInSpanishNotice": "El contenido de los documentos legales solo está disponible en español; el resto de la plataforma sí está traducido.",
     "nav": {
       "terms": "Términos de servicio",
       "privacy": "Política de privacidad",
-      "dpa": "Plantilla de DPA",
+      "dpa": "Anexo de encargo de tratamiento",
       "legalNotice": "Aviso legal",
       "cookies": "Política de cookies"
     },
@@ -1351,7 +1351,7 @@
       "title": "Política de Privacidad"
     },
     "dpa": {
-      "title": "Plantilla de Contrato de Encargo de Tratamiento (DPA)"
+      "title": "Anexo de Encargo de Tratamiento"
     },
     "legalNotice": {
       "title": "Aviso Legal"

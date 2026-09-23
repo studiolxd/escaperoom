@@ -1,4 +1,5 @@
-import type { LegalDocument } from "./types";
+import { languageVersionsSection } from "./language-versions";
+import { legalLink, type LegalDocument } from "./types";
 
 /**
  * Aviso Legal — BORRADOR TÉCNICO (ticket 6.2, specs/18).
@@ -49,27 +50,44 @@ export const legalNotice: LegalDocument = {
           "correspondiente, y están protegidos por la normativa de propiedad intelectual e industrial. " +
           "Queda prohibida su reproducción, distribución o transformación sin autorización previa por " +
           "escrito.",
-        "Las salas de escape, textos, configuración de puzzles, portadas y demás contenido que un " +
-          "creador diseña y publica en la plataforma siguen siendo suyos: Studio LXD, S.L. solo los " +
-          "aloja y distribuye en los términos descritos en los Términos de Servicio (sección de " +
-          "licencia sobre el contenido publicado por el creador, UGC).",
+        [
+          "Las salas de escape, textos, configuración de puzzles, portadas y demás contenido que un " +
+            "creador diseña y publica en la plataforma siguen siendo suyos: Studio LXD, S.L. solo los " +
+            "aloja y distribuye en los términos descritos en los ",
+          legalLink("Términos de Servicio", "/legal/terms"),
+          " (sección de licencia sobre el contenido publicado por el creador, UGC).",
+        ],
       ],
     },
     {
       heading: "4. Responsabilidad sobre contenidos de terceros",
       paragraphs: [
-        "Studio LXD, S.L. no se hace responsable del uso indebido que un creador, organizador o " +
-          "jugador pueda hacer de la plataforma, ni de la exactitud o calidad de las salas de escape " +
-          "publicadas por sus creadores. El remedio frente a una sala problemática es el sistema de " +
-          "reportes y moderación descrito en los Términos de Servicio, no una revisión previa de cada " +
-          "publicación.",
+        [
+          "Studio LXD, S.L. no se hace responsable del uso indebido que un creador, organizador o " +
+            "jugador pueda hacer de la plataforma, ni de la exactitud o calidad de las salas de " +
+            "escape publicadas por sus creadores. El remedio frente a una sala problemática es el " +
+            "sistema de reportes y moderación descrito en los ",
+          legalLink("Términos de Servicio", "/legal/terms"),
+          ", no una revisión previa de cada publicación.",
+        ],
       ],
     },
     {
       heading: "5. Protección de datos y cookies",
       paragraphs: [
-        "El tratamiento de tus datos personales se describe en la Política de Privacidad, y el uso de " +
-          "cookies y tecnologías similares en la Política de Cookies.",
+        [
+          "El tratamiento de tus datos personales se describe en la ",
+          legalLink("Política de Privacidad", "/legal/privacy"),
+          ", y el uso de cookies y tecnologías similares en la ",
+          legalLink("Política de Cookies", "/legal/cookies"),
+          ".",
+        ],
+        [
+          "Cuando un organizador trata en la plataforma datos de sus participantes, esa relación se " +
+            "rige por el ",
+          legalLink("Anexo de encargo de tratamiento", "/legal/dpa"),
+          ".",
+        ],
       ],
     },
     {
@@ -78,19 +96,15 @@ export const legalNotice: LegalDocument = {
         "Este aviso legal se rige por la legislación española. Para la resolución de cualquier " +
           "controversia que pudiera surgir del acceso o uso de la plataforma, las partes se someten a " +
           "los tribunales de Madrid, con renuncia a cualquier otro fuero que pudiera corresponderles.",
-        "Esta sumisión no se aplica si accedes como consumidor desde otro país de la Unión Europea: " +
-          "en ese caso conservas los derechos que te reconozca la ley de tu país de residencia, en " +
-          "línea con el mismo punto resuelto en los Términos de Servicio.",
+        [
+          "Esta sumisión no se aplica si accedes como consumidor desde otro país de la Unión " +
+            "Europea: en ese caso conservas los derechos que te reconozca la ley de tu país de " +
+            "residencia, en línea con el mismo punto resuelto en los ",
+          legalLink("Términos de Servicio", "/legal/terms"),
+          ".",
+        ],
       ],
     },
-    {
-      heading: "7. Versiones lingüísticas",
-      paragraphs: [
-        "Este aviso legal y el resto de documentos legales están disponibles en varios idiomas por " +
-          "comodidad de navegación (título y menú de navegación), pero el contenido en sí solo existe " +
-          "en español por ahora. En caso de discrepancia entre versiones, prevalece la versión en " +
-          "español.",
-      ],
-    },
+    languageVersionsSection(7),
   ],
 };

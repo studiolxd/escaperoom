@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LegalPage } from "@/components/legal/legal-page";
-import { dpaTemplate } from "@/content/legal/dpa-template";
+import { dpaAnnex } from "@/content/legal/dpa";
 
 type Props = { params: Promise<{ locale: string }> };
 
@@ -9,12 +9,12 @@ type Props = { params: Promise<{ locale: string }> };
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
- * Plantilla de DPA para organizadores B2B/Edu (ticket 6.2, specs/18 §3.1) —
- * borrador técnico del TEXTO de la plantilla; el mecanismo de firma
- * (`POST /api/organizations/:id/dpa/sign`) ya existe desde el ticket 5.11 y
- * no cambia aquí. Ver `content/legal/dpa-template.ts`.
+ * Anexo de encargo de tratamiento (DPA) para organizadores B2B/Edu (ticket
+ * 6.2, specs/18 §3.1) — borrador técnico del TEXTO del anexo; el mecanismo de
+ * aceptación (`POST /api/organizations/:id/dpa/sign`) ya existe desde el
+ * ticket 5.11 y no cambia aquí. Ver `content/legal/dpa.ts`.
  */
-export default async function DpaTemplatePage({ params }: Props) {
+export default async function DpaPage({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: "Legal" });
@@ -22,7 +22,7 @@ export default async function DpaTemplatePage({ params }: Props) {
   return (
     <LegalPage
       title={t("dpa.title")}
-      document={dpaTemplate}
+      document={dpaAnnex}
       onlyInSpanishNotice={locale === "es" ? undefined : t("onlyInSpanishNotice")}
       currentHref="/legal/dpa"
       nav={[
