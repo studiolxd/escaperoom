@@ -17,3 +17,5 @@ export * from "./audio-assets";
 export * from "./audio-assets-prisma-store";
 export * from "./room-publish";
 export * from "./room-publish-prisma-store";
+export * from "./events";
+export * from "./events-prisma-store";
