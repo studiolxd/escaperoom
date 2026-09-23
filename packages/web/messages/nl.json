@@ -108,5 +108,32 @@
     "invalid": "Die voorwerpen combineren niet",
     "missingItems": "Je mist voorwerpen voor dat recept",
     "unavailable": "De combinatie is niet beschikbaar"
+  },
+  "SplitClue": {
+    "title": "Gedeelde aanwijzing",
+    "prompt": "Combineer de fragmenten die ieder ziet",
+    "promptCode": "Voer de volledige code in",
+    "promptSymbols": "Voer de symbolen in volgorde in",
+    "progress": "Zichtbare fragmenten: {visible}/{total}",
+    "viewLabel": "Jouw zicht",
+    "fragment": "Fragment {index}",
+    "hidden": "?",
+    "hiddenLabel": "Verborgen fragment",
+    "inputLabel": "Jouw antwoord",
+    "slot": "Positie {index}",
+    "symbol": "Symbool {symbol}",
+    "paletteLabel": "Beschikbare symbolen",
+    "bridge": "De spiegel plaatsen",
+    "bridged": "De spiegel toont je de volledige aanwijzing",
+    "submit": "Controleren",
+    "clear": "Wissen",
+    "backspace": "Eén wissen",
+    "pending": "Controleren…",
+    "solved": "Aanwijzing voltooid!",
+    "locked": "De aanwijzing is nog niet beschikbaar",
+    "unavailable": "De aanwijzing accepteert geen antwoorden meer",
+    "wrong": "De combinatie is niet juist",
+    "incomplete": "Er ontbreken nog fragmenten",
+    "attempts": "Pogingen: {count}"
   }
 }

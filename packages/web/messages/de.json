@@ -108,5 +108,32 @@
     "invalid": "Diese Objekte lassen sich nicht kombinieren",
     "missingItems": "Dir fehlen Objekte für dieses Rezept",
     "unavailable": "Die Kombination ist nicht verfügbar"
+  },
+  "SplitClue": {
+    "title": "Geteilter Hinweis",
+    "prompt": "Kombiniert die Fragmente, die jeder sieht",
+    "promptCode": "Gebt den vollständigen Code ein",
+    "promptSymbols": "Gebt die Symbole der Reihe nach ein",
+    "progress": "Sichtbare Fragmente: {visible}/{total}",
+    "viewLabel": "Deine Sicht",
+    "fragment": "Fragment {index}",
+    "hidden": "?",
+    "hiddenLabel": "Verborgenes Fragment",
+    "inputLabel": "Deine Antwort",
+    "slot": "Position {index}",
+    "symbol": "Symbol {symbol}",
+    "paletteLabel": "Verfügbare Symbole",
+    "bridge": "Spiegel aufstellen",
+    "bridged": "Der Spiegel zeigt dir den vollständigen Hinweis",
+    "submit": "Prüfen",
+    "clear": "Löschen",
+    "backspace": "Eins löschen",
+    "pending": "Wird geprüft…",
+    "solved": "Hinweis vervollständigt!",
+    "locked": "Der Hinweis ist noch nicht verfügbar",
+    "unavailable": "Der Hinweis nimmt keine weiteren Antworten an",
+    "wrong": "Die Kombination ist falsch",
+    "incomplete": "Es fehlen noch Fragmente",
+    "attempts": "Versuche: {count}"
   }
 }

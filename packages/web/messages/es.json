@@ -207,5 +207,32 @@
       "arcaOpen": "El candado del arca se abre",
       "plates": "Las placas ceden: la puerta a la Bodega se abre"
     }
+  },
+  "SplitClue": {
+    "title": "Pista dividida",
+    "prompt": "Combina los fragmentos que veis entre todos",
+    "promptCode": "Introduce el código completo",
+    "promptSymbols": "Introduce los símbolos en orden",
+    "progress": "Fragmentos visibles: {visible}/{total}",
+    "viewLabel": "Tu visión",
+    "fragment": "Fragmento {index}",
+    "hidden": "?",
+    "hiddenLabel": "Fragmento oculto",
+    "inputLabel": "Tu respuesta",
+    "slot": "Posición {index}",
+    "symbol": "Símbolo {symbol}",
+    "paletteLabel": "Símbolos disponibles",
+    "bridge": "Colocar el espejo",
+    "bridged": "El espejo te muestra la pista completa",
+    "submit": "Comprobar",
+    "clear": "Borrar",
+    "backspace": "Borrar uno",
+    "pending": "Comprobando…",
+    "solved": "¡Pista completada!",
+    "locked": "La pista aún no está disponible",
+    "unavailable": "La pista no acepta más envíos",
+    "wrong": "La combinación no es correcta",
+    "incomplete": "Faltan fragmentos por completar",
+    "attempts": "Intentos: {count}"
   }
 }

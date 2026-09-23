@@ -108,5 +108,32 @@
     "invalid": "Ces objets ne se combinent pas",
     "missingItems": "Il te manque des objets pour cette recette",
     "unavailable": "La combinaison n'est pas disponible"
+  },
+  "SplitClue": {
+    "title": "Indice partagé",
+    "prompt": "Combinez les fragments que chacun voit",
+    "promptCode": "Saisissez le code complet",
+    "promptSymbols": "Saisissez les symboles dans l'ordre",
+    "progress": "Fragments visibles : {visible}/{total}",
+    "viewLabel": "Votre vision",
+    "fragment": "Fragment {index}",
+    "hidden": "?",
+    "hiddenLabel": "Fragment caché",
+    "inputLabel": "Votre réponse",
+    "slot": "Position {index}",
+    "symbol": "Symbole {symbol}",
+    "paletteLabel": "Symboles disponibles",
+    "bridge": "Placer le miroir",
+    "bridged": "Le miroir vous montre l'indice complet",
+    "submit": "Vérifier",
+    "clear": "Effacer",
+    "backspace": "Effacer un",
+    "pending": "Vérification…",
+    "solved": "Indice complété !",
+    "locked": "L'indice n'est pas encore disponible",
+    "unavailable": "L'indice n'accepte plus de réponses",
+    "wrong": "La combinaison est incorrecte",
+    "incomplete": "Il manque encore des fragments",
+    "attempts": "Tentatives : {count}"
   }
 }
