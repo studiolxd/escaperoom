@@ -13,6 +13,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@escaperoom/config": "workspace:*",
     "@escaperoom/editor": "workspace:*",
     "@escaperoom/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "1.30.0",
@@ -20,7 +21,6 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@escaperoom/config": "workspace:*",
     "@types/node": "^26.6.2",
     "@types/ws": "^8.18.1",
     "eslint": "^10.11.0",

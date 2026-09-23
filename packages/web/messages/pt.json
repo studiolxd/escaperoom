@@ -908,5 +908,32 @@
       "ACCESS_KEY_EXPIRED": "Esta chave já não é válida. Pede uma nova ao organizador.",
       "UNKNOWN": "Não foi possível confirmar. Tenta novamente dentro de alguns minutos."
     }
+  },
+  "PublishConfirm": {
+    "title": "Confirmar publicação",
+    "intro": "O teu assistente de IA pediu para publicar esta sala. Revê os dados: a sala só é publicada se tu confirmares.",
+    "room": "Sala",
+    "version": "Versão",
+    "notes": "Notas da versão",
+    "expires": "O pedido expira",
+    "warnings": "Avisos do validador (não bloqueiam):",
+    "irreversible": "Publicar é irreversível: a versão fica congelada e disponível para os jogadores.",
+    "cta": "Publicar agora",
+    "confirming": "A publicar…",
+    "success": "Publicada! A sala já está disponível como {version}.",
+    "errors": {
+      "UNAUTHORIZED": "Inicia sessão com a conta do criador da sala para confirmar a publicação.",
+      "FORBIDDEN": "Este pedido de publicação pertence a outra conta.",
+      "INVALID_TOKEN": "A ligação de confirmação não é válida. Pede ao assistente que volte a pedir a publicação.",
+      "EXPIRED": "O pedido expirou. Pede ao assistente que volte a pedir a publicação.",
+      "NOT_FOUND": "A sala não existe.",
+      "DRAFT_CHANGED": "O rascunho mudou desde que a publicação foi pedida. Pede ao assistente que valide e volte a pedi-la.",
+      "VERSION_CHANGED": "Já foi publicada uma versão com este pedido (ou depois dele). Faz um novo pedido para voltar a publicar.",
+      "VALIDATION_FAILED": "A sala já não passa no validador: corrige os erros antes de publicar.",
+      "ASSETS_NOT_PUBLISHABLE": "Há áudios pendentes ou rejeitados na moderação: ainda não é possível publicar.",
+      "ROOM_NOT_PUBLISHABLE": "A sala foi retirada pela moderação e não pode ser publicada.",
+      "PUBLISH_CONFIRM_DISABLED": "A confirmação de publicações não está disponível neste ambiente.",
+      "UNKNOWN": "Não foi possível publicar a sala. Tenta novamente."
+    }
   }
 }

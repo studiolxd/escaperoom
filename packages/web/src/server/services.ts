@@ -25,6 +25,9 @@ import {
   type AudioBlobStore,
   createAudioPublishAssetSource,
   createRoomPublishService,
+  createPublishConfirmationService,
+  readPublishConfirmConfig,
+  type PublishConfirmationService,
   createEventService,
   createPrismaEventStore,
   createAccessKeyService,
@@ -70,6 +73,7 @@ let platformSettings: PlatformSettingsService | undefined;
 let pricingTiers: PricingTierService | undefined;
 let audioAssets: AudioAssetService | undefined;
 let roomPublish: RoomPublishService | undefined;
+let publishConfirmations: PublishConfirmationService | null | undefined;
 let events: EventService | undefined;
 let reviews: ReviewService | undefined;
 let accessKeys: AccessKeyService | undefined;
@@ -173,6 +177,21 @@ export function getRoomPublishService(): RoomPublishService {
     });
   }
   return roomPublish;
+}
+
+/**
+ * Confirmación humana de las publicaciones pedidas por el MCP (ticket 4.5):
+ * token firmado con `PUBLISH_CONFIRM_SECRET` sobre `checkPublishable`/`publish`
+ * de 3.9. `null` en producción sin secreto (el MCP responde «no disponible»).
+ */
+export function getPublishConfirmationService(): PublishConfirmationService | null {
+  if (publishConfirmations === undefined) {
+    const config = readPublishConfirmConfig();
+    publishConfirmations = config
+      ? createPublishConfirmationService({ publish: getRoomPublishService(), config })
+      : null;
+  }
+  return publishConfirmations;
 }
 
 /**

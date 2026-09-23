@@ -908,5 +908,32 @@
     "filtered": "filtered",
     "filteredTitle": "The language filter censored part of this message",
     "hint": "Max. {max} characters · 2 messages per second"
+  },
+  "PublishConfirm": {
+    "title": "Confirm publication",
+    "intro": "Your AI assistant has asked to publish this room. Review the details: the room is only published if you confirm.",
+    "room": "Room",
+    "version": "Version",
+    "notes": "Version notes",
+    "expires": "The request expires",
+    "warnings": "Validator warnings (not blocking):",
+    "irreversible": "Publishing cannot be undone: the version is frozen and made available to players.",
+    "cta": "Publish now",
+    "confirming": "Publishing…",
+    "success": "Published! The room is now available as {version}.",
+    "errors": {
+      "UNAUTHORIZED": "Sign in with the room creator's account to confirm the publication.",
+      "FORBIDDEN": "This publication request belongs to another account.",
+      "INVALID_TOKEN": "The confirmation link is not valid. Ask the assistant to request the publication again.",
+      "EXPIRED": "The request has expired. Ask the assistant to request the publication again.",
+      "NOT_FOUND": "The room does not exist.",
+      "DRAFT_CHANGED": "The draft has changed since the publication was requested. Ask the assistant to validate and request it again.",
+      "VERSION_CHANGED": "A version has already been published with this request (or after it). Request a new one to publish again.",
+      "VALIDATION_FAILED": "The room no longer passes the validator: fix the errors before publishing.",
+      "ASSETS_NOT_PUBLISHABLE": "Some audio files are pending or rejected in moderation: the room cannot be published yet.",
+      "ROOM_NOT_PUBLISHABLE": "The room was removed by moderation and cannot be published.",
+      "PUBLISH_CONFIRM_DISABLED": "Publication confirmation is not available in this environment.",
+      "UNKNOWN": "The room could not be published. Please try again."
+    }
   }
 }

@@ -424,6 +424,9 @@ importers:
 
   packages/mcp-server:
     dependencies:
+      '@escaperoom/config':
+        specifier: workspace:*
+        version: link:../config
       '@escaperoom/editor':
         specifier: workspace:*
         version: link:../editor
@@ -440,9 +443,6 @@ importers:
         specifier: ^4.6.5
         version: 4.6.5
     devDependencies:
-      '@escaperoom/config':
-        specifier: workspace:*
-        version: link:../config
       '@types/node':
         specifier: ^26.6.2
         version: 26.6.2

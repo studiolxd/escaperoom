@@ -1,7 +1,13 @@
 import { roomDocToPackage } from "@escaperoom/editor/room-doc";
 import { handleCreatorMcpRequest } from "@escaperoom/mcp-server";
+import { siteUrl } from "@/lib/catalog-seo";
 import { resolveActorFromRequest } from "@/server/context";
-import { getCatalogService, getRoomDraftService } from "@/server/services";
+import { getPlaytestLauncher } from "@/server/playtest-launcher";
+import {
+  getCatalogService,
+  getPublishConfirmationService,
+  getRoomDraftService,
+} from "@/server/services";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +25,11 @@ function handler(request: Request): Promise<Response> {
       catalog: getCatalogService(),
       drafts: getRoomDraftService(),
       roomDocToPackage,
+      // 4.5: `preview` (playtest de 3.8) y `publish` (solicitud que el creador
+      // confirma en /publish-confirm con su sesión).
+      appUrl: siteUrl(),
+      playtests: getPlaytestLauncher(),
+      publishRequests: getPublishConfirmationService(),
     }),
   });
 }

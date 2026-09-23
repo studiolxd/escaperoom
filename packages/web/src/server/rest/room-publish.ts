@@ -15,7 +15,7 @@ export type RoomPublishHandlerDeps = {
 export type RoomRouteContext = { params: Promise<{ roomId: string }> };
 export type RoomVersionRouteContext = { params: Promise<{ roomId: string; versionId: string }> };
 
-const STATUS_BY_CODE: Record<RoomPublishErrorCode, number> = {
+export const PUBLISH_STATUS_BY_CODE: Record<RoomPublishErrorCode, number> = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
@@ -27,6 +27,8 @@ const STATUS_BY_CODE: Record<RoomPublishErrorCode, number> = {
   VALIDATION_FAILED: 422,
   ASSETS_NOT_PUBLISHABLE: 422,
   SERIALIZER_UNAVAILABLE: 501,
+  DRAFT_CHANGED: 409,
+  VERSION_CHANGED: 409,
 };
 
 function errorResponse(code: string, message: string, status: number, extra: object = {}) {
@@ -43,13 +45,13 @@ async function handle(fn: () => Promise<Response>): Promise<Response> {
     return await fn();
   } catch (err) {
     if (err instanceof RoomPublishError) {
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code], err.details);
+      return errorResponse(err.code, err.message, PUBLISH_STATUS_BY_CODE[err.code], err.details);
     }
     throw err;
   }
 }
 
-function versionJson(v: RoomVersionMeta) {
+export function versionJson(v: RoomVersionMeta) {
   return {
     id: v.id,
     semver: v.semver,

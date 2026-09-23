@@ -909,5 +909,32 @@
       "ACCESS_KEY_EXPIRED": "Esta clave ya no es válida. Pide al organizador una nueva.",
       "UNKNOWN": "No se pudo confirmar. Inténtalo de nuevo en unos minutos."
     }
+  },
+  "PublishConfirm": {
+    "title": "Confirmar publicación",
+    "intro": "Tu asistente de IA ha pedido publicar esta sala. Revisa los datos: la sala solo se publica si confirmas tú.",
+    "room": "Sala",
+    "version": "Versión",
+    "notes": "Notas de la versión",
+    "expires": "La solicitud caduca",
+    "warnings": "Avisos del validador (no bloquean):",
+    "irreversible": "Publicar es irreversible: la versión queda congelada y disponible para los jugadores.",
+    "cta": "Publicar ahora",
+    "confirming": "Publicando…",
+    "success": "¡Publicada! La sala ya está disponible como {version}.",
+    "errors": {
+      "UNAUTHORIZED": "Inicia sesión con la cuenta del creador de la sala para confirmar la publicación.",
+      "FORBIDDEN": "Esta solicitud de publicación es de otra cuenta.",
+      "INVALID_TOKEN": "El enlace de confirmación no es válido. Pide al asistente que vuelva a solicitar la publicación.",
+      "EXPIRED": "La solicitud ha caducado. Pide al asistente que vuelva a solicitar la publicación.",
+      "NOT_FOUND": "La sala no existe.",
+      "DRAFT_CHANGED": "El borrador ha cambiado desde que se pidió la publicación. Pide al asistente que valide y la solicite de nuevo.",
+      "VERSION_CHANGED": "Ya se ha publicado una versión con esta solicitud (o después de ella). Pide una nueva si quieres volver a publicar.",
+      "VALIDATION_FAILED": "La sala ya no pasa el validador: corrige los errores antes de publicar.",
+      "ASSETS_NOT_PUBLISHABLE": "Hay audios pendientes o rechazados en moderación: no se puede publicar todavía.",
+      "ROOM_NOT_PUBLISHABLE": "La sala fue retirada por moderación y no se puede publicar.",
+      "PUBLISH_CONFIRM_DISABLED": "La confirmación de publicaciones no está disponible en este entorno.",
+      "UNKNOWN": "No se pudo publicar la sala. Inténtalo de nuevo."
+    }
   }
 }
