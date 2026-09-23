@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Runtime del juego (modo play): loader puro del RoomPackage + escena Phaser isométrica.",
+  "description": "Runtime del juego (modos play y edit): loader puro del RoomPackage + escena Phaser isométrica.",
   "exports": {
     ".": "./src/index.ts",
     "./loader": "./src/loader/index.ts",

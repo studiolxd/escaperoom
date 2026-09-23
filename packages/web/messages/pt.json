@@ -424,5 +424,68 @@
         "unknown": "Id inexistente"
       }
     }
+  },
+  "RoomEditor": {
+    "untitledRoom": "Sala sem título",
+    "loading": "A carregar a tela…",
+    "connecting": "A ligar ao rascunho…",
+    "status": {
+      "local": "Local (sem sincronizar)",
+      "connecting": "A ligar…",
+      "connected": "Gravação automática",
+      "offline": "Sem ligação: as alterações serão sincronizadas ao voltar"
+    },
+    "header": {
+      "validate": "Validar",
+      "playtest": "Jogar",
+      "comingSoon": "Disponível em breve"
+    },
+    "tools": {
+      "label": "Ferramentas",
+      "select": "Selecionar",
+      "brush": "Pincel",
+      "fill": "Preencher",
+      "eraser": "Borracha",
+      "place": "Colocar"
+    },
+    "layers": {
+      "label": "Camada",
+      "ground": "Chão",
+      "walls": "Parede",
+      "decor": "Decoração"
+    },
+    "rooms": {
+      "label": "Divisões"
+    },
+    "palette": {
+      "title": "Paleta",
+      "pack": "Pack «{packId}»",
+      "tiles": "Tiles",
+      "objects": "Objetos",
+      "tileTitle": "Tile {tileId} · {layer}",
+      "placed": "{count, plural, one {# colocado} other {# colocados}}",
+      "empty": "Este pack não tem objetos."
+    },
+    "selection": {
+      "title": "Seleção",
+      "none": "Seleciona um objeto na tela ou coloca um a partir da paleta.",
+      "id": "ID",
+      "rename": "Mudar o nome",
+      "sprite": "Sprite",
+      "room": "Divisão",
+      "position": "Célula",
+      "delete": "Apagar objeto",
+      "inspectorSoon": "Estados, regras e outras propriedades serão editados no inspetor."
+    },
+    "errors": {
+      "connection": "Não foi possível abrir o rascunho. Verifica a tua sessão e se tens permissão para editar esta sala; continuamos a tentar.",
+      "invalidModel": "O rascunho está num estado que o runtime não consegue mostrar; é mostrada a última versão válida.",
+      "UNKNOWN_ROOM": "Essa divisão já não existe.",
+      "UNKNOWN_OBJECT": "Esse objeto já não existe.",
+      "OUT_OF_BOUNDS": "Essa célula está fora da divisão.",
+      "DUPLICATE_ID": "Esse ID já está em uso.",
+      "INVALID_ID": "Usa apenas minúsculas, números e hífenes (p. ex. arca-trono).",
+      "REFERENCED_ID": "Esse objeto já é usado em regras ou puzzles; muda-lhe o ID a partir do inspetor."
+    }
   }
 }

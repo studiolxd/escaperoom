@@ -136,6 +136,15 @@ describe("i18n", () => {
         "ValidationPanel.labels.checks.dead_ends",
         "ValidationPanel.labels.checks.puzzle_hints",
         "ValidationPanel.labels.kinds.rule",
+        "RoomEditor.untitledRoom",
+        "RoomEditor.status.connected",
+        "RoomEditor.tools.brush",
+        "RoomEditor.tools.fill",
+        "RoomEditor.tools.eraser",
+        "RoomEditor.layers.decor",
+        "RoomEditor.palette.placed",
+        "RoomEditor.selection.rename",
+        "RoomEditor.errors.DUPLICATE_ID",
       ]),
     );
   });

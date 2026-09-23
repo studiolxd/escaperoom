@@ -424,5 +424,68 @@
         "unknown": "Id inexistant"
       }
     }
+  },
+  "RoomEditor": {
+    "untitledRoom": "Salle sans titre",
+    "loading": "Chargement du canevas…",
+    "connecting": "Connexion au brouillon…",
+    "status": {
+      "local": "Local (non synchronisé)",
+      "connecting": "Connexion…",
+      "connected": "Enregistrement automatique",
+      "offline": "Hors ligne : les modifications seront synchronisées à la reconnexion"
+    },
+    "header": {
+      "validate": "Valider",
+      "playtest": "Jouer",
+      "comingSoon": "Bientôt disponible"
+    },
+    "tools": {
+      "label": "Outils",
+      "select": "Sélectionner",
+      "brush": "Pinceau",
+      "fill": "Remplissage",
+      "eraser": "Gomme",
+      "place": "Placer"
+    },
+    "layers": {
+      "label": "Calque",
+      "ground": "Sol",
+      "walls": "Mur",
+      "decor": "Décoration"
+    },
+    "rooms": {
+      "label": "Pièces"
+    },
+    "palette": {
+      "title": "Palette",
+      "pack": "Pack « {packId} »",
+      "tiles": "Tuiles",
+      "objects": "Objets",
+      "tileTitle": "Tuile {tileId} · {layer}",
+      "placed": "{count, plural, one {# placé} other {# placés}}",
+      "empty": "Ce pack n’a pas d’objets."
+    },
+    "selection": {
+      "title": "Sélection",
+      "none": "Sélectionnez un objet sur le canevas ou placez-en un depuis la palette.",
+      "id": "ID",
+      "rename": "Renommer",
+      "sprite": "Sprite",
+      "room": "Pièce",
+      "position": "Case",
+      "delete": "Supprimer l’objet",
+      "inspectorSoon": "Les états, règles et autres propriétés se modifieront dans l’inspecteur."
+    },
+    "errors": {
+      "connection": "Impossible d’ouvrir le brouillon. Vérifiez votre session et vos droits d’édition sur cette salle ; nouvelle tentative en cours.",
+      "invalidModel": "Le brouillon est dans un état que le runtime ne peut pas afficher ; dernière version valide affichée.",
+      "UNKNOWN_ROOM": "Cette pièce n’existe plus.",
+      "UNKNOWN_OBJECT": "Cet objet n’existe plus.",
+      "OUT_OF_BOUNDS": "Cette case est hors de la pièce.",
+      "DUPLICATE_ID": "Cet ID est déjà utilisé.",
+      "INVALID_ID": "Utilisez uniquement des minuscules, des chiffres et des tirets (ex. coffre-trone).",
+      "REFERENCED_ID": "Cet objet est déjà utilisé par des règles ou des puzzles ; renommez-le depuis l’inspecteur."
+    }
   }
 }

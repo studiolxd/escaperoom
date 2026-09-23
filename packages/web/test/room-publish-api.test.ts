@@ -8,10 +8,13 @@ import {
   createInMemoryRoomPublishStore,
   createRoomPublishService,
   createUnavailablePublishAssetSource,
+  createRoomDraftService,
   type Actor,
   type RoomPackageSerializer,
 } from "@escaperoom/shared/services";
+import { roomDocToPackage, roomPackageToDoc } from "@escaperoom/editor/room-doc";
 import { describe, expect, it } from "vitest";
+import * as Y from "yjs";
 import { createRoomPublishHandlers } from "../src/server/rest/room-publish";
 
 const ROOM_ID = "11111111-1111-4111-8111-111111111111";
@@ -156,6 +159,43 @@ describe("REST de publicación (specs/13 §4)", () => {
     const conflict = await api.postPublish({ semver: "2.0.0" }, "autora");
     expect(conflict.status).toBe(409);
     expect(((await conflict.json()) as ErrorJson).error.code).toBe("VERSION_CONFLICT");
+  });
+
+  it("con la serialización real del editor (3.1) congela el draft Yjs guardado", async () => {
+    const drafts = createInMemoryRoomDraftStore([{ id: ROOM_ID, authorId: author.userId }]);
+    await createRoomDraftService({ store: drafts }).appendUpdate(
+      author,
+      ROOM_ID,
+      Y.encodeStateAsUpdate(roomPackageToDoc(reyAldric)),
+    );
+    const publish = createRoomPublishService({
+      store: createInMemoryRoomPublishStore([
+        { id: ROOM_ID, authorId: author.userId, status: "draft" },
+      ]),
+      drafts,
+      serializer: roomDocToPackage,
+      assets: createUnavailablePublishAssetSource(),
+      storage: createInMemoryPublishedAssetStorage(),
+    });
+    const handlers = createRoomPublishHandlers({ publish, resolveActor: async () => author });
+    const res = await handlers.postPublish(
+      new Request(`http://localhost/api/rooms/${ROOM_ID}/publish`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+      { params: Promise.resolve({ roomId: ROOM_ID }) },
+    );
+    expect(res.status).toBe(201);
+    const { version } = (await res.json()) as { version: VersionJson };
+    const pkgRes = await handlers.getVersionPackage(
+      new Request(`http://localhost/api/rooms/${ROOM_ID}/versions/${version.id}/package`),
+      { params: Promise.resolve({ roomId: ROOM_ID, versionId: version.id }) },
+    );
+    const body = (await pkgRes.json()) as { package: RoomPackage };
+    expect(body.package.map).toEqual(reyAldric.map);
+    expect(body.package.objects).toEqual(reyAldric.objects);
+    expect(body.package.rules).toEqual(reyAldric.rules);
   });
 
   it("sin serializador (3.1 pendiente) → 501 SERIALIZER_UNAVAILABLE", async () => {

@@ -424,5 +424,68 @@
         "unknown": "Unbekannte ID"
       }
     }
+  },
+  "RoomEditor": {
+    "untitledRoom": "Raum ohne Titel",
+    "loading": "Zeichenfläche wird geladen…",
+    "connecting": "Verbindung zum Entwurf…",
+    "status": {
+      "local": "Lokal (nicht synchronisiert)",
+      "connecting": "Verbinde…",
+      "connected": "Automatisch gespeichert",
+      "offline": "Offline: Änderungen werden nach der Wiederverbindung synchronisiert"
+    },
+    "header": {
+      "validate": "Prüfen",
+      "playtest": "Spielen",
+      "comingSoon": "Bald verfügbar"
+    },
+    "tools": {
+      "label": "Werkzeuge",
+      "select": "Auswählen",
+      "brush": "Pinsel",
+      "fill": "Füllen",
+      "eraser": "Radierer",
+      "place": "Platzieren"
+    },
+    "layers": {
+      "label": "Ebene",
+      "ground": "Boden",
+      "walls": "Wand",
+      "decor": "Dekoration"
+    },
+    "rooms": {
+      "label": "Räume"
+    },
+    "palette": {
+      "title": "Palette",
+      "pack": "Pack „{packId}“",
+      "tiles": "Kacheln",
+      "objects": "Objekte",
+      "tileTitle": "Kachel {tileId} · {layer}",
+      "placed": "{count, plural, one {# platziert} other {# platziert}}",
+      "empty": "Dieses Pack hat keine Objekte."
+    },
+    "selection": {
+      "title": "Auswahl",
+      "none": "Wähle ein Objekt auf der Zeichenfläche aus oder platziere eines aus der Palette.",
+      "id": "ID",
+      "rename": "Umbenennen",
+      "sprite": "Sprite",
+      "room": "Raum",
+      "position": "Feld",
+      "delete": "Objekt löschen",
+      "inspectorSoon": "Zustände, Regeln und weitere Eigenschaften werden im Inspektor bearbeitet."
+    },
+    "errors": {
+      "connection": "Der Entwurf konnte nicht geöffnet werden. Prüfe deine Sitzung und deine Bearbeitungsrechte; wir versuchen es weiter.",
+      "invalidModel": "Der Entwurf ist in einem Zustand, den die Runtime nicht darstellen kann; die letzte gültige Version wird angezeigt.",
+      "UNKNOWN_ROOM": "Dieser Raum existiert nicht mehr.",
+      "UNKNOWN_OBJECT": "Dieses Objekt existiert nicht mehr.",
+      "OUT_OF_BOUNDS": "Dieses Feld liegt außerhalb des Raums.",
+      "DUPLICATE_ID": "Diese ID wird bereits verwendet.",
+      "INVALID_ID": "Nur Kleinbuchstaben, Ziffern und Bindestriche (z. B. truhe-thron).",
+      "REFERENCED_ID": "Dieses Objekt wird bereits von Regeln oder Rätseln verwendet; benenne es im Inspektor um."
+    }
   }
 }

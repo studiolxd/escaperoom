@@ -424,5 +424,68 @@
         "unknown": "Onbekende id"
       }
     }
+  },
+  "RoomEditor": {
+    "untitledRoom": "Kamer zonder titel",
+    "loading": "Canvas laden…",
+    "connecting": "Verbinden met het concept…",
+    "status": {
+      "local": "Lokaal (niet gesynchroniseerd)",
+      "connecting": "Verbinden…",
+      "connected": "Automatisch opgeslagen",
+      "offline": "Offline: wijzigingen worden gesynchroniseerd zodra je weer verbonden bent"
+    },
+    "header": {
+      "validate": "Valideren",
+      "playtest": "Spelen",
+      "comingSoon": "Binnenkort beschikbaar"
+    },
+    "tools": {
+      "label": "Gereedschap",
+      "select": "Selecteren",
+      "brush": "Penseel",
+      "fill": "Vullen",
+      "eraser": "Gum",
+      "place": "Plaatsen"
+    },
+    "layers": {
+      "label": "Laag",
+      "ground": "Vloer",
+      "walls": "Muur",
+      "decor": "Decoratie"
+    },
+    "rooms": {
+      "label": "Kamers"
+    },
+    "palette": {
+      "title": "Palet",
+      "pack": "Pack ‘{packId}’",
+      "tiles": "Tegels",
+      "objects": "Objecten",
+      "tileTitle": "Tegel {tileId} · {layer}",
+      "placed": "{count, plural, one {# geplaatst} other {# geplaatst}}",
+      "empty": "Dit pack heeft geen objecten."
+    },
+    "selection": {
+      "title": "Selectie",
+      "none": "Selecteer een object op het canvas of plaats er een vanuit het palet.",
+      "id": "ID",
+      "rename": "Hernoemen",
+      "sprite": "Sprite",
+      "room": "Kamer",
+      "position": "Vak",
+      "delete": "Object verwijderen",
+      "inspectorSoon": "Toestanden, regels en andere eigenschappen bewerk je in de inspector."
+    },
+    "errors": {
+      "connection": "Het concept kon niet worden geopend. Controleer je sessie en of je deze kamer mag bewerken; we blijven het proberen.",
+      "invalidModel": "Het concept is in een toestand die de runtime niet kan tonen; de laatste geldige versie wordt getoond.",
+      "UNKNOWN_ROOM": "Die kamer bestaat niet meer.",
+      "UNKNOWN_OBJECT": "Dat object bestaat niet meer.",
+      "OUT_OF_BOUNDS": "Dat vak ligt buiten de kamer.",
+      "DUPLICATE_ID": "Die ID is al in gebruik.",
+      "INVALID_ID": "Gebruik alleen kleine letters, cijfers en koppeltekens (bijv. kist-troon).",
+      "REFERENCED_ID": "Dat object wordt al gebruikt in regels of puzzels; hernoem het vanuit de inspector."
+    }
   }
 }

@@ -1,4 +1,5 @@
 import { fileURLToPath } from "node:url";
+import { roomDocToPackage } from "@escaperoom/editor/room-doc";
 import { prisma } from "@escaperoom/shared/db";
 import {
   createCatalogService,
@@ -32,5 +33,6 @@ await runStdioServer({
     listing: createPrismaPublishedRoomListing(prisma),
   }),
   drafts: createRoomDraftService({ store: createPrismaRoomDraftStore(prisma) }),
+  roomDocToPackage,
   actor,
 });

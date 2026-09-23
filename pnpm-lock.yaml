@@ -421,6 +421,9 @@ importers:
 
   packages/mcp-server:
     dependencies:
+      '@escaperoom/editor':
+        specifier: workspace:*
+        version: link:../editor
       '@escaperoom/shared':
         specifier: workspace:*
         version: link:../shared
