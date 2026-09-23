@@ -935,5 +935,30 @@
       "PUBLISH_CONFIRM_DISABLED": "Het bevestigen van publicaties is niet beschikbaar in deze omgeving.",
       "UNKNOWN": "De kamer kon niet worden gepubliceerd. Probeer het opnieuw."
     }
+  },
+  "McpConsent": {
+    "title": "Een AI-assistent koppelen",
+    "intro": "‘{client}’ wil via MCP kamers bouwen en bewerken met je makersaccount.",
+    "signedInAs": "Ingelogd als {user}",
+    "permissionsTitle": "Als je het toestaat, kan hij:",
+    "permissions": {
+      "drafts": "Je conceptkamers bekijken en bewerken.",
+      "noForeign": "Verder niets: geen toegang tot kamers van andere makers of tot je account.",
+      "expiry": "De toegang verloopt vanzelf; de assistent kan hem tot 30 dagen verlengen en op elk moment intrekken."
+    },
+    "redirectTo": "Daarna keer je terug naar {target}.",
+    "approve": "Toestaan",
+    "deny": "Weigeren",
+    "login": {
+      "intro": "Log in om verder te gaan.",
+      "google": "Doorgaan met Google",
+      "emailLabel": "Of ontvang een inloglink per e-mail",
+      "emailSubmit": "Link versturen",
+      "emailSent": "We hebben je een link gestuurd. Open hem in deze browser om verder te gaan.",
+      "error": "Inloggen mislukt. Probeer het opnieuw."
+    },
+    "errors": {
+      "invalid": "Het autorisatieverzoek is ongeldig. Koppel de assistent opnieuw vanuit de app."
+    }
   }
 }

@@ -16,6 +16,8 @@ export type ToolErrorCode =
   | "VALIDATION_FAILED"
   /** La sala pasa el validador pero no se puede publicar (audios en moderación, retirada…). */
   | "NOT_PUBLISHABLE"
+  /** La respuesta supera el tope de tamaño (4.7): usar las vistas filtradas. */
+  | "RESPONSE_TOO_LARGE"
   | "INTERNAL";
 
 /** Error de dominio que una tool traduce a resultado MCP con `isError`. */
