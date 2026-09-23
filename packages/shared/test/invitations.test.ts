@@ -271,8 +271,12 @@ describe("invitaciones por email (ticket 5.6)", () => {
       t.invitations.confirm(a.code, { token: `${forged}.${sig}` }),
       "CONFIRMATION_INVALID",
     );
+    // Cambiar el primer carácter por otro distinto (antes era siempre «x»: si la
+    // firma ya empezaba por «x», el token no cambiaba y el test fallaba 1 de 64).
+    // El primer carácter base64url lleva 6 bits de datos, sin bits de relleno.
+    const tamperedSig = `${sig.startsWith("A") ? "B" : "A"}${sig.slice(1)}`;
     await rejects(
-      t.invitations.confirm(a.code, { token: `${payload}.x${sig.slice(1)}` }),
+      t.invitations.confirm(a.code, { token: `${payload}.${tamperedSig}` }),
       "CONFIRMATION_INVALID",
     );
     // El token de B no confirma A.
