@@ -1246,6 +1246,30 @@
       "UNKNOWN": "Algo correu mal. Tente novamente."
     }
   },
+  "Legal": {
+    "nav": {
+      "terms": "Termos de serviço",
+      "privacy": "Política de privacidade",
+      "dpa": "Modelo de DPA",
+      "legalNotice": "Aviso legal",
+      "cookies": "Política de cookies"
+    },
+    "terms": {
+      "title": "Termos de Serviço"
+    },
+    "privacy": {
+      "title": "Política de Privacidade"
+    },
+    "dpa": {
+      "title": "Modelo de Contrato de Subcontratação de Tratamento de Dados (DPA)"
+    },
+    "legalNotice": {
+      "title": "Aviso Legal"
+    },
+    "cookies": {
+      "title": "Política de Cookies"
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Explorar salas",

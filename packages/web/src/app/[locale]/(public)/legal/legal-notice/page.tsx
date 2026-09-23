@@ -20,8 +20,6 @@ export default async function LegalNoticePage({ params }: Props) {
   return (
     <LegalPage
       title={t("legalNotice.title")}
-      draftNotice={t("draftNotice")}
-      draftDateLabel={t("draftDateLabel")}
       document={legalNotice}
       onlyInSpanishNotice={locale === "es" ? undefined : t("onlyInSpanishNotice")}
       currentHref="/legal/legal-notice"

@@ -1246,6 +1246,30 @@
       "UNKNOWN": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     }
   },
+  "Legal": {
+    "nav": {
+      "terms": "Nutzungsbedingungen",
+      "privacy": "Datenschutzerklärung",
+      "dpa": "DPA-Vorlage",
+      "legalNotice": "Rechtlicher Hinweis",
+      "cookies": "Cookie-Richtlinie"
+    },
+    "terms": {
+      "title": "Nutzungsbedingungen"
+    },
+    "privacy": {
+      "title": "Datenschutzerklärung"
+    },
+    "dpa": {
+      "title": "Vorlage für den Auftragsverarbeitungsvertrag (DPA)"
+    },
+    "legalNotice": {
+      "title": "Rechtlicher Hinweis"
+    },
+    "cookies": {
+      "title": "Cookie-Richtlinie"
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Räume entdecken",

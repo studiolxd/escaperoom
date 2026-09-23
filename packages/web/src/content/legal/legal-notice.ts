@@ -78,9 +78,9 @@ export const legalNotice: LegalDocument = {
         "Este aviso legal se rige por la legislación española. Para la resolución de cualquier " +
           "controversia que pudiera surgir del acceso o uso de la plataforma, las partes se someten a " +
           "los tribunales de Madrid, con renuncia a cualquier otro fuero que pudiera corresponderles.",
-        "[PENDIENTE ASESORÍA LEGAL: confirmar si el alcance geográfico inicial (usuarios de otros " +
-          "países de la Unión Europea desde el lanzamiento, specs/18 §1) exige matizar este punto, en " +
-          "línea con el mismo pendiente de los Términos de Servicio].",
+        "Esta sumisión no se aplica si accedes como consumidor desde otro país de la Unión Europea: " +
+          "en ese caso conservas los derechos que te reconozca la ley de tu país de residencia, en " +
+          "línea con el mismo punto resuelto en los Términos de Servicio.",
       ],
     },
     {

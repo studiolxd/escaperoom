@@ -1246,6 +1246,30 @@
       "UNKNOWN": "Une erreur s'est produite. Réessayez."
     }
   },
+  "Legal": {
+    "nav": {
+      "terms": "Conditions d'utilisation",
+      "privacy": "Politique de confidentialité",
+      "dpa": "Modèle de DPA",
+      "legalNotice": "Mentions légales",
+      "cookies": "Politique de cookies"
+    },
+    "terms": {
+      "title": "Conditions d'utilisation"
+    },
+    "privacy": {
+      "title": "Politique de confidentialité"
+    },
+    "dpa": {
+      "title": "Modèle de contrat de sous-traitance (DPA)"
+    },
+    "legalNotice": {
+      "title": "Mentions légales"
+    },
+    "cookies": {
+      "title": "Politique de cookies"
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Explorer les salles",

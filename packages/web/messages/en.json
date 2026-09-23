@@ -1334,6 +1334,30 @@
       "ctaFinish": "Finish"
     }
   },
+  "Legal": {
+    "nav": {
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "dpa": "DPA Template",
+      "legalNotice": "Legal Notice",
+      "cookies": "Cookie Policy"
+    },
+    "terms": {
+      "title": "Terms of Service"
+    },
+    "privacy": {
+      "title": "Privacy Policy"
+    },
+    "dpa": {
+      "title": "Data Processing Agreement (DPA) Template"
+    },
+    "legalNotice": {
+      "title": "Legal Notice"
+    },
+    "cookies": {
+      "title": "Cookie Policy"
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Browse rooms",

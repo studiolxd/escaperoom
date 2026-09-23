@@ -39,9 +39,10 @@ export const cookiesPolicy: LegalDocument = {
           "plataforma y exentas de consentimiento. Hoy son tu sesión de autenticación y tu idioma " +
           "preferido.",
         "Analítica: nos ayudaría a entender cómo se usa la plataforma (visitas agregadas, fuentes de " +
-          "tráfico) para poder mejorarla. [PENDIENTE ASESORÍA LEGAL / PLANIFICADO, NO ACTIVO: Plausible " +
-          "y Google Analytics, véase la sección 3 — mientras no se activen, esta categoría no tiene " +
-          "ninguna cookie ni requiere ningún banner de consentimiento].",
+          "tráfico) para poder mejorarla. Planificado, no activo todavía: Plausible y Google Analytics " +
+          "(véase la sección 3). Mientras no se activen, esta categoría no tiene ninguna cookie ni " +
+          "requiere ningún banner de consentimiento; cuando se active Google Analytics, sí lo " +
+          "requerirá, al ser el único de los dos que usa cookies.",
         "Marketing: mediría la publicidad con píxeles de terceros. Hoy no hay ninguna activa en la " +
           "plataforma.",
         "Preferencias: recordaría personalización opcional, no esencial. Hoy no hay ninguna activa " +

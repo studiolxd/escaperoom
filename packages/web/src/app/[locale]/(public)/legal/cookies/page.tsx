@@ -20,8 +20,6 @@ export default async function CookiesPage({ params }: Props) {
   return (
     <LegalPage
       title={t("cookies.title")}
-      draftNotice={t("draftNotice")}
-      draftDateLabel={t("draftDateLabel")}
       document={cookiesPolicy}
       onlyInSpanishNotice={locale === "es" ? undefined : t("onlyInSpanishNotice")}
       currentHref="/legal/cookies"

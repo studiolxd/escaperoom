@@ -1336,30 +1336,28 @@
     }
   },
   "Legal": {
-    "draftNotice": "Borrador pendiente de revisión legal: no es un texto vigente",
-    "draftDateLabel": "Versión del borrador",
     "onlyInSpanishNotice": "Este contenido legal solo existe en español por ahora; specs/18 fija España como jurisdicción de referencia.",
     "nav": {
-      "terms": "Términos de Servicio",
-      "privacy": "Política de Privacidad",
+      "terms": "Términos de servicio",
+      "privacy": "Política de privacidad",
       "dpa": "Plantilla de DPA",
-      "legalNotice": "Aviso Legal",
-      "cookies": "Política de Cookies"
+      "legalNotice": "Aviso legal",
+      "cookies": "Política de cookies"
     },
     "terms": {
-      "title": "Términos de Servicio (borrador)"
+      "title": "Términos de Servicio"
     },
     "privacy": {
-      "title": "Política de Privacidad (borrador)"
+      "title": "Política de Privacidad"
     },
     "dpa": {
-      "title": "Plantilla de Contrato de Encargo de Tratamiento (DPA) (borrador)"
+      "title": "Plantilla de Contrato de Encargo de Tratamiento (DPA)"
     },
     "legalNotice": {
-      "title": "Aviso Legal (borrador)"
+      "title": "Aviso Legal"
     },
     "cookies": {
-      "title": "Política de Cookies (borrador)"
+      "title": "Política de Cookies"
     }
   },
   "PublicNav": {

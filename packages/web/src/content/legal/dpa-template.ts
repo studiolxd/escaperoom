@@ -42,9 +42,8 @@ export const dpaTemplate: LegalDocument = {
       heading: "2. Partes",
       paragraphs: [
         "Responsable del tratamiento: la organización que firma (el organizador del evento).",
-        "Encargado del tratamiento: EscapeRoom Creator.",
-        "[PENDIENTE ASESORÍA LEGAL: identificación fiscal completa de la entidad que opera la " +
-          "plataforma, para incluir como encargado del tratamiento].",
+        "Encargado del tratamiento: Studio LXD, S.L. — NIF B24941411 — Avenida Menéndez Pelayo, 36, " +
+          "3.º, D. 28007 Madrid — hello@studiolxd.com, operadora de EscapeRoom Creator.",
       ],
     },
     {
@@ -81,9 +80,12 @@ export const dpaTemplate: LegalDocument = {
         "Notificar al responsable, sin dilación indebida, cualquier violación de la seguridad de " +
           "estos datos de la que tenga conocimiento.",
         "Asistir al responsable para que pueda cumplir sus obligaciones de responder a los derechos " +
-          "de sus participantes (acceso, rectificación, supresión, etc. — el mecanismo concreto para " +
-          "el responsable está [PENDIENTE ASESORÍA LEGAL: definir el procedimiento operativo de " +
-          "asistencia, más allá del export/borrado que ya tiene el propio organizador para su cuenta]).",
+          "de sus participantes (acceso, rectificación, supresión, etc.). Los participantes deben " +
+          "dirigir sus solicitudes al responsable (el organizador), no a la plataforma; si la " +
+          "plataforma recibe una solicitud de este tipo, la trasladará al organizador sin dilación " +
+          "indebida. La plataforma asiste al responsable mediante las funciones que ya ofrece " +
+          "(exportación y borrado de datos desde la cuenta del organizador) y, cuando eso no baste, " +
+          "con el apoyo razonable adicional que el organizador solicite.",
         "Suprimir o devolver todos los datos personales al finalizar la prestación del servicio, " +
           "salvo obligación legal de conservación (véase la sección 6).",
         "No subcontratar el tratamiento a un tercero sin autorización previa del responsable, salvo " +
@@ -106,9 +108,11 @@ export const dpaTemplate: LegalDocument = {
     {
       heading: "7. Transferencias internacionales",
       paragraphs: [
-        "[PENDIENTE ASESORÍA LEGAL: idéntico punto pendiente que la Política de Privacidad §6 — " +
-          "confirmar la ubicación de procesamiento y las garantías de transferencia internacional de " +
-          "cada subprocesador antes de que este contrato tenga validez para procesar datos reales].",
+        "Los subprocesadores listados en la Política de Privacidad §6 con sede fuera del Espacio " +
+          "Económico Europeo (Stripe y ElevenLabs, en Estados Unidos) tratan datos amparados en las " +
+          "Cláusulas Contractuales Tipo aprobadas por la Comisión Europea u otro mecanismo de " +
+          "transferencia válido conforme al RGPD; lo mismo aplica a lo que Resend/Postmark y " +
+          "Cloudflare R2 procesen fuera de la Unión Europea.",
       ],
     },
     {

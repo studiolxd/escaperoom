@@ -1246,6 +1246,30 @@
       "UNKNOWN": "Er ging iets mis. Probeer het opnieuw."
     }
   },
+  "Legal": {
+    "nav": {
+      "terms": "Gebruiksvoorwaarden",
+      "privacy": "Privacybeleid",
+      "dpa": "DPA-sjabloon",
+      "legalNotice": "Juridische kennisgeving",
+      "cookies": "Cookiebeleid"
+    },
+    "terms": {
+      "title": "Gebruiksvoorwaarden"
+    },
+    "privacy": {
+      "title": "Privacybeleid"
+    },
+    "dpa": {
+      "title": "Sjabloon verwerkersovereenkomst (DPA)"
+    },
+    "legalNotice": {
+      "title": "Juridische kennisgeving"
+    },
+    "cookies": {
+      "title": "Cookiebeleid"
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Kamers verkennen",

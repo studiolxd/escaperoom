@@ -51,9 +51,12 @@ export const termsOfService: LegalDocument = {
         "Los créditos de generación por IA no son reembolsables una vez consumidos. El saldo de un " +
           "evento no utilizado (aforo comprado que no se llega a jugar) no se convierte en crédito ni " +
           "se reembolsa salvo que la ley aplicable exija lo contrario.",
-        "[PENDIENTE ASESORÍA LEGAL: redactar la cláusula de derecho de desistimiento (o su exclusión, " +
-          "si aplica por tratarse de contenido digital ya iniciado) conforme a la normativa de " +
-          "consumidores vigente].",
+        "Los créditos de generación por IA y el aforo de un evento son contenido digital que se " +
+          "suministra al instante a tu saldo o a tu evento: al comprarlos solicitas expresamente que " +
+          "la ejecución empiece de inmediato y reconoces que, una vez abonados a tu saldo o " +
+          "confirmado el evento, pierdes el derecho de desistimiento sobre ellos (artículo 103.m) del " +
+          "Real Decreto Legislativo 1/2007, de 16 de noviembre, por el que se aprueba el texto " +
+          "refundido de la Ley General para la Defensa de los Consumidores y Usuarios).",
       ],
     },
     {
@@ -100,9 +103,12 @@ export const termsOfService: LegalDocument = {
         "La plataforma aloja contenido creado por sus usuarios y no garantiza su calidad ni su " +
           "exactitud. El remedio frente a una sala problemática es el sistema de reportes, no una " +
           "revisión previa de cada publicación por parte de la plataforma.",
-        "[PENDIENTE ASESORÍA LEGAL: cláusula estándar de limitación de responsabilidad conforme a la " +
-          "normativa de comercio electrónico y de prestadores de servicios de la sociedad de la " +
-          "información aplicable].",
+        "La plataforma se presta \"tal cual\" y \"según disponibilidad\". En la medida permitida por la " +
+          "ley, EscapeRoom Creator no será responsable de daños indirectos derivados del uso de la " +
+          "plataforma, ni de la disponibilidad o el correcto funcionamiento de sistemas de terceros a " +
+          "los que se conecta (Stripe, ElevenLabs, LiveKit u otros proveedores listados en la Política " +
+          "de Privacidad), ni de los resultados generados por los modelos de inteligencia artificial " +
+          "usados en el editor.",
       ],
     },
     {
@@ -125,10 +131,13 @@ export const termsOfService: LegalDocument = {
     {
       heading: "10. Ley aplicable y jurisdicción",
       paragraphs: [
-        "[PENDIENTE ASESORÍA LEGAL: confirmar la ley aplicable (previsiblemente España) y el alcance " +
-          "geográfico inicial — specs/18 §1 deja pendiente confirmar si hay usuarios de otros países " +
-          "de la Unión Europea desde el lanzamiento, lo que puede exigir cláusulas adicionales de " +
-          "protección de consumidores transfronteriza].",
+        "Estos Términos de Servicio se rigen por la legislación española. Para la resolución de " +
+          "cualquier controversia, las partes se someten a los tribunales de Madrid, con renuncia a " +
+          "cualquier otro fuero que pudiera corresponderles.",
+        "Esta sumisión no se aplica si contratas como consumidor: en ese caso el tribunal competente " +
+          "es el que determine la normativa de consumidores, que suele ser el de tu propio domicilio, " +
+          "y conservas los derechos que te reconozca la ley de tu país de residencia en la Unión " +
+          "Europea si accedes a la plataforma desde otro Estado miembro.",
       ],
     },
   ],

@@ -22,8 +22,6 @@ export default async function DpaTemplatePage({ params }: Props) {
   return (
     <LegalPage
       title={t("dpa.title")}
-      draftNotice={t("draftNotice")}
-      draftDateLabel={t("draftDateLabel")}
       document={dpaTemplate}
       onlyInSpanishNotice={locale === "es" ? undefined : t("onlyInSpanishNotice")}
       currentHref="/legal/dpa"
