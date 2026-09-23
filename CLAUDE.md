@@ -1,6 +1,26 @@
 # Instrucciones para Claude en este repo
 
-## Lanzar agentes: siempre vía Orca
+> **Ámbito de las dos secciones siguientes ("Lanzar agentes vía Orca" y "Modo
+> de trabajo por defecto"): SOLO para el worktree principal
+> (`/Users/suvi/Dev/escaperoom`), la sesión coordinadora.**
+>
+> Este archivo se comitea en el repo, así que todo worktree nuevo (incluidos
+> los que la coordinadora crea para delegar una tarea) lo hereda al clonar. Un
+> agente que YA está trabajando dentro de su propio worktree delegado no es la
+> coordinadora — para él, estas dos secciones no aplican: no debe lanzar sus
+> propios `orca worktree create`/`orca terminal create`, ni re-aplicar el
+> "flujo worktree + PR" sobre sí mismo (ya está en su worktree, su trabajo es
+> hacer la tarea y abrir su PR, no orquestar más agentes). Ya ha pasado que un
+> agente delegado, al leer este archivo, se lanzó su propio worktree+agente en
+> paralelo sobre la misma tarea sin que la coordinadora se enterara — de ahí
+> esta nota. Si un agente delegado necesita investigación puntual dentro de su
+> propia tarea, el tool `Agent`/subagentes internos de Claude Code sí está
+> permitido; `orca worktree create` no.
+>
+> El resto del archivo (UI con shadcn/ui) sí aplica a cualquiera, coordinadora
+> o agente delegado.
+
+## Lanzar agentes: siempre vía Orca (solo la sesión coordinadora)
 
 Cuando haya que lanzar un agente para trabajar en este repo (investigación,
 implementación, tareas delegadas), **usar siempre el CLI de Orca**
@@ -18,19 +38,7 @@ Esto aplica tanto a handoffs completos (`orca worktree create --agent codex
 en otros repos se resolvería con el tool `Agent` (`subagent_type: "Explore"`,
 `"fork"`, etc.) — en este repo, ese trabajo también debe ir a través de Orca.
 
-**Esta regla es para la sesión coordinadora, no para los agentes delegados.**
-Un agente que ya está trabajando en su propio worktree (delegado por la
-coordinadora) **NUNCA** debe lanzar su propio `orca worktree create` ni
-delegar su tarea a otro agente Orca — eso duplica trabajo sin que la
-coordinadora se entere (ya ha pasado: un agente delegado lanzó su propio
-worktree+agente en paralelo sobre la misma tarea). Si un agente delegado
-necesita investigación puntual dentro de su propia tarea, puede usar el tool
-`Agent`/subagentes internos de Claude Code (eso sí está bien, es trabajo
-dentro de su propio worktree) — pero nunca `orca worktree create` ni
-`orca terminal create` sobre un worktree nuevo. Incluir esto explícitamente
-en el brief de cualquier agente delegado.
-
-## Modo de trabajo por defecto: worktree + PR, no edición directa en main
+## Modo de trabajo por defecto (solo la sesión coordinadora): worktree + PR, no edición directa en main
 
 Salvo que el usuario diga explícitamente "trabajamos en main" (o equivalente),
 el flujo por defecto para cualquier tarea de código es:
