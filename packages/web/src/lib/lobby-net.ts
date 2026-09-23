@@ -1,4 +1,4 @@
-import type { LobbyPlayer } from "@/store/lobby-store";
+import type { ChatEntry, LobbyPlayer } from "@/store/lobby-store";
 
 /**
  * Tipado mínimo del estado autoritativo que llega por Colyseus. Se declara
@@ -12,9 +12,22 @@ export interface RemotePlayerState {
   tint: string;
 }
 
+/** Mensaje de chat tal y como llega en `state.chat` (specs/11 §3–4.4). */
+export interface RemoteChatMessage {
+  id: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  ts: number;
+  filtered: boolean;
+}
+
 export interface LobbyStateLike {
   players: {
     forEach: (callback: (player: RemotePlayerState) => void) => void;
+  };
+  chat?: {
+    forEach: (callback: (message: RemoteChatMessage) => void) => void;
   };
 }
 
@@ -33,4 +46,26 @@ export function collectPlayers(state: LobbyStateLike | undefined): Record<string
     };
   });
   return players;
+}
+
+/**
+ * Copia la ventana móvil de chat del `ArraySchema` a un array plano, en orden
+ * de llegada (el más reciente al final).
+ */
+export function collectChat(state: LobbyStateLike | undefined): ChatEntry[] {
+  const messages: ChatEntry[] = [];
+  if (!state?.chat) {
+    return messages;
+  }
+  state.chat.forEach((message) => {
+    messages.push({
+      id: message.id,
+      authorId: message.authorId,
+      authorName: message.authorName,
+      text: message.text,
+      ts: message.ts,
+      filtered: message.filtered,
+    });
+  });
+  return messages;
 }

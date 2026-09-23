@@ -43,3 +43,16 @@ export const MOVE_MESSAGE = "move" as const;
 
 /** Mensaje servidor → cliente para rechazos de protocolo (specs/11 §7). */
 export const ERROR_MESSAGE = "error" as const;
+
+/**
+ * El chat reutiliza el contrato de `@escaperoom/shared/chat` (specs/11 §4.4):
+ * así el servidor y el cliente comparten longitud, rate limit, ventana e ids de
+ * mensaje. Se reexportan para que el resto del servidor no dependa del subpath.
+ */
+export {
+  CHAT_HISTORY_LIMIT,
+  CHAT_INVALID_PAYLOAD_ERROR,
+  CHAT_MAX_LENGTH,
+  CHAT_MESSAGE,
+  CHAT_RATE_LIMITED_ERROR,
+} from "@escaperoom/shared/chat";
