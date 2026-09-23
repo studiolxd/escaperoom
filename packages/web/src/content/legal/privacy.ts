@@ -72,7 +72,10 @@ export const privacyPolicy: LegalDocument = {
           " antes de poder usar esa función.",
         ],
         "Chat de la partida: por interés legítimo (es parte de la funcionalidad del juego), sujeto a " +
-          "moderación automática y con una retención mínima (véase la sección 4).",
+          "moderación automática y con una retención mínima (véase la sección 4). El pre-check " +
+          "automático solo puede retirar contenido o congelar la cuenta a la espera de revisión; " +
+          "ninguna suspensión o cierre de cuenta se produce sin que una persona moderadora confirme " +
+          "el reporte antes (artículo 22 del RGPD).",
         "Grabación de sesión: solo con consentimiento explícito y unánime de los participantes; nunca " +
           "disponible para eventos con audiencia educativa.",
         "Registros técnicos: la dirección IP y el navegador (user agent) de tus sesiones abiertas, y " +
@@ -193,6 +196,8 @@ export const privacyPolicy: LegalDocument = {
           "Espacio Económico Europeo:",
       ],
       list: [
+        "Netcup — hosting de la plataforma (servidores y base de datos), en Núremberg (Alemania), " +
+          "Unión Europea; no supone una transferencia internacional.",
         "Stripe — pagos y verificación de creadores (Connect).",
         "ElevenLabs — conversión de texto a audio (generación de voces por IA). Sus condiciones de " +
           "uso vigentes en plan de pago reconocen la titularidad de EscapeRoom Creator sobre el audio " +
