@@ -45,6 +45,8 @@ canjea sus claves detrás del mismo NAT: los canjes correctos no la tocan.
 | `invitation-resend` | `POST /api/access-keys/:code/resend` | 60 / 10 min | 30 / 10 min | — |
 | `invitation-resend-pending` | `POST /api/events/:id/invitations/resend` (recordatorio masivo) | 10 / 1 h | 5 / 1 h | — |
 | `account-rights` | `GET /api/me/data-export`, `DELETE /api/me` (ticket 6.2) | 20 / 1 h | 5 / 1 h | — |
+| `contact-write` | `POST /api/contact` (público, sin sesión) | 5 / 10 min | — | — |
+| `terms-acceptance-write` | `POST /api/legal/terms-acceptance` (reaceptación de términos) | 20 / 1 h | 10 / 1 h | — |
 
 Razonamiento de los números:
 

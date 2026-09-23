@@ -1360,6 +1360,14 @@
     },
     "cookies": {
       "title": "Política de Cookies (borrador)"
+    },
+    "reaccept": {
+      "title": "Los términos han cambiado",
+      "description": "Hemos actualizado los Términos de Servicio y la Política de Privacidad. Léelos antes de continuar y acepta la nueva versión para seguir usando la cuenta.",
+      "termsLink": "Leer Términos de Servicio",
+      "privacyLink": "Leer Política de Privacidad",
+      "accept": "Aceptar y continuar",
+      "error": "No se pudo registrar la aceptación. Inténtalo de nuevo."
     }
   },
   "PublicNav": {
