@@ -1,24 +1,21 @@
-import { createCreatorMcpServer } from "@escaperoom/mcp-server";
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
+import { handleCreatorMcpRequest } from "@escaperoom/mcp-server";
 import { resolveActorFromRequest } from "@/server/context";
-import { getCatalogService } from "@/server/services";
+import { getCatalogService, getRoomDraftService } from "@/server/services";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
- * MCP del creador en `/mcp/creator` (HTTP streamable, sin sesión) — mínimo del
- * ticket 0.10. Sus tools llaman a los mismos servicios de dominio que tRPC y
- * REST (ADR-010/022); el OAuth 2.1 completo es Fase 4.
+ * MCP del creador en `/mcp/creator` (HTTP streamable, sin estado — ticket 4.1).
+ * La identidad es la sesión de Better Auth (sin sesión → 401); el OAuth 2.1 de
+ * 4.7 se engancha en `authenticate`. Sus tools llaman a los mismos servicios de
+ * dominio que tRPC y REST (ADR-010/022).
  */
-async function handler(request: Request): Promise<Response> {
-  const actor = await resolveActorFromRequest(request);
-  const server = createCreatorMcpServer({ catalog: getCatalogService(), actor });
-  const transport = new WebStandardStreamableHTTPServerTransport({
-    sessionIdGenerator: undefined,
-    enableJsonResponse: true,
+function handler(request: Request): Promise<Response> {
+  return handleCreatorMcpRequest(request, {
+    authenticate: resolveActorFromRequest,
+    createDeps: () => ({ catalog: getCatalogService(), drafts: getRoomDraftService() }),
   });
-  await server.connect(transport);
-  return transport.handleRequest(request);
 }
 
 export { handler as GET, handler as POST, handler as DELETE };
