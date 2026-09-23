@@ -8,6 +8,7 @@ import {
   type MediaTokenPayload,
 } from "../src/media/index";
 import { LobbyTestRoom } from "../src/rooms/lobby-test-room";
+import { getFreePort } from "./helpers/free-port";
 
 const MEDIA_KEYS = ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"] as const;
 
@@ -20,9 +21,8 @@ const config = defineConfig({
 });
 
 beforeAll(async () => {
-  // Puerto propio (2569) para no chocar con lobby-room.test.ts (2568) cuando
-  // Vitest ejecuta los ficheros de test en paralelo.
-  colyseus = await boot(config, 2569);
+  // Puerto libre asignado por el SO: evita EADDRINUSE entre procesos en paralelo.
+  colyseus = await boot(config, await getFreePort());
 });
 
 afterEach(async () => {

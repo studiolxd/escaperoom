@@ -1,9 +1,9 @@
 import { defineConfig, mergeConfig } from "vitest/config";
 import base from "@escaperoom/config/vitest";
 
-// Los tests de integración arrancan un servidor Colyseus real. Se ejecutan en
-// serie para que dos ficheros no levanten dos servidores a la vez (el segundo
-// `listen()` sobre el mismo puerto cuelga el hook de arranque).
+// Los tests de integración arrancan un servidor Colyseus real, cada uno en un
+// puerto libre del SO (test/helpers/free-port.ts). Se mantienen en serie para
+// no arrancar varios servidores Colyseus en el mismo proceso a la vez.
 export default mergeConfig(
   base,
   defineConfig({

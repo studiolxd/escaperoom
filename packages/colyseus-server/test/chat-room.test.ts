@@ -9,6 +9,7 @@ import {
   LOBBY_ROOM_NAME,
 } from "../src/constants";
 import { LobbyTestRoom } from "../src/rooms/lobby-test-room";
+import { getFreePort } from "./helpers/free-port";
 
 let colyseus: ColyseusTestServer;
 
@@ -19,7 +20,8 @@ const config = defineConfig({
 });
 
 beforeAll(async () => {
-  colyseus = await boot(config);
+  // Puerto libre asignado por el SO: evita EADDRINUSE entre procesos en paralelo.
+  colyseus = await boot(config, await getFreePort());
 });
 
 afterEach(async () => {
@@ -36,22 +38,18 @@ describe("chat del lobby_test (integración con @colyseus/testing)", () => {
     const clientA = await colyseus.connectTo(room);
     const clientB = await colyseus.connectTo(room);
 
-    const patchB = clientB.waitForNextPatch();
     clientA.send(CHAT_MESSAGE, { text: "hola desde A" });
-    await patchB;
-
-    expect(room.state.chat).toHaveLength(1);
-    expect(clientB.state.chat).toHaveLength(1);
+    // El siguiente patch puede ser aún el del join de B y no el del mensaje;
+    // esperamos a la convergencia (mismo patrón que lobby-room.test.ts).
+    await expect.poll(() => room.state.chat.length, { timeout: 5000 }).toBe(1);
+    await expect.poll(() => clientB.state.chat.length, { timeout: 5000 }).toBe(1);
     const first = room.state.chat.at(-1);
     expect(first?.text).toBe("hola desde A");
     expect(first?.authorId).toBe(clientA.sessionId);
     expect(first?.authorName).toBe("Jugador 1");
 
-    const patchA = clientA.waitForNextPatch();
     clientB.send(CHAT_MESSAGE, { text: "hola desde B" });
-    await patchA;
-
-    expect(clientA.state.chat).toHaveLength(2);
+    await expect.poll(() => clientA.state.chat.length, { timeout: 5000 }).toBe(2);
     expect(room.state.chat.at(-1)?.text).toBe("hola desde B");
   });
 

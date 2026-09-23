@@ -4,6 +4,7 @@ import defineConfig from "@colyseus/tools";
 import { ERROR_MESSAGE, LOBBY_ROOM_NAME, MOVE_MESSAGE } from "../src/constants";
 import { MOVE_TOO_FAST } from "../src/movement";
 import { LobbyTestRoom } from "../src/rooms/lobby-test-room";
+import { getFreePort } from "./helpers/free-port";
 
 let colyseus: ColyseusTestServer;
 
@@ -14,7 +15,8 @@ const config = defineConfig({
 });
 
 beforeAll(async () => {
-  colyseus = await boot(config);
+  // Puerto libre asignado por el SO: evita EADDRINUSE entre procesos en paralelo.
+  colyseus = await boot(config, await getFreePort());
 });
 
 afterEach(async () => {
