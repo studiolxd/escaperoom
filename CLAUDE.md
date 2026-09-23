@@ -18,6 +18,18 @@ Esto aplica tanto a handoffs completos (`orca worktree create --agent codex
 en otros repos se resolvería con el tool `Agent` (`subagent_type: "Explore"`,
 `"fork"`, etc.) — en este repo, ese trabajo también debe ir a través de Orca.
 
+**Esta regla es para la sesión coordinadora, no para los agentes delegados.**
+Un agente que ya está trabajando en su propio worktree (delegado por la
+coordinadora) **NUNCA** debe lanzar su propio `orca worktree create` ni
+delegar su tarea a otro agente Orca — eso duplica trabajo sin que la
+coordinadora se entere (ya ha pasado: un agente delegado lanzó su propio
+worktree+agente en paralelo sobre la misma tarea). Si un agente delegado
+necesita investigación puntual dentro de su propia tarea, puede usar el tool
+`Agent`/subagentes internos de Claude Code (eso sí está bien, es trabajo
+dentro de su propio worktree) — pero nunca `orca worktree create` ni
+`orca terminal create` sobre un worktree nuevo. Incluir esto explícitamente
+en el brief de cualquier agente delegado.
+
 ## Modo de trabajo por defecto: worktree + PR, no edición directa en main
 
 Salvo que el usuario diga explícitamente "trabajamos en main" (o equivalente),
