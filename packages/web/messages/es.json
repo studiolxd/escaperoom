@@ -1376,5 +1376,41 @@
     "submit": "Enviar mensaje",
     "success": "¡Gracias! Hemos recibido tu mensaje y te responderemos pronto.",
     "placeholderNotice": "Este formulario es un placeholder: de momento no se envía a ningún sistema real."
+  },
+  "Checkout": {
+    "kinds": {
+      "room": "esta sala",
+      "room_license": "esta licencia",
+      "event_credits": "este evento",
+      "generic": "esta compra"
+    },
+    "success": {
+      "title": "Pago confirmado",
+      "description": "El pago de {kind} se ha completado correctamente.",
+      "cta": "Continuar"
+    },
+    "cancelled": {
+      "title": "Pago cancelado",
+      "description": "No se ha completado el pago de {kind}. No se te ha cobrado nada.",
+      "retryCta": "Intentarlo de nuevo",
+      "backCta": "Volver al catálogo"
+    }
+  },
+  "Payouts": {
+    "pageTitle": "Cobros",
+    "title": "Cuenta de cobros",
+    "description": "Gestiona cómo recibes el reparto de tus ventas, licencias y eventos.",
+    "loading": "Consultando el estado de tu cuenta…",
+    "loadError": "No se pudo consultar el estado de tu cuenta. Inténtalo de nuevo.",
+    "statusLabel": "Estado:",
+    "status": {
+      "not_started": "Sin iniciar",
+      "pending": "Pendiente de completar",
+      "complete": "Completo"
+    },
+    "startOnboarding": "Configurar cuenta de cobros",
+    "continueOnboarding": "Continuar configuración",
+    "openDashboard": "Abrir panel de Stripe",
+    "actionError": "No se pudo completar la acción. Inténtalo de nuevo."
   }
 }

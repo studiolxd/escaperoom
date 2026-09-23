@@ -16,11 +16,13 @@ export function POST(request: Request) {
   return createPurchaseHandlers({
     purchases: getPurchaseService(),
     resolveActor: resolveActorFromRequest,
-    // Placeholder mínimo: no hay página de confirmación de compra en esta
-    // iteración (fuera de alcance, ver PR), así que se vuelve al catálogo.
+    // La pasarela no conoce el idioma del comprador (no viaja en `PaymentGateway`):
+    // igual que el resto de la superficie REST de compras, la confirmación se
+    // sirve siempre en `es` (`DEFAULT_LOCALE`); el selector de idioma de la
+    // propia página permite cambiarlo.
     buildUrls: () => ({
-      successUrl: `${origin}/es/rooms?checkout=success`,
-      cancelUrl: `${origin}/es/rooms?checkout=cancelled`,
+      successUrl: `${origin}/es/checkout/confirmation?type=room&status=success`,
+      cancelUrl: `${origin}/es/checkout/confirmation?type=room&status=cancelled`,
     }),
   }).postRoomCheckout(request);
 }
