@@ -18,6 +18,8 @@ import { isAnonymous, type Actor } from "@escaperoom/shared/services";
 export const MCP_ENV = {
   userId: "ESCAPEROOM_MCP_USER_ID",
   organizationId: "ESCAPEROOM_MCP_ORGANIZATION_ID",
+  /** Origen de la web para los enlaces de `publish` (por defecto `http://localhost:3000`). */
+  appUrl: "ESCAPEROOM_APP_URL",
 } as const;
 
 /**

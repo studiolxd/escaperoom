@@ -131,7 +131,11 @@ export type RoomPublishErrorCode =
   | "UNSUPPORTED_PACKAGE_FORMAT"
   | "VALIDATION_FAILED"
   | "ASSETS_NOT_PUBLISHABLE"
-  | "SERIALIZER_UNAVAILABLE";
+  | "SERIALIZER_UNAVAILABLE"
+  /** El draft ya no es el que se aprobó (`PublishGuard.packageHash`, ticket 4.5). */
+  | "DRAFT_CHANGED"
+  /** Se publicó otra versión desde que se aprobó (`PublishGuard.latestSemver`, ticket 4.5). */
+  | "VERSION_CHANGED";
 
 export type RoomPublishErrorDetails = {
   /** Campos inválidos (entrada o `RoomPackage` que no cumple el esquema). */
@@ -183,6 +187,13 @@ export function parseSemver(value: string): Semver | null {
 
 export function compareSemver(a: Semver, b: Semver): number {
   return a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+}
+
+/** Mayor semver publicado (`X.Y.Z`), o `null` si la sala no tiene versiones. */
+export function latestSemver(existing: readonly string[]): string | null {
+  const parsed = existing.map(parseSemver).filter((v): v is Semver => v !== null);
+  const latest = parsed.sort(compareSemver).at(-1);
+  return latest ? latest.join(".") : null;
 }
 
 /**
@@ -265,6 +276,29 @@ const EXT_BY_TYPE: Record<string, string> = {
 
 const sha256 = (data: Uint8Array | string) => createHash("sha256").update(data).digest("hex");
 
+/** JSON con las claves de los objetos ordenadas (forma canónica para hashear). */
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+      .map(([k, v]) => `${JSON.stringify(k)}:${canonicalJson(v)}`);
+    return `{${entries.join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+}
+
+/**
+ * Huella del contenido de un `RoomPackage` serializado del draft (ticket 4.5):
+ * SHA-256 de su JSON canónico (claves ordenadas). Mismo contenido ⇒ misma
+ * huella, sin depender del historial Yjs; cualquier cambio del draft que
+ * altere lo que se publicaría la cambia.
+ */
+export function computePackageHash(pkg: RoomPackage): string {
+  return `sha256:${sha256(canonicalJson(pkg))}`;
+}
+
 /** Asset empaquetado: clave direccionada por contenido dentro del bucket. */
 export type PackagedAsset = {
   ref: string;
@@ -305,6 +339,35 @@ export function computeAssetsHash(input: {
 
 export type PublishInput = { semver?: string; changelog?: string | null };
 
+/**
+ * Condiciones extra de una publicación (ticket 4.5, confirmación humana del
+ * MCP): se publica solo si el draft y el histórico siguen siendo los que el
+ * humano aprobó. Sin guard, `publish` se comporta como siempre (3.9).
+ */
+export type PublishGuard = {
+  /** `computePackageHash` del draft aprobado; si difiere ⇒ `DRAFT_CHANGED`. */
+  packageHash?: string;
+  /**
+   * Última versión publicada cuando se aprobó (`null` = ninguna). Se comprueba
+   * dentro del lock de la sala: si difiere ⇒ `VERSION_CHANGED`. Hace que una
+   * aprobación sirva para UNA publicación.
+   */
+  latestSemver?: string | null;
+};
+
+/** Resultado de `checkPublishable`: la sala publicaría así, pero no se ha escrito nada. */
+export type PublishCheck = {
+  roomId: string;
+  title: string;
+  /** `meta.defaultLanguage` del draft (para enlazar la web en su idioma). */
+  defaultLanguage: string;
+  packageHash: string;
+  latestSemver: string | null;
+  nextSemver: string;
+  /** Informe del validador (sin ❌; puede traer avisos 🟡). */
+  report: ValidationReport;
+};
+
 export type PublishResult = {
   version: RoomVersionMeta;
   /** Informe del validador (sin ❌; puede traer avisos 🟡). */
@@ -333,6 +396,20 @@ function parsePublishInput(input: unknown): PublishInput {
     semver: semver as string | undefined,
     changelog: typeof changelog === "string" && changelog.trim() ? changelog.trim() : null,
   };
+}
+
+/** `VERSION_CHANGED` si el guard fija una última versión distinta de la actual. */
+function checkLatestSemver(guard: PublishGuard | undefined, semvers: readonly string[]): void {
+  if (guard?.latestSemver === undefined) return;
+  const current = latestSemver(semvers);
+  if (current !== guard.latestSemver) {
+    throw new RoomPublishError(
+      "VERSION_CHANGED",
+      current
+        ? `Ya se publicó la versión ${current} desde que se aprobó esta publicación: vuelve a solicitarla`
+        : "El histórico de versiones cambió desde que se aprobó esta publicación: vuelve a solicitarla",
+    );
+  }
 }
 
 function toMeta(row: RoomVersionRow): RoomVersionMeta {
@@ -421,52 +498,93 @@ export function createRoomPublishService(deps: {
     return packaged;
   }
 
+  /**
+   * Comprobaciones previas comunes a `publish` y `checkPublishable` (con el
+   * autor ya autorizado): estado → semver → serialización → `packageFormat` →
+   * validador (❌ ⇒ `VALIDATION_FAILED` con el informe) → moderación de
+   * assets. No escribe ni sube nada.
+   */
+  async function prepare(
+    actor: Actor,
+    room: PublishRoomRef,
+    semver: string | undefined,
+    guard: PublishGuard = {},
+  ) {
+    const roomId = room.id;
+    if (room.status === "removed") {
+      throw new RoomPublishError(
+        "ROOM_NOT_PUBLISHABLE",
+        "La sala fue retirada por moderación; no se puede publicar",
+      );
+    }
+    // Falla pronto si el semver pedido no es válido o no es posterior.
+    const semvers = await store.listSemvers(roomId);
+    checkLatestSemver(guard, semvers);
+    const resolvedSemver = nextSemver(semvers, semver);
+
+    const draftPackage = await serializeDraft(room);
+    const packageHash = computePackageHash(draftPackage);
+    if (guard.packageHash !== undefined && guard.packageHash !== packageHash) {
+      throw new RoomPublishError(
+        "DRAFT_CHANGED",
+        "El draft ha cambiado desde que se aprobó la publicación: vuelve a solicitarla",
+      );
+    }
+    const format = draftPackage.meta.packageFormat;
+    if (!supportedFormats.includes(format)) {
+      throw new RoomPublishError(
+        "UNSUPPORTED_PACKAGE_FORMAT",
+        `packageFormat "${format}" no soportado (se admite: ${supportedFormats.join(", ")})`,
+      );
+    }
+
+    const report = validateRoomPackage(draftPackage);
+    if (!report.ok) {
+      throw new RoomPublishError(
+        "VALIDATION_FAILED",
+        "La sala no pasa la validación: corrige los errores ❌ antes de publicar",
+        { report, reportText: renderValidationReport(report) },
+      );
+    }
+
+    const refs = collectAssetRefs(draftPackage);
+    const problems = refs.length > 0 ? await assets.checkRefsForPublish(actor, refs) : [];
+    if (problems.length > 0) {
+      throw new RoomPublishError(
+        "ASSETS_NOT_PUBLISHABLE",
+        "Hay audios que no se pueden publicar (pendientes o rechazados en moderación)",
+        { problems },
+      );
+    }
+    return {
+      draftPackage,
+      packageHash,
+      report,
+      refs,
+      latest: latestSemver(semvers),
+      next: resolvedSemver,
+    };
+  }
+
   return {
     /**
      * `POST /api/rooms/:roomId/publish` — `{ semver?, changelog? }`. Orden:
      * autorización → serialización → `packageFormat` → validador (❌ bloquea,
      * `VALIDATION_FAILED` con el informe) → moderación de assets → subida al
      * bucket → `roomVersion` inmutable. Nada se sube si algo antes falla.
+     *
+     * `guard` (opcional, ticket 4.5): publica solo si el draft y la última
+     * versión siguen siendo los aprobados (`DRAFT_CHANGED`/`VERSION_CHANGED`).
      */
-    async publish(actor: Actor, roomId: string, input?: unknown): Promise<PublishResult> {
+    async publish(
+      actor: Actor,
+      roomId: string,
+      input?: unknown,
+      guard?: PublishGuard,
+    ): Promise<PublishResult> {
       const room = await authorizeAuthor(actor, roomId);
       const { semver, changelog } = parsePublishInput(input);
-      if (room.status === "removed") {
-        throw new RoomPublishError(
-          "ROOM_NOT_PUBLISHABLE",
-          "La sala fue retirada por moderación; no se puede publicar",
-        );
-      }
-      // Falla pronto si el semver pedido no es válido o no es posterior.
-      nextSemver(await store.listSemvers(roomId), semver);
-
-      const draftPackage = await serializeDraft(room);
-      const format = draftPackage.meta.packageFormat;
-      if (!supportedFormats.includes(format)) {
-        throw new RoomPublishError(
-          "UNSUPPORTED_PACKAGE_FORMAT",
-          `packageFormat "${format}" no soportado (se admite: ${supportedFormats.join(", ")})`,
-        );
-      }
-
-      const report = validateRoomPackage(draftPackage);
-      if (!report.ok) {
-        throw new RoomPublishError(
-          "VALIDATION_FAILED",
-          "La sala no pasa la validación: corrige los errores ❌ antes de publicar",
-          { report, reportText: renderValidationReport(report) },
-        );
-      }
-
-      const refs = collectAssetRefs(draftPackage);
-      const problems = refs.length > 0 ? await assets.checkRefsForPublish(actor, refs) : [];
-      if (problems.length > 0) {
-        throw new RoomPublishError(
-          "ASSETS_NOT_PUBLISHABLE",
-          "Hay audios que no se pueden publicar (pendientes o rechazados en moderación)",
-          { problems },
-        );
-      }
+      const { draftPackage, report, refs } = await prepare(actor, room, semver, guard);
 
       const packaged = await packageAssets(actor, room.id, refs);
       const assetsHash = computeAssetsHash({
@@ -475,7 +593,9 @@ export function createRoomPublishService(deps: {
       });
 
       const version = await store.withRoomLock(roomId, async (tx) => {
-        const resolved = nextSemver(await tx.listSemvers(roomId), semver);
+        const semvers = await tx.listSemvers(roomId);
+        checkLatestSemver(guard, semvers);
+        const resolved = nextSemver(semvers, semver);
         const frozen = rewriteAssetRefs(
           {
             ...draftPackage,
@@ -496,6 +616,25 @@ export function createRoomPublishService(deps: {
       });
 
       return { version: toMeta(version), report, assets: packaged };
+    },
+
+    /**
+     * Las mismas comprobaciones que `publish` (autor, validador, moderación de
+     * audios…) sin subir ni escribir nada: cómo quedaría la publicación y la
+     * huella del draft que se aprobaría (ticket 4.5).
+     */
+    async checkPublishable(actor: Actor, roomId: string): Promise<PublishCheck> {
+      const room = await authorizeAuthor(actor, roomId);
+      const prepared = await prepare(actor, room, undefined);
+      return {
+        roomId: room.id,
+        title: prepared.draftPackage.meta.title,
+        defaultLanguage: prepared.draftPackage.meta.defaultLanguage,
+        packageHash: prepared.packageHash,
+        latestSemver: prepared.latest,
+        nextSemver: prepared.next,
+        report: prepared.report,
+      };
     },
 
     /** `GET /api/rooms/:roomId/versions` — histórico público, de la más reciente a la más antigua. */

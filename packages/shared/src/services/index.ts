@@ -19,6 +19,7 @@ export * from "./audio-assets";
 export * from "./audio-assets-prisma-store";
 export * from "./room-publish";
 export * from "./room-publish-prisma-store";
+export * from "./publish-confirmation";
 export * from "./events";
 export * from "./events-prisma-store";
 export * from "./access-keys";

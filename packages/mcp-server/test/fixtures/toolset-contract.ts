@@ -21,8 +21,9 @@ export function toolsetContract(getClient: () => Client): void {
       if (def && "roomId" in def.inputSchema.shape) {
         expect(tool.inputSchema.required).toContain("roomId");
       }
-      // Toda tool implementada que muta admite el ensayo `dryRun` (4.4), opcional.
-      if (def?.run && def.annotations.readOnlyHint === false) {
+      // Toda tool implementada que muta el draft admite el ensayo `dryRun` (4.4),
+      // opcional. `publish` no escribe (solo pide la confirmación humana, 4.5).
+      if (def?.run && def.annotations.readOnlyHint === false && def.name !== "publish") {
         expect(Object.keys(tool.inputSchema.properties ?? {}), tool.name).toContain("dryRun");
         expect(tool.inputSchema.required ?? []).not.toContain("dryRun");
       }
@@ -45,23 +46,28 @@ export function toolsetContract(getClient: () => Client): void {
     expect(result.structured?.room).toEqual(room);
   });
 
-  it("validate corre el validador de 2.9 sobre el draft", async () => {
+  it("validate corre el validador de 2.9 sobre el draft y devuelve la checklist", async () => {
     const result = await call(getClient(), "validate", {
       roomId: ALDRIC_ROOM_ID,
       playerCounts: [4],
     });
     expect(result.isError).toBe(false);
     expect(result.structured?.ok).toBe(true);
+    expect(result.structured?.publishable).toBe(true);
+    expect(result.text).toContain("📋 Checklist de publicación — 0 errores");
     expect(result.text).toContain("✅");
     expect(result.text).toContain("Secuencia de solución verificada");
   });
 
-  it("una tool del esqueleto devuelve el error claro de no implementado", async () => {
-    const result = await call(getClient(), "preview", { roomId: ALDRIC_ROOM_ID });
-    expect(result.isError).toBe(true);
-    expect(errorCode(result)).toBe("NOT_IMPLEMENTED");
-    expect(result.text).toBe(
-      "❌ preview: no implementado todavía (ticket 4.5). El esquema de entrada ya es el definitivo.",
-    );
+  it("preview y publish sin playtest ni confirmación configurados responden NOT_AVAILABLE", async () => {
+    const preview = await call(getClient(), "preview", { roomId: ALDRIC_ROOM_ID });
+    expect(preview.isError).toBe(true);
+    expect(errorCode(preview)).toBe("NOT_AVAILABLE");
+    const publish = await call(getClient(), "publish", {
+      roomId: ALDRIC_ROOM_ID,
+      versionNotes: "v1.0",
+    });
+    expect(publish.isError).toBe(true);
+    expect(errorCode(publish)).toBe("NOT_AVAILABLE");
   });
 }

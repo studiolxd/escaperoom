@@ -908,5 +908,32 @@
       "ACCESS_KEY_EXPIRED": "Cette clé n’est plus valide. Demandez-en une nouvelle à l’organisateur.",
       "UNKNOWN": "La confirmation a échoué. Réessayez dans quelques minutes."
     }
+  },
+  "PublishConfirm": {
+    "title": "Confirmer la publication",
+    "intro": "Votre assistant IA a demandé à publier cette salle. Vérifiez les informations : la salle n'est publiée que si vous confirmez.",
+    "room": "Salle",
+    "version": "Version",
+    "notes": "Notes de version",
+    "expires": "La demande expire",
+    "warnings": "Avertissements du validateur (non bloquants) :",
+    "irreversible": "La publication est irréversible : la version est figée et mise à disposition des joueurs.",
+    "cta": "Publier maintenant",
+    "confirming": "Publication…",
+    "success": "Publiée ! La salle est maintenant disponible en {version}.",
+    "errors": {
+      "UNAUTHORIZED": "Connectez-vous avec le compte du créateur de la salle pour confirmer la publication.",
+      "FORBIDDEN": "Cette demande de publication appartient à un autre compte.",
+      "INVALID_TOKEN": "Le lien de confirmation n'est pas valide. Demandez à l'assistant de refaire la demande de publication.",
+      "EXPIRED": "La demande a expiré. Demandez à l'assistant de refaire la demande de publication.",
+      "NOT_FOUND": "La salle n'existe pas.",
+      "DRAFT_CHANGED": "Le brouillon a changé depuis la demande de publication. Demandez à l'assistant de valider et de refaire la demande.",
+      "VERSION_CHANGED": "Une version a déjà été publiée avec cette demande (ou après). Faites une nouvelle demande pour republier.",
+      "VALIDATION_FAILED": "La salle ne passe plus le validateur : corrigez les erreurs avant de publier.",
+      "ASSETS_NOT_PUBLISHABLE": "Des audios sont en attente ou refusés en modération : impossible de publier pour l'instant.",
+      "ROOM_NOT_PUBLISHABLE": "La salle a été retirée par la modération et ne peut pas être publiée.",
+      "PUBLISH_CONFIRM_DISABLED": "La confirmation des publications n'est pas disponible dans cet environnement.",
+      "UNKNOWN": "Impossible de publier la salle. Réessayez."
+    }
   }
 }

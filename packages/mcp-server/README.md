@@ -5,7 +5,7 @@ en borrador (`docs/specs/10-mcp-del-creador.md`). Sus tools **no tienen lógica 
 mismos servicios de dominio de `@escaperoom/shared/services` que el tRPC del editor y la REST, con
 un `actor` como única diferencia (ADR-010/022).
 
-## Toolset (tickets 4.1–4.4)
+## Toolset (tickets 4.1–4.5)
 
 El toolset completo de specs/10 §2 está registrado con su nombre, descripción, anotaciones y
 esquema de entrada (Zod de `@escaperoom/shared/schemas` → JSON Schema). Todas las tools que operan
@@ -16,17 +16,18 @@ sobre un draft reciben `roomId` (el mismo `:roomId` de `/api/rooms/:roomId/draft
 | A — Estructura | `create_room`, `set_map`, `paint_tiles`, `define_subrooms` | **implementadas** (4.2) |
 | B — Contenido | `add_object`, `define_item`, `add_puzzle`, `add_dialog`, `add_hint` | **implementadas** (4.2) |
 | C — Lógica | `add_rule`, `get_room_graph` | **implementadas** (4.3) |
-| D — Verificación | `validate` | **implementada** (validador de 2.9) |
-| D — Verificación | `preview`, `publish` | esqueleto (4.5) |
+| D — Verificación | `validate` | **implementada** (validador de 2.9; checklist de publicación en 4.5) |
+| D — Verificación | `preview`, `publish` | **implementadas** (4.5): playtest de 3.8 y publicación con confirmación humana |
 | E — Consulta | `get_room` | **implementada** (draft de 3.2) |
 | E — Consulta | `get_template_catalog` | **implementada** (4.2), pública |
 | E — Consulta | `get_puzzle`, `get_rules_for` | **implementadas** (4.3), vistas filtradas |
 | — | `get_featured_room` | ejemplo de 0.10 (paridad tRPC/REST/MCP), pública |
 
-Una tool del esqueleto responde con `isError: true`, el texto
-`❌ <tool>: no implementado todavía (ticket 4.x)…` y `structuredContent.error.code = "NOT_IMPLEMENTED"`.
-El resto de errores usan los mismos códigos (`UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`,
-`INVALID_DRAFT`, `INVALID_INPUT`, `VALIDATION_FAILED`, `NOT_AVAILABLE`, `INTERNAL`); los de una
+Con 4.5 todo el toolset está implementado; una tool sin `run` respondería con `isError: true`, el
+texto `❌ <tool>: no implementado todavía (ticket 4.x)…` y `structuredContent.error.code =
+"NOT_IMPLEMENTED"`. Los errores usan los mismos códigos (`UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`,
+`INVALID_DRAFT`, `INVALID_INPUT`, `VALIDATION_FAILED`, `NOT_PUBLISHABLE`, `NOT_AVAILABLE`,
+`INTERNAL`); los de una
 referencia inexistente llevan además `reason` y los ids `available` (specs/10 §3).
 
 `get_room`/`validate` leen el draft con `RoomDraftService.loadDraft` (misma autorización que el
@@ -125,6 +126,57 @@ Las consultas leen el doc del draft (`readDraftDoc`, misma autorización) con la
 3.1 y no exigen que el draft sea ya un RoomPackage completo; un id inexistente lista los
 disponibles.
 
+## Verificación y publicación (ticket 4.5)
+
+- **`validate({ roomId, playerCounts? })`** — la **checklist obligatoria de publicación**
+  (`src/publish-checklist.ts`) y debajo el informe completo del validador de 2.9:
+
+  ```
+  📋 Checklist de publicación — 0 errores · 2 avisos
+  ✅ Publicable: llama a publish({ roomId: "…", versionNotes }) para pedir la confirmación del creador.
+  Estimación: ~52 min (rango 42–62).
+  Avisos (no bloquean; revísalos con el creador):
+    🟡 …
+  ```
+
+  En `structuredContent`: `ok`, `publishable`, `errors` (`check`, `code`, `message`, `ids`),
+  `warnings` (`check`, `summary`, `issues`), `estimate` y los `checks`.
+- **`preview({ roomId })`** — el MISMO playtest de 3.8 que el botón «Jugar» del editor: serializa el
+  draft (solo el autor), lo congela en una room temporal de Colyseus con el `PlaytestLauncher` de
+  web (puerto `deps.playtests`) y devuelve la URL del link de prueba
+  (`{appUrl}/{idioma de la sala}/playtest/{token}`), su caducidad y el `playtestId`.
+- **`publish({ roomId, versionNotes })`** — **no publica**. Publicar es irreversible (specs/10 §5):
+  1. comprueba lo mismo que la publicación de 3.9 sin escribir nada (`checkPublishable`: autor,
+     `packageFormat`, validador — ❌ ⇒ `VALIDATION_FAILED` con la checklist —, audios moderados);
+  2. crea una **solicitud pendiente**: un token firmado y devuelve el enlace
+     `{appUrl}/{idioma}/publish-confirm?token=…` con `status: "pending_confirmation"`,
+     `published: false`, la versión que se creará y los avisos;
+  3. el creador abre el enlace **con su sesión** en la web, revisa sala, versión, notas y avisos, y
+     pulsa «Publicar ahora» (`POST /api/publish-confirm`). Solo entonces se llama a `publish` de 3.9
+     y se crea la `roomVersion`.
+
+### Mecanismo de confirmación
+
+`@escaperoom/shared/services` → `publish-confirmation.ts`. Token **sin estado** (HMAC-SHA256 con
+`PUBLISH_CONFIRM_SECRET`, como el `joinToken` de 5.8), sin tabla ni migración. Liga:
+
+| Claim | Garantía |
+| --- | --- |
+| `rid`, `sub` | Sala y autor que la pidió: solo esa cuenta, con sesión, puede confirmar (`FORBIDDEN` / `UNAUTHORIZED`). |
+| `ph` = `computePackageHash(RoomPackage)` | SHA-256 del JSON canónico del draft validado. Si el draft cambia tras pedirla, `publish` de 3.9 falla con `DRAFT_CHANGED` (409): se publica exactamente lo aprobado. |
+| `base` = última versión publicada | Se comprueba **dentro del lock de la sala**: tras la primera publicación (o si se publica desde el editor) el token falla con `VERSION_CHANGED`. **Un solo uso**, también con dos confirmaciones simultáneas. |
+| `notes`, `exp` | Notas de versión (≤ 1000 caracteres) y caducidad (`PUBLISH_CONFIRM_TTL_SECONDS`, 30 min por defecto, máx. 24 h): `EXPIRED`. |
+
+La publicación de 3.9 solo gana, de forma aditiva, `checkPublishable` y un `guard` opcional
+(`{ packageHash, latestSemver }`) en `publish`; sin guard se comporta igual que antes. La web usa la
+cookie de sesión (`SameSite=Lax`) y además rechaza `Sec-Fetch-Site` distinto de `same-origin`.
+
+Configuración: `PUBLISH_CONFIRM_SECRET` (mismo valor en web y en el MCP por stdio; en desarrollo hay
+uno fijo; en producción sin él `publish` responde `NOT_AVAILABLE`) y el origen de la web para los
+enlaces (`siteUrl()` en la ruta de Next; `ESCAPEROOM_APP_URL` por stdio, por defecto
+`http://localhost:3000`). Por stdio `preview` responde `NOT_AVAILABLE` (el lanzador del playtest
+vive en web): el creador usa «Jugar» en el editor.
+
 ## Estructura
 
 ```
@@ -135,6 +187,8 @@ src/
 ├── room-graph.ts         buildRoomGraph: grafo compacto de get_room_graph (4.3)
 ├── draft-writer.ts       mutateDraft: pipeline de mutación (dry-run → validador → commit por liveSync)
 ├── mutation-validation.ts  fotos del draft, caché y veredicto del validador incremental (4.4)
+├── publish-checklist.ts  checklist de publicación de validate/publish (4.5)
+├── links.ts              enlaces a la web (preview, confirmación) y puerto del playtest (4.5)
 ├── auth.ts               identidad: actorFromEnv (stdio), HttpAuthenticator (HTTP, enganche de 4.7)
 ├── transports/stdio.ts   runStdioServer(deps)
 ├── transports/http.ts    handleCreatorMcpRequest (Next /mcp/creator) y startHttpServer (Node)
@@ -152,6 +206,8 @@ El OAuth 2.1 (`@slxd/mcp-auth` sobre Better Auth) llega en **4.7**. Hasta entonc
   | --- | --- |
   | `ESCAPEROOM_MCP_USER_ID` | Id del usuario (Better Auth) con el que actúa el agente. **Obligatoria.** |
   | `ESCAPEROOM_MCP_ORGANIZATION_ID` | Organización activa (opcional). |
+  | `ESCAPEROOM_APP_URL` | Origen de la web para el enlace de confirmación de `publish` (por defecto `http://localhost:3000`). |
+  | `PUBLISH_CONFIRM_SECRET` | Secreto de la confirmación de `publish`: el mismo que en web (opcional en desarrollo). |
   | `DATABASE_URL` | Postgres de la app (el mismo que `packages/web`). |
 
 - **HTTP (`/mcp/creator` en `packages/web`):** la sesión de Better Auth de la petición. Sin sesión,
@@ -199,6 +255,12 @@ sustituto de la conversión de 3.1 que guarda el RoomPackage como JSON en el doc
 `roomDocToPackage` del draft resultante es un `RoomPackage` válido por esquema; además, los errores
 legibles, que un creador no toca el draft de otro, el enganche previo al commit y que un editor
 conectado al WebSocket de edición (3.3) ve la mutación al instante.
+
+`test/verification-toolset.test.ts` (4.5) usa los servicios reales en memoria (draft, publicación de
+3.9, confirmación): la checklist de `validate` en verde y en rojo; `preview` devuelve la URL del
+link de prueba y solo para el autor; `publish` falla con el informe si el validador no está en
+verde, en verde **no publica** hasta confirmar (y tras confirmar crea la `roomVersion`, de un solo
+uso), y si el draft cambia entre la solicitud y la confirmación, la confirmación se rechaza.
 
 `test/logic-toolset.test.ts` (4.3) siembra el Rey Aldric con `roomPackageToDoc`: el agente obtiene
 el grafo, añade una regla que aparece en `get_rules_for`, `get_room` y `roomDocToPackage`, y se

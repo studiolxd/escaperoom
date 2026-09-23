@@ -293,6 +293,18 @@ de dominio** con esta superficie REST y con el tRPC del editor, con un `actor` c
 Se autentica con OAuth 2.1 (`@slxd/mcp-auth`) y se sirve en `/mcp/creator`. Garantiza que "todo lo que
 el editor visual puede hacer, el MCP puede hacerlo" sin mantener dos superficies sincronizadas.
 
+**Publicar por MCP exige confirmación humana (ticket 4.5).** La tool `publish` no publica: comprueba
+lo mismo que `POST /api/rooms/:roomId/publish` sin escribir nada y devuelve un enlace
+`/{locale}/publish-confirm?token=…`. El creador lo abre con su sesión y confirma:
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| POST | `/api/publish-confirm` | autor (sesión, mismo sitio) | `{ token }` → 201 `{ version, warnings }`. Publica con el servicio de §4 solo si el draft y la última versión son los aprobados: `DRAFT_CHANGED`/`VERSION_CHANGED` (409), `EXPIRED` (410), `INVALID_TOKEN` (400), `FORBIDDEN` (403), `CROSS_SITE` (403), `PUBLISH_CONFIRM_DISABLED` (503) y los errores de §4 (422 con el informe). |
+
+El token es sin estado (HMAC con `PUBLISH_CONFIRM_SECRET`) y liga sala, autor, huella del
+`RoomPackage` validado, última versión publicada, notas y caducidad; ver
+`packages/mcp-server/README.md` § «Mecanismo de confirmación».
+
 ## 13. Dependencias
 
 - `specs/14-modelo-de-datos-sql.md` — tablas y constraints.

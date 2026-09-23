@@ -57,7 +57,7 @@ async function runTool(
 export function createCreatorMcpServer(deps: CreatorMcpDeps): McpServer {
   const server = new McpServer(MCP_SERVER_INFO, {
     instructions:
-      "MCP del creador de escape rooms: construye y edita salas en borrador (draft) con las mismas reglas que el editor visual. Empieza por get_room y valida con validate. Cada mutación se valida antes de escribirse: si introduce errores nuevos se rechaza con el motivo; pasa `dryRun: true` para ensayarla sin escribir.",
+      "MCP del creador de escape rooms: construye y edita salas en borrador (draft) con las mismas reglas que el editor visual. Empieza por get_room y valida con validate. Cada mutación se valida antes de escribirse: si introduce errores nuevos se rechaza con el motivo; pasa `dryRun: true` para ensayarla sin escribir. Para publicar: validate (checklist en verde), preview para probarla y publish, que NO publica: devuelve un enlace que el creador confirma en la web.",
   });
 
   for (const tool of CREATOR_TOOLSET) {

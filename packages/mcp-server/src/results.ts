@@ -14,6 +14,8 @@ export type ToolErrorCode =
   | "INVALID_INPUT"
   /** La mutación introduce errores nuevos en el validador (4.4): no se escribe. */
   | "VALIDATION_FAILED"
+  /** La sala pasa el validador pero no se puede publicar (audios en moderación, retirada…). */
+  | "NOT_PUBLISHABLE"
   | "INTERNAL";
 
 /** Error de dominio que una tool traduce a resultado MCP con `isError`. */

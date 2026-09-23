@@ -3,6 +3,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { ANONYMOUS_ACTOR, type Actor } from "@escaperoom/shared/services";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  CREATOR_TOOL_NAMES,
   CREATOR_TOOLSET,
   GET_FEATURED_ROOM_TOOL,
   MCP_ENDPOINT,
@@ -62,11 +63,14 @@ describe("mcp-server en memoria", () => {
     expect(MCP_ENDPOINT).toBe("/mcp/creator");
   });
 
-  it("4.1 implementa get_room y validate (más la tool de 0.10); el resto llega en 4.2–4.5", () => {
-    const implemented = CREATOR_TOOLSET.filter(
-      (tool) => tool.run && tool.ticket !== "4.2" && tool.ticket !== "4.3",
-    ).map((tool) => tool.name);
-    expect(implemented).toEqual(["validate", "get_room", GET_FEATURED_ROOM_TOOL]);
+  it("con 4.5 todo el toolset está implementado; 4.1 aportó get_room y validate", () => {
+    expect(CREATOR_TOOLSET.filter((tool) => !tool.run).map((tool) => tool.name)).toEqual([]);
+    const from41 = CREATOR_TOOLSET.filter((tool) => tool.ticket === "4.1").map((tool) => tool.name);
+    expect(from41).toEqual(["validate", "get_room"]);
+    expect(
+      CREATOR_TOOLSET.filter((tool) => tool.ticket === "4.5").map((tool) => tool.name),
+    ).toEqual(["preview", "publish"]);
+    expect(CREATOR_TOOL_NAMES).toContain(GET_FEATURED_ROOM_TOOL);
   });
 
   it("valida la entrada con los esquemas Zod compartidos", async () => {

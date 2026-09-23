@@ -908,5 +908,32 @@
       "ACCESS_KEY_EXPIRED": "Dieser Schlüssel ist nicht mehr gültig. Bitte die Organisation um einen neuen.",
       "UNKNOWN": "Die Bestätigung hat nicht geklappt. Versuche es in ein paar Minuten noch einmal."
     }
+  },
+  "PublishConfirm": {
+    "title": "Veröffentlichung bestätigen",
+    "intro": "Dein KI-Assistent möchte diesen Raum veröffentlichen. Prüfe die Angaben: Der Raum wird nur veröffentlicht, wenn du bestätigst.",
+    "room": "Raum",
+    "version": "Version",
+    "notes": "Versionshinweise",
+    "expires": "Die Anfrage läuft ab",
+    "warnings": "Hinweise des Validators (nicht blockierend):",
+    "irreversible": "Die Veröffentlichung ist endgültig: Die Version wird eingefroren und für Spieler freigegeben.",
+    "cta": "Jetzt veröffentlichen",
+    "confirming": "Wird veröffentlicht…",
+    "success": "Veröffentlicht! Der Raum ist jetzt als {version} verfügbar.",
+    "errors": {
+      "UNAUTHORIZED": "Melde dich mit dem Konto des Raum-Erstellers an, um die Veröffentlichung zu bestätigen.",
+      "FORBIDDEN": "Diese Veröffentlichungsanfrage gehört zu einem anderen Konto.",
+      "INVALID_TOKEN": "Der Bestätigungslink ist ungültig. Bitte den Assistenten, die Veröffentlichung erneut anzufragen.",
+      "EXPIRED": "Die Anfrage ist abgelaufen. Bitte den Assistenten, die Veröffentlichung erneut anzufragen.",
+      "NOT_FOUND": "Der Raum existiert nicht.",
+      "DRAFT_CHANGED": "Der Entwurf hat sich seit der Anfrage geändert. Bitte den Assistenten, ihn zu validieren und erneut anzufragen.",
+      "VERSION_CHANGED": "Mit dieser Anfrage (oder danach) wurde bereits eine Version veröffentlicht. Fordere eine neue an, um erneut zu veröffentlichen.",
+      "VALIDATION_FAILED": "Der Raum besteht den Validator nicht mehr: Behebe die Fehler vor dem Veröffentlichen.",
+      "ASSETS_NOT_PUBLISHABLE": "Einige Audiodateien sind in der Moderation ausstehend oder abgelehnt: Veröffentlichen ist noch nicht möglich.",
+      "ROOM_NOT_PUBLISHABLE": "Der Raum wurde von der Moderation entfernt und kann nicht veröffentlicht werden.",
+      "PUBLISH_CONFIRM_DISABLED": "Die Bestätigung von Veröffentlichungen ist in dieser Umgebung nicht verfügbar.",
+      "UNKNOWN": "Der Raum konnte nicht veröffentlicht werden. Bitte versuche es erneut."
+    }
   }
 }

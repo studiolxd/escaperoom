@@ -1,6 +1,12 @@
-import type { Actor, CatalogService, RoomDraftService } from "@escaperoom/shared/services";
+import type {
+  Actor,
+  CatalogService,
+  PublishConfirmationService,
+  RoomDraftService,
+} from "@escaperoom/shared/services";
 import type { BeforeDraftCommit, LiveDraftSync } from "./draft-writer";
 import type { DraftSnapshotCache } from "./mutation-validation";
+import type { PreviewPlaytestLauncher } from "./links";
 import type { RoomDocToPackage } from "./room-draft-reader";
 
 /**
@@ -27,4 +33,17 @@ export type CreatorMcpDeps = {
    * por el proceso (el HTTP crea deps por petición).
    */
   snapshotCache?: DraftSnapshotCache;
+  /**
+   * Origen público de la web (p. ej. `https://escaperoom.app`): base de los
+   * enlaces que devuelven `preview` y `publish` (4.5). Sin él, esas tools
+   * responden `NOT_AVAILABLE`.
+   */
+  appUrl?: string;
+  /** Playtest de 3.8 para `preview` (el `PlaytestLauncher` de web). */
+  playtests?: PreviewPlaytestLauncher | null;
+  /**
+   * Solicitudes de publicación con confirmación humana (4.5). El MCP solo
+   * PIDE publicar; la publicación la confirma el humano en la web.
+   */
+  publishRequests?: Pick<PublishConfirmationService, "request"> | null;
 };

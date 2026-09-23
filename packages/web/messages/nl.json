@@ -908,5 +908,32 @@
       "ACCESS_KEY_EXPIRED": "Deze sleutel is niet meer geldig. Vraag de organisator om een nieuwe.",
       "UNKNOWN": "Bevestigen is niet gelukt. Probeer het over een paar minuten opnieuw."
     }
+  },
+  "PublishConfirm": {
+    "title": "Publicatie bevestigen",
+    "intro": "Je AI-assistent wil deze kamer publiceren. Controleer de gegevens: de kamer wordt alleen gepubliceerd als jij bevestigt.",
+    "room": "Kamer",
+    "version": "Versie",
+    "notes": "Versienotities",
+    "expires": "Het verzoek verloopt",
+    "warnings": "Waarschuwingen van de validator (niet blokkerend):",
+    "irreversible": "Publiceren is onomkeerbaar: de versie wordt bevroren en beschikbaar gesteld aan spelers.",
+    "cta": "Nu publiceren",
+    "confirming": "Bezig met publiceren…",
+    "success": "Gepubliceerd! De kamer is nu beschikbaar als {version}.",
+    "errors": {
+      "UNAUTHORIZED": "Log in met het account van de maker van de kamer om de publicatie te bevestigen.",
+      "FORBIDDEN": "Dit publicatieverzoek hoort bij een ander account.",
+      "INVALID_TOKEN": "De bevestigingslink is ongeldig. Vraag de assistent om de publicatie opnieuw aan te vragen.",
+      "EXPIRED": "Het verzoek is verlopen. Vraag de assistent om de publicatie opnieuw aan te vragen.",
+      "NOT_FOUND": "De kamer bestaat niet.",
+      "DRAFT_CHANGED": "Het concept is gewijzigd sinds de publicatie werd aangevraagd. Vraag de assistent om te valideren en opnieuw aan te vragen.",
+      "VERSION_CHANGED": "Met dit verzoek (of daarna) is al een versie gepubliceerd. Vraag een nieuw verzoek aan om opnieuw te publiceren.",
+      "VALIDATION_FAILED": "De kamer slaagt niet meer voor de validator: los de fouten op voordat je publiceert.",
+      "ASSETS_NOT_PUBLISHABLE": "Sommige audiobestanden zijn in moderatie of afgewezen: publiceren kan nog niet.",
+      "ROOM_NOT_PUBLISHABLE": "De kamer is door moderatie verwijderd en kan niet worden gepubliceerd.",
+      "PUBLISH_CONFIRM_DISABLED": "Het bevestigen van publicaties is niet beschikbaar in deze omgeving.",
+      "UNKNOWN": "De kamer kon niet worden gepubliceerd. Probeer het opnieuw."
+    }
   }
 }
