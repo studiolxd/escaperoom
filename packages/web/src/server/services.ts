@@ -5,7 +5,11 @@ import { getRedis, redisPrefix } from "@escaperoom/kit/redis";
 import { roomDocToPackage, roomPackageToDoc } from "@escaperoom/editor/room-doc";
 import type { RoomPackageSerializer } from "@escaperoom/editor/validation";
 import { prisma } from "@escaperoom/shared/db";
-import { createInvitationEmailQueue, readConfirmationTokenConfig } from "@escaperoom/shared/mail";
+import {
+  createInvitationEmailQueue,
+  readConfirmationTokenConfig,
+  createMailTransportFromEnv,
+} from "@escaperoom/shared/mail";
 import { logger } from "@escaperoom/kit/logger";
 import { EVENT_ROOM_NAME } from "@/lib/colyseus";
 import {
@@ -90,6 +94,8 @@ import {
   readStripeConfig,
   createPrismaWebhookEventDedupeStore,
   type WebhookEventDedupeStore,
+  createContactService,
+  type ContactService,
 } from "@escaperoom/shared/services";
 import type Stripe from "stripe";
 import { createBullCardExportQueue } from "@escaperoom/shared/access-key-cards-queue";
@@ -127,6 +133,7 @@ let stripeClient: Stripe | null | undefined;
 let purchases: PurchaseService | undefined;
 let creatorConnect: CreatorConnectService | undefined;
 let webhookDedupe: WebhookEventDedupeStore | undefined;
+let contact: ContactService | null | undefined;
 
 /**
  * Adaptador mínimo de `ioredis` al `CatalogCacheStore` del cache del catálogo
@@ -537,4 +544,20 @@ export function getWebhookEventDedupeStore(): WebhookEventDedupeStore {
 export function getStripeWebhookSecret(): string | null {
   const config = readStripeConfig();
   return config.configured ? config.webhookSecret : null;
+}
+
+/**
+ * Formulario de contacto público (`/contact`): entrega síncrona por email al
+ * buzón de la empresa (`CONTACT_TO_EMAIL`, por defecto `hello@studiolxd.com`)
+ * con el mismo transporte que las invitaciones (`createMailTransportFromEnv`).
+ * `null` sin remitente configurado en producción (`EMAIL_FROM`): el endpoint
+ * responde `DELIVERY_UNAVAILABLE`/503 en vez de intentar enviar sin transporte.
+ */
+export function getContactService(): ContactService | null {
+  if (contact === undefined) {
+    const transport = createMailTransportFromEnv();
+    const to = process.env.CONTACT_TO_EMAIL?.trim() || "hello@studiolxd.com";
+    contact = transport ? createContactService({ transport, to }) : null;
+  }
+  return contact;
 }

@@ -78,6 +78,10 @@ export const RATE_LIMIT_POLICIES = {
     ip: { limit: 20, windowSeconds: 3600 },
     user: { limit: 5, windowSeconds: 3600 },
   },
+  /** `POST /api/contact` — público, sin sesión; anti-spam del formulario de contacto. */
+  "contact-write": {
+    ip: { limit: 5, windowSeconds: 600 },
+  },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitPolicyName = keyof typeof RATE_LIMIT_POLICIES;
