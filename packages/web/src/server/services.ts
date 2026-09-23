@@ -25,6 +25,9 @@ import {
   createRoomPublishService,
   createEventService,
   createPrismaEventStore,
+  createAccessKeyService,
+  createPrismaAccessKeyStore,
+  type AccessKeyService,
   type EventService,
   type CatalogService,
   type PlatformSettingsService,
@@ -48,6 +51,7 @@ let audioAssets: AudioAssetService | undefined;
 let roomPublish: RoomPublishService | undefined;
 let events: EventService | undefined;
 let reviews: ReviewService | undefined;
+let accessKeys: AccessKeyService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -158,4 +162,17 @@ export function getEventService(): EventService {
     payments: null,
   });
   return events;
+}
+
+/**
+ * Claves de acceso (specs/02 §4, specs/13 §6.2) sobre Postgres. Envuelve la
+ * activación de 5.4 para crear sesiones y claves al pasar a `active`. La
+ * caducidad la aplica el job de `@escaperoom/worker`.
+ */
+export function getAccessKeyService(): AccessKeyService {
+  accessKeys ??= createAccessKeyService({
+    store: createPrismaAccessKeyStore(prisma),
+    events: getEventService(),
+  });
+  return accessKeys;
 }

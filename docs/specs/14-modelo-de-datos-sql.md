@@ -359,6 +359,31 @@ CREATE TABLE "eventRecording" (
 );
 ```
 
+### 6.1 Asientos por clave y fin de grupo (ticket 5.5)
+
+Migración posterior a esta spec, `0012_access_keys` (`specs/02` §4): una clave de grupo o rotativa
+es un código compartido para N personas, así que la clave necesita saber cuántos asientos concede y
+cuántos se han canjeado; y la regla `on_group_complete` necesita saber cuándo un grupo superó la sala.
+
+```sql
+-- 0012_access_keys.sql
+ALTER TABLE "accessKey"
+  ADD COLUMN seats           int NOT NULL DEFAULT 1,   -- individual/batch = 1; group/rotating = N
+  ADD COLUMN "redeemedCount" int NOT NULL DEFAULT 0,   -- asientos canjeados (5.8)
+  ADD CONSTRAINT "ckAccessKeySeats"
+    CHECK (seats >= 0 AND "redeemedCount" >= 0 AND "redeemedCount" <= seats);
+CREATE INDEX "ixAccessKeyGroup" ON "accessKey"("groupId");
+DROP INDEX "ixAccessKeyExpirySweep";                   -- ahora cubre cualquier clave viva
+CREATE INDEX "ixAccessKeyExpirySweep" ON "accessKey"("expiresAt")
+  WHERE status NOT IN ('used', 'expired') AND "expiresAt" IS NOT NULL;
+ALTER TABLE "group" ADD COLUMN "completedAt" timestamptz;  -- lo escribe el servidor de partida
+```
+
+- `Σ seats` de las claves de un evento ≤ `event."playersPurchased"` (lo garantiza el servicio con la
+  fila del evento bloqueada).
+- Al rotar, la clave vieja pasa a `expired` con `seats = "redeemedCount"` (puede quedar en 0) y la
+  nueva (`regeneratedFrom`) hereda el resto: rotar no crea ni destruye asientos.
+
 ## 7. Compras y pagos
 
 ```sql
