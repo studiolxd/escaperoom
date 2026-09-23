@@ -1250,11 +1250,7 @@
     "logo": "Escape room",
     "catalog": "Catalogus",
     "contact": "Contact",
-    "createCta": "Maak je kamer",
-    "footer": {
-      "tagline": "Coöperatieve escape rooms gemaakt door onze community.",
-      "rights": "© {year} Escape room. Alle rechten voorbehouden."
-    }
+    "createCta": "Maak je kamer"
   },
   "Contact": {
     "metaTitle": "Contact",

@@ -1250,11 +1250,7 @@
     "logo": "Escape room",
     "catalog": "Catálogo",
     "contact": "Contacto",
-    "createCta": "Cria a tua sala",
-    "footer": {
-      "tagline": "Escape rooms cooperativos criados pela nossa comunidade.",
-      "rights": "© {year} Escape room. Todos os direitos reservados."
-    }
+    "createCta": "Cria a tua sala"
   },
   "Contact": {
     "metaTitle": "Contacto",
