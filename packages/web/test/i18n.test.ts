@@ -105,6 +105,15 @@ describe("i18n", () => {
         "EditorI18n.removePurge",
         "EditorI18n.errors.DEFAULT_LANGUAGE",
         "EditorI18n.errors.LAST_LANGUAGE",
+        "RulesGraph.title",
+        "RulesGraph.description",
+        "RulesGraph.externalChange",
+        "RulesGraph.labels.kinds.trigger",
+        "RulesGraph.labels.triggers.on_interact",
+        "RulesGraph.labels.conditions.item_in_inventory",
+        "RulesGraph.labels.actions.set_object_state",
+        "RulesGraph.labels.fields.objectId",
+        "RulesGraph.labels.ui.newRule",
       ]),
     );
   });

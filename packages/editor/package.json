@@ -16,16 +16,25 @@
   "devDependencies": {
     "@escaperoom/config": "workspace:*",
     "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/ws": "^8.18.1",
     "eslint": "^10.11.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "typescript": "^6.0.3",
     "vitest": "^5.0.1"
   },
   "dependencies": {
     "@escaperoom/shared": "workspace:*",
+    "@xyflow/react": "^12.11.6",
     "lib0": "^0.2.117",
     "ws": "^8.21.3",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.32"
+  },
+  "peerDependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   }
 }
