@@ -25,7 +25,7 @@ export async function PublicHeader() {
           <Button asChild variant="ghost" size="sm">
             <Link href="/contact">{t("contact")}</Link>
           </Button>
-          <LocaleSwitcher />
+          <LocaleSwitcher variant="select" />
           <Button asChild size="sm">
             <Link href="/creator/onboarding">{t("createCta")}</Link>
           </Button>
