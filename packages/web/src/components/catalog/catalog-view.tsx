@@ -44,10 +44,6 @@ export function CatalogView({
         </p>
       ) : null}
 
-      <p className="text-sm text-muted-foreground" aria-live="polite">
-        {t("results", { count: rooms.length })}
-      </p>
-
       {rooms.length === 0 ? (
         <p>{t("empty")}</p>
       ) : (
