@@ -15,3 +15,5 @@ export * from "./pricing-tiers";
 export * from "./admin-prisma-store";
 export * from "./audio-assets";
 export * from "./audio-assets-prisma-store";
+export * from "./room-publish";
+export * from "./room-publish-prisma-store";
