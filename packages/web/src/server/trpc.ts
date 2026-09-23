@@ -10,6 +10,11 @@ export type Context = {
   actor: Actor;
   catalog: CatalogService;
   reviews: ReviewService;
+  /**
+   * Gasta un intento de la política de rate limiting indicada (ticket 6.3) y
+   * dice si cabe. Opcional: los tests de routers no lo inyectan (sin límite).
+   */
+  rateLimit?: (policy: "review-write") => Promise<{ ok: boolean; retryAfter: number }>;
 };
 
 const t = initTRPC.context<Context>().create();

@@ -78,10 +78,15 @@ const config = defineConfig({
 });
 
 beforeAll(async () => {
+  // Los dos clientes de este E2E son máquinas: encadenan intentos (el mural se
+  // resuelve pieza a pieza) sin la cadencia de una persona. El rate limit por
+  // mensaje (ticket 6.3, specs/11 §9) tiene su propio test en `message-rate-limit`.
+  process.env.GAME_MESSAGE_RATE_LIMIT = "off";
   colyseus = await boot(config, await getFreePort());
 });
 
 afterAll(async () => {
+  delete process.env.GAME_MESSAGE_RATE_LIMIT;
   await colyseus.shutdown();
 });
 

@@ -129,6 +129,7 @@ export function createNetworkGameClient(
     code: str(p.code) || "error",
     message: str(p.message),
     ...(typeof p.retryAfterMs === "number" ? { retryAfterMs: p.retryAfterMs } : {}),
+    ...(typeof p.messageType === "string" ? { messageType: p.messageType } : {}),
   }));
   listen(MEDIA_PROTOCOL.token, (p) => ({ type: "media_token", payload: p }));
 

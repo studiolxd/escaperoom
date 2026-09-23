@@ -172,6 +172,7 @@
       "enterRoom": "Je gaat {room} binnen",
       "solved": "Opgelost: {puzzle}",
       "roomLocked": "De deur is nog dicht",
+      "rateLimited": "Je gaat te snel: wacht even",
       "rejected": "Dat kan hier niet"
     }
   },

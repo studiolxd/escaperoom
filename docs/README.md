@@ -80,6 +80,8 @@ después en código.
 | [Notas de diseño del Rey Aldric](reference/rey-aldric-notas-diseno.md) | Decisiones finas, informe de validación esperado, uso como fixture |
 | [Catálogo de plantillas](reference/catalogo-plantillas.md) | Tabla comparativa de las 23 plantillas (8 MVP + 15 v2) |
 | [Catálogo de ideas de puzzles](reference/catalogo-ideas-puzzles.md) | Repertorio original de minijuegos y puzzles (fuente de futuras plantillas) |
+| [Seguridad](reference/seguridad.md) | Rate limiting (tabla por ruta y por mensaje de partida), CSP y cabeceras, auditoría de admin (ticket 6.3) |
+| [Rotación de secretos](reference/rotacion-de-secretos.md) | Procedimiento y efecto de rotar cada secreto (join token, playtest, confirmación, OAuth…) |
 
 ---
 

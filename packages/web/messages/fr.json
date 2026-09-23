@@ -172,6 +172,7 @@
       "enterRoom": "Vous entrez dans {room}",
       "solved": "Résolu : {puzzle}",
       "roomLocked": "La porte est encore fermée",
+      "rateLimited": "Tu vas trop vite : attends un instant",
       "rejected": "Impossible de faire cela ici"
     }
   },

@@ -283,21 +283,24 @@ export function GameSessionShell({
     if (selfTint) handleRef.current?.setLocalTint(selfTint);
   }, [selfTint]);
 
-  const onReady = useCallback((handle: GameSessionCanvasHandle) => {
-    handleRef.current = handle;
-    // Estado que llegó antes de montar Phaser.
-    const current = snapshotRef.current;
-    appliedObjectsRef.current = {};
-    for (const [objectId, state] of Object.entries(current.objects)) {
-      appliedObjectsRef.current[objectId] = state;
-      if (declaresState(model, objectId, state)) handle.setObjectState(objectId, state);
-    }
-    if (current.self) {
-      serverRoomRef.current = current.self.roomId;
-      if (current.self.tint) handle.setLocalTint(current.self.tint);
-      handle.placeAvatar(current.self.x, current.self.y);
-    }
-  }, [model]);
+  const onReady = useCallback(
+    (handle: GameSessionCanvasHandle) => {
+      handleRef.current = handle;
+      // Estado que llegó antes de montar Phaser.
+      const current = snapshotRef.current;
+      appliedObjectsRef.current = {};
+      for (const [objectId, state] of Object.entries(current.objects)) {
+        appliedObjectsRef.current[objectId] = state;
+        if (declaresState(model, objectId, state)) handle.setObjectState(objectId, state);
+      }
+      if (current.self) {
+        serverRoomRef.current = current.self.roomId;
+        if (current.self.tint) handle.setLocalTint(current.self.tint);
+        handle.placeAvatar(current.self.x, current.self.y);
+      }
+    },
+    [model],
+  );
 
   // — Mensajes del servidor ————————————————————————————————————————
 
@@ -362,6 +365,22 @@ export function GameSessionShell({
           setHintError(null);
           break;
         case "error":
+          // Rate limit por mensaje de la partida (specs/11 §9, ticket 6.3): el
+          // servidor descartó el mensaje. Un `move` descartado deja el avatar
+          // por delante: vuelve a la posición autoritativa.
+          if (
+            event.code === "RATE_LIMITED" &&
+            event.messageType !== undefined &&
+            event.messageType !== "chat"
+          ) {
+            const me = snapshotRef.current.self;
+            if (event.messageType === "move") {
+              if (me) handleRef.current?.placeAvatar(me.x, me.y);
+            } else {
+              pushLog(tp("log.rateLimited"));
+            }
+            break;
+          }
           if (event.code === "RATE_LIMITED" || event.code === "INVALID_PAYLOAD") {
             setChatError(event.message || errorText(event.code));
             break;

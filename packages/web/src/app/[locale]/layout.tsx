@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import { cn } from "@/lib/utils";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
@@ -26,10 +27,16 @@ export async function generateMetadata({ params }: { params: Props["params"] }) 
 
 /**
  * Layout raíz del App Router para el segmento `[locale]` (specs/03 §1): valida
- * el idioma, habilita el renderizado estático y expone los mensajes a los
- * Client Components vía `NextIntlClientProvider`.
+ * el idioma y expone los mensajes a los Client Components vía
+ * `NextIntlClientProvider`.
+ *
+ * Renderizado dinámico (ticket 6.3): la CSP lleva un nonce por petición
+ * (`src/proxy.ts`) y Next solo lo pone en sus `<script>` al renderizar la
+ * petición; una página prerenderizada en el build saldría sin nonce y la CSP
+ * bloquearía su JavaScript. `connection()` lo fuerza para todo el segmento.
  */
 export default async function LocaleLayout({ children, params }: Props) {
+  await connection();
   const { locale } = await params;
   if (!hasLocale(routing.locales, locale)) {
     notFound();

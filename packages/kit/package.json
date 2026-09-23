@@ -13,6 +13,8 @@
     "./redis/lock": "./src/redis/lock.ts",
     "./rate-limit": "./src/rate-limit/index.ts",
     "./rate-limit/memory": "./src/rate-limit/memory.ts",
+    "./rate-limit/sliding": "./src/rate-limit/sliding.ts",
+    "./rate-limit/http": "./src/rate-limit/http.ts",
     "./storage": "./src/storage/index.ts",
     "./storage/validation": "./src/storage/validation.ts",
     "./queue": "./src/queue/index.ts",

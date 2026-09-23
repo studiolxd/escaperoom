@@ -11,6 +11,9 @@ export default mergeConfig(
   base,
   defineConfig({
     oxc: { jsx: { runtime: "automatic" } },
+    // El middleware de next-intl importa `next/server` sin extensión, que Node
+    // no resuelve en ESM; procesado por Vite sí (lo usa `src/proxy.ts`, 6.3).
+    test: { server: { deps: { inline: ["next-intl"] } } },
     resolve: {
       alias: [
         { find: /^@\//, replacement: `${fileURLToPath(new URL("./src", import.meta.url))}/` },

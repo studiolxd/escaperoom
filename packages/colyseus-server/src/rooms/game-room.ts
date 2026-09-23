@@ -27,6 +27,12 @@ import {
 import { RoomChat } from "../chat.js";
 import { resolveRoomPackage } from "../game/room-packages.js";
 import { MEDIA_TOKEN_REQUEST_MESSAGE, sendMediaTokenToClient } from "../media/index.js";
+import {
+  MESSAGE_RATE_LIMITED_ERROR,
+  MessageRateLimiter,
+  readGameMessageRateLimits,
+  type GameMessageRateLimits,
+} from "../message-rate-limit.js";
 import { distance, validateMove } from "../movement.js";
 import {
   GameInventoryState,
@@ -131,6 +137,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   private readonly openPanels = new Map<string, Set<string>>();
   /** Chat de la partida (specs/11 §4.4): en cualquier fase, también en el lobby. */
   private readonly chat = new RoomChat();
+  /** Rate limit por mensaje y jugador (specs/11 §9); `undefined` = apagado. */
+  private messageLimiter?: MessageRateLimiter;
 
   override onCreate(options: GameRoomOptions = {}): void {
     const roomPackage = this.loadRoomPackage(options);
@@ -145,12 +153,32 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.state.roomPackageId = roomPackage.meta.id;
     this.state.roomPackageVersion = roomPackage.meta.version;
 
+    const limits = this.messageRateLimits();
+    this.messageLimiter = limits ? new MessageRateLimiter(limits) : undefined;
+
     // Toda intención pasa por `canAct`: la `EventRoom` (5.9) admite observadores
     // de solo lectura cuyas acciones se rechazan antes de llegar al motor.
+    // Después, el rate limit por jugador (specs/11 §9, ticket 6.3): un mensaje
+    // por encima de su cuota se descarta sin llegar al handler y el emisor
+    // recibe UN `error RATE_LIMITED` por tipo y ventana. El observador se
+    // rechaza ANTES del rate limit, así que no registra nada en el limitador
+    // (las cuotas son por `sessionId`: nunca comparte la de un jugador).
     const on = (type: string, handler: (client: Client, payload: unknown) => void) =>
       this.onMessage(type, (client, payload: unknown) => {
         if (!this.canAct(client)) {
           this.fail(client, GAME_ERRORS.permissionDenied, "Un observador no puede actuar.");
+          return;
+        }
+        const decision = this.messageLimiter?.check(client.sessionId, type, payload);
+        if (decision && !decision.ok) {
+          if (decision.notify) {
+            client.send(ERROR_MESSAGE, {
+              code: MESSAGE_RATE_LIMITED_ERROR,
+              message: `Demasiados mensajes «${type}»: espera ${decision.retryAfterMs} ms.`,
+              retryAfterMs: decision.retryAfterMs,
+              messageType: type,
+            });
+          }
           return;
         }
         handler(client, payload);
@@ -201,6 +229,14 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     });
 
     this.setTimestep(() => this.handleTick(), GAME_TICK_MS);
+  }
+
+  /**
+   * Límites por mensaje de la room (specs/11 §9). `null` los apaga; por
+   * defecto salen de `GAME_MESSAGE_RATE_LIMIT` (ver `readGameMessageRateLimits`).
+   */
+  protected messageRateLimits(): GameMessageRateLimits | null {
+    return readGameMessageRateLimits();
   }
 
   /**
@@ -292,6 +328,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     if (player) player.connected = false;
     this.openPanels.delete(client.sessionId);
     this.chat.leave(client.sessionId);
+    this.messageLimiter?.forget(client.sessionId);
   }
 
   // — Handlers ————————————————————————————————————————————————————
