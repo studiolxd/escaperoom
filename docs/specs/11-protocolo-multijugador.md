@@ -151,9 +151,44 @@ El servidor responde dirigido al emisor y, si procede, con broadcast:
 
 **Reglas generales:**
 - Todo intento se registra en `progress[puzzleId].attempts` (analítica + anti-fuerza bruta).
-- Tipo de `attempt` por plantilla: `code_lock → {code}` · `sliding_puzzle → {positions}` ·
-  `memory → {flip: cellIndex}` · `pipes → {rotations}` · `simultaneous_plates` no usa attempt
-  (usa `plate_state`) · `combine` usa su propio mensaje.
+- Tipo de `attempt` por plantilla: `code_lock → {code}` · `sliding_puzzle → {move}` ·
+  `memory → {flip: cellIndex}` · `pipes → {rotate, turns?} | {gate}` · `simultaneous_plates` no usa
+  attempt (usa `plate_state`) · `combine` usa su propio mensaje.
+
+### 5.1 `sliding_puzzle` y `pipes`: una acción por clic, no el estado final
+
+> **Desviación aceptada del spec original** (registrada en `docs/reference/registro-de-decisiones.md`
+> ADR-024). Una versión anterior de este documento describía `sliding_puzzle` y `pipes` mandando el
+> estado final completo resuelto en el cliente (`{positions}` con todas las fichas, `{rotations}` con
+> todas las tuberías). La implementación real (ticket 2.8) es pieza a pieza: cada clic manda **una
+> sola acción**, el servidor lleva el tablero (`RoomSession` en `packages/shared/src/session/
+> room-session.ts`) y revalida tras cada acción contra la definición del puzzle
+> (`packages/shared/src/templates/sliding-puzzle.ts`, `pipes.ts`).
+
+- **`sliding_puzzle` — `puzzle_attempt {puzzleId, attempt: {move: <índice de celda>}}`.**
+  `move` es el índice (row-major) de la ficha que el jugador intenta deslizar; solo se acepta si es
+  adyacente al hueco (`slidingNeighborIndices`). El servidor aplica `moveSlidingTile` sobre el
+  tablero guardado en `RoomSession` y devuelve `attempt_result {outcome}` con uno de:
+  `moved | solved | not_adjacent | unavailable | already_solved`.
+- **`pipes` — dos formas de `attempt` (unión discriminada por la clave presente):**
+  - Girar una tubería 90° en sentido horario: `{rotate: <índice de celda>, turns?: 1-3}` (`turns`
+    opcional, por defecto `1`). El servidor aplica `rotatePipe`; desenlaces:
+    `rotated | solved | not_rotatable | invalid_rotation | unavailable | already_solved`.
+  - Abrir una compuerta con un objeto del inventario: `{gate: <índice de celda>}`. El servidor
+    aplica `openPipesGate` (usa el inventario **de quien presenta**, specs/11 §4.3); desenlaces:
+    `opened | solved | missing_item | not_a_gate | already_open | unavailable | already_solved`.
+- El servidor recalcula el tablero completo tras cada acción y lo sincroniza en la proyección
+  pública del puzzle (`toSlidingPuzzlePublicView` / `toPipesPuzzlePublicView`, sin `seed` ni
+  `solution`); todos los jugadores con el panel abierto ven la ficha o la tubería moverse en cuanto
+  el servidor confirma.
+
+**Por qué una acción por clic y no el estado final:** estos dos puzzles se juegan en cooperativo —
+dos jugadores pueden tener el mismo panel abierto a la vez. Si el cliente resolviera localmente y
+mandara solo el estado final, un jugador no vería los movimientos del otro hasta que ese otro
+terminara (o nunca, si el cliente resuelve todo de un tirón sin re-render intermedio). Mandando una
+acción por clic y dejando que el servidor lleve el tablero, cada movimiento se sincroniza y anima en
+tiempo real para todos los presentes: dos personas cooperando en el mismo puzle se ven mover las
+piezas la una a la otra, que es justamente el punto de un escape room multijugador.
 
 ## 6. Mensajes servidor → cliente (broadcasts y eventos)
 
