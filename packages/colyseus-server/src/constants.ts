@@ -118,5 +118,11 @@ export const PLAYTEST_ROOM_NAME = "playtest" as const;
 /** Código de cierre del WebSocket cuando el playtest caduca con jugadores dentro. */
 export const PLAYTEST_EXPIRED_CLOSE_CODE = 4410;
 
+/**
+ * Room de una sesión de evento (ticket 5.8): `GameRoom` a la que solo se entra
+ * con el `joinToken` del canje (`POST /api/access-keys/redeem`).
+ */
+export const EVENT_ROOM_NAME = "event" as const;
+
 /** Ruta interna (web → Colyseus) para registrar un playtest. */
 export const PLAYTEST_INTERNAL_PATH = "/internal/playtests" as const;

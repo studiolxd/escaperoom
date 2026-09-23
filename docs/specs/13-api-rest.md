@@ -161,6 +161,14 @@ El reparto 70/30 y el `stripeTransferId` se resuelven en el webhook (§7), no en
 `ACCESS_KEY_NOT_CONFIRMED` (si `requireConfirmation = true` y aún no confirmó), `SESSION_FULL` —
 los mismos que usa el `join` de Colyseus, porque `redeem` es el paso previo inmediato.
 
+**Canje (ticket 5.8).** Cuerpo `{ code, displayName?, sessionId?, groupId? }`: `sessionId`/`groupId`
+solo cuentan en `groupingMode: free` (el asistente elige); sin `sessionId` en `free` responde
+422 `SESSION_REQUIRED` con `sessions: [{ id, name, capacity, available }]` elegibles. Respuesta
+`{ eventId, sessionId, groupId, colyseusEndpoint, roomName: "event", joinToken, expiresAt, player }`.
+El invitado sin cuenta recibe una identidad efímera `guest:<uuid>` que solo vive en el `joinToken`
+(JWT HS256, `JOIN_TOKEN_SECRET` compartido con Colyseus, 15 min por defecto). La room `event` de
+Colyseus rechaza el `join` sin token válido, caducado o de otra sesión (`JOIN_TOKEN_*`).
+
 ### 6.3 Grabaciones
 
 | Método | Ruta | Auth | Descripción |

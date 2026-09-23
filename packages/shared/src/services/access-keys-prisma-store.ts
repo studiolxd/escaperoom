@@ -1,5 +1,11 @@
 import { Prisma, type PrismaClient } from "../../generated/client";
-import type { AccessKeyPatch, AccessKeyRow, AccessKeyStore, GameSessionRef } from "./access-keys";
+import {
+  OPEN_SESSION_STATUSES,
+  type AccessKeyPatch,
+  type AccessKeyRow,
+  type AccessKeyStore,
+  type GameSessionRef,
+} from "./access-keys";
 import { createPrismaEventStore } from "./events-prisma-store";
 
 type DbAccessKey = Prisma.accessKeyGetPayload<object>;
@@ -66,7 +72,8 @@ function patchData(patch: AccessKeyPatch): Prisma.accessKeyUncheckedUpdateManyIn
  * Implementación Prisma del puerto de claves sobre `accessKey`, `gameSession` y
  * `group` (specs/14 §6 + `0012_access_keys`). El límite de asientos se comprueba
  * con la fila del evento bloqueada (`SELECT … FOR UPDATE`), así dos generaciones
- * simultáneas no superan `playersPurchased`.
+ * simultáneas no superan `playersPurchased`. El aforo de una sesión en el canje
+ * (5.8) se comprueba igual, con la fila de `gameSession` bloqueada.
  */
 export function createPrismaAccessKeyStore(prisma: PrismaClient): AccessKeyStore {
   const events = createPrismaEventStore(prisma);
@@ -188,6 +195,65 @@ export function createPrismaAccessKeyStore(prisma: PrismaClient): AccessKeyStore
         if (isUniqueViolation(err)) return { ok: false, reason: "CODE_COLLISION" };
         throw err;
       }
+    },
+
+    async listSessionSeats(eventId) {
+      const [sessions, seats] = await Promise.all([
+        prisma.gameSession.findMany({
+          where: { eventId },
+          orderBy: [{ createdAt: "asc" }, { name: "asc" }],
+          select: sessionSelect,
+        }),
+        prisma.accessKey.groupBy({
+          by: ["sessionId"],
+          where: { eventId, sessionId: { not: null } },
+          _sum: { redeemedCount: true },
+        }),
+      ]);
+      const occupied = new Map(seats.map((r) => [r.sessionId, r._sum.redeemedCount ?? 0]));
+      return sessions.map((s) => ({ ...toSession(s), occupied: occupied.get(s.id) ?? 0 }));
+    },
+
+    async listGroupSeats(sessionId) {
+      const [groups, seats] = await Promise.all([
+        prisma.group.findMany({
+          where: { sessionId },
+          orderBy: [{ createdAt: "asc" }, { name: "asc" }],
+          select: { id: true, sessionId: true, name: true },
+        }),
+        prisma.accessKey.groupBy({
+          by: ["groupId"],
+          where: { sessionId, groupId: { not: null } },
+          _sum: { redeemedCount: true },
+        }),
+      ]);
+      const occupied = new Map(seats.map((r) => [r.groupId, r._sum.redeemedCount ?? 0]));
+      return groups.map((g) => ({ ...g, occupied: occupied.get(g.id) ?? 0 }));
+    },
+
+    async redeemSeat(code, expected, patch, sessionId) {
+      return prisma.$transaction(async (tx) => {
+        const [session] = await tx.$queryRaw<Array<{ capacity: number; status: string }>>`
+          SELECT capacity, status::text AS status FROM "gameSession"
+           WHERE id = ${sessionId}::uuid FOR UPDATE`;
+        if (!session || !(OPEN_SESSION_STATUSES as readonly string[]).includes(session.status)) {
+          return { ok: false as const, reason: "SESSION_FULL" as const };
+        }
+        const agg = await tx.accessKey.aggregate({
+          where: { sessionId },
+          _sum: { redeemedCount: true },
+        });
+        if ((agg._sum.redeemedCount ?? 0) + 1 > session.capacity) {
+          return { ok: false as const, reason: "SESSION_FULL" as const };
+        }
+        const { count } = await tx.accessKey.updateMany({
+          where: { code, status: expected.status, redeemedCount: expected.redeemedCount },
+          data: patchData(patch),
+        });
+        if (count === 0) return { ok: false as const, reason: "CONFLICT" as const };
+        const row = await tx.accessKey.findUniqueOrThrow({ where: { code } });
+        return { ok: true as const, key: toRow(row) };
+      });
     },
 
     async expireByDeadline(now) {
