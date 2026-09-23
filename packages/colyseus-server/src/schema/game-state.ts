@@ -1,4 +1,5 @@
 import { schema, t, type SchemaType } from "@colyseus/schema";
+import { ChatMessageState } from "./lobby-state.js";
 
 /**
  * Estado sincronizado de la `GameRoom` (specs/11 §3). Es una **proyección** del
@@ -62,6 +63,8 @@ export const GameRoomState = schema(
     inventories: t.map(GameInventoryState),
     /** Flags del mundo serializadas en JSON (`string | number | boolean`). */
     flags: t.map("string"),
+    /** Ventana móvil de los últimos 50 mensajes de chat (specs/11 §3, §4.4). */
+    chat: t.array(ChatMessageState),
   },
   "GameRoomState",
 );

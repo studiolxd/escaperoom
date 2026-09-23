@@ -2,29 +2,60 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
+import { cn } from "cn";
 import { CHAT_HISTORY_LIMIT, CHAT_MAX_LENGTH } from "@escaperoom/shared/chat";
 import { Button } from "@/components/ui/button";
-import { useLobbyStore } from "@/store/lobby-store";
+import { useLobbyStore, type ChatEntry } from "@/store/lobby-store";
 
 /**
- * Ventana de chat del overlay (ticket 2.1, specs/11 §4.4).
- *
- * Reutiliza la conexión Colyseus del lobby (0.5): lee `state.chat` (ventana
- * móvil de 50) del store y envía por `sendChat`, que escribe en la room. El
- * servidor es autoritativo: aquí solo se pinta lo que llega y se delega el
- * envío; los rechazos (rate limit) se muestran con el mensaje del servidor.
+ * Chat del lobby de pruebas: la ventana de chat conectada al store del lobby.
  */
 export function ChatPanel() {
-  const t = useTranslations("Chat");
   const messages = useLobbyStore((state) => state.chat);
   const sendChat = useLobbyStore((state) => state.sendChat);
   const chatError = useLobbyStore((state) => state.chatError);
   const status = useLobbyStore((state) => state.status);
   const selfId = useLobbyStore((state) => state.selfId);
+  return (
+    <ChatWindow
+      messages={messages}
+      selfId={selfId}
+      connected={status === "connected"}
+      error={chatError}
+      onSend={sendChat ?? undefined}
+    />
+  );
+}
+
+export interface ChatWindowProps {
+  messages: readonly ChatEntry[];
+  selfId: string | null;
+  connected: boolean;
+  /** Último rechazo del servidor (p. ej. rate limit). */
+  error?: string | null;
+  onSend?: (text: string) => void;
+  className?: string;
+}
+
+/**
+ * Ventana de chat del overlay (ticket 2.1, specs/11 §4.4).
+ *
+ * Presentacional: pinta `state.chat` (ventana móvil de 50) de la room en la que
+ * se esté —el lobby de pruebas (0.5) o la `GameRoom`— y delega el envío en
+ * `onSend`, que escribe en esa room. El servidor es autoritativo: aquí solo se
+ * pinta lo que llega; los rechazos (rate limit) se muestran con su mensaje.
+ */
+export function ChatWindow({
+  messages,
+  selfId,
+  connected,
+  error: chatError = null,
+  onSend: sendChat,
+  className,
+}: ChatWindowProps) {
+  const t = useTranslations("Chat");
   const [draft, setDraft] = useState("");
   const listRef = useRef<HTMLUListElement>(null);
-
-  const connected = status === "connected";
 
   useEffect(() => {
     const list = listRef.current;
@@ -46,7 +77,10 @@ export function ChatPanel() {
   return (
     <section
       aria-label={t("title")}
-      className="pointer-events-auto flex w-72 flex-col gap-2 rounded-xl border border-white/10 bg-black/50 p-3 text-white backdrop-blur"
+      className={cn(
+        "pointer-events-auto flex w-72 flex-col gap-2 rounded-xl border border-white/10 bg-black/50 p-3 text-white backdrop-blur",
+        className,
+      )}
     >
       <header className="flex items-center justify-between">
         <h2 className="text-xs uppercase tracking-wide text-white/60">{t("title")}</h2>

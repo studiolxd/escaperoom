@@ -8,6 +8,13 @@ import {
   playtestRegistry,
 } from "@escaperoom/colyseus-server";
 import { removeObject, roomDocToPackage, roomPackageToDoc } from "@escaperoom/editor/room-doc";
+import {
+  GAME_PROTOCOL,
+  PLAYTEST_EXPIRED_CLOSE,
+  PLAYTEST_ROOM,
+  toGameSnapshot,
+  type GameRoomStateLike,
+} from "@escaperoom/game-runtime/session";
 import { parseRoomPackage, type RoomPackage } from "@escaperoom/shared/schemas";
 import {
   ANONYMOUS_ACTOR,
@@ -21,16 +28,10 @@ import { createServer } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { readPlaytestToken } from "../src/lib/playtest-link";
-import {
-  PLAYTEST_EXPIRED_CLOSE_CODE,
-  PLAYTEST_MESSAGES,
-  PLAYTEST_ROOM_NAME,
-  toPlaytestView,
-  type PlaytestStateLike,
-} from "../src/lib/playtest-net";
 import { readReyAldricRoomPackageJson } from "../src/lib/room-preview-fixture";
 import {
   createHttpPlaytestLauncher,
+  createHttpPlaytestPackageReader,
   DEV_PLAYTEST_SECRET,
   PLAYTEST_INTERNAL_PATH,
   PlaytestLaunchError,
@@ -181,8 +182,8 @@ describe("configuración compartida con @escaperoom/colyseus-server", () => {
   it("mismo secreto de desarrollo, ruta interna, room y código de caducidad", () => {
     expect(DEV_PLAYTEST_SECRET).toBe(SERVER_DEV_SECRET);
     expect(PLAYTEST_INTERNAL_PATH).toBe(SERVER_INTERNAL_PATH);
-    expect(PLAYTEST_ROOM_NAME).toBe(SERVER_ROOM_NAME);
-    expect(PLAYTEST_EXPIRED_CLOSE_CODE).toBe(SERVER_EXPIRED_CODE);
+    expect(PLAYTEST_ROOM).toBe(SERVER_ROOM_NAME);
+    expect(PLAYTEST_EXPIRED_CLOSE).toBe(SERVER_EXPIRED_CODE);
   });
 
   it("resuelve URL y secreto del entorno", () => {
@@ -247,7 +248,7 @@ describe("playtest de punta a punta (web → Colyseus real)", () => {
     expect(payload.playtestId).toBe(created.playtestId);
     const client = new Client(`ws://localhost:${port}`);
     const join = () =>
-      client.joinOrCreate<PlaytestStateLike>(PLAYTEST_ROOM_NAME, {
+      client.joinOrCreate<GameRoomStateLike>(PLAYTEST_ROOM, {
         playtestId: payload.playtestId,
         token,
       });
@@ -261,8 +262,8 @@ describe("playtest de punta a punta (web → Colyseus real)", () => {
       .poll(() => room.state.roomPackageId)
       .toBe((received[0]!.roomPackage as RoomPackage).meta.id);
 
-    const intro = new Promise((resolve) => room.onMessage(PLAYTEST_MESSAGES.dialogShow, resolve));
-    room.send(PLAYTEST_MESSAGES.startGame, {});
+    const intro = new Promise((resolve) => room.onMessage(GAME_PROTOCOL.dialogShow, resolve));
+    room.send(GAME_PROTOCOL.startGame, {});
     expect(await intro).toEqual({ dialogId: "d-intro" });
     await expect.poll(() => room.state.phase).toBe("playing");
 
@@ -273,13 +274,11 @@ describe("playtest de punta a punta (web → Colyseus real)", () => {
     expect(received[1]!.roomPackage.objects.map((o) => o.id)).not.toContain("cuadro-aurelio");
 
     // …pero la partida ya creada juega con el paquete congelado.
-    const granted = new Promise((resolve) =>
-      room.onMessage(PLAYTEST_MESSAGES.itemGranted, resolve),
-    );
-    room.send(PLAYTEST_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    const granted = new Promise((resolve) => room.onMessage(GAME_PROTOCOL.itemGranted, resolve));
+    room.send(GAME_PROTOCOL.interact, { objectId: "cuadro-aurelio" });
     expect(await granted).toEqual({ playerId: room.sessionId, itemId: "llave-bronce" });
     await expect
-      .poll(() => toPlaytestView(room.state, room.sessionId).inventory)
+      .poll(() => toGameSnapshot(room.state, room.sessionId).inventory)
       .toEqual(["llave-bronce"]);
     await room.leave();
   });
@@ -289,16 +288,34 @@ describe("playtest de punta a punta (web → Colyseus real)", () => {
     const host = await join();
     const friend = await join();
     expect(friend.roomId).toBe(host.roomId);
-    await expect.poll(() => toPlaytestView(friend.state, friend.sessionId).players.length).toBe(2);
+    await expect.poll(() => toGameSnapshot(friend.state, friend.sessionId).players.length).toBe(2);
 
     const [body] = token.split("~");
     await expect(
-      client.joinOrCreate(PLAYTEST_ROOM_NAME, {
+      client.joinOrCreate(PLAYTEST_ROOM, {
         playtestId: created.playtestId,
         token: `${body}~firma-falsa`,
       }),
     ).rejects.toThrow();
     await friend.leave();
     await host.leave();
+  });
+
+  it("la página del link lee en servidor el paquete congelado (y nada si no existe)", async () => {
+    const { created, received } = await createAndJoin();
+    const reader = createHttpPlaytestPackageReader({
+      baseUrl: `http://localhost:${port}`,
+      secret: DEV_PLAYTEST_SECRET,
+    });
+    const frozen = await reader.read(created.playtestId);
+    expect(frozen?.meta.id).toBe((received[0]!.roomPackage as RoomPackage).meta.id);
+    expect(await reader.read("no-existe")).toBeNull();
+    const intruderReader = createHttpPlaytestPackageReader({
+      baseUrl: `http://localhost:${port}`,
+      secret: "otro-secreto",
+    });
+    await expect(intruderReader.read(created.playtestId)).rejects.toBeInstanceOf(
+      PlaytestLaunchError,
+    );
   });
 });

@@ -108,7 +108,9 @@
     "alreadyApplied": "Já o tinhas feito: {item}",
     "invalid": "Esses objetos não combinam",
     "missingItems": "Faltam-te objetos para essa receita",
-    "unavailable": "A combinação não está disponível"
+    "unavailable": "A combinação não está disponível",
+    "close": "Fechar",
+    "dropOn": "Larga sobre {item}"
   },
   "Playtest": {
     "badge": "playtest Rei Aldric (2.8)",
@@ -762,35 +764,109 @@
     "page": {
       "title": "Jogo de teste",
       "subtitle": "Rascunho não publicado: não aparece no catálogo.",
-      "connecting": "A ligar ao jogo…",
       "invalidLink": "Este link de teste não é válido.",
       "expired": "Este link de teste expirou. Pede um novo ao autor.",
-      "closed": "O jogo de teste foi fechado.",
-      "phase": {
-        "lobby": "Em espera",
-        "playing": "Em jogo",
-        "ended": "Terminado"
-      },
-      "result": "Resultado: {result}",
+      "unavailable": "O servidor de jogos não responde. Tenta de novo daqui a pouco."
+    }
+  },
+  "Game": {
+    "page": {
+      "subtitle": "Jogo cooperativo online: convida o teu grupo com o link."
+    },
+    "join": {
+      "createSubtitle": "Cria um jogo e partilha o link com o teu grupo (até 4 jogadores).",
+      "joinSubtitle": "Foste convidado para um jogo em curso.",
+      "nameLabel": "O teu nome",
+      "namePlaceholder": "ex. Ana",
+      "create": "Criar jogo",
+      "join": "Entrar"
+    },
+    "connection": {
+      "idle": "Sem ligação",
+      "connecting": "A ligar…",
+      "connected": "Online",
+      "reconnecting": "A religar…",
+      "disconnected": "Desligado",
+      "expired": "Jogo fechado",
+      "error": "Sem ligação",
+      "retry": "Tentar de novo"
+    },
+    "status": {
+      "connecting": "A ligar ao jogo…",
+      "error": "Não foi possível ligar ao servidor de jogos.",
+      "expired": "Este jogo foi fechado."
+    },
+    "lobby": {
+      "title": "Sala de espera",
+      "players": "{count, plural, one {# jogador} other {# jogadores}}",
       "start": "Começar jogo",
-      "waitingHost": "À espera de que o anfitrião comece…",
-      "objects": "Objetos",
-      "noObjects": "A sala não tem objetos.",
-      "interact": "Interagir",
-      "players": "Jogadores",
+      "waitingHost": "À espera que o anfitrião comece…",
+      "invite": "Copiar link de convite",
+      "copied": "Link copiado!",
       "you": "tu",
       "host": "anfitrião",
-      "inventory": "Inventário",
-      "emptyInventory": "Vazio",
-      "log": "Eventos"
+      "offline": "desligado"
+    },
+    "hud": {
+      "loadingPanel": "A carregar…"
     },
     "log": {
-      "dialog": "Diálogo «{id}»",
-      "objectState": "«{id}» → {state}",
-      "item": "Obténs «{item}»",
-      "solved": "Puzzle resolvido: «{id}»",
-      "ended": "Fim do jogo: {result}",
-      "error": "Aviso: {message}"
+      "itemGranted": "Recebes {item}",
+      "itemGrantedOther": "{player} recebe {item}"
+    },
+    "errors": {
+      "NOT_AVAILABLE": "Ainda não podes fazer isso",
+      "INVALID_STATE": "O jogo não está a decorrer",
+      "PERMISSION_DENIED": "Só o anfitrião pode fazer isso",
+      "MOVE_TOO_FAST": "Movimento corrigido pelo servidor",
+      "OUT_OF_BOUNDS": "Não podes sair da sala",
+      "ROOM_LOCKED": "A porta está fechada ou longe",
+      "RATE_LIMITED": "Demasiadas mensagens: espera um momento",
+      "generic": "O servidor rejeitou a ação"
+    },
+    "event": {
+      "missingToken": "Falta o código de acesso da sessão. Volta a resgatar a tua chave para entrar."
+    }
+  },
+  "Chat": {
+    "title": "Chat",
+    "empty": "Ainda não há mensagens",
+    "placeholder": "Escreve uma mensagem…",
+    "disconnected": "Liga-te para conversar",
+    "send": "Enviar",
+    "filtered": "filtrado",
+    "filteredTitle": "O filtro de linguagem censurou parte desta mensagem",
+    "hint": "Máx. {max} caracteres · 2 mensagens por segundo"
+  },
+  "Hints": {
+    "title": "Pistas",
+    "empty": "Ainda não pediste nenhuma pista",
+    "remaining": "Pistas restantes: {count}",
+    "request": "Pedir pista",
+    "requestCost": "Pedir pista · custo {cost}",
+    "pending": "A entregar pista…",
+    "tier": "Pista nível {tier}",
+    "exhausted": "Não há mais pistas para este enigma",
+    "unavailable": "Este enigma não tem pistas",
+    "errors": {
+      "insufficient_hints": "Esta pista custa {cost} e só restam {remaining}",
+      "no_more_tiers": "Já pediste todas as pistas deste enigma",
+      "unknown_puzzle": "Não há pistas definidas para este enigma"
+    }
+  },
+  "Results": {
+    "title": "Resultados",
+    "time": "Tempo",
+    "hints": "Pistas usadas",
+    "puzzles": "Enigmas resolvidos",
+    "puzzlesValue": "{solved}/{total}",
+    "items": "Objetos recolhidos",
+    "exit": "Sair",
+    "review": "Deixar avaliação",
+    "result": {
+      "victory": "Vitória!",
+      "timeout": "O tempo esgotou-se",
+      "aborted": "Jogo abandonado"
     }
   },
   "TemplateConfig": {

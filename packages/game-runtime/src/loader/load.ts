@@ -3,6 +3,7 @@ import {
   formatRoomPackageError,
   toReadableIssues,
   type LocalizedText,
+  type PuzzleDefinition,
   type RoomPackage,
   type Rule,
   type SpriteState,
@@ -13,10 +14,12 @@ import {
 import { RoomPackageLoadError } from "./errors";
 import type {
   RuntimeDialog,
+  RuntimeHint,
   RuntimeItem,
   RuntimeLight,
   RuntimeModel,
   RuntimeObject,
+  RuntimeObjectAction,
   RuntimePuzzle,
   RuntimeSubRoom,
 } from "./types";
@@ -103,6 +106,7 @@ export function toRuntimeModel(
   const objects: RuntimeObject[] = [];
   const objectsById: Record<string, RuntimeObject> = {};
   const inspections = buildInspectionIndex(roomPackage.rules);
+  const actions = buildActionIndex(roomPackage.rules);
 
   for (const object of roomPackage.objects) {
     const room = subroomsById[object.roomId];
@@ -118,7 +122,12 @@ export function toRuntimeModel(
       );
     }
 
-    const runtimeObject = toRuntimeObject(object, inspections[object.id]);
+    const runtimeObject: RuntimeObject = {
+      ...toRuntimeObject(object, inspections[object.id]),
+      actions: actions[object.id] ?? ["inspect", "use_item"],
+    };
+    const panelPuzzleId = panelForObject(roomPackage, object);
+    if (panelPuzzleId) runtimeObject.panelPuzzleId = panelPuzzleId;
     objects.push(runtimeObject);
     objectsById[runtimeObject.id] = runtimeObject;
     room.objects.push(runtimeObject);
@@ -137,15 +146,11 @@ export function toRuntimeModel(
     ...(dialog.conditions ? { conditions: dialog.conditions } : {}),
   }));
 
-  const puzzles: RuntimePuzzle[] = roomPackage.puzzles.map((puzzle) => ({
-    id: puzzle.id,
-    type: puzzle.type,
-    roomId: puzzle.roomId,
-    layer: puzzle.layer,
-    requiresSolved: puzzle.requiresSolved,
-    unlocks: puzzle.unlocks,
-    grantsItems: puzzle.grantsItems,
-  }));
+  const puzzles: RuntimePuzzle[] = roomPackage.puzzles.map(toRuntimePuzzle);
+
+  const hints: RuntimeHint[] = roomPackage.hints
+    .map((hint) => ({ puzzleId: hint.puzzleId, tier: hint.tier, cost: hint.cost }))
+    .sort((a, b) => a.puzzleId.localeCompare(b.puzzleId) || a.tier - b.tier);
 
   return {
     meta: {
@@ -170,7 +175,68 @@ export function toRuntimeModel(
     dialogsById: indexById(dialogs),
     puzzles,
     puzzlesById: indexById(puzzles),
+    hints,
   };
+}
+
+/**
+ * Resumen público de un puzzle: dependencias y, para las mecánicas de
+ * posición, dónde están las placas/mirillas. Nunca `code`, `solution`,
+ * `recipes`, `seed`, `pairs`, `fragments` ni testigos.
+ */
+function toRuntimePuzzle(puzzle: PuzzleDefinition): RuntimePuzzle {
+  const base: RuntimePuzzle = {
+    id: puzzle.id,
+    type: puzzle.type,
+    roomId: puzzle.roomId,
+    layer: puzzle.layer,
+    requiresSolved: puzzle.requiresSolved,
+    unlocks: puzzle.unlocks,
+    grantsItems: puzzle.grantsItems,
+  };
+  if (puzzle.type === "simultaneous_plates") {
+    base.plates = puzzle.plates.map(({ objectId, x, y }) => ({ objectId, x, y }));
+    if (puzzle.soloBridgeItemId) base.soloBridgeItemId = puzzle.soloBridgeItemId;
+  } else if (puzzle.type === "split_clue") {
+    base.viewpoints = puzzle.viewpoints.map(({ objectId, zone }) => ({
+      objectId,
+      x: zone.x,
+      y: zone.y,
+    }));
+    if (puzzle.soloBridgeItemId) base.soloBridgeItemId = puzzle.soloBridgeItemId;
+  }
+  return base;
+}
+
+/** Acciones de menú por objeto a partir de los tipos de trigger (specs/05 §3). */
+function buildActionIndex(rules: readonly Rule[]): Record<string, RuntimeObjectAction[]> {
+  const index: Record<string, RuntimeObjectAction[]> = {};
+  for (const rule of rules) {
+    const action: RuntimeObjectAction | undefined =
+      rule.trigger.type === "on_interact"
+        ? "inspect"
+        : rule.trigger.type === "on_use_item"
+          ? "use_item"
+          : undefined;
+    if (!action || !("objectId" in rule.trigger)) continue;
+    const list = (index[rule.trigger.objectId] ??= []);
+    if (!list.includes(action)) list.push(action);
+  }
+  return index;
+}
+
+/** Mismo criterio que `RoomSession.panelForObject` (escondite, `lockedBy`, mirilla). */
+function panelForObject(roomPackage: RoomPackage, object: WorldObject): string | undefined {
+  const hiding = roomPackage.puzzles.find(
+    (puzzle) => puzzle.type === "hidden_key" && puzzle.hidingSpot.objectId === object.id,
+  );
+  if (hiding) return hiding.id;
+  if (object.lockedBy) return object.lockedBy;
+  return roomPackage.puzzles.find(
+    (puzzle) =>
+      puzzle.type === "split_clue" &&
+      puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === object.id),
+  )?.id;
 }
 
 /** Resuelve un `LocalizedText` al locale pedido, con fallback al primer idioma. */

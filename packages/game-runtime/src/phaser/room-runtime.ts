@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { EDIT_EVENT, type EditCell, type EditSceneEvent } from "../edit";
 import type { RuntimeModel } from "../loader";
-import { RoomScene, type RoomScenePack } from "./room-scene";
+import { RoomScene, type RoomScenePack, type ScenePlayer } from "./room-scene";
 import { WORLD_EVENT, type WorldSceneEvent } from "./world-events";
 
 export interface RoomRuntimeOptions {
@@ -27,6 +27,8 @@ export interface RoomRuntimeOptions {
   localPlayerId?: string;
   /** `play` (por defecto) o `edit`: lienzo del editor (specs/09 §1). */
   mode?: "play" | "edit";
+  /** Emite `avatar-move` con la posición del avatar local (cliente de red). */
+  emitAvatarMoves?: boolean;
 }
 
 /**
@@ -53,6 +55,7 @@ export class RoomRuntime {
       inputEnabled: options.inputEnabled,
       localPlayerId: options.localPlayerId,
       mode: options.mode,
+      emitAvatarMoves: options.emitAvatarMoves,
     });
 
     this.game = new Phaser.Game({
@@ -77,6 +80,26 @@ export class RoomRuntime {
   /** Cambia la habitación activa con un fundido. */
   showRoom(roomId: string): void {
     this.scene.setRoom(roomId);
+  }
+
+  /** Recoloca el avatar local en la posición autoritativa del servidor. */
+  placeAvatar(x: number, y: number): void {
+    this.scene.placeAvatar(x, y);
+  }
+
+  /** Posición actual del avatar local (celdas), si existe. */
+  get avatarCell(): { x: number; y: number } | undefined {
+    return this.scene.avatarCell;
+  }
+
+  /** Tinte del avatar local (`#rrggbb` asignado por el servidor). */
+  setLocalTint(tint: string): void {
+    this.scene.setLocalTint(Phaser.Display.Color.HexStringToColor(tint).color);
+  }
+
+  /** Otros jugadores de la partida (se pintan los de la sala visible). */
+  setPlayers(players: readonly ScenePlayer[]): void {
+    this.scene.setPlayers(players);
   }
 
   /** Cambia el estado de un objeto del mundo (lo usará el motor de reglas). */

@@ -1,7 +1,15 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { boot, type ColyseusTestServer } from "@colyseus/testing";
 import defineConfig from "@colyseus/tools";
-import { ERROR_MESSAGE, GAME_ERRORS, GAME_MESSAGES, GAME_ROOM_NAME } from "../src/constants";
+import {
+  CHAT_MESSAGE,
+  CHAT_RATE_LIMITED_ERROR,
+  ERROR_MESSAGE,
+  GAME_ERRORS,
+  GAME_MESSAGES,
+  GAME_ROOM_NAME,
+} from "../src/constants";
+import { MEDIA_TOKEN_MESSAGE, MEDIA_TOKEN_REQUEST_MESSAGE } from "../src/media/index";
 import { GameRoom } from "../src/rooms/game-room";
 import { getFreePort } from "./helpers/free-port";
 
@@ -207,6 +215,47 @@ describe("GameRoom — Rey Aldric sobre Colyseus", () => {
     });
     expect(await early).toMatchObject({ ok: false, error: "not_available" });
     expect(room.state.objects.get("reja-escalera")).toBe("closed");
+  });
+
+  it("chat de la partida (specs/11 §4.4): desde el lobby, con autor y rate limit", async () => {
+    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {});
+    const a = await join(room, { name: "Ana" });
+    const b = await join(room, { name: "Bruno" });
+
+    a.send(CHAT_MESSAGE, { text: "¿Empezamos?" });
+    await expect.poll(() => b.state.chat.length).toBe(1);
+    expect(b.state.chat[0]).toMatchObject({
+      authorId: a.sessionId,
+      authorName: "Ana",
+      text: "¿Empezamos?",
+      filtered: false,
+    });
+
+    const limited = a.waitForMessage(ERROR_MESSAGE);
+    a.send(CHAT_MESSAGE, { text: "uno" });
+    a.send(CHAT_MESSAGE, { text: "dos" });
+    expect((await limited).code).toBe(CHAT_RATE_LIMITED_ERROR);
+  });
+
+  it("firma el token de medios de la partida (ticket 2.2); sin claves, configured:false", async () => {
+    const saved = ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"].map(
+      (key) => [key, process.env[key]] as const,
+    );
+    for (const [key] of saved) delete process.env[key];
+    try {
+      const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {});
+      const a = await join(room);
+      const token = a.waitForMessage(MEDIA_TOKEN_MESSAGE);
+      a.send(MEDIA_TOKEN_REQUEST_MESSAGE, { role: "player" });
+      expect(await token).toMatchObject({
+        configured: false,
+        token: null,
+        identity: a.sessionId,
+        role: "player",
+      });
+    } finally {
+      for (const [key, value] of saved) if (value !== undefined) process.env[key] = value;
+    }
   });
 
   it("rechaza mensajes con forma inválida", async () => {

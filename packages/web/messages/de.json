@@ -108,7 +108,9 @@
     "alreadyApplied": "Das hattest du bereits getan: {item}",
     "invalid": "Diese Objekte lassen sich nicht kombinieren",
     "missingItems": "Dir fehlen Objekte für dieses Rezept",
-    "unavailable": "Die Kombination ist nicht verfügbar"
+    "unavailable": "Die Kombination ist nicht verfügbar",
+    "close": "Schließen",
+    "dropOn": "Auf {item} ablegen"
   },
   "Playtest": {
     "badge": "Playtest König Aldric (2.8)",
@@ -762,35 +764,109 @@
     "page": {
       "title": "Testspiel",
       "subtitle": "Unveröffentlichter Entwurf: Er erscheint nicht im Katalog.",
-      "connecting": "Verbindung zum Spiel wird hergestellt…",
       "invalidLink": "Dieser Testlink ist ungültig.",
       "expired": "Dieser Testlink ist abgelaufen. Bitte den Autor um einen neuen.",
-      "closed": "Das Testspiel wurde beendet.",
-      "phase": {
-        "lobby": "Wartet",
-        "playing": "Läuft",
-        "ended": "Beendet"
-      },
-      "result": "Ergebnis: {result}",
+      "unavailable": "Der Spielserver antwortet nicht. Versuche es gleich noch einmal."
+    }
+  },
+  "Game": {
+    "page": {
+      "subtitle": "Kooperatives Online-Spiel: Lade deine Gruppe mit dem Link ein."
+    },
+    "join": {
+      "createSubtitle": "Erstelle ein Spiel und teile den Link mit deiner Gruppe (bis zu 4 Spieler).",
+      "joinSubtitle": "Du wurdest zu einem laufenden Spiel eingeladen.",
+      "nameLabel": "Dein Name",
+      "namePlaceholder": "z. B. Ana",
+      "create": "Spiel erstellen",
+      "join": "Beitreten"
+    },
+    "connection": {
+      "idle": "Nicht verbunden",
+      "connecting": "Verbinde…",
+      "connected": "Online",
+      "reconnecting": "Verbinde erneut…",
+      "disconnected": "Getrennt",
+      "expired": "Spiel geschlossen",
+      "error": "Keine Verbindung",
+      "retry": "Erneut versuchen"
+    },
+    "status": {
+      "connecting": "Verbinde mit dem Spiel…",
+      "error": "Keine Verbindung zum Spielserver möglich.",
+      "expired": "Dieses Spiel wurde geschlossen."
+    },
+    "lobby": {
+      "title": "Warteraum",
+      "players": "{count, plural, one {# Spieler} other {# Spieler}}",
       "start": "Spiel starten",
-      "waitingHost": "Warten, bis der Host startet…",
-      "objects": "Objekte",
-      "noObjects": "Der Raum hat keine Objekte.",
-      "interact": "Interagieren",
-      "players": "Spieler",
+      "waitingHost": "Warte darauf, dass der Host startet…",
+      "invite": "Einladungslink kopieren",
+      "copied": "Link kopiert!",
       "you": "du",
       "host": "Host",
-      "inventory": "Inventar",
-      "emptyInventory": "Leer",
-      "log": "Ereignisse"
+      "offline": "offline"
+    },
+    "hud": {
+      "loadingPanel": "Lädt…"
     },
     "log": {
-      "dialog": "Dialog „{id}“",
-      "objectState": "„{id}“ → {state}",
-      "item": "Du erhältst „{item}“",
-      "solved": "Rätsel gelöst: „{id}“",
-      "ended": "Spielende: {result}",
-      "error": "Hinweis: {message}"
+      "itemGranted": "Du erhältst {item}",
+      "itemGrantedOther": "{player} erhält {item}"
+    },
+    "errors": {
+      "NOT_AVAILABLE": "Das geht noch nicht",
+      "INVALID_STATE": "Das Spiel läuft nicht",
+      "PERMISSION_DENIED": "Nur der Host darf das",
+      "MOVE_TOO_FAST": "Bewegung vom Server korrigiert",
+      "OUT_OF_BOUNDS": "Du kannst den Raum nicht verlassen",
+      "ROOM_LOCKED": "Die Tür ist verschlossen oder zu weit weg",
+      "RATE_LIMITED": "Zu viele Nachrichten: warte kurz",
+      "generic": "Der Server hat die Aktion abgelehnt"
+    },
+    "event": {
+      "missingToken": "Der Zugangscode der Sitzung fehlt. Löse deinen Schlüssel erneut ein, um beizutreten."
+    }
+  },
+  "Chat": {
+    "title": "Chat",
+    "empty": "Noch keine Nachrichten",
+    "placeholder": "Nachricht schreiben…",
+    "disconnected": "Verbinde dich zum Chatten",
+    "send": "Senden",
+    "filtered": "gefiltert",
+    "filteredTitle": "Der Sprachfilter hat einen Teil dieser Nachricht zensiert",
+    "hint": "Max. {max} Zeichen · 2 Nachrichten pro Sekunde"
+  },
+  "Hints": {
+    "title": "Hinweise",
+    "empty": "Du hast noch keinen Hinweis angefordert",
+    "remaining": "Verbleibende Hinweise: {count}",
+    "request": "Hinweis anfordern",
+    "requestCost": "Hinweis anfordern · Kosten {cost}",
+    "pending": "Hinweis wird geliefert…",
+    "tier": "Hinweis Stufe {tier}",
+    "exhausted": "Für dieses Rätsel gibt es keine weiteren Hinweise",
+    "unavailable": "Dieses Rätsel hat keine Hinweise",
+    "errors": {
+      "insufficient_hints": "Dieser Hinweis kostet {cost}, es sind nur noch {remaining} übrig",
+      "no_more_tiers": "Du hast bereits alle Hinweise für dieses Rätsel angefordert",
+      "unknown_puzzle": "Für dieses Rätsel sind keine Hinweise definiert"
+    }
+  },
+  "Results": {
+    "title": "Ergebnisse",
+    "time": "Zeit",
+    "hints": "Genutzte Hinweise",
+    "puzzles": "Gelöste Rätsel",
+    "puzzlesValue": "{solved}/{total}",
+    "items": "Gesammelte Objekte",
+    "exit": "Verlassen",
+    "review": "Bewertung schreiben",
+    "result": {
+      "victory": "Sieg!",
+      "timeout": "Die Zeit ist abgelaufen",
+      "aborted": "Spiel abgebrochen"
     }
   },
   "TemplateConfig": {

@@ -18,6 +18,12 @@ export type WorldSceneEvent =
   | { type: "interact"; objectId: string }
   /** Intención: el jugador ha soltado un item del inventario sobre un objeto. */
   | { type: "use-item"; itemId: string; objectId: string }
+  /**
+   * Posición del avatar local (celdas, con decimales) mientras se mueve. Solo
+   * con `emitAvatarMoves`: el cliente de red la envía al servidor, que es el
+   * autoritativo (placas y mirillas dependen de ella).
+   */
+  | { type: "avatar-move"; roomId: string; x: number; y: number }
   /** El avatar cruzó una puerta abierta: la capa React informa a `RoomSession`. */
   | { type: "enter-room"; roomId: string; fromRoomId: string }
   | {
