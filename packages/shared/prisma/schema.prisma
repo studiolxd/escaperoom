@@ -500,6 +500,21 @@ model stripeWebhookEvent {
   receivedAt DateTime @default(now()) @db.Timestamptz(6)
 }
 
+/// Registro inmutable de cada aceptación de Términos/Privacidad. El histórico
+/// completo vive aquí; `user.termsAcceptedVersion` es la última versión
+/// aceptada, desnormalizada para comparar rápido sin consultar esta tabla.
+model termsAcceptance {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String
+  version    String
+  ipAddress  String?
+  userAgent  String?
+  acceptedAt DateTime @default(now()) @db.Timestamptz(6)
+  user       user     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, acceptedAt(sort: Desc)], map: "ixTermsAcceptanceUser")
+}
+
 model user {
   id                                                 String             @id
   name                                               String
@@ -514,6 +529,10 @@ model user {
   createdAt                                          DateTime           @default(now()) @db.Timestamptz(6)
   updatedAt                                          DateTime           @default(now()) @db.Timestamptz(6)
   deletedAt                                          DateTime?          @db.Timestamptz(6)
+  /// Última versión de términos/privacidad aceptada. Se compara con la
+  /// versión vigente (`CURRENT_TERMS_VERSION`) para forzar la reaceptación
+  /// tras un cambio; el histórico completo está en `termsAcceptance`.
+  termsAcceptedVersion                               String?
   account                                            account[]
   audioAsset_audioAsset_ownerIdTouser                audioAsset[]       @relation("audioAsset_ownerIdTouser")
   audioAsset_audioAsset_reviewedByTouser             audioAsset[]       @relation("audioAsset_reviewedByTouser")
@@ -540,6 +559,7 @@ model user {
   roomUpdate                                         roomUpdate[]
   roomVersion                                        roomVersion[]
   session                                            session[]
+  termsAcceptance                                    termsAcceptance[]
 }
 
 model verification {

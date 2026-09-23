@@ -96,6 +96,9 @@ import {
   type WebhookEventDedupeStore,
   createContactService,
   type ContactService,
+  createTermsAcceptanceService,
+  createPrismaTermsAcceptanceStore,
+  type TermsAcceptanceService,
 } from "@escaperoom/shared/services";
 import type Stripe from "stripe";
 import { createBullCardExportQueue } from "@escaperoom/shared/access-key-cards-queue";
@@ -134,6 +137,7 @@ let purchases: PurchaseService | undefined;
 let creatorConnect: CreatorConnectService | undefined;
 let webhookDedupe: WebhookEventDedupeStore | undefined;
 let contact: ContactService | null | undefined;
+let termsAcceptance: TermsAcceptanceService | undefined;
 
 /**
  * Adaptador mínimo de `ioredis` al `CatalogCacheStore` del cache del catálogo
@@ -569,4 +573,14 @@ export function getContactService(): ContactService | null {
     contact = transport ? createContactService({ transport, to }) : null;
   }
   return contact;
+}
+
+/** Reaceptación de Términos/Privacidad tras un cambio de versión (`CURRENT_TERMS_VERSION`). */
+export function getTermsAcceptanceService(): TermsAcceptanceService {
+  if (!termsAcceptance) {
+    termsAcceptance = createTermsAcceptanceService({
+      store: createPrismaTermsAcceptanceStore(prisma),
+    });
+  }
+  return termsAcceptance;
 }

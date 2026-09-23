@@ -1,6 +1,6 @@
 {
   "Metadata": {
-    "title": "EscapeRoom Creator",
+    "title": "Escape room",
     "description": "Escape rooms online cooperativos, isométricos 2D."
   },
   "LocaleSwitcher": {
@@ -1268,6 +1268,14 @@
     },
     "cookies": {
       "title": "Política de Cookies"
+    },
+    "reaccept": {
+      "title": "Os termos mudaram",
+      "description": "Atualizámos os Termos de Serviço e a Política de Privacidade. Leia-os antes de continuar e aceite a nova versão para continuar a usar a sua conta.",
+      "termsLink": "Ler Termos de Serviço",
+      "privacyLink": "Ler Política de Privacidade",
+      "accept": "Aceitar e continuar",
+      "error": "Não foi possível registar a aceitação. Tente novamente."
     }
   },
   "PublicNav": {

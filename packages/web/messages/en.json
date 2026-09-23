@@ -1,6 +1,6 @@
 {
   "Metadata": {
-    "title": "EscapeRoom Creator",
+    "title": "Escape room",
     "description": "Cooperative 2D isometric online escape rooms."
   },
   "LocaleSwitcher": {
@@ -1356,6 +1356,14 @@
     },
     "cookies": {
       "title": "Cookie Policy"
+    },
+    "reaccept": {
+      "title": "The terms have changed",
+      "description": "We've updated the Terms of Service and Privacy Policy. Read them before continuing and accept the new version to keep using your account.",
+      "termsLink": "Read Terms of Service",
+      "privacyLink": "Read Privacy Policy",
+      "accept": "Accept and continue",
+      "error": "Couldn't record your acceptance. Please try again."
     }
   },
   "PublicNav": {

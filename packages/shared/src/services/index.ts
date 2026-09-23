@@ -55,3 +55,5 @@ export * from "./creator-connect-prisma-store";
 export * from "./stripe-gateway";
 export * from "./stripe-webhook-dedupe";
 export * from "./contact";
+export * from "./legal-acceptance";
+export * from "./legal-acceptance-prisma-store";

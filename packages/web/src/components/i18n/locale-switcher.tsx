@@ -36,7 +36,7 @@ export function LocaleSwitcher({ variant = "overlay" }: { variant?: "overlay" | 
   if (variant === "select") {
     return (
       <Select value={locale} onValueChange={(value) => onSelect(value as Locale)}>
-        <SelectTrigger aria-label={t("label")} size="sm" disabled={isPending}>
+        <SelectTrigger aria-label={t("label")} disabled={isPending}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -60,7 +60,6 @@ export function LocaleSwitcher({ variant = "overlay" }: { variant?: "overlay" | 
         <Button
           key={option}
           variant={option === locale ? "default" : "ghost"}
-          size="xs"
           aria-pressed={option === locale}
           disabled={isPending}
           onClick={() => onSelect(option)}
