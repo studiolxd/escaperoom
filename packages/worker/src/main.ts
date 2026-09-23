@@ -7,7 +7,9 @@ import { prisma } from "@escaperoom/shared/db";
 import { createMailTransportFromEnv, readConfirmationTokenConfig } from "@escaperoom/shared/mail";
 import {
   createAccessKeyCardsService,
+  createModerationService,
   createPrismaAccessKeyCardStore,
+  createPrismaModerationStore,
   createPrismaAccessKeyStore,
   createPrismaInvitationStore,
 } from "@escaperoom/shared/services";
@@ -15,13 +17,14 @@ import { createAccessKeyCardsWorker } from "./access-key-cards";
 import { createAnalyticsPartitionsWorker } from "./analytics-partitions";
 import { createAccessKeyExpiryWorker } from "./access-key-expiry";
 import { createInvitationEmailWorker } from "./invitation-email";
+import { createModerationSamplingWorker } from "./moderation-sampling";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
 
 /**
  * Arranque de los workers de cola: analítica (specs/16), caducidad de claves
  * (ticket 5.5, job repetitivo), envíos de invitación por email (ticket 5.6),
- * PDF de tarjetas-clave (ticket 5.7) y particiones/purga de analítica (ticket
- * 6.11, job mensual).
+ * PDF de tarjetas-clave (ticket 5.7), particiones/purga de analítica (ticket
+ * 6.11, job mensual) y muestreo aleatorio de moderación (ticket 6.1, diario).
  *
  *   pnpm --filter @escaperoom/worker dev
  *
@@ -109,6 +112,13 @@ async function main(): Promise<void> {
     connection: partitionsConnection,
   });
 
+  // Muestreo de moderación: encola a revisión humana lo publicado recientemente.
+  const samplingConnection = createQueueRedis();
+  const sampling = await createModerationSamplingWorker({
+    moderation: createModerationService({ store: createPrismaModerationStore(prisma) }),
+    connection: samplingConnection,
+  });
+
   let closing = false;
   const shutdown = async (signal: string): Promise<void> => {
     if (closing) return;
@@ -121,11 +131,14 @@ async function main(): Promise<void> {
     await cards.close();
     await partitions.worker.close();
     await partitions.queue.close();
+    await sampling.worker.close();
+    await sampling.queue.close();
     await connection.quit().catch(() => undefined);
     await expiryConnection.quit().catch(() => undefined);
     await mailConnection?.quit().catch(() => undefined);
     await cardsConnection.quit().catch(() => undefined);
     await partitionsConnection.quit().catch(() => undefined);
+    await samplingConnection.quit().catch(() => undefined);
     await prisma.$disconnect().catch(() => undefined);
   };
 

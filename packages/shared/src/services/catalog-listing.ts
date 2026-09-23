@@ -202,7 +202,7 @@ function catalogSelect(onlyRoomId: string | null): Prisma.Sql {
     ), s AS (
       SELECT "roomId", AVG(rating)::float8 AS avg, COUNT(*)::int AS count
         FROM "review"
-       WHERE "roomId" IN (SELECT "roomId" FROM latest)
+       WHERE "roomId" IN (SELECT "roomId" FROM latest) AND "hiddenAt" IS NULL
        GROUP BY "roomId"
     )
     SELECT latest."roomId", latest.id AS "versionId", latest.semver, latest."publishedAt",

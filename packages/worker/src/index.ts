@@ -32,3 +32,12 @@ export {
   processAnalyticsPartitions,
   type AnalyticsPartitionsWorkerOptions,
 } from "./analytics-partitions";
+export {
+  DEFAULT_MODERATION_SAMPLING_CRON,
+  MODERATION_SAMPLING_QUEUE_NAME,
+  MODERATION_SAMPLING_SCHEDULER_ID,
+  createModerationSamplingWorker,
+  processModerationSampling,
+  readSamplingRate,
+  type ModerationSamplingWorkerOptions,
+} from "./moderation-sampling";

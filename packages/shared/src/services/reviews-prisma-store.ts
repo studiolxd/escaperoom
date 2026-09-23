@@ -94,8 +94,9 @@ export function createPrismaReviewStore(prisma: PrismaClient): ReviewStore {
     },
 
     async list(roomId, page) {
+      // Las reseñas ocultas por moderación (6.1) no se listan ni cuentan.
       const rows = await prisma.review.findMany({
-        where: { roomId },
+        where: { roomId, hiddenAt: null },
         orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
         skip: page.offset,
         take: page.limit,
@@ -106,7 +107,7 @@ export function createPrismaReviewStore(prisma: PrismaClient): ReviewStore {
 
     async stats(roomId) {
       const agg = await prisma.review.aggregate({
-        where: { roomId },
+        where: { roomId, hiddenAt: null },
         _avg: { rating: true },
         _count: { _all: true },
       });

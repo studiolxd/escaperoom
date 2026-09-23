@@ -6,6 +6,7 @@ import { renderValidationReport, validateRoomPackage, type ValidationReport } fr
 import { isAnonymous, type Actor } from "./actor";
 import type { AdminDirectory } from "./admin";
 import type { AudioAssetService } from "./audio-assets";
+import type { ModerationService, PublishPrecheck } from "./moderation";
 import { buildDraftDoc, type RoomDraftTx } from "./room-draft";
 
 /**
@@ -115,6 +116,16 @@ export interface RoomPublishStore extends AdminDirectory, Pick<RoomPublishTx, "l
   withRoomLock<T>(roomId: string, fn: (tx: RoomPublishTx) => Promise<T>): Promise<T>;
 }
 
+/**
+ * Moderación en la publicación (ticket 6.1, specs/17 §3 y §6): el creador
+ * congelado, suspendido o baneado no publica, y el contenido pasa el pre-check
+ * automático (🛑 bloquea con un reporte apelable; 🟡 publica y lo encola).
+ */
+export type PublishModerationGate = Pick<
+  ModerationService,
+  "publishBlocker" | "precheckPublish" | "recordPrecheckFlags"
+>;
+
 /** Lectura del draft (el mismo puerto que usa `RoomDraftService`). */
 export type PublishDraftReader = Pick<RoomDraftTx, "latestSnapshot" | "updatesAfter">;
 
@@ -135,7 +146,15 @@ export type RoomPublishErrorCode =
   /** El draft ya no es el que se aprobó (`PublishGuard.packageHash`, ticket 4.5). */
   | "DRAFT_CHANGED"
   /** Se publicó otra versión desde que se aprobó (`PublishGuard.latestSemver`, ticket 4.5). */
-  | "VERSION_CHANGED";
+  | "VERSION_CHANGED"
+  /** Moderación (6.1): cuenta congelada por un reporte crítico pendiente. */
+  | "ACCOUNT_FROZEN"
+  /** Moderación (6.1): 2º strike en 90 días, publicación suspendida 14 días. */
+  | "CREATOR_SUSPENDED"
+  /** Moderación (6.1): ban como creador. */
+  | "CREATOR_BANNED"
+  /** Moderación (6.1): el pre-check automático bloqueó el contenido (apelable). */
+  | "CONTENT_BLOCKED";
 
 export type RoomPublishErrorDetails = {
   /** Campos inválidos (entrada o `RoomPackage` que no cumple el esquema). */
@@ -146,6 +165,13 @@ export type RoomPublishErrorDetails = {
   reportText?: string;
   /** Assets que bloquean cuando `code === "ASSETS_NOT_PUBLISHABLE"`. */
   problems?: PublishAssetProblem[];
+  /** Detalle de moderación (bloqueo del pre-check o restricción de la cuenta). */
+  moderation?: {
+    /** Reporte `precheck` que se puede apelar (`POST /api/rooms/:roomId/appeal`). */
+    reportId?: string | null;
+    findings?: PublishPrecheck["findings"];
+    until?: Date | null;
+  };
 };
 
 /** Error de dominio de la publicación; los adaptadores lo traducen a HTTP/tRPC/MCP. */
@@ -373,6 +399,8 @@ export type PublishResult = {
   /** Informe del validador (sin ❌; puede traer avisos 🟡). */
   report: ValidationReport;
   assets: PackagedAsset[];
+  /** Señales 🟡 del pre-check de moderación (vacío si no hay o no está cableado). */
+  moderationFlags: string[];
 };
 
 function parsePublishInput(input: unknown): PublishInput {
@@ -436,6 +464,8 @@ export function createRoomPublishService(deps: {
   assets: PublishAssetSource;
   storage: PublishedAssetStorage;
   supportedPackageFormats?: readonly string[];
+  /** Moderación (6.1). Sin ella (tests antiguos, superficies sin BD) no hay pre-check. */
+  moderation?: PublishModerationGate;
 }) {
   const { store, drafts, assets, storage } = deps;
   const supportedFormats = deps.supportedPackageFormats ?? SUPPORTED_PACKAGE_FORMATS;
@@ -509,6 +539,7 @@ export function createRoomPublishService(deps: {
     room: PublishRoomRef,
     semver: string | undefined,
     guard: PublishGuard = {},
+    record = false,
   ) {
     const roomId = room.id;
     if (room.status === "removed") {
@@ -516,6 +547,12 @@ export function createRoomPublishService(deps: {
         "ROOM_NOT_PUBLISHABLE",
         "La sala fue retirada por moderación; no se puede publicar",
       );
+    }
+    const blocker = deps.moderation ? await deps.moderation.publishBlocker(room.authorId) : null;
+    if (blocker) {
+      throw new RoomPublishError(blocker.code, blocker.message, {
+        moderation: { until: blocker.until },
+      });
     }
     // Falla pronto si el semver pedido no es válido o no es posterior.
     const semvers = await store.listSemvers(roomId);
@@ -556,7 +593,27 @@ export function createRoomPublishService(deps: {
         { problems },
       );
     }
+
+    // Pre-check de moderación (<2 s, specs/17 §3): después del validador, como
+    // un paso más del pipeline. Solo `publish` deja rastro (`record`).
+    const precheck = deps.moderation
+      ? await deps.moderation.precheckPublish({
+          roomId,
+          authorId: room.authorId,
+          pkg: draftPackage,
+          contentHash: packageHash,
+          record,
+        })
+      : null;
+    if (precheck?.action === "block") {
+      throw new RoomPublishError(
+        "CONTENT_BLOCKED",
+        "El pre-check de moderación ha bloqueado la publicación: revisa los textos señalados o apela el bloqueo",
+        { moderation: { reportId: precheck.reportId, findings: precheck.findings } },
+      );
+    }
     return {
+      precheck,
       draftPackage,
       packageHash,
       report,
@@ -584,7 +641,13 @@ export function createRoomPublishService(deps: {
     ): Promise<PublishResult> {
       const room = await authorizeAuthor(actor, roomId);
       const { semver, changelog } = parsePublishInput(input);
-      const { draftPackage, report, refs } = await prepare(actor, room, semver, guard);
+      const { draftPackage, report, refs, precheck } = await prepare(
+        actor,
+        room,
+        semver,
+        guard,
+        true,
+      );
 
       const packaged = await packageAssets(actor, room.id, refs);
       const assetsHash = computeAssetsHash({
@@ -615,7 +678,24 @@ export function createRoomPublishService(deps: {
         return row;
       });
 
-      return { version: toMeta(version), report, assets: packaged };
+      if (deps.moderation && precheck?.action === "flag") {
+        // 🟡 La versión ya está publicada: encolarla es un efecto secundario que
+        // no debe convertir una publicación correcta en un error.
+        await deps.moderation
+          .recordPrecheckFlags({
+            roomId: room.id,
+            versionId: version.id,
+            authorId: room.authorId,
+            precheck,
+          })
+          .catch(() => null);
+      }
+      return {
+        version: toMeta(version),
+        report,
+        assets: packaged,
+        moderationFlags: precheck?.flags ?? [],
+      };
     },
 
     /**

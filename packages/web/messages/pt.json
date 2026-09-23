@@ -965,7 +965,11 @@
       "ASSETS_NOT_PUBLISHABLE": "Há áudios pendentes ou rejeitados na moderação: ainda não é possível publicar.",
       "ROOM_NOT_PUBLISHABLE": "A sala foi retirada pela moderação e não pode ser publicada.",
       "PUBLISH_CONFIRM_DISABLED": "A confirmação de publicações não está disponível neste ambiente.",
-      "UNKNOWN": "Não foi possível publicar a sala. Tenta novamente."
+      "UNKNOWN": "Não foi possível publicar a sala. Tenta novamente.",
+      "CONTENT_BLOCKED": "A pré-verificação de moderação bloqueou alguns textos da sala. Corrija-os ou recorra do bloqueio.",
+      "ACCOUNT_FROZEN": "A sua conta está congelada enquanto se revê uma denúncia grave: não pode publicar.",
+      "CREATOR_SUSPENDED": "A publicação está temporariamente suspensa na sua conta.",
+      "CREATOR_BANNED": "A sua conta já não pode publicar salas."
     }
   },
   "McpConsent": {
@@ -1163,6 +1167,66 @@
       "split_clue": "Pista repartida",
       "pipes": "Canos",
       "combine_items": "Combinar objetos"
+    }
+  },
+  "Moderation": {
+    "metaTitle": "Fila de moderação",
+    "title": "Fila de moderação",
+    "intro": "Denúncias ordenadas por gravidade e SLA, recursos pendentes e áudio carregado à espera de revisão.",
+    "forbidden": "Só moderadores ou administradores podem ver a fila de moderação.",
+    "loading": "A carregar a fila…",
+    "empty": "Nada pendente.",
+    "tabs": {
+      "reports": "Denúncias ({count})",
+      "appeals": "Recursos ({count})",
+      "audio": "Áudio ({count})"
+    },
+    "severity": {
+      "critical": "Crítica",
+      "high": "Alta",
+      "normal": "Normal",
+      "low": "Baixa"
+    },
+    "source": {
+      "user_report": "Denúncia de utilizador",
+      "precheck": "Pré-verificação automática",
+      "sampling": "Amostragem aleatória"
+    },
+    "target": {
+      "room": "Sala",
+      "review": "Avaliação",
+      "user": "Utilizador"
+    },
+    "overdue": "SLA ultrapassado",
+    "activeEvent": "Evento ativo",
+    "auto": {
+      "unpublish": "Despublicada até revisão",
+      "hide": "Oculta até revisão"
+    },
+    "meta": "Rever antes de {due} · criado {created} · {count, plural, one {# denúncia} other {# denúncias}} sobre este conteúdo",
+    "note": "Nota de resolução (motivo que o criador verá)",
+    "rejectNeedsNote": "Para rejeitar um áudio, escreva o motivo na nota",
+    "appeal": {
+      "room": "Recurso sobre uma sala",
+      "account": "Recurso de conta (suspensão ou banimento)"
+    },
+    "actions": {
+      "confirm": "Confirmar infração",
+      "warn": "Confirmar com aviso",
+      "dismiss": "Descartar",
+      "restore": "Restaurar (falso positivo)",
+      "uphold": "Manter a decisão",
+      "overturn": "Reverter a ação",
+      "approve": "Aprovar",
+      "reject": "Rejeitar"
+    },
+    "errors": {
+      "UNAUTHORIZED": "Inicie sessão para moderar.",
+      "FORBIDDEN": "Não tem permissões de moderação.",
+      "NOT_FOUND": "O elemento já não existe.",
+      "ALREADY_REVIEWED": "Outra pessoa já o resolveu.",
+      "VALIDATION_ERROR": "A decisão não é válida para este conteúdo.",
+      "UNKNOWN": "Algo correu mal. Tente novamente."
     }
   }
 }

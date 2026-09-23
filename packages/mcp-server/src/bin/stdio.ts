@@ -6,7 +6,9 @@ import {
   createAudioPublishAssetSource,
   createCatalogService,
   createJsonFileRoomPackageRepository,
+  createModerationService,
   createPrismaAudioAssetStore,
+  createPrismaModerationStore,
   createPrismaPublishedRoomListing,
   createPrismaRoomDraftStore,
   createPrismaRoomPublishStore,
@@ -61,6 +63,8 @@ const publishRequests = publishConfig
           readObject: unavailable("bucket"),
         }),
         storage: { put: unavailable("bucket") },
+        // Mismo pre-check y puerta de cuenta que la web (6.1); en seco no escribe.
+        moderation: createModerationService({ store: createPrismaModerationStore(prisma) }),
       }),
     })
   : null;

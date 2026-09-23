@@ -592,6 +592,14 @@ CREATE TABLE "moderationAppeal" (
 CREATE INDEX "ixModerationAppealStatus" ON "moderationAppeal"(status) WHERE status = 'pending';
 ```
 
+> **0016_moderation_pipeline** (ticket 6.1, specs/17): `contentReport` pasa a destino genérico
+> (`targetType` `room|review|user`, `roomId`, `reviewId`, `targetUserId` = dueño del contenido;
+> `reporterId` y `roomVersionId` opcionales para las fuentes `precheck`/`sampling`), con `slaDueAt`,
+> `actionTaken`, `autoActioned`, `roomStatusBefore` (para restaurar tras una despublicación
+> automática), `contentHash` (bloqueo del pre-check apelable) y `flags`. `review` gana
+> `hiddenAt`/`hiddenBy`; nueva tabla `moderationStrike` (`severity`, `consequence`
+> `warning|suspension|ban`, `revokedAt`); `moderationAppeal` gana `strikeId` y `slaDueAt`.
+
 ### 10.1 Audio subido por el creador (ticket 3.11)
 
 Migración posterior a esta spec, `0011_audio_assets` (`specs/15` §1 y §4, `specs/17` §1): las
