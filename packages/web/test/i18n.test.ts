@@ -52,22 +52,18 @@ describe("i18n", () => {
         "SimultaneousPlates.progress",
         "SimultaneousPlates.countdown",
         "SimultaneousPlates.solved",
-<<<<<<< HEAD
         "SplitClue.title",
         "SplitClue.progress",
         "SplitClue.viewLabel",
         "SplitClue.bridge",
         "SplitClue.submit",
         "SplitClue.solved",
-||||||| 85b3dd8
-=======
         "Memory.title",
         "Memory.prompt",
         "Memory.pairs",
         "Memory.match",
         "Memory.mismatch",
         "Memory.solved",
->>>>>>> origin/main
         "Inventory.title",
         "Inventory.recipes",
         "Inventory.gridLabel",
