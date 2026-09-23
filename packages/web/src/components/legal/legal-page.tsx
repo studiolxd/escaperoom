@@ -1,10 +1,10 @@
+import type { ReactNode } from "react";
 import type { LegalDocument } from "@/content/legal/types";
+import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "@/i18n/navigation";
 
 type LegalPageProps = {
   title: string;
-  draftNotice: string;
-  draftDateLabel: string;
   document: LegalDocument;
   /** `true` si el locale actual no es `es`: el contenido solo existe en español. */
   onlyInSpanishNotice?: string;
@@ -13,6 +13,8 @@ type LegalPageProps = {
     label: string;
   }[];
   currentHref: "/legal/terms" | "/legal/privacy" | "/legal/dpa" | "/legal/legal-notice" | "/legal/cookies";
+  /** Contenido interactivo adicional bajo el documento (p. ej. el enlace de preferencias de cookies). */
+  children?: ReactNode;
 };
 
 /**
@@ -20,67 +22,65 @@ type LegalPageProps = {
  * política de privacidad, plantilla de DPA, aviso legal y política de
  * cookies. El contenido en sí (`document`)
  * vive siempre en español — specs/18 fija España como jurisdicción de
- * referencia y el alcance de este ticket es un borrador técnico, no una
- * traducción jurídica a seis idiomas de un texto que todavía no ha revisado
- * ningún abogado. `onlyInSpanishNotice` avisa de esto en el resto de locales;
+ * referencia. `onlyInSpanishNotice` avisa de esto en el resto de locales;
  * el resto de la página (título, navegación entre páginas legales) sí sigue
  * el idioma activo, como el resto de la app.
  */
 export function LegalPage({
   title,
-  draftNotice,
-  draftDateLabel,
   document,
   onlyInSpanishNotice,
   nav,
   currentHref,
+  children,
 }: LegalPageProps) {
   return (
-    <main className="min-h-dvh bg-slate-950 px-4 py-10 text-white">
+    <main className="min-h-dvh bg-background px-4 py-10 text-foreground">
       <div className="mx-auto w-full max-w-2xl space-y-6">
-        <nav className="flex flex-wrap gap-2 text-xs">
+        <nav className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
           {nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`rounded-full border px-3 py-1 transition-colors ${
+              className={
                 item.href === currentHref
-                  ? "border-white/40 bg-white/10 text-white"
-                  : "border-white/10 text-white/60 hover:bg-white/5"
-              }`}
+                  ? "font-medium text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }
             >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        <header className="space-y-2 rounded-xl border border-amber-400/40 bg-amber-400/10 p-4">
-          <h1 className="text-lg font-semibold text-white">{title}</h1>
-          <p className="text-xs text-amber-200/90">
-            {draftNotice} ({draftDateLabel}: {document.draftDate})
-          </p>
+        <header className="space-y-2">
+          <h1 className="text-lg font-semibold text-foreground">{title}</h1>
           {onlyInSpanishNotice ? (
-            <p className="text-xs text-amber-200/90">{onlyInSpanishNotice}</p>
+            <p className="text-xs text-muted-foreground">{onlyInSpanishNotice}</p>
           ) : null}
         </header>
 
-        <article className="space-y-6 rounded-xl border border-white/10 bg-white/5 p-6 text-sm leading-relaxed text-white/80">
-          {document.sections.map((section) => (
-            <section key={section.heading} className="space-y-2">
-              <h2 className="text-sm font-semibold text-white">{section.heading}</h2>
-              {section.paragraphs.map((paragraph, i) => (
-                <p key={i}>{paragraph}</p>
-              ))}
-              {section.list ? (
-                <ul className="list-disc space-y-1 pl-5">
-                  {section.list.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </section>
-          ))}
-        </article>
+        <Card>
+          <CardContent className="space-y-6 text-sm leading-relaxed text-foreground">
+            {document.sections.map((section) => (
+              <section key={section.heading} className="space-y-2">
+                <h2 className="text-sm font-semibold text-foreground">{section.heading}</h2>
+                {section.paragraphs.map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
+                ))}
+                {section.list ? (
+                  <ul className="list-disc space-y-1 pl-5">
+                    {section.list.map((item, i) => (
+                      <li key={i}>{item}</li>
+                    ))}
+                  </ul>
+                ) : null}
+              </section>
+            ))}
+          </CardContent>
+        </Card>
+
+        {children}
       </div>
     </main>
   );

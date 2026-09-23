@@ -83,15 +83,14 @@ export const privacyPolicy: LegalDocument = {
     {
       heading: "4. Cuánto tiempo conservamos los datos",
       paragraphs: [
-        "[PENDIENTE ASESORÍA LEGAL: confirmar con asesoría fiscal el plazo exacto de conservación de " +
-          "los registros de facturación tras el cierre de una cuenta (specs/18 §3.3 propone 4–6 años " +
-          "como orientación en España, sin confirmar)]. Los plazos propuestos para el resto de datos, " +
-          "a falta también de confirmación con asesoría, son:",
+        "Los plazos de conservación son:",
       ],
       list: [
         "Cuenta cerrada por el usuario: los campos identificativos se anonimizan de inmediato; se " +
           "conserva un registro transaccional de las compras, sin datos personales visibles, por " +
           "obligación de facturación.",
+        "Facturas y registros de facturación: 6 años tras su emisión, conforme al artículo 30 del " +
+          "Código de Comercio.",
         "Clave de acceso con email de un participante: 12 meses tras el evento en general, y 3 " +
           "meses cuando la audiencia del evento es educativa (minimización reforzada por la posible " +
           "presencia de menores; véase la sección 6 del contrato de encargo de tratamiento). En " +
@@ -130,15 +129,19 @@ export const privacyPolicy: LegalDocument = {
     {
       heading: "6. Encargados de tratamiento (proveedores) y transferencias internacionales",
       paragraphs: [
-        "Los siguientes proveedores tratan datos de usuarios por cuenta de la plataforma. " +
-          "[PENDIENTE ASESORÍA LEGAL: confirmar, para cada uno, la ubicación exacta del procesamiento " +
-          "y las garantías de transferencia internacional vigentes (cláusulas contractuales tipo u " +
-          "otro mecanismo), y firmar el contrato de encargo de tratamiento correspondiente antes de " +
-          "procesar datos reales (specs/18 §3.5)]:",
+        "Los siguientes proveedores tratan datos de usuarios por cuenta de la plataforma, bajo " +
+          "contrato de encargo de tratamiento. Stripe y ElevenLabs tienen sede en Estados Unidos: " +
+          "cuando tratan datos lo hacen amparados en las Cláusulas Contractuales Tipo aprobadas por la " +
+          "Comisión Europea u otro mecanismo de transferencia válido conforme al RGPD. Resend/Postmark " +
+          "y Cloudflare R2 aplican la misma garantía para lo que su infraestructura procesa fuera del " +
+          "Espacio Económico Europeo:",
       ],
       list: [
         "Stripe — pagos y verificación de creadores (Connect).",
-        "ElevenLabs — conversión de texto a audio (generación de voces por IA).",
+        "ElevenLabs — conversión de texto a audio (generación de voces por IA). Sus condiciones de " +
+          "uso vigentes en plan de pago reconocen la titularidad de EscapeRoom Creator sobre el audio " +
+          "generado, pero ElevenLabs se reserva una licencia perpetua sobre las voces y el contenido " +
+          "que se le envía para entrenar sus propios modelos.",
         "Resend/Postmark — envío de emails transaccionales.",
         "Cloudflare R2 — almacenamiento de assets y grabaciones.",
         "LiveKit Cloud — solo si se activa como plan de contingencia para audio/vídeo en tránsito; " +
@@ -153,9 +156,8 @@ export const privacyPolicy: LegalDocument = {
     {
       heading: "7. Contacto",
       paragraphs: [
-        "[PENDIENTE ASESORÍA LEGAL: incluir aquí los datos identificativos del responsable del " +
-          "tratamiento y, si aplica, del delegado de protección de datos, conforme a lo que exija la " +
-          "asesoría legal].",
+        "Responsable del tratamiento: Studio LXD, S.L. — NIF B24941411 — Avenida Menéndez Pelayo, 36, " +
+          "3.º, D. 28007 Madrid — hello@studiolxd.com. Más datos identificativos en el Aviso Legal.",
       ],
     },
   ],

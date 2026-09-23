@@ -1246,6 +1246,69 @@
       "UNKNOWN": "Er ging iets mis. Probeer het opnieuw."
     }
   },
+  "Legal": {
+    "nav": {
+      "terms": "Gebruiksvoorwaarden",
+      "privacy": "Privacybeleid",
+      "dpa": "DPA-sjabloon",
+      "legalNotice": "Juridische kennisgeving",
+      "cookies": "Cookiebeleid"
+    },
+    "terms": {
+      "title": "Gebruiksvoorwaarden"
+    },
+    "privacy": {
+      "title": "Privacybeleid"
+    },
+    "dpa": {
+      "title": "Sjabloon verwerkersovereenkomst (DPA)"
+    },
+    "legalNotice": {
+      "title": "Juridische kennisgeving"
+    },
+    "cookies": {
+      "title": "Cookiebeleid"
+    },
+    "reaccept": {
+      "title": "De voorwaarden zijn gewijzigd",
+      "description": "We hebben de Gebruiksvoorwaarden en het Privacybeleid bijgewerkt. Lees ze voordat je verdergaat en accepteer de nieuwe versie om je account te blijven gebruiken.",
+      "termsLink": "Gebruiksvoorwaarden lezen",
+      "privacyLink": "Privacybeleid lezen",
+      "accept": "Accepteren en doorgaan",
+      "error": "Je acceptatie kon niet worden opgeslagen. Probeer het opnieuw."
+    }
+  },
+  "CookieConsent": {
+    "settingsLink": "Cookievoorkeuren",
+    "banner": {
+      "description": "We gebruiken noodzakelijke cookies om het platform te laten werken. Je kunt je voorkeuren op elk moment aanpassen.",
+      "acceptAll": "Alles accepteren",
+      "rejectAll": "Alles weigeren",
+      "preferences": "Voorkeuren"
+    },
+    "dialog": {
+      "title": "Cookievoorkeuren",
+      "description": "Beheer welke optionele cookiecategorieën je accepteert. Noodzakelijke cookies kunnen niet worden uitgeschakeld."
+    },
+    "categories": {
+      "necessary": {
+        "name": "Noodzakelijk",
+        "description": "Vereist voor de basiswerking van het platform (sessie en taal). Altijd actief."
+      },
+      "analytics": {
+        "name": "Analytisch",
+        "description": "Helpt ons begrijpen hoe het platform wordt gebruikt."
+      },
+      "marketing": {
+        "name": "Marketing",
+        "description": "Zou advertenties meten met pixels van derden."
+      },
+      "preferences": {
+        "name": "Voorkeuren",
+        "description": "Zou optionele, niet-essentiële personalisatie onthouden."
+      }
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Kamers verkennen",
@@ -1263,15 +1326,5 @@
     "success": "Bedankt! We hebben je bericht ontvangen en reageren snel.",
     "sending": "Verzenden…",
     "error": "Het bericht kon niet worden verzonden. Probeer het opnieuw."
-  },
-  "Legal": {
-    "reaccept": {
-      "title": "De voorwaarden zijn gewijzigd",
-      "description": "We hebben de Gebruiksvoorwaarden en het Privacybeleid bijgewerkt. Lees ze voordat je verdergaat en accepteer de nieuwe versie om je account te blijven gebruiken.",
-      "termsLink": "Gebruiksvoorwaarden lezen",
-      "privacyLink": "Privacybeleid lezen",
-      "accept": "Accepteren en doorgaan",
-      "error": "Je acceptatie kon niet worden opgeslagen. Probeer het opnieuw."
-    }
   }
 }

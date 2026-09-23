@@ -1246,6 +1246,69 @@
       "UNKNOWN": "Une erreur s'est produite. Réessayez."
     }
   },
+  "Legal": {
+    "nav": {
+      "terms": "Conditions d'utilisation",
+      "privacy": "Politique de confidentialité",
+      "dpa": "Modèle de DPA",
+      "legalNotice": "Mentions légales",
+      "cookies": "Politique de cookies"
+    },
+    "terms": {
+      "title": "Conditions d'utilisation"
+    },
+    "privacy": {
+      "title": "Politique de confidentialité"
+    },
+    "dpa": {
+      "title": "Modèle de contrat de sous-traitance (DPA)"
+    },
+    "legalNotice": {
+      "title": "Mentions légales"
+    },
+    "cookies": {
+      "title": "Politique de cookies"
+    },
+    "reaccept": {
+      "title": "Les conditions ont changé",
+      "description": "Nous avons mis à jour les Conditions d'utilisation et la Politique de confidentialité. Lisez-les avant de continuer et acceptez la nouvelle version pour continuer à utiliser votre compte.",
+      "termsLink": "Lire les Conditions d'utilisation",
+      "privacyLink": "Lire la Politique de confidentialité",
+      "accept": "Accepter et continuer",
+      "error": "Impossible d'enregistrer votre acceptation. Réessayez."
+    }
+  },
+  "CookieConsent": {
+    "settingsLink": "Préférences de cookies",
+    "banner": {
+      "description": "Nous utilisons des cookies nécessaires au fonctionnement de la plateforme. Vous pouvez modifier vos préférences à tout moment.",
+      "acceptAll": "Tout accepter",
+      "rejectAll": "Tout refuser",
+      "preferences": "Préférences"
+    },
+    "dialog": {
+      "title": "Préférences de cookies",
+      "description": "Gérez les catégories de cookies facultatifs que vous acceptez. Les cookies nécessaires ne peuvent pas être désactivés."
+    },
+    "categories": {
+      "necessary": {
+        "name": "Nécessaires",
+        "description": "Indispensables au fonctionnement de base de la plateforme (session et langue). Toujours actifs."
+      },
+      "analytics": {
+        "name": "Analytique",
+        "description": "Nous aide à comprendre comment la plateforme est utilisée."
+      },
+      "marketing": {
+        "name": "Marketing",
+        "description": "Mesurerait la publicité avec des pixels tiers."
+      },
+      "preferences": {
+        "name": "Préférences",
+        "description": "Mémoriserait une personnalisation facultative, non essentielle."
+      }
+    }
+  },
   "PublicNav": {
     "logo": "Escape room",
     "catalog": "Explorer les salles",
@@ -1263,15 +1326,5 @@
     "success": "Merci ! Nous avons bien reçu votre message et nous vous répondrons bientôt.",
     "sending": "Envoi…",
     "error": "Impossible d'envoyer le message. Réessayez."
-  },
-  "Legal": {
-    "reaccept": {
-      "title": "Les conditions ont changé",
-      "description": "Nous avons mis à jour les Conditions d'utilisation et la Politique de confidentialité. Lisez-les avant de continuer et acceptez la nouvelle version pour continuer à utiliser votre compte.",
-      "termsLink": "Lire les Conditions d'utilisation",
-      "privacyLink": "Lire la Politique de confidentialité",
-      "accept": "Accepter et continuer",
-      "error": "Impossible d'enregistrer votre acceptation. Réessayez."
-    }
   }
 }

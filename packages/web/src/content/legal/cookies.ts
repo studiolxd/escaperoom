@@ -39,9 +39,10 @@ export const cookiesPolicy: LegalDocument = {
           "plataforma y exentas de consentimiento. Hoy son tu sesión de autenticación y tu idioma " +
           "preferido.",
         "Analítica: nos ayudaría a entender cómo se usa la plataforma (visitas agregadas, fuentes de " +
-          "tráfico) para poder mejorarla. [PENDIENTE ASESORÍA LEGAL / PLANIFICADO, NO ACTIVO: Plausible " +
-          "y Google Analytics, véase la sección 3 — mientras no se activen, esta categoría no tiene " +
-          "ninguna cookie ni requiere ningún banner de consentimiento].",
+          "tráfico) para poder mejorarla. Planificado, no activo todavía: Plausible y Google Analytics " +
+          "(véase la sección 3). Mientras no se activen, esta categoría no tiene ninguna cookie ni " +
+          "requiere ningún banner de consentimiento; cuando se active Google Analytics, sí lo " +
+          "requerirá, al ser el único de los dos que usa cookies.",
         "Marketing: mediría la publicidad con píxeles de terceros. Hoy no hay ninguna activa en la " +
           "plataforma.",
         "Preferencias: recordaría personalización opcional, no esencial. Hoy no hay ninguna activa " +
@@ -83,9 +84,10 @@ export const cookiesPolicy: LegalDocument = {
           "plataforma (no podrías mantener sesión iniciada ni conservar tu idioma). Cuando se activen " +
           "las analíticas planificadas de la sección 3, Google Analytics solo se cargará si das tu " +
           "consentimiento explícito, y podrás retirarlo en cualquier momento.",
-        "[PENDIENTE: definir el mecanismo concreto de gestión de consentimiento (banner, panel de " +
-          "preferencias) antes de activar Google Analytics — hoy no existe porque no hay ninguna " +
-          "cookie opcional que gestionar].",
+        "El mecanismo de gestión (banda de consentimiento y panel de preferencias) ya está construido " +
+          "y listo para cuando se active la primera cookie opcional; hasta entonces no le aparece a " +
+          "nadie porque no hay ninguna categoría opcional activa. Puedes revisarlo o cambiarlo en " +
+          "cualquier momento desde «Preferencias de cookies», debajo y en el pie de la plataforma.",
         "También puedes bloquear cookies desde los ajustes de tu navegador, aunque las cookies " +
           "necesarias no se pueden desactivar sin romper el funcionamiento de la plataforma.",
         "Más información sobre cookies en la guía de la Agencia Española de Protección de Datos: " +

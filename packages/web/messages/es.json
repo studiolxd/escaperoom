@@ -1336,30 +1336,28 @@
     }
   },
   "Legal": {
-    "draftNotice": "Borrador pendiente de revisión legal: no es un texto vigente",
-    "draftDateLabel": "Versión del borrador",
     "onlyInSpanishNotice": "Este contenido legal solo existe en español por ahora; specs/18 fija España como jurisdicción de referencia.",
     "nav": {
-      "terms": "Términos de Servicio",
-      "privacy": "Política de Privacidad",
+      "terms": "Términos de servicio",
+      "privacy": "Política de privacidad",
       "dpa": "Plantilla de DPA",
-      "legalNotice": "Aviso Legal",
-      "cookies": "Política de Cookies"
+      "legalNotice": "Aviso legal",
+      "cookies": "Política de cookies"
     },
     "terms": {
-      "title": "Términos de Servicio (borrador)"
+      "title": "Términos de Servicio"
     },
     "privacy": {
-      "title": "Política de Privacidad (borrador)"
+      "title": "Política de Privacidad"
     },
     "dpa": {
-      "title": "Plantilla de Contrato de Encargo de Tratamiento (DPA) (borrador)"
+      "title": "Plantilla de Contrato de Encargo de Tratamiento (DPA)"
     },
     "legalNotice": {
-      "title": "Aviso Legal (borrador)"
+      "title": "Aviso Legal"
     },
     "cookies": {
-      "title": "Política de Cookies (borrador)"
+      "title": "Política de Cookies"
     },
     "reaccept": {
       "title": "Los términos han cambiado",
@@ -1368,6 +1366,37 @@
       "privacyLink": "Leer Política de Privacidad",
       "accept": "Aceptar y continuar",
       "error": "No se pudo registrar la aceptación. Inténtalo de nuevo."
+    }
+  },
+  "CookieConsent": {
+    "settingsLink": "Preferencias de cookies",
+    "banner": {
+      "description": "Usamos cookies necesarias para el funcionamiento de la plataforma. Puedes revisar tus preferencias en cualquier momento.",
+      "acceptAll": "Aceptar todo",
+      "rejectAll": "Rechazar todo",
+      "preferences": "Preferencias"
+    },
+    "dialog": {
+      "title": "Preferencias de cookies",
+      "description": "Gestiona qué categorías de cookies opcionales aceptas. Las necesarias no se pueden desactivar."
+    },
+    "categories": {
+      "necessary": {
+        "name": "Necesarias",
+        "description": "Imprescindibles para el funcionamiento básico de la plataforma (sesión e idioma). Siempre activas."
+      },
+      "analytics": {
+        "name": "Analítica",
+        "description": "Nos ayuda a entender cómo se usa la plataforma."
+      },
+      "marketing": {
+        "name": "Marketing",
+        "description": "Mediría la publicidad con píxeles de terceros."
+      },
+      "preferences": {
+        "name": "Preferencias",
+        "description": "Recordaría personalización opcional no esencial."
+      }
     }
   },
   "PublicNav": {
