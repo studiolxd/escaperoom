@@ -960,5 +960,56 @@
     "errors": {
       "invalid": "The authorization request is not valid. Reconnect the assistant from its app."
     }
+  },
+  "CreatorChat": {
+    "title": "Creator chat",
+    "intro": "Describe your escape room and the assistant builds it in your draft with the same tools as the editor. You can fine-tune it later in the visual editor.",
+    "notConfigured": "The creator chat is not configured in this environment (the language model key is missing). You can keep creating rooms with the visual editor.",
+    "loginRequired": "Sign in to use the creator chat.",
+    "empty": "For example: “Create a 2-room medieval escape room for 4 players: The Alchemist's Crypt”.",
+    "placeholder": "Type your message…",
+    "send": "Send",
+    "sending": "Sending…",
+    "thinking": "The assistant is working…",
+    "closed": "This conversation has reached its limit. Start a new one.",
+    "you": "You",
+    "assistant": "Assistant",
+    "openEditor": "Open the draft in the editor",
+    "noRoom": "No draft yet: the assistant will create it.",
+    "newConversation": "New conversation",
+    "usage": "{turns}/{maxTurns} steps · {tokens, number} of {maxTokens, number} tokens",
+    "publishNote": "The room is not published until you review and confirm it at that link.",
+    "tool": {
+      "running": "running",
+      "ok": "done",
+      "error": "error",
+      "input": "Data sent",
+      "result": "Result"
+    },
+    "links": {
+      "preview": "Open the test game",
+      "publish_confirm": "Review and confirm publishing"
+    },
+    "limit": {
+      "turns": "This conversation has reached its maximum number of steps. Start a new one to continue.",
+      "tokens": "This conversation has reached its maximum model usage. Start a new one to continue."
+    },
+    "stop": {
+      "refusal": "The assistant could not respond to this request.",
+      "max_tokens": "The response was cut off for length. Ask for the change in smaller parts."
+    },
+    "errors": {
+      "UNAUTHORIZED": "Your session has expired. Please sign in again.",
+      "CROSS_SITE": "Request rejected: the chat only works from this website.",
+      "NOT_CONFIGURED": "The creator chat is not configured in this environment.",
+      "INVALID_REQUEST": "The message is not valid (empty or too long?).",
+      "CONVERSATION_NOT_FOUND": "The conversation has expired. Start a new one.",
+      "BUSY": "Wait for the assistant to finish responding.",
+      "MCP_UNAVAILABLE": "The creator tools are not responding. Try again in a moment.",
+      "MODEL_AUTH": "The language model rejected the configured credential. Let the team know.",
+      "MODEL_RATE_LIMITED": "The language model is overloaded. Wait a moment and try again.",
+      "MODEL_ERROR": "The language model failed. Please try again.",
+      "UNKNOWN": "Something went wrong. Please try again."
+    }
   }
 }

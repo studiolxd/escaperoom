@@ -960,5 +960,56 @@
     "errors": {
       "invalid": "Die Autorisierungsanfrage ist ungültig. Verbinde den Assistenten erneut aus seiner App."
     }
+  },
+  "CreatorChat": {
+    "title": "Creator-Chat",
+    "intro": "Beschreibe deinen Escape Room und der Assistent baut ihn in deinem Entwurf mit denselben Werkzeugen wie der Editor. Danach kannst du ihn im visuellen Editor verfeinern.",
+    "notConfigured": "Der Creator-Chat ist in dieser Umgebung nicht konfiguriert (der Schlüssel für das Sprachmodell fehlt). Du kannst weiterhin Räume mit dem visuellen Editor erstellen.",
+    "loginRequired": "Melde dich an, um den Creator-Chat zu nutzen.",
+    "empty": "Zum Beispiel: „Erstelle einen mittelalterlichen Escape Room mit 2 Räumen für 4 Spieler: Die Krypta des Alchemisten“.",
+    "placeholder": "Schreibe deine Nachricht…",
+    "send": "Senden",
+    "sending": "Wird gesendet…",
+    "thinking": "Der Assistent arbeitet…",
+    "closed": "Diese Unterhaltung hat ihr Limit erreicht. Beginne eine neue.",
+    "you": "Du",
+    "assistant": "Assistent",
+    "openEditor": "Entwurf im Editor öffnen",
+    "noRoom": "Noch kein Entwurf: Der Assistent erstellt ihn.",
+    "newConversation": "Neue Unterhaltung",
+    "usage": "{turns}/{maxTurns} Schritte · {tokens, number} von {maxTokens, number} Tokens",
+    "publishNote": "Der Raum wird erst veröffentlicht, wenn du ihn über diesen Link prüfst und bestätigst.",
+    "tool": {
+      "running": "läuft",
+      "ok": "erledigt",
+      "error": "Fehler",
+      "input": "Gesendete Daten",
+      "result": "Ergebnis"
+    },
+    "links": {
+      "preview": "Testspiel öffnen",
+      "publish_confirm": "Veröffentlichung prüfen und bestätigen"
+    },
+    "limit": {
+      "turns": "Diese Unterhaltung hat die maximale Anzahl an Schritten erreicht. Beginne eine neue, um weiterzumachen.",
+      "tokens": "Diese Unterhaltung hat die maximale Modellnutzung erreicht. Beginne eine neue, um weiterzumachen."
+    },
+    "stop": {
+      "refusal": "Der Assistent konnte auf diese Anfrage nicht antworten.",
+      "max_tokens": "Die Antwort wurde wegen ihrer Länge abgeschnitten. Bitte um die Änderung in kleineren Teilen."
+    },
+    "errors": {
+      "UNAUTHORIZED": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.",
+      "CROSS_SITE": "Anfrage abgelehnt: Der Chat funktioniert nur auf dieser Website.",
+      "NOT_CONFIGURED": "Der Creator-Chat ist in dieser Umgebung nicht konfiguriert.",
+      "INVALID_REQUEST": "Die Nachricht ist ungültig (leer oder zu lang?).",
+      "CONVERSATION_NOT_FOUND": "Die Unterhaltung ist abgelaufen. Beginne eine neue.",
+      "BUSY": "Warte, bis der Assistent seine Antwort beendet hat.",
+      "MCP_UNAVAILABLE": "Die Creator-Werkzeuge antworten nicht. Versuche es gleich noch einmal.",
+      "MODEL_AUTH": "Das Sprachmodell hat die konfigurierten Zugangsdaten abgelehnt. Informiere das Team.",
+      "MODEL_RATE_LIMITED": "Das Sprachmodell ist überlastet. Warte einen Moment und versuche es erneut.",
+      "MODEL_ERROR": "Das Sprachmodell ist fehlgeschlagen. Bitte versuche es erneut.",
+      "UNKNOWN": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    }
   }
 }

@@ -960,5 +960,56 @@
     "errors": {
       "invalid": "Het autorisatieverzoek is ongeldig. Koppel de assistent opnieuw vanuit de app."
     }
+  },
+  "CreatorChat": {
+    "title": "Makerschat",
+    "intro": "Beschrijf je escape room en de assistent bouwt hem in je concept met dezelfde tools als de editor. Daarna kun je hem verfijnen in de visuele editor.",
+    "notConfigured": "De makerschat is in deze omgeving niet geconfigureerd (de sleutel van het taalmodel ontbreekt). Je kunt kamers blijven maken met de visuele editor.",
+    "loginRequired": "Log in om de makerschat te gebruiken.",
+    "empty": "Bijvoorbeeld: „Maak een middeleeuwse escape room met 2 kamers voor 4 spelers: De crypte van de alchemist”.",
+    "placeholder": "Typ je bericht…",
+    "send": "Versturen",
+    "sending": "Versturen…",
+    "thinking": "De assistent is bezig…",
+    "closed": "Dit gesprek heeft zijn limiet bereikt. Begin een nieuw gesprek.",
+    "you": "Jij",
+    "assistant": "Assistent",
+    "openEditor": "Concept openen in de editor",
+    "noRoom": "Nog geen concept: de assistent maakt het aan.",
+    "newConversation": "Nieuw gesprek",
+    "usage": "{turns}/{maxTurns} stappen · {tokens, number} van {maxTokens, number} tokens",
+    "publishNote": "De kamer wordt pas gepubliceerd nadat je hem via die link hebt gecontroleerd en bevestigd.",
+    "tool": {
+      "running": "bezig",
+      "ok": "klaar",
+      "error": "fout",
+      "input": "Verzonden gegevens",
+      "result": "Resultaat"
+    },
+    "links": {
+      "preview": "Testspel openen",
+      "publish_confirm": "Publicatie controleren en bevestigen"
+    },
+    "limit": {
+      "turns": "Dit gesprek heeft het maximale aantal stappen bereikt. Begin een nieuw gesprek om verder te gaan.",
+      "tokens": "Dit gesprek heeft het maximale modelgebruik bereikt. Begin een nieuw gesprek om verder te gaan."
+    },
+    "stop": {
+      "refusal": "De assistent kon niet op dit verzoek reageren.",
+      "max_tokens": "Het antwoord is afgekapt vanwege de lengte. Vraag de wijziging in kleinere delen."
+    },
+    "errors": {
+      "UNAUTHORIZED": "Je sessie is verlopen. Log opnieuw in.",
+      "CROSS_SITE": "Verzoek geweigerd: de chat werkt alleen vanaf deze website.",
+      "NOT_CONFIGURED": "De makerschat is in deze omgeving niet geconfigureerd.",
+      "INVALID_REQUEST": "Het bericht is ongeldig (leeg of te lang?).",
+      "CONVERSATION_NOT_FOUND": "Het gesprek is verlopen. Begin een nieuw gesprek.",
+      "BUSY": "Wacht tot de assistent klaar is met antwoorden.",
+      "MCP_UNAVAILABLE": "De makerstools reageren niet. Probeer het zo meteen opnieuw.",
+      "MODEL_AUTH": "Het taalmodel heeft de geconfigureerde sleutel geweigerd. Laat het team het weten.",
+      "MODEL_RATE_LIMITED": "Het taalmodel is overbelast. Wacht even en probeer het opnieuw.",
+      "MODEL_ERROR": "Het taalmodel is mislukt. Probeer het opnieuw.",
+      "UNKNOWN": "Er is iets misgegaan. Probeer het opnieuw."
+    }
   }
 }

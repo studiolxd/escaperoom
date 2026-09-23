@@ -196,6 +196,24 @@ src/
 └── bin/stdio.ts          punto de entrada stdio para Claude Desktop (servicios sobre Postgres)
 ```
 
+## Chat del creador en la web (ticket 4.6)
+
+`packages/web` → `/[locale]/creator/chat` (opcional `?roomId=` para abrirlo sobre un draft) y
+`POST /api/creator-chat` (stream NDJSON). El orquestador (`src/server/creator-chat/`) es un cliente
+MCP más: lista y llama a las tools de ESTE servidor por el transporte HTTP streamable de
+`/mcp/creator`, con la cookie de sesión del creador (sin lógica paralela). Por defecto la petición
+HTTP se entrega al handler de la ruta en el mismo proceso; con `CREATOR_CHAT_MCP_URL`, por red.
+
+- El modelo va detrás de `ChatModelProvider`: `createAnthropicChatProvider` (Messages API en
+  streaming, `claude-sonnet-5` por defecto, `CREATOR_CHAT_MODEL`, clave `ANTHROPIC_API_KEY`; sin
+  ella la página dice que el chat no está configurado) y `createScriptedChatProvider`, un guion
+  para tests sin red.
+- Topes por conversación (`CREATOR_CHAT_MAX_TURNS`, `CREATOR_CHAT_MAX_TOKENS`) y por respuesta
+  (`CREATOR_CHAT_MAX_OUTPUT_TOKENS`); los resultados de tool se recortan para el modelo
+  (`CREATOR_CHAT_TOOL_RESULT_MAX_CHARS`) remitiendo a las vistas filtradas. `get_featured_room` no
+  se ofrece al modelo.
+- `publish` sigue sin publicar: la UI muestra el enlace de confirmación de 4.5 como botón.
+
 ## Identidad y auth (ticket 4.7)
 
 - **stdio (solo desarrollo):** la identidad sale del entorno. **No apto para producción**: quien
