@@ -151,8 +151,10 @@ que falta encima:
    minimizar qué datos de menores le llegan (recomendación de claves sin PII) y exigir el DPA.
 3. **Grabación:** ya bloqueada por diseño para `audience: educational`, sin excepciones. Grabar
    una sesión educativa sería un producto y un análisis legal distintos.
-4. **Retención de datos de menores:** el plazo de 12 meses para `accessKey` con email aplica
-   igual, pero conviene confirmar si un plazo más corto es más adecuado (minimización reforzada).
+4. **Retención de datos de menores:** decidido (borrador de DPA §6 y privacidad §4): 3 meses tras
+   el evento para `audience: educational` frente a los 12 meses generales (minimización reforzada,
+   art. 5.1.c/e y considerando 38 RGPD). **Falta el job de purga/hash** que aplique cualquiera de
+   los dos plazos: hoy no existe en código.
 
 ## 5. Checklist antes de aceptar el primer evento educativo real o el primer pago
 
@@ -181,10 +183,14 @@ que falta encima:
       función en producción (§2.3). **Sigue pendiente de asesoría real**: no se puede resolver sin
       leer los TOS vigentes de un tercero en el momento de activar la función; el borrador de TOS lo
       deja marcado explícitamente.
-- [ ] Confirmar que el diseño "sin cuenta para el menor, responsable = el centro" es suficiente
-      por sí solo o necesita algo adicional (§4.1–§4.2). **Sigue pendiente de asesoría real**: el
-      borrador de privacidad documenta el diseño y deja la confirmación como
-      `[PENDIENTE ASESORÍA LEGAL: …]`.
+- [x] Confirmar que el diseño "sin cuenta para el menor, responsable = el centro" es suficiente
+      por sí solo o necesita algo adicional (§4.1–§4.2). **Resuelto con normativa pública** en el
+      borrador de privacidad §3: el art. 7 LOPDGDD solo rige tratamientos basados en el
+      consentimiento del propio menor, y aquí la base legal es la del centro/organización
+      (responsable), con la plataforma como encargado — el esquema que la AEPD describe para
+      plataformas educativas contratadas por centros. Robusto aunque la edad suba a 16 (proyecto de
+      LO de protección de menores en entornos digitales). Sigue dentro de la revisión global del
+      abogado, pero ya no como punto abierto.
 - [x] Implementar los endpoints de derechos RGPD de §3.4 antes de abrir registro público. **Hecho**
       (no es borrador, es código en producción): `GET /api/me/data-export` y `DELETE /api/me`
       (`packages/shared/src/services/user-data-rights.ts`, `.../user-data-rights-prisma-store.ts`,
