@@ -82,6 +82,11 @@ export const RATE_LIMIT_POLICIES = {
   "contact-write": {
     ip: { limit: 5, windowSeconds: 600 },
   },
+  /** `POST /api/legal/terms-acceptance` — exige sesión; una aceptación por gate, poco tráfico esperado. */
+  "terms-acceptance-write": {
+    ip: { limit: 20, windowSeconds: 3600 },
+    user: { limit: 10, windowSeconds: 3600 },
+  },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitPolicyName = keyof typeof RATE_LIMIT_POLICIES;
