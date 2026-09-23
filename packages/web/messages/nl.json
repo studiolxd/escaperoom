@@ -1243,5 +1243,26 @@
       "VALIDATION_ERROR": "Dit besluit is niet geldig voor deze inhoud.",
       "UNKNOWN": "Er ging iets mis. Probeer het opnieuw."
     }
+  },
+  "PublicNav": {
+    "logo": "Escape room",
+    "catalog": "Catalogus",
+    "contact": "Contact",
+    "createCta": "Maak je kamer",
+    "footer": {
+      "tagline": "Coöperatieve escape rooms gemaakt door onze community.",
+      "rights": "© {year} Escape room. Alle rechten voorbehouden."
+    }
+  },
+  "Contact": {
+    "metaTitle": "Contact",
+    "title": "Contact",
+    "subtitle": "Vragen, suggesties of zin om samen te werken? Schrijf ons.",
+    "nameLabel": "Naam",
+    "emailLabel": "E-mail",
+    "messageLabel": "Bericht",
+    "submit": "Bericht versturen",
+    "success": "Bedankt! We hebben je bericht ontvangen en reageren snel.",
+    "placeholderNotice": "Dit formulier is een placeholder: het verstuurt nog niets naar een echt systeem."
   }
 }

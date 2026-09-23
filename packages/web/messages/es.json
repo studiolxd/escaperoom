@@ -1353,5 +1353,26 @@
     "dpa": {
       "title": "Plantilla de Contrato de Encargo de Tratamiento (DPA) (borrador)"
     }
+  },
+  "PublicNav": {
+    "logo": "Escape room",
+    "catalog": "Catálogo",
+    "contact": "Contacto",
+    "createCta": "Crea tu sala",
+    "footer": {
+      "tagline": "Escape rooms cooperativos creados por su comunidad.",
+      "rights": "© {year} Escape room. Todos los derechos reservados."
+    }
+  },
+  "Contact": {
+    "metaTitle": "Contacto",
+    "title": "Contacto",
+    "subtitle": "¿Tienes dudas, sugerencias o quieres colaborar? Escríbenos.",
+    "nameLabel": "Nombre",
+    "emailLabel": "Email",
+    "messageLabel": "Mensaje",
+    "submit": "Enviar mensaje",
+    "success": "¡Gracias! Hemos recibido tu mensaje y te responderemos pronto.",
+    "placeholderNotice": "Este formulario es un placeholder: de momento no se envía a ningún sistema real."
   }
 }
