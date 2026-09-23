@@ -20,6 +20,9 @@ import {
   type AudioBlobStore,
   createAudioPublishAssetSource,
   createRoomPublishService,
+  createEventService,
+  createPrismaEventStore,
+  type EventService,
   type CatalogService,
   type PlatformSettingsService,
   type PricingTierService,
@@ -40,6 +43,7 @@ let platformSettings: PlatformSettingsService | undefined;
 let pricingTiers: PricingTierService | undefined;
 let audioAssets: AudioAssetService | undefined;
 let roomPublish: RoomPublishService | undefined;
+let events: EventService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -129,4 +133,19 @@ export function getRoomPublishService(): RoomPublishService {
     });
   }
   return roomPublish;
+}
+
+/**
+ * Eventos B2B/B2Edu (specs/02 §3, specs/13 §6.1) sobre Postgres. El precio sale
+ * de los tramos de 3.12 (`snapshotAt`). `payments: null` hasta que 5.1 cablee
+ * Stripe Checkout: mientras, `POST /api/events/:id/checkout` responde 501
+ * `PAYMENT_GATEWAY_UNAVAILABLE` (la autoventa del autor no lo necesita).
+ */
+export function getEventService(): EventService {
+  events ??= createEventService({
+    store: createPrismaEventStore(prisma),
+    pricing: getPricingTierService(),
+    payments: null,
+  });
+  return events;
 }
