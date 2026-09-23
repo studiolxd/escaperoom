@@ -351,3 +351,33 @@ describe("roomDraftService: restauración del historial", () => {
     await expectDraftError(service.checkAccess(intruder, ROOM_ID), "FORBIDDEN");
   });
 });
+
+describe("createDraft (alta de una sala en borrador, 4.2)", () => {
+  it("da de alta la sala del actor con su update inicial", async () => {
+    const { store, service } = setup();
+    const source = new Y.Doc();
+    source.getMap("meta").set("title", "Nueva");
+    const room = await service.createDraft(author, {
+      title: "Nueva",
+      initialUpdate: (roomId) => {
+        source.getMap("meta").set("id", roomId);
+        return Y.encodeStateAsUpdate(source);
+      },
+    });
+    expect(room.authorId).toBe(author.userId);
+    expect(await store.findRoom(room.id)).toEqual(room);
+    const doc = buildDraftDoc(await service.loadDraft(author, room.id));
+    expect(doc.getMap("meta").toJSON()).toEqual({ id: room.id, title: "Nueva" });
+    const [update] = await store.updatesAfter(room.id, 0n);
+    expect(update?.authorId).toBe(author.userId);
+    // Solo su autora la puede leer.
+    await expect(service.loadDraft(intruder, room.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("sin sesión no crea nada", async () => {
+    const { service } = setup();
+    await expect(service.createDraft(ANONYMOUS_ACTOR, { title: "x" })).rejects.toBeInstanceOf(
+      RoomDraftError,
+    );
+  });
+});

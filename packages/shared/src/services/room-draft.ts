@@ -66,6 +66,8 @@ export interface RoomDraftTx {
 export interface RoomDraftStore extends RoomDraftTx {
   /** La sala viva (sin `deletedAt`), o `null` si no existe o está borrada. */
   findRoom(roomId: string): Promise<DraftRoomRef | null>;
+  /** Da de alta una sala en borrador (`room` con `status = draft`) sin updates. */
+  createRoom(input: { authorId: string; title: string }): Promise<DraftRoomRef>;
   /** Metadata de un snapshot concreto de la sala (sin estado), o `null`. */
   findSnapshot(roomId: string, snapshotId: bigint): Promise<Omit<DraftSnapshot, "state"> | null>;
   listSnapshots(roomId: string, limit: number): Promise<DraftSnapshotMeta[]>;
@@ -291,6 +293,27 @@ export function createRoomDraftService(deps: {
   }
 
   return {
+    /**
+     * Crea una sala en borrador del actor (su autor) con el update inicial del
+     * doc Yjs, si se indica. El doc lo construye quien llama (editor o MCP) con
+     * los comandos de la sala; el servicio solo persiste.
+     */
+    async createDraft(
+      actor: Actor,
+      input: { title: string; initialUpdate?: (roomId: string) => Uint8Array },
+    ): Promise<DraftRoomRef> {
+      if (isAnonymous(actor)) throw new RoomDraftError("UNAUTHORIZED", "No hay sesión");
+      const room = await store.createRoom({ authorId: actor.userId, title: input.title });
+      if (input.initialUpdate) {
+        const data = input.initialUpdate(room.id);
+        if (!isValidYjsUpdate(data)) {
+          throw new RoomDraftError("INVALID_UPDATE", "El update inicial no es un update Yjs válido");
+        }
+        await store.withRoomLock(room.id, (tx) => appendInTx(tx, room.id, data, actor.userId));
+      }
+      return room;
+    },
+
     /** `GET /api/rooms/:roomId/draft` — bootstrap del editor. */
     async loadDraft(actor: Actor, roomId: string): Promise<RoomDraft> {
       await authorize(actor, roomId);
@@ -452,6 +475,11 @@ export function createInMemoryRoomDraftStore(
     ...tx,
     addRoom(room) {
       roomById.set(room.id, room);
+    },
+    async createRoom({ authorId }) {
+      const room = { id: globalThis.crypto.randomUUID(), authorId };
+      roomById.set(room.id, room);
+      return room;
     },
     async findRoom(roomId) {
       return roomById.get(roomId) ?? null;

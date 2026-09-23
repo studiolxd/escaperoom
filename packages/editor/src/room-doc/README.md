@@ -8,7 +8,8 @@ comandos de las herramientas del modo edición (`docs/specs/09-editor-de-salas.m
 | `doc-model.ts`        | Claves raíz del doc, capas del editor y utilidades de entradas `Y.Map` por id.                       |
 | `tiles.ts`            | RLE por filas ⇄ rejilla y claves de celda (`"capa\|x,y"`).                                           |
 | `serialize.ts`        | `roomPackageToDoc`, `roomDocToPackage` (puras) y `observeRoomDoc` (un aviso por transacción).        |
-| `commands.ts`         | `paintTiles`, `fillTiles`, `eraseTiles`, `placeObject`, `moveObject`, `renameObject`, `initRoomDoc`… |
+| `commands.ts`         | `paintTiles`, `fillTiles`, `eraseTiles`, `placeObject`, `addObject`, `moveObject`, `renameObject`, `writeRoomMeta`, `initRoomDoc`… |
+| `content.ts`          | Estructura y contenido (4.2, MCP): `defineSubRooms`, `setSubRoomGrid`, `setTileset`, `defineItem`, `addPuzzle`, `addDialog`, `addHint`. |
 | `tool-controller.ts`  | `EditToolController`: eventos de puntero del runtime (`mode: 'edit'`) → comandos sobre el doc.       |
 | `use-room-package.ts` | `useRoomPackage(doc)`: la sala como `RoomPackage` en estado React.                                   |
 

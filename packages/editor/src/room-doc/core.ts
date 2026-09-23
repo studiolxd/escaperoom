@@ -6,4 +6,7 @@ export * from "./tiles";
 export * from "./doc-model";
 export * from "./serialize";
 export * from "./commands";
+export * from "./content";
 export * from "./tool-controller";
+/** Errores de idiomas que pueden lanzar `writeRoomMeta` y los comandos de contenido. */
+export { RoomLanguageError } from "../i18n-fields/room-languages";

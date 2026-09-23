@@ -57,7 +57,7 @@ export async function readDraftRoomPackage(
   return parsed.data;
 }
 
-function draftErrorToToolError(error: RoomDraftError): ToolError {
+export function draftErrorToToolError(error: RoomDraftError): ToolError {
   switch (error.code) {
     case "UNAUTHORIZED":
       return new ToolError("UNAUTHORIZED", error.message);

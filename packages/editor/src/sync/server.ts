@@ -111,6 +111,14 @@ export type EditorSyncServer = {
    * clientes y lo persiste como un update más (la historia no se borra).
    */
   restore(actor: Actor, roomId: string, target: RestoreTarget): Promise<{ changed: boolean }>;
+  /**
+   * Integra un update producido fuera de la sesión (p. ej. una tool del MCP,
+   * ticket 4.2) con la autoría del actor: si la sala tiene doc vivo se aplica
+   * sobre él —se difunde a los editores conectados y se persiste por la misma
+   * cola que sus updates—; si no, se persiste directamente con el servicio del
+   * draft (3.2). Misma autorización que el handshake.
+   */
+  applyUpdate(actor: Actor, roomId: string, update: Uint8Array): Promise<void>;
   /** Salas con doc cargado en memoria (diagnóstico/tests). */
   loadedRooms(): string[];
   /** Cierra conexiones, espera a que termine la persistencia pendiente y libera memoria. */
@@ -477,6 +485,18 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
     async restore(actor, roomId, target) {
       await drafts.checkAccess(actor, roomId);
       return restoreInRoom(rooms.get(roomId), actor, roomId, target);
+    },
+
+    async applyUpdate(actor, roomId, update) {
+      await drafts.checkAccess(actor, roomId);
+      const room = rooms.get(roomId);
+      if (!room || room.closed) {
+        await drafts.appendUpdate(actor, roomId, update);
+        return;
+      }
+      const origin: ActorOrigin = { actor };
+      Y.applyUpdate(room.doc, update, origin);
+      await room.persisting;
     },
 
     loadedRooms() {

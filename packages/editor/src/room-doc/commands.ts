@@ -1,5 +1,5 @@
 import * as Y from "yjs";
-import type { Position, WorldObject } from "@escaperoom/shared/schemas";
+import type { Position, RoomPackageMeta, WorldObject } from "@escaperoom/shared/schemas";
 import { initRoomLanguages } from "../i18n-fields/room-languages";
 import {
   ROOM_DOC_KEYS,
@@ -26,7 +26,9 @@ export type RoomDocErrorCode =
   | "OUT_OF_BOUNDS"
   | "DUPLICATE_ID"
   | "INVALID_ID"
-  | "REFERENCED_ID";
+  | "REFERENCED_ID"
+  | "UNKNOWN_PUZZLE"
+  | "UNKNOWN_LANGUAGE";
 
 export class RoomDocError extends Error {
   readonly code: RoomDocErrorCode;
@@ -39,7 +41,8 @@ export class RoomDocError extends Error {
 
 export type Cell = { x: number; y: number };
 
-function subRoom(doc: Y.Doc, roomId: string): RecordMap {
+/** Entrada de la habitación interna, o `UNKNOWN_ROOM`. */
+export function subRoom(doc: Y.Doc, roomId: string): RecordMap {
   const room = collection(doc, "subrooms").get(roomId);
   if (!room) throw new RoomDocError("UNKNOWN_ROOM", `No existe la habitación "${roomId}"`);
   return room;
@@ -194,7 +197,7 @@ export function slugifyId(text: string): string {
 }
 
 /** Ids ya usados en cualquier colección con id (objetos, puzzles, items…). */
-function usedIds(doc: Y.Doc): Set<string> {
+export function usedIds(doc: Y.Doc): Set<string> {
   const ids = new Set<string>();
   for (const name of ["objects", "puzzles", "items", "subrooms"] as const) {
     for (const id of collection(doc, name).keys()) ids.add(id);
@@ -230,7 +233,7 @@ export type PlaceObjectInput = {
   interactable?: boolean;
 };
 
-function assertInside(doc: Y.Doc, roomId: string, cell: Cell): void {
+export function assertInside(doc: Y.Doc, roomId: string, cell: Cell): void {
   if (!isCellInRoom(doc, roomId, cell)) {
     throw new RoomDocError(
       "OUT_OF_BOUNDS",
@@ -239,7 +242,8 @@ function assertInside(doc: Y.Doc, roomId: string, cell: Cell): void {
   }
 }
 
-function assertFreeId(doc: Y.Doc, id: string): void {
+/** Id legible y libre en el espacio de ids compartido (objetos, puzzles, items, habitaciones, reglas). */
+export function assertFreeId(doc: Y.Doc, id: string): void {
   if (!isValidObjectId(id)) {
     throw new RoomDocError("INVALID_ID", `"${id}" no es un id válido (a-z, 0-9 y guiones)`);
   }
@@ -270,6 +274,33 @@ export function placeObject(doc: Y.Doc, input: PlaceObjectInput): string {
     objects.set(id, buildFlatRecord(object, nextOrder(objects)));
   });
   return id;
+}
+
+/**
+ * Alta de un objeto completo (estados, inventario, cerradura…), la variante
+ * de `placeObject` para quien ya trae el `WorldObject` entero (MCP, 4.2). Con
+ * `replace`, sustituye la entrada del mismo id conservando su orden.
+ */
+export function addObject(
+  doc: Y.Doc,
+  object: WorldObject,
+  opts: { replace?: boolean } = {},
+): { replaced: boolean } {
+  let replaced = false;
+  doc.transact(() => {
+    subRoom(doc, object.roomId);
+    assertInside(doc, object.roomId, object.position);
+    const objects = collection(doc, "objects");
+    const existing = objects.get(object.id);
+    if (existing && opts.replace) {
+      replaced = true;
+      objects.set(object.id, buildFlatRecord(object, Number(existing.get("order") ?? 0)));
+      return;
+    }
+    assertFreeId(doc, object.id);
+    objects.set(object.id, buildFlatRecord(object, nextOrder(objects)));
+  });
+  return { replaced };
 }
 
 function objectRecord(doc: Y.Doc, id: string): RecordMap {
@@ -367,6 +398,43 @@ export function renameObject(doc: Y.Doc, id: string, newId: string): void {
 // Sala nueva
 // ---------------------------------------------------------------------------
 
+/** Tileset de una sala nueva (el pack del fixture del Rey Aldric). */
+export const DEFAULT_TILESET = "medieval-v1";
+
+/** Manifiesto de assets del pack de un tileset. */
+export function packAssetsManifest(tileset: string): string {
+  return `r2://assets/packs/${tileset}/manifest.json`;
+}
+
+/** Metadata de una sala nueva: lo obligatorio y, para lo demás, los valores por defecto. */
+export type RoomMetaInput = Pick<
+  RoomPackageMeta,
+  "id" | "title" | "authorId" | "theme" | "languages" | "defaultLanguage"
+> &
+  Partial<RoomPackageMeta>;
+
+/**
+ * Escribe la metadata completa de la sala (una transacción). Los campos que
+ * no se indican toman el valor por defecto de una sala nueva.
+ */
+export function writeRoomMeta(doc: Y.Doc, input: RoomMetaInput): void {
+  doc.transact(() => {
+    const meta = doc.getMap<unknown>(ROOM_DOC_KEYS.meta);
+    meta.set("id", input.id);
+    meta.set("title", input.title);
+    meta.set("authorId", input.authorId);
+    meta.set("version", input.version ?? "0.0.0");
+    meta.set("packageFormat", input.packageFormat ?? DEFAULT_PACKAGE_FORMAT);
+    meta.set("theme", input.theme);
+    meta.set("description", input.description ?? "");
+    meta.set("estimatedMinutes", input.estimatedMinutes ?? 30);
+    meta.set("difficulty", input.difficulty ?? 2);
+    meta.set("players", { ...(input.players ?? { min: 1, max: 4 }) });
+    meta.set("assetsManifest", input.assetsManifest ?? packAssetsManifest(DEFAULT_TILESET));
+    initRoomLanguages(doc, input.languages, input.defaultLanguage);
+  });
+}
+
 export type InitRoomDocInput = {
   id: string;
   title: string;
@@ -392,20 +460,16 @@ export function initRoomDoc(doc: Y.Doc, input: InitRoomDocInput): boolean {
   const room = input.room ?? { id: "sala-1", name: input.title, cols: 12, rows: 10 };
   const floor = room.floorTileId ?? 1;
   doc.transact(() => {
-    const meta = doc.getMap<unknown>(ROOM_DOC_KEYS.meta);
-    meta.set("id", input.id);
-    meta.set("title", input.title);
-    meta.set("authorId", input.authorId ?? "");
-    meta.set("version", "0.0.0");
-    meta.set("packageFormat", DEFAULT_PACKAGE_FORMAT);
-    meta.set("theme", input.theme ?? "medieval");
-    meta.set("description", "");
-    meta.set("estimatedMinutes", 30);
-    meta.set("difficulty", 2);
-    meta.set("players", { min: 1, max: 4 });
-    const tileset = input.tileset ?? "medieval-v1";
-    meta.set("assetsManifest", `r2://assets/packs/${tileset}/manifest.json`);
-    initRoomLanguages(doc, [input.language], input.language);
+    const tileset = input.tileset ?? DEFAULT_TILESET;
+    writeRoomMeta(doc, {
+      id: input.id,
+      title: input.title,
+      authorId: input.authorId ?? "",
+      theme: input.theme ?? "medieval",
+      languages: [input.language],
+      defaultLanguage: input.language,
+      assetsManifest: packAssetsManifest(tileset),
+    });
     doc.getMap<unknown>(ROOM_DOC_KEYS.map).set("tileset", tileset);
 
     const size = room.cols * room.rows;

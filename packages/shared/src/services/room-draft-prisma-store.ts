@@ -103,6 +103,12 @@ export function createPrismaRoomDraftStore(prisma: PrismaClient): RoomDraftStore
       });
       return room ?? null;
     },
+    createRoom({ authorId, title }) {
+      return prisma.room.create({
+        data: { authorId, title, status: "draft" },
+        select: { id: true, authorId: true },
+      });
+    },
     findSnapshot(roomId, snapshotId) {
       return prisma.roomSnapshot.findFirst({
         where: { id: snapshotId, roomId },

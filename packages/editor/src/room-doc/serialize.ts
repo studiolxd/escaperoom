@@ -104,7 +104,8 @@ export function buildSubRoomRecord(room: SubRoom, order: number): RecordMap {
   return record;
 }
 
-function localizedRecord(
+/** Entrada plana con un campo localizado (`YLocalizedText`): items, diálogos y pistas. */
+export function localizedRecord(
   props: Record<string, unknown>,
   field: string,
   text: LocalizedText,

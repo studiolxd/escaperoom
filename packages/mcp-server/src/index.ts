@@ -5,6 +5,7 @@
  */
 export * from "./auth";
 export * from "./deps";
+export * from "./draft-writer";
 export * from "./results";
 export * from "./room-draft-reader";
 export * from "./server";

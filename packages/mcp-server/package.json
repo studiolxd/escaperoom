@@ -16,15 +16,17 @@
     "@escaperoom/editor": "workspace:*",
     "@escaperoom/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "1.30.0",
+    "yjs": "^13.6.32",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@escaperoom/config": "workspace:*",
     "@types/node": "^26.6.2",
+    "@types/ws": "^8.18.1",
     "eslint": "^10.11.0",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vitest": "^5.0.1",
-    "yjs": "^13.6.32"
+    "ws": "^8.21.3"
   }
 }

@@ -40,7 +40,9 @@ async function runTool(
       deps,
     });
   } catch (error) {
-    if (error instanceof ToolError) return errorResult(tool.name, error.code, error.message);
+    if (error instanceof ToolError) {
+      return errorResult(tool.name, error.code, error.message, error.details);
+    }
     const message = error instanceof Error ? error.message : String(error);
     return errorResult(tool.name, "INTERNAL", message);
   }
