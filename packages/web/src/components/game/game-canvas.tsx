@@ -30,6 +30,11 @@ export default function GameCanvas() {
         height: "100%",
       },
       render: { antialias: true, pixelArt: false },
+      // El fondo isométrico no reproduce sonido: sin `noAudio`, Phaser crea de
+      // todos modos un `AudioContext` y sus listeners de visibilidad, que
+      // disparaban `InvalidStateError: Cannot suspend/resume a closed
+      // AudioContext` tras `game.destroy()` (p. ej. con StrictMode en dev).
+      audio: { noAudio: true },
       scene: [IsoRoomScene],
     });
     gameRef.current = game;

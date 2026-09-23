@@ -411,6 +411,7 @@ model room {
   saleEvents                                        Boolean            @default(true)
   priceCents                                        Int?
   currency                                          String             @default("EUR") @db.Char(3)
+  coverImageKey                                     String?
   licensable                                        Boolean            @default(false)
   licensePriceCents                                 Int?
   forkedFromRoomId                                  String?            @db.Uuid

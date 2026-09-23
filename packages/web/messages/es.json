@@ -9,8 +9,6 @@
   "Home": {
     "showcase": "Página de prueba i18n (0.9)",
     "title": "EscapeRoom",
-    "subtitle": "Canvas híbrido (Phaser + overlay React) sobre un tilemap isométrico.",
-    "lobbyCta": "Lobby multijugador (0.5)",
     "fallbackDemo": "Esta clave solo existe en el catálogo 'es': los demás idiomas caen aquí.",
     "catalogCta": "Catálogo de salas"
   },
@@ -761,18 +759,14 @@
     "anyDifficulty": "Cualquier dificultad",
     "players": "Jugadores",
     "anyPlayers": "Cualquier número",
-    "price": "Precio",
-    "anyPrice": "Cualquier precio",
     "priceFree": "Gratis",
-    "priceUpTo": "Hasta {price}",
+    "priceMax": "Precio máximo",
+    "priceUnlimited": "Sin límite",
     "sort": "Ordenar por",
     "sortRecent": "Más recientes",
     "sortRating": "Mejor valoradas",
     "sortPriceAsc": "Precio: de menor a mayor",
     "sortPriceDesc": "Precio: de mayor a menor",
-    "apply": "Aplicar filtros",
-    "reset": "Quitar filtros",
-    "results": "{count, plural, =0 {Ninguna sala} one {# sala} other {# salas}} en esta página",
     "empty": "No hay salas que cumplan estos filtros.",
     "invalidFilters": "Algún filtro no es válido; se muestran todas las salas.",
     "nextPage": "Más salas",
@@ -798,6 +792,10 @@
     "author": "Creador",
     "version": "Versión {semver}",
     "saleEvents": "Disponible para eventos y grupos",
+    "playCta": "Jugar la sala",
+    "coverUpload": "Subir imagen de portada",
+    "coverUploading": "Subiendo…",
+    "coverUploadError": "No se ha podido subir la imagen. Inténtalo de nuevo.",
     "reviewsHeading": "Reseñas",
     "noReviews": "Aún no hay reseñas de esta sala.",
     "moreReviews": "Ver más reseñas",
@@ -814,9 +812,6 @@
     "saving": "Guardando…",
     "created": "¡Gracias! Tu reseña se ha publicado.",
     "updated": "Tu reseña se ha actualizado.",
-    "anonymous": "Inicia sesión para reseñar esta sala.",
-    "notPlayed": "Podrás reseñar esta sala cuando la hayas jugado o comprado.",
-    "ownRoom": "Es tu sala: no puedes reseñarla.",
     "errorContent": "La reseña contiene lenguaje no permitido. Reformúlala para publicarla.",
     "errorGeneric": "No se ha podido guardar la reseña. Inténtalo de nuevo."
   },
@@ -1274,9 +1269,13 @@
         "title": "Para jugadores",
         "body": "Escape rooms cooperativos de 1 a 4 jugadores en el navegador, con voz y webcam, sin instalar nada."
       },
-      "organizer": {
-        "title": "Para profes y empresas",
-        "body": "Compra por jugador con descuentos por tramos, reparte claves de acceso y vigila el progreso de tu grupo en directo."
+      "teacher": {
+        "title": "Para docentes",
+        "body": "Organiza partidas para tu clase, reparte claves de acceso y sigue el progreso de cada grupo sin salir del navegador."
+      },
+      "company": {
+        "title": "Para empresas",
+        "body": "Compra por jugador con descuentos por tramos y monta dinámicas de equipo en remoto o presenciales, sin instalar nada."
       }
     }
   },

@@ -129,7 +129,7 @@ async function main() {
       status: "published",
       saleIndividual: true,
       saleEvents: true,
-      priceCents: 299,
+      priceCents: 0,
     },
   });
 
@@ -154,8 +154,47 @@ async function main() {
     });
   }
 
+  // Salas extra SOLO de desarrollo (nunca en producción): copias mínimas de la
+  // sala del fixture, con id/título/precio distintos, para poder ver la
+  // paginación del catálogo con más de una página sin depender de contenido real.
+  const devRoomsCount = process.env.NODE_ENV === "production" ? 0 : 50;
+  const DEV_PRICES_CENTS = [0, 500, 1000, 1500, 2000, 3000, 5000, 8000];
+  for (let i = 1; i <= devRoomsCount; i++) {
+    const devRoomId = `00000000-0000-0000-0000-0000000020${String(i).padStart(2, "0")}`;
+    const title = `${roomPackage.meta.title} (sala de prueba ${i})`;
+    const devPackage = {
+      ...roomPackage,
+      meta: { ...roomPackage.meta, id: devRoomId, title },
+    };
+    await prisma.room.upsert({
+      where: { id: devRoomId },
+      update: {},
+      create: {
+        id: devRoomId,
+        authorId: ID.creator,
+        title,
+        status: "published",
+        saleIndividual: true,
+        saleEvents: true,
+        priceCents: DEV_PRICES_CENTS[i % DEV_PRICES_CENTS.length],
+      },
+    });
+    await prisma.roomVersion.upsert({
+      where: { roomId_semver: { roomId: devRoomId, semver: roomPackage.meta.version } },
+      update: {},
+      create: {
+        roomId: devRoomId,
+        semver: roomPackage.meta.version,
+        package: devPackage as unknown as Prisma.InputJsonValue,
+        assetsHash: createHash("sha256").update(`${assetsHash}:${i}`).digest("hex"),
+        changelog: "Sala de desarrollo (seed)",
+        publishedBy: ID.creator,
+      },
+    });
+  }
+
   console.log(
-    `Seed OK: admin + creador + sala "${roomPackage.meta.title}" publicada + ${PRICING_TIERS.length} tramos de precio`,
+    `Seed OK: admin + creador + sala "${roomPackage.meta.title}" publicada + ${PRICING_TIERS.length} tramos de precio + ${devRoomsCount} salas de desarrollo`,
   );
 }
 

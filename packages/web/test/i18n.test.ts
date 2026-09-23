@@ -39,8 +39,6 @@ describe("i18n", () => {
         "LocaleSwitcher.label",
         "Home.showcase",
         "Home.title",
-        "Home.subtitle",
-        "Home.lobbyCta",
         "Home.fallbackDemo",
         "CodeLock.title",
         "CodeLock.prompt",

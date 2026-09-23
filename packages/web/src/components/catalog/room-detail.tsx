@@ -2,9 +2,11 @@ import type { CatalogRoom, Review, ReviewViewerState } from "@escaperoom/shared/
 import { useFormatter, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { CATALOG_PATH, roomPath } from "@/lib/catalog-seo";
+import { Button } from "@/components/ui/button";
 import { languageName } from "./language-name";
 import { RatingSummary } from "./rating-summary";
 import { ReviewForm } from "./review-form";
+import { RoomCoverUpload } from "./room-cover-upload";
 import { RoomPrice } from "./room-card";
 
 function ReviewItem({ review }: { review: Review }) {
@@ -34,12 +36,16 @@ export function RoomDetailView({
   reviews,
   reviewsNextCursor,
   viewer,
+  coverImageUrl,
+  isAuthor,
 }: {
   room: CatalogRoom;
   locale: string;
   reviews: Review[];
   reviewsNextCursor: string | null;
   viewer: ReviewViewerState;
+  coverImageUrl: string | null;
+  isAuthor: boolean;
 }) {
   const t = useTranslations("RoomDetail");
   const tc = useTranslations("Catalog");
@@ -59,12 +65,38 @@ export function RoomDetailView({
         ← {t("back")}
       </Link>
 
-      <header className="flex flex-col gap-2">
-        <h1 className="text-3xl font-semibold" lang={room.defaultLanguage}>
-          {room.title}
-        </h1>
-        <RatingSummary ratingAvg={room.ratingAvg} ratingCount={room.ratingCount} />
-      </header>
+      <div
+        className="relative isolate flex aspect-[21/9] w-full flex-col justify-end overflow-hidden rounded-xl bg-muted"
+        data-slot="room-cover"
+      >
+        {coverImageUrl ? (
+          <img
+            src={coverImageUrl}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0" data-slot="room-cover-placeholder" />
+        )}
+        {isAuthor ? <RoomCoverUpload roomId={room.id} /> : null}
+
+        <div className="relative z-10 flex flex-col gap-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 text-white">
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full bg-black/40 px-2 py-1 backdrop-blur">
+              {t("version", { semver: room.latestVersion.semver })}
+            </span>
+            {room.saleEvents ? (
+              <span className="rounded-full bg-black/40 px-2 py-1 backdrop-blur">
+                {t("saleEvents")}
+              </span>
+            ) : null}
+          </div>
+          <h1 className="text-3xl font-semibold" lang={room.defaultLanguage}>
+            {room.title}
+          </h1>
+          <RatingSummary ratingAvg={room.ratingAvg} ratingCount={room.ratingCount} />
+        </div>
+      </div>
 
       <p className="whitespace-pre-line" lang={room.defaultLanguage}>
         {room.description}
@@ -78,10 +110,10 @@ export function RoomDetailView({
           </div>
         ))}
       </dl>
-      <p className="text-xs text-muted-foreground">
-        {t("version", { semver: room.latestVersion.semver })}
-        {room.saleEvents ? ` · ${t("saleEvents")}` : null}
-      </p>
+
+      <Button asChild size="lg" className="w-fit">
+        <Link href="/redeem">{t("playCta")}</Link>
+      </Button>
 
       <section aria-labelledby="reviews-heading" className="flex flex-col gap-3">
         <h2 id="reviews-heading" className="text-xl font-semibold">

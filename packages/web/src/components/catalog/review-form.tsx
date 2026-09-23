@@ -23,15 +23,9 @@ export function ReviewForm({ roomId, initial }: { roomId: string; initial: Revie
   const [status, setStatus] = useState<Status>("idle");
   const [hasReview, setHasReview] = useState(initial.review !== null);
 
-  if (!initial.canReview) {
-    const key =
-      initial.reason === "anonymous"
-        ? "anonymous"
-        : initial.reason === "own_room"
-          ? "ownRoom"
-          : "notPlayed";
-    return <p className="rounded-lg bg-muted/60 p-3 text-sm text-muted-foreground">{t(key)}</p>;
-  }
+  // Solo se puede reseñar una sala jugada: sin sesión, sin partida jugada o en
+  // la propia sala no se muestra nada (ni el formulario ni un aviso previo).
+  if (!initial.canReview) return null;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

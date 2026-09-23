@@ -19,6 +19,7 @@ const FILTER: CatalogListFilter = {
 const ROOM: CatalogRoom = {
   id: "room-1",
   title: "Sala",
+  authorId: "author-1",
   authorDisplayName: "Autor",
   description: "desc",
   theme: "medieval",
@@ -32,6 +33,7 @@ const ROOM: CatalogRoom = {
   saleIndividual: true,
   saleEvents: true,
   licensePriceCents: null,
+  coverImageKey: null,
   ratingAvg: null,
   ratingCount: 0,
   latestVersion: { id: "v1", semver: "1.0.0", publishedAt: "2026-01-01T00:00:00.000Z" },

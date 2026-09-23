@@ -17,12 +17,14 @@ export type InMemoryCatalogRoom = {
   roomId: string;
   status: CatalogRoomStatus;
   deleted?: boolean;
+  authorId?: string;
   authorDisplayName?: string;
   priceCents?: number | null;
   currency?: string;
   saleIndividual?: boolean;
   saleEvents?: boolean;
   licensePriceCents?: number | null;
+  coverImageKey?: string | null;
   versions: Array<{ id: string; semver: string; publishedAt: Date; package: unknown }>;
 };
 
@@ -99,6 +101,7 @@ export function createInMemoryPublishedRoomListing(
           roomId: room.roomId,
           meta: parseRoomPackage(latest.package).meta,
           version: latest,
+          authorId: room.authorId ?? "author",
           authorDisplayName: room.authorDisplayName ?? "Autor",
           commerce: {
             priceCents: room.priceCents ?? null,
@@ -107,6 +110,7 @@ export function createInMemoryPublishedRoomListing(
             saleEvents: room.saleEvents ?? true,
             licensePriceCents: room.licensePriceCents ?? null,
           },
+          media: { coverImageKey: room.coverImageKey ?? null },
           rating: ratings(room.roomId),
         });
       });
@@ -134,6 +138,8 @@ type CatalogRow = {
   saleIndividual: boolean;
   saleEvents: boolean;
   licensePriceCents: number | null;
+  coverImageKey: string | null;
+  authorId: string;
   authorName: string;
   ratingAvg: number | null;
   ratingCount: number;
@@ -209,6 +215,7 @@ function catalogSelect(onlyRoomId: string | null): Prisma.Sql {
     SELECT latest."roomId", latest.id AS "versionId", latest.semver, latest."publishedAt",
            latest.package -> 'meta' AS meta,
            r."priceCents", r.currency, r."saleIndividual", r."saleEvents", r."licensePriceCents",
+           r."coverImageKey", r."authorId",
            u.name AS "authorName", s.avg AS "ratingAvg", COALESCE(s.count, 0) AS "ratingCount"
       FROM latest
       JOIN "room" r ON r.id = latest."roomId"
@@ -225,6 +232,7 @@ function toRoom(row: CatalogRow): CatalogRoom | null {
     roomId: row.roomId,
     meta: meta.data,
     version: { id: row.versionId, semver: row.semver, publishedAt: row.publishedAt },
+    authorId: row.authorId,
     authorDisplayName: row.authorName,
     commerce: {
       priceCents: row.priceCents,
@@ -233,6 +241,7 @@ function toRoom(row: CatalogRow): CatalogRoom | null {
       saleEvents: row.saleEvents,
       licensePriceCents: row.licensePriceCents,
     },
+    media: { coverImageKey: row.coverImageKey },
     rating: { avg: row.ratingAvg, count: Number(row.ratingCount) },
   });
 }

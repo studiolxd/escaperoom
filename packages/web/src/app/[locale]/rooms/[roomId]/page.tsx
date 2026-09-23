@@ -5,6 +5,7 @@ import {
   type CatalogRoom,
   type ReviewListResult,
 } from "@escaperoom/shared/services";
+import { storage } from "@escaperoom/kit/storage";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { headers } from "next/headers";
@@ -74,6 +75,9 @@ export default async function RoomDetailPage({ params, searchParams }: Props) {
   }
   const actor = await resolveActorFromHeaders(await headers());
   const viewer = await reviewService.getViewerState(actor, roomId);
+  const coverImageUrl = room.coverImageKey
+    ? await storage.getSignedReadUrl(room.coverImageKey)
+    : null;
 
   const jsonLd = buildRoomJsonLd(room, localizedUrl(locale, roomPath(room.id)), reviews.items);
 
@@ -89,6 +93,8 @@ export default async function RoomDetailPage({ params, searchParams }: Props) {
         reviews={reviews.items}
         reviewsNextCursor={reviews.nextCursor}
         viewer={viewer}
+        coverImageUrl={coverImageUrl}
+        isAuthor={actor.userId === room.authorId}
       />
     </>
   );
