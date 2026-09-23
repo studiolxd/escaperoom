@@ -16,11 +16,11 @@ export function POST(request: Request) {
   return createCreatorConnectHandlers({
     connect: getCreatorConnectService(),
     resolveActor: resolveActorFromRequest,
-    // Placeholder mínimo: no hay página de cobros del creador en esta
-    // iteración (fuera de alcance, ver PR), así que se vuelve al panel.
+    // La pasarela no conoce el idioma del creador: igual que el resto de la
+    // superficie REST de pagos, se vuelve siempre a `es` (`DEFAULT_LOCALE`).
     buildUrls: () => ({
-      refreshUrl: `${origin}/es/creator?onboarding=refresh`,
-      returnUrl: `${origin}/es/creator?onboarding=return`,
+      refreshUrl: `${origin}/es/creator/payouts?onboarding=refresh`,
+      returnUrl: `${origin}/es/creator/payouts?onboarding=return`,
     }),
   }).postStripeConnect(request);
 }
