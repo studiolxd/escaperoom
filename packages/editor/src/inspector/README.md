@@ -24,8 +24,8 @@ La parte headless (sin React) se importa desde `@escaperoom/editor/inspector` (s
   entre los estados), inventario, `lockedBy`/`leadsTo` de puertas, `interactable`, reparto,
   escondite. Celda y habitación pasan por `moveObject` (3.1), que comprueba los límites.
 - **Puzzle**: solo los campos comunes a las 8 plantillas (`PUZZLE_BASE_KEYS`, derivados del
-  esquema). La configuración propia de la plantilla es 3.5: el inspector deja el slot
-  `renderPuzzleConfigurator`.
+  esquema). La configuración propia de la plantilla va en el slot `renderPuzzleConfigurator`
+  (ver «Configuradores de plantillas» abajo).
 - **Regla**: prioridad, `once` y el trigger (unión discriminada → selector de tipo + campos de la
   variante). Condiciones y acciones se editan en el grafo (3.6); `onOpenRule` lo enlaza.
 - **Textos ligados** (`LocalizedText`): diálogos que muestra al interactuar, ítems que contiene o
@@ -63,3 +63,18 @@ los campos propios de cada plantilla y las claves de `visibleByViewpoint`—, re
 anidado, condiciones de diálogos, pistas y luces). Un texto igual al id que no es referencia (el
 sprite `trono` del objeto `trono`) no se toca. Las reglas no se referencian por id: renombrarlas es
 `renameRule` (3.6).
+
+## Configuradores de plantillas (ticket 3.5)
+
+`../template-config/` (headless, `@escaperoom/editor/template-config`) y
+`packages/web/src/components/template-config/` (React, montado en `renderPuzzleConfigurator`):
+
+- `templateConfigKeys` / `describeTemplateConfig`: campos propios de cada plantilla (los de su
+  variante que no están en `PUZZLE_BASE_KEYS`), como formulario del mismo generador, con las
+  referencias de `PUZZLE_TYPE_REFS`.
+- `setTemplateConfig`: escribe un campo en el doc Yjs (misma forma que `setElementProperty`).
+- `checkTemplateConfig`: esquema + oráculo de la plantilla (`isTemplateSolvable` del validador)
+  para el aviso inmediato; el resto de la sala lo juzga el validador (3.7).
+- `createTemplatePreview` / `applyTemplatePreview`: vista previa jugable en local con las
+  transiciones puras de `@escaperoom/shared/templates`; en web se pintan con **los mismos paneles
+  de juego** (`CodeLockPanel`, `MemoryPanel`…) sin tocarlos.

@@ -534,7 +534,49 @@
         "seconds": "Seconden",
         "zone": "Zone",
         "w": "Breedte",
-        "h": "Hoogte"
+        "h": "Hoogte",
+        "revealAnimation": "Onthul-animatie",
+        "keyItemId": "Gegeven voorwerp",
+        "length": "Lengte",
+        "code": "Code",
+        "maxAttempts": "Max. pogingen",
+        "lockoutSec": "Blokkering na mislukken (s)",
+        "hints": "Hints",
+        "plates": "Platen",
+        "windowMs": "Gelijktijdig venster (ms)",
+        "soloBridgeItemId": "Brugvoorwerp (solo)",
+        "holdMode": "Houdmodus",
+        "recipes": "Recepten",
+        "inputs": "Ingrediënten",
+        "output": "Resultaat",
+        "consumeInputs": "Verbruikt de ingrediënten",
+        "description": "Beschrijving",
+        "grid": "Raster",
+        "cols": "Kolommen",
+        "rows": "Rijen",
+        "imageAsset": "Afbeelding",
+        "scramble": "Schudden",
+        "seed": "Seed",
+        "blankPosition": "Positie van het gat",
+        "pairs": "Paren",
+        "id": "ID",
+        "symbol": "Symbool",
+        "decoys": "Lokkaarten",
+        "maxFlipsPerTurn": "Omdraaiingen per beurt",
+        "winCondition": "Winvoorwaarde",
+        "targetPairIds": "Doelparen",
+        "turnMode": "Beurtmodus",
+        "viewpoints": "Gezichtspunten",
+        "fragments": "Fragmenten",
+        "visibleByViewpoint": "Zichtbaar per gezichtspunt",
+        "wallOccluder": "Afdekkende muur",
+        "inputUI": "Invoer van het antwoord",
+        "cellTypes": "Stuktypen",
+        "startCell": "Startcel",
+        "endCell": "Eindcel",
+        "blockedCells": "Geblokkeerde cellen",
+        "opensWithItem": "Opent met",
+        "solution": "Oplossing (rotaties)"
       },
       "options": {
         "first_click": "Wie het eerst opent",
@@ -551,7 +593,25 @@
         "sliding_puzzle": "Schuifpuzzel",
         "memory": "Memory",
         "split_clue": "Gedeelde aanwijzing",
-        "pipes": "Buizen"
+        "pipes": "Buizen",
+        "slide": "Schuiven",
+        "fade": "Vervagen",
+        "shake": "Schudden",
+        "press": "Drukken (duurt het venster)",
+        "stand": "Erop blijven staan",
+        "random": "Willekeurig",
+        "fixed_seed": "Vaste seed",
+        "last": "Laatste cel",
+        "find_all_pairs": "Alle paren vinden",
+        "find_target_pairs": "De doelparen vinden",
+        "shared": "Gedeeld",
+        "per_player": "Per speler",
+        "symbols": "Symbolen",
+        "code": "Code",
+        "straight": "Recht",
+        "curve": "Bocht",
+        "tee": "T-stuk",
+        "cross": "Kruising"
       },
       "texts": {
         "dialogs": "Dialoog",
@@ -731,6 +791,29 @@
       "solved": "Puzzel opgelost: ‘{id}’",
       "ended": "Einde van het spel: {result}",
       "error": "Melding: {message}"
+    }
+  },
+  "TemplateConfig": {
+    "preview": {
+      "title": "Speelbare voorvertoning (zoals in het spel)",
+      "solved": "Opgelost!",
+      "reset": "Opnieuw",
+      "viewpoint": "Kijken vanaf",
+      "unavailable": "De voorvertoning verschijnt zodra de configuratie geldig is."
+    },
+    "issues": {
+      "ok": "Configuratie is oplosbaar.",
+      "schema": "Onvolledige of ongeldige configuratie: {fields}.",
+      "unsolvable": {
+        "hidden_key": "Onoplosbaar: de schuilplaats geeft geen voorwerp (vul „Gegeven voorwerp” of „Geeft voorwerpen” in).",
+        "code_lock": "Onoplosbaar: de code mag alleen cijfers bevatten, evenveel als de lengte.",
+        "simultaneous_plates": "Onoplosbaar: controleer de platen (minstens één, geen dubbele) en het venster.",
+        "combine_items": "Onoplosbaar: minstens één recept met ingrediënten en resultaat is nodig.",
+        "sliding_puzzle": "Onoplosbaar: de schudding is onbereikbaar (pariteit) of afbeelding, raster of seed ontbreekt.",
+        "memory": "Onoplosbaar: paren zijn leeg, dubbel of de doelen bestaan niet.",
+        "split_clue": "Onoplosbaar: de gezichtspunten samen tonen niet de hele aanwijzing.",
+        "pipes": "Onoplosbaar: geen waterpad van start naar einde (ook niet met open sluizen)."
+      }
     }
   }
 }

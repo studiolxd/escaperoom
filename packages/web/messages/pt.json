@@ -534,7 +534,49 @@
         "seconds": "Segundos",
         "zone": "Zona",
         "w": "Largura",
-        "h": "Altura"
+        "h": "Altura",
+        "revealAnimation": "Animação ao revelar",
+        "keyItemId": "Item entregue",
+        "length": "Comprimento",
+        "code": "Código",
+        "maxAttempts": "Tentativas máximas",
+        "lockoutSec": "Bloqueio após falhar (s)",
+        "hints": "Dicas",
+        "plates": "Placas",
+        "windowMs": "Janela simultânea (ms)",
+        "soloBridgeItemId": "Objeto-ponte (solo)",
+        "holdMode": "Modo de pressão",
+        "recipes": "Receitas",
+        "inputs": "Ingredientes",
+        "output": "Resultado",
+        "consumeInputs": "Consome os ingredientes",
+        "description": "Descrição",
+        "grid": "Grelha",
+        "cols": "Colunas",
+        "rows": "Linhas",
+        "imageAsset": "Imagem",
+        "scramble": "Baralhamento",
+        "seed": "Semente",
+        "blankPosition": "Posição do espaço vazio",
+        "pairs": "Pares",
+        "id": "ID",
+        "symbol": "Símbolo",
+        "decoys": "Cartas-isco",
+        "maxFlipsPerTurn": "Viragens por turno",
+        "winCondition": "Condição de vitória",
+        "targetPairIds": "Pares-alvo",
+        "turnMode": "Modo de turnos",
+        "viewpoints": "Pontos de vista",
+        "fragments": "Fragmentos",
+        "visibleByViewpoint": "Visível por ponto de vista",
+        "wallOccluder": "Parede que tapa",
+        "inputUI": "Entrada da resposta",
+        "cellTypes": "Tipos de peça",
+        "startCell": "Célula de origem",
+        "endCell": "Célula de destino",
+        "blockedCells": "Células bloqueadas",
+        "opensWithItem": "Abre com",
+        "solution": "Solução (rotações)"
       },
       "options": {
         "first_click": "Quem o abrir primeiro",
@@ -551,7 +593,25 @@
         "sliding_puzzle": "Puzzle deslizante",
         "memory": "Memória",
         "split_clue": "Pista dividida",
-        "pipes": "Canos"
+        "pipes": "Canos",
+        "slide": "Deslizar",
+        "fade": "Desvanecer",
+        "shake": "Tremer",
+        "press": "Premir (dura a janela)",
+        "stand": "Ficar em cima",
+        "random": "Aleatória",
+        "fixed_seed": "Semente fixa",
+        "last": "Última célula",
+        "find_all_pairs": "Encontrar todos os pares",
+        "find_target_pairs": "Encontrar os pares-alvo",
+        "shared": "Partilhados",
+        "per_player": "Por jogador",
+        "symbols": "Símbolos",
+        "code": "Código",
+        "straight": "Reta",
+        "curve": "Curva",
+        "tee": "Em T",
+        "cross": "Cruzamento"
       },
       "texts": {
         "dialogs": "Diálogo",
@@ -731,6 +791,29 @@
       "solved": "Puzzle resolvido: «{id}»",
       "ended": "Fim do jogo: {result}",
       "error": "Aviso: {message}"
+    }
+  },
+  "TemplateConfig": {
+    "preview": {
+      "title": "Pré-visualização jogável (como no jogo)",
+      "solved": "Resolvido!",
+      "reset": "Reiniciar",
+      "viewpoint": "Ver a partir de",
+      "unavailable": "A pré-visualização aparecerá quando a configuração for válida."
+    },
+    "issues": {
+      "ok": "Configuração resolúvel.",
+      "schema": "Configuração incompleta ou inválida: {fields}.",
+      "unsolvable": {
+        "hidden_key": "Irresolúvel: o esconderijo não entrega nenhum item (indique «Item entregue» ou «Dá itens»).",
+        "code_lock": "Irresolúvel: o código deve ter apenas dígitos, tantos quanto o comprimento.",
+        "simultaneous_plates": "Irresolúvel: verifique as placas (pelo menos uma, sem repetições) e a janela.",
+        "combine_items": "Irresolúvel: é necessária pelo menos uma receita com ingredientes e resultado.",
+        "sliding_puzzle": "Irresolúvel: o baralhamento é inalcançável (paridade) ou falta a imagem, a grelha ou a semente.",
+        "memory": "Irresolúvel: os pares estão vazios, repetidos ou os alvos não existem.",
+        "split_clue": "Irresolúvel: os pontos de vista juntos não mostram a pista completa.",
+        "pipes": "Irresolúvel: não há caminho de água da origem ao destino (nem abrindo as comportas)."
+      }
     }
   }
 }

@@ -37,7 +37,16 @@ const fixedRng = (): number => 0.5;
 
 type Verdict = { ok: true; uses: string[] } | { ok: false; reasons: string[] };
 
-function templateSolvable(puzzle: PuzzleDefinition, heldItems: readonly string[]): boolean {
+/**
+ * Oráculo de la plantilla sobre su estado inicial, sin el resto de la sala
+ * (habitación, `requiresSolved`, puentes). Lo usa también el configurador del
+ * editor (3.5) para avisar de una configuración irresoluble al momento.
+ * `heldItems`: objetos disponibles para las compuertas de `pipes`.
+ */
+export function isTemplateSolvable(
+  puzzle: PuzzleDefinition,
+  heldItems: readonly string[] = [],
+): boolean {
   switch (puzzle.type) {
     case "hidden_key":
       return isHiddenKeySolvableGiven(createHiddenKeyState(puzzle), puzzle);
@@ -96,7 +105,7 @@ export function createOracle(index: RoomIndex, options: OracleOptions = {}): Puz
     if (puzzle.type === "pipes") return true; // depende de los ítems: se evalúa aparte
     let value = templateCache.get(puzzle.id);
     if (value === undefined) {
-      value = templateSolvable(puzzle, []);
+      value = isTemplateSolvable(puzzle, []);
       templateCache.set(puzzle.id, value);
     }
     return value;
@@ -115,7 +124,7 @@ export function createOracle(index: RoomIndex, options: OracleOptions = {}): Puz
     const key = `${puzzle.id}|${gateItems.join(",")}`;
     let value = pipesCache.get(key);
     if (value === undefined) {
-      value = templateSolvable(puzzle, gateItems);
+      value = isTemplateSolvable(puzzle, gateItems);
       pipesCache.set(key, value);
     }
     return value;

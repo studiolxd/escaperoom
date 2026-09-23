@@ -534,7 +534,49 @@
         "seconds": "Secondes",
         "zone": "Zone",
         "w": "Largeur",
-        "h": "Hauteur"
+        "h": "Hauteur",
+        "revealAnimation": "Animation de révélation",
+        "keyItemId": "Objet donné",
+        "length": "Longueur",
+        "code": "Code",
+        "maxAttempts": "Tentatives max.",
+        "lockoutSec": "Blocage après échec (s)",
+        "hints": "Indices",
+        "plates": "Plaques",
+        "windowMs": "Fenêtre simultanée (ms)",
+        "soloBridgeItemId": "Objet-pont (solo)",
+        "holdMode": "Mode d'appui",
+        "recipes": "Recettes",
+        "inputs": "Ingrédients",
+        "output": "Résultat",
+        "consumeInputs": "Consomme les ingrédients",
+        "description": "Description",
+        "grid": "Grille",
+        "cols": "Colonnes",
+        "rows": "Lignes",
+        "imageAsset": "Image",
+        "scramble": "Mélange",
+        "seed": "Graine",
+        "blankPosition": "Position du vide",
+        "pairs": "Paires",
+        "id": "ID",
+        "symbol": "Symbole",
+        "decoys": "Cartes leurres",
+        "maxFlipsPerTurn": "Retournements par tour",
+        "winCondition": "Condition de victoire",
+        "targetPairIds": "Paires cibles",
+        "turnMode": "Mode de tour",
+        "viewpoints": "Points de vue",
+        "fragments": "Fragments",
+        "visibleByViewpoint": "Visible par point de vue",
+        "wallOccluder": "Mur occultant",
+        "inputUI": "Saisie de la réponse",
+        "cellTypes": "Types de pièce",
+        "startCell": "Case de départ",
+        "endCell": "Case d'arrivée",
+        "blockedCells": "Cases bloquées",
+        "opensWithItem": "S'ouvre avec",
+        "solution": "Solution (rotations)"
       },
       "options": {
         "first_click": "Le premier qui l’ouvre",
@@ -551,7 +593,25 @@
         "sliding_puzzle": "Taquin",
         "memory": "Mémoire",
         "split_clue": "Indice partagé",
-        "pipes": "Tuyaux"
+        "pipes": "Tuyaux",
+        "slide": "Glisser",
+        "fade": "Fondu",
+        "shake": "Secousse",
+        "press": "Appuyer (dure la fenêtre)",
+        "stand": "Rester dessus",
+        "random": "Aléatoire",
+        "fixed_seed": "Graine fixe",
+        "last": "Dernière case",
+        "find_all_pairs": "Trouver toutes les paires",
+        "find_target_pairs": "Trouver les paires cibles",
+        "shared": "Partagés",
+        "per_player": "Par joueur",
+        "symbols": "Symboles",
+        "code": "Code",
+        "straight": "Droite",
+        "curve": "Courbe",
+        "tee": "En T",
+        "cross": "Croix"
       },
       "texts": {
         "dialogs": "Dialogue",
@@ -731,6 +791,29 @@
       "solved": "Énigme résolue : « {id} »",
       "ended": "Fin de la partie : {result}",
       "error": "Avis : {message}"
+    }
+  },
+  "TemplateConfig": {
+    "preview": {
+      "title": "Aperçu jouable (comme en jeu)",
+      "solved": "Résolu !",
+      "reset": "Recommencer",
+      "viewpoint": "Regarder depuis",
+      "unavailable": "L'aperçu s'affichera quand la configuration sera valide."
+    },
+    "issues": {
+      "ok": "Configuration résoluble.",
+      "schema": "Configuration incomplète ou invalide : {fields}.",
+      "unsolvable": {
+        "hidden_key": "Irrésoluble : la cachette ne donne aucun objet (renseignez « Objet donné » ou « Donne des objets »).",
+        "code_lock": "Irrésoluble : le code doit contenir uniquement des chiffres, autant que la longueur.",
+        "simultaneous_plates": "Irrésoluble : vérifiez les plaques (au moins une, sans doublon) et la fenêtre.",
+        "combine_items": "Irrésoluble : il faut au moins une recette avec ingrédients et résultat.",
+        "sliding_puzzle": "Irrésoluble : le mélange est inatteignable (parité) ou l'image, la grille ou la graine manque.",
+        "memory": "Irrésoluble : les paires sont vides, en double ou les cibles n'existent pas.",
+        "split_clue": "Irrésoluble : les points de vue réunis ne montrent pas tout l'indice.",
+        "pipes": "Irrésoluble : aucun chemin d'eau du départ à l'arrivée (même vannes ouvertes)."
+      }
     }
   }
 }

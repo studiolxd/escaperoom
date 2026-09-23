@@ -578,7 +578,49 @@
         "seconds": "Segundos",
         "zone": "Zona",
         "w": "Ancho",
-        "h": "Alto"
+        "h": "Alto",
+        "revealAnimation": "Animación al revelar",
+        "keyItemId": "Ítem que entrega",
+        "length": "Longitud",
+        "code": "Código",
+        "maxAttempts": "Intentos máximos",
+        "lockoutSec": "Bloqueo tras fallar (s)",
+        "hints": "Pistas",
+        "plates": "Placas",
+        "windowMs": "Ventana simultánea (ms)",
+        "soloBridgeItemId": "Objeto-puente (solitario)",
+        "holdMode": "Modo de pulsación",
+        "recipes": "Recetas",
+        "inputs": "Ingredientes",
+        "output": "Resultado",
+        "consumeInputs": "Consume los ingredientes",
+        "description": "Descripción",
+        "grid": "Rejilla",
+        "cols": "Columnas",
+        "rows": "Filas",
+        "imageAsset": "Imagen",
+        "scramble": "Mezcla",
+        "seed": "Semilla",
+        "blankPosition": "Posición del hueco",
+        "pairs": "Parejas",
+        "id": "ID",
+        "symbol": "Símbolo",
+        "decoys": "Cartas señuelo",
+        "maxFlipsPerTurn": "Volteos por turno",
+        "winCondition": "Condición de victoria",
+        "targetPairIds": "Parejas objetivo",
+        "turnMode": "Turnos",
+        "viewpoints": "Puntos de vista",
+        "fragments": "Fragmentos",
+        "visibleByViewpoint": "Visible desde cada punto",
+        "wallOccluder": "Muro que tapa",
+        "inputUI": "Entrada de la respuesta",
+        "cellTypes": "Tipos de pieza",
+        "startCell": "Celda de origen",
+        "endCell": "Celda de destino",
+        "blockedCells": "Celdas bloqueadas",
+        "opensWithItem": "Se abre con",
+        "solution": "Solución (rotaciones)"
       },
       "options": {
         "first_click": "El primero que lo abre",
@@ -595,7 +637,25 @@
         "sliding_puzzle": "Puzzle deslizante",
         "memory": "Memoria",
         "split_clue": "Pista dividida",
-        "pipes": "Tuberías"
+        "pipes": "Tuberías",
+        "slide": "Deslizar",
+        "fade": "Fundido",
+        "shake": "Temblor",
+        "press": "Pulsar (dura la ventana)",
+        "stand": "Quedarse encima",
+        "random": "Aleatoria",
+        "fixed_seed": "Semilla fija",
+        "last": "Última celda",
+        "find_all_pairs": "Encontrar todas las parejas",
+        "find_target_pairs": "Encontrar las parejas objetivo",
+        "shared": "Compartidos",
+        "per_player": "Por jugador",
+        "symbols": "Símbolos",
+        "code": "Código",
+        "straight": "Recta",
+        "curve": "Curva",
+        "tee": "En T",
+        "cross": "Cruce"
       },
       "texts": {
         "dialogs": "Diálogo",
@@ -775,6 +835,29 @@
       "solved": "Puzzle resuelto: «{id}»",
       "ended": "Fin de la partida: {result}",
       "error": "Aviso: {message}"
+    }
+  },
+  "TemplateConfig": {
+    "preview": {
+      "title": "Vista previa jugable (como en juego)",
+      "solved": "¡Resuelto!",
+      "reset": "Reiniciar",
+      "viewpoint": "Mirar desde",
+      "unavailable": "La vista previa se mostrará cuando la configuración sea válida."
+    },
+    "issues": {
+      "ok": "Configuración resoluble.",
+      "schema": "Configuración incompleta o no válida: {fields}.",
+      "unsolvable": {
+        "hidden_key": "No se puede resolver: el escondite no entrega ningún ítem (indica «Ítem que entrega» o «Da ítems»).",
+        "code_lock": "No se puede resolver: el código debe tener solo dígitos y tantos como la longitud.",
+        "simultaneous_plates": "No se puede resolver: revisa las placas (al menos una, sin repetir) y la ventana.",
+        "combine_items": "No se puede resolver: hace falta al menos una receta con ingredientes y resultado.",
+        "sliding_puzzle": "No se puede resolver: la mezcla no es alcanzable (paridad) o faltan la imagen, la rejilla o la semilla.",
+        "memory": "No se puede resolver: las parejas están vacías, repetidas o los objetivos no existen.",
+        "split_clue": "No se puede resolver: entre todos los puntos de vista no se ve la pista completa.",
+        "pipes": "No se puede resolver: no hay camino de agua del origen al destino (ni abriendo las compuertas)."
+      }
     }
   }
 }
