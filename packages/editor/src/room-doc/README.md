@@ -10,6 +10,7 @@ comandos de las herramientas del modo edición (`docs/specs/09-editor-de-salas.m
 | `serialize.ts`        | `roomPackageToDoc`, `roomDocToPackage` (puras) y `observeRoomDoc` (un aviso por transacción).        |
 | `commands.ts`         | `paintTiles`, `fillTiles`, `eraseTiles`, `placeObject`, `addObject`, `moveObject`, `renameObject`, `writeRoomMeta`, `initRoomDoc`… |
 | `content.ts`          | Estructura y contenido (4.2, MCP): `defineSubRooms`, `setSubRoomGrid`, `setTileset`, `defineItem`, `addPuzzle`, `addDialog`, `addHint`. |
+| `logic.ts`            | Lógica (4.3, MCP): `addRule` (referencias comprobadas, sobre el mapa `rules` de 3.6), `proposeRuleId`. |
 | `tool-controller.ts`  | `EditToolController`: eventos de puntero del runtime (`mode: 'edit'`) → comandos sobre el doc.       |
 | `use-room-package.ts` | `useRoomPackage(doc)`: la sala como `RoomPackage` en estado React.                                   |
 

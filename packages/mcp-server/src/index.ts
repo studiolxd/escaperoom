@@ -8,6 +8,7 @@ export * from "./deps";
 export * from "./draft-writer";
 export * from "./results";
 export * from "./room-draft-reader";
+export * from "./room-graph";
 export * from "./server";
 export * from "./tools";
 export * from "./transports/http";

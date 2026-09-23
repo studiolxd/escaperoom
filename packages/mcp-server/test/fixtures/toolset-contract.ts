@@ -23,7 +23,11 @@ export function toolsetContract(getClient: () => Client): void {
       }
     }
     const addRule = tools.find((tool) => tool.name === "add_rule");
-    expect(Object.keys(addRule?.inputSchema.properties ?? {})).toEqual(["roomId", "rule"]);
+    expect(Object.keys(addRule?.inputSchema.properties ?? {})).toEqual([
+      "roomId",
+      "rule",
+      "replace",
+    ]);
   });
 
   it("get_room devuelve el draft de test como RoomPackage", async () => {
@@ -47,21 +51,11 @@ export function toolsetContract(getClient: () => Client): void {
   });
 
   it("una tool del esqueleto devuelve el error claro de no implementado", async () => {
-    const result = await call(getClient(), "add_rule", {
-      roomId: ALDRIC_ROOM_ID,
-      rule: {
-        id: "r-test",
-        priority: 0,
-        once: true,
-        trigger: { type: "on_interact", objectId: "trono" },
-        conditions: [],
-        actions: [],
-      },
-    });
+    const result = await call(getClient(), "preview", { roomId: ALDRIC_ROOM_ID });
     expect(result.isError).toBe(true);
     expect(errorCode(result)).toBe("NOT_IMPLEMENTED");
     expect(result.text).toBe(
-      "❌ add_rule: no implementado todavía (ticket 4.3). El esquema de entrada ya es el definitivo.",
+      "❌ preview: no implementado todavía (ticket 4.5). El esquema de entrada ya es el definitivo.",
     );
   });
 }

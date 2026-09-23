@@ -147,6 +147,23 @@ export function createRule(doc: Y.Doc, input: CreateRuleInput): string {
   return id;
 }
 
+/**
+ * Escribe una regla completa (trigger, condiciones y acciones de una vez, como
+ * la manda el MCP): sustituye la del mismo id conservando su `order`, o la
+ * añade al final. Quien llama decide si sustituir está permitido.
+ */
+export function setRule(doc: Y.Doc, rule: Rule): { replaced: boolean } {
+  let replaced = false;
+  doc.transact(() => {
+    const map = getRulesMap(doc);
+    const existing = map.get(rule.id);
+    replaced = existing !== undefined;
+    const order = existing ? Number(existing.get("order") ?? 0) : nextOrder(map);
+    map.set(rule.id, buildRuleMap(rule, order));
+  });
+  return { replaced };
+}
+
 export function deleteRule(doc: Y.Doc, ruleId: string): void {
   doc.transact(() => {
     ruleMap(doc, ruleId);
