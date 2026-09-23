@@ -141,6 +141,10 @@ export const privacyPolicy: LegalDocument = {
             "(hash).",
         ],
         "Grabación de sesión (cuando existe consentimiento): 90 días.",
+        "Dirección IP y navegador (user agent) de tus sesiones abiertas y de cada aceptación de " +
+          "los Términos de Servicio y esta política: 90 días, pasados los cuales se sustituyen por " +
+          "un valor no reversible (hash). El registro de que hubo una sesión, o una aceptación con " +
+          "su fecha, se conserva 2 años; pasado ese plazo la fila se borra por completo.",
         "Eventos de analítica detallados: 24 meses; los datos agregados y anonimizados se conservan " +
           "sin límite de tiempo.",
         "Reportes e historial de moderación: sin borrado automático, para poder detectar reincidencia.",

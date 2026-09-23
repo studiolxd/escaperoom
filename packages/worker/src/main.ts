@@ -14,12 +14,16 @@ import {
   createPrismaAccessKeyStore,
   createPrismaAccessKeyEmailPurgeStore,
   createPrismaInvitationStore,
+  createPrismaSessionIpUaPurgeStore,
+  createPrismaTermsAcceptanceIpUaPurgeStore,
   readEmailPurgeSecret,
+  readIpUaPurgeSecret,
 } from "@escaperoom/shared/services";
 import { createAccessKeyCardsWorker } from "./access-key-cards";
 import { createAnalyticsPartitionsWorker } from "./analytics-partitions";
 import { createAccessKeyExpiryWorker } from "./access-key-expiry";
 import { createAccessKeyEmailPurgeWorker } from "./access-key-email-purge";
+import { createIpUaPurgeWorker } from "./ip-ua-purge";
 import { createInvitationEmailWorker } from "./invitation-email";
 import { createModerationSamplingWorker } from "./moderation-sampling";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
@@ -27,10 +31,11 @@ import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
 /**
  * Arranque de los workers de cola: analítica (specs/16), caducidad de claves
  * (ticket 5.5, job repetitivo), purga (hash) del email de claves tras el
- * plazo de retención (specs/18 §4.1), envíos de invitación por email (ticket
- * 5.6), PDF de tarjetas-clave (ticket 5.7), particiones/purga de analítica
- * (ticket 6.11, job mensual) y muestreo aleatorio de moderación (ticket 6.1,
- * diario).
+ * plazo de retención (specs/18 §4.1), purga (hash + borrado) de IP/user-agent
+ * en `session` y `termsAcceptance` (specs/18 §4.1), envíos de invitación por
+ * email (ticket 5.6), PDF de tarjetas-clave (ticket 5.7), particiones/purga
+ * de analítica (ticket 6.11, job mensual) y muestreo aleatorio de moderación
+ * (ticket 6.1, diario).
  *
  *   pnpm --filter @escaperoom/worker dev
  *
@@ -90,6 +95,24 @@ async function main(): Promise<void> {
       : null;
   if (!emailPurge) {
     logger.warn("access-key email purge: APP_SECRET no configurado; job inactivo");
+  }
+
+  // Purga de IP/user-agent de session y termsAcceptance: mismo APP_SECRET.
+  const ipUaPurgeSecret = readIpUaPurgeSecret();
+  const ipUaPurgeConnection = ipUaPurgeSecret ? createQueueRedis() : null;
+  const ipUaPurge =
+    ipUaPurgeSecret && ipUaPurgeConnection
+      ? await createIpUaPurgeWorker({
+          stores: {
+            session: createPrismaSessionIpUaPurgeStore(prisma),
+            termsAcceptance: createPrismaTermsAcceptanceIpUaPurgeStore(prisma),
+          },
+          secret: ipUaPurgeSecret,
+          connection: ipUaPurgeConnection,
+        })
+      : null;
+  if (!ipUaPurge) {
+    logger.warn("ip/user-agent purge: APP_SECRET no configurado; job inactivo");
   }
 
   // Envíos de invitación: sin transporte (config de email incompleta en
@@ -153,6 +176,8 @@ async function main(): Promise<void> {
     await expiry.queue.close();
     await emailPurge?.worker.close();
     await emailPurge?.queue.close();
+    await ipUaPurge?.worker.close();
+    await ipUaPurge?.queue.close();
     await invitations?.close();
     await cards.close();
     await partitions.worker.close();
@@ -162,6 +187,7 @@ async function main(): Promise<void> {
     await connection.quit().catch(() => undefined);
     await expiryConnection.quit().catch(() => undefined);
     await emailPurgeConnection?.quit().catch(() => undefined);
+    await ipUaPurgeConnection?.quit().catch(() => undefined);
     await mailConnection?.quit().catch(() => undefined);
     await cardsConnection.quit().catch(() => undefined);
     await partitionsConnection.quit().catch(() => undefined);
