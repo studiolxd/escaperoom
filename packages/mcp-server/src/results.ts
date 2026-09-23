@@ -11,15 +11,19 @@ export type ToolErrorCode =
   | "NOT_IMPLEMENTED"
   | "NOT_AVAILABLE"
   | "INVALID_DRAFT"
+  | "INVALID_INPUT"
   | "INTERNAL";
 
 /** Error de dominio que una tool traduce a resultado MCP con `isError`. */
 export class ToolError extends Error {
   readonly code: ToolErrorCode;
-  constructor(code: ToolErrorCode, message: string) {
+  /** Datos extra para el cliente (p. ej. `reason` y los ids disponibles). */
+  readonly details: Record<string, unknown>;
+  constructor(code: ToolErrorCode, message: string, details: Record<string, unknown> = {}) {
     super(message);
     this.name = "ToolError";
     this.code = code;
+    this.details = details;
   }
 }
 

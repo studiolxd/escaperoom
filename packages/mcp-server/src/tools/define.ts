@@ -51,3 +51,9 @@ export const MUTATION: ToolAnnotations = {
   idempotentHint: false,
   openWorldHint: false,
 };
+
+/** Opción común de las tools de alta: sustituir la entrada del mismo id. */
+export const ReplaceSchema = z
+  .boolean()
+  .optional()
+  .describe("true = sustituye la entrada existente con el mismo id (conserva su orden)");

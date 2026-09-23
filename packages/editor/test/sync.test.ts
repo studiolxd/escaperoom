@@ -358,3 +358,35 @@ describe("WebSocket de edición: auth en el handshake", () => {
     expect(server.loadedRooms()).toEqual([]);
   });
 });
+
+describe("applyUpdate (updates de fuera de la sesión: MCP, 4.2)", () => {
+  function remoteUpdate(key: string): Uint8Array {
+    const doc = new Y.Doc();
+    doc.getMap("meta").set(key, true);
+    return Y.encodeStateAsUpdate(doc);
+  }
+
+  it("con sesión viva lo difunde a los editores y lo persiste; sin ella, solo lo persiste", async () => {
+    const store = newStore();
+    const { server, drafts, url } = await startServer(store);
+
+    await server.applyUpdate(author, ROOM_ID, remoteUpdate("sinSesion"));
+    expect(server.loadedRooms()).toEqual([]);
+
+    const doc = new Y.Doc();
+    connectClient(url, "autora", doc);
+    await waitFor(() => doc.getMap("meta").get("sinSesion") === true);
+
+    await server.applyUpdate(author, ROOM_ID, remoteUpdate("conSesion"));
+    await waitFor(() => doc.getMap("meta").get("conSesion") === true);
+    const persisted = buildDraftDoc(await drafts.loadDraft(author, ROOM_ID));
+    expect(persisted.getMap("meta").toJSON()).toEqual({ sinSesion: true, conSesion: true });
+  });
+
+  it("aplica la misma autorización que el handshake", async () => {
+    const { server } = await startServer(newStore());
+    await expect(server.applyUpdate(intruder, ROOM_ID, remoteUpdate("x"))).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+});
