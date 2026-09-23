@@ -4,11 +4,30 @@ import { resolveActorFromRequest } from "@/server/context";
 import {
   createAnthropicChatProvider,
   createCreatorChatHandlers,
+  createGoogleChatProvider,
   createInMemoryConversationStore,
   createMcpHttpToolClient,
+  createOpenAiChatProvider,
   readCreatorChatConfig,
   type ChatConversationStore,
+  type ChatModelProvider,
+  type CreatorChatConfig,
 } from "@/server/creator-chat";
+
+type ConfiguredChat = Extract<CreatorChatConfig, { configured: true }>;
+
+/** Un proveedor por petición (ticket «migrar-ai-sdk-chat»): `CREATOR_CHAT_PROVIDER` elige cuál. */
+function createProviderFor(config: ConfiguredChat): ChatModelProvider {
+  const { apiKey, model } = config;
+  switch (config.provider) {
+    case "openai":
+      return createOpenAiChatProvider({ apiKey, model });
+    case "google":
+      return createGoogleChatProvider({ apiKey, model });
+    case "anthropic":
+      return createAnthropicChatProvider({ apiKey, model });
+  }
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,8 +55,7 @@ export function POST(request: Request) {
   return createCreatorChatHandlers({
     resolveActor: resolveActorFromRequest,
     config: () => readCreatorChatConfig(),
-    createProvider: (config) =>
-      createAnthropicChatProvider({ apiKey: config.apiKey, model: config.model }),
+    createProvider: createProviderFor,
     createToolClient: (req) =>
       createMcpHttpToolClient({
         url: remoteMcp ? new URL(remoteMcp) : new URL(MCP_ENDPOINT, req.url),

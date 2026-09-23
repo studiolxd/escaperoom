@@ -70,6 +70,14 @@ export const RATE_LIMIT_POLICIES = {
     ip: { limit: 20, windowSeconds: 3600 },
     user: { limit: 5, windowSeconds: 3600 },
   },
+  /**
+   * `GET /api/me/data-export` y `DELETE /api/me` (ticket 6.2, specs/18 §3.4):
+   * ambas exigen sesión, así que el cubo por usuario es el que importa.
+   */
+  "account-rights": {
+    ip: { limit: 20, windowSeconds: 3600 },
+    user: { limit: 5, windowSeconds: 3600 },
+  },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitPolicyName = keyof typeof RATE_LIMIT_POLICIES;

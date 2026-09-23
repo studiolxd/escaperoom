@@ -156,15 +156,50 @@ que falta encima:
 
 ## 5. Checklist antes de aceptar el primer evento educativo real o el primer pago
 
-- [ ] Redactar TOS y política de privacidad reales con asesoría, a partir de §1–§3.
-- [ ] Confirmar plazos exactos de retención fiscal de `purchase` (§3.3) con asesoría fiscal.
-- [ ] Redactar plantilla de DPA para organizaciones que usen claves individuales con email (§3.1).
+> **Actualizado en el ticket 6.2** (borrador técnico, no asesoría legal — ver el aviso al principio
+> de este documento). Cada punto indica si quedó como **borrador técnico completado** (el texto o el
+> código existen, pendientes de que un abogado los revise/apruebe) o **sigue pendiente de asesoría
+> real** sin ningún artefacto todavía.
+
+- [x] Redactar TOS y política de privacidad reales con asesoría, a partir de §1–§3. **Borrador
+      técnico completado**: `packages/web/src/content/legal/terms.ts` y `.../privacy.ts`, servidos en
+      `/[locale]/legal/terms` y `/[locale]/legal/privacy` con el aviso "Borrador pendiente de revisión
+      legal" visible. **Sigue pendiente de asesoría real**: que un abogado los revise y los declare
+      vigentes; los puntos jurisdiccionales concretos quedan marcados `[PENDIENTE ASESORÍA LEGAL: …]`
+      dentro de esos mismos ficheros (derecho de desistimiento, ley aplicable/jurisdicción,
+      limitación de responsabilidad, identificación del responsable del tratamiento).
+- [ ] Confirmar plazos exactos de retención fiscal de `purchase` (§3.3) con asesoría fiscal. **Sigue
+      pendiente de asesoría real**: ningún cambio de código en este ticket; el borrador de privacidad
+      deja el plazo como `[PENDIENTE ASESORÍA LEGAL: …]` en vez de fijar un número.
+- [x] Redactar plantilla de DPA para organizaciones que usen claves individuales con email (§3.1).
+      **Borrador técnico completado**: `packages/web/src/content/legal/dpa-template.ts`, servido en
+      `/[locale]/legal/dpa`. El MECANISMO de firma (quién firma, versión aceptada, puerta
+      `DPA_REQUIRED`) ya existía del ticket 5.11 y no cambia; esta página solo añade el texto que se
+      le muestra al organizador. Transferencias internacionales de subprocesadores sigue
+      `[PENDIENTE ASESORÍA LEGAL: …]`.
 - [ ] Revisar TOS vigentes de ElevenLabs sobre titularidad de audio generado antes de activar la
-      función en producción (§2.3).
+      función en producción (§2.3). **Sigue pendiente de asesoría real**: no se puede resolver sin
+      leer los TOS vigentes de un tercero en el momento de activar la función; el borrador de TOS lo
+      deja marcado explícitamente.
 - [ ] Confirmar que el diseño "sin cuenta para el menor, responsable = el centro" es suficiente
-      por sí solo o necesita algo adicional (§4.1–§4.2).
-- [ ] Implementar los endpoints de derechos RGPD de §3.4 antes de abrir registro público.
-- [ ] Firmar DPA propio con cada subprocesador de §3.5 antes de procesar datos reales.
+      por sí solo o necesita algo adicional (§4.1–§4.2). **Sigue pendiente de asesoría real**: el
+      borrador de privacidad documenta el diseño y deja la confirmación como
+      `[PENDIENTE ASESORÍA LEGAL: …]`.
+- [x] Implementar los endpoints de derechos RGPD de §3.4 antes de abrir registro público. **Hecho**
+      (no es borrador, es código en producción): `GET /api/me/data-export` y `DELETE /api/me`
+      (`packages/shared/src/services/user-data-rights.ts`, `.../user-data-rights-prisma-store.ts`,
+      `packages/web/src/server/rest/user-data-rights.ts`). El alcance exacto de qué exporta y qué
+      anonimiza frente a qué conserva es una decisión de producto documentada en el comentario de
+      cabecera de `user-data-rights.ts` (no cerrada de forma explícita por esta spec): el export cubre
+      solo datos que identifican al propio usuario (no PII de terceros que haya introducido, p. ej.
+      emails de participantes de sus eventos); el borrado anonimiza el perfil y revoca
+      sesiones/credenciales, pero no borra compras, reseñas, salas publicadas ni el historial de
+      moderación, que sobreviven por obligación fiscal, por la licencia UGC ya concedida (§2.2) o
+      porque §3.3 ya fija que el historial de moderación no tiene borrado automático.
+- [ ] Firmar DPA propio con cada subprocesador de §3.5 antes de procesar datos reales. **Sigue
+      pendiente de asesoría real**: es una gestión contractual con cada proveedor, fuera del alcance
+      de este ticket (que solo redacta la plantilla que la plataforma ofrece a sus propios clientes
+      B2B/Edu, no los contratos que la plataforma firma como cliente de sus proveedores).
 
 ## 6. Dependencias
 

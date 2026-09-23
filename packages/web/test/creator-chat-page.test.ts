@@ -1,4 +1,9 @@
-import type Anthropic from "@anthropic-ai/sdk";
+import type {
+  APICallError as APICallErrorType,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4StreamPart,
+} from "@ai-sdk/provider";
 import { ANONYMOUS_ACTOR, type Actor } from "@escaperoom/shared/services";
 import { NextIntlClientProvider, createTranslator } from "next-intl";
 import { createElement, type ReactElement } from "react";
@@ -198,52 +203,61 @@ describe("hilo del chat — llamadas a tools, errores y enlaces", () => {
   });
 });
 
-describe("proveedor de Anthropic (sin red: cliente simulado)", () => {
-  function fakeClient(message: Partial<Anthropic.Message>, error?: unknown) {
-    const calls: Array<{ params: Anthropic.MessageStreamParams }> = [];
-    const client = {
-      messages: {
-        stream(params: Anthropic.MessageStreamParams) {
-          calls.push({ params });
-          return {
-            on(event: string, listener: (delta: string) => void) {
-              if (event === "text") for (const delta of ["Hola ", "creador"]) listener(delta);
-              return this;
-            },
-            finalMessage: async () => {
-              if (error) throw error;
-              return message;
-            },
-          };
-        },
+describe("proveedor de Anthropic sobre el AI SDK (sin red: LanguageModel simulado)", () => {
+  function streamOf(parts: LanguageModelV4StreamPart[]): ReadableStream<LanguageModelV4StreamPart> {
+    return new ReadableStream({
+      start(controller) {
+        for (const part of parts) controller.enqueue(part);
+        controller.close();
       },
-    } as unknown as Anthropic;
-    return { client, calls };
+    });
+  }
+
+  function fakeModel(parts: LanguageModelV4StreamPart[], error?: unknown) {
+    const calls: LanguageModelV4CallOptions[] = [];
+    const model: LanguageModelV4 = {
+      specificationVersion: "v4",
+      provider: "anthropic",
+      modelId: "claude-sonnet-5",
+      supportedUrls: {},
+      async doGenerate() {
+        throw new Error("no usado: streamText siempre llama a doStream");
+      },
+      async doStream(options) {
+        calls.push(options);
+        if (error) throw error;
+        return { stream: streamOf(parts) };
+      },
+    };
+    return { model, calls };
   }
 
   it("modelo por defecto, streaming de texto, tools, caché y bloques de razonamiento intactos", async () => {
-    const thinking = { type: "thinking", thinking: "", signature: "sig" };
-    const { client, calls } = fakeClient({
-      content: [
-        thinking as unknown as Anthropic.ContentBlock,
-        { type: "text", text: "Hola creador", citations: null },
-        {
-          type: "tool_use",
-          id: "tu1",
-          name: "create_room",
-          input: { meta: {} },
-          caller: undefined,
-        } as unknown as Anthropic.ContentBlock,
-      ],
-      stop_reason: "tool_use",
-      usage: {
-        input_tokens: 10,
-        output_tokens: 5,
-        cache_creation_input_tokens: 100,
-        cache_read_input_tokens: 1000,
-      } as Anthropic.Usage,
-    });
-    const provider = createAnthropicChatProvider({ apiKey: "sk", client });
+    const { model, calls } = fakeModel([
+      { type: "stream-start", warnings: [] },
+      { type: "reasoning-start", id: "r1" },
+      { type: "reasoning-delta", id: "r1", delta: "" },
+      { type: "reasoning-end", id: "r1", providerMetadata: { anthropic: { signature: "sig" } } },
+      { type: "text-start", id: "t1" },
+      { type: "text-delta", id: "t1", delta: "Hola " },
+      { type: "text-delta", id: "t1", delta: "creador" },
+      { type: "text-end", id: "t1" },
+      {
+        type: "tool-call",
+        toolCallId: "tu1",
+        toolName: "create_room",
+        input: JSON.stringify({ meta: {} }),
+      },
+      {
+        type: "finish",
+        finishReason: { unified: "tool-calls", raw: "tool_use" },
+        usage: {
+          inputTokens: { total: 1110, noCache: 10, cacheRead: 1000, cacheWrite: 100 },
+          outputTokens: { total: 5, text: 5, reasoning: 0 },
+        },
+      },
+    ]);
+    const provider = createAnthropicChatProvider({ apiKey: "sk", languageModel: model });
     expect(provider.model).toBe("claude-sonnet-5");
     const deltas: string[] = [];
     const response = await provider.complete({
@@ -253,8 +267,7 @@ describe("proveedor de Anthropic (sin red: cliente simulado)", () => {
         {
           role: "assistant",
           content: [
-            { type: "opaque", provider: "anthropic", block: thinking },
-            { type: "opaque", provider: "otro", block: { type: "x" } },
+            { type: "reasoning", text: "", providerOptions: { anthropic: { signature: "sig" } } },
             { type: "tool_use", id: "tu0", name: "get_room", input: { roomId: "r" } },
           ],
         },
@@ -271,39 +284,61 @@ describe("proveedor de Anthropic (sin red: cliente simulado)", () => {
     });
 
     expect(deltas).toEqual(["Hola ", "creador"]);
-    const params = calls[0]!.params;
-    expect(params).toMatchObject({
-      model: "claude-sonnet-5",
-      max_tokens: 1000,
-      system: "sistema",
-      cache_control: { type: "ephemeral" },
-      tools: [{ name: "create_room", description: "Crea", input_schema: { type: "object" } }],
+    const options = calls[0]!;
+    expect(options.maxOutputTokens).toBe(1000);
+    expect(options.tools).toEqual([
+      expect.objectContaining({ name: "create_room", description: "Crea" }),
+    ]);
+    expect(options.providerOptions).toEqual({ anthropic: { cacheControl: { type: "ephemeral" } } });
+    expect(options.prompt[0]).toEqual({ role: "system", content: "sistema" });
+    // El razonamiento histórico (bloque `reasoning`) y la tool_use se reenvían intactos.
+    expect(options.prompt[2]).toMatchObject({
+      role: "assistant",
+      content: [
+        { type: "reasoning", text: "", providerOptions: { anthropic: { signature: "sig" } } },
+        { type: "tool-call", toolCallId: "tu0", toolName: "get_room", input: { roomId: "r" } },
+      ],
     });
-    expect(params.messages[1]!.content).toEqual([
-      thinking,
-      { type: "tool_use", id: "tu0", name: "get_room", input: { roomId: "r" } },
-    ]);
-    expect(params.messages[2]!.content).toEqual([
-      { type: "tool_result", tool_use_id: "tu0", content: "❌ get_room: x", is_error: true },
-    ]);
+    // El resultado de tool viaja en un mensaje de rol "tool" (no "user"), a diferencia del SDK nativo.
+    expect(options.prompt[3]).toMatchObject({
+      role: "tool",
+      content: [
+        {
+          type: "tool-result",
+          toolCallId: "tu0",
+          toolName: "get_room",
+          output: { type: "error-text", value: "❌ get_room: x" },
+        },
+      ],
+    });
 
     expect(response.stopReason).toBe("tool_use");
     expect(response.usage).toEqual({ inputTokens: 1110, outputTokens: 5 });
     expect(response.content).toEqual([
-      { type: "opaque", provider: "anthropic", block: thinking },
+      { type: "reasoning", text: "", providerOptions: { anthropic: { signature: "sig" } } },
       { type: "text", text: "Hola creador" },
       { type: "tool_use", id: "tu1", name: "create_room", input: { meta: {} } },
     ]);
   });
 
   it("traduce los errores de la API a códigos estables", async () => {
-    const { default: AnthropicSdk } = await import("@anthropic-ai/sdk");
-    const rateLimited = new AnthropicSdk.RateLimitError(429, undefined, "rate", new Headers());
-    const { client } = fakeClient({}, rateLimited);
-    const provider = createAnthropicChatProvider({ apiKey: "sk", model: "claude-opus-5", client });
+    const { APICallError } = await import("@ai-sdk/provider");
+    const rateLimited = new APICallError({
+      message: "rate",
+      url: "https://api.anthropic.com/v1/messages",
+      requestBodyValues: {},
+      statusCode: 429,
+      isRetryable: false,
+    }) satisfies APICallErrorType;
+    const { model } = fakeModel([], rateLimited);
+    const provider = createAnthropicChatProvider({
+      apiKey: "sk",
+      model: "claude-opus-5",
+      languageModel: model,
+    });
     const failure = provider.complete({
-      system: "",
-      messages: [],
+      system: "sistema",
+      messages: [{ role: "user", content: [{ type: "text", text: "hola" }] }],
       tools: [],
       maxOutputTokens: 10,
     });

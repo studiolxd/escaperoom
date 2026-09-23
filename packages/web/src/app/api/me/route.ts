@@ -1,6 +1,13 @@
 import { auth } from "@/lib/auth";
 import { toMeResponse } from "@/lib/me";
 import { prisma } from "@escaperoom/shared/db";
+import { resolveActorFromRequest } from "@/server/context";
+import { withRateLimit } from "@/server/rate-limit";
+import { createUserDataRightsHandlers } from "@/server/rest/user-data-rights";
+import { getUserDataRightsService } from "@/server/services";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
  * GET /api/me — perfil del usuario autenticado, sus organizaciones y el saldo
@@ -32,3 +39,16 @@ export async function GET(request: Request) {
 
   return Response.json(toMeResponse(user));
 }
+
+/**
+ * DELETE /api/me — cierre de cuenta: anonimiza el perfil y revoca
+ * sesiones/credenciales (derecho al olvido, ticket 6.2, specs/18 §3.4). No
+ * borra compras, reseñas ni salas ya publicadas (ver
+ * `@escaperoom/shared/services/user-data-rights`).
+ */
+export const DELETE = withRateLimit("account-rights", (request: Request) =>
+  createUserDataRightsHandlers({
+    userDataRights: getUserDataRightsService(),
+    resolveActor: resolveActorFromRequest,
+  }).deleteAccount(request),
+);

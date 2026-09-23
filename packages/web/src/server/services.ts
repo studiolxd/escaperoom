@@ -27,6 +27,13 @@ import {
   type AudioAssetService,
   type AudioBlobStore,
   createAudioPublishAssetSource,
+  createCreditsService,
+  createPrismaCreditAccountStore,
+  type CreditsService,
+  createAudioGenerationService,
+  type AudioGenerationService,
+  createElevenLabsHttpClient,
+  readElevenLabsConfig,
   createRoomPublishService,
   createPublishConfirmationService,
   readPublishConfirmConfig,
@@ -64,6 +71,9 @@ import {
   type PricingTierService,
   type RoomDraftService,
   type RoomPublishService,
+  createUserDataRightsService,
+  createPrismaUserDataRightsStore,
+  type UserDataRightsService,
 } from "@escaperoom/shared/services";
 import { createBullCardExportQueue } from "@escaperoom/shared/access-key-cards-queue";
 import { resolveColyseusHttpUrl } from "./playtest-launcher";
@@ -80,6 +90,8 @@ let roomDrafts: RoomDraftService | undefined;
 let platformSettings: PlatformSettingsService | undefined;
 let pricingTiers: PricingTierService | undefined;
 let audioAssets: AudioAssetService | undefined;
+let credits: CreditsService | undefined;
+let audioGeneration: AudioGenerationService | null | undefined;
 let roomPublish: RoomPublishService | undefined;
 let publishConfirmations: PublishConfirmationService | null | undefined;
 let events: EventService | undefined;
@@ -92,6 +104,7 @@ let accessKeyCards: AccessKeyCardsService | undefined;
 let organizations: OrganizationService | undefined;
 let eventPanel: EventPanelService | undefined;
 let moderation: ModerationService | undefined;
+let userDataRights: UserDataRightsService | undefined;
 
 /**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
@@ -159,6 +172,34 @@ export function getAudioAssetService(): AudioAssetService {
     blobs: audioBlobs,
   });
   return audioAssets;
+}
+
+/** Ledger de créditos de plataforma (ticket 4.9, specs/14 §4) sobre Postgres. */
+export function getCreditsService(): CreditsService {
+  credits ??= createCreditsService({ store: createPrismaCreditAccountStore(prisma) });
+  return credits;
+}
+
+/**
+ * Generación de audio por IA con ElevenLabs (ticket 4.9, specs/15 §2-4): coste
+ * en créditos, síntesis, subida al MISMO bucket que 3.11 y alta en la MISMA
+ * cola de moderación. `null` sin `ELEVENLABS_API_KEY` (producción sin la
+ * clave configurada): el endpoint responde 503 «no disponible», sin romper el
+ * resto de la app.
+ */
+export function getAudioGenerationService(): AudioGenerationService | null {
+  if (audioGeneration !== undefined) return audioGeneration;
+  const config = readElevenLabsConfig();
+  audioGeneration = config.configured
+    ? createAudioGenerationService({
+        elevenlabs: createElevenLabsHttpClient({ apiKey: config.apiKey, modelId: config.modelId }),
+        credits: getCreditsService(),
+        store: createPrismaAudioAssetStore(prisma),
+        blobs: audioBlobs,
+        config: { voiceId: config.voiceId },
+      })
+    : null;
+  return audioGeneration;
 }
 
 /**
@@ -238,6 +279,15 @@ export function getEventService(): EventService {
 export function getOrganizationService(): OrganizationService {
   organizations ??= createOrganizationService({ store: createPrismaOrganizationStore(prisma) });
   return organizations;
+}
+
+/**
+ * Derechos RGPD sobre la cuenta propia (ticket 6.2, specs/18 §3.4): export de
+ * datos (`GET /api/me/data-export`) y cierre de cuenta (`DELETE /api/me`).
+ */
+export function getUserDataRightsService(): UserDataRightsService {
+  userDataRights ??= createUserDataRightsService({ store: createPrismaUserDataRightsStore(prisma) });
+  return userDataRights;
 }
 
 /**
