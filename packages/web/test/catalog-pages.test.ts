@@ -279,7 +279,7 @@ describe("listado — SSR", () => {
     expect(match).toContain("4,5 de 5 (2 reseñas)");
 
     const none = render(await page({ language: "fr" }));
-    expect(none).toContain("No hay salas que cumplan estos filtros.");
+    expect(none).toContain("¡Ups! No hemos encontrado ninguna sala");
 
     const invalid = render(await page({ difficulty: "9" }));
     expect(invalid).toContain("Algún filtro no es válido");
