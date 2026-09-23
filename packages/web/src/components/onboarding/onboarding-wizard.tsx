@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { PlaytestButton } from "@/components/room-editor/playtest-button";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Link } from "@/i18n/navigation";
 import { trackOnboardingStep } from "@/lib/analytics-client";
 
@@ -101,7 +102,7 @@ export function OnboardingWizard() {
             <h2 className="font-semibold">{t("step2.title")}</h2>
             <p className="text-sm text-muted-foreground">{t("step2.body")}</p>
             <div className="space-y-2">
-              <label className="flex items-start gap-2 text-sm">
+              <Label className="items-start text-sm font-normal">
                 <input
                   type="radio"
                   name="template"
@@ -114,8 +115,8 @@ export function OnboardingWizard() {
                   <br />
                   <span className="text-muted-foreground">{t("step2.templateDesc")}</span>
                 </span>
-              </label>
-              <label className="flex items-start gap-2 text-sm">
+              </Label>
+              <Label className="items-start text-sm font-normal">
                 <input
                   type="radio"
                   name="template"
@@ -128,7 +129,7 @@ export function OnboardingWizard() {
                   <br />
                   <span className="text-muted-foreground">{t("step2.blankDesc")}</span>
                 </span>
-              </label>
+              </Label>
             </div>
 
             {create.kind !== "done" && (

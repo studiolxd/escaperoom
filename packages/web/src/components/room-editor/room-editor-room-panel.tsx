@@ -15,12 +15,18 @@ import {
 } from "@escaperoom/editor";
 import type { SubRoom, WorldObject } from "@escaperoom/shared/schemas";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 /** Luz ambiente que se propone al añadirla (la del salón del Rey Aldric). */
 const DEFAULT_AMBIENT = { color: "#3a2f22", intensity: 0.6 } as const;
 
 const INPUT =
-  "rounded border border-white/15 bg-slate-900 px-1.5 py-0.5 text-xs text-white disabled:opacity-50";
+  "h-auto rounded border border-white/15 bg-slate-900 px-1.5 py-0.5 text-xs text-white disabled:opacity-50";
+
+/** Sentinel del `SelectItem` "sin objeto" (Radix no admite `value=""`). */
+const NO_OBJECT = "__none__";
 
 export interface RoomEditorRoomPanelProps {
   doc: Y.Doc;
@@ -105,20 +111,24 @@ export function RoomEditorRoomPanel({
                 className="flex items-center gap-1"
                 data-decoration={index}
               >
-                <select
-                  aria-label={t("sprite")}
-                  className={`${INPUT} min-w-0 flex-1 font-mono`}
+                <Select
                   value={decoration.sprite}
-                  onChange={(event) =>
-                    run(() => setDecorationSprite(doc, room.id, index, event.target.value))
-                  }
+                  onValueChange={(value) => run(() => setDecorationSprite(doc, room.id, index, value))}
                 >
-                  {spriteOptions(decoration.sprite).map((sprite) => (
-                    <option key={sprite} value={sprite}>
-                      {sprite}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger
+                    aria-label={t("sprite")}
+                    className={`${INPUT} min-w-0 flex-1 justify-between font-mono`}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {spriteOptions(decoration.sprite).map((sprite) => (
+                      <SelectItem key={sprite} value={sprite}>
+                        {sprite}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <CellInputs
                   x={decoration.x}
                   y={decoration.y}
@@ -160,10 +170,10 @@ export function RoomEditorRoomPanel({
           <p className="text-xs text-white/70">{t("ambient")}</p>
           {ambient && ambient.type === "ambient" ? (
             <div className="flex items-center gap-2">
-              <input
+              <Input
                 type="color"
                 aria-label={t("color")}
-                className="h-6 w-8 rounded border border-white/15 bg-transparent"
+                className="h-6 w-8 rounded border border-white/15 bg-transparent p-0"
                 value={ambient.color}
                 onChange={(event) =>
                   run(() =>
@@ -174,14 +184,14 @@ export function RoomEditorRoomPanel({
                   )
                 }
               />
-              <label className="flex min-w-0 flex-1 items-center gap-1 text-xs text-white/60">
+              <Label className="min-w-0 flex-1 gap-1 text-xs font-normal text-white/60">
                 {t("intensity")}
-                <input
+                <Input
                   type="range"
                   min={0}
                   max={1}
                   step={0.05}
-                  className="min-w-0 flex-1"
+                  className="h-auto min-w-0 flex-1 border-0 bg-transparent p-0"
                   value={ambient.intensity}
                   onChange={(event) =>
                     run(() =>
@@ -193,7 +203,7 @@ export function RoomEditorRoomPanel({
                   }
                 />
                 <span className="w-8 text-right font-mono">{ambient.intensity}</span>
-              </label>
+              </Label>
               <Button
                 size="sm"
                 variant="ghost"
@@ -235,25 +245,31 @@ export function RoomEditorRoomPanel({
                       run(() => updateTorch(doc, room.id, index, { [axis]: value }));
                     }}
                   />
-                  <select
-                    aria-label={t("governedBy")}
-                    className={`${INPUT} min-w-0 flex-1 font-mono`}
-                    value={light.objectId ?? ""}
-                    onChange={(event) =>
+                  <Select
+                    value={light.objectId ?? NO_OBJECT}
+                    onValueChange={(value) =>
                       run(() =>
                         updateTorch(doc, room.id, index, {
-                          objectId: event.target.value === "" ? null : event.target.value,
+                          objectId: value === NO_OBJECT ? null : value,
                         }),
                       )
                     }
                   >
-                    <option value="">{t("noObject")}</option>
-                    {objects.map((object) => (
-                      <option key={object.id} value={object.id}>
-                        {object.id}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger
+                      aria-label={t("governedBy")}
+                      className={`${INPUT} min-w-0 flex-1 justify-between font-mono`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_OBJECT}>{t("noObject")}</SelectItem>
+                      {objects.map((object) => (
+                        <SelectItem key={object.id} value={object.id}>
+                          {object.id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -289,7 +305,7 @@ function CellInputs({
 }) {
   return (
     <>
-      <input
+      <Input
         type="number"
         min={0}
         step={1}
@@ -298,7 +314,7 @@ function CellInputs({
         value={x}
         onChange={(event) => onChange("x", event.target.value)}
       />
-      <input
+      <Input
         type="number"
         min={0}
         step={1}

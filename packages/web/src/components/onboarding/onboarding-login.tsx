@@ -3,6 +3,8 @@
 import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type State = { kind: "idle" } | { kind: "sending" } | { kind: "sent" } | { kind: "error" };
 
@@ -54,17 +56,17 @@ export function OnboardingLogin({ callbackURL }: { callbackURL: string }) {
         {t("google")}
       </Button>
       <form onSubmit={sendMagicLink} className="space-y-2">
-        <label className="block text-sm" htmlFor="onboarding-login-email">
+        <Label htmlFor="onboarding-login-email" className="text-sm">
           {t("emailLabel")}
-        </label>
+        </Label>
         <div className="flex gap-2">
-          <input
+          <Input
             id="onboarding-login-email"
             type="email"
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-1.5 text-sm"
+            className="h-auto min-w-0 flex-1 rounded-lg px-3 py-1.5 text-sm"
           />
           <Button type="submit" variant="outline" disabled={state.kind === "sending"}>
             {t("emailSubmit")}

@@ -5,6 +5,18 @@ import { useLocale, useTranslations } from "next-intl";
 import { cn } from "cn";
 import { setLocalizedAudioUrl, type YLocalizedText } from "@escaperoom/editor";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   AUDIO_KINDS,
   libraryAudioRef,
@@ -12,6 +24,9 @@ import {
   type AudioLibraryTrack,
 } from "@escaperoom/shared/audio";
 import { languageLabel, useLocalizedText } from "./localized-text-field";
+
+/** Sentinel del `SelectItem` "sin audio" (Radix no admite `value=""`). */
+const NONE = "__none__";
 
 /** Subida propia tal y como la devuelve `GET /api/audio/uploads`. */
 export type AudioUploadSummary = {
@@ -52,46 +67,51 @@ export function AudioSourceSelect({
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <select
-        id={id}
-        value={value ?? ""}
-        onChange={(event) => onChange(event.target.value || undefined)}
-        className="h-8 rounded-md border border-border bg-background px-2 text-sm"
+      <Select
+        value={value ?? NONE}
+        onValueChange={(next) => onChange(next === NONE ? undefined : next)}
       >
-        <option value="">{t("none")}</option>
-        {AUDIO_KINDS.map((kind) => {
-          const tracks = library.filter((track) => track.kind === kind);
-          if (tracks.length === 0) return null;
-          return (
-            <optgroup key={kind} label={`${t("library")} · ${t(`kinds.${kind}`)}`}>
-              {tracks.map((track) => (
-                <option key={track.id} value={libraryAudioRef(track.id)}>
-                  {libraryTrackTitle(track, uiLocale)}
-                </option>
+        <SelectTrigger id={id} className="h-8 w-full text-sm">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NONE}>{t("none")}</SelectItem>
+          {AUDIO_KINDS.map((kind) => {
+            const tracks = library.filter((track) => track.kind === kind);
+            if (tracks.length === 0) return null;
+            return (
+              <SelectGroup key={kind}>
+                <SelectLabel>{`${t("library")} · ${t(`kinds.${kind}`)}`}</SelectLabel>
+                {tracks.map((track) => (
+                  <SelectItem key={track.id} value={libraryAudioRef(track.id)}>
+                    {libraryTrackTitle(track, uiLocale)}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            );
+          })}
+          {uploads.length > 0 && (
+            <SelectGroup>
+              <SelectLabel>{t("myUploads")}</SelectLabel>
+              {uploads.map((upload) => (
+                <SelectItem
+                  key={upload.ref}
+                  value={upload.ref}
+                  // Un audio rechazado no se puede usar en ningún sitio.
+                  disabled={upload.status === "rejected"}
+                  data-status={upload.status}
+                >
+                  {upload.status === "approved"
+                    ? upload.originalFilename
+                    : t(upload.status === "pending" ? "optionPending" : "optionRejected", {
+                        name: upload.originalFilename,
+                      })}
+                </SelectItem>
               ))}
-            </optgroup>
-          );
-        })}
-        {uploads.length > 0 && (
-          <optgroup label={t("myUploads")}>
-            {uploads.map((upload) => (
-              <option
-                key={upload.ref}
-                value={upload.ref}
-                // Un audio rechazado no se puede usar en ningún sitio.
-                disabled={upload.status === "rejected"}
-                data-status={upload.status}
-              >
-                {upload.status === "approved"
-                  ? upload.originalFilename
-                  : t(upload.status === "pending" ? "optionPending" : "optionRejected", {
-                      name: upload.originalFilename,
-                    })}
-              </option>
-            ))}
-          </optgroup>
-        )}
-      </select>
+            </SelectGroup>
+          )}
+        </SelectContent>
+      </Select>
       {selectedTrack && (
         <p className="text-xs text-muted-foreground" data-testid="audio-credits">
           {t("credits", {
@@ -166,24 +186,28 @@ export function AudioUploadButton({
     }
   }
 
+  const rightsId = `${id}-rights`;
+
   return (
     <div className={cn("flex flex-col gap-1.5", className)} data-testid="audio-upload">
-      <label className="flex items-start gap-2 text-xs">
-        <input
-          type="checkbox"
+      <div className="flex items-start gap-2 text-xs">
+        <Checkbox
+          id={rightsId}
           checked={rights}
-          onChange={(event) => setRights(event.target.checked)}
+          onCheckedChange={(checked) => setRights(checked === true)}
         />
-        <span>{t("rightsDeclared")}</span>
-      </label>
-      <label
+        <Label htmlFor={rightsId} className="text-xs font-normal">
+          {t("rightsDeclared")}
+        </Label>
+      </div>
+      <Label
         htmlFor={`${id}-file`}
         aria-disabled={busy || undefined}
-        className="inline-flex h-8 w-fit cursor-pointer items-center rounded-md border border-border px-3 text-sm hover:bg-muted"
+        className="h-8 w-fit cursor-pointer rounded-md border border-border px-3 text-sm font-normal hover:bg-muted"
       >
         {busy ? t("uploading") : t("upload")}
-      </label>
-      <input
+      </Label>
+      <Input
         id={`${id}-file`}
         type="file"
         accept="audio/mpeg,.mp3"

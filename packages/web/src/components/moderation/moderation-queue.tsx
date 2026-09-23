@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { readApiError } from "@/lib/event-panel";
 
 /** Fila de `GET /api/admin/reports` (ver `reportJson` en `server/rest/moderation`). */
@@ -137,14 +139,14 @@ export function ModerationQueueView() {
     format.dateTime(new Date(iso), { dateStyle: "short", timeStyle: "short" });
 
   const noteField = (id: string) => (
-    <label className="block text-xs text-white/60">
+    <Label className="flex-col items-start gap-1 text-xs font-normal text-white/60">
       {t("note")}
-      <input
-        className="mt-1 w-full rounded-md border border-white/15 bg-black/30 px-2 py-1 text-sm text-white"
+      <Input
+        className="h-auto w-full border-white/15 bg-black/30 px-2 py-1 text-sm text-white"
         value={notes[id] ?? ""}
         onChange={(e) => setNotes((n) => ({ ...n, [id]: e.target.value }))}
       />
-    </label>
+    </Label>
   );
 
   return (

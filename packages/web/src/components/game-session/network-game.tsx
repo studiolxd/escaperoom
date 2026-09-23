@@ -6,6 +6,8 @@ import { useLocale, useTranslations } from "next-intl";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { invitePath, sanitizePlayerName, type GameJoinTarget } from "@/lib/game-net";
 import { ConnectionBadge } from "./connection-badge";
 import { GameSessionShell } from "./game-session-shell";
@@ -106,16 +108,16 @@ export function NetworkGame({
           <p className="text-sm text-white/60">
             {joining ? t("join.joinSubtitle") : t("join.createSubtitle")}
           </p>
-          <label className="flex flex-col gap-1 text-sm">
+          <Label className="flex-col items-start gap-1 text-sm">
             <span className="text-white/80">{t("join.nameLabel")}</span>
-            <input
+            <Input
               value={draftName}
               onChange={(event) => setDraftName(event.target.value)}
               maxLength={32}
               placeholder={t("join.namePlaceholder")}
-              className="rounded-md border border-white/15 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30"
+              className="h-auto border-white/15 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-white/40 focus-visible:border-white/30 focus-visible:ring-1 focus-visible:ring-white/30"
             />
-          </label>
+          </Label>
           <Button type="submit" data-testid="game-enter">
             {joining ? t("join.join") : t("join.create")}
           </Button>

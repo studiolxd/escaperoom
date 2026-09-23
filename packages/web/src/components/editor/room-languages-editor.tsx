@@ -14,6 +14,8 @@ import {
   type RoomLanguages,
 } from "@escaperoom/editor";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { languageLabel } from "./localized-text-field";
 
 /** Suscripción React a `meta.languages`/`meta.defaultLanguage` del doc Yjs. */
@@ -143,15 +145,15 @@ export function RoomLanguagesEditor({ doc }: { doc: Y.Doc }) {
           setDraft("");
         }}
       >
-        <label className="sr-only" htmlFor="room-language-add">
+        <Label className="sr-only" htmlFor="room-language-add">
           {t("addLabel")}
-        </label>
-        <input
+        </Label>
+        <Input
           id="room-language-add"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           placeholder={t("addPlaceholder")}
-          className="h-7 w-24 rounded-md border border-border bg-background px-2 text-sm"
+          className="h-7 w-24 px-2 text-sm"
         />
         <Button size="sm" type="submit">
           {t("add")}

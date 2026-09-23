@@ -20,6 +20,9 @@ import {
 } from "@escaperoom/game-runtime";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
@@ -220,27 +223,31 @@ export function RoomEditorWorkspace({
                 </EditorToolHint>
               ))}
             </div>
-            <label
+            <Label
               className={cn(
-                "ml-2 flex items-center gap-2 text-xs text-white/70",
+                "ml-2 gap-2 text-xs font-normal text-white/70",
                 showRules && "hidden",
               )}
             >
               {t("layers.label")}
-              <select
-                className="rounded border border-white/15 bg-slate-900 px-2 py-1 text-sm text-white"
+              <Select
                 value={tools.layer}
-                onChange={(event) =>
-                  controller.setLayer(event.target.value as (typeof EDITOR_TILE_LAYERS)[number])
+                onValueChange={(value) =>
+                  controller.setLayer(value as (typeof EDITOR_TILE_LAYERS)[number])
                 }
               >
-                {EDITOR_TILE_LAYERS.map((layer) => (
-                  <option key={layer} value={layer}>
-                    {t(`layers.${layer}`)}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <SelectTrigger className="h-auto rounded border border-white/15 bg-slate-900 px-2 py-1 text-sm text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EDITOR_TILE_LAYERS.map((layer) => (
+                    <SelectItem key={layer} value={layer}>
+                      {t(`layers.${layer}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Label>
             <nav
               aria-label={t("rooms.label")}
               className={cn("ml-auto flex gap-1", showRules && "hidden")}
@@ -383,14 +390,14 @@ function SelectionPanel({
   return (
     <div className="space-y-3 text-sm" data-selected-object={object.id}>
       <form onSubmit={submit} className="space-y-1">
-        <label className="block text-xs text-white/60" htmlFor="room-editor-object-id">
+        <Label className="text-xs font-normal text-white/60" htmlFor="room-editor-object-id">
           {t("selection.id")}
-        </label>
+        </Label>
         <div className="flex gap-1">
-          <input
+          <Input
             id="room-editor-object-id"
             className={cn(
-              "min-w-0 flex-1 rounded border bg-slate-900 px-2 py-1 font-mono text-sm",
+              "h-auto min-w-0 flex-1 rounded border bg-slate-900 px-2 py-1 font-mono text-sm",
               error ? "border-red-500" : "border-white/15",
             )}
             value={draftId}

@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Link } from "@/i18n/navigation";
 import {
   CREATOR_CHAT_ENDPOINT,
@@ -143,10 +145,10 @@ export function CreatorChat({ locale, initialRoomId = null, initialState }: Crea
       </div>
 
       <form onSubmit={onSubmit} className="flex items-end gap-2">
-        <label className="sr-only" htmlFor="creator-chat-input">
+        <Label className="sr-only" htmlFor="creator-chat-input">
           {t("placeholder")}
-        </label>
-        <textarea
+        </Label>
+        <Textarea
           id="creator-chat-input"
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
@@ -155,7 +157,7 @@ export function CreatorChat({ locale, initialRoomId = null, initialState }: Crea
           rows={3}
           disabled={state.closed}
           placeholder={state.closed ? t("closed") : t("placeholder")}
-          className="min-h-0 flex-1 resize-none rounded-md border border-white/20 bg-slate-900 p-2 text-sm text-white placeholder:text-white/40"
+          className="min-h-0 flex-1 resize-none rounded-md border-white/20 bg-slate-900 p-2 text-sm text-white placeholder:text-white/40"
         />
         <Button
           type="submit"

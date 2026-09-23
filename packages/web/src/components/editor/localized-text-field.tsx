@@ -6,6 +6,7 @@ import { cn } from "cn";
 import { setLocalizedValue, yLocalizedTextToJSON, type YLocalizedText } from "@escaperoom/editor";
 import { missingTranslations, type LocalizedText } from "@escaperoom/shared/schemas";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 /** Nombre legible de un idioma en el idioma de la UI (`en` → "inglés"); si no, el código. */
 export function languageLabel(code: string, uiLocale: string): string {
@@ -123,7 +124,7 @@ export function LocalizedTextField({
           );
         })}
       </div>
-      <textarea
+      <Textarea
         id={`${id}-panel`}
         role="tabpanel"
         aria-labelledby={`${id}-tab-${active}`}
@@ -132,7 +133,7 @@ export function LocalizedTextField({
         value={value[active]?.text ?? ""}
         placeholder={t("placeholder", { language: languageLabel(active, uiLocale) })}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+        className="px-2 py-1.5 text-sm"
       />
       {missing.length > 0 && (
         <p role="status" className="text-xs text-amber-600 dark:text-amber-400">

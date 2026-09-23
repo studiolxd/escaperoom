@@ -5,6 +5,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { ConsentLogin } from "@/components/mcp-oauth/consent-login";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { auth } from "@/lib/auth";
 import { hasAuthorizationHeader } from "@/server/context";
 import { getMcpOAuthProvider } from "@/server/mcp-oauth";
@@ -90,7 +91,7 @@ export default async function McpConsentPage({ params, searchParams }: Props) {
           {t("redirectTo", { target: redirectTarget(request.redirectUri) })}
         </p>
         {[...query.entries()].map(([key, value]) => (
-          <input key={key} type="hidden" name={key} value={value} />
+          <Input key={key} type="hidden" name={key} value={value} />
         ))}
         <div className="flex gap-3">
           <Button type="submit" name="decision" value="approve">
