@@ -12,7 +12,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import "../globals.css";
+import "./globals.css";
 
 /**
  * Límite de error de la raíz (F-2): si `[locale]/layout.tsx` mismo falla
