@@ -30,6 +30,27 @@ export type PurchaseConfirmationDetails = {
   players: number | null;
 };
 
+/**
+ * Ventana del barrido periódico (E-11, revisión de PR #119):
+ * - `recentCutoff` (límite superior): no toca nada pagado/creado después de
+ *   esto — deja el margen de gracia al intento del propio webhook.
+ * - `abandonCutoff` (límite inferior): lo pagado/creado antes de esto lleva
+ *   sin confirmar más que la ventana máxima razonable; se considera
+ *   abandonado (se deja de reencolar y se reporta como error) en vez de
+ *   reintentarlo para siempre.
+ * - `limit`: tope de filas por bucket y pasada (una tabla con muchas filas
+ *   sin marcar — p. ej. tras un backfill mal hecho — no debe convertir un
+ *   barrido de 5 minutos en una consulta sin límite).
+ */
+export type PendingConfirmationsWindow = { recentCutoff: Date; abandonCutoff: Date; limit: number };
+
+export type PendingConfirmations = {
+  /** Dentro de la ventana: se reencolan. */
+  pending: PurchaseConfirmationEmailJob[];
+  /** Más viejos que `abandonCutoff` y aún sin confirmar: no se reencolan más, se alertan. */
+  abandoned: PurchaseConfirmationEmailJob[];
+};
+
 /** Puerto de persistencia (ADR-022): relee la compra/evento por su id en cada envío. */
 export interface PurchaseConfirmationStore {
   /** `null` si la compra/evento ya no existe o no está en un estado que justifique el envío. */
@@ -43,13 +64,15 @@ export interface PurchaseConfirmationStore {
    */
   markConfirmationSent(job: PurchaseConfirmationEmailJob): Promise<void>;
   /**
-   * Compras `succeeded`/eventos pagados sin `confirmationSentAt`, creados
-   * antes de `olderThan` (margen de gracia para no pisar el intento del
-   * propio webhook). Alimenta el barrido periódico (E-11): si `enqueue()`
-   * devolvió `null` porque Redis estaba caído justo al liquidar el pago, esto
-   * es lo que reencola el email sin depender de que nadie lo reintente a mano.
+   * Compras `succeeded`/eventos pagados sin `confirmationSentAt` dentro de la
+   * ventana (ver `PendingConfirmationsWindow`). Alimenta el barrido periódico
+   * (E-11): si `enqueue()` devolvió `null` porque Redis estaba caído justo al
+   * liquidar el pago, esto es lo que reencola el email sin depender de que
+   * nadie lo reintente a mano — acotado en el tiempo y en el número de filas
+   * para no reenviar de golpe todo el histórico (p. ej. al desplegar esta
+   * migración) ni convertir el barrido en una consulta sin límite.
    */
-  findPendingConfirmations(olderThan: Date): Promise<PurchaseConfirmationEmailJob[]>;
+  findPendingConfirmations(window: PendingConfirmationsWindow): Promise<PendingConfirmations>;
 }
 
 /** Cola de envíos (en web, el handle de `createPurchaseConfirmationEmailQueue`). */
@@ -135,7 +158,7 @@ export function createInMemoryPurchaseConfirmationStore(
       sent.add(`${job.kind}:${jobRef(job)}`);
     },
     async findPendingConfirmations() {
-      return [];
+      return { pending: [], abandoned: [] };
     },
   };
 }

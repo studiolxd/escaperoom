@@ -1,7 +1,12 @@
-import type { PrismaClient } from "../../generated/client";
+import { Prisma, type PrismaClient } from "../../generated/client";
 import type { PurchaseConfirmationEmailJob } from "../mail";
 import { quotePricing, type PricingSnapshot } from "./pricing-tiers";
-import type { PurchaseConfirmationDetails, PurchaseConfirmationStore } from "./purchase-confirmation";
+import type {
+  PendingConfirmations,
+  PendingConfirmationsWindow,
+  PurchaseConfirmationDetails,
+  PurchaseConfirmationStore,
+} from "./purchase-confirmation";
 
 /**
  * Implementación Prisma del puerto de confirmación de compra. Relee la
@@ -75,27 +80,55 @@ export function createPrismaPurchaseConfirmationStore(prisma: PrismaClient): Pur
       });
     },
 
-    async findPendingConfirmations(olderThan): Promise<PurchaseConfirmationEmailJob[]> {
-      const [purchases, events] = await Promise.all([
-        prisma.purchase.findMany({
-          where: {
-            purchaseType: { in: ["room", "room_license"] },
-            status: "succeeded",
-            confirmationSentAt: null,
-            createdAt: { lt: olderThan },
-          },
-          select: { id: true, purchaseType: true },
-        }),
-        prisma.event.findMany({
-          where: {
-            confirmationSentAt: null,
-            createdAt: { lt: olderThan },
-            config: { path: ["payment", "status"], equals: "paid" },
-          },
-          select: { id: true },
-        }),
-      ]);
-      return [
+    async findPendingConfirmations(window: PendingConfirmationsWindow): Promise<PendingConfirmations> {
+      const { recentCutoff, abandonCutoff, limit } = window;
+
+      // `purchase` no tiene un instante de "cuándo pasó a succeeded" (solo
+      // createdAt); es la mejor referencia disponible. `event` sí guarda
+      // config.payment.paidAt (fecha real de pago) desde `markPaid()`; se usa
+      // esa y solo se cae a createdAt si faltara en algún registro antiguo.
+      const purchasePending = await prisma.$queryRaw<{ id: string; purchaseType: string }[]>`
+        SELECT id, "purchaseType" FROM "purchase"
+        WHERE "purchaseType" IN ('room', 'room_license')
+          AND status = 'succeeded'
+          AND "confirmationSentAt" IS NULL
+          AND "createdAt" < ${recentCutoff}
+          AND "createdAt" >= ${abandonCutoff}
+        ORDER BY "createdAt" ASC
+        LIMIT ${limit}
+      `;
+      const purchaseAbandoned = await prisma.$queryRaw<{ id: string; purchaseType: string }[]>`
+        SELECT id, "purchaseType" FROM "purchase"
+        WHERE "purchaseType" IN ('room', 'room_license')
+          AND status = 'succeeded'
+          AND "confirmationSentAt" IS NULL
+          AND "createdAt" < ${abandonCutoff}
+        ORDER BY "createdAt" ASC
+        LIMIT ${limit}
+      `;
+      const eventPaidAtExpr = Prisma.sql`COALESCE((config -> 'payment' ->> 'paidAt')::timestamptz, "createdAt")`;
+      const eventPending = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "event"
+        WHERE (config -> 'payment' ->> 'status') = 'paid'
+          AND "confirmationSentAt" IS NULL
+          AND ${eventPaidAtExpr} < ${recentCutoff}
+          AND ${eventPaidAtExpr} >= ${abandonCutoff}
+        ORDER BY ${eventPaidAtExpr} ASC
+        LIMIT ${limit}
+      `;
+      const eventAbandoned = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "event"
+        WHERE (config -> 'payment' ->> 'status') = 'paid'
+          AND "confirmationSentAt" IS NULL
+          AND ${eventPaidAtExpr} < ${abandonCutoff}
+        ORDER BY ${eventPaidAtExpr} ASC
+        LIMIT ${limit}
+      `;
+
+      const toJobs = (
+        purchases: { id: string; purchaseType: string }[],
+        events: { id: string }[],
+      ): PurchaseConfirmationEmailJob[] => [
         ...purchases.map(
           (p): PurchaseConfirmationEmailJob => ({
             kind: p.purchaseType as "room" | "room_license",
@@ -104,6 +137,11 @@ export function createPrismaPurchaseConfirmationStore(prisma: PrismaClient): Pur
         ),
         ...events.map((e): PurchaseConfirmationEmailJob => ({ kind: "event_credits", eventId: e.id })),
       ];
+
+      return {
+        pending: toJobs(purchasePending, eventPending),
+        abandoned: toJobs(purchaseAbandoned, eventAbandoned),
+      };
     },
   };
 }

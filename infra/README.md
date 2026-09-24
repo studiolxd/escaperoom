@@ -78,6 +78,39 @@ solo son alcanzables desde el propio host, nunca desde fuera de la máquina.
 > (`docker compose -f infra/docker-compose.dev.yml restart pgbouncer`) porque
 > sus planes cacheados referencian los ENUMs viejos.
 
+## Migración: Redis con contraseña (E-13)
+
+Redis pasó a arrancar con `requirepass` (antes sin autenticación). Esto **no
+toca** `packages/shared/.env` (lo genera `pnpm dev:env`, no lleva `REDIS_URL`)
+pero sí puede dejar sin conexión los `.env` reales de cada paquete — **no
+versionados**, así que esta PR no los ha podido actualizar por ti:
+
+- `packages/web/.env`
+- `packages/kit/.env`
+- `packages/worker/.env`
+
+Si alguno existe y define `REDIS_URL`, actualízalo a mano (una vez, por
+worktree/máquina):
+
+```bash
+# En cada .env real que tengas con REDIS_URL=redis://localhost:56380 (sin contraseña):
+REDIS_URL=redis://:redis_dev_only@localhost:56380
+```
+
+Y recrea el contenedor de Redis para que tome el `requirepass` (comparte
+contenedor con otros worktrees; coordina con quien los use antes de
+reiniciarlo):
+
+```bash
+docker compose -f infra/docker-compose.dev.yml up -d --force-recreate redis
+```
+
+Sin este paso, cualquier proceso que lea ese `.env` (colas, rate limiting,
+`pnpm --filter @escaperoom/kit test` con `REDIS_URL` real) verá a Redis como
+caído (`NOAUTH Authentication required`) hasta que se actualice la URL — los
+fallbacks de la app (memoria, `QUEUES_ENABLED=false`) evitan que rompa nada,
+pero degradan en silencio.
+
 ## Notas
 
 - **coturn en macOS**: el networking de Docker limita TURN; sirve para probar el
