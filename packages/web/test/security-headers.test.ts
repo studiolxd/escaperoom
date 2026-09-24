@@ -52,6 +52,20 @@ describe("buildContentSecurityPolicy", () => {
     );
   });
 
+  it("connect-src abre el origen de ingesta del DSN de Sentry (F-12)", () => {
+    const withSentry = buildContentSecurityPolicy("abc123", {
+      NODE_ENV: "production",
+      NEXT_PUBLIC_SENTRY_DSN: "https://examplePublicKey@o0.ingest.sentry.io/0",
+    });
+    expect(directive(withSentry, "connect-src")).toContain("https://o0.ingest.sentry.io");
+  });
+
+  it("sin NEXT_PUBLIC_SENTRY_DSN no añade nada a connect-src", () => {
+    expect(directive(prod, "connect-src")).not.toEqual(
+      expect.arrayContaining([expect.stringContaining("sentry")]),
+    );
+  });
+
   it("bloquea objetos, marcos y base; fuerza HTTPS en producción", () => {
     expect(directive(prod, "object-src")).toEqual(["'none'"]);
     expect(directive(prod, "frame-ancestors")).toEqual(["'none'"]);

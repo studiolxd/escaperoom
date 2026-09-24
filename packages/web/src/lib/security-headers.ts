@@ -14,7 +14,8 @@ export type SecurityEnv = Partial<
     | "NEXT_PUBLIC_LIVEKIT_URL"
     | "LIVEKIT_URL"
     | "STORAGE_ENDPOINT"
-    | "CSP_EXTRA_CONNECT_SRC",
+    | "CSP_EXTRA_CONNECT_SRC"
+    | "NEXT_PUBLIC_SENTRY_DSN",
     string
   >
 >;
@@ -61,6 +62,17 @@ function httpOrigin(raw: string | undefined): string[] {
   return serviceOrigins(raw).filter((origin) => origin.startsWith("http"));
 }
 
+/** Origen de ingesta del DSN de Sentry (F-12): sin él, la CSP bloquea el envío. */
+function sentryOrigin(dsn: string | undefined): string[] {
+  if (!dsn) return [];
+  try {
+    const url = new URL(dsn);
+    return [`${url.protocol}//${url.host}`];
+  } catch {
+    return [];
+  }
+}
+
 function unique(values: string[]): string[] {
   return [...new Set(values)];
 }
@@ -92,6 +104,7 @@ export function buildContentSecurityPolicy(nonce: string, env: SecurityEnv = {})
     ...liveKitOrigins(env.NEXT_PUBLIC_LIVEKIT_URL || env.LIVEKIT_URL),
   ]);
   const extraConnect = (env.CSP_EXTRA_CONNECT_SRC ?? "").split(/\s+/u).filter(Boolean);
+  const sentry = sentryOrigin(env.NEXT_PUBLIC_SENTRY_DSN);
 
   const directives: Array<[string, string[]]> = [
     ["default-src", ["'self'"]],
@@ -106,7 +119,7 @@ export function buildContentSecurityPolicy(nonce: string, env: SecurityEnv = {})
     ["img-src", ["'self'", "data:", "blob:", ...storage]],
     ["font-src", ["'self'", "data:"]],
     ["media-src", ["'self'", "data:", "blob:", ...storage]],
-    ["connect-src", unique(["'self'", ...realtime, ...storage, ...extraConnect])],
+    ["connect-src", unique(["'self'", ...realtime, ...storage, ...sentry, ...extraConnect])],
     // Los workers de LiveKit (cifrado E2EE) se crean desde `blob:`.
     ["worker-src", ["'self'", "blob:"]],
     ["frame-src", ["'none'"]],

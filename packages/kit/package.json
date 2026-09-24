@@ -24,6 +24,7 @@
     "./health": "./src/health/index.ts",
     "./observability/instrumentation": "./src/observability/instrumentation.ts",
     "./observability/sentry-nextjs": "./src/observability/sentry-nextjs.ts",
+    "./observability/sentry-nextjs-client": "./src/observability/sentry-nextjs-client.ts",
     "./observability/sentry-node": "./src/observability/sentry-node.ts",
     "./observability/db-connectivity": "./src/observability/db-connectivity.ts"
   },
