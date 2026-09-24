@@ -1,8 +1,8 @@
-import { Queue, Worker } from "bullmq";
+import type { Queue, Worker } from "bullmq";
 import type Redis from "ioredis";
-import { asBullConnection, queuePrefix } from "@escaperoom/kit/queue";
 import { logger } from "@escaperoom/kit/logger";
 import type { ModerationService, SamplingResult } from "@escaperoom/shared/services";
+import { createScheduledWorker } from "./scheduled-worker";
 
 /**
  * Muestreo aleatorio de contenido publicado (ticket 6.1, specs/17 §1 y §9). Un
@@ -51,27 +51,15 @@ export type ModerationSamplingWorkerOptions = {
 export async function createModerationSamplingWorker(
   opts: ModerationSamplingWorkerOptions,
 ): Promise<{ worker: Worker; queue: Queue }> {
-  const connection = asBullConnection(opts.connection);
   const rate = opts.rate ?? readSamplingRate();
-  const queue = new Queue(MODERATION_SAMPLING_QUEUE_NAME, { connection, prefix: queuePrefix() });
-  await queue.upsertJobScheduler(
-    MODERATION_SAMPLING_SCHEDULER_ID,
-    { pattern: opts.cron ?? DEFAULT_MODERATION_SAMPLING_CRON, tz: "UTC" },
-    { name: "sample", opts: { removeOnComplete: 50, removeOnFail: 200 } },
-  );
-
-  const worker = new Worker(
-    MODERATION_SAMPLING_QUEUE_NAME,
-    async () => {
-      await processModerationSampling(opts.moderation, rate);
-    },
-    { connection, prefix: queuePrefix(), concurrency: 1 },
-  );
-  worker.on("failed", (job, err) => {
-    logger.warn({ err, jobId: job?.id }, "moderation sampling: la pasada falló");
+  return createScheduledWorker({
+    name: "moderation sampling",
+    schedulerId: MODERATION_SAMPLING_SCHEDULER_ID,
+    jobName: "sample",
+    repeat: { pattern: opts.cron ?? DEFAULT_MODERATION_SAMPLING_CRON },
+    connection: opts.connection,
+    queueName: MODERATION_SAMPLING_QUEUE_NAME,
+    jobOptions: { removeOnComplete: 50, removeOnFail: 200 },
+    process: () => processModerationSampling(opts.moderation, rate),
   });
-  worker.on("error", (err) => {
-    logger.warn({ err }, "moderation sampling: error de conexión");
-  });
-  return { worker, queue };
 }

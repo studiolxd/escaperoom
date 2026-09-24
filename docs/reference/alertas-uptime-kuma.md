@@ -19,9 +19,18 @@ Responde `200` con `{ ok: true, database, redis, timestamp }` cuando todo está 
 `ok: false` en cuanto Postgres no responde o Redis (si está configurado) está caído. Es
 intencionadamente ligero: nada de lógica de negocio, solo las dos sondas.
 
-No hay un endpoint equivalente para `colyseus-server` ni `worker` en este ticket — quedan fuera de
-alcance; `packages/kit/src/health/index.ts` ya trae `createWorkerHealthHandler` por si un ticket
-futuro quiere montarlo ahí.
+`packages/worker` (E-9, este ticket) expone además `GET /healthz` en `WORKER_HEALTH_PORT` (sin
+definir la variable, no arranca el servidor — útil en dev/test sin reservar puerto): monta
+`createWorkerHealthHandler` de `@escaperoom/kit/health` sobre `workersRunning()` (todos los `Worker`
+de BullMQ en marcha siguen `isRunning()`), `shuttingDown()` y una sonda de la conexión Redis del
+worker de analítica. Responde `200` cuando está sano y `503` mientras se apaga o si algún consumidor
+dejó de correr — así un orquestador (systemd, Docker, k8s) puede reiniciarlo si sigue vivo pero ya
+no procesa nada. Para darlo de alta como monitor en Uptime Kuma, mismo procedimiento que arriba con
+**URL**: `http://host.docker.internal:<WORKER_HEALTH_PORT>/healthz` en dev (el worker corre en el
+host) o la URL interna del proceso en producción; **Monitor Type**: `HTTP(s)` a secas basta (no hay
+cuerpo JSON con un campo fijo que comprobar por keyword, el código 200/503 ya lo dice todo).
+
+No hay un endpoint equivalente para `colyseus-server` en este ticket — queda fuera de alcance.
 
 ## Arrancar Uptime Kuma
 

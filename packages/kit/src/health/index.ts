@@ -1,7 +1,7 @@
 import type Redis from "ioredis";
 import { logger } from "../logger";
 import { getRedis } from "../redis";
-import { computeWorkerHealth, type WorkerHealth } from "../queue/health";
+import { computeWorkerHealth, redisResponds, type WorkerHealth } from "../queue/health";
 
 // ---------------------------------------------------------------------------
 // Health de procesos que no exponen la app Next (workers de colas, el servidor
@@ -77,14 +77,14 @@ export function createWorkerHealthHandler(
   };
 }
 
-/** Sonda de Redis reutilizable por otras rutas de salud. */
+/**
+ * Sonda de Redis reutilizable por otras rutas de salud (p. ej. `/api/health`,
+ * lo que sondea Uptime Kuma). Acotada con el mismo timeout que
+ * `computeWorkerHealth` (E-12): sin límite, un socket caído-pero-no-detectado
+ * podía colgar la ruta de salud hasta que ioredis viera el RST.
+ */
 export async function redisHealth(): Promise<"up" | "down" | "not_configured"> {
   const redis = getRedis();
   if (!redis) return "not_configured";
-  try {
-    await redis.ping();
-    return "up";
-  } catch {
-    return "down";
-  }
+  return (await redisResponds(redis, 2000)) ? "up" : "down";
 }

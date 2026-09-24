@@ -1,7 +1,7 @@
-import { Queue, Worker } from "bullmq";
+import type { Queue, Worker } from "bullmq";
 import type Redis from "ioredis";
-import { asBullConnection, queuePrefix } from "@escaperoom/kit/queue";
 import { logger } from "@escaperoom/kit/logger";
+import { createScheduledWorker } from "./scheduled-worker";
 import {
   maintainAnalyticsPartitions,
   type PartitionMaintenanceDb,
@@ -88,36 +88,19 @@ const JOB_OPTS = {
 export async function createAnalyticsPartitionsWorker(
   opts: AnalyticsPartitionsWorkerOptions,
 ): Promise<{ worker: Worker; queue: Queue }> {
-  const connection = asBullConnection(opts.connection);
-  const queueName = opts.queueName ?? ANALYTICS_PARTITIONS_QUEUE_NAME;
-  const queue = new Queue(queueName, { connection, prefix: queuePrefix() });
-  await queue.upsertJobScheduler(
-    ANALYTICS_PARTITIONS_SCHEDULER_ID,
-    { pattern: opts.pattern ?? DEFAULT_ANALYTICS_PARTITIONS_CRON, tz: "UTC" },
-    { name: "maintain", opts: JOB_OPTS },
-  );
-  if (opts.runOnStart ?? true) {
-    const day = (opts.now?.() ?? new Date()).toISOString().slice(0, 10);
-    // jobId por día: varios workers arrancando el mismo día encolan una sola pasada.
-    await queue.add("maintain", {}, { ...JOB_OPTS, jobId: `boot-${day}` });
-  }
-
-  const worker = new Worker(
-    queueName,
-    async () => {
-      await processAnalyticsPartitions(opts.db, { now: opts.now?.() });
-    },
-    // Una pasada a la vez en este proceso; entre procesos manda el advisory lock.
-    { connection, prefix: queuePrefix(), concurrency: 1 },
-  );
-  worker.on("failed", (job, err) => {
-    logger.warn(
-      { err, jobId: job?.id, attemptsMade: job?.attemptsMade },
-      "analytics partitions: la pasada falló",
-    );
+  const day = (opts.now?.() ?? new Date()).toISOString().slice(0, 10);
+  return createScheduledWorker({
+    name: "analytics partitions",
+    schedulerId: ANALYTICS_PARTITIONS_SCHEDULER_ID,
+    jobName: "maintain",
+    repeat: { pattern: opts.pattern ?? DEFAULT_ANALYTICS_PARTITIONS_CRON },
+    connection: opts.connection,
+    queueName: opts.queueName ?? ANALYTICS_PARTITIONS_QUEUE_NAME,
+    jobOptions: JOB_OPTS,
+    // jobId por día: varios workers arrancando el mismo día encolan una sola
+    // pasada (si el worker estuvo caído justo el día 1, no se queda sin
+    // partición del mes siguiente hasta la próxima repetición mensual).
+    runOnStartJobId: (opts.runOnStart ?? true) ? `boot-${day}` : undefined,
+    process: () => processAnalyticsPartitions(opts.db, { now: opts.now?.() }),
   });
-  worker.on("error", (err) => {
-    logger.warn({ err }, "analytics partitions: error de conexión");
-  });
-  return { worker, queue };
 }

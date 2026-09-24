@@ -1,12 +1,12 @@
-import { Queue, Worker } from "bullmq";
+import type { Queue, Worker } from "bullmq";
 import type Redis from "ioredis";
-import { asBullConnection, queuePrefix } from "@escaperoom/kit/queue";
 import { logger } from "@escaperoom/kit/logger";
 import {
   purgeAccessKeyEmails,
   type AccessKeyEmailPurgeStore,
   type EmailPurgeSweepResult,
 } from "@escaperoom/shared/services";
+import { createScheduledWorker } from "./scheduled-worker";
 
 /**
  * Job de purga (hash) del email de participante en `accessKey` pasado el
@@ -51,27 +51,13 @@ export type AccessKeyEmailPurgeWorkerOptions = {
 export async function createAccessKeyEmailPurgeWorker(
   opts: AccessKeyEmailPurgeWorkerOptions,
 ): Promise<{ worker: Worker; queue: Queue }> {
-  const connection = asBullConnection(opts.connection);
-  const queue = new Queue(ACCESS_KEY_EMAIL_PURGE_QUEUE_NAME, { connection, prefix: queuePrefix() });
-  await queue.upsertJobScheduler(
-    ACCESS_KEY_EMAIL_PURGE_SCHEDULER_ID,
-    { every: opts.everyMs ?? DEFAULT_ACCESS_KEY_EMAIL_PURGE_EVERY_MS },
-    { name: "sweep", opts: { removeOnComplete: 100, removeOnFail: 500 } },
-  );
-
-  const worker = new Worker(
-    ACCESS_KEY_EMAIL_PURGE_QUEUE_NAME,
-    async () => {
-      await processAccessKeyEmailPurge(opts.store, opts.secret);
-    },
-    // Una pasada a la vez: los UPDATE ya cubren todo el conjunto.
-    { connection, prefix: queuePrefix(), concurrency: 1 },
-  );
-  worker.on("failed", (job, err) => {
-    logger.warn({ err, jobId: job?.id }, "access-key email purge: la pasada falló");
+  return createScheduledWorker({
+    name: "access-key email purge",
+    schedulerId: ACCESS_KEY_EMAIL_PURGE_SCHEDULER_ID,
+    jobName: "sweep",
+    repeat: { every: opts.everyMs ?? DEFAULT_ACCESS_KEY_EMAIL_PURGE_EVERY_MS },
+    connection: opts.connection,
+    queueName: ACCESS_KEY_EMAIL_PURGE_QUEUE_NAME,
+    process: () => processAccessKeyEmailPurge(opts.store, opts.secret),
   });
-  worker.on("error", (err) => {
-    logger.warn({ err }, "access-key email purge: error de conexión");
-  });
-  return { worker, queue };
 }
