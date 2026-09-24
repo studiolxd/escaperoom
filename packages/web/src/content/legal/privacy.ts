@@ -137,14 +137,16 @@ export const privacyPolicy: LegalDocument = {
             "meses cuando la audiencia del evento es educativa (minimización reforzada por la posible " +
             "presencia de menores; véase la sección 10 del ",
           legalLink("Anexo de encargo de tratamiento", "/legal/dpa"),
-          "). En ambos casos, pasado el plazo el email se sustituye por un valor no reversible " +
-            "(hash).",
+          "). En ambos casos, pasado el plazo el email se seudonimiza (se sustituye por un hash " +
+            "calculado con una clave que solo conserva la plataforma; no es una anonimización total, " +
+            "ya que en teoría el email original podría recalcularse con esa clave).",
         ],
         "Grabación de sesión (cuando existe consentimiento): 90 días.",
         "Dirección IP y navegador (user agent) de tus sesiones abiertas y de cada aceptación de " +
-          "los Términos de Servicio y esta política: 90 días, pasados los cuales se sustituyen por " +
-          "un valor no reversible (hash). El registro de que hubo una sesión, o una aceptación con " +
-          "su fecha, se conserva 2 años; pasado ese plazo la fila se borra por completo.",
+          "los Términos de Servicio y esta política: 90 días, pasados los cuales se seudonimizan (se " +
+          "sustituyen por un hash calculado con una clave que solo conserva la plataforma; no es una " +
+          "anonimización total). El registro de que hubo una sesión, o una aceptación con su fecha, " +
+          "se conserva 2 años; pasado ese plazo la fila se borra por completo.",
         "Eventos de analítica detallados: 24 meses; los datos agregados y anonimizados se conservan " +
           "sin límite de tiempo.",
         "Reportes e historial de moderación: sin borrado automático, para poder detectar reincidencia.",

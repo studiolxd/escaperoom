@@ -47,9 +47,17 @@ export function readEmailPurgeSecret(
   return configured || (isDevFallbackAllowed(env) ? DEV_EMAIL_PURGE_SECRET : null);
 }
 
-/** Clave derivada: separación de dominio respecto a otros usos de `APP_SECRET`. */
-function hashingKey(secret: string): Buffer {
-  return createHmac("sha256", secret).update("escaperoom/access-key-email-purge/v1").digest();
+/** Dominio de derivación de clave: separación respecto a otros usos de `APP_SECRET` (ip-ua-purge, ...). */
+const EMAIL_HASH_DOMAIN = "escaperoom/access-key-email-purge/v1";
+
+/**
+ * Clave derivada por dominio. Es la MISMA función que usa
+ * `AccessKeyEmailPurgeStore` para pasar la clave (ya derivada, nunca
+ * `APP_SECRET` crudo) al `hmac()` de pgcrypto en SQL — así el hash calculado
+ * en Node y el calculado en Postgres son comparables byte a byte (E-3).
+ */
+export function deriveEmailPurgeHashKey(secret: string): Buffer {
+  return createHmac("sha256", secret).update(EMAIL_HASH_DOMAIN).digest();
 }
 
 /**
@@ -59,7 +67,7 @@ function hashingKey(secret: string): Buffer {
  * hubo un email distinto en cada fila sin poder reconstruirlo.
  */
 export function hashPurgedEmail(email: string, secret: string): string {
-  const digest = createHmac("sha256", hashingKey(secret))
+  const digest = createHmac("sha256", deriveEmailPurgeHashKey(secret))
     .update(email.toLowerCase())
     .digest("hex");
   return `${PURGED_EMAIL_PREFIX}${digest}`;

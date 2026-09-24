@@ -31,6 +31,10 @@ export const IP_UA_ROW_RETENTION_YEARS = 2;
 /** Prefijo del valor sustituido: permite detectar un valor ya purgado (idempotencia). */
 export const PURGED_VALUE_PREFIX = "purged:";
 
+/** Dominios de derivación de clave: uno por columna, para que no se correlacionen entre sí. */
+export const IP_HASH_DOMAIN = "ip";
+export const UA_HASH_DOMAIN = "ua";
+
 export function isPurgedValue(value: string): boolean {
   return value.startsWith(PURGED_VALUE_PREFIX);
 }
@@ -46,8 +50,15 @@ export function readIpUaPurgeSecret(
   return configured || (isDevFallbackAllowed(env) ? DEV_IP_UA_PURGE_SECRET : null);
 }
 
-/** Clave derivada: separación de dominio respecto a otros usos de `APP_SECRET`. */
-function hashingKey(secret: string, domain: string): Buffer {
+/**
+ * Clave derivada por dominio (HKDF-like vía HMAC): separa el hash de una IP
+ * del de un user-agent (y de los de otros usos de `APP_SECRET`, como
+ * `hashPurgedEmail`) para que no puedan correlacionarse entre sí. Es la MISMA
+ * función que usa `IpUaPurgeStore` para pasar la clave (ya derivada, nunca
+ * `APP_SECRET` crudo) al `hmac()` de pgcrypto en SQL — así el hash calculado
+ * en Node y el calculado en Postgres son comparables byte a byte (E-3).
+ */
+export function derivePurgeHashKey(secret: string, domain: string): Buffer {
   return createHmac("sha256", secret).update(domain).digest();
 }
 
@@ -58,7 +69,9 @@ function hashingKey(secret: string, domain: string): Buffer {
  * puedan correlacionarse entre sí.
  */
 export function hashPurgedValue(value: string, secret: string, domain: string): string {
-  const digest = createHmac("sha256", hashingKey(secret, domain)).update(value).digest("hex");
+  const digest = createHmac("sha256", derivePurgeHashKey(secret, domain))
+    .update(value)
+    .digest("hex");
   return `${PURGED_VALUE_PREFIX}${digest}`;
 }
 

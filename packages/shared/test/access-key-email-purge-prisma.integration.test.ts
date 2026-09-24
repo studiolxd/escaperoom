@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "../generated/client";
 import { createPrismaAccessKeyEmailPurgeStore } from "../src/services/access-key-email-purge-prisma-store";
-import { isPurgedEmail } from "../src/services/access-key-email-purge";
+import { hashPurgedEmail, isPurgedEmail } from "../src/services/access-key-email-purge";
 
 // ---------------------------------------------------------------------------
 // Integración GATEADA por entorno: en CI no hay Postgres, así que se salta. En
@@ -149,6 +149,11 @@ describe.skipIf(!process.env.DATABASE_URL)(
       expect(byCode[kOpen]).toBe("otro@centro.example");
       // El plazo general (12 meses) aún no ha pasado desde hoy.
       expect(byCode[kRecent]).toBe("reciente@centro.example");
+
+      // E-3: el hash de pgcrypto (clave derivada pasada desde Node) es
+      // exactamente comparable con el que calcula `hashPurgedEmail` en Node.
+      expect(byCode[kDone]).toBe(hashPurgedEmail("alumna@centro.example", SECRET));
+      expect(byCode[kEdu]).toBe(hashPurgedEmail("menor@centro.example", SECRET));
     });
 
     it("es idempotente: repetir la pasada no vuelve a hashear un email ya purgado", async () => {

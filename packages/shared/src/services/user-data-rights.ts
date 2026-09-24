@@ -38,27 +38,54 @@ import { isAnonymous, type Actor } from "./actor";
  * plazo fiscal exacto **pendiente de asesoría**): el borrado es una
  * **anonimización inmediata**, no un borrado físico de fila:
  *
- * - `user`: email y nombre se sustituyen por valores anónimos, `image` se
- *   limpia, `deletedAt` se marca. La fila sobrevive porque otras tablas
- *   (compras, reseñas, salas publicadas, historial de moderación) la
- *   referencian y esos registros **no se borran** — son necesarios para
- *   contabilidad/fiscalidad (`purchase`), para la licencia UGC ya concedida a
- *   quien compró una sala (specs/18 §2.2) o para detectar reincidencia de
- *   strikes (specs/18 §3.3, "`contentReport`: sin borrado automático").
+ * - `user`: email y nombre se sustituyen por valores anónimos (aleatorios, no
+ *   derivados del original — anonimización real, no seudonimización), `image`
+ *   se limpia (y su objeto en storage se borra si era una key propia, no una
+ *   URL externa de OAuth), `stripeCustomerId`/`stripeAccountId` se limpian,
+ *   `deletedAt` se marca. La fila sobrevive porque otras tablas (compras,
+ *   reseñas, salas publicadas, historial de moderación) la referencian y esos
+ *   registros **no se borran** — son necesarios para contabilidad/fiscalidad
+ *   (`purchase`), para la licencia UGC ya concedida a quien compró una sala
+ *   (specs/18 §2.2) o para detectar reincidencia de strikes (specs/18 §3.3,
+ *   "`contentReport`: sin borrado automático").
  * - Sesiones (`session`) y credenciales (`account`, OAuth/password) se borran:
  *   cierra la sesión en todos los dispositivos y revoca el acceso.
+ * - `verification`: se borran los magic links vigentes emitidos a su email y
+ *   los grants OAuth del MCP que lo referencien (`mcp-oauth:*`, ver
+ *   `mcp-oauth-store.ts`); además se deja una marca `revoked-grant` por cada
+ *   `grantId` encontrado (mismo mecanismo que usa el provider al revocar), por
+ *   si algún token de la familia sigue vivo en otro sitio.
+ * - `invitation`: se borran las invitaciones pendientes dirigidas a su email
+ *   (dejarlas vivas filtraría el email ya "olvidado" a quien las liste).
+ * - `member`: se borra su pertenencia a organizaciones, **salvo** que sea el
+ *   único `owner` de una organización con más miembros — en ese caso el
+ *   borrado se rechaza (`SOLE_ORG_OWNER`) y hay que transferir la propiedad
+ *   antes de cerrar la cuenta, para no dejarla huérfana.
+ * - `termsAcceptance.ipAddress`/`userAgent`: se hashean de inmediato (mismo
+ *   mecanismo que el job periódico de `ip-ua-purge.ts`, E-3) en vez de esperar
+ *   los 90 días habituales — la cuenta ya se cierra, no hace falta el plazo.
+ * - `accessKey.email`: si el usuario fue participante (su email coincide con
+ *   el de alguna clave de acceso), se hashea igual que hace el job de purga de
+ *   `access-key-email-purge.ts` (E-3), sin esperar al plazo de retención.
+ * - `audioAsset.originalFilename` de los audios que subió: se sustituye por un
+ *   marcador; el fichero en storage no se borra (puede seguir en uso en una
+ *   sala publicada).
  * - No borra las salas publicadas ni las reseñas: quedan atribuidas a la
  *   cuenta anonimizada (mismo principio que specs/17 aplica a la moderación:
  *   el contenido ya distribuido no desaparece solo porque el autor cierre la
  *   cuenta, salvo que un reporte crítico lo retire).
+ * - **Se conserva** (facturación/fiscalidad, specs/18 §3.3): `purchase` con
+ *   sus importes, `event`, `review`, `moderationStrike`/`moderationAppeal`/
+ *   `contentReport` — nada de esto se toca aquí.
  *
  * `[PENDIENTE ASESORÍA LEGAL: confirmar si 12–24 meses de retención de datos
  * de facturación tras el cierre de cuenta es el plazo correcto para España
  * (specs/18 §3.3 lo deja como "a confirmar"); este servicio no aplica ningún
- * borrado por plazo, solo anonimiza el perfil].`
+ * borrado por plazo a `purchase`, solo anonimiza el perfil y lo que se detalla
+ * arriba].`
  */
 
-export type UserDataRightsErrorCode = "UNAUTHORIZED" | "NOT_FOUND";
+export type UserDataRightsErrorCode = "UNAUTHORIZED" | "NOT_FOUND" | "SOLE_ORG_OWNER";
 
 export class UserDataRightsError extends Error {
   readonly code: UserDataRightsErrorCode;

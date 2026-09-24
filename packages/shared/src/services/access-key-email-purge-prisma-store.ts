@@ -2,6 +2,7 @@ import type { PrismaClient } from "../../generated/client";
 import {
   EMAIL_RETENTION_MONTHS,
   PURGED_EMAIL_PREFIX,
+  deriveEmailPurgeHashKey,
   purgeCutoff,
   type AccessKeyEmailPurgeStore,
   type EmailPurgeSweepResult,
@@ -21,6 +22,9 @@ async function purgeByAudience(
   cutoff: Date,
   secret: string,
 ): Promise<number> {
+  // Clave derivada en Node (nunca `APP_SECRET` crudo en SQL); reproduce
+  // exactamente `hashPurgedEmail` de `access-key-email-purge.ts` (E-3).
+  const key = deriveEmailPurgeHashKey(secret);
   return prisma.$executeRaw`
     WITH ended_events AS (
       SELECT s."eventId", MAX(s."endedAt") AS "eventEndedAt"
@@ -29,7 +33,7 @@ async function purgeByAudience(
       HAVING bool_and(s.status IN ('ended', 'aborted'))
     )
     UPDATE "accessKey" k
-    SET email = ${PURGED_EMAIL_PREFIX} || encode(hmac(lower(k.email)::text, ${secret}, 'sha256'), 'hex')
+    SET email = ${PURGED_EMAIL_PREFIX} || encode(hmac(convert_to(lower(k.email)::text, 'UTF8'), ${key}, 'sha256'), 'hex')
     FROM ended_events ee
     JOIN "event" e ON e.id = ee."eventId"
     WHERE k."eventId" = ee."eventId"
