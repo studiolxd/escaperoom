@@ -45,6 +45,26 @@ export function PlaytestButton({ roomId, disabled }: PlaytestButtonProps) {
   const create = async () => {
     // La pestaña se abre en el gesto del usuario (si no, el navegador la bloquea).
     const tab = window.open("about:blank", "_blank");
+    if (tab) {
+      // F-42: sin esto, la pestaña nueva conserva `window.opener` hacia esta
+      // (puede redirigir la pestaña de origen, "reverse tabnabbing") y se ve
+      // en blanco mientras se crea la partida.
+      tab.opener = null;
+      tab.document.title = t("editor.creating");
+      const p = tab.document.createElement("p");
+      p.textContent = t("editor.creating");
+      Object.assign(p.style, {
+        fontFamily: "system-ui, sans-serif",
+        color: "#e2e8f0",
+        background: "#020617",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "100dvh",
+        margin: "0",
+      });
+      tab.document.body.replaceChildren(p);
+    }
     setState({ kind: "creating" });
     try {
       const res = await fetch(`/api/rooms/${encodeURIComponent(roomId)}/playtest`, {

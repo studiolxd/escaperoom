@@ -4,8 +4,14 @@ import type { MetadataRoute } from "next";
 import { CATALOG_PATH, languageAlternates, localizedUrl, roomPath } from "@/lib/catalog-seo";
 import { getCatalogService } from "@/server/services";
 
-// Se genera por petición: el catálogo vive en Postgres y no existe en el build.
-export const dynamic = "force-dynamic";
+/**
+ * El catálogo vive en Postgres y no existe en el build, pero no hace falta
+ * paginar hasta 5 000 salas × 6 locales en cada petición del rastreador
+ * (F-39): se regenera como mucho cada hora (`revalidate`), no en cada
+ * petición (`force-dynamic`, incompatibles entre sí — el segundo desactiva
+ * el caché por completo).
+ */
+export const revalidate = 3600;
 
 /** Tope de salas en el sitemap (el protocolo admite 50 000 URLs por fichero). */
 const MAX_ROOMS = 5000;

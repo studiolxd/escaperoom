@@ -128,9 +128,18 @@ export function RoomDetailView({
         data-slot="room-cover"
       >
         {coverImageUrl ? (
+          // F-37: portada = candidata a LCP de la página. `fetchPriority`
+          // adelanta su descubrimiento; `width`/`height` (en la proporción
+          // del contenedor, 21:9) reservan el hueco y evitan el salto de
+          // layout aunque el objeto final lo decida `object-cover`. La URL
+          // firmada es de un bucket externo (`storage.getSignedReadUrl`),
+          // sin `next/image` porque no está en `images.remotePatterns`.
           <img
             src={coverImageUrl}
-            alt=""
+            alt={room.title}
+            width={1260}
+            height={540}
+            fetchPriority="high"
             className="absolute inset-0 h-full w-full object-cover"
           />
         ) : (
