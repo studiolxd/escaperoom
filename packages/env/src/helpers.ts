@@ -19,6 +19,25 @@ export const bool = (defaultValue: boolean) =>
 export const IS_SERVER = typeof window === "undefined";
 
 /**
+ * Whether a secreto/dato de desarrollo comiteado en el repo (`DEV_*_SECRET`,
+ * fixtures sin persistencia…) puede usarse (E-4/A-19/C-5/F-41). El criterio
+ * anterior en cada punto de lectura era `NODE_ENV !== "production"`: un
+ * despliegue real que simplemente **no fija** `NODE_ENV` (o lo fija a algo
+ * distinto de `"production"`, p. ej. `"staging"`) caía igual al secreto
+ * público del repo, en silencio. Aquí es lista blanca, no lista negra: solo
+ * `development` y `test` lo permiten (o `ALLOW_DEV_SECRETS=1`, para un
+ * entorno con `NODE_ENV=production` deliberado y de prueba — p. ej. la suite
+ * E2E, que arranca `next start`/`pnpm start` así a propósito para probar el
+ * arranque real, pero sin infraestructura externa real: `packages/e2e/support/env.ts`).
+ * `ALLOW_DEV_SECRETS` exige un valor explícito, nunca la ausencia de una
+ * variable, así que no reintroduce el descuido que corrige esta función.
+ */
+export function isDevFallbackAllowed(env: Record<string, string | undefined> = process.env): boolean {
+  if (env.NODE_ENV === "development" || env.NODE_ENV === "test") return true;
+  return env.ALLOW_DEV_SECRETS === "1" || env.ALLOW_DEV_SECRETS === "true";
+}
+
+/**
  * Treat an empty-string env value as "unset" so a schema `.default()` applies.
  * A verbatim `cp .env.example .env.local` assigns `KEY=` (empty) and Zod's
  * `.default()` only fires on `undefined`, never on `""`.
@@ -29,6 +48,30 @@ export function emptyStringAsUndefined<T extends Record<string, unknown>>(source
     out[key] = value === "" ? undefined : value;
   }
   return out as T;
+}
+
+/**
+ * Falla fuerte si, en producción, falta alguna de las variables listadas
+ * (E-4/A-19/C-5/F-41): un despliegue real sin ellas debe negarse a arrancar
+ * en vez de degradar en silencio (firmar tokens con secretos ausentes,
+ * "enviar" emails a la nada…). Fuera de producción no exige nada: cada
+ * `read*Config`/`create*FromEnv` de `@escaperoom/shared` ya tiene su propio
+ * secreto/comportamiento de desarrollo (`isDevFallbackAllowed`).
+ */
+export function requireInProduction(
+  env: Record<string, unknown> & { NODE_ENV?: string },
+  fields: readonly string[],
+): void {
+  if (env.NODE_ENV !== "production") return;
+  const missing = fields.filter((field) => {
+    const value = env[field];
+    return value === undefined || value === null || value === "";
+  });
+  if (missing.length > 0) {
+    throw new Error(
+      `Faltan variables de entorno obligatorias en producción: ${missing.join(", ")}`,
+    );
+  }
 }
 
 type AnyZodObject = z.ZodObject<z.ZodRawShape>;

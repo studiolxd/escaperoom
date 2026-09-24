@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  DEV_IP_UA_PURGE_SECRET,
   IP_UA_HASH_RETENTION_DAYS,
   IP_UA_ROW_RETENTION_YEARS,
   hashCutoff,
@@ -7,12 +8,24 @@ import {
   isIpUaHashDue,
   isPurgedValue,
   isRowDeletionDue,
+  readIpUaPurgeSecret,
   rowDeletionCutoff,
   sweepIpUaRetention,
   type IpUaHashCandidate,
 } from "../src/services/ip-ua-purge";
 
 const SECRET = "test-secret";
+
+describe("readIpUaPurgeSecret", () => {
+  it("E-4: el secreto de desarrollo solo se usa en development/test, nunca por defecto", () => {
+    expect(readIpUaPurgeSecret({ APP_SECRET: SECRET })).toBe(SECRET);
+    expect(readIpUaPurgeSecret({ NODE_ENV: "development" })).toBe(DEV_IP_UA_PURGE_SECRET);
+    expect(readIpUaPurgeSecret({ NODE_ENV: "test" })).toBe(DEV_IP_UA_PURGE_SECRET);
+    expect(readIpUaPurgeSecret({ NODE_ENV: "production" })).toBeNull();
+    expect(readIpUaPurgeSecret({})).toBeNull();
+    expect(readIpUaPurgeSecret({ NODE_ENV: "staging" })).toBeNull();
+  });
+});
 
 describe("hashCutoff / rowDeletionCutoff", () => {
   it("resta los días/años dados en UTC", () => {

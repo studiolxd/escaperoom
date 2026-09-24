@@ -6,9 +6,10 @@ import { REPO_ROOT, RUN_DIR, serverEnv, WEB_PORT } from "../support/env";
 
 /**
  * Arranca uno de los servidores de la suite con el entorno E2E y copia su
- * salida a `.run/<nombre>.log` (además de a la consola de Playwright). El log
- * de la web es el «buzón» del enlace mágico: Better Auth lo imprime
- * (`[magic-link] email → url`) en vez de enviarlo por correo.
+ * salida a `.run/<nombre>.log` (además de a la consola de Playwright), para
+ * depurar un fallo. El enlace mágico (A-1) ya se envía por el transporte real
+ * en vez de imprimirse: `support/auth.ts` lo lee de la tabla `verification`
+ * de Postgres, no de este log.
  *
  *   tsx scripts/serve.ts web        # next build (si hace falta) + next start
  *   tsx scripts/serve.ts colyseus   # colyseus-server (GameRoom, event, playtest)
