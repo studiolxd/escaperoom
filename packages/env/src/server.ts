@@ -98,6 +98,10 @@ export const tokensSchema = z.object({
   // desarrollo hay uno fijo.
   PUBLISH_CONFIRM_SECRET: z.string().optional(),
   PUBLISH_CONFIRM_TTL_SECONDS: z.coerce.number().int().positive().optional(),
+  // Cabecera `x-analytics-server-secret` de `POST /api/analytics/collect`
+  // (A-2): sin ella, el endpoint solo acepta los tipos emitibles desde el
+  // navegador (`onboarding_step`). Obligatorio en producción.
+  ANALYTICS_SERVER_SECRET: z.string().min(16).optional(),
 });
 
 export const creatorChatSchema = z.object({

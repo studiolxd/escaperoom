@@ -87,6 +87,21 @@ export const RATE_LIMIT_POLICIES = {
     ip: { limit: 20, windowSeconds: 3600 },
     user: { limit: 10, windowSeconds: 3600 },
   },
+  /**
+   * `POST /api/analytics/collect` — público, sin sesión obligatoria (A-2).
+   * Cuota generosa (fire-and-forget desde el wizard de onboarding) pero
+   * acotada: sin ella, un lote de 100 eventos por petición podía repetirse
+   * sin límite y rellenar Redis/`analyticsEvent`.
+   */
+  "analytics-collect": {
+    ip: { limit: 60, windowSeconds: 60 },
+    user: { limit: 60, windowSeconds: 60 },
+  },
+  /** `POST /api/onboarding/rooms` — crea el fixture de la sala de ejemplo (A-9). */
+  "onboarding-room-create": {
+    ip: { limit: 5, windowSeconds: 3600 },
+    user: { limit: 5, windowSeconds: 3600 },
+  },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitPolicyName = keyof typeof RATE_LIMIT_POLICIES;
