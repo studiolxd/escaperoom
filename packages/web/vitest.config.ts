@@ -13,7 +13,12 @@ export default mergeConfig(
     oxc: { jsx: { runtime: "automatic" } },
     // El middleware de next-intl importa `next/server` sin extensión, que Node
     // no resuelve en ESM; procesado por Vite sí (lo usa `src/proxy.ts`, 6.3).
-    test: { server: { deps: { inline: ["next-intl"] } } },
+    // Los tests de componentes (`.test.tsx`) declaran su propio entorno jsdom
+    // con `// @vitest-environment jsdom`; el resto sigue en "node" (default).
+    test: {
+      include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
+      server: { deps: { inline: ["next-intl"] } },
+    },
     resolve: {
       alias: [
         { find: /^@\//, replacement: `${fileURLToPath(new URL("./src", import.meta.url))}/` },
