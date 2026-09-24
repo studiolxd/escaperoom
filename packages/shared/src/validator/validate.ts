@@ -1,4 +1,4 @@
-import type { RoomPackage } from "../schemas";
+import { MAX_VALIDATE_PLAYER_COUNTS, type RoomPackage } from "../schemas";
 import { clueRequirements, computeCodeClues } from "./clues";
 import {
   analyzeDoubleUse,
@@ -164,14 +164,23 @@ export function validateRoomPackage(
   };
 }
 
+/**
+ * Clamp defensivo (auditoría D-1): `validateRoomPackage` recibe un
+ * `RoomPackage` ya parseado por su schema (que topa `players.max` en
+ * `MAX_PLAYERS_PER_ROOM_CEILING`), pero corre igualmente sobre datos que no
+ * siempre pasaron por ahí (fixtures de test, llamadas directas), así que el
+ * bucle de `min` a `max` se acota aquí también.
+ */
 function resolvePlayerCounts(pkg: RoomPackage, requested: number[] | undefined): number[] {
   if (requested && requested.length > 0) {
-    return [...new Set(requested.filter((n) => Number.isInteger(n) && n >= 1))].sort(
-      (a, b) => a - b,
-    );
+    return [
+      ...new Set(
+        requested.filter((n) => Number.isInteger(n) && n >= 1 && n <= MAX_VALIDATE_PLAYER_COUNTS),
+      ),
+    ].sort((a, b) => a - b);
   }
   const min = Math.max(1, pkg.meta.players.min);
-  const max = Math.max(min, pkg.meta.players.max);
+  const max = Math.min(MAX_VALIDATE_PLAYER_COUNTS, Math.max(min, pkg.meta.players.max));
   const counts: number[] = [];
   for (let n = min; n <= max; n++) counts.push(n);
   return counts;

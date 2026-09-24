@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { LocalizedTextSchema } from "./common";
+import {
+  MAX_CONTENT_ARRAY_ITEMS,
+  MAX_CONTENT_STRING_LENGTH,
+  MAX_PLAYERS_PER_ROOM_CEILING,
+} from "./limits";
 import { PuzzleDefinitionSchema } from "./puzzle";
 import { RuleConditionSchema, RuleSchema } from "./rules";
 import { ItemDefSchema, MapSchema, WorldObjectSchema } from "./world";
@@ -15,19 +20,40 @@ export const PACKAGE_FORMAT = "roompackage/v1" as const;
 /** Dificultad declarada de la sala (specs/08 §2). */
 export const DifficultySchema = z.union([z.literal(1), z.literal(2), z.literal(3)]);
 
+/**
+ * `players.max` topado a `MAX_PLAYERS_PER_ROOM_CEILING` (auditoría D-1): sin
+ * tope, el validador itera de `min` a `max` evaluando la solvabilidad para
+ * cada tamaño de grupo (`resolvePlayerCounts` en `validator/validate.ts`), así
+ * que un `players.max` astronómico bloquea el event loop.
+ *
+ * `min ≤ max` NO se exige aquí con `.refine`: `RoomPackageMetaSchema` y
+ * `RoomPackageSchema` tienen que seguir siendo `z.object` lisos porque
+ * `create_room` (MCP) usa `.pick`/`.shape` sobre el primero y los tests usan
+ * `.shape.meta.shape.packageFormat` sobre el segundo — un `.refine`/
+ * `.superRefine` los convertiría en `ZodEffects` y los rompería. La tool
+ * `create_room` ya valida `min ≤ max` a mano con un mensaje legible (era el
+ * único punto de entrada, D-10); el tope de `max` de aquí basta para que
+ * `resolvePlayerCounts` (que ya hacía `Math.max(min, max)`) no pueda iterar
+ * más allá de `MAX_PLAYERS_PER_ROOM_CEILING` aunque `min > max`.
+ */
+const PlayersRangeSchema = z.object({
+  min: z.number().int().min(1),
+  max: z.number().int().min(1).max(MAX_PLAYERS_PER_ROOM_CEILING),
+});
+
 export const RoomPackageMetaSchema = z.object({
   id: z.string(),
-  title: z.string().min(1),
+  title: z.string().min(1).max(MAX_CONTENT_STRING_LENGTH),
   authorId: z.string(),
   version: z.string(),
   packageFormat: z.string().min(1),
-  theme: z.string(),
-  description: z.string(),
-  languages: z.array(z.string()).min(1),
+  theme: z.string().max(MAX_CONTENT_STRING_LENGTH),
+  description: z.string().max(MAX_CONTENT_STRING_LENGTH),
+  languages: z.array(z.string()).min(1).max(MAX_CONTENT_ARRAY_ITEMS),
   defaultLanguage: z.string(),
   estimatedMinutes: z.number(),
   difficulty: DifficultySchema,
-  players: z.object({ min: z.number().int(), max: z.number().int() }),
+  players: PlayersRangeSchema,
   assetsManifest: z.string(),
 });
 
@@ -35,7 +61,7 @@ export const RoomPackageMetaSchema = z.object({
 export const DialogDefSchema = z.object({
   id: z.string(),
   text: LocalizedTextSchema,
-  conditions: z.array(RuleConditionSchema).optional(),
+  conditions: z.array(RuleConditionSchema).max(MAX_CONTENT_ARRAY_ITEMS).optional(),
 });
 
 /** Pista escalonada con coste — specs/08 §2.3. */
@@ -54,12 +80,12 @@ export const HintDefSchema = z.object({
 export const RoomPackageSchema = z.object({
   meta: RoomPackageMetaSchema,
   map: MapSchema,
-  objects: z.array(WorldObjectSchema),
-  items: z.array(ItemDefSchema),
-  puzzles: z.array(PuzzleDefinitionSchema),
-  rules: z.array(RuleSchema),
-  dialogs: z.array(DialogDefSchema),
-  hints: z.array(HintDefSchema),
+  objects: z.array(WorldObjectSchema).max(MAX_CONTENT_ARRAY_ITEMS),
+  items: z.array(ItemDefSchema).max(MAX_CONTENT_ARRAY_ITEMS),
+  puzzles: z.array(PuzzleDefinitionSchema).max(MAX_CONTENT_ARRAY_ITEMS),
+  rules: z.array(RuleSchema).max(MAX_CONTENT_ARRAY_ITEMS),
+  dialogs: z.array(DialogDefSchema).max(MAX_CONTENT_ARRAY_ITEMS),
+  hints: z.array(HintDefSchema).max(MAX_CONTENT_ARRAY_ITEMS),
 });
 
 export type Difficulty = z.infer<typeof DifficultySchema>;

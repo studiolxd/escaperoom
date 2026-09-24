@@ -122,6 +122,25 @@ describe("comandos de estructura y contenido (4.2)", () => {
     ).toBe("OUT_OF_BOUNDS");
   });
 
+  // Regresión D-1 (auditoría 2026-09-24): un `define_subrooms`/`set_map` con
+  // una rejilla descomunal asignaba un `Y.Map` de tiles y arrays proporcionales
+  // a `cols*rows` antes de que ningún esquema Zod llegara a rechazarlo
+  // (`mutateDraft` solo valida en dry-run DESPUÉS de ejecutar la operación).
+  it("setSubRoomGrid y defineSubRooms rechazan rejillas descomunales sin llegar a asignarlas", () => {
+    const doc = emptyRoom();
+    defineSubRooms(doc, [{ id: "salon", name: "Salón", grid: { cols: 2, rows: 2 } }]);
+    expect(codeOf(() => setSubRoomGrid(doc, "salon", { cols: 3000, rows: 3000 }))).toBe(
+      "OUT_OF_BOUNDS",
+    );
+    expect(
+      codeOf(() =>
+        defineSubRooms(doc, [{ id: "otra", name: "Otra", grid: { cols: 100_000, rows: 100_000 } }]),
+      ),
+    ).toBe("OUT_OF_BOUNDS");
+    // La existente conserva su rejilla original: la operación falló entera.
+    expect(roomDocToPackage(doc).map.rooms[0]?.grid).toEqual({ cols: 2, rows: 2 });
+  });
+
   it("da de alta contenido válido por esquema y comprueba referencias e idiomas", () => {
     const doc = emptyRoom();
     defineSubRooms(doc, [{ id: "salon", name: "Salón", grid: { cols: 4, rows: 4 } }]);

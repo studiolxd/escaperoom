@@ -110,6 +110,20 @@ export function createOracle(index: RoomIndex, options: OracleOptions = {}): Puz
     }
     return value;
   };
+  // `split_clue`: memoizado por `${puzzle.id}|${playerCount}` (auditoría D-9)
+  // — `isSplitClueSolvableForGroup` es exponencial en el nº de viewpoints y
+  // este oráculo se llama por cada candidato de cada nodo del BFS.
+  const splitClueCache = new Map<string, boolean>();
+  const splitClueSolvableForGroup = (puzzle: PuzzleDefinition, playerCount: number): boolean => {
+    if (puzzle.type !== "split_clue") return true;
+    const key = `${puzzle.id}|${playerCount}`;
+    let value = splitClueCache.get(key);
+    if (value === undefined) {
+      value = isSplitClueSolvableForGroup(puzzle, playerCount);
+      splitClueCache.set(key, value);
+    }
+    return value;
+  };
   // Tuberías: el resultado solo depende de qué ítems de compuerta hay a mano.
   const pipesCache = new Map<string, boolean>();
   const pipesSolvable = (puzzle: PuzzleDefinition, items: readonly string[]): boolean => {
@@ -187,7 +201,7 @@ export function createOracle(index: RoomIndex, options: OracleOptions = {}): Puz
         break;
       }
       case "split_clue": {
-        if (!isSplitClueSolvableForGroup(puzzle, state.playerCount)) {
+        if (!splitClueSolvableForGroup(puzzle, state.playerCount)) {
           reasons.push(
             puzzle.soloBridgeItemId === undefined && state.playerCount <= 1
               ? "en solitario necesita un objeto-puente y no declara soloBridgeItemId"

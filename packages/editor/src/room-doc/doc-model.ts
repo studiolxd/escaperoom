@@ -103,11 +103,19 @@ export function buildFlatRecord(value: Record<string, unknown>, order: number): 
   return record;
 }
 
+/**
+ * Claves que nunca se copian de un `Y.Map` a un objeto plano (auditoría D-27):
+ * un `Y.Map` sincronizado puede traer cualquier clave de otro colaborador (o
+ * de un update Yjs manipulado), y `out[key] = …` con `key === "__proto__"`
+ * contamina el prototipo del objeto que se está construyendo.
+ */
+const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 /** Inversa de `buildFlatRecord` (sin `order`). */
 export function readFlatRecord(record: RecordMap): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const key of record.keys()) {
-    if (key === ORDER_KEY) continue;
+    if (key === ORDER_KEY || DANGEROUS_KEYS.has(key)) continue;
     out[key] = readPlain(record, key);
   }
   return out;

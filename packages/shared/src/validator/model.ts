@@ -171,11 +171,23 @@ export function recipeLabel(recipe: Recipe): string {
   return `${recipe.inputs.join("+")}→${recipe.output}`;
 }
 
-/** Aplana acciones `delay` (el modelo ignora el tiempo). */
+/**
+ * Aplana acciones `delay` (el modelo ignora el tiempo). Iterativo con una pila
+ * explícita en vez de recursivo: la profundidad de `delay` ya está acotada por
+ * el esquema (`MAX_DELAY_DEPTH`), pero así ningún cambio futuro de ese tope
+ * reintroduce una recursión sin fondo aquí.
+ */
 export function flattenActions(actions: readonly RuleAction[]): RuleAction[] {
   const out: RuleAction[] = [];
-  for (const action of actions) {
-    if (action.type === "delay") out.push(...flattenActions(action.actions));
+  const stack: RuleAction[][] = [[...actions]];
+  while (stack.length > 0) {
+    const list = stack[stack.length - 1]!;
+    if (list.length === 0) {
+      stack.pop();
+      continue;
+    }
+    const action = list.shift()!;
+    if (action.type === "delay") stack.push([...action.actions]);
     else out.push(action);
   }
   return out;
