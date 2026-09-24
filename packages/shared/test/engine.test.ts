@@ -253,6 +253,33 @@ describe("motor de reglas — delay y timers", () => {
     expect(engine.firedCount("r-beat")).toBe(3);
   });
 
+  // Regresión D-2 (auditoría 2026-09-24): un `durationSec` ínfimo en un timer
+  // periódico generaba cientos de miles de eventos `on_timer` en un único
+  // `tick`, colgando el proceso. El esquema ya exige `durationSec ≥ 1`, pero
+  // el motor se defiende también por si acaso (`MAX_TIMER_EVENTS_PER_TICK`).
+  it("un timer periódico con durationSec ínfimo no dispara sin límite en un solo tick", () => {
+    const engine = createEngine(makeState(), [
+      makeRule({
+        id: "r-start",
+        trigger: { type: "on_interact", objectId: "agua" },
+        actions: [{ type: "start_timer", id: "agua", durationSec: 0.001 }],
+      }),
+      makeRule({
+        id: "r-beat",
+        once: false,
+        trigger: { type: "on_timer", timerId: "agua" },
+        actions: [{ type: "set_flag", flag: "sube", value: true }],
+      }),
+    ]);
+
+    engine.dispatch({ type: "on_interact", objectId: "agua" }, 0);
+    const start = Date.now();
+    engine.tick(60_000);
+    expect(Date.now() - start).toBeLessThan(1000);
+    // 60s / 0.001s pediría 60 000 disparos; el tope por tick lo acota muy por debajo.
+    expect(engine.firedCount("r-beat")).toBeLessThan(60_000);
+  });
+
   it("dispara on_time_remaining_below al cruzar el umbral", () => {
     const engine = createEngine(makeState({ timeLimitSec: 60, startedAt: 0 }), [
       makeRule({
