@@ -1,3 +1,4 @@
+import { MAX_VALIDATE_PLAYER_COUNTS } from "@escaperoom/shared/schemas";
 import { validateRoomPackage } from "@escaperoom/shared/validator";
 import { z } from "zod";
 import { buildPublishChecklist, renderPublishChecklist } from "../publish-checklist";
@@ -21,8 +22,9 @@ export const validateTool = defineTool({
   inputSchema: z.object({
     roomId: RoomIdSchema,
     playerCounts: z
-      .array(z.number().int().positive())
+      .array(z.number().int().min(1).max(MAX_VALIDATE_PLAYER_COUNTS))
       .min(1)
+      .max(MAX_VALIDATE_PLAYER_COUNTS)
       .optional()
       .describe("Tamaños de grupo a evaluar (por defecto, todos los de meta.players)"),
   }),

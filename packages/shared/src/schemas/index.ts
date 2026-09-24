@@ -7,6 +7,7 @@
  * literal exacto vive en `SUPPORTED_PACKAGE_FORMATS` (specs/08 §6).
  */
 export * from "./common";
+export * from "./limits";
 export * from "./localized-text";
 export * from "./world";
 export * from "./puzzle";

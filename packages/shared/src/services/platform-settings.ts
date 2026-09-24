@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_PLAYERS_PER_ROOM_CEILING } from "../schemas/limits";
 import { AdminError, parseOrThrow, requireAdmin, type AdminDirectory } from "./admin";
 import type { Actor } from "./actor";
 
@@ -10,10 +11,11 @@ import type { Actor } from "./actor";
  */
 
 /**
- * Techo absoluto de `maxPlayersPerRoom`: la paleta de tintes de jugador de
- * colyseus-server tiene 8 colores (`MAX_PLAYERS`); por encima se repetirían.
+ * Techo absoluto de `maxPlayersPerRoom` (definido en `schemas/limits.ts`,
+ * fuente única compartida con `RoomPackageSchema`): la paleta de tintes de
+ * jugador de colyseus-server tiene 8 colores; por encima se repetirían.
  */
-export const MAX_PLAYERS_PER_ROOM_CEILING = 8;
+export { MAX_PLAYERS_PER_ROOM_CEILING };
 
 export const PLATFORM_SETTINGS = {
   /**

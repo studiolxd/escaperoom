@@ -144,6 +144,24 @@ describe("validate — checklist obligatoria de publicación", SLOW, () => {
     expect(result.structured?.estimate).toMatchObject({ minutes: expect.any(Number) });
   });
 
+  // Regresión D-1 (auditoría 2026-09-24): `playerCounts` no tenía tope, así
+  // que `validate({ playerCounts: [1..1e6] })` bloqueaba el event loop
+  // evaluando la solvabilidad para un millón de tamaños de grupo.
+  it("rechaza playerCounts fuera del techo de jugadores por sala", async () => {
+    const { deps } = await setup();
+    const client = await connect(deps(AUTHOR));
+    const tooMany = await call(client, "validate", {
+      roomId,
+      playerCounts: Array.from({ length: 20 }, (_, i) => i + 1),
+    });
+    expect(tooMany.isError).toBe(true);
+    expect(tooMany.text).toMatch(/validation/i);
+
+    const tooHigh = await call(client, "validate", { roomId, playerCounts: [1_000_000] });
+    expect(tooHigh.isError).toBe(true);
+    expect(tooHigh.text).toMatch(/validation/i);
+  });
+
   it("en rojo: no publicable y lista los errores que bloquean", async () => {
     const { deps } = await setup(brokenAldric());
     const client = await connect(deps(AUTHOR));

@@ -1,4 +1,5 @@
 import type { PuzzleState, Rect, SplitClueDefinition } from "../schemas";
+import { MAX_SPLIT_CLUE_VIEWPOINTS_FOR_SUBSET } from "../schemas/limits";
 
 /**
  * Plantilla `split_clue` (specs/06 §2.7). La información está repartida entre
@@ -47,11 +48,7 @@ export interface SplitClueState {
 
 /** Desenlace de un envío de la combinación. */
 export type SplitClueSubmitOutcome =
-  | "correct"
-  | "wrong"
-  | "incomplete"
-  | "unavailable"
-  | "already_solved";
+  "correct" | "wrong" | "incomplete" | "unavailable" | "already_solved";
 
 export interface SplitClueSubmitResult {
   outcome: SplitClueSubmitOutcome;
@@ -62,10 +59,7 @@ export interface SplitClueSubmitResult {
 
 /** Desenlace de colocar el espejo. */
 export type SplitClueBridgeOutcome =
-  | "bridged"
-  | "already_bridged"
-  | "unavailable"
-  | "already_solved";
+  "bridged" | "already_bridged" | "unavailable" | "already_solved";
 
 export interface SplitClueBridgeResult {
   outcome: SplitClueBridgeOutcome;
@@ -368,11 +362,17 @@ export function unionCoversAll(def: SplitClueDefinition): boolean {
 /**
  * ¿Hay `maxViewpoints` puntos de vista o menos cuya unión cubre toda la pista?
  * Búsqueda exhaustiva por bitmask (los puntos de vista de una pista son pocos;
- * con más de 20 se degrada a comprobar la unión completa).
+ * por encima de `MAX_SPLIT_CLUE_VIEWPOINTS_FOR_SUBSET` se degrada a comprobar
+ * la unión completa). El validador llama a esto por cada candidato de cada
+ * nodo del BFS (hasta 200k estados, `oracles.ts`), así que el tope se guarda
+ * bajo (auditoría D-9): con 20 puntos de vista, 2²⁰ ≈ 1M iteraciones por
+ * llamada ya multiplican la explosión de estados del BFS.
  */
 function existsCoveringSubset(def: SplitClueDefinition, maxViewpoints: number): boolean {
   const count = def.viewpoints.length;
-  if (count > 20 || def.fragments.length > 20) return unionCoversAll(def);
+  if (count > MAX_SPLIT_CLUE_VIEWPOINTS_FOR_SUBSET || def.fragments.length > 20) {
+    return unionCoversAll(def);
+  }
   const full = (1 << def.fragments.length) - 1;
   for (let mask = 1; mask < 1 << count; mask++) {
     if (popcount(mask) > maxViewpoints) continue;
