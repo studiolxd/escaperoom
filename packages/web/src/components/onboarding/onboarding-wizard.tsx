@@ -12,10 +12,7 @@ const STEP_IDS = ["theme", "firstRoom", "firstPuzzle", "playtest", "publish"] as
 type StepId = (typeof STEP_IDS)[number];
 
 type CreateState =
-  | { kind: "idle" }
-  | { kind: "creating" }
-  | { kind: "done"; roomId: string }
-  | { kind: "error" };
+  { kind: "idle" } | { kind: "creating" } | { kind: "done"; roomId: string } | { kind: "error" };
 
 /**
  * Wizard de onboarding del creador de 5 pasos (ticket 6.7, specs/20 §2): tema
@@ -61,9 +58,7 @@ export function OnboardingWizard() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
       <h1 className="text-xl font-semibold">{t("title")}</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {t("progress", { step: stepIndex + 1 })}
-      </p>
+      <p className="mt-1 text-sm text-muted-foreground">{t("progress", { step: stepIndex + 1 })}</p>
 
       <ol className="mt-4 flex flex-wrap gap-2 text-xs">
         {STEP_IDS.map((id, index) => (
@@ -87,10 +82,7 @@ export function OnboardingWizard() {
           <div className="space-y-4">
             <h2 className="font-semibold">{t("step1.title")}</h2>
             <p className="text-sm text-muted-foreground">{t("step1.body")}</p>
-            <div
-              className="w-fit rounded-lg border border-primary bg-primary/10 px-3 py-1.5 text-sm text-primary"
-              aria-pressed="true"
-            >
+            <div className="w-fit rounded-lg border border-primary bg-primary/10 px-3 py-1.5 text-sm text-primary">
               {t("step1.medievalLabel")}
             </div>
             <Button onClick={goNext}>{t("step1.cta")}</Button>
@@ -144,14 +136,14 @@ export function OnboardingWizard() {
             )}
             {roomId && (
               <p className="text-sm">
-                <a
+                <Link
                   href={`/editor/${roomId}`}
                   target="_blank"
                   rel="noreferrer"
                   className="font-medium text-primary underline"
                 >
                   {t("step2.openEditor")}
-                </a>
+                </Link>
               </p>
             )}
           </div>
@@ -163,14 +155,14 @@ export function OnboardingWizard() {
             <p className="text-sm text-muted-foreground">{t("step3.body")}</p>
             <p className="text-sm text-amber-700">{t("step3.hint")}</p>
             {roomId && (
-              <a
+              <Link
                 href={`/editor/${roomId}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-sm font-medium text-primary underline"
               >
                 {t("step2.openEditor")}
-              </a>
+              </Link>
             )}
             <div>
               <Button onClick={goNext}>{t("step3.cta")}</Button>
@@ -194,19 +186,19 @@ export function OnboardingWizard() {
             <h2 className="font-semibold">{t("step5.title")}</h2>
             <p className="text-sm text-muted-foreground">{t("step5.body")}</p>
             {roomId && (
-              <a
+              <Link
                 href={`/editor/${roomId}`}
                 target="_blank"
                 rel="noreferrer"
                 className="text-sm font-medium text-primary underline"
               >
                 {t("step5.ctaOpenEditor")}
-              </a>
+              </Link>
             )}
             <div>
-              <Link href="/rooms">
-                <Button variant="outline">{t("step5.ctaFinish")}</Button>
-              </Link>
+              <Button variant="outline" asChild>
+                <Link href="/rooms">{t("step5.ctaFinish")}</Link>
+              </Button>
             </div>
           </div>
         )}
