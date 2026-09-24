@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
+import { Link } from "@/i18n/navigation";
 
 type PurchaseKind = "room" | "room_license" | "event_credits";
 const PURCHASE_KINDS: ReadonlySet<string> = new Set(["room", "room_license", "event_credits"]);
+
+/** Mismo patrón que `(play)/play/page.tsx` para `room`/`session` de la URL. */
+const ID_RE = /^[\w-]{1,64}$/u;
+
+function validId(value: string | undefined): string | undefined {
+  return value !== undefined && ID_RE.test(value) ? value : undefined;
+}
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -17,15 +24,16 @@ type Props = {
 /** Página personal (destino de un redirect de Stripe): nunca se indexa. */
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
-function continueHref(locale: string, type: PurchaseKind | null, eventId?: string, roomId?: string): string {
+/** Relativo a `[locale]`: lo prefija `Link` de `@/i18n/navigation`. */
+function continueHref(type: PurchaseKind | null, eventId?: string, roomId?: string): string {
   switch (type) {
     case "event_credits":
-      return eventId ? `/${locale}/events/${eventId}` : `/${locale}/creator`;
+      return eventId ? `/events/${eventId}` : "/creator";
     case "room_license":
-      return `/${locale}/creator`;
+      return "/creator";
     case "room":
     default:
-      return roomId ? `/${locale}/rooms/${roomId}` : `/${locale}/rooms`;
+      return roomId ? `/rooms/${roomId}` : "/rooms";
   }
 }
 
@@ -34,7 +42,17 @@ function continueHref(locale: string, type: PurchaseKind | null, eventId?: strin
  * §4.2): destino de `success_url`/`cancel_url` de los tres checkouts
  * (`room`, `room_license`, `event_credits`). El pago ya se liquidó (o no) en
  * el webhook antes de que el navegador llegue aquí; esta página solo informa
- * y ofrece el siguiente paso — no consulta el estado de ninguna compra.
+ * y ofrece el siguiente paso.
+ *
+ * F-28: no consulta el estado real de la compra (`GET /api/purchases/:id`)
+ * porque el `success_url`/`cancel_url` que construyen
+ * `stripe-gateway.ts`/`room-checkout/route.ts` no llevan hoy un `purchaseId`
+ * — solo `type`/`status`/`eventId`/`roomId`. Añadirlo exige generar el id de
+ * la compra ANTES de construir esas URLs en `PurchaseService.startRoomCheckout`
+ * y equivalentes (código de pagos P0, bloque "Pagos" de la auditoría, en
+ * paralelo en otro agente); tocarlo aquí se sale del bloque de este PR y
+ * arriesga chocar con ese trabajo. `?status=success` sigue siendo solo
+ * informativo — no concede nada por sí mismo, eso lo decide el webhook.
  */
 export default async function CheckoutConfirmationPage({ params, searchParams }: Props) {
   const { locale } = await params;
@@ -44,7 +62,7 @@ export default async function CheckoutConfirmationPage({ params, searchParams }:
 
   const type = (rawType && PURCHASE_KINDS.has(rawType) ? rawType : null) as PurchaseKind | null;
   const success = status === "success";
-  const href = continueHref(locale, type, eventId, roomId);
+  const href = continueHref(type, validId(eventId), validId(roomId));
   const kindLabel = t(type ? `kinds.${type}` : "kinds.generic");
 
   return (
@@ -69,7 +87,7 @@ export default async function CheckoutConfirmationPage({ params, searchParams }:
           </Button>
           {!success && (
             <Button asChild variant="ghost">
-              <Link href={`/${locale}/rooms`}>{t("cancelled.backCta")}</Link>
+              <Link href="/rooms">{t("cancelled.backCta")}</Link>
             </Button>
           )}
         </CardContent>
