@@ -17,11 +17,12 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * caducidad del token las comprueba `POST /api/access-keys/:code/confirm`.
  */
 export default async function ConfirmInvitationPage({ params, searchParams }: Props) {
-  const { locale, code: rawCode } = await params;
+  const { locale, code } = await params;
   const { token } = await searchParams;
   setRequestLocale(locale);
   const t = await getTranslations("InvitationConfirm");
-  const code = decodeURIComponent(rawCode);
+  // `code` ya viene decodificado por el router (`[code]`); decodificarlo otra
+  // vez lanzaba `URIError` (500, ruta pública) ante un `%` mal formado (B-20/F-15).
 
   return (
     <main className="relative flex min-h-dvh items-center justify-center bg-slate-950 p-4 text-white">
