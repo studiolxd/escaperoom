@@ -15,14 +15,21 @@ import { isDevFallbackAllowed } from "@escaperoom/env";
  *
  * **"El evento terminó"**: el esquema no tiene un campo propio para ello
  * (`event` no lleva fecha de fin ni transición automática a `closed` — nada en
- * el código la dispara hoy). La señal que se usa aquí es indirecta: TODAS las
+ * el código la dispara hoy). La señal principal es indirecta: TODAS las
  * sesiones de partida (`gameSession`) del evento han acabado (`ended` o
  * `aborted`, que siempre sellan `endedAt` juntos — ver
  * `event-runtime-prisma-store.ts`), tomando la más tardía como instante de
- * fin. Un evento sin sesiones creadas, o con alguna aún `pending`/
- * `in_progress`, no cuenta como terminado y no purga nada. Es una heurística
- * razonable (no un campo inequívoco del dominio); si el negocio define en el
- * futuro un fin de evento explícito, esta es la pieza a actualizar.
+ * fin.
+ *
+ * **E-16 (retención de eventos nunca jugados)**: un evento sin sesiones
+ * creadas, o con alguna aún `pending`/`in_progress` que nunca se resuelve, no
+ * tiene esa señal y conservaría el email indefinidamente. Cutoff alternativo:
+ * cuando el evento no cuenta como "terminado" por sesiones, se usa
+ * `event.createdAt` (siempre presente, a diferencia de `gameSession`) como
+ * instante de referencia — el mismo plazo por audiencia se cuenta entonces
+ * desde la creación del evento en vez de desde su fin. Es una heurística (no
+ * un campo inequívoco del dominio); si el negocio define en el futuro un fin
+ * de evento explícito, esta es la pieza a actualizar.
  */
 
 /** Meses de retención del email según la audiencia del evento. */

@@ -118,7 +118,11 @@ async function main(): Promise<void> {
         })
       : null;
   if (!emailPurge) {
-    logger.warn("access-key email purge: APP_SECRET no configurado; job inactivo");
+    // E-16: en producción esto es un fallo de configuración real (el email de
+    // participantes, posiblemente de menores, no se purga nunca), no un aviso
+    // de desarrollo — `logger.error` para que salte una alerta.
+    const log = process.env.NODE_ENV === "production" ? logger.error : logger.warn;
+    log.call(logger, "access-key email purge: APP_SECRET no configurado; job inactivo");
   }
 
   // Purga de IP/user-agent de session y termsAcceptance: mismo APP_SECRET.

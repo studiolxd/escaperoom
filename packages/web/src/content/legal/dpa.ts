@@ -208,9 +208,10 @@ export const dpaAnnex: LegalDocument = {
       heading: "10. Retención y borrado",
       paragraphs: [
         "El email de un participante asociado a una clave de acceso se conserva 12 meses tras la " +
-          "finalización del evento; pasado ese plazo se seudonimiza (se sustituye por un hash " +
-          "calculado con una clave que solo conserva la plataforma; no es una anonimización total, " +
-          "ya que en teoría el email original podría recalcularse con esa clave).",
+          "finalización del evento (o, si el evento nunca llega a jugarse, tras su creación); pasado " +
+          "ese plazo se seudonimiza (se sustituye por un hash calculado con una clave que solo " +
+          "conserva la plataforma; no es una anonimización total, ya que en teoría el email original " +
+          "podría recalcularse con esa clave).",
         "Para eventos con audiencia educativa (los que pueden incluir menores de edad) ese plazo se " +
           "reduce a 3 meses tras la finalización del evento. Los menores merecen una protección " +
           "específica (considerando 38 del RGPD) y el principio de minimización (artículo 5.1.c y " +
