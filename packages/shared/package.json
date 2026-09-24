@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "@escaperoom/config": "workspace:*",
+    "@escaperoom/env": "workspace:*",
     "@escaperoom/kit": "workspace:*",
     "@prisma/client": "6.19.3",
     "nodemailer": "^10.0.10",

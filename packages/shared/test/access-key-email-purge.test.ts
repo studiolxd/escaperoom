@@ -1,15 +1,28 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  DEV_EMAIL_PURGE_SECRET,
   EMAIL_RETENTION_MONTHS,
   hashPurgedEmail,
   isEmailPurgeDue,
   isPurgedEmail,
   purgeAccessKeyEmails,
   purgeCutoff,
+  readEmailPurgeSecret,
   type AccessKeyEmailCandidate,
 } from "../src/services/access-key-email-purge";
 
 const SECRET = "test-secret";
+
+describe("readEmailPurgeSecret", () => {
+  it("E-4: el secreto de desarrollo solo se usa en development/test, nunca por defecto", () => {
+    expect(readEmailPurgeSecret({ APP_SECRET: SECRET })).toBe(SECRET);
+    expect(readEmailPurgeSecret({ NODE_ENV: "development" })).toBe(DEV_EMAIL_PURGE_SECRET);
+    expect(readEmailPurgeSecret({ NODE_ENV: "test" })).toBe(DEV_EMAIL_PURGE_SECRET);
+    expect(readEmailPurgeSecret({ NODE_ENV: "production" })).toBeNull();
+    expect(readEmailPurgeSecret({})).toBeNull();
+    expect(readEmailPurgeSecret({ NODE_ENV: "staging" })).toBeNull();
+  });
+});
 
 describe("purgeCutoff", () => {
   it("resta los meses dados en UTC", () => {

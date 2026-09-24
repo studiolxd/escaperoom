@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { isDevFallbackAllowed } from "@escaperoom/env";
 
 /**
  * Purga (por hash) de la dirección IP y el user-agent en `session` (Better
@@ -42,7 +43,7 @@ export function readIpUaPurgeSecret(
   env: Record<string, string | undefined> = process.env,
 ): string | null {
   const configured = env.APP_SECRET?.trim();
-  return configured || (env.NODE_ENV === "production" ? null : DEV_IP_UA_PURGE_SECRET);
+  return configured || (isDevFallbackAllowed(env) ? DEV_IP_UA_PURGE_SECRET : null);
 }
 
 /** Clave derivada: separación de dominio respecto a otros usos de `APP_SECRET`. */

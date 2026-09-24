@@ -1,12 +1,15 @@
 import { z } from "zod";
 import { GridSchema, LocalizedTextSchema, PositionSchema } from "./common";
+import { MAX_CONTENT_ARRAY_ITEMS, MAX_RLE_ENTRIES } from "./limits";
 
 /**
  * Capa de tilemap serializada en RLE `[cantidad, tileId, ...]` (specs/04 §1).
+ * `rle` topado en `MAX_RLE_ENTRIES` (auditoría D-1): sin tope, un `content.ts`
+ * `roomDocToPackage`/`decodeRle` puede acabar expandiendo un array descomunal.
  */
 export const TileLayerSchema = z.object({
   name: z.string(),
-  rle: z.array(z.number().int()),
+  rle: z.array(z.number().int()).max(MAX_RLE_ENTRIES),
 });
 
 /** Decoración "bake-able" dentro de una `SubRoom` (specs/08 §2.1). */
@@ -46,15 +49,15 @@ export const SubRoomSchema = z.object({
   id: z.string(),
   name: z.string(),
   grid: GridSchema,
-  layers: z.array(TileLayerSchema),
-  decorations: z.array(DecorationSchema),
-  spawnPoints: z.array(SpawnPointSchema),
-  lighting: z.array(LightConfigSchema),
+  layers: z.array(TileLayerSchema).max(MAX_CONTENT_ARRAY_ITEMS),
+  decorations: z.array(DecorationSchema).max(MAX_CONTENT_ARRAY_ITEMS),
+  spawnPoints: z.array(SpawnPointSchema).max(MAX_CONTENT_ARRAY_ITEMS),
+  lighting: z.array(LightConfigSchema).max(MAX_CONTENT_ARRAY_ITEMS),
 });
 
 export const MapSchema = z.object({
   tileset: z.string(),
-  rooms: z.array(SubRoomSchema),
+  rooms: z.array(SubRoomSchema).max(MAX_CONTENT_ARRAY_ITEMS),
 });
 
 /**
@@ -79,7 +82,7 @@ export const WorldObjectSchema = z.object({
   sprite: z.string(),
   states: z.record(z.string(), SpriteStateSchema),
   initialState: z.string(),
-  inventory: z.array(z.string()).optional(),
+  inventory: z.array(z.string()).max(MAX_CONTENT_ARRAY_ITEMS).optional(),
   lockedBy: z.string().optional(),
   interactable: z.boolean(),
   distribution: z.enum(["first_click", "all_players", "assigned"]).optional(),

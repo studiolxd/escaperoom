@@ -6,17 +6,24 @@ import { bool } from "./helpers";
 // fragmentos que use (`.extend(...)`) o parte de `baseServerSchema`.
 // ---------------------------------------------------------------------------
 
+// `NODE_ENV` decide qué es "obligatorio" (E-4/A-19/C-5/F-41): ninguno de
+// estos campos lleva un valor por defecto salvo peligro de silencio (un
+// entorno real sin ellos debe fallar fuerte, no arrancar con secretos
+// vacíos), pero tampoco son obligatorios *aquí*: `requireInProduction`
+// (`helpers.ts`) los exige solo cuando `NODE_ENV === "production"`, para que
+// `development`/`test`/CI (sin secretos configurados) puedan seguir
+// parseando el esquema. Ver `web/src/env.ts` para el uso.
 export const coreSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
-  APP_NAME: z.string().min(1),
+  APP_NAME: z.string().min(1).optional(),
   // Canonical public URL, no trailing slash
-  APP_URL: z.url(),
-  DATABASE_URL: z.string().min(1),
+  APP_URL: z.url().optional(),
+  DATABASE_URL: z.string().min(1).optional(),
   // ≥32 chars (`openssl rand -base64 32`) — HMAC de tokens y cifrado en reposo
-  APP_SECRET: z.string().min(32),
+  APP_SECRET: z.string().min(32).optional(),
   // Better Auth (ADR-016)
-  BETTER_AUTH_SECRET: z.string().min(32),
-  BETTER_AUTH_URL: z.url(),
+  BETTER_AUTH_SECRET: z.string().min(32).optional(),
+  BETTER_AUTH_URL: z.url().optional(),
 });
 
 export const authSchema = z.object({
@@ -33,8 +40,8 @@ export const redisSchema = z.object({
 export const emailSchema = z.object({
   // Nodemailer por defecto, Resend opcional (ADR-020)
   EMAIL_PROVIDER: z.enum(["nodemailer", "resend"]).default("nodemailer"),
-  EMAIL_FROM: z.email(),
-  EMAIL_FROM_NAME: z.string().min(1),
+  EMAIL_FROM: z.email().optional(),
+  EMAIL_FROM_NAME: z.string().min(1).optional(),
   EMAIL_REPLY_TO: z.email().optional(),
   RESEND_API_KEY: z.string().optional(),
   SMTP_HOST: z.string().optional(),

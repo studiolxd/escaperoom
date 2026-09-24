@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 
 export const E2E_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const REPO_ROOT = resolve(E2E_ROOT, "../..");
-/** Logs de los servidores que arranca Playwright (de ahí sale el enlace mágico). */
+/** Logs de los servidores que arranca Playwright, para depurar un fallo. */
 export const RUN_DIR = resolve(E2E_ROOT, ".run");
 
 function port(name: string, fallback: number): number {
@@ -28,7 +28,7 @@ function port(name: string, fallback: number): number {
  * `DATABASE_URL` de la suite: la exportada (CI) o la de `packages/shared/.env`
  * que escribe `pnpm dev:env` (la base propia del worktree, ticket 0.12).
  */
-function databaseUrl(): string {
+export function databaseUrl(): string {
   if (process.env.E2E_DATABASE_URL) return process.env.E2E_DATABASE_URL;
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
   const file = resolve(REPO_ROOT, "packages/shared/.env");
@@ -63,9 +63,22 @@ export const SEED = {
 } as const;
 
 /**
+ * `REDIS_URL` de la suite: la exportada (nightly ya trae un servicio Redis) o
+ * `redis://localhost:6379` (servicio del job `e2e-smoke`, mismo puerto que
+ * usa `e2e-nightly.yml`). Necesaria porque web y colyseus arrancan con
+ * `NODE_ENV=production` (`scripts/serve.ts`), donde `requireInProduction`
+ * (E-4, `@escaperoom/env`) la exige — antes del saneamiento de entorno no
+ * hacía falta declararla aquí.
+ */
+function redisUrl(): string {
+  return process.env.E2E_REDIS_URL ?? process.env.REDIS_URL ?? "redis://localhost:6379";
+}
+
+/**
  * Variables de los tres procesos. Secretos fijos de prueba (≥ 32 caracteres):
- * la web se sirve con `next start` (NODE_ENV=production), donde los secretos
- * de firma son obligatorios y no hay valores de desarrollo por defecto.
+ * la web y colyseus se sirven con `NODE_ENV=production` (`next start` /
+ * `pnpm start`), donde `requireInProduction` (E-4) exige estos valores y no
+ * hay secretos de desarrollo por defecto.
  */
 export function serverEnv(): Record<string, string> {
   const db = databaseUrl();
@@ -88,12 +101,26 @@ export function serverEnv(): Record<string, string> {
     NEXT_PUBLIC_EDITOR_SYNC_URL: EDITOR_SYNC_URL,
     EDITOR_SYNC_PORT: String(EDITOR_SYNC_PORT),
     EDITOR_SYNC_ALLOWED_ORIGINS: WEB_URL,
-    // Sin servicios externos: email por jsonTransport (sin SMTP), sin colas,
-    // sin LiveKit (la partida degrada a «sin medios») y sin chat del creador.
+    // Redis real (rate limiting REST, como en producción); sin colas
+    // (QUEUES_ENABLED=false: nada encola envíos/purgas durante la suite).
+    REDIS_URL: redisUrl(),
+    QUEUES_ENABLED: "false",
+    // Sin servicios externos: email por jsonTransport (sin SMTP: no hay
+    // relevo SMTP de prueba en la infra de CI/local), sin LiveKit (la
+    // partida degrada a «sin medios») y sin chat del creador. jsonTransport
+    // solo se activa fuera de development/test con ALLOW_DEV_SECRETS=1
+    // (E-4, `@escaperoom/env`): aquí es deliberado (NODE_ENV=production de
+    // prueba, sin SMTP real), no un despliegue real que se olvidó NODE_ENV.
+    // El enlace mágico (A-1) igualmente se envía «de verdad» por ese
+    // transporte — support/auth.ts lo lee de `verification`, no del
+    // resultado del envío.
+    ALLOW_DEV_SECRETS: "1",
     EMAIL_PROVIDER: "nodemailer",
     EMAIL_FROM: "no-reply@escaperoom.local",
     EMAIL_FROM_NAME: "EscapeRoom E2E",
-    QUEUES_ENABLED: "false",
+    // Dummy: ningún test de la suite ejercita subida/lectura real a S3/R2
+    // (solo hace falta que requireInProduction vea la variable presente).
+    STORAGE_BUCKET: "escaperoom-e2e-dummy",
     LIVEKIT_URL: "",
     LIVEKIT_API_KEY: "",
     LIVEKIT_API_SECRET: "",

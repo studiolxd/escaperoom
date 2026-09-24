@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { isDevFallbackAllowed } from "@escaperoom/env";
 
 /**
  * Enlace firmado de confirmación de asistencia (ticket 5.6, specs/02 §4.4).
@@ -27,8 +28,7 @@ export function readConfirmationTokenConfig(
   env: Record<string, string | undefined> = process.env,
 ): ConfirmationTokenConfig | null {
   const configured = env.CONFIRMATION_TOKEN_SECRET?.trim() || env.APP_SECRET?.trim();
-  const secret =
-    configured || (env.NODE_ENV === "production" ? undefined : DEV_CONFIRMATION_SECRET);
+  const secret = configured || (isDevFallbackAllowed(env) ? DEV_CONFIRMATION_SECRET : undefined);
   if (!secret) return null;
   const rawTtl = Number.parseInt(env.CONFIRMATION_TOKEN_TTL_SECONDS ?? "", 10);
   return {

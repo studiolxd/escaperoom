@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { requireInProduction } from "@escaperoom/env";
 import { initNodeSentry } from "@escaperoom/kit/observability/sentry-node";
 import {
   EVENT_ROOM_NAME,
@@ -48,6 +49,9 @@ async function configureEvents(): Promise<string> {
  * (o `COLYSEUS_PORT`/`PORT`).
  */
 loadLocalEnv();
+// E-4: en producción, sin estas variables el proceso no debe arrancar.
+requireInProduction(process.env, ["DATABASE_URL", "JOIN_TOKEN_SECRET", "PLAYTEST_SECRET"]);
+console.info(`[env] NODE_ENV=${process.env.NODE_ENV ?? "development"} validado`);
 // Sentry (ticket 6.4): sin SENTRY_DSN queda deshabilitado, sin romper nada.
 initNodeSentry({ dsn: process.env.SENTRY_DSN });
 const events = await configureEvents();

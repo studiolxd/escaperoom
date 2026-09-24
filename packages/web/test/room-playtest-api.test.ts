@@ -196,7 +196,11 @@ describe("configuración compartida con @escaperoom/colyseus-server", () => {
     );
     expect(resolvePlaytestSecret({ NODE_ENV: "production" })).toBeNull();
     expect(resolvePlaytestSecret({ NODE_ENV: "production", PLAYTEST_SECRET: "s" })).toBe("s");
-    expect(resolvePlaytestSecret({})).toBe(DEV_PLAYTEST_SECRET);
+    expect(resolvePlaytestSecret({ NODE_ENV: "development" })).toBe(DEV_PLAYTEST_SECRET);
+    expect(resolvePlaytestSecret({ NODE_ENV: "test" })).toBe(DEV_PLAYTEST_SECRET);
+    // E-4: sin NODE_ENV=development|test tampoco hereda el secreto de dev.
+    expect(resolvePlaytestSecret({})).toBeNull();
+    expect(resolvePlaytestSecret({ NODE_ENV: "staging" })).toBeNull();
   });
 });
 

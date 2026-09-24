@@ -1,3 +1,4 @@
+import { MAX_TIMER_EVENTS_PER_TICK } from "../schemas/limits";
 import type { FlagValue, Rule, RuleAction, RuleCondition, RuleTrigger } from "../schemas/rules";
 import type {
   DeferredAction,
@@ -539,10 +540,16 @@ class RuleEngine {
       if (timer.durationSec === null || timer.remainingSec === null) continue;
       timer.elapsedMs += deltaMs;
       timer.remainingSec -= deltaMs / 1000;
-      while (timer.remainingSec <= 0) {
+      // Tope de eventos por tick (auditoría D-2): un `durationSec` ínfimo
+      // (fuera de norma, ya que el esquema exige `min(MIN_TIMER_DURATION_SEC)`,
+      // pero esto es defensa en profundidad) generaría cientos de miles de
+      // `on_timer` en un único tick; el resto se recupera en el tick siguiente.
+      let emittedThisTick = 0;
+      while (timer.remainingSec <= 0 && emittedThisTick < MAX_TIMER_EVENTS_PER_TICK) {
         if (timer.periodic && timer.durationSec > 0) {
           events.push({ type: "on_timer", timerId: id });
           timer.remainingSec += timer.durationSec;
+          emittedThisTick += 1;
         } else {
           timer.remainingSec = 0;
           timer.running = false;

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PositionSchema, RectSchema } from "./common";
+import { MAX_ACTIONS_PER_LIST, MAX_DELAY_DEPTH, MIN_TIMER_DURATION_SEC } from "./limits";
 import { PuzzleStateSchema } from "./puzzle";
 
 /** Valores admitidos por flags libres del creador (specs/05 §1). */
@@ -43,7 +44,7 @@ export const RuleConditionSchema = z.discriminatedUnion("type", [
 
 /**
  * Acciones declarativas v1 — specs/05 §2.3 y §3. `delay` es recursiva (contiene
- * una lista anidada de acciones), de ahí el tipo explícito y `z.lazy`.
+ * una lista anidada de acciones), de ahí el tipo explícito.
  */
 export type RuleAction =
   | { type: "set_object_state"; objectId: string; state: string }
@@ -62,8 +63,9 @@ export type RuleAction =
   | { type: "delay"; seconds: number; actions: RuleAction[] }
   | { type: "end_game"; result: "victory" | "timeout" | "abandoned" };
 
-export const RuleActionSchema: z.ZodType<RuleAction> = z.lazy(() =>
-  z.discriminatedUnion("type", [
+/** Variantes sin `delay`: comunes a todos los niveles de anidado. */
+function leafActionVariants() {
+  return [
     z.object({ type: z.literal("set_object_state"), objectId: z.string(), state: z.string() }),
     z.object({ type: z.literal("unlock_door"), objectId: z.string() }),
     z.object({ type: z.literal("grant_item"), itemId: z.string(), to: z.string() }),
@@ -72,7 +74,7 @@ export const RuleActionSchema: z.ZodType<RuleAction> = z.lazy(() =>
     z.object({
       type: z.literal("start_timer"),
       id: z.string(),
-      durationSec: z.number().optional(),
+      durationSec: z.number().min(MIN_TIMER_DURATION_SEC).optional(),
     }),
     z.object({ type: z.literal("pause_timer"), id: z.string() }),
     z.object({ type: z.literal("stop_timer"), id: z.string() }),
@@ -86,16 +88,38 @@ export const RuleActionSchema: z.ZodType<RuleAction> = z.lazy(() =>
     z.object({ type: z.literal("set_flag"), flag: z.string(), value: FlagValueSchema }),
     z.object({ type: z.literal("reveal_number"), objectId: z.string(), value: z.number() }),
     z.object({
-      type: z.literal("delay"),
-      seconds: z.number(),
-      actions: z.array(RuleActionSchema),
-    }),
-    z.object({
       type: z.literal("end_game"),
       result: z.enum(["victory", "timeout", "abandoned"]),
     }),
-  ]),
-);
+  ] as const;
+}
+
+/**
+ * Construye el esquema de una acción con `delay` anidable hasta `depth` niveles
+ * más (auditoría D-11): en vez de `z.lazy` (recursión sin fondo — un JSON de
+ * ~1 MB con miles de `delay` anidados revienta la pila del propio parser antes
+ * de que corra ningún `superRefine`), el esquema se construye una vez, finito,
+ * con `depth` niveles concretos. Un `delay` más allá de `MAX_DELAY_DEPTH`
+ * simplemente no matchea ningún literal de `type` en el nivel más profundo y
+ * Zod lo rechaza como acción inválida, sin recursar más.
+ */
+function buildActionSchema(depth: number): z.ZodType<RuleAction> {
+  const variants = leafActionVariants();
+  if (depth <= 0) {
+    return z.discriminatedUnion("type", variants) as unknown as z.ZodType<RuleAction>;
+  }
+  const nested = buildActionSchema(depth - 1);
+  return z.discriminatedUnion("type", [
+    ...variants,
+    z.object({
+      type: z.literal("delay"),
+      seconds: z.number(),
+      actions: z.array(nested).max(MAX_ACTIONS_PER_LIST),
+    }),
+  ]) as unknown as z.ZodType<RuleAction>;
+}
+
+export const RuleActionSchema: z.ZodType<RuleAction> = buildActionSchema(MAX_DELAY_DEPTH);
 
 /** Regla declarativa SI/ENTONCES — specs/08 §4. */
 export const RuleSchema = z.object({
@@ -103,8 +127,8 @@ export const RuleSchema = z.object({
   priority: z.number(),
   once: z.boolean(),
   trigger: RuleTriggerSchema,
-  conditions: z.array(RuleConditionSchema),
-  actions: z.array(RuleActionSchema),
+  conditions: z.array(RuleConditionSchema).max(MAX_ACTIONS_PER_LIST),
+  actions: z.array(RuleActionSchema).max(MAX_ACTIONS_PER_LIST),
 });
 
 export type FlagValue = z.infer<typeof FlagValueSchema>;

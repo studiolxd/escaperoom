@@ -1,3 +1,4 @@
+import { isDevFallbackAllowed } from "@escaperoom/env";
 import type { EventRuntimeStore } from "@escaperoom/shared/event-runtime";
 import { loadReyAldricRoomPackage } from "../game/room-packages.js";
 
@@ -33,5 +34,5 @@ export function configureEventRuntime(store: EventRuntimeStore | null | undefine
 /** Runtime en uso; `null` si no hay ninguno (producción sin base de datos). */
 export function getEventRuntime(): EventRuntimeStore | null {
   if (configured !== undefined) return configured;
-  return process.env.NODE_ENV === "production" ? null : FIXTURE_EVENT_RUNTIME;
+  return isDevFallbackAllowed() ? FIXTURE_EVENT_RUNTIME : null;
 }

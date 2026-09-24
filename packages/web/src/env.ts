@@ -1,4 +1,4 @@
-import { parseEnv } from "@escaperoom/env";
+import { parseEnv, requireInProduction } from "@escaperoom/env";
 import { baseClientSchema } from "@escaperoom/env/client";
 import {
   baseServerSchema,
@@ -12,19 +12,19 @@ import {
 
 /**
  * Esquema de entorno de la app: única fuente de verdad tipada de qué
- * variables existen y su forma (saneamiento del esquema de entorno, ver PR).
- * Compone `baseServerSchema` con los fragmentos de producto que hoy se leen
- * de forma dispersa vía `process.env`/`readXConfig(env)` en `@escaperoom/web`
- * y `@escaperoom/shared`.
+ * variables existen y su forma (E-4/A-19/C-5/F-41). Compone `baseServerSchema`
+ * con los fragmentos de producto que hoy se leen de forma dispersa vía
+ * `process.env`/`readXConfig(env)` en `@escaperoom/web` y `@escaperoom/shared`.
  *
- * Aún NO se importa desde el runtime real (ningún `next.config.ts`, layout,
- * route ni `instrumentation.ts` importa este archivo): el job `verify` de CI
- * (`pnpm turbo run lint typecheck test build`) no define hoy `APP_SECRET`,
- * `BETTER_AUTH_SECRET`, `EMAIL_FROM`, etc., así que activar esta validación
- * en `next build` rompería CI. Antes de enchufarla hay que declarar esas
- * variables en `.github/workflows/ci.yml` (job `verify`) — o relajar el
- * schema de build — y solo entonces empezar a migrar los `process.env.X`
- * dispersos a `env.X` (ticket 0.2+).
+ * Se importa desde `instrumentation.ts` (`register()`), que Next solo ejecuta
+ * al arrancar un servidor real (`next dev`/`next start`), nunca durante
+ * `next build` (ver docs de Next: "called once when a new Next.js server
+ * instance is initiated") — así el job `verify` de CI (que no fija
+ * `APP_SECRET`, `BETTER_AUTH_SECRET`, `EMAIL_FROM`…) no se ve afectado. Los
+ * campos "obligatorios" del esquema real (secretos, `APP_URL`…) son
+ * `.optional()` aquí a propósito: `requireInProduction` los exige solo con
+ * `NODE_ENV=production`, para no romper `development`/`test` sin configurar
+ * nada.
  */
 export const env = parseEnv({
   serverSchema: baseServerSchema
@@ -42,3 +42,26 @@ export const env = parseEnv({
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
   },
 });
+
+/** Variables sin las que un despliegue real no debe arrancar (E-4). */
+export const REQUIRED_IN_PRODUCTION = [
+  "APP_URL",
+  "DATABASE_URL",
+  "APP_SECRET",
+  "BETTER_AUTH_SECRET",
+  "BETTER_AUTH_URL",
+  "REDIS_URL",
+  "JOIN_TOKEN_SECRET",
+  "PLAYTEST_SECRET",
+  "PUBLISH_CONFIRM_SECRET",
+  "EMAIL_FROM",
+  "EMAIL_FROM_NAME",
+  "STORAGE_BUCKET",
+] as const;
+
+/** Llamado desde `instrumentation.ts`: valida y registra el modo activo. */
+export function validateEnvOnBoot(): void {
+  requireInProduction(env, REQUIRED_IN_PRODUCTION);
+  // Sin valores: solo qué modo está activo (E-4 pide loguearlo al arrancar).
+  console.info(`[env] NODE_ENV=${env.NODE_ENV} validado`);
+}
