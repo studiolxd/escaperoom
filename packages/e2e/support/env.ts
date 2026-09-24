@@ -65,10 +65,16 @@ export const SEED = {
 /**
  * `REDIS_URL` de la suite: la exportada (nightly ya trae un servicio Redis) o
  * `redis://localhost:6379` (servicio del job `e2e-smoke`, mismo puerto que
- * usa `e2e-nightly.yml`). Necesaria porque web y colyseus arrancan con
- * `NODE_ENV=production` (`scripts/serve.ts`), donde `requireInProduction`
- * (E-4, `@escaperoom/env`) la exige — antes del saneamiento de entorno no
- * hacía falta declararla aquí.
+ * usa `e2e-nightly.yml`; ninguno de los dos lleva contraseña). Necesaria
+ * porque web y colyseus arrancan con `NODE_ENV=production`
+ * (`scripts/serve.ts`), donde `requireInProduction` (E-4, `@escaperoom/env`)
+ * la exige — antes del saneamiento de entorno no hacía falta declararla aquí.
+ *
+ * En local este default NO es el Redis de `pnpm infra:up` (ese vive en
+ * `56380` y, desde E-13, pide contraseña): hace falta uno propio en `6379`
+ * (`docker run --rm -p 6379:6379 redis:7-alpine`) o exportar
+ * `E2E_REDIS_URL=redis://:redis_dev_only@localhost:56380` para reutilizar el
+ * de `infra/docker-compose.dev.yml` — ver `packages/e2e/README.md`.
  */
 function redisUrl(): string {
   return process.env.E2E_REDIS_URL ?? process.env.REDIS_URL ?? "redis://localhost:6379";

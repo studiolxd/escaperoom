@@ -16,6 +16,11 @@ describe("env helpers", () => {
     expect(bool(true).parse(undefined)).toBe(true);
   });
 
+  it("bool acepta '1' como verdadero, coherente con mail/transport.ts (E-21)", () => {
+    expect(bool(false).parse("1")).toBe(true);
+    expect(bool(true).parse("0")).toBe(false);
+  });
+
   it("emptyStringAsUndefined turns empty strings into undefined", () => {
     expect(emptyStringAsUndefined({ A: "", B: "x" })).toEqual({ A: undefined, B: "x" });
   });

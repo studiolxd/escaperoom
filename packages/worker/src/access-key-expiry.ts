@@ -1,12 +1,12 @@
-import { Queue, Worker } from "bullmq";
+import type { Queue, Worker } from "bullmq";
 import type Redis from "ioredis";
-import { asBullConnection, queuePrefix } from "@escaperoom/kit/queue";
 import { logger } from "@escaperoom/kit/logger";
 import {
   expireAccessKeys,
   type AccessKeyStore,
   type ExpirySweepResult,
 } from "@escaperoom/shared/services";
+import { createScheduledWorker } from "./scheduled-worker";
 
 /**
  * Job de caducidad de claves (ticket 5.5, specs/02 §4.3). Un scheduler de BullMQ
@@ -50,27 +50,13 @@ export type AccessKeyExpiryWorkerOptions = {
 export async function createAccessKeyExpiryWorker(
   opts: AccessKeyExpiryWorkerOptions,
 ): Promise<{ worker: Worker; queue: Queue }> {
-  const connection = asBullConnection(opts.connection);
-  const queue = new Queue(ACCESS_KEY_EXPIRY_QUEUE_NAME, { connection, prefix: queuePrefix() });
-  await queue.upsertJobScheduler(
-    ACCESS_KEY_EXPIRY_SCHEDULER_ID,
-    { every: opts.everyMs ?? DEFAULT_ACCESS_KEY_EXPIRY_EVERY_MS },
-    { name: "sweep", opts: { removeOnComplete: 100, removeOnFail: 500 } },
-  );
-
-  const worker = new Worker(
-    ACCESS_KEY_EXPIRY_QUEUE_NAME,
-    async () => {
-      await processAccessKeyExpiry(opts.store);
-    },
-    // Una pasada a la vez: los UPDATE ya cubren todo el conjunto.
-    { connection, prefix: queuePrefix(), concurrency: 1 },
-  );
-  worker.on("failed", (job, err) => {
-    logger.warn({ err, jobId: job?.id }, "access-key expiry: la pasada falló");
+  return createScheduledWorker({
+    name: "access-key expiry",
+    schedulerId: ACCESS_KEY_EXPIRY_SCHEDULER_ID,
+    jobName: "sweep",
+    repeat: { every: opts.everyMs ?? DEFAULT_ACCESS_KEY_EXPIRY_EVERY_MS },
+    connection: opts.connection,
+    queueName: ACCESS_KEY_EXPIRY_QUEUE_NAME,
+    process: () => processAccessKeyExpiry(opts.store),
   });
-  worker.on("error", (err) => {
-    logger.warn({ err }, "access-key expiry: error de conexión");
-  });
-  return { worker, queue };
 }

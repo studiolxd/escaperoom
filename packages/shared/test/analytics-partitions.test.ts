@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  ANALYTICS_PARTITIONS_AHEAD,
   addMonths,
   createPartitionSql,
   detachPartitionSql,
   dropPartitionSql,
+  isNextMonthPartitionMissing,
   maintainAnalyticsPartitions,
   parsePartitionName,
   partitionBounds,
@@ -54,9 +56,32 @@ describe("cálculo de meses (UTC)", () => {
   });
 });
 
+describe("isNextMonthPartitionMissing (E-6, señal para /api/health)", () => {
+  it("false si la partición del mes siguiente existe", () => {
+    const existing = ["analyticsEvent_2026_09", "analyticsEvent_2026_10"];
+    expect(isNextMonthPartitionMissing(existing, new Date("2026-09-15T00:00:00Z"))).toBe(false);
+  });
+
+  it("true si falta — el escenario que hace que INSERT empiece a fallar el mes que viene", () => {
+    const existing = ["analyticsEvent_2026_09"];
+    expect(isNextMonthPartitionMissing(existing, new Date("2026-09-15T00:00:00Z"))).toBe(true);
+  });
+
+  it("cruza el año correctamente", () => {
+    expect(isNextMonthPartitionMissing(["analyticsEvent_2027_01"], new Date("2026-12-15T00:00:00Z"))).toBe(
+      false,
+    );
+    expect(isNextMonthPartitionMissing([], new Date("2026-12-15T00:00:00Z"))).toBe(true);
+  });
+});
+
 describe("planPartitionMaintenance — creación", () => {
-  it("crea la partición del mes actual y la del siguiente si faltan", () => {
-    const plan = planPartitionMaintenance({ now: new Date("2026-11-15T10:00:00Z"), existing: [] });
+  it("crea la partición del mes actual y la del siguiente si faltan (monthsAhead: 1)", () => {
+    const plan = planPartitionMaintenance({
+      now: new Date("2026-11-15T10:00:00Z"),
+      existing: [],
+      monthsAhead: 1,
+    });
     expect(plan.create.map(partitionName)).toEqual([
       "analyticsEvent_2026_11",
       "analyticsEvent_2026_12",
@@ -66,16 +91,22 @@ describe("planPartitionMaintenance — creación", () => {
   it("no crea nada si ya existen (idempotente)", () => {
     const plan = planPartitionMaintenance({
       now: new Date("2026-09-23T00:00:00Z"),
-      existing: ["analyticsEvent_2026_09", "analyticsEvent_2026_10"],
+      existing: [
+        "analyticsEvent_2026_09",
+        "analyticsEvent_2026_10",
+        "analyticsEvent_2026_11",
+        "analyticsEvent_2026_12",
+      ],
     });
     expect(plan.create).toEqual([]);
     expect(plan.drop).toEqual([]);
   });
 
-  it("en diciembre crea la de enero del año siguiente", () => {
+  it("en diciembre crea la de enero del año siguiente (monthsAhead: 1)", () => {
     const plan = planPartitionMaintenance({
       now: new Date("2026-12-01T03:00:00Z"),
       existing: ["analyticsEvent_2026_12"],
+      monthsAhead: 1,
     });
     expect(plan.create.map(partitionName)).toEqual(["analyticsEvent_2027_01"]);
   });
@@ -85,6 +116,19 @@ describe("planPartitionMaintenance — creación", () => {
       now: new Date("2026-09-23T00:00:00Z"),
       existing: ["analyticsEvent_2026_09"],
       monthsAhead: 3,
+    });
+    expect(plan.create.map(partitionName)).toEqual([
+      "analyticsEvent_2026_10",
+      "analyticsEvent_2026_11",
+      "analyticsEvent_2026_12",
+    ]);
+  });
+
+  it("por defecto (E-6) crea 3 meses por delante, no solo 1", () => {
+    expect(ANALYTICS_PARTITIONS_AHEAD).toBe(3);
+    const plan = planPartitionMaintenance({
+      now: new Date("2026-09-23T00:00:00Z"),
+      existing: ["analyticsEvent_2026_09"],
     });
     expect(plan.create.map(partitionName)).toEqual([
       "analyticsEvent_2026_10",
@@ -216,6 +260,7 @@ describe("maintainAnalyticsPartitions", () => {
     const { db, executed } = fakeDb(["analyticsEvent_2026_09", "analyticsEvent_2024_08"]);
     const result = await maintainAnalyticsPartitions(db, {
       now: new Date("2026-09-23T00:00:00Z"),
+      monthsAhead: 1,
     });
     expect(result).toEqual({
       status: "done",
@@ -223,6 +268,7 @@ describe("maintainAnalyticsPartitions", () => {
       dropped: ["analyticsEvent_2024_08"],
       ignored: [],
       cutoff: "2024-09",
+      defaultPartitionHasRows: false,
     });
     expect(executed).toEqual([
       "SET LOCAL lock_timeout = '10s'",
@@ -236,8 +282,8 @@ describe("maintainAnalyticsPartitions", () => {
     const { db, executed } = fakeDb(["analyticsEvent_2024_08"]);
     const now = new Date("2026-09-23T00:00:00Z");
     const results = await Promise.all([
-      maintainAnalyticsPartitions(db, { now }),
-      maintainAnalyticsPartitions(db, { now }),
+      maintainAnalyticsPartitions(db, { now, monthsAhead: 1 }),
+      maintainAnalyticsPartitions(db, { now, monthsAhead: 1 }),
     ]);
     expect(results.map((r) => r.status).sort()).toEqual(["done", "locked"]);
     expect(executed.filter((s) => s.startsWith("DROP"))).toHaveLength(1);
@@ -256,5 +302,46 @@ describe("maintainAnalyticsPartitions", () => {
         }),
     };
     await expect(maintainAnalyticsPartitions(db)).rejects.toThrow("lock timeout");
+  });
+
+  it("E-6: si la partición DEFAULT existe y tiene filas, lo reporta en defaultPartitionHasRows", async () => {
+    const existing = ["analyticsEvent_2026_09", "analyticsEvent_default"];
+    const db: PartitionMaintenanceDb = {
+      transaction: (fn) =>
+        fn({
+          query: async <T>(sql: string) => {
+            if (sql.includes("advisory")) return [{ locked: true }] as T[];
+            if (sql.includes("EXISTS")) return [{ exists: true }] as T[];
+            return existing.map((name) => ({ name })) as T[];
+          },
+          execute: async () => {},
+        }),
+    };
+    const result = await maintainAnalyticsPartitions(db, {
+      now: new Date("2026-09-23T00:00:00Z"),
+      monthsAhead: 1,
+    });
+    expect(result).toMatchObject({ status: "done", ignored: ["analyticsEvent_default"] });
+    if (result.status === "done") expect(result.defaultPartitionHasRows).toBe(true);
+  });
+
+  it("E-6: si la partición DEFAULT existe pero está vacía, no alerta", async () => {
+    const existing = ["analyticsEvent_2026_09", "analyticsEvent_default"];
+    const db: PartitionMaintenanceDb = {
+      transaction: (fn) =>
+        fn({
+          query: async <T>(sql: string) => {
+            if (sql.includes("advisory")) return [{ locked: true }] as T[];
+            if (sql.includes("EXISTS")) return [{ exists: false }] as T[];
+            return existing.map((name) => ({ name })) as T[];
+          },
+          execute: async () => {},
+        }),
+    };
+    const result = await maintainAnalyticsPartitions(db, {
+      now: new Date("2026-09-23T00:00:00Z"),
+      monthsAhead: 1,
+    });
+    if (result.status === "done") expect(result.defaultPartitionHasRows).toBe(false);
   });
 });

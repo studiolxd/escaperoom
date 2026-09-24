@@ -1,3 +1,4 @@
+import { logger } from "@escaperoom/kit/logger";
 import {
   renderPurchaseConfirmationEmail,
   resolveMailLocale,
@@ -29,10 +30,59 @@ export type PurchaseConfirmationDetails = {
   players: number | null;
 };
 
+/**
+ * Ventana del barrido periódico (E-11, revisión de PR #119):
+ * - `recentCutoff` (límite superior de "pending"): no toca nada pagado/creado
+ *   después de esto — deja el margen de gracia al intento del propio webhook.
+ * - `abandonCutoff` (límite inferior de "pending", superior de "abandoned"):
+ *   lo pagado/creado antes de esto lleva sin confirmar más que la ventana
+ *   máxima razonable; se considera abandonado (se deja de reencolar y se
+ *   reporta como error) en vez de reintentarlo para siempre.
+ * - `abandonWindowStart` (límite inferior de "abandoned"): sin él, una fila
+ *   abandonada seguiría cayendo en el bucket "abandoned" (y alertándose) en
+ *   TODAS las pasadas futuras, para siempre. Acota "abandoned" a lo que cruzó
+ *   el umbral justo en el último intervalo de barrido — cada fila se reporta
+ *   una sola vez, no en cada pasada mientras siga sin confirmar.
+ * - `limit`: tope de filas por bucket y pasada (una tabla con muchas filas
+ *   sin marcar — p. ej. tras un backfill mal hecho — no debe convertir un
+ *   barrido de 5 minutos en una consulta sin límite).
+ */
+export type PendingConfirmationsWindow = {
+  recentCutoff: Date;
+  abandonCutoff: Date;
+  abandonWindowStart: Date;
+  limit: number;
+};
+
+export type PendingConfirmations = {
+  /** Dentro de la ventana: se reencolan. */
+  pending: PurchaseConfirmationEmailJob[];
+  /** Más viejos que `abandonCutoff` y aún sin confirmar: no se reencolan más, se alertan. */
+  abandoned: PurchaseConfirmationEmailJob[];
+};
+
 /** Puerto de persistencia (ADR-022): relee la compra/evento por su id en cada envío. */
 export interface PurchaseConfirmationStore {
   /** `null` si la compra/evento ya no existe o no está en un estado que justifique el envío. */
   findDetails(job: PurchaseConfirmationEmailJob): Promise<PurchaseConfirmationDetails | null>;
+  /**
+   * Marca de verdad en Postgres de que el email se entregó (E-11, outbox):
+   * la pone el worker aquí, tras un `transport.send()` que no lanzó — nunca
+   * el webhook al encolar, que solo sabe que el job entró en Redis, no que se
+   * entregó. `findPendingConfirmations` la usa para reencolar lo que no la
+   * tiene pese a llevar un margen sin ella.
+   */
+  markConfirmationSent(job: PurchaseConfirmationEmailJob): Promise<void>;
+  /**
+   * Compras `succeeded`/eventos pagados sin `confirmationSentAt` dentro de la
+   * ventana (ver `PendingConfirmationsWindow`). Alimenta el barrido periódico
+   * (E-11): si `enqueue()` devolvió `null` porque Redis estaba caído justo al
+   * liquidar el pago, esto es lo que reencola el email sin depender de que
+   * nadie lo reintente a mano — acotado en el tiempo y en el número de filas
+   * para no reenviar de golpe todo el histórico (p. ej. al desplegar esta
+   * migración) ni convertir el barrido en una consulta sin límite.
+   */
+  findPendingConfirmations(window: PendingConfirmationsWindow): Promise<PendingConfirmations>;
 }
 
 /** Cola de envíos (en web, el handle de `createPurchaseConfirmationEmailQueue`). */
@@ -89,6 +139,17 @@ export async function deliverPurchaseConfirmationEmail(
     // Un mensaje por compra: que el cliente no las agrupe en un hilo.
     headers: { "X-Entity-Ref-ID": `purchase-confirmation:${job.kind}:${jobRef(job)}` },
   });
+  // E-11: se marca DESPUÉS del envío, no antes — si `transport.send` lanza,
+  // BullMQ reintenta y `confirmationSentAt` sigue null (correcto: no se sabe
+  // si se entregó). Un fallo al marcar no debe perder que el email SÍ se
+  // envió: se registra pero no se relanza (el peor caso es que el barrido lo
+  // reencole y el destinatario reciba un duplicado, no que se quede sin él).
+  await deps.store.markConfirmationSent(job).catch((err: unknown) => {
+    logger.error(
+      { err, kind: job.kind, ref: jobRef(job) },
+      "purchase confirmation: el email se envió pero no se pudo marcar confirmationSentAt",
+    );
+  });
   return { status: "sent", messageId };
 }
 
@@ -96,10 +157,18 @@ export async function deliverPurchaseConfirmationEmail(
 
 export function createInMemoryPurchaseConfirmationStore(
   details: Record<string, PurchaseConfirmationDetails>,
-): PurchaseConfirmationStore {
+): PurchaseConfirmationStore & { sent: Set<string> } {
+  const sent = new Set<string>();
   return {
+    sent,
     async findDetails(job) {
       return details[`${job.kind}:${jobRef(job)}`] ?? null;
+    },
+    async markConfirmationSent(job) {
+      sent.add(`${job.kind}:${jobRef(job)}`);
+    },
+    async findPendingConfirmations() {
+      return { pending: [], abandoned: [] };
     },
   };
 }

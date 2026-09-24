@@ -5,6 +5,9 @@ vi.mock("../src/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
+const getRedisMock = vi.fn();
+vi.mock("../src/redis", () => ({ getRedis: () => getRedisMock() }));
+
 import { createWorkerHealthHandler, redisHealth } from "../src/health/index";
 
 describe("createWorkerHealthHandler", () => {
@@ -51,10 +54,31 @@ describe("createWorkerHealthHandler", () => {
 });
 
 describe("redisHealth", () => {
-  beforeEach(() => vi.unstubAllEnvs());
+  beforeEach(() => {
+    vi.unstubAllEnvs();
+    getRedisMock.mockReset();
+  });
 
   it("reports not_configured without REDIS_URL", async () => {
     vi.stubEnv("REDIS_URL", undefined);
+    getRedisMock.mockReturnValue(null);
     await expect(redisHealth()).resolves.toBe("not_configured");
+  });
+
+  it("reports up when PING resolves", async () => {
+    getRedisMock.mockReturnValue({ ping: () => Promise.resolve("PONG") });
+    await expect(redisHealth()).resolves.toBe("up");
+  });
+
+  it("reports down (not hung) when PING never resolves — E-12: acotado con timeout", async () => {
+    vi.useFakeTimers();
+    try {
+      getRedisMock.mockReturnValue({ ping: () => new Promise<never>(() => {}) });
+      const result = redisHealth();
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(result).resolves.toBe("down");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

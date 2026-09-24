@@ -41,14 +41,17 @@ export {
   type AnalyticsValidation,
 } from "../schemas/analytics";
 export {
+  ANALYTICS_DEFAULT_PARTITION_NAME,
   ANALYTICS_EVENT_TABLE,
   ANALYTICS_PARTITIONS_AHEAD,
   ANALYTICS_PARTITIONS_LOCK_KEY,
   ANALYTICS_RETENTION_MONTHS,
+  LIST_PARTITIONS_SQL,
   addMonths,
   createPartitionSql,
   detachPartitionSql,
   dropPartitionSql,
+  isNextMonthPartitionMissing,
   maintainAnalyticsPartitions,
   parsePartitionName,
   partitionBounds,

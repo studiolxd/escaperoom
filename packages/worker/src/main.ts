@@ -1,6 +1,8 @@
 import { existsSync } from "node:fs";
+import type { Worker } from "bullmq";
 import { requireInProduction } from "@escaperoom/env";
 import { createQueueRedis } from "@escaperoom/kit/redis";
+import { closeSharedQueueConnection } from "@escaperoom/kit/queue";
 import { logger } from "@escaperoom/kit/logger";
 import { initNodeSentry } from "@escaperoom/kit/observability/sentry-node";
 import { storage } from "@escaperoom/kit/storage";
@@ -28,8 +30,13 @@ import { createAccessKeyEmailPurgeWorker } from "./access-key-email-purge";
 import { createIpUaPurgeWorker } from "./ip-ua-purge";
 import { createInvitationEmailWorker } from "./invitation-email";
 import { createPurchaseConfirmationEmailWorker } from "./purchase-confirmation-email";
+import { createPurchaseConfirmationOutboxWorker } from "./purchase-confirmation-outbox";
 import { createModerationSamplingWorker } from "./moderation-sampling";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
+import { startWorkerHealthServer } from "./health-server";
+
+/** Tiempo máximo para cerrar limpio antes de forzar la salida (E-9). */
+const SHUTDOWN_TIMEOUT_MS = 30_000;
 
 /**
  * Arranque de los workers de cola: analítica (specs/16), caducidad de claves
@@ -174,6 +181,19 @@ async function main(): Promise<void> {
     logger.info({ provider: transport?.provider }, "purchase confirmation email: consumiendo la cola");
   }
 
+  // Outbox (E-11): reencola cualquier compra/evento pagado sin confirmar tras
+  // el margen de gracia — la red si el enqueue del webhook se perdió (Redis
+  // caído justo al liquidar el pago). Solo tiene sentido con transporte
+  // configurado: sin él nadie consume lo que reencola.
+  const purchaseConfirmationOutboxConnection = transport ? createQueueRedis() : null;
+  const purchaseConfirmationOutbox =
+    transport && purchaseConfirmationOutboxConnection
+      ? await createPurchaseConfirmationOutboxWorker({
+          store: createPrismaPurchaseConfirmationStore(prisma),
+          connection: purchaseConfirmationOutboxConnection,
+        })
+      : null;
+
   // PDF de tarjetas: el mismo servicio que web, sin cola ni firma (solo renderiza y sube).
   const cardsConnection = createQueueRedis();
   const cards = createAccessKeyCardsWorker({
@@ -203,11 +223,31 @@ async function main(): Promise<void> {
     connection: samplingConnection,
   });
 
+  // Todos los Worker de BullMQ en marcha, para el readiness de /healthz: si
+  // cualquiera deja de consumir (`isRunning() === false`) sin que el proceso
+  // se haya caído, un orquestador debe poder verlo y reiniciar el pod.
+  const allWorkers = (): Worker[] =>
+    [
+      worker,
+      expiry.worker,
+      emailPurge?.worker,
+      ipUaPurge?.worker,
+      invitations,
+      purchaseConfirmations,
+      cards,
+      partitions.worker,
+      sampling.worker,
+      purchaseConfirmationOutbox?.worker,
+    ].filter((w): w is Worker => Boolean(w));
+
   let closing = false;
-  const shutdown = async (signal: string): Promise<void> => {
-    if (closing) return;
-    closing = true;
-    logger.info({ signal }, "analytics worker: cerrando");
+  const healthServer = startWorkerHealthServer({
+    shuttingDown: () => closing,
+    workersRunning: () => allWorkers().every((w) => w.isRunning()),
+    redis: () => connection,
+  });
+
+  const closeEverything = async (): Promise<void> => {
     await worker.close();
     await expiry.worker.close();
     await expiry.queue.close();
@@ -222,6 +262,11 @@ async function main(): Promise<void> {
     await partitions.queue.close();
     await sampling.worker.close();
     await sampling.queue.close();
+    await purchaseConfirmationOutbox?.worker.close();
+    await purchaseConfirmationOutbox?.queue.close();
+    await new Promise<void>((resolve, reject) =>
+      healthServer ? healthServer.close((err) => (err ? reject(err) : resolve())) : resolve(),
+    ).catch((err: unknown) => logger.warn({ err }, "analytics worker: fallo cerrando /healthz"));
     await connection.quit().catch(() => undefined);
     await expiryConnection.quit().catch(() => undefined);
     await emailPurgeConnection?.quit().catch(() => undefined);
@@ -231,7 +276,35 @@ async function main(): Promise<void> {
     await cardsConnection.quit().catch(() => undefined);
     await partitionsConnection.quit().catch(() => undefined);
     await samplingConnection.quit().catch(() => undefined);
+    await purchaseConfirmationOutboxConnection?.quit().catch(() => undefined);
+    // El propio barrido reencola con la conexión "productora" compartida de
+    // kit (misma que usaría un `createPurchaseConfirmationEmailQueue()` en
+    // web), no con `purchaseConfirmationOutboxConnection` (esa es solo del
+    // Worker que consume el scheduler).
+    if (purchaseConfirmationOutbox) await closeSharedQueueConnection().catch(() => undefined);
     await prisma.$disconnect().catch(() => undefined);
+  };
+
+  // Apagado acotado (E-9): antes encadenaba 18 `await` sin límite — una
+  // conexión de Redis colgada (p. ej. a mitad de un `BRPOPLPUSH`) dejaba el
+  // proceso sin salir nunca, y sin `process.exit` un handle huérfano (timer,
+  // socket) también lo habría hecho. `Promise.race` con un timeout de
+  // `SHUTDOWN_TIMEOUT_MS` y `process.exit` al final garantizan que el proceso
+  // siempre termina, limpio o no.
+  const shutdown = async (signal: string): Promise<void> => {
+    if (closing) return;
+    closing = true;
+    logger.info({ signal }, "analytics worker: cerrando");
+    const timedOut = Symbol("shutdown-timeout");
+    const result = await Promise.race([
+      closeEverything().then(() => "closed" as const),
+      new Promise<typeof timedOut>((resolve) => setTimeout(() => resolve(timedOut), SHUTDOWN_TIMEOUT_MS)),
+    ]);
+    if (result === timedOut) {
+      logger.error({ signal, timeoutMs: SHUTDOWN_TIMEOUT_MS }, "analytics worker: apagado forzado por timeout");
+      process.exit(1);
+    }
+    process.exit(0);
   };
 
   process.on("SIGINT", () => void shutdown("SIGINT"));

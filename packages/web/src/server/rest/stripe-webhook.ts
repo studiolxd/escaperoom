@@ -42,6 +42,28 @@ function eventIdFromMetadata(metadata: Stripe.Metadata | null | undefined): stri
 }
 
 /**
+ * `enqueue` no lanza (E-11): si Redis está caído justo al liquidar el pago,
+ * devuelve `null` en silencio (por diseño — no puede tumbar el webhook de
+ * Stripe, que Stripe reintenta por otro motivo, no por este). Antes eso
+ * significaba que el email de confirmación se perdía sin dejar ni un log. El
+ * barrido periódico (`purchase-confirmation-outbox`, packages/worker) lo
+ * reencola de todas formas vía `confirmationSentAt`; esto es solo la
+ * visibilidad de que ocurrió, para que no pase desapercibido en producción.
+ */
+async function enqueueConfirmation(
+  confirmations: PurchaseConfirmationQueue,
+  job: Parameters<PurchaseConfirmationQueue["enqueue"]>[0],
+): Promise<void> {
+  const jobId = await confirmations.enqueue(job);
+  if (jobId === null) {
+    logger.error(
+      { kind: job.kind, ref: "purchaseId" in job ? job.purchaseId : job.eventId },
+      "stripe-webhook: no se pudo encolar el email de confirmación de compra (Redis caído o colas deshabilitadas)",
+    );
+  }
+}
+
+/**
  * Procesa un evento ya verificado. Cubre los tres `purchaseType`
  * (`room`, `room_license`, `event_credits`); sin pasarela cableada
  * (`getPurchaseService`/`getEventService`/`getRoomLicenseService` con
@@ -63,21 +85,21 @@ async function dispatch(deps: StripeWebhookHandlerDeps, event: Stripe.Event): Pr
           // Contrato por escrito + renuncia al desistimiento en soporte duradero
           // (specs/18 §3-4, art. 27 LSSI, art. 103.m LGDCU): un email propio, el
           // recibo de Stripe no basta.
-          await confirmations.enqueue({ kind: "room", purchaseId });
+          await enqueueConfirmation(confirmations, { kind: "room", purchaseId });
           return;
         }
         case "room_license": {
           const purchaseId = purchaseIdFromMetadata(session.metadata);
           if (!purchaseId || !paymentIntentId) return;
           await roomLicenses.confirmLicensePayment(purchaseId, { paymentRef: paymentIntentId });
-          await confirmations.enqueue({ kind: "room_license", purchaseId });
+          await enqueueConfirmation(confirmations, { kind: "room_license", purchaseId });
           return;
         }
         case "event_credits": {
           const eventId = eventIdFromMetadata(session.metadata);
           if (!eventId) return;
           await events.markPaid(eventId);
-          await confirmations.enqueue({ kind: "event_credits", eventId });
+          await enqueueConfirmation(confirmations, { kind: "event_credits", eventId });
           return;
         }
         default:

@@ -1,12 +1,12 @@
-import { Queue, Worker } from "bullmq";
+import type { Queue, Worker } from "bullmq";
 import type Redis from "ioredis";
-import { asBullConnection, queuePrefix } from "@escaperoom/kit/queue";
 import { logger } from "@escaperoom/kit/logger";
 import {
   sweepIpUaRetention,
   type IpUaPurgeStore,
   type IpUaPurgeSweepResult,
 } from "@escaperoom/shared/services";
+import { createScheduledWorker } from "./scheduled-worker";
 
 /**
  * Job de purga de IP/user-agent (specs/18 §4.1): a los 90 días se sustituyen
@@ -58,27 +58,13 @@ export type IpUaPurgeWorkerOptions = {
 export async function createIpUaPurgeWorker(
   opts: IpUaPurgeWorkerOptions,
 ): Promise<{ worker: Worker; queue: Queue }> {
-  const connection = asBullConnection(opts.connection);
-  const queue = new Queue(IP_UA_PURGE_QUEUE_NAME, { connection, prefix: queuePrefix() });
-  await queue.upsertJobScheduler(
-    IP_UA_PURGE_SCHEDULER_ID,
-    { every: opts.everyMs ?? DEFAULT_IP_UA_PURGE_EVERY_MS },
-    { name: "sweep", opts: { removeOnComplete: 100, removeOnFail: 500 } },
-  );
-
-  const worker = new Worker(
-    IP_UA_PURGE_QUEUE_NAME,
-    async () => {
-      await processIpUaPurge(opts.stores, opts.secret);
-    },
-    // Una pasada a la vez: los UPDATE/DELETE ya cubren todo el conjunto.
-    { connection, prefix: queuePrefix(), concurrency: 1 },
-  );
-  worker.on("failed", (job, err) => {
-    logger.warn({ err, jobId: job?.id }, "ip/user-agent purge: la pasada falló");
+  return createScheduledWorker({
+    name: "ip/user-agent purge",
+    schedulerId: IP_UA_PURGE_SCHEDULER_ID,
+    jobName: "sweep",
+    repeat: { every: opts.everyMs ?? DEFAULT_IP_UA_PURGE_EVERY_MS },
+    connection: opts.connection,
+    queueName: IP_UA_PURGE_QUEUE_NAME,
+    process: () => processIpUaPurge(opts.stores, opts.secret),
   });
-  worker.on("error", (err) => {
-    logger.warn({ err }, "ip/user-agent purge: error de conexión");
-  });
-  return { worker, queue };
 }

@@ -1,0 +1,17 @@
+# E-15: sin este fichero no había ningún mecanismo automático que avisara de
+# dependencias con vulnerabilidades conocidas (aparte de correr `pnpm audit`
+# a mano). Cubre las acciones de los workflows y las dependencias npm/pnpm del
+# monorepo (un solo ecosystem "npm" entry basta: pnpm usa el mismo registro y
+# Dependabot resuelve el workspace desde la raíz).
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10

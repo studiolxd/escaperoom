@@ -23,9 +23,41 @@ de desarrollo) — requiere tener esos binarios instalados y de versión ≥ la 
 ```bash
 pnpm db:backup                                    # vuelca la BD de packages/shared/.env
 pnpm db:backup -- --db escaperoom                 # vuelca una base concreta del contenedor
+pnpm db:backup -- --direct --encrypt yo@edad.pub  # producción: pg_dump local + cifrado con age
 pnpm db:restore -- backups/escaperoom-*.dump      # restaura en escaperoom_restore_test
 pnpm db:restore -- backups/escaperoom-*.dump \
   --verify-table user --verify-count 12           # + comprueba el recuento
+pnpm db:restore -- backups/prod-*.dump --direct \
+  --target escaperoom_staging                     # producción: restaura en OTRA base, nunca la activa
+```
+
+### `--direct`: nunca sobre la base activa por accidente
+
+`--direct --target` debe ser explícito y **distinto** de la base de `$DATABASE_URL`; si no lo es,
+el script se niega a arrancar. Para el caso deliberado de sobrescribir esa misma base (recuperar un
+desastre en el sitio, por ejemplo) hay que repetir con `--i-know-this-overwrites`, que además pide
+teclear el nombre de la base para confirmar. Antes de restaurar, el script intenta un `pg_dump` de
+seguridad de la base destino (si ya existía) a `backups/<target>-pre-restore-<fecha>.dump`, para
+poder deshacer un restore equivocado.
+
+Ni `backup-postgres.sh --direct` ni `restore-postgres.sh --direct` pasan nunca la URI completa (con
+la contraseña) como argumento de `pg_dump`/`pg_restore` — quedaría visible en `ps`/`/proc` durante
+todo el volcado/restore. En su lugar descomponen `DATABASE_URL` en `PGHOST`/`PGPORT`/`PGUSER`/
+`PGPASSWORD` (que libpq lee del entorno del proceso, no de sus argumentos). El `.env` se lee con
+`grep -E '^DATABASE_URL='` (`scripts/lib/pg-url.sh`), nunca con `source`: un `.env` manipulado con
+código de shell no debe poder ejecutarse como el cron/script que lo carga. Alternativa igual de
+válida en producción: exportar `PGHOST`/`PGUSER`/`PGPASSWORD` directamente (o usar `~/.pgpass` /
+`PGSERVICE`) y omitir `DATABASE_URL`.
+
+### Cifrado de los dumps (opcional)
+
+Los dumps contienen PII (specs/22). Si el destino donde se suben (bucket, volumen) no cifra en
+reposo, cifra el `.dump` con `age` (recomendado) o `gpg`:
+
+```bash
+pnpm db:backup -- --direct --encrypt <destinatario-age-o-ruta-de-clave-pública>
+# o, a mano, sobre un dump ya generado:
+gpg --encrypt -r <destinatario> --output f.dump.gpg f.dump
 ```
 
 ## Por qué una base de prueba y no la real
@@ -63,8 +95,12 @@ programado no sirve y hay que investigar antes de que haga falta de verdad.
 0 3 * * * cd /ruta/al/repo && scripts/backup-postgres.sh --direct >> /var/log/escaperoom-backup.log 2>&1
 
 # Semanal: restaura el último backup contra la base de prueba y verifica.
-0 4 * * 0 cd /ruta/al/repo && LATEST=$(ls -t backups/*.dump | head -1) && \
-  scripts/restore-postgres.sh "$LATEST" --verify-table room --verify-count "$(psql "$DATABASE_URL" -Atc 'select count(*) from room')" \
+# (el recuento se saca con las mismas PGHOST/PGUSER/PGPASSWORD que usan los
+# scripts, nunca pasando la URI con la contraseña como argumento de psql).
+0 4 * * 0 cd /ruta/al/repo && source scripts/lib/pg-url.sh && pg_url_export_env "$DATABASE_URL" && \
+  LATEST=$(ls -t backups/*.dump | head -1) && \
+  COUNT=$(psql -Atc 'select count(*) from room') && \
+  scripts/restore-postgres.sh "$LATEST" --verify-table room --verify-count "$COUNT" \
   >> /var/log/escaperoom-restore-check.log 2>&1
 ```
 

@@ -22,7 +22,7 @@ import { EditorSyncProvider } from "@escaperoom/editor";
 // `@escaperoom/kit/room-sync` funciona de punta a punta entre DOS procesos
 // `editor-sync` de verdad.
 //
-//   REDIS_URL=redis://localhost:56380 pnpm --filter @escaperoom/web test
+//   REDIS_URL=redis://:redis_dev_only@localhost:56380 pnpm --filter @escaperoom/web test
 // ---------------------------------------------------------------------------
 
 const hasRedis = Boolean(process.env.REDIS_URL);

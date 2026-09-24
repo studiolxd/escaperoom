@@ -37,6 +37,19 @@ minimumReleaseAgeExclude:
 # TypeScript 7 todavía no lo soporta typescript-eslint (error "does not support
 # TS 7.0"), así que se fija la última 6.x. Se subirá cuando el toolchain lo
 # soporte.
+#
+# §9.5 (pnpm audit): @better-auth/cli@1.4.21 fija internamente better-auth
+# 1.4.21 (con el drizzle-adapter ese better-auth trae drizzle-orm 0.41.0) —
+# ninguna versión publicada de @better-auth/cli (incluidas las 1.5 beta) usa
+# todavía un better-auth >= 1.6.22, así que se fuerza aquí a la misma versión
+# que ya usa el runtime (better-auth@1.7.5, no afectada) y se sube drizzle-orm
+# a la mínima parcheada (GHSA-gpj5-g38j-94v9) dentro del rango que exige el
+# adapter de esa versión (^0.45.2). lodash y deepmerge-ts también a sus
+# mínimas parcheadas (transitivos de @colyseus/core>@pm2/io y @prisma/config).
 overrides:
   typescript: ^6.0.3
   "@types/node": ^26.6.2
+  better-auth: 1.7.5
+  drizzle-orm: ^0.45.3
+  lodash: ^4.18.1
+  deepmerge-ts: ^8.0.2

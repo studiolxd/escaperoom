@@ -54,7 +54,10 @@ describe("processAnalyticsPartitions", () => {
       "analyticsEvent_2026_09",
       "analyticsEvent_2028_09",
     ]);
-    const result = await processAnalyticsPartitions(db, { now: new Date("2028-09-01T03:00:00Z") });
+    const result = await processAnalyticsPartitions(db, {
+      now: new Date("2028-09-01T03:00:00Z"),
+      monthsAhead: 1,
+    });
     expect(result).toMatchObject({
       status: "done",
       created: ["analyticsEvent_2028_10"],
@@ -98,7 +101,7 @@ describe("processAnalyticsPartitions", () => {
 
 // ---------------------------------------------------------------------------
 // Integración GATEADA: BullMQ real contra Redis (en CI no hay Redis y se salta).
-//   REDIS_URL=redis://localhost:56380 pnpm --filter @escaperoom/worker test
+//   REDIS_URL=redis://:redis_dev_only@localhost:56380 pnpm --filter @escaperoom/worker test
 // ---------------------------------------------------------------------------
 const hasRedis = Boolean(process.env.REDIS_URL);
 

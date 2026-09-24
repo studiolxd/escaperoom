@@ -68,7 +68,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
     it("crea la partición del mes actual y la del siguiente, y repetir no falla", async () => {
       const db = createPrismaPartitionMaintenanceDb(prisma);
       // Retención enorme: en esta pasada no se purga nada real.
-      const opts = { now: new Date("2040-01-15T10:00:00Z"), retentionMonths: 1200 };
+      const opts = { now: new Date("2040-01-15T10:00:00Z"), retentionMonths: 1200, monthsAhead: 1 };
 
       const first = await maintainAnalyticsPartitions(db, opts);
       expect(first).toMatchObject({
@@ -113,6 +113,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
       const before = await partitions();
       const result = await maintainAnalyticsPartitions(createPrismaPartitionMaintenanceDb(prisma), {
         now: new Date("2003-02-01T00:00:00Z"),
+        monthsAhead: 1,
       });
       expect(result).toMatchObject({
         status: "done",
@@ -158,6 +159,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
       const before = await partitions();
       const result = await maintainAnalyticsPartitions(createPrismaPartitionMaintenanceDb(prisma), {
         now: new Date("2003-03-10T00:00:00Z"),
+        monthsAhead: 1,
       });
       expect(result).toEqual({ status: "locked" });
       expect(await partitions()).toEqual(before);
@@ -170,8 +172,8 @@ describe.skipIf(!process.env.DATABASE_URL)(
       const db = createPrismaPartitionMaintenanceDb(prisma);
       const now = new Date("2003-03-10T00:00:00Z"); // corte 2001-03 → purga 2001_02
       const results = await Promise.all([
-        maintainAnalyticsPartitions(db, { now }),
-        maintainAnalyticsPartitions(db, { now }),
+        maintainAnalyticsPartitions(db, { now, monthsAhead: 1 }),
+        maintainAnalyticsPartitions(db, { now, monthsAhead: 1 }),
       ]);
 
       const done = results.filter((r) => r.status === "done");
