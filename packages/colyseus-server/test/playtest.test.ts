@@ -130,8 +130,14 @@ describe("token del link de prueba", () => {
   it("sin PLAYTEST_SECRET en producción el playtest queda desactivado", () => {
     expect(readPlaytestConfig({ NODE_ENV: "production" })).toBeNull();
     expect(readPlaytestConfig({ NODE_ENV: "production", PLAYTEST_SECRET: "x" })?.secret).toBe("x");
-    expect(readPlaytestConfig({})?.secret).toBe(DEV_PLAYTEST_SECRET);
-    expect(readPlaytestConfig({ PLAYTEST_TTL_SECONDS: "999999" })?.ttlSeconds).toBe(24 * 60 * 60);
+    expect(readPlaytestConfig({ NODE_ENV: "development" })?.secret).toBe(DEV_PLAYTEST_SECRET);
+    expect(readPlaytestConfig({ NODE_ENV: "test" })?.secret).toBe(DEV_PLAYTEST_SECRET);
+    // E-4: sin NODE_ENV=development|test tampoco hereda el secreto de dev.
+    expect(readPlaytestConfig({})).toBeNull();
+    expect(readPlaytestConfig({ NODE_ENV: "staging" })).toBeNull();
+    expect(
+      readPlaytestConfig({ NODE_ENV: "development", PLAYTEST_TTL_SECONDS: "999999" })?.ttlSeconds,
+    ).toBe(24 * 60 * 60);
   });
 });
 

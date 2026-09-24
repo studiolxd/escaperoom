@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { isDevFallbackAllowed } from "@escaperoom/env";
 
 /**
  * `joinToken` del canje (ticket 5.8, specs/02 §4.5, specs/13 §6.2, specs/11 §8).
@@ -37,7 +38,7 @@ export type JoinTokenConfig = { secret: string; ttlSeconds: number };
 /** Lee la configuración; `null` (canje desactivado) si falta el secreto en producción. */
 export function readJoinTokenConfig(env: JoinTokenEnv = process.env): JoinTokenConfig | null {
   const configured = env.JOIN_TOKEN_SECRET?.trim();
-  const secret = configured || (env.NODE_ENV === "production" ? undefined : DEV_JOIN_TOKEN_SECRET);
+  const secret = configured || (isDevFallbackAllowed(env) ? DEV_JOIN_TOKEN_SECRET : undefined);
   if (!secret) return null;
   const rawTtl = Number.parseInt(env.JOIN_TOKEN_TTL_SECONDS ?? "", 10);
   const ttlSeconds =

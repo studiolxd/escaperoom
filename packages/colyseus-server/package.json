@@ -11,7 +11,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "start": "tsx src/main.ts",
+    "start": "NODE_ENV=production tsx src/main.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"
@@ -20,6 +20,7 @@
     "@colyseus/core": "0.18.14",
     "@colyseus/schema": "5.0.33",
     "@colyseus/ws-transport": "0.18.2",
+    "@escaperoom/env": "workspace:*",
     "@escaperoom/kit": "workspace:*",
     "@escaperoom/shared": "workspace:*",
     "@sentry/node": "^10.69.0",

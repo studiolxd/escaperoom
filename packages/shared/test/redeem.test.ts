@@ -209,8 +209,15 @@ describe("joinToken", () => {
       secret: "x",
       ttlSeconds: 900,
     });
-    expect(readJoinTokenConfig({})?.secret).toBe(DEV_JOIN_TOKEN_SECRET);
-    expect(readJoinTokenConfig({ JOIN_TOKEN_TTL_SECONDS: "999999" })?.ttlSeconds).toBe(7200);
+    expect(readJoinTokenConfig({ NODE_ENV: "development" })?.secret).toBe(DEV_JOIN_TOKEN_SECRET);
+    expect(readJoinTokenConfig({ NODE_ENV: "test" })?.secret).toBe(DEV_JOIN_TOKEN_SECRET);
+    // E-4: sin NODE_ENV=development|test tampoco hereda el secreto de dev.
+    expect(readJoinTokenConfig({})).toBeNull();
+    expect(readJoinTokenConfig({ NODE_ENV: "staging" })).toBeNull();
+    expect(
+      readJoinTokenConfig({ NODE_ENV: "development", JOIN_TOKEN_TTL_SECONDS: "999999" })
+        ?.ttlSeconds,
+    ).toBe(7200);
   });
 });
 
