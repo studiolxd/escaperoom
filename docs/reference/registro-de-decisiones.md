@@ -216,13 +216,34 @@ LiveKit — **una sola fuente de verdad**, nunca se desincronizan.
 
 ---
 
-## ADR-013 — Moderación post-publicación con pre-check automático
+## ADR-013 — Moderación post-publicación con pre-check automático (revisado 2026-09-25)
 
 **Decisión:** publicar es instantáneo; pre-check automático que solo bloquea casos claros;
 moderación por reportes + muestreo; subida de assets custom con cola humana previa. Se añade
 mecanismo de **apelación** (salvo casos críticos).
 
 **Consecuencias:** preserva "de registro a sala publicada en <30 min" y protege el caso educativo.
+
+**Revisión 2026-09-25 (A-3, bloque 6 de la auditoría de seguridad):** un reporte de usuario
+`category: illegal_content | minor_safety` (severidad crítica) entra con **máxima prioridad** en la
+cola (§4.2 de specs/17 ya lo prioriza por severidad), pero **ya no despublica la sala ni congela la
+cuenta del creador de forma automática** al insertarse — eso lo decide un moderador humano al
+revisar la cola, dentro del SLA de <1 h de §4.1.
+
+**Motivo:** la severidad la fija la categoría que elige el propio reportante, sin verificación previa.
+Con la cuota general de reportes (10/10 min por usuario), una única cuenta gratuita podía despublicar
+hasta 60 salas ajenas por hora y dejar sus cuentas congeladas con una simple llamada a la API,
+revertible solo por un moderador. El daño era inmediato, automatizable y desproporcionado frente al
+coste de crear la cuenta que lo dispara.
+
+**Consecuencia práctica:** `ModerationService.report()` ya no llama a `unpublishRoom`/
+`setReviewHidden` ni el reporte crítico pendiente congela la cuenta (`publishBlocker` /
+`ACCOUNT_FROZEN`); el reporte sigue creándose con `severity: "critical"` y ordena primero en
+`listQueue()`. La acción (retirar la sala, ocultar la reseña) y el ban permanente de §5.1 solo se
+aplican cuando un moderador confirma el reporte (`resolveReport`). La cuota de creación de reportes
+para categorías críticas es más estricta que la general (política `report-write-critical`,
+`packages/web/src/server/rate-limit.ts`) para acotar el spam de reportes falsos mientras la cola los
+prioriza. specs/17 §4.1 y §5.1 quedan actualizadas en consecuencia.
 
 ---
 

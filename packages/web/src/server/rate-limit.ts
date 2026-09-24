@@ -65,6 +65,17 @@ export const RATE_LIMIT_POLICIES = {
     ip: { limit: 30, windowSeconds: 600 },
     user: { limit: 10, windowSeconds: 600 },
   },
+  /**
+   * Cuota adicional (se suma a `report-write`) para reportes de categoría
+   * crítica (`illegal_content`, `minor_safety`, A-3/ADR-013 revisado
+   * 2026-09-25): entran con máxima prioridad en la cola, pero sin acción
+   * automática; esta cuota, más estricta, acota el spam de reportes falsos de
+   * esta categoría mientras la revisa un moderador.
+   */
+  "report-write-critical": {
+    ip: { limit: 5, windowSeconds: 600 },
+    user: { limit: 3, windowSeconds: 600 },
+  },
   /** `POST /api/rooms/:roomId/appeal` y `POST /api/me/appeal` (ticket 6.1). */
   "appeal-write": {
     ip: { limit: 20, windowSeconds: 3600 },

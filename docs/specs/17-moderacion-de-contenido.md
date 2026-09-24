@@ -62,7 +62,7 @@ Sobre `contentReport` (`severity`, `category`, `source`) y `GET/PATCH /api/admin
 
 | Severidad | Ejemplos | Primera revisión | Acción mientras se revisa |
 |---|---|---|---|
-| **Crítica** | Contenido ilegal, seguridad de menores, hash conocido | **< 1 h, 24/7** (alerta directa) | Despublicación automática inmediata (§5.1) |
+| **Crítica** | Contenido ilegal, seguridad de menores, hash conocido | **< 1 h, 24/7** (alerta directa) | Sala publicada; entra el primero de la cola (revisado 2026-09-25, ver §5.1 y ADR-013) |
 | **Alta** | Acoso dirigido, contenido sexual no explícito inapropiado, sospecha de voz de tercero | **< 24 h** laborables | Sala publicada salvo reincidencia del mismo creador |
 | **Normal** | Lenguaje ofensivo leve, calidad/spam, copyright dudoso | **< 5 días** laborables | Sin acción hasta revisión |
 | **Baja** | Reseñas duplicadas, quejas de gusto/dificultad | **< 10 días** laborables, o se cierra en lote | Sin acción |
@@ -82,12 +82,21 @@ distintos sobre la misma sala, (3) antigüedad del reporte.
 
 ### 5.1 Crítica (contenido ilegal / seguridad de menores)
 
-1. Despublicación **automática e inmediata** al detectarlo (§3 o reporte con `category:
-   minor_safety | illegal_content`).
-2. Congelación de la cuenta del creador (no borrado, para preservar evidencia).
-3. Revisión humana en <1 h confirma o revierte (falso positivo posible).
-4. Si se confirma: **ban permanente inmediato**, sin política de strikes previa — esta categoría
-   no tiene "primera falta".
+> **Revisado 2026-09-25 (ADR-013, A-3 de la auditoría de seguridad):** un reporte de usuario con
+> `category: minor_safety | illegal_content` **ya no despublica la sala ni congela la cuenta al
+> insertarse**. La severidad la fija la categoría que elige el propio reportante, sin verificación
+> previa: sin este cambio, una cuenta gratuita podía retirar salas ajenas y congelar cuentas al
+> instante, de forma automatizable, con la única cuota general de reportes. La detección
+> automática por hash de contenido ilegal conocido (§3, aún no implementada) es harina de otro
+> costal: ahí sí hay verificación técnica previa a la acción, no la palabra de un reportante.
+
+1. El reporte entra en la cola de moderación con **máxima prioridad** (severidad crítica, §4.2) y
+   una cuota de creación más estricta que la general (política `report-write-critical`).
+2. La sala sigue publicada y la cuenta del creador sigue activa mientras se revisa.
+3. Revisión humana en <1 h confirma o descarta.
+4. Si se confirma: despublicación, **ban permanente inmediato** (sin política de strikes previa —
+   esta categoría no tiene "primera falta") y, si procede, congelación de la cuenta para preservar
+   evidencia.
 5. Conservación de evidencia y, cuando aplique, reporte a las autoridades (canal a definir con
    asesoría legal).
 
