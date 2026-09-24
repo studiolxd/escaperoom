@@ -154,6 +154,39 @@ describe("sliding_puzzle · mezcla determinista", () => {
     expect(isSlidingArrangementSolvable(unsolvable, def)).toBe(false);
     expect(isSlidingArrangementSolvable(slidingSolvedTiles(def), def)).toBe(true);
   });
+
+  /** Referencia O(n²) para comprobar el Fenwick de `countSlidingInversions`. */
+  function countInversionsBruteForce(tiles: number[]): number {
+    let inversions = 0;
+    for (let i = 0; i < tiles.length; i += 1) {
+      const left = tiles[i] ?? 0;
+      if (left === 0) continue;
+      for (let j = i + 1; j < tiles.length; j += 1) {
+        const right = tiles[j] ?? 0;
+        if (right !== 0 && left > right) inversions += 1;
+      }
+    }
+    return inversions;
+  }
+
+  // Regresión D-1 (auditoría 2026-09-24): `countSlidingInversions` era O(n²);
+  // con la rejilla máxima (256×256 = 65 536 celdas) tardaba segundos por
+  // llamada. La reescritura con Fenwick debe seguir dando el mismo resultado.
+  it("countSlidingInversions coincide con la referencia O(n²) y es rápida a la rejilla máxima", () => {
+    const small = [5, 4, 3, 2, 1, 0];
+    expect(countSlidingInversions(small)).toBe(countInversionsBruteForce(small));
+
+    const count = 256 * 256;
+    const shuffled = Array.from({ length: count }, (_, i) => (i === 0 ? 0 : i)).reverse();
+    const start = Date.now();
+    const inversions = countSlidingInversions(shuffled);
+    expect(Date.now() - start).toBeLessThan(500);
+    // Referencia cuadrática solo sobre una muestra más pequeña (sería
+    // demasiado lenta a 65 536 elementos): mismo patrón, tablero más chico.
+    const sample = Array.from({ length: 2000 }, (_, i) => (i === 0 ? 0 : i)).reverse();
+    expect(countSlidingInversions(sample)).toBe(countInversionsBruteForce(sample));
+    expect(inversions).toBeGreaterThan(0);
+  });
 });
 
 describe("sliding_puzzle · jugar", () => {

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { GridSchema, PositionSchema, RectSchema } from "./common";
+import { MAX_CONTENT_ARRAY_ITEMS, MAX_CONTENT_STRING_LENGTH } from "./limits";
 
 /**
  * Plantillas del MVP (specs/06). Las plantillas v2 (specs/07) quedan fuera de
@@ -30,17 +31,17 @@ const puzzleBase = {
   layer: PuzzleLayerSchema,
   roomId: z.string(),
   position: PositionSchema.optional(),
-  requiresSolved: z.array(z.string()),
-  grantsItems: z.array(z.string()),
-  unlocks: z.array(z.string()),
+  requiresSolved: z.array(z.string()).max(MAX_CONTENT_ARRAY_ITEMS),
+  grantsItems: z.array(z.string()).max(MAX_CONTENT_ARRAY_ITEMS),
+  unlocks: z.array(z.string()).max(MAX_CONTENT_ARRAY_ITEMS),
   timeLimitSec: z.number().optional(),
 };
 
 export const RecipeSchema = z.object({
-  inputs: z.array(z.string()),
+  inputs: z.array(z.string()).max(MAX_CONTENT_ARRAY_ITEMS),
   output: z.string(),
   consumeInputs: z.boolean(),
-  description: z.string().optional(),
+  description: z.string().max(MAX_CONTENT_STRING_LENGTH).optional(),
 });
 
 export const HiddenKeyDefinitionSchema = z.object({
@@ -59,17 +60,20 @@ export const HiddenKeyDefinitionSchema = z.object({
 export const CodeLockDefinitionSchema = z.object({
   ...puzzleBase,
   type: z.literal("code_lock"),
-  length: z.number().int().positive(),
-  code: z.string(),
+  // Tope bajo a propósito: es el nº de dígitos de un candado, no un texto libre.
+  length: z.number().int().positive().max(64),
+  code: z.string().max(MAX_CONTENT_STRING_LENGTH),
   maxAttempts: z.number().int().positive().optional(),
   lockoutSec: z.number().int().nonnegative().optional(),
-  hints: z.array(z.string()).optional(),
+  hints: z.array(z.string()).max(MAX_CONTENT_ARRAY_ITEMS).optional(),
 });
 
 export const SimultaneousPlatesDefinitionSchema = z.object({
   ...puzzleBase,
   type: z.literal("simultaneous_plates"),
-  plates: z.array(z.object({ objectId: z.string(), x: z.number(), y: z.number() })),
+  plates: z
+    .array(z.object({ objectId: z.string(), x: z.number(), y: z.number() }))
+    .max(MAX_CONTENT_ARRAY_ITEMS),
   windowMs: z.number().positive(),
   soloBridgeItemId: z.string().optional(),
   holdMode: z.enum(["press", "stand"]),
@@ -78,7 +82,7 @@ export const SimultaneousPlatesDefinitionSchema = z.object({
 export const CombineItemsDefinitionSchema = z.object({
   ...puzzleBase,
   type: z.literal("combine_items"),
-  recipes: z.array(RecipeSchema),
+  recipes: z.array(RecipeSchema).max(MAX_CONTENT_ARRAY_ITEMS),
 });
 
 export const SlidingPuzzleDefinitionSchema = z.object({
@@ -94,20 +98,25 @@ export const SlidingPuzzleDefinitionSchema = z.object({
 export const MemoryPuzzleDefinitionSchema = z.object({
   ...puzzleBase,
   type: z.literal("memory"),
-  pairs: z.array(z.object({ id: z.string(), symbol: z.string() })),
+  pairs: z.array(z.object({ id: z.string(), symbol: z.string() })).max(MAX_CONTENT_ARRAY_ITEMS),
   decoys: z.number().int().nonnegative().optional(),
   maxFlipsPerTurn: z.number().int().positive().optional(),
   winCondition: z.enum(["find_all_pairs", "find_target_pairs"]),
-  targetPairIds: z.array(z.string()).optional(),
+  targetPairIds: z.array(z.string()).max(MAX_CONTENT_ARRAY_ITEMS).optional(),
   turnMode: z.enum(["shared", "per_player"]),
 });
 
 export const SplitClueDefinitionSchema = z.object({
   ...puzzleBase,
   type: z.literal("split_clue"),
-  viewpoints: z.array(z.object({ objectId: z.string(), zone: RectSchema })),
-  fragments: z.array(z.string()),
-  visibleByViewpoint: z.record(z.string(), z.array(z.string().nullable())),
+  viewpoints: z
+    .array(z.object({ objectId: z.string(), zone: RectSchema }))
+    .max(MAX_CONTENT_ARRAY_ITEMS),
+  fragments: z.array(z.string()).max(MAX_CONTENT_ARRAY_ITEMS),
+  visibleByViewpoint: z.record(
+    z.string(),
+    z.array(z.string().nullable()).max(MAX_CONTENT_ARRAY_ITEMS),
+  ),
   wallOccluder: RectSchema,
   soloBridgeItemId: z.string().optional(),
   inputUI: z.enum(["symbols", "code"]),
@@ -117,13 +126,17 @@ export const PipesPuzzleDefinitionSchema = z.object({
   ...puzzleBase,
   type: z.literal("pipes"),
   grid: GridSchema,
-  cellTypes: z.array(z.enum(["straight", "curve", "tee", "cross"])),
+  cellTypes: z.array(z.enum(["straight", "curve", "tee", "cross"])).max(MAX_CONTENT_ARRAY_ITEMS),
   startCell: PositionSchema,
   endCell: PositionSchema,
   blockedCells: z
     .array(z.object({ x: z.number(), y: z.number(), opensWithItem: z.string().optional() }))
+    .max(MAX_CONTENT_ARRAY_ITEMS)
     .optional(),
-  solution: z.array(z.array(z.number())).optional(),
+  solution: z
+    .array(z.array(z.number()).max(MAX_CONTENT_ARRAY_ITEMS))
+    .max(MAX_CONTENT_ARRAY_ITEMS)
+    .optional(),
 });
 
 /**

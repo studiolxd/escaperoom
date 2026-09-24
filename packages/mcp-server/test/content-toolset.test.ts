@@ -313,6 +313,22 @@ describe("errores legibles", () => {
     expect(puzzle.text).toContain("code");
   });
 
+  // Regresión D-1 (auditoría 2026-09-24): `define_subrooms` aceptaba
+  // `bounds.w/h` sin tope, así que un agente (o un cliente MCP comprometido)
+  // podía pedir una rejilla de millones de celdas antes de que ningún
+  // esquema lo frenara.
+  it("define_subrooms rechaza una rejilla descomunal", async () => {
+    const { client, roomId } = await withSmallRoom();
+    const huge = await call(client, "define_subrooms", {
+      roomId,
+      subrooms: [
+        { id: "gigante", name: "Gigante", bounds: { x: 0, y: 0, w: 100_000, h: 100_000 } },
+      ],
+    });
+    expect(huge.isError).toBe(true);
+    expect(huge.text).toMatch(/validation/i);
+  });
+
   it("create_room rechaza metadata incoherente sin dar de alta la sala", async () => {
     const { deps } = createEmptyDeps(AUTHOR);
     let created = 0;
