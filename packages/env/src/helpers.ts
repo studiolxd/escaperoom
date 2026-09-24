@@ -25,11 +25,16 @@ export const IS_SERVER = typeof window === "undefined";
  * despliegue real que simplemente **no fija** `NODE_ENV` (o lo fija a algo
  * distinto de `"production"`, p. ej. `"staging"`) caía igual al secreto
  * público del repo, en silencio. Aquí es lista blanca, no lista negra: solo
- * `development` y `test` lo permiten; cualquier otro valor (incluido
- * `undefined`) lo deniega.
+ * `development` y `test` lo permiten (o `ALLOW_DEV_SECRETS=1`, para un
+ * entorno con `NODE_ENV=production` deliberado y de prueba — p. ej. la suite
+ * E2E, que arranca `next start`/`pnpm start` así a propósito para probar el
+ * arranque real, pero sin infraestructura externa real: `packages/e2e/support/env.ts`).
+ * `ALLOW_DEV_SECRETS` exige un valor explícito, nunca la ausencia de una
+ * variable, así que no reintroduce el descuido que corrige esta función.
  */
 export function isDevFallbackAllowed(env: Record<string, string | undefined> = process.env): boolean {
-  return env.NODE_ENV === "development" || env.NODE_ENV === "test";
+  if (env.NODE_ENV === "development" || env.NODE_ENV === "test") return true;
+  return env.ALLOW_DEV_SECRETS === "1" || env.ALLOW_DEV_SECRETS === "true";
 }
 
 /**

@@ -32,6 +32,19 @@ describe("isDevFallbackAllowed (E-4)", () => {
     expect(isDevFallbackAllowed({ NODE_ENV: "staging" })).toBe(false);
     expect(isDevFallbackAllowed({})).toBe(false);
   });
+
+  it("ALLOW_DEV_SECRETS=1 lo permite incluso con NODE_ENV=production (entorno de prueba deliberado, p. ej. la suite E2E)", () => {
+    expect(isDevFallbackAllowed({ NODE_ENV: "production", ALLOW_DEV_SECRETS: "1" })).toBe(true);
+    expect(isDevFallbackAllowed({ NODE_ENV: "production", ALLOW_DEV_SECRETS: "true" })).toBe(
+      true,
+    );
+    // Cualquier otro valor (incluida su ausencia) sigue denegando: no es una
+    // lista negra.
+    expect(isDevFallbackAllowed({ NODE_ENV: "production", ALLOW_DEV_SECRETS: "yes" })).toBe(
+      false,
+    );
+    expect(isDevFallbackAllowed({ NODE_ENV: "production", ALLOW_DEV_SECRETS: "0" })).toBe(false);
+  });
 });
 
 describe("requireInProduction (E-4)", () => {
