@@ -54,9 +54,8 @@ vi.mock("next-intl/server", () => ({
     createTranslator({ locale, messages: MESSAGES[locale] ?? es, namespace: namespace as never }),
 }));
 
-const { default: CreatorChatPage } = await import(
-  "../src/app/[locale]/(creator)/creator/chat/page"
-);
+const { default: CreatorChatPage } =
+  await import("../src/app/[locale]/(creator)/creator/chat/page");
 const { CreatorChat } = await import("../src/components/creator-chat/creator-chat");
 
 const AUTHOR: Actor = { userId: "autora", organizationId: null, role: "member" };
@@ -82,6 +81,10 @@ const savedKey = process.env.ANTHROPIC_API_KEY;
 beforeEach(() => {
   state.actor = AUTHOR;
   process.env.ANTHROPIC_API_KEY = "sk-test-no-se-usa";
+  // El enlace accionable del chat solo se pinta si su origen coincide con
+  // NEXT_PUBLIC_APP_URL (F-31); mismo origen que usa el resto de tests SSR
+  // (catalog-pages.test.ts).
+  process.env.NEXT_PUBLIC_APP_URL = "https://escape.example";
 });
 afterEach(() => {
   if (savedKey === undefined) delete process.env.ANTHROPIC_API_KEY;
@@ -193,6 +196,32 @@ describe("hilo del chat — llamadas a tools, errores y enlaces", () => {
     expect(html).toContain("La sala no se publica hasta que la revises");
     expect(html).toContain(`href="/es/editor/${ROOM_ID}"`);
     expect(html).toContain("3/60 pasos");
+  });
+
+  it("un enlace de otro origen no se pinta (F-31)", () => {
+    let chat = startUserMessage(initialCreatorChatState(), "hola");
+    chat = applyChatEvent(chat, { type: "room", roomId: ROOM_ID });
+    for (const event of [
+      { type: "tool_call", id: "t1", name: "publish", input: {} },
+      {
+        type: "tool_result",
+        id: "t1",
+        name: "publish",
+        isError: false,
+        text: "⏸️ publish — solicitud creada",
+        code: null,
+        link: {
+          kind: "publish_confirm",
+          url: "https://atacante.example/publish-confirm?token=abc",
+        },
+      },
+    ] as const) {
+      chat = applyChatEvent(chat, event);
+    }
+
+    const html = render(createElement(CreatorChat, { locale: "es", initialState: chat }));
+    expect(html).not.toContain("atacante.example");
+    expect(html).not.toContain("Revisar y confirmar la publicación");
   });
 
   it("un tope alcanzado cierra la conversación con su aviso", () => {
