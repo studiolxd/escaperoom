@@ -15,10 +15,24 @@
 export const ANALYTICS_EVENT_TABLE = "analyticsEvent";
 /** Retención del detalle de analítica (specs/14 §12). */
 export const ANALYTICS_RETENTION_MONTHS = 24;
-/** Meses por delante del actual que deben existir (el «mes siguiente»). */
-export const ANALYTICS_PARTITIONS_AHEAD = 1;
+/**
+ * Meses por delante del actual que deben existir (el «mes siguiente»). En 1,
+ * un worker caído el día 1 (o cuyo DDL falla por `lock_timeout`) llega al mes
+ * siguiente sin partición y cada `INSERT` empieza a fallar (E-6); con 3 hay
+ * margen para varios reintentos/varios días de worker caído antes de que
+ * ocurra.
+ */
+export const ANALYTICS_PARTITIONS_AHEAD = 3;
 /** Clave del advisory lock (se pasa por `hashtext()` en SQL). */
 export const ANALYTICS_PARTITIONS_LOCK_KEY = "escaperoom:analyticsEvent:partitions";
+/**
+ * Partición DEFAULT (migración `20260924000000_analytics_event_default_partition`,
+ * E-6): red de seguridad si, pese a `ANALYTICS_PARTITIONS_AHEAD`, un `INSERT`
+ * cae fuera de toda partición mensual — sin DEFAULT ese `INSERT` fallaría con
+ * "no partition of relation found for row"; con ella, cae aquí y se puede
+ * alertar (`defaultPartitionHasRows`) en vez de perderse el evento.
+ */
+export const ANALYTICS_DEFAULT_PARTITION_NAME = `${ANALYTICS_EVENT_TABLE}_default`;
 
 /** Mes natural en UTC; `month` va de 1 a 12. */
 export type YearMonth = { year: number; month: number };
@@ -125,6 +139,18 @@ export function planPartitionMaintenance(input: PartitionPlanInput): PartitionPl
   return { create, drop: dropped.map((d) => d.name), ignored: ignored.sort(), cutoff };
 }
 
+/**
+ * `true` si falta la partición del mes siguiente al actual (E-6): señal para
+ * `/api/health` — independiente de que el job de mantenimiento haya corrido o
+ * no, así que sigue funcionando aunque el worker entero esté caído (justo el
+ * escenario que hace falta detectar: "worker caído el día 1 → el mes
+ * siguiente cada INSERT falla").
+ */
+export function isNextMonthPartitionMissing(existing: readonly string[], now: Date): boolean {
+  const nextMonth = addMonths(yearMonthOf(now), 1);
+  return !existing.includes(partitionName(nextMonth));
+}
+
 // --- SQL --------------------------------------------------------------------
 
 const quoteIdent = (name: string): string => `"${name.replaceAll('"', '""')}"`;
@@ -191,6 +217,12 @@ export type PartitionMaintenanceResult =
       ignored: string[];
       /** Primer mes conservado, `AAAA-MM`. */
       cutoff: string;
+      /**
+       * `true` si la partición DEFAULT existe y tiene al menos una fila (E-6):
+       * significa que algún `INSERT` cayó fuera de las particiones mensuales
+       * esperadas — señal de alerta, nunca un estado normal.
+       */
+      defaultPartitionHasRows: boolean;
     }
   | { status: "locked" };
 
@@ -229,12 +261,21 @@ export async function maintainAnalyticsPartitions(
       await tx.execute(dropPartitionSql(name));
     }
 
+    let defaultPartitionHasRows = false;
+    if (plan.ignored.includes(ANALYTICS_DEFAULT_PARTITION_NAME)) {
+      const [row] = await tx.query<{ exists: boolean }>(
+        `SELECT EXISTS(SELECT 1 FROM ${quoteIdent(ANALYTICS_DEFAULT_PARTITION_NAME)} LIMIT 1) AS "exists"`,
+      );
+      defaultPartitionHasRows = row?.exists ?? false;
+    }
+
     return {
       status: "done",
       created: plan.create.map(partitionName),
       dropped: plan.drop,
       ignored: plan.ignored,
       cutoff: `${pad(plan.cutoff.year, 4)}-${pad(plan.cutoff.month, 2)}`,
+      defaultPartitionHasRows,
     } as const;
   });
 }

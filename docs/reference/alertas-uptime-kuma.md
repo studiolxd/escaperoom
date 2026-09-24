@@ -15,9 +15,15 @@ dependencias de las que depende que la app responda:
   rate limiting del ticket 6.3). Sin `REDIS_URL` configurado responde `not_configured` y **no**
   cuenta como caída (degradación sin colas es un estado válido en desarrollo).
 
-Responde `200` con `{ ok: true, database, redis, timestamp }` cuando todo está arriba, `503` con
-`ok: false` en cuanto Postgres no responde o Redis (si está configurado) está caído. Es
-intencionadamente ligero: nada de lógica de negocio, solo las dos sondas.
+Responde `200` con `{ ok: true, database, redis, analyticsPartitions, timestamp }` cuando todo está
+arriba, `503` con `ok: false` en cuanto Postgres no responde o Redis (si está configurado) está
+caído. Es intencionadamente ligero: nada de lógica de negocio, solo las dos sondas — más una
+tercera puramente informativa (`analyticsPartitions`, E-6) que **no** afecta a `ok`/al código de
+estado: `"ok"` si existe la partición de `analyticsEvent` del mes siguiente, `"missing_next_month"`
+si falta (el worker de particiones, E-9, lleva días caído o fallando) y `"unknown"` si la consulta
+en sí falla. Es la única señal de ese fallo que no depende de que el propio worker esté vivo para
+reportarlo — conviene añadir un monitor de keyword sobre este campo si se quiere alerta explícita,
+no solo verlo al mirar la respuesta.
 
 `packages/worker` (E-9, este ticket) expone además `GET /healthz` en `WORKER_HEALTH_PORT` (sin
 definir la variable, no arranca el servidor — útil en dev/test sin reservar puerto): monta

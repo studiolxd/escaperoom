@@ -54,7 +54,10 @@ describe("processAnalyticsPartitions", () => {
       "analyticsEvent_2026_09",
       "analyticsEvent_2028_09",
     ]);
-    const result = await processAnalyticsPartitions(db, { now: new Date("2028-09-01T03:00:00Z") });
+    const result = await processAnalyticsPartitions(db, {
+      now: new Date("2028-09-01T03:00:00Z"),
+      monthsAhead: 1,
+    });
     expect(result).toMatchObject({
       status: "done",
       created: ["analyticsEvent_2028_10"],

@@ -1,0 +1,12 @@
+-- E-6: partición DEFAULT de analyticsEvent, como red de seguridad.
+--
+-- Sin ella, un INSERT que caiga fuera de las particiones mensuales creadas
+-- por adelantado (worker caído varios días, reloj desincronizado, DDL
+-- fallando repetidamente por lock_timeout) falla con "no partition of
+-- relation analyticsEvent found for row" y el evento de analítica se pierde.
+-- Con DEFAULT, ese INSERT cae aquí en vez de perderse; el job de
+-- mantenimiento (packages/shared/src/analytics/partitions.ts) detecta si
+-- tiene filas y lo reporta como alerta (defaultPartitionHasRows) — nunca
+-- debería tener filas en operación normal, y nunca se purga automáticamente
+-- (solo se tocan particiones que siguen el patrón "analyticsEvent_AAAA_MM").
+CREATE TABLE "analyticsEvent_default" PARTITION OF "analyticsEvent" DEFAULT;

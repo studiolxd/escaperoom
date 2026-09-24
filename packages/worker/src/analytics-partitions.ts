@@ -56,6 +56,16 @@ export async function processAnalyticsPartitions(
       "analytics partitions: particiones fuera del patrón mensual; no se tocan",
     );
   }
+  if (result.defaultPartitionHasRows) {
+    // E-6: la partición DEFAULT solo debería recibir filas si algún INSERT
+    // cayó fuera de las particiones mensuales esperadas (reloj desincronizado,
+    // evento con createdAt manipulado, bug de rango) — nunca en operación
+    // normal. Merece alertar, no solo un aviso silencioso en el log.
+    logger.error(
+      { partition: "analyticsEvent_default" },
+      "analytics partitions: la partición DEFAULT tiene filas — algún INSERT cayó fuera de las particiones mensuales esperadas",
+    );
+  }
   return result;
 }
 
@@ -75,7 +85,11 @@ export type AnalyticsPartitionsWorkerOptions = {
 };
 
 const JOB_OPTS = {
-  attempts: 3,
+  // E-6: antes 3 — con lock_timeout de 10s (SET LOCAL en la transacción) un
+  // día de mucha escritura puede agotar varios intentos seguidos; más
+  // intentos con backoff exponencial dan más margen antes de depender solo
+  // de la siguiente repetición mensual (o de `runOnStartJobId`).
+  attempts: 8,
   backoff: { type: "exponential" as const, delay: 60_000 },
   removeOnComplete: 24,
   removeOnFail: 100,
