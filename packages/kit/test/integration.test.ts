@@ -5,6 +5,7 @@ import { getRedis, redisPrefix } from "../src/redis/index";
 import { withRedisLock } from "../src/redis/lock";
 import { readStorageEnv } from "../src/env";
 import { createStorage } from "../src/storage/index";
+import { RedisRateLimitStore } from "../src/rate-limit/redis-store";
 
 // ---------------------------------------------------------------------------
 // Integración contra la infra local (`pnpm infra:up`). En CI no hay Redis ni
@@ -47,6 +48,27 @@ describe.skipIf(!hasRedis)("redis (integración con infra local)", () => {
   it("ejecuta fn bajo lock y libera el lock al terminar", async () => {
     const result = await withRedisLock(`test:${randomUUID()}`, 5000, async () => "done");
     expect(result).toBe("done");
+  });
+
+  it("RedisRateLimitStore.hit deja siempre TTL en la clave (E-21: INCR+EXPIRE atómico)", async () => {
+    const redis = getRedis()!;
+    const store = new RedisRateLimitStore(redis, redisPrefix());
+    const key = `test:${randomUUID()}`;
+    const redisKey = `${redisPrefix()}:rl:${key}`;
+
+    const first = await store.hit(key, 5, 60);
+    expect(first.ok).toBe(true);
+    // La clave nunca debe quedar sin TTL entre el INCR y el EXPIRE: si el
+    // script no fuera atómico, una inspección justo después del primer hit
+    // podría pillarla con TTL -1 (sin expirar nunca).
+    await expect(redis.ttl(redisKey)).resolves.toBeGreaterThan(0);
+
+    // Golpes concurrentes: el contador no debe perder incrementos ni la TTL.
+    await Promise.all(Array.from({ length: 4 }, () => store.hit(key, 5, 60)));
+    await expect(redis.get(redisKey)).resolves.toBe("5");
+    await expect(redis.ttl(redisKey)).resolves.toBeGreaterThan(0);
+
+    await redis.del(redisKey);
   });
 });
 

@@ -4,12 +4,17 @@ import { z } from "zod";
 // Helpers compartidos de env.ts. Adaptado de @slxd/env (ADR-017).
 // ---------------------------------------------------------------------------
 
-/** Coerces "true"/"false" env strings to booleans with a typed default. */
+/**
+ * Coerces env strings to booleans with a typed default. Acepta "true"/"1"
+ * como verdadero (coherente con el parseo manual de `SMTP_SECURE` en
+ * `mail/transport.ts`, que ya aceptaba ambos) — cualquier otro valor
+ * (incluido "false"/"0"/"") es falso.
+ */
 export const bool = (defaultValue: boolean) =>
   z
     .string()
     .default(defaultValue ? "true" : "false")
-    .transform((v) => v === "true");
+    .transform((v) => v === "true" || v === "1");
 
 /**
  * The server schema is only validated on the server: in the browser bundle
