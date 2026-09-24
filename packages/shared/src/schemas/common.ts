@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAX_CONTENT_STRING_LENGTH, MAX_GRID_DIMENSION } from "./limits";
 
 /** Coordenada de celda del grid (origen arriba-izquierda, `0,0`). */
 export const PositionSchema = z.object({
@@ -6,10 +7,14 @@ export const PositionSchema = z.object({
   y: z.number(),
 });
 
-/** Dimensiones de una rejilla (`cols` × `rows`). */
+/**
+ * Dimensiones de una rejilla (`cols` × `rows`). Tope en `MAX_GRID_DIMENSION`
+ * (auditoría D-1): sin él, `define_subrooms`/`set_map` o un `sliding_puzzle`/
+ * `pipes` con una rejilla de millones de celdas bloquean el event loop u OOM.
+ */
 export const GridSchema = z.object({
-  cols: z.number().int().positive(),
-  rows: z.number().int().positive(),
+  cols: z.number().int().positive().max(MAX_GRID_DIMENSION),
+  rows: z.number().int().positive().max(MAX_GRID_DIMENSION),
 });
 
 /** Rectángulo en celdas, usado por zonas y oclusores (specs/06 `split_clue`). */
@@ -27,8 +32,8 @@ export const RectSchema = z.object({
 export const LocalizedTextSchema = z.record(
   z.string(),
   z.object({
-    text: z.string(),
-    audioUrl: z.string().optional(),
+    text: z.string().max(MAX_CONTENT_STRING_LENGTH),
+    audioUrl: z.string().max(MAX_CONTENT_STRING_LENGTH).optional(),
   }),
 );
 

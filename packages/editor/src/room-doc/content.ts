@@ -9,6 +9,7 @@ import type {
   SpawnPoint,
   TileLayer,
 } from "@escaperoom/shared/schemas";
+import { MAX_GRID_DIMENSION } from "@escaperoom/shared/schemas";
 import { getRoomLanguages } from "../i18n-fields/room-languages";
 import {
   RoomDocError,
@@ -97,6 +98,21 @@ export function setTileset(doc: Y.Doc, tileset: string): void {
   });
 }
 
+/**
+ * Rechaza rejillas descomunales (auditoría D-1): sin este tope,
+ * `setSubRoomGrid`/`defineSubRooms` asignan un `Y.Map` de tiles y arrays
+ * proporcionales a `cols*rows` sin pasar por `GridSchema` (el `dryRun`/parse
+ * de `mutateDraft` solo corre DESPUÉS de que la operación cara ya se ejecutó).
+ */
+function assertGridWithinLimits(grid: Grid): void {
+  if (grid.cols > MAX_GRID_DIMENSION || grid.rows > MAX_GRID_DIMENSION) {
+    throw new RoomDocError(
+      "OUT_OF_BOUNDS",
+      `La rejilla ${grid.cols}×${grid.rows} supera el máximo de ${MAX_GRID_DIMENSION}×${MAX_GRID_DIMENSION}`,
+    );
+  }
+}
+
 /** Borra las celdas que quedan fuera de la rejilla (al encoger una habitación). */
 function pruneTilesOutside(room: RecordMap, grid: Grid): void {
   const tiles = room.get("tiles");
@@ -117,6 +133,7 @@ export function setSubRoomGrid(
   grid: Grid,
   layers?: readonly TileLayer[],
 ): void {
+  assertGridWithinLimits(grid);
   doc.transact(() => {
     const room = subRoom(doc, roomId);
     room.set("cols", grid.cols);
@@ -178,6 +195,7 @@ export function defineSubRooms(
   doc.transact(() => {
     const subrooms = collection(doc, "subrooms");
     for (const spec of specs) {
+      assertGridWithinLimits(spec.grid);
       const existing = subrooms.get(spec.id);
       if (existing) {
         existing.set("name", spec.name);

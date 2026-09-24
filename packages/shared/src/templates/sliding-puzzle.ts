@@ -123,16 +123,31 @@ export function slidingNeighborIndices(grid: SlidingGrid, index: number): number
   return neighbors;
 }
 
-/** Inversiones del tablero ignorando el hueco (piezas en orden estricto). */
+/**
+ * Inversiones del tablero ignorando el hueco (piezas en orden estricto).
+ * O(n log n) con un árbol de Fenwick en vez de O(n²) (auditoría D-1): con
+ * `GridSchema` topado a `MAX_GRID_DIMENSION` (256×256 = 65 536 celdas), la
+ * versión cuadrática seguía tardando segundos por llamada.
+ */
 export function countSlidingInversions(tiles: number[]): number {
+  const maxValue = tiles.length; // valores válidos: 1..tiles.length-1
+  const bit = new Uint32Array(maxValue + 1);
+  const add = (value: number): void => {
+    for (let i = value; i <= maxValue; i += i & -i) bit[i] = (bit[i] ?? 0) + 1;
+  };
+  const countLessOrEqual = (value: number): number => {
+    let sum = 0;
+    for (let i = value; i > 0; i -= i & -i) sum += bit[i] ?? 0;
+    return sum;
+  };
   let inversions = 0;
-  for (let i = 0; i < tiles.length; i += 1) {
-    const left = tiles[i] ?? 0;
-    if (left === 0) continue;
-    for (let j = i + 1; j < tiles.length; j += 1) {
-      const right = tiles[j] ?? 0;
-      if (right !== 0 && left > right) inversions += 1;
-    }
+  for (let i = tiles.length - 1; i >= 0; i -= 1) {
+    const value = tiles[i] ?? 0;
+    if (value === 0) continue;
+    // Piezas ya vistas (a la derecha de `i`) menores que `value`: cada una
+    // forma una inversión con `value`.
+    inversions += countLessOrEqual(value - 1);
+    add(value);
   }
   return inversions;
 }

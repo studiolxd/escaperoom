@@ -1,5 +1,10 @@
 import { defineSubRooms } from "@escaperoom/editor/room-doc";
-import { RectSchema, SpawnPointSchema, SubRoomSchema } from "@escaperoom/shared/schemas";
+import {
+  MAX_GRID_DIMENSION,
+  RectSchema,
+  SpawnPointSchema,
+  SubRoomSchema,
+} from "@escaperoom/shared/schemas";
 import { z } from "zod";
 import { mutateDraft, mutationResult } from "../draft-writer";
 import { defineTool, DryRunSchema, MUTATION, RoomIdSchema } from "./define";
@@ -25,8 +30,8 @@ export const defineSubroomsTool = defineTool({
           id: SubRoomSchema.shape.id,
           name: SubRoomSchema.shape.name,
           bounds: RectSchema.extend({
-            w: z.number().int().positive(),
-            h: z.number().int().positive(),
+            w: z.number().int().positive().max(MAX_GRID_DIMENSION),
+            h: z.number().int().positive().max(MAX_GRID_DIMENSION),
           }),
           spawnPoints: z.array(SpawnPointSchema).optional(),
         }),

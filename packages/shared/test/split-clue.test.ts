@@ -299,13 +299,21 @@ describe("split_clue · coherencia y solvencia (validador futuro)", () => {
   it("detecta máscaras incoherentes", () => {
     expect(
       isCoherentSplitClueDefinition(
-        makeDef({ visibleByViewpoint: { "mirilla-a": ["4", null, "3"], "mirilla-b": [null, "5", null, "8"] } }),
+        makeDef({
+          visibleByViewpoint: {
+            "mirilla-a": ["4", null, "3"],
+            "mirilla-b": [null, "5", null, "8"],
+          },
+        }),
       ),
     ).toBe(false);
     expect(
       isCoherentSplitClueDefinition(
         makeDef({
-          visibleByViewpoint: { "mirilla-a": ["9", null, "3", null], "mirilla-b": [null, "5", null, "8"] },
+          visibleByViewpoint: {
+            "mirilla-a": ["9", null, "3", null],
+            "mirilla-b": [null, "5", null, "8"],
+          },
         }),
       ),
     ).toBe(false);
@@ -352,5 +360,49 @@ describe("split_clue · coherencia y solvencia (validador futuro)", () => {
     expect(unionCoversAll(def)).toBe(false);
     expect(isSplitClueSolvable(makeState(def), def)).toBe(false);
     expect(isSplitClueSolvableForGroup(def, 2)).toBe(false);
+  });
+
+  /** Un punto de vista por fragmento: cada uno ve exactamente su propio índice. */
+  function makeManyViewpointsDef(viewpointCount: number): SplitClueDefinition {
+    const fragments = Array.from({ length: viewpointCount }, (_, i) => `f${i}`);
+    const visibleByViewpoint: Record<string, (string | null)[]> = {};
+    const viewpoints = Array.from({ length: viewpointCount }, (_, i) => {
+      const objectId = `v${i}`;
+      visibleByViewpoint[objectId] = fragments.map((fragment, j) => (j === i ? fragment : null));
+      return { objectId, zone: { x: i, y: 0, w: 1, h: 1 } };
+    });
+    return makeDef({ fragments, viewpoints, visibleByViewpoint, soloBridgeItemId: undefined });
+  }
+
+  // Regresión D-9 (auditoría 2026-09-24): el oráculo del validador llama a
+  // esto por cada candidato de cada nodo del BFS (hasta 200k estados);
+  // `oracles.ts` lo memoiza por `${puzzle.id}|${playerCount}` para que solo se
+  // calcule una vez por sala. Aquí, sin esa memoización (llamando a la
+  // función de la plantilla directamente varias veces), el umbral bajado a
+  // `MAX_SPLIT_CLUE_VIEWPOINTS_FOR_SUBSET` (12 en vez de 20) ya evita que unas
+  // pocas llamadas sin memoizar disparen el coste: con 20 viewpoints,
+  // 2²⁰ combinaciones por llamada multiplicadas por el BFS era justo la
+  // explosión que describe la auditoría.
+  it("con MAX_SPLIT_CLUE_VIEWPOINTS_FOR_SUBSET viewpoints, unas pocas llamadas sin memoizar siguen siendo rápidas", () => {
+    const def = makeManyViewpointsDef(12);
+    const start = Date.now();
+    let result = false;
+    for (let i = 0; i < 20; i += 1) {
+      result = isSplitClueSolvableForGroup(def, 6);
+    }
+    expect(Date.now() - start).toBeLessThan(2000);
+    // 6 puntos de vista de 12, cada uno solo con su propio fragmento: no
+    // pueden cubrir los 12 fragmentos.
+    expect(result).toBe(false);
+  });
+
+  it("por encima del umbral, cae a comprobar la unión completa (rápido, sin 2^n)", () => {
+    const def = makeManyViewpointsDef(30);
+    const start = Date.now();
+    // playerCount < viewpoints.length para forzar la rama de subconjuntos,
+    // que con 30 puntos de vista debe degradar a unionCoversAll.
+    const result = isSplitClueSolvableForGroup(def, 6);
+    expect(Date.now() - start).toBeLessThan(200);
+    expect(result).toBe(unionCoversAll(def));
   });
 });
