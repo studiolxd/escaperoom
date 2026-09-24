@@ -473,7 +473,7 @@ export function GameSessionShell({
     [client, model, openPanel],
   );
 
-  const useItem = useCallback(
+  const applyItemUse = useCallback(
     (itemId: string, objectId: string) => {
       client.useItem(itemId, objectId);
       pushLog(tp("log.useItem", { item: itemName(itemId), object: objectId }));
@@ -499,7 +499,7 @@ export function GameSessionShell({
       } else if (event.type === "use-item") {
         setSelected(null);
         setPickerFor(null);
-        useItem(event.itemId, event.objectId);
+        applyItemUse(event.itemId, event.objectId);
       } else if (event.type === "enter-room") {
         // La escena ya muestra la sala nueva; el servidor confirma o corrige.
         sceneRoomRef.current = event.roomId;
@@ -511,7 +511,7 @@ export function GameSessionShell({
         }
       }
     },
-    [client, useItem, enterRoom],
+    [client, applyItemUse, enterRoom],
   );
 
   const togglePlate = useCallback(
@@ -907,7 +907,7 @@ export function GameSessionShell({
                   onClick={() => {
                     const target = pickerFor;
                     setPickerFor(null);
-                    useItem(itemId, target);
+                    applyItemUse(itemId, target);
                   }}
                 >
                   {renderItemIcon(itemId, 16)}

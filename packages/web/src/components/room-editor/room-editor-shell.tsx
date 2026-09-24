@@ -145,6 +145,7 @@ export function RoomEditorShell(props: RoomEditorShellProps) {
       doc.destroy();
     };
     // `palette`, `t` y `locale` no deben recrear la sesión (solo se usan al crearla).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, syncUrl, demoPackage]);
 
   if (!ready || !session) {

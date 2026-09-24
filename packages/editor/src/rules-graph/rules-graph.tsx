@@ -757,6 +757,7 @@ function RulesGraphCanvas(props: RulesGraphProps) {
       if (ids.length > 0) void instance.fitView({ nodes: ids, duration: 300, maxZoom: 1.2 });
     },
     // Solo al cambiar la regla enfocada: editar no debe mover la vista.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- omisión intencional de `ruleNodes`.
     [focusRuleId],
   );
   useEffect(() => {

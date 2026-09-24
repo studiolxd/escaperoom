@@ -151,7 +151,7 @@ export function InventoryPanel({
       <div
         className="grid-cols-dynamic grid gap-2"
         style={{ "--cols": cols } as CSSProperties}
-        role="list"
+        role="listbox"
         aria-label={t("gridLabel")}
       >
         {Array.from({ length: totalSlots }, (_, index) => {
@@ -166,11 +166,11 @@ export function InventoryPanel({
               key={index}
               type="button"
               variant="overlayGhost"
-              role="listitem"
+              role="option"
               draggable={isDraggable}
               disabled={itemId === undefined || disabled}
               aria-label={itemId ? labelFor(itemId) : t("emptySlot")}
-              aria-pressed={stagedItem}
+              aria-selected={stagedItem}
               data-item-id={itemId}
               data-drop-target={isDropTarget}
               onDragStart={(event) => {

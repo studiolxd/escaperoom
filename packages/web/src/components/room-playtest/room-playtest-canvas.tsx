@@ -80,6 +80,10 @@ export default function RoomPlaytestCanvas({
       runtime.destroy();
       runtimeRef.current = null;
     };
+    // `inputEnabled` solo fija el valor inicial del runtime (la guarda de
+    // `runtimeRef.current` evita reconstruirlo); los cambios posteriores los
+    // aplica el efecto de abajo con `setInputEnabled`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [model, roomId, pack]);
 
   useEffect(() => {

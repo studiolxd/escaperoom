@@ -108,7 +108,7 @@ export function PlatesPanel({
         </p>
       ) : null}
 
-      <ul className="flex flex-col gap-2" role="list" aria-label={t("platesLabel")}>
+      <ul className="flex flex-col gap-2" aria-label={t("platesLabel")}>
         {view.plates.map((plate) => (
           <li key={plate.objectId}>
             <Button

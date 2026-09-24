@@ -156,7 +156,7 @@ export function ModerationQueueView() {
         <p className="text-sm text-white/70">{t("intro")}</p>
       </header>
 
-      <nav className="flex gap-2" role="tablist">
+      <div className="flex gap-2" role="tablist">
         {TABS.map((k) => (
           <Button
             key={k}
@@ -169,7 +169,7 @@ export function ModerationQueueView() {
             {t(`tabs.${k}`, { count: lists?.[k].length ?? 0 })}
           </Button>
         ))}
-      </nav>
+      </div>
 
       {error ? (
         <p role="alert" className="text-sm text-red-300">
