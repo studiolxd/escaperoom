@@ -10,7 +10,7 @@
     "./movement": "./src/movement.ts"
   },
   "scripts": {
-    "dev": "tsx watch src/main.ts",
+    "dev": "NODE_ENV=development tsx watch src/main.ts",
     "start": "NODE_ENV=production tsx src/main.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
