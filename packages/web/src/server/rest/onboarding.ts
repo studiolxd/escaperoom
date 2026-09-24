@@ -1,7 +1,9 @@
 import { DEFAULT_TILESET, roomPackageToDoc, writeRoomMeta } from "@escaperoom/editor/room-doc";
 import { loadRoomPackage } from "@escaperoom/game-runtime";
+import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { isAnonymous, RoomDraftError, type Actor, type RoomDraftService } from "@escaperoom/shared/services";
 import * as Y from "yjs";
+import { z } from "zod";
 
 /** Únicos orígenes admitidos del paso 2 del wizard (specs/20 §2). */
 export type OnboardingRoomTemplate = "rey-aldric" | "blank";
@@ -22,8 +24,31 @@ const STATUS_BY_CODE = {
   PAYLOAD_TOO_LARGE: 413,
 } as const;
 
+const NO_STORE = { "Cache-Control": "no-store" };
+
 function errorResponse(code: string, message: string, status: number) {
-  return Response.json({ error: { code, message } }, { status });
+  return Response.json({ error: { code, message } }, { status, headers: NO_STORE });
+}
+
+/** `POST /api/onboarding/rooms` (A-9): única ruta del wizard que validaba a mano. */
+const CreateRoomBodySchema = z.object({
+  template: z.enum(["rey-aldric", "blank"]),
+  title: z.string().trim().min(1).max(200).optional(),
+});
+
+/**
+ * Memo del fixture del Rey Aldric ya validado (A-9): `readReyAldricRoomPackageJson`
+ * solo memoiza el JSON crudo; `loadRoomPackage` (parseo + validación Zod
+ * completa del RoomPackage) se repetía en cada petición.
+ */
+let cachedFixture: { json: string; room: RoomPackage } | undefined;
+
+function loadCachedReyAldricFixture(readJson: () => string): RoomPackage {
+  const json = readJson();
+  if (cachedFixture?.json !== json) {
+    cachedFixture = { json, room: loadRoomPackage(JSON.parse(json)) };
+  }
+  return cachedFixture.room;
 }
 
 /** Update inicial de una sala en blanco: metadata mínima y tileset por defecto. */
@@ -71,31 +96,30 @@ export function createOnboardingHandlers(deps: OnboardingHandlerDeps) {
       } catch {
         return errorResponse("VALIDATION_ERROR", "El cuerpo no es JSON válido", 400);
       }
-      if (typeof body !== "object" || body === null || Array.isArray(body)) {
-        return errorResponse("VALIDATION_ERROR", "Se esperaba un objeto { template, title? }", 400);
+      const parsed = CreateRoomBodySchema.safeParse(body);
+      if (!parsed.success) {
+        return errorResponse(
+          "VALIDATION_ERROR",
+          '"template" debe ser "rey-aldric" o "blank"; "title" (opcional) una cadena no vacía',
+          400,
+        );
       }
-      const { template, title } = body as { template?: unknown; title?: unknown };
-      if (template !== "rey-aldric" && template !== "blank") {
-        return errorResponse("VALIDATION_ERROR", '"template" debe ser "rey-aldric" o "blank"', 400);
-      }
-      if (title !== undefined && (typeof title !== "string" || title.trim().length === 0)) {
-        return errorResponse("VALIDATION_ERROR", '"title" debe ser una cadena no vacía', 400);
-      }
+      const { template, title } = parsed.data;
 
       try {
         if (template === "blank") {
-          const roomTitle = (title as string | undefined)?.trim() || "Mi primera sala";
+          const roomTitle = title || "Mi primera sala";
           const room = await deps.drafts.createDraft(actor, {
             title: roomTitle,
             initialUpdate: (roomId) => blankInitialUpdate(roomId, actor.userId, roomTitle),
           });
-          return Response.json({ roomId: room.id, template }, { status: 201 });
+          return Response.json({ roomId: room.id, template }, { status: 201, headers: NO_STORE });
         }
 
         // "rey-aldric": copia editable del fixture, con nueva id/autor/título
         // (specs/20 §3 — "sala de ejemplo" desmontable).
-        const fixture = loadRoomPackage(JSON.parse(deps.readReyAldricRoomPackageJson()));
-        const roomTitle = (title as string | undefined)?.trim() || `${fixture.meta.title} (copia)`;
+        const fixture = loadCachedReyAldricFixture(deps.readReyAldricRoomPackageJson);
+        const roomTitle = title || `${fixture.meta.title} (copia)`;
         const room = await deps.drafts.createDraft(actor, {
           title: roomTitle,
           initialUpdate: (roomId) => {
@@ -112,7 +136,7 @@ export function createOnboardingHandlers(deps: OnboardingHandlerDeps) {
             }
           },
         });
-        return Response.json({ roomId: room.id, template }, { status: 201 });
+        return Response.json({ roomId: room.id, template }, { status: 201, headers: NO_STORE });
       } catch (error) {
         if (error instanceof RoomDraftError) {
           const status = STATUS_BY_CODE[error.code] ?? 400;
