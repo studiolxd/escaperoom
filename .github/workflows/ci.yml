@@ -6,6 +6,11 @@ on:
   push:
     branches: [main]
 
+# E-15: por defecto GITHUB_TOKEN es de solo lectura; cada job que necesite más
+# (ninguno de este workflow) lo declara explícitamente.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -13,15 +18,50 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # E-14: Postgres y Redis efímeros para que los *.integration.test.ts (los
+    # stores de purga de PII y el DDL de particiones, entre otros) corran
+    # también en CI en vez de saltarse (`describe.skipIf(!process.env.X)`).
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: escaperoom_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d escaperoom_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Variables mínimas para que build/typecheck/test corran contra la infra
+      # efímera de arriba. NODE_ENV no es "production" aquí, así que la
+      # validación estricta de entorno (E-4, de otro bloque) no exige más
+      # secretos (JOIN_TOKEN_SECRET, APP_SECRET, BETTER_AUTH_*, EMAIL_*…): esos
+      # siguen cayendo a los valores de desarrollo del propio código.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_ci
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_ci
+      REDIS_URL: redis://localhost:6379
+      REDIS_PREFIX: escaperoom
+      QUEUES_ENABLED: "true"
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @escaperoom/shared db:migrate
       - run: pnpm turbo run lint typecheck test build
+      - run: pnpm audit --prod
 
   # Subset E2E con navegador de cada PR (specs/22 §3.4, ticket 6.5): el smoke
   # del Rey Aldric (2 jugadores, pasos 1–6) contra web + colyseus-server +
