@@ -68,7 +68,7 @@ jobs:
         run: pnpm --filter @escaperoom/e2e load | tee load-report.txt
 
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-nightly-report
           path: |
