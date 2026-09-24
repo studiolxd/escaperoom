@@ -19,8 +19,18 @@ type Props = {
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
-/** Origen de la petición SSR (detrás de proxy, `x-forwarded-*`). */
-function requestOrigin(h: Headers): string {
+/**
+ * Origen de la petición SSR para alimentar `getMcpOAuthProvider`/`publicOrigin`
+ * (F-13): `publicOrigin` ya prioriza `BETTER_AUTH_URL`/`NEXT_PUBLIC_APP_URL`
+ * sobre lo que le pase aquí, así que en producción esto solo importa si esas
+ * variables faltan por error de despliegue — y en ese caso NO debe caer a
+ * `x-forwarded-host`/`host` (cabeceras que decide el cliente, no el proxy,
+ * si no está bien configurado): el issuer del OAuth acabaría siendo lo que
+ * mande la petición. Solo en desarrollo (sin esas variables casi nunca
+ * configuradas) tiene sentido derivarlo de las cabeceras.
+ */
+export function requestOrigin(h: Headers): string {
+  if (process.env.NODE_ENV !== "development") return "http://localhost:3000";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return `${proto}://${host}`;
