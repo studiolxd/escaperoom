@@ -66,8 +66,12 @@ pnpm dev:env && pnpm db:reset
 
 - Postgres (dev, directo): `postgresql://postgres:postgres@localhost:55433/escaperoom`
 - PgBouncer (opcional, paridad de pooling): `postgresql://postgres:postgres@localhost:56433/escaperoom`
-- Redis: `redis://localhost:56380`
+- Redis: `redis://:redis_dev_only@localhost:56380` (con `requirepass`, ver
+  `REDIS_PASSWORD` en `docker-compose.dev.yml`; E-13)
 - MinIO: `http://localhost:9002` (usuario/clave `minioadmin`)
+
+Todos los puertos de la tabla anterior están publicados en `127.0.0.1` (E-13):
+solo son alcanzables desde el propio host, nunca desde fuera de la máquina.
 
 > En dev se va directo a Postgres (55433). PgBouncer (56433) existe para probar
 > paridad de pooling, pero tras un `migrate reset` hay que reiniciarlo

@@ -12,7 +12,7 @@ import { RedisRateLimitStore } from "../src/rate-limit/redis-store";
 // MinIO, así que estos bloques se SALTAN si las variables de entorno que los
 // configuran no están presentes: los unitarios son los que corren siempre.
 //
-//   REDIS_URL=redis://localhost:56380 \
+//   REDIS_URL=redis://:redis_dev_only@localhost:56380 \
 //   STORAGE_PROVIDER=s3 STORAGE_BUCKET=escaperoom-assets \
 //   STORAGE_REGION=us-east-1 STORAGE_ENDPOINT=http://localhost:9002 \
 //   STORAGE_ACCESS_KEY_ID=minioadmin STORAGE_SECRET_ACCESS_KEY=minioadmin \

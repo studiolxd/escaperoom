@@ -15,7 +15,7 @@ import { createAnalyticsCollectHandler } from "../src/server/rest/analytics-coll
 // salta. En local, con la infra levantada:
 //
 //   pnpm infra:up && pnpm dev:env && pnpm db:reset
-//   REDIS_URL=redis://localhost:56380 pnpm --filter @escaperoom/web test analytics-pipeline
+//   REDIS_URL=redis://:redis_dev_only@localhost:56380 pnpm --filter @escaperoom/web test analytics-pipeline
 //
 // `DATABASE_URL` se carga de packages/shared/.env (lo escribe pnpm dev:env).
 // ---------------------------------------------------------------------------

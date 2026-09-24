@@ -4,6 +4,13 @@ name: escaperoom-dev
 # conectan a PgBouncer en localhost:56433 (o directo a Postgres en 55433 para
 # migraciones). Adaptado de SLXD (ADR-017): sin ClickHouse ni Gatus; se añaden
 # LiveKit y coturn (specs/12).
+#
+# E-13: todos los puertos publicados se atan a 127.0.0.1 (no 0.0.0.0) — este
+# compose es solo para desarrollo local, nunca debe quedar accesible desde
+# fuera del host aunque el firewall del VPS/máquina esté mal configurado.
+# Las imágenes van fijadas por tag+digest (no `latest`/tags flotantes): para
+# actualizar una, `docker pull <imagen>:<tag-nuevo>` y sustituir el digest que
+# imprime `docker inspect --format='{{index .RepoDigests 0}}' <imagen>:<tag>`.
 services:
   postgres:
     image: postgres:17-alpine
@@ -12,7 +19,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-escaperoom}
     ports:
-      - "${POSTGRES_PORT:-55433}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-55433}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -37,7 +44,7 @@ services:
       DEFAULT_POOL_SIZE: ${PGBOUNCER_DEFAULT_POOL_SIZE:-10}
       MAX_PREPARED_STATEMENTS: ${PGBOUNCER_MAX_PREPARED_STATEMENTS:-200}
     ports:
-      - "${PGBOUNCER_PORT:-56433}:5432"
+      - "127.0.0.1:${PGBOUNCER_PORT:-56433}:5432"
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,26 +54,33 @@ services:
       timeout: 5s
       retries: 5
 
+  # requirepass: antes sin contraseña (accesible a quien alcance el puerto).
+  # REDIS_PASSWORD tiene un valor por defecto de desarrollo — cualquiera con
+  # acceso al repo lo conoce, así que sigue siendo solo para dev (igual que
+  # POSTGRES_PASSWORD arriba); en producción usa un REDIS_PASSWORD propio.
   redis:
     image: redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-redis_dev_only}"]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_dev_only}
     ports:
-      - "${REDIS_PORT:-56380}:6379"
+      - "127.0.0.1:${REDIS_PORT:-56380}:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$${REDIS_PASSWORD}\" --no-auth-warning ping"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   # S3 compatible solo para desarrollo. En producción, Cloudflare R2.
   minio:
-    image: minio/minio:latest
+    image: minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     ports:
-      - "${MINIO_API_PORT:-9002}:9000"
-      - "${MINIO_CONSOLE_PORT:-59002}:9001"
+      - "127.0.0.1:${MINIO_API_PORT:-9002}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-59002}:9001"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 10s
@@ -78,7 +92,7 @@ services:
   # Los buckets no se crean solos: sin este paso la primera subida muere con
   # NoSuchBucket. La lista vive en infra/minio-dev/buckets.txt.
   minio-init:
-    image: minio/mc:latest
+    image: minio/mc:latest@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
     depends_on:
       minio:
         condition: service_healthy
@@ -98,24 +112,24 @@ services:
   # SFU de voz/webcam (specs/12). La room de medios vive y muere con la de
   # Colyseus; el SDK JS del cliente habla con 7880 (ws) y 7881/7882 (RTC).
   livekit:
-    image: livekit/livekit-server:latest
+    image: livekit/livekit-server:latest@sha256:6fd3b7088874c4d119160dd688798dfec852bc014786d392caad15f6f63912a3
     command: --config /etc/livekit.yaml
     ports:
-      - "${LIVEKIT_PORT:-7880}:7880"
-      - "${LIVEKIT_RTC_TCP_PORT:-7881}:7881"
-      - "${LIVEKIT_RTC_UDP_PORT:-7882}:7882/udp"
+      - "127.0.0.1:${LIVEKIT_PORT:-7880}:7880"
+      - "127.0.0.1:${LIVEKIT_RTC_TCP_PORT:-7881}:7881"
+      - "127.0.0.1:${LIVEKIT_RTC_UDP_PORT:-7882}:7882/udp"
     volumes:
       - ./livekit/livekit.yaml:/etc/livekit.yaml:ro
 
   # Servidor TURN/STUN para redes restrictivas (specs/12). En macOS el
   # networking de Docker limita TURN; en producción va en el VPS con red host.
   coturn:
-    image: coturn/coturn:latest
+    image: coturn/coturn:latest@sha256:bbefd3e1fdfdc0d58770fe01b581fd8b00d9f3a5580d00acb77cf719a6bc78e3
     command: -c /etc/coturn/turnserver.conf
     ports:
-      - "${COTURN_PORT:-3478}:3478"
-      - "${COTURN_PORT:-3478}:3478/udp"
-      - "${COTURN_TLS_PORT:-5349}:5349"
+      - "127.0.0.1:${COTURN_PORT:-3478}:3478"
+      - "127.0.0.1:${COTURN_PORT:-3478}:3478/udp"
+      - "127.0.0.1:${COTURN_TLS_PORT:-5349}:5349"
     volumes:
       - ./coturn/turnserver.conf:/etc/coturn/turnserver.conf:ro
 
@@ -125,9 +139,9 @@ services:
   # de `pnpm --filter @escaperoom/web dev` (fuera de Docker, en el host). Ver
   # docs/reference/alertas-uptime-kuma.md para el procedimiento de alerta.
   uptime-kuma:
-    image: louislam/uptime-kuma:1
+    image: louislam/uptime-kuma:1@sha256:70233f4acb5163fd2a59a49909cf01e44415cecff13dba69e3a86647a2919f83
     ports:
-      - "${UPTIME_KUMA_PORT:-59003}:3001"
+      - "127.0.0.1:${UPTIME_KUMA_PORT:-59003}:3001"
     volumes:
       - uptime-kuma-data:/app/data
 

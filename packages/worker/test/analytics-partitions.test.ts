@@ -98,7 +98,7 @@ describe("processAnalyticsPartitions", () => {
 
 // ---------------------------------------------------------------------------
 // Integración GATEADA: BullMQ real contra Redis (en CI no hay Redis y se salta).
-//   REDIS_URL=redis://localhost:56380 pnpm --filter @escaperoom/worker test
+//   REDIS_URL=redis://:redis_dev_only@localhost:56380 pnpm --filter @escaperoom/worker test
 // ---------------------------------------------------------------------------
 const hasRedis = Boolean(process.env.REDIS_URL);
 
