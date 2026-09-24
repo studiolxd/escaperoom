@@ -107,16 +107,33 @@ export interface AccessKeyCardStore {
   ): Promise<AccessKeyRow[]>;
 }
 
-/** Datos del job asíncrono (serializables: viajan por Redis). */
+/**
+ * Datos del job asíncrono (serializables: viajan por Redis). El worker
+ * relee las claves de Postgres a partir de `eventId` + `filter`; no lleva la
+ * hoja ya resuelta (E-8): para el caso común (sin códigos concretos, "todas
+ * las vivas") `filter.codes` es `null` y el job no lleva ningún código en
+ * claro. Solo cuando el organizador pide una reimpresión de códigos
+ * concretos hace falta transportarlos (no hay otro identificador no secreto
+ * de una clave); en ese caso el worker los borra del job en cuanto termina
+ * (`stripFilterFromJobData`, ver `access-key-cards.ts` del worker) en vez de
+ * dejarlos las 48 h de retención del job.
+ */
 export type CardExportJobData = {
   eventId: string;
   /** Quien lo pidió: el worker revalida que siga siendo el organizador. */
   organizerId: string;
-  codes: string[];
   locale: CardLocale;
   /** Origen público de la app, para las URLs de canje del QR. */
   appUrl: string;
+  /** Nº de tarjetas ya resuelto al encolar (no sensible); `GET /api/exports/:jobId` lo usa en cualquier estado. */
+  cards: number;
+  filter: { codes: string[] | null };
 };
+
+/** Vacía `filter.codes` (cualquier código en claro) del job ya terminado (E-8). */
+export function stripFilterFromJobData(data: CardExportJobData): CardExportJobData {
+  return { ...data, filter: { codes: null } };
+}
 
 export type CardExportResult = { storageKey: string; cards: number };
 
@@ -125,6 +142,7 @@ export type CardExportJobStatus = "queued" | "processing" | "completed" | "faile
 export type CardExportJob = {
   id: string;
   status: CardExportJobStatus;
+  /** `filter.codes` vacío una vez el job termina: el worker lo borra (`stripFilterFromJobData`, E-8). */
   data: CardExportJobData;
   result: CardExportResult | null;
   finishedAt: Date | null;
@@ -222,6 +240,14 @@ export type CardSheet = {
   roomTitle: string;
   locale: CardLocale;
   keys: Array<Pick<AccessKeyRow, "code" | "seats" | "expiresAt">>;
+  /**
+   * Códigos tal y como se pidieron (normalizados, sin resolver contra la
+   * BD), o `null` si no se pidieron códigos concretos (todas las vivas). Es
+   * lo mínimo que hace falta encolar para reproducir la misma selección más
+   * tarde (E-8): la lista completa de `keys` puede ser miles de códigos ya
+   * conocidos por Postgres, no hace falta duplicarlos en el job.
+   */
+  requestedCodes: string[] | null;
 };
 
 export type ExportCardsResult =
@@ -345,6 +371,7 @@ export function createAccessKeyCardsService(deps: {
       roomTitle: room.title,
       locale: resolveCardLocale(room, data.locale),
       keys: keys.map((k) => ({ code: k.code, seats: k.seats, expiresAt: k.expiresAt })),
+      requestedCodes: codes,
     };
   }
 
@@ -408,9 +435,10 @@ export function createAccessKeyCardsService(deps: {
       const queued = await deps.queue.enqueue(jobId, {
         eventId: sheet.eventId,
         organizerId: actor.userId,
-        codes: sheet.keys.map((k) => k.code),
         locale: sheet.locale,
         appUrl: opts.appUrl,
+        cards,
+        filter: { codes: sheet.requestedCodes },
       });
       if (!queued) {
         throw new AccessKeyCardsError("EXPORT_UNAVAILABLE", "No se pudo encolar el export");
@@ -434,7 +462,7 @@ export function createAccessKeyCardsService(deps: {
         jobId: job.id,
         eventId: job.data.eventId,
         status: job.status,
-        cards: job.data.codes.length,
+        cards: job.data.cards,
         downloadUrl: null,
         expiresAt: null,
       };
@@ -484,7 +512,7 @@ export function createAccessKeyCardsService(deps: {
     ): Promise<CardExportResult> {
       const actor: Actor = { userId: data.organizerId, organizationId: null, role: "member" };
       const sheet = await prepareSheet(actor, data.eventId, {
-        codes: data.codes,
+        codes: data.filter.codes ?? undefined,
         locale: data.locale,
       });
       const bytes = await renderSheet(sheet, data.appUrl);
@@ -559,13 +587,18 @@ export function createInMemoryCardExportQueue(opts: { now?: () => Date } = {}) {
       for (const job of jobs.values()) {
         if (job.status !== "queued") continue;
         job.status = "processing";
+        // El job "queued" siempre trae `filter` todavía (solo se borra al terminar, más abajo).
+        const data = job.data as CardExportJobData;
         try {
-          job.result = await processor(job.id, job.data);
+          job.result = await processor(job.id, data);
           job.status = "completed";
         } catch {
           job.status = "failed";
         }
         job.finishedAt = now();
+        // E-8: igual que el worker real (`stripFilterFromJobData`), el job
+        // terminado no conserva los códigos.
+        job.data = stripFilterFromJobData(data);
       }
     },
   };
