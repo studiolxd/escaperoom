@@ -439,8 +439,7 @@
     },
     "header": {
       "validate": "Validar",
-      "playtest": "Jogar",
-      "comingSoon": "Disponível em breve"
+      "playtest": "Jogar"
     },
     "tools": {
       "label": "Ferramentas",
@@ -482,8 +481,7 @@
       "sprite": "Sprite",
       "room": "Divisão",
       "position": "Célula",
-      "delete": "Apagar objeto",
-      "inspectorSoon": "Estados, regras e outras propriedades serão editados no inspetor."
+      "delete": "Apagar objeto"
     },
     "errors": {
       "connection": "Não foi possível abrir o rascunho. Verifica a tua sessão e se tens permissão para editar esta sala; continuamos a tentar.",

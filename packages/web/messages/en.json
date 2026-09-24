@@ -470,8 +470,7 @@
     },
     "header": {
       "validate": "Validate",
-      "playtest": "Play",
-      "comingSoon": "Coming soon"
+      "playtest": "Play"
     },
     "tools": {
       "label": "Tools",
@@ -513,8 +512,7 @@
       "sprite": "Sprite",
       "room": "Room",
       "position": "Cell",
-      "delete": "Delete object",
-      "inspectorSoon": "States, rules and other properties will be edited in the inspector."
+      "delete": "Delete object"
     },
     "errors": {
       "connection": "The draft could not be opened. Check your session and that you may edit this room; we keep retrying.",

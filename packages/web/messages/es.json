@@ -481,8 +481,7 @@
     },
     "header": {
       "validate": "Validar",
-      "playtest": "Jugar",
-      "comingSoon": "Disponible próximamente"
+      "playtest": "Jugar"
     },
     "tools": {
       "label": "Herramientas",
@@ -524,8 +523,7 @@
       "sprite": "Sprite",
       "room": "Habitación",
       "position": "Celda",
-      "delete": "Borrar objeto",
-      "inspectorSoon": "Estados, reglas y demás propiedades se editarán en el inspector."
+      "delete": "Borrar objeto"
     },
     "errors": {
       "connection": "No se pudo abrir el borrador. Comprueba tu sesión y que tienes permiso para editar esta sala; seguimos reintentando.",

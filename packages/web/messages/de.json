@@ -439,8 +439,7 @@
     },
     "header": {
       "validate": "Prüfen",
-      "playtest": "Spielen",
-      "comingSoon": "Bald verfügbar"
+      "playtest": "Spielen"
     },
     "tools": {
       "label": "Werkzeuge",
@@ -482,8 +481,7 @@
       "sprite": "Sprite",
       "room": "Raum",
       "position": "Feld",
-      "delete": "Objekt löschen",
-      "inspectorSoon": "Zustände, Regeln und weitere Eigenschaften werden im Inspektor bearbeitet."
+      "delete": "Objekt löschen"
     },
     "errors": {
       "connection": "Der Entwurf konnte nicht geöffnet werden. Prüfe deine Sitzung und deine Bearbeitungsrechte; wir versuchen es weiter.",

@@ -24,6 +24,12 @@ import { readReyAldricRoomPackageJson } from "../src/lib/room-preview-fixture";
 
 const fixture = loadRoomPackage(readReyAldricRoomPackageJson());
 
+// `headerActions`/`inspector` son obligatorios en `RoomEditorWorkspace` desde
+// F-25 (se borró el fallback "próximamente"); estos tests de
+// `<RoomEditorWorkspace>` no cubren esos slots, así que basta un marcador.
+const HEADER_ACTIONS = createElement("div", { "data-header-actions": "" });
+const INSPECTOR_PLACEHOLDER = createElement("div", { "data-inspector-placeholder": "" });
+
 function render(element: ReactElement): string {
   return renderToStaticMarkup(
     createElement(NextIntlClientProvider, { locale: "es", messages: es, children: element }),
@@ -91,6 +97,8 @@ describe("<RoomEditorWorkspace> — render", () => {
         palette,
         status: "connected",
         validation: createElement("div", { "data-validation-slot": "" }),
+        headerActions: HEADER_ACTIONS,
+        inspector: INSPECTOR_PLACEHOLDER,
       }),
     );
 
@@ -115,10 +123,8 @@ describe("<RoomEditorWorkspace> — render", () => {
     expect(html).toContain("/packs/medieval-v1/sprites/trono.svg");
     // Contador derivado del doc: el trono ya está colocado una vez.
     expect(html).toContain("1 colocado");
-    // Huecos para 3.4/3.7/3.8.
-    expect(html).toContain("Validar");
-    expect(html).toContain("Jugar");
-    expect(html).toContain("inspector");
+    expect(html).toContain("data-header-actions");
+    expect(html).toContain("data-inspector-placeholder");
     expect(html).toContain("data-validation-slot");
     // Sin lienzo (SSR), marcador de carga.
     expect(html).toContain("Cargando el lienzo…");
@@ -143,6 +149,8 @@ describe("<RoomEditorWorkspace> — render", () => {
           canvas = props;
           return createElement("div", { "data-canvas": props.roomId });
         },
+        headerActions: HEADER_ACTIONS,
+        inspector: INSPECTOR_PLACEHOLDER,
       }),
     );
 
@@ -152,10 +160,6 @@ describe("<RoomEditorWorkspace> — render", () => {
     );
     expect(canvas?.model.objectsById["arca-trono"]?.position).toEqual({ x: 4, y: 4 });
     expect(canvas?.selectedObjectId).toBe("arca-trono");
-    // Panel de selección con el ID propuesto, editable.
-    expect(html).toContain('data-selected-object="arca-trono"');
-    expect(html).toContain('value="arca-trono"');
-    expect(html).toContain("Renombrar");
     expect(html).toContain("Local (sin sincronizar)");
   });
 
@@ -172,6 +176,8 @@ describe("<RoomEditorWorkspace> — render", () => {
           canvas = props;
           return null;
         },
+        headerActions: HEADER_ACTIONS,
+        inspector: INSPECTOR_PLACEHOLDER,
       }),
     );
     controller.selectSprite("barriles");
@@ -192,7 +198,14 @@ describe("<RoomEditorWorkspace> — decoración e iluminación de la habitación
   it("el panel de la sala lista decoración, antorchas y luz ambiente del doc", () => {
     const { doc, controller, palette } = setup();
     const html = render(
-      createElement(RoomEditorWorkspace, { doc, controller, palette, status: "local" }),
+      createElement(RoomEditorWorkspace, {
+        doc,
+        controller,
+        palette,
+        status: "local",
+        headerActions: HEADER_ACTIONS,
+        inspector: INSPECTOR_PLACEHOLDER,
+      }),
     );
     const salon = fixture.map.rooms[0]!;
     expect(html).toContain('data-room-panel="salon-trono"');
@@ -223,6 +236,8 @@ describe("<RoomEditorWorkspace> — decoración e iluminación de la habitación
           canvas = props;
           return null;
         },
+        headerActions: HEADER_ACTIONS,
+        inspector: INSPECTOR_PLACEHOLDER,
       });
     render(workspace());
     const pointer = (x: number, y: number, objectId?: string) =>
@@ -261,7 +276,14 @@ describe("<RoomEditorWorkspace> — decoración e iluminación de la habitación
     controller.setRoom("bodega");
     controller.selectDecorationSprite("barriles");
     const html = render(
-      createElement(RoomEditorWorkspace, { doc, controller, palette, status: "local" }),
+      createElement(RoomEditorWorkspace, {
+        doc,
+        controller,
+        palette,
+        status: "local",
+        headerActions: HEADER_ACTIONS,
+        inspector: INSPECTOR_PLACEHOLDER,
+      }),
     );
     expect(html).toContain('data-palette-mode="decorate"');
     expect(html).toContain("Haz clic en el lienzo para colocar «barriles» como decoración.");

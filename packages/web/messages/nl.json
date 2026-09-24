@@ -439,8 +439,7 @@
     },
     "header": {
       "validate": "Valideren",
-      "playtest": "Spelen",
-      "comingSoon": "Binnenkort beschikbaar"
+      "playtest": "Spelen"
     },
     "tools": {
       "label": "Gereedschap",
@@ -482,8 +481,7 @@
       "sprite": "Sprite",
       "room": "Kamer",
       "position": "Vak",
-      "delete": "Object verwijderen",
-      "inspectorSoon": "Toestanden, regels en andere eigenschappen bewerk je in de inspector."
+      "delete": "Object verwijderen"
     },
     "errors": {
       "connection": "Het concept kon niet worden geopend. Controleer je sessie en of je deze kamer mag bewerken; we blijven het proberen.",

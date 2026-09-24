@@ -439,8 +439,7 @@
     },
     "header": {
       "validate": "Valider",
-      "playtest": "Jouer",
-      "comingSoon": "Bientôt disponible"
+      "playtest": "Jouer"
     },
     "tools": {
       "label": "Outils",
@@ -482,8 +481,7 @@
       "sprite": "Sprite",
       "room": "Pièce",
       "position": "Case",
-      "delete": "Supprimer l’objet",
-      "inspectorSoon": "Les états, règles et autres propriétés se modifieront dans l’inspecteur."
+      "delete": "Supprimer l’objet"
     },
     "errors": {
       "connection": "Impossible d’ouvrir le brouillon. Vérifiez votre session et vos droits d’édition sur cette salle ; nouvelle tentative en cours.",
