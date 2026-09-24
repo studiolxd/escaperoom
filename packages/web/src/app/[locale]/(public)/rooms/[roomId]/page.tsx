@@ -4,6 +4,7 @@ import {
   ReviewError,
   type CatalogRoom,
   type ReviewListResult,
+  type ReviewService,
 } from "@escaperoom/shared/services";
 import { storage } from "@escaperoom/kit/storage";
 import type { Metadata } from "next";
@@ -37,6 +38,20 @@ const loadRoom = cache(async (roomId: string): Promise<CatalogRoom | null> => {
   }
 });
 
+/** Un cursor de reseñas inválido no rompe la página: se listan sin filtrar. */
+async function listReviews(
+  reviewService: ReviewService,
+  roomId: string,
+  cursor: string | null,
+): Promise<ReviewListResult> {
+  try {
+    return await reviewService.listReviews(ANONYMOUS_ACTOR, roomId, { cursor, limit: 10 });
+  } catch (error) {
+    if (!(error instanceof ReviewError && error.code === "VALIDATION_ERROR")) throw error;
+    return reviewService.listReviews(ANONYMOUS_ACTOR, roomId, { limit: 10 });
+  }
+}
+
 /**
  * Metadata indexable de la sala: título con sufijo por locale, descripción de
  * la sala, canónica y `hreflang` a los 6 locales de la UI.
@@ -63,21 +78,25 @@ export default async function RoomDetailPage({ params, searchParams }: Props) {
   const rawCursor = (await searchParams).reviews;
   const reviewsCursor = typeof rawCursor === "string" ? rawCursor : null;
   const reviewService = getReviewService();
-  let reviews: ReviewListResult;
-  try {
-    reviews = await reviewService.listReviews(ANONYMOUS_ACTOR, roomId, {
-      cursor: reviewsCursor,
-      limit: 10,
-    });
-  } catch (error) {
-    if (!(error instanceof ReviewError && error.code === "VALIDATION_ERROR")) throw error;
-    reviews = await reviewService.listReviews(ANONYMOUS_ACTOR, roomId, { limit: 10 });
-  }
-  const actor = await resolveActorFromHeaders(await headers());
-  const viewer = await reviewService.getViewerState(actor, roomId);
-  const coverImageUrl = room.coverImageKey
-    ? await storage.getSignedReadUrl(room.coverImageKey)
-    : null;
+  const headersList = await headers();
+
+  // Las tres ramas son independientes entre sí: en serie sumaban su latencia
+  // (F-29). `getViewerState` sigue encadenado tras `resolveActorFromHeaders`
+  // porque necesita el actor ya resuelto.
+  //
+  // Las reseñas se resuelven aquí (no se difieren detrás del `Suspense` de
+  // verdad) porque el JSON-LD incluye hasta 5 reseñas como `review` (rich
+  // result de Google); diferirlas dejaría el script sin esas reseñas o
+  // obligaría a duplicar la consulta. El `Suspense` de `RoomDetailView`
+  // sigue aislando el renderizado de la lista igualmente.
+  const [reviews, { actor, viewer }, coverImageUrl] = await Promise.all([
+    listReviews(reviewService, roomId, reviewsCursor),
+    resolveActorFromHeaders(headersList).then(async (resolvedActor) => ({
+      actor: resolvedActor,
+      viewer: await reviewService.getViewerState(resolvedActor, roomId),
+    })),
+    room.coverImageKey ? storage.getSignedReadUrl(room.coverImageKey) : Promise.resolve(null),
+  ]);
 
   const jsonLd = buildRoomJsonLd(room, localizedUrl(locale, roomPath(room.id)), reviews.items);
 
@@ -90,8 +109,7 @@ export default async function RoomDetailPage({ params, searchParams }: Props) {
       <RoomDetailView
         room={room}
         locale={locale}
-        reviews={reviews.items}
-        reviewsNextCursor={reviews.nextCursor}
+        reviewsPromise={Promise.resolve(reviews)}
         viewer={viewer}
         coverImageUrl={coverImageUrl}
         isAuthor={actor.userId === room.authorId}

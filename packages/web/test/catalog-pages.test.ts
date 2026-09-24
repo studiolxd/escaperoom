@@ -10,7 +10,7 @@ import {
 } from "@escaperoom/shared/services";
 import { NextIntlClientProvider, createTranslator } from "next-intl";
 import { createElement, type ReactElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import de from "../messages/de.json";
 import en from "../messages/en.json";
@@ -133,8 +133,14 @@ beforeEach(async () => {
   await store.upsert({ userId: "bruno", roomId: ROOM_ID, rating: 4, text: null });
 });
 
-function render(element: ReactElement, locale = "es"): string {
-  return renderToStaticMarkup(
+/**
+ * `renderToStaticMarkup` (síncrono) no espera a los componentes de servidor
+ * asíncronos dentro de un `Suspense` (F-20: `ReviewsList`, `CatalogResults`);
+ * enseñaría siempre el fallback. `renderToReadableStream` + `allReady` sí
+ * resuelve el árbol entero, como hace Next en real.
+ */
+async function render(element: ReactElement, locale = "es"): Promise<string> {
+  const stream = await renderToReadableStream(
     createElement(NextIntlClientProvider, {
       locale,
       messages: MESSAGES[locale],
@@ -142,6 +148,8 @@ function render(element: ReactElement, locale = "es"): string {
       children: element,
     }),
   );
+  await stream.allReady;
+  return new Response(stream).text();
 }
 
 const roomParams = (locale: string, roomId = ROOM_ID) => ({
@@ -190,7 +198,7 @@ describe("detalle de sala — generateMetadata", () => {
 
 describe("detalle de sala — render SSR", () => {
   it("pinta ficha, rating, reseñas y JSON-LD Product/Game con rating agregado", async () => {
-    const html = render(await RoomDetailPage(roomParams("es")));
+    const html = await render(await RoomDetailPage(roomParams("es")));
     expect(html).toContain("<h1");
     expect(html).toContain("La Maldición del Rey Aldric");
     expect(html).toContain("4,5 de 5 (2 reseñas)");
@@ -244,7 +252,7 @@ describe("detalle de sala — render SSR", () => {
       ),
     });
     state.actor = { userId: "anonymous", organizationId: null, role: "anonymous" };
-    const html = render(await RoomDetailPage(roomParams("en")), "en");
+    const html = await render(await RoomDetailPage(roomParams("en")), "en");
     const jsonLd = extractJsonLd(html);
     expect(jsonLd).not.toHaveProperty("aggregateRating");
     expect(jsonLd).not.toHaveProperty("offers");
@@ -274,14 +282,14 @@ describe("listado — SSR", () => {
         searchParams: Promise.resolve(searchParams),
       });
 
-    const match = render(await page({ language: "en", players: "4", maxPrice: "500" }));
+    const match = await render(await page({ language: "en", players: "4", maxPrice: "500" }));
     expect(match).toContain(`data-room-id="${ROOM_ID}"`);
     expect(match).toContain("4,5 de 5 (2 reseñas)");
 
-    const none = render(await page({ language: "fr" }));
+    const none = await render(await page({ language: "fr" }));
     expect(none).toContain("¡Ups! No hemos encontrado ninguna sala");
 
-    const invalid = render(await page({ difficulty: "9" }));
+    const invalid = await render(await page({ difficulty: "9" }));
     expect(invalid).toContain("Algún filtro no es válido");
     expect(invalid).toContain(`data-room-id="${ROOM_ID}"`);
   });
