@@ -39,6 +39,17 @@ export interface ResolveRoomPreviewPackOptions {
   packsRoot?: string;
 }
 
+/**
+ * Memo a nivel de módulo por `(packsRoot, tileset)` (F-11): sin esto, cada
+ * petición a una página que monta la previsualización (play, room-preview,
+ * el editor, el observador…) releía y revalidaba el manifiesto del pack
+ * entero. El resultado depende solo del contenido del manifiesto y de la
+ * estructura del `RoomPackage` (ids de objetos/frames), no del texto
+ * localizado, así que es válido reusarlo entre locales — de ahí que la clave
+ * no incluya el `locale` aunque `model` cambie por petición.
+ */
+const packCache = new Map<string, RoomPreviewPackResult>();
+
 export function resolveRoomPreviewPack(
   tileset: string,
   model: RuntimeModel,
@@ -46,6 +57,20 @@ export function resolveRoomPreviewPack(
 ): RoomPreviewPackResult {
   const packsRoot =
     options.packsRoot ?? join(findRepoRoot(options.cwd ?? process.cwd()), PACKS_PUBLIC_DIR);
+  const cacheKey = `${packsRoot}\0${tileset}`;
+  const cached = packCache.get(cacheKey);
+  if (cached) return cached;
+
+  const result = computeRoomPreviewPack(packsRoot, tileset, model);
+  packCache.set(cacheKey, result);
+  return result;
+}
+
+function computeRoomPreviewPack(
+  packsRoot: string,
+  tileset: string,
+  model: RuntimeModel,
+): RoomPreviewPackResult {
   const packDir = join(packsRoot, tileset);
   const manifestPath = join(packDir, "manifest.json");
   if (!existsSync(manifestPath)) {
