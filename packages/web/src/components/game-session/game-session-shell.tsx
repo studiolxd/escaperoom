@@ -54,6 +54,7 @@ import { PipesPanel, type PipesFeedback } from "@/components/puzzles/pipes-panel
 import { PlatesPanel, type PlatesFeedback } from "@/components/puzzles/plates-panel";
 import { SlidingPanel, type SlidingFeedback } from "@/components/puzzles/sliding-panel";
 import { SplitCluePanel, type SplitClueFeedback } from "@/components/puzzles/split-clue-panel";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { formatDuration } from "@/lib/session-format";
 import { INTRO_DIALOG_ID, isIntroOpen, isWorldInputEnabled } from "@/lib/playtest-state";
 import { ConnectionBadge } from "./connection-badge";
@@ -638,14 +639,16 @@ export function GameSessionShell({
       data-testid="game-session"
       data-phase={snapshot.phase}
     >
-      <GameSessionCanvas
-        model={model}
-        roomId={roomId}
-        pack={pack}
-        inputEnabled={worldInputEnabled}
-        onEvent={onWorldEvent}
-        onReady={onReady}
-      />
+      <ErrorBoundary>
+        <GameSessionCanvas
+          model={model}
+          roomId={roomId}
+          pack={pack}
+          inputEnabled={worldInputEnabled}
+          onEvent={onWorldEvent}
+          onReady={onReady}
+        />
+      </ErrorBoundary>
 
       {draggingItem ? (
         <div className="pointer-events-none absolute inset-x-4 top-24 z-30 mx-auto w-fit rounded-full border border-amber-200/40 bg-slate-950/90 px-4 py-1.5 text-xs text-amber-100 shadow-lg">

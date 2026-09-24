@@ -747,6 +747,7 @@
     }
   },
   "Catalog": {
+    "loading": "Cargando salas…",
     "metaTitle": "Catálogo de escape rooms online",
     "metaDescription": "Descubre escape rooms online cooperativos: filtra por idioma, dificultad, precio y número de jugadores, y lee las reseñas de quien ya las ha jugado.",
     "heading": "Salas",
@@ -1473,5 +1474,22 @@
     "switchToSignupLink": "Crea una",
     "switchToLoginPrompt": "¿Ya tienes cuenta?",
     "switchToLoginLink": "Inicia sesión"
+  },
+  "ErrorPage": {
+    "title": "Ha ocurrido un error",
+    "description": "Esta página no se ha podido cargar. Puedes reintentarlo o volver al inicio.",
+    "retry": "Reintentar",
+    "home": "Ir al inicio"
+  },
+  "ErrorBoundary": {
+    "title": "Ha ocurrido un error",
+    "description": "Este panel no se ha podido cargar. Puedes reintentarlo.",
+    "retry": "Reintentar"
+  },
+  "NotFound": {
+    "title": "No hemos encontrado esta página",
+    "description": "El enlace puede estar roto o la página ya no existe.",
+    "home": "Ir al inicio",
+    "browseCatalog": "Ver el catálogo"
   }
 }

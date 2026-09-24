@@ -697,6 +697,7 @@
     }
   },
   "Catalog": {
+    "loading": "Chargement des salles…",
     "metaTitle": "Catalogue d'escape games en ligne",
     "metaDescription": "Découvrez des escape games en ligne coopératifs : filtrez par langue, difficulté, prix et nombre de joueurs, et lisez les avis de ceux qui y ont joué.",
     "heading": "Catalogue des salles",
@@ -1327,5 +1328,22 @@
     "success": "Merci ! Nous avons bien reçu votre message et nous vous répondrons bientôt.",
     "sending": "Envoi…",
     "error": "Impossible d'envoyer le message. Réessayez."
+  },
+  "ErrorPage": {
+    "title": "Une erreur est survenue",
+    "description": "Cette page n'a pas pu se charger. Vous pouvez réessayer ou revenir à l'accueil.",
+    "retry": "Réessayer",
+    "home": "Retour à l'accueil"
+  },
+  "ErrorBoundary": {
+    "title": "Une erreur est survenue",
+    "description": "Ce panneau n'a pas pu se charger. Vous pouvez réessayer.",
+    "retry": "Réessayer"
+  },
+  "NotFound": {
+    "title": "Page introuvable",
+    "description": "Le lien est peut-être rompu ou la page n'existe plus.",
+    "home": "Retour à l'accueil",
+    "browseCatalog": "Voir le catalogue"
   }
 }

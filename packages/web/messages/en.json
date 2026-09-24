@@ -736,6 +736,7 @@
     }
   },
   "Catalog": {
+    "loading": "Loading rooms…",
     "metaTitle": "Online escape room catalog",
     "metaDescription": "Discover cooperative online escape rooms: filter by language, difficulty, price and number of players, and read reviews from people who have played them.",
     "heading": "Room catalog",
@@ -1436,5 +1437,22 @@
     "switchToSignupLink": "Create one",
     "switchToLoginPrompt": "Already have an account?",
     "switchToLoginLink": "Sign in"
+  },
+  "ErrorPage": {
+    "title": "Something went wrong",
+    "description": "This page failed to load. You can try again or go back home.",
+    "retry": "Try again",
+    "home": "Go home"
+  },
+  "ErrorBoundary": {
+    "title": "Something went wrong",
+    "description": "This panel failed to load. You can try again.",
+    "retry": "Try again"
+  },
+  "NotFound": {
+    "title": "We couldn't find this page",
+    "description": "The link may be broken or the page no longer exists.",
+    "home": "Go home",
+    "browseCatalog": "Browse the catalog"
   }
 }

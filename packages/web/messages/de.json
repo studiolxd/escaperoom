@@ -697,6 +697,7 @@
     }
   },
   "Catalog": {
+    "loading": "Räume werden geladen…",
     "metaTitle": "Katalog für Online-Escape-Rooms",
     "metaDescription": "Entdecke kooperative Online-Escape-Rooms: Filtere nach Sprache, Schwierigkeit, Preis und Spielerzahl und lies Bewertungen von Leuten, die sie gespielt haben.",
     "heading": "Raumkatalog",
@@ -1327,5 +1328,22 @@
     "success": "Danke! Wir haben deine Nachricht erhalten und melden uns bald.",
     "sending": "Wird gesendet…",
     "error": "Die Nachricht konnte nicht gesendet werden. Bitte versuche es erneut."
+  },
+  "ErrorPage": {
+    "title": "Es ist ein Fehler aufgetreten",
+    "description": "Diese Seite konnte nicht geladen werden. Du kannst es erneut versuchen oder zur Startseite zurückkehren.",
+    "retry": "Erneut versuchen",
+    "home": "Zur Startseite"
+  },
+  "ErrorBoundary": {
+    "title": "Es ist ein Fehler aufgetreten",
+    "description": "Dieser Bereich konnte nicht geladen werden. Du kannst es erneut versuchen.",
+    "retry": "Erneut versuchen"
+  },
+  "NotFound": {
+    "title": "Diese Seite wurde nicht gefunden",
+    "description": "Der Link ist möglicherweise fehlerhaft oder die Seite existiert nicht mehr.",
+    "home": "Zur Startseite",
+    "browseCatalog": "Katalog ansehen"
   }
 }
