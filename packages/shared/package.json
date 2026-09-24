@@ -42,7 +42,7 @@
     "@escaperoom/config": "workspace:*",
     "@escaperoom/env": "workspace:*",
     "@escaperoom/kit": "workspace:*",
-    "@prisma/client": "6.19.3",
+    "@prisma/client": "7.10.0",
     "nodemailer": "^10.0.10",
     "pdf-lib": "^1.17.1",
     "qrcode": "^1.5.4",
