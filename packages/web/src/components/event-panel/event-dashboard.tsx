@@ -49,6 +49,16 @@ export function EventDashboardView({ eventId }: { eventId: string }) {
   });
   const [pdf, setPdf] = useState<PdfState>({ kind: "idle" });
   const pdfTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // `exportPdf` (síncrono, sin cola) crea un blob URL local; el de `pollPdf`
+  // (encolado) es una URL firmada del servidor. Solo el primero hay que
+  // revocarlo (F-32): sin esto, cada exportación sucesiva filtraba el blob
+  // anterior.
+  const blobUrl = useRef<string | null>(null);
+  useEffect(() => {
+    return () => {
+      if (blobUrl.current) URL.revokeObjectURL(blobUrl.current);
+    };
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -66,9 +76,18 @@ export function EventDashboardView({ eventId }: { eventId: string }) {
 
   useEffect(() => {
     void load();
-    const timer = setInterval(() => void load(), POLL_MS);
+    // Pestaña oculta: no hay nadie mirando el panel en vivo, así que se
+    // saltan los refrescos (F-32) — se retoman al volver a primer plano.
+    const timer = setInterval(() => {
+      if (!document.hidden) void load();
+    }, POLL_MS);
+    const onVisible = () => {
+      if (!document.hidden) void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
       if (pdfTimer.current) clearTimeout(pdfTimer.current);
     };
   }, [load]);
@@ -127,7 +146,10 @@ export function EventDashboardView({ eventId }: { eventId: string }) {
         setPdf({ kind: "error", code: await readApiError(res) });
         return;
       }
-      setPdf({ kind: "ready", url: URL.createObjectURL(await res.blob()) });
+      if (blobUrl.current) URL.revokeObjectURL(blobUrl.current);
+      const url = URL.createObjectURL(await res.blob());
+      blobUrl.current = url;
+      setPdf({ kind: "ready", url });
     } catch {
       setPdf({ kind: "error", code: "UNKNOWN" });
     }
