@@ -53,7 +53,8 @@ const TAG = `it114${randomUUID().slice(0, 8)}`;
 function window(overrides: Partial<PendingConfirmationsWindow> = {}): PendingConfirmationsWindow {
   return {
     recentCutoff: new Date(Date.now() + 60_000), // futuro: cualquier createdAt real cae "dentro".
-    abandonCutoff: new Date("2000-01-01T00:00:00Z"), // muy en el pasado: nada cae "abandonado".
+    abandonCutoff: new Date("2000-01-01T00:00:00Z"), // muy en el pasado: nada cae "abandonado" por defecto.
+    abandonWindowStart: new Date(0), // epoch: por defecto no recorta "abandoned" por abajo.
     limit: 100,
     ...overrides,
   };
@@ -168,6 +169,35 @@ describe.skipIf(!process.env.DATABASE_URL)(
         window({ abandonCutoff: new Date("2021-01-01T00:00:00Z") }),
       );
       expect(result.abandoned).toContainEqual({ kind: "room", purchaseId: purchase.id });
+      expect(result.pending).not.toContainEqual({ kind: "room", purchaseId: purchase.id });
+    });
+
+    it("E-11 (revisión PR #119): una compra abandonada en una pasada anterior no vuelve a reportarse en 'abandoned'", async () => {
+      const store = createPrismaPurchaseConfirmationStore(prisma);
+      // Cruzó el umbral de abandono hace mucho: un barrido anterior ya la
+      // reportó (o debería haberlo hecho). No debe volver a aparecer.
+      const veryOldDate = new Date("2015-01-01T00:00:00Z");
+      const purchase = await prisma.purchase.create({
+        data: {
+          userId,
+          purchaseType: "room",
+          roomVersionId,
+          amountCents: 500,
+          status: "succeeded",
+          stripePaymentIntentId: `pi_muy_vieja_${TAG}`,
+          createdAt: veryOldDate,
+        },
+      });
+      // abandonCutoff/abandonWindowStart simulan un barrido reciente: el
+      // intervalo [2021-01-01, 2021-01-08) no contiene 2015-01-01, así que la
+      // fila ya "pasó de largo" ese bucket en pasadas anteriores.
+      const result = await store.findPendingConfirmations(
+        window({
+          abandonCutoff: new Date("2021-01-08T00:00:00Z"),
+          abandonWindowStart: new Date("2021-01-01T00:00:00Z"),
+        }),
+      );
+      expect(result.abandoned).not.toContainEqual({ kind: "room", purchaseId: purchase.id });
       expect(result.pending).not.toContainEqual({ kind: "room", purchaseId: purchase.id });
     });
 

@@ -32,17 +32,27 @@ export type PurchaseConfirmationDetails = {
 
 /**
  * Ventana del barrido periódico (E-11, revisión de PR #119):
- * - `recentCutoff` (límite superior): no toca nada pagado/creado después de
- *   esto — deja el margen de gracia al intento del propio webhook.
- * - `abandonCutoff` (límite inferior): lo pagado/creado antes de esto lleva
- *   sin confirmar más que la ventana máxima razonable; se considera
- *   abandonado (se deja de reencolar y se reporta como error) en vez de
- *   reintentarlo para siempre.
+ * - `recentCutoff` (límite superior de "pending"): no toca nada pagado/creado
+ *   después de esto — deja el margen de gracia al intento del propio webhook.
+ * - `abandonCutoff` (límite inferior de "pending", superior de "abandoned"):
+ *   lo pagado/creado antes de esto lleva sin confirmar más que la ventana
+ *   máxima razonable; se considera abandonado (se deja de reencolar y se
+ *   reporta como error) en vez de reintentarlo para siempre.
+ * - `abandonWindowStart` (límite inferior de "abandoned"): sin él, una fila
+ *   abandonada seguiría cayendo en el bucket "abandoned" (y alertándose) en
+ *   TODAS las pasadas futuras, para siempre. Acota "abandoned" a lo que cruzó
+ *   el umbral justo en el último intervalo de barrido — cada fila se reporta
+ *   una sola vez, no en cada pasada mientras siga sin confirmar.
  * - `limit`: tope de filas por bucket y pasada (una tabla con muchas filas
  *   sin marcar — p. ej. tras un backfill mal hecho — no debe convertir un
  *   barrido de 5 minutos en una consulta sin límite).
  */
-export type PendingConfirmationsWindow = { recentCutoff: Date; abandonCutoff: Date; limit: number };
+export type PendingConfirmationsWindow = {
+  recentCutoff: Date;
+  abandonCutoff: Date;
+  abandonWindowStart: Date;
+  limit: number;
+};
 
 export type PendingConfirmations = {
   /** Dentro de la ventana: se reencolan. */

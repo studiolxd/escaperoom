@@ -81,7 +81,7 @@ export function createPrismaPurchaseConfirmationStore(prisma: PrismaClient): Pur
     },
 
     async findPendingConfirmations(window: PendingConfirmationsWindow): Promise<PendingConfirmations> {
-      const { recentCutoff, abandonCutoff, limit } = window;
+      const { recentCutoff, abandonCutoff, abandonWindowStart, limit } = window;
 
       // `purchase` no tiene un instante de "cuándo pasó a succeeded" (solo
       // createdAt); es la mejor referencia disponible. `event` sí guarda
@@ -103,6 +103,7 @@ export function createPrismaPurchaseConfirmationStore(prisma: PrismaClient): Pur
           AND status = 'succeeded'
           AND "confirmationSentAt" IS NULL
           AND "createdAt" < ${abandonCutoff}
+          AND "createdAt" >= ${abandonWindowStart}
         ORDER BY "createdAt" ASC
         LIMIT ${limit}
       `;
@@ -121,6 +122,7 @@ export function createPrismaPurchaseConfirmationStore(prisma: PrismaClient): Pur
         WHERE (config -> 'payment' ->> 'status') = 'paid'
           AND "confirmationSentAt" IS NULL
           AND ${eventPaidAtExpr} < ${abandonCutoff}
+          AND ${eventPaidAtExpr} >= ${abandonWindowStart}
         ORDER BY ${eventPaidAtExpr} ASC
         LIMIT ${limit}
       `;

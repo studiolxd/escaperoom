@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import type { Worker } from "bullmq";
+import { requireInProduction } from "@escaperoom/env";
 import { createQueueRedis } from "@escaperoom/kit/redis";
 import { closeSharedQueueConnection } from "@escaperoom/kit/queue";
 import { logger } from "@escaperoom/kit/logger";
@@ -60,6 +61,20 @@ function loadLocalEnv(): void {
 
 async function main(): Promise<void> {
   loadLocalEnv();
+
+  // E-4: en producción, sin estas variables el proceso no debe arrancar (y
+  // menos quedarse "activo" degradando en silencio, como hacía antes el
+  // aviso de más abajo si faltaba REDIS_URL).
+  requireInProduction(process.env, [
+    "DATABASE_URL",
+    "APP_SECRET",
+    "APP_URL",
+    "EMAIL_FROM",
+    "EMAIL_FROM_NAME",
+    "STORAGE_BUCKET",
+    "REDIS_URL",
+  ]);
+  logger.info(`[env] NODE_ENV=${process.env.NODE_ENV ?? "development"} validado`);
 
   // Sentry (ticket 6.4): sin SENTRY_DSN queda deshabilitado, sin romper nada.
   initNodeSentry({ dsn: process.env.SENTRY_DSN });

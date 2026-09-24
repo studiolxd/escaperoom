@@ -1,5 +1,6 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import type SMTPTransport from "nodemailer/lib/smtp-transport";
+import { isDevFallbackAllowed } from "@escaperoom/env";
 
 /**
  * Transporte de email (ticket 5.6, ADR-020): **Nodemailer (SMTP) por defecto** y
@@ -190,8 +191,8 @@ export const DEV_EMAIL_FROM = "no-reply@escaperoom.local";
  * lo llama decide no arrancar el worker de envíos.
  */
 export function createMailTransportFromEnv(env: MailEnv = process.env): MailTransport | null {
-  const production = env.NODE_ENV === "production";
-  const from = env.EMAIL_FROM?.trim() || (production ? undefined : DEV_EMAIL_FROM);
+  const allowDevFallback = isDevFallbackAllowed(env);
+  const from = env.EMAIL_FROM?.trim() || (allowDevFallback ? DEV_EMAIL_FROM : undefined);
   if (!from) return null;
   const sender: MailSender = {
     from,
@@ -208,9 +209,9 @@ export function createMailTransportFromEnv(env: MailEnv = process.env): MailTran
 
   const host = env.SMTP_HOST?.trim();
   if (!host) {
-    return production
-      ? null
-      : createNodemailerTransport({ sender, options: { jsonTransport: true } });
+    return allowDevFallback
+      ? createNodemailerTransport({ sender, options: { jsonTransport: true } })
+      : null;
   }
   const port = Number.parseInt(env.SMTP_PORT ?? "", 10);
   const secure = env.SMTP_SECURE === "true" || env.SMTP_SECURE === "1";

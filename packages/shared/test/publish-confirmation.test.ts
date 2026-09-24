@@ -138,11 +138,17 @@ describe("token de confirmación", () => {
   });
 
   it("readPublishConfirmConfig: secreto de desarrollo, TTL acotado y null en producción", () => {
-    expect(readPublishConfirmConfig({})).toEqual({
+    expect(readPublishConfirmConfig({ NODE_ENV: "development" })).toEqual({
       secret: DEV_PUBLISH_CONFIRM_SECRET,
       ttlSeconds: DEFAULT_PUBLISH_CONFIRM_TTL_SECONDS,
     });
+    expect(readPublishConfirmConfig({ NODE_ENV: "test" })?.secret).toBe(
+      DEV_PUBLISH_CONFIRM_SECRET,
+    );
     expect(readPublishConfirmConfig({ NODE_ENV: "production" })).toBeNull();
+    // E-4: sin NODE_ENV=development|test tampoco hereda el secreto de dev.
+    expect(readPublishConfirmConfig({})).toBeNull();
+    expect(readPublishConfirmConfig({ NODE_ENV: "staging" })).toBeNull();
     expect(
       readPublishConfirmConfig({
         NODE_ENV: "production",

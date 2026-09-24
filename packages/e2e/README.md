@@ -37,16 +37,33 @@ Playwright arranca solo los tres procesos (`scripts/serve.ts`) con el entorno de
 - Base de datos: `DATABASE_URL` exportada o, si no, la de `packages/shared/.env`.
 - Prueba de carga contra un servidor ya levantado: `E2E_LOAD_URL=ws://localhost:2667`.
 
-Sin servicios externos: los emails van por `jsonTransport` y las colas están apagadas; el
-«buzón» del enlace mágico de Better Auth es el log de la web (`.run/web.log`), de donde
-`support/auth.ts` lo lee para iniciar sesión. LiveKit va sin configurar (la partida
-degrada a «sin medios»). Los límites anti-abuso del ticket 6.3 **siguen encendidos**: los
-jugadores de los tests van a ritmo de persona (≥ 550 ms entre intentos del mismo puzzle).
+Sin servicios externos: los emails van por `jsonTransport` y las colas están apagadas. El
+enlace mágico de Better Auth se envía por ese transporte (A-1: ya no se imprime en ningún
+log); `support/auth.ts` lee su token de la tabla `verification` de Postgres para iniciar
+sesión. Web y colyseus arrancan con `NODE_ENV=production`, así que necesitan `REDIS_URL`
+(rate limiting, como en producción) además de la base de datos — `support/env.ts` usa
+`REDIS_URL`/`E2E_REDIS_URL` exportada o, por defecto, `redis://localhost:6379` (el
+servicio Redis sin contraseña que levantan `e2e-smoke`/`e2e-nightly` en CI). LiveKit va
+sin configurar (la partida degrada a «sin medios»). Los límites anti-abuso del ticket 6.3
+**siguen encendidos**: los jugadores de los tests van a ritmo de persona (≥ 550 ms entre
+intentos del mismo puzzle).
+
+**Redis en local**: el default (`redis://localhost:6379`) no es el mismo Redis de
+`pnpm infra:up` (ese vive en `56380` y, desde E-13, pide contraseña) — necesitas uno propio
+en `6379`. Dos opciones:
+
+```sh
+# 1) Un Redis suelto sin contraseña en 6379 (más simple, igual que en CI):
+docker run --rm -p 6379:6379 redis:7-alpine
+
+# 2) Reutilizar el Redis de infra/docker-compose.dev.yml (56380, con requirepass):
+E2E_REDIS_URL=redis://:redis_dev_only@localhost:56380 pnpm --filter @escaperoom/e2e e2e:smoke
+```
 
 ## CI
 
-- **PR** — job `e2e-smoke` de `.github/workflows/ci.yml`: Postgres de servicio + el smoke
-  (≈1 min de test más el build de Next).
+- **PR** — job `e2e-smoke` de `.github/workflows/ci.yml`: Postgres + Redis de servicio + el
+  smoke (≈1 min de test más el build de Next).
 - **Nightly** — `.github/workflows/e2e-nightly.yml` (cron 02:30 UTC y `workflow_dispatch`):
   Postgres + Redis de servicio, suite completa, `mcp-parity` y la carga. Si falla, abre o
   comenta un issue con la etiqueta `e2e-nightly` y sube el informe como artefacto.

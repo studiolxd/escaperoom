@@ -1,5 +1,6 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
+import { isDevFallbackAllowed } from "@escaperoom/env";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
 import { isAnonymous, type Actor } from "./actor";
 import { isLiveAccessKey, normalizeAccessKeyCode, type AccessKeyRow } from "./access-keys";
@@ -152,7 +153,7 @@ export function readExportSigningSecret(
   env: Record<string, string | undefined> = process.env,
 ): string | null {
   const configured = env.APP_SECRET?.trim();
-  return configured || (env.NODE_ENV === "production" ? null : DEV_EXPORT_SIGNING_SECRET);
+  return configured || (isDevFallbackAllowed(env) ? DEV_EXPORT_SIGNING_SECRET : null);
 }
 
 /** Clave derivada: separación de dominio respecto a otros usos de `APP_SECRET`. */

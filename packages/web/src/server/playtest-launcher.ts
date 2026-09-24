@@ -1,3 +1,4 @@
+import { isDevFallbackAllowed } from "@escaperoom/env";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 
 /**
@@ -62,7 +63,7 @@ export function resolveColyseusHttpUrl(env: LauncherEnv = process.env): string {
 export function resolvePlaytestSecret(env: LauncherEnv = process.env): string | null {
   const configured = env.PLAYTEST_SECRET?.trim();
   if (configured) return configured;
-  return env.NODE_ENV === "production" ? null : DEV_PLAYTEST_SECRET;
+  return isDevFallbackAllowed(env) ? DEV_PLAYTEST_SECRET : null;
 }
 
 export function createHttpPlaytestLauncher(options: {

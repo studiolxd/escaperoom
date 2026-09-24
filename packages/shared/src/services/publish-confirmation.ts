@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { isDevFallbackAllowed } from "@escaperoom/env";
 import { isAnonymous, type Actor } from "./actor";
 import {
   RoomPublishError,
@@ -58,8 +59,7 @@ export function readPublishConfirmConfig(
   env: PublishConfirmEnv = process.env,
 ): PublishConfirmConfig | null {
   const configured = env.PUBLISH_CONFIRM_SECRET?.trim();
-  const secret =
-    configured || (env.NODE_ENV === "production" ? undefined : DEV_PUBLISH_CONFIRM_SECRET);
+  const secret = configured || (isDevFallbackAllowed(env) ? DEV_PUBLISH_CONFIRM_SECRET : undefined);
   if (!secret) return null;
   const rawTtl = Number.parseInt(env.PUBLISH_CONFIRM_TTL_SECONDS ?? "", 10);
   const ttlSeconds =

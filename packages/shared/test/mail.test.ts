@@ -151,18 +151,45 @@ describe("transportes (sin envíos reales)", () => {
 
   it("elige proveedor por entorno: SMTP por defecto, Resend opcional", () => {
     expect(
-      createMailTransportFromEnv({ SMTP_HOST: "localhost", SMTP_PORT: "1025" })?.provider,
+      createMailTransportFromEnv({
+        NODE_ENV: "development",
+        SMTP_HOST: "localhost",
+        SMTP_PORT: "1025",
+      })?.provider,
     ).toBe("nodemailer");
-    // Sin SMTP fuera de producción: jsonTransport (no sale nada de la máquina).
-    expect(createMailTransportFromEnv({})?.provider).toBe("nodemailer");
+    // Sin SMTP en development/test: jsonTransport (no sale nada de la máquina).
+    expect(createMailTransportFromEnv({ NODE_ENV: "development" })?.provider).toBe("nodemailer");
+    expect(createMailTransportFromEnv({ NODE_ENV: "test" })?.provider).toBe("nodemailer");
     expect(
-      createMailTransportFromEnv({ EMAIL_PROVIDER: "resend", RESEND_API_KEY: "re_x" })?.provider,
+      createMailTransportFromEnv({
+        NODE_ENV: "development",
+        EMAIL_PROVIDER: "resend",
+        RESEND_API_KEY: "re_x",
+      })?.provider,
     ).toBe("resend");
-    expect(createMailTransportFromEnv({ EMAIL_PROVIDER: "resend" })).toBeNull();
+    expect(
+      createMailTransportFromEnv({ NODE_ENV: "development", EMAIL_PROVIDER: "resend" }),
+    ).toBeNull();
     expect(
       createMailTransportFromEnv({ NODE_ENV: "production", EMAIL_FROM: "a@example.com" }),
     ).toBeNull();
-    expect(createMailTransportFromEnv({ EMAIL_PROVIDER: "postmark" })).toBeNull();
+    expect(createMailTransportFromEnv({ NODE_ENV: "development", EMAIL_PROVIDER: "postmark" })).toBeNull();
+  });
+
+  it("E-4: sin NODE_ENV=development|test no cae al remitente/jsonTransport de desarrollo", () => {
+    // Un despliegue real que no fija NODE_ENV (o lo fija a algo que no sea
+    // "production") ya no hereda el secreto/remitente de desarrollo en
+    // silencio: sin EMAIL_FROM configurado, el transporte queda desactivado.
+    expect(createMailTransportFromEnv({})).toBeNull();
+    expect(createMailTransportFromEnv({ NODE_ENV: "staging" })).toBeNull();
+    // Sin SMTP_HOST y fuera de development/test, ni siquiera con EMAIL_FROM
+    // configurado se cae al jsonTransport: se desactiva en vez de "enviar" a
+    // la nada.
+    expect(createMailTransportFromEnv({ EMAIL_FROM: "a@example.com" })).toBeNull();
+    expect(
+      createMailTransportFromEnv({ EMAIL_FROM: "a@example.com", SMTP_HOST: "localhost" })
+        ?.provider,
+    ).toBe("nodemailer");
   });
 
   it("los envíos se reintentan con backoff", () => {
@@ -209,7 +236,7 @@ describe("token del enlace de confirmación", () => {
     });
   });
 
-  it("configuración: APP_SECRET por defecto, secreto de desarrollo solo fuera de producción", () => {
+  it("configuración: APP_SECRET por defecto, secreto de desarrollo solo en development/test", () => {
     expect(readConfirmationTokenConfig({ APP_SECRET: secret })).toEqual({
       secret,
       ttlSeconds: DEFAULT_CONFIRMATION_TTL_SECONDS,
@@ -218,7 +245,16 @@ describe("token del enlace de confirmación", () => {
       readConfirmationTokenConfig({ CONFIRMATION_TOKEN_SECRET: "x".repeat(32), APP_SECRET: secret })
         ?.secret,
     ).toBe("x".repeat(32));
-    expect(readConfirmationTokenConfig({})?.secret).toBe(DEV_CONFIRMATION_SECRET);
+    expect(readConfirmationTokenConfig({ NODE_ENV: "development" })?.secret).toBe(
+      DEV_CONFIRMATION_SECRET,
+    );
+    expect(readConfirmationTokenConfig({ NODE_ENV: "test" })?.secret).toBe(
+      DEV_CONFIRMATION_SECRET,
+    );
     expect(readConfirmationTokenConfig({ NODE_ENV: "production" })).toBeNull();
+    // E-4: un entorno real sin NODE_ENV=production explícito (o con otro
+    // valor) tampoco hereda el secreto de desarrollo.
+    expect(readConfirmationTokenConfig({})).toBeNull();
+    expect(readConfirmationTokenConfig({ NODE_ENV: "staging" })).toBeNull();
   });
 });

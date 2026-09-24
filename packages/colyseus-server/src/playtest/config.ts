@@ -1,3 +1,5 @@
+import { isDevFallbackAllowed } from "@escaperoom/env";
+
 /**
  * Configuración del playtest del editor (ticket 3.8, specs/09 §3).
  *
@@ -27,7 +29,7 @@ export interface PlaytestConfig {
 /** Lee la configuración; `null` (playtest desactivado) si falta el secreto en producción. */
 export function readPlaytestConfig(env: PlaytestEnv = process.env): PlaytestConfig | null {
   const configured = env.PLAYTEST_SECRET?.trim();
-  const secret = configured || (env.NODE_ENV === "production" ? undefined : DEV_PLAYTEST_SECRET);
+  const secret = configured || (isDevFallbackAllowed(env) ? DEV_PLAYTEST_SECRET : undefined);
   if (!secret) return null;
   const rawTtl = Number.parseInt(env.PLAYTEST_TTL_SECONDS ?? "", 10);
   const ttlSeconds =

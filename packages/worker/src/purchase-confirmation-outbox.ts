@@ -23,6 +23,13 @@ import { createScheduledWorker } from "./scheduled-worker";
  * que ya lo recibieron pero sin marcador). `maxAgeMs` fija cuánto se reintenta
  * antes de darlo por abandonado: pasado ese punto se deja de reencolar y se
  * reporta como error en vez de insistir cada `everyMs` para siempre.
+ *
+ * "Abandonado" también tiene cota inferior (segunda revisión de PR #119):
+ * sin ella, cada fila que cruza `maxAgeMs` seguiría cayendo en el bucket
+ * "abandoned" — y alertándose por `logger.error` — en TODAS las pasadas
+ * futuras mientras nadie la confirme a mano, para siempre. Se acota a lo que
+ * cruzó el umbral justo en el último intervalo (`everyMs`) de barrido: cada
+ * fila se reporta una única vez, en el primer barrido tras abandonarse.
  */
 
 export const PURCHASE_CONFIRMATION_OUTBOX_QUEUE_NAME = "mail.purchase-confirmation-outbox";
@@ -43,14 +50,24 @@ export type PurchaseConfirmationOutboxResult = { pending: number; reenqueued: nu
 export async function processPurchaseConfirmationOutbox(
   store: PurchaseConfirmationStore,
   confirmations: PurchaseConfirmationQueue,
-  opts: { graceMs?: number; maxAgeMs?: number; limit?: number; now?: Date } = {},
+  opts: { graceMs?: number; maxAgeMs?: number; everyMs?: number; limit?: number; now?: Date } = {},
 ): Promise<PurchaseConfirmationOutboxResult> {
   const now = (opts.now ?? new Date()).getTime();
+  const everyMs = opts.everyMs ?? DEFAULT_PURCHASE_CONFIRMATION_OUTBOX_EVERY_MS;
   const recentCutoff = new Date(now - (opts.graceMs ?? DEFAULT_PURCHASE_CONFIRMATION_GRACE_MS));
   const abandonCutoff = new Date(now - (opts.maxAgeMs ?? DEFAULT_PURCHASE_CONFIRMATION_MAX_AGE_MS));
+  // Ventana de "abandoned" = el propio intervalo de barrido: cada fila cruza
+  // el umbral una sola vez, así que solo aparece en la pasada cuyo intervalo
+  // la contiene.
+  const abandonWindowStart = new Date(abandonCutoff.getTime() - everyMs);
   const limit = opts.limit ?? DEFAULT_PURCHASE_CONFIRMATION_OUTBOX_LIMIT;
 
-  const { pending, abandoned } = await store.findPendingConfirmations({ recentCutoff, abandonCutoff, limit });
+  const { pending, abandoned } = await store.findPendingConfirmations({
+    recentCutoff,
+    abandonCutoff,
+    abandonWindowStart,
+    limit,
+  });
 
   let reenqueued = 0;
   for (const job of pending) {
@@ -93,17 +110,19 @@ export async function createPurchaseConfirmationOutboxWorker(
   opts: PurchaseConfirmationOutboxWorkerOptions,
 ): Promise<{ worker: Worker; queue: Queue }> {
   const confirmations = opts.confirmations ?? createPurchaseConfirmationEmailQueue();
+  const everyMs = opts.everyMs ?? DEFAULT_PURCHASE_CONFIRMATION_OUTBOX_EVERY_MS;
   return createScheduledWorker({
     name: "purchase confirmation outbox",
     schedulerId: PURCHASE_CONFIRMATION_OUTBOX_SCHEDULER_ID,
     jobName: "sweep",
-    repeat: { every: opts.everyMs ?? DEFAULT_PURCHASE_CONFIRMATION_OUTBOX_EVERY_MS },
+    repeat: { every: everyMs },
     connection: opts.connection,
     queueName: PURCHASE_CONFIRMATION_OUTBOX_QUEUE_NAME,
     process: () =>
       processPurchaseConfirmationOutbox(opts.store, confirmations, {
         graceMs: opts.graceMs,
         maxAgeMs: opts.maxAgeMs,
+        everyMs,
         limit: opts.limit,
         now: opts.now?.(),
       }),

@@ -9,6 +9,7 @@ import type {
 import {
   DEFAULT_PURCHASE_CONFIRMATION_GRACE_MS,
   DEFAULT_PURCHASE_CONFIRMATION_MAX_AGE_MS,
+  DEFAULT_PURCHASE_CONFIRMATION_OUTBOX_EVERY_MS,
   DEFAULT_PURCHASE_CONFIRMATION_OUTBOX_LIMIT,
   processPurchaseConfirmationOutbox,
 } from "../src/purchase-confirmation-outbox";
@@ -80,9 +81,11 @@ describe("processPurchaseConfirmationOutbox (E-11)", () => {
       findPendingConfirmations: vi.fn(async () => ({ pending: [], abandoned: [] })),
     };
     await processPurchaseConfirmationOutbox(store, { enqueue: vi.fn() }, { now });
+    const abandonCutoff = new Date(now.getTime() - DEFAULT_PURCHASE_CONFIRMATION_MAX_AGE_MS);
     expect(store.findPendingConfirmations).toHaveBeenCalledWith({
       recentCutoff: new Date(now.getTime() - DEFAULT_PURCHASE_CONFIRMATION_GRACE_MS),
-      abandonCutoff: new Date(now.getTime() - DEFAULT_PURCHASE_CONFIRMATION_MAX_AGE_MS),
+      abandonCutoff,
+      abandonWindowStart: new Date(abandonCutoff.getTime() - DEFAULT_PURCHASE_CONFIRMATION_OUTBOX_EVERY_MS),
       limit: DEFAULT_PURCHASE_CONFIRMATION_OUTBOX_LIMIT,
     });
   });
@@ -100,6 +103,26 @@ describe("processPurchaseConfirmationOutbox (E-11)", () => {
     );
     expect(store.findPendingConfirmations).toHaveBeenCalledWith(
       expect.objectContaining({ abandonCutoff: new Date(now.getTime() - 60_000), limit: 5 }),
+    );
+  });
+
+  it("E-11 (revisión PR #119): 'abandoned' se acota al intervalo de barrido (everyMs), no reporta para siempre", async () => {
+    const now = new Date("2026-09-24T12:00:00Z");
+    const store = {
+      ...fakeStore({}),
+      findPendingConfirmations: vi.fn(async () => ({ pending: [], abandoned: [] })),
+    };
+    await processPurchaseConfirmationOutbox(
+      store,
+      { enqueue: vi.fn() },
+      { now, maxAgeMs: 60_000, everyMs: 10_000 },
+    );
+    const abandonCutoff = new Date(now.getTime() - 60_000);
+    expect(store.findPendingConfirmations).toHaveBeenCalledWith(
+      expect.objectContaining({
+        abandonCutoff,
+        abandonWindowStart: new Date(abandonCutoff.getTime() - 10_000),
+      }),
     );
   });
 });
