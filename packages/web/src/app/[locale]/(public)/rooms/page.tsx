@@ -70,8 +70,11 @@ export default async function CatalogPage({ params, searchParams }: Props) {
   return (
     <CatalogView
       locale={locale}
-      rooms={result.items}
-      nextCursor={result.nextCursor}
+      // Ya resuelto: `filters`/`invalidFilters` (la cabecera, fuera del
+      // `Suspense`) dependen del mismo resultado, así que no se gana nada
+      // difiriendo la consulta aquí. El `Suspense` de `CatalogView` sigue
+      // aislando el renderizado de la parrilla igualmente (F-20).
+      resultPromise={Promise.resolve(result)}
       filters={filters}
       isFirstPage={invalidFilters || !query.get("cursor")}
       invalidFilters={invalidFilters}

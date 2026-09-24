@@ -115,6 +115,7 @@ describe("<RoomEditorWorkspace> con inspector y grafo de reglas", () => {
       status: "local" as const,
       inspector: inspector({ kind: "object", id: "brasero" }, doc),
       rulesGraph: createElement("div", { "data-graph": "" }),
+      headerActions: createElement("div", { "data-header-actions": "" }),
     };
     const onMap = render(createElement(RoomEditorWorkspace, base));
     expect(onMap).toContain('data-inspector="object"');

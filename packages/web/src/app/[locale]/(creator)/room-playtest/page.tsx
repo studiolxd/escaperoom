@@ -1,4 +1,5 @@
 import { loadRoomPackage, toRuntimeModel } from "@escaperoom/game-runtime";
+import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { RoomPlaytestShell } from "@/components/room-playtest/room-playtest-shell";
@@ -6,6 +7,9 @@ import { readReyAldricRoomPackageJson } from "@/lib/room-preview-fixture";
 import { resolveRoomPreviewPack } from "@/lib/room-preview-pack";
 
 type Props = { params: Promise<{ locale: string }> };
+
+/** Herramienta interna de validación visual: nunca se indexa (F-14). */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
  * Playtest de la Sala 1 (ticket 1.10): carga el fixture canónico del Rey Aldric,

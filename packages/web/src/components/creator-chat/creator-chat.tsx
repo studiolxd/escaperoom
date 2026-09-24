@@ -9,6 +9,7 @@ import { Link } from "@/i18n/navigation";
 import {
   CREATOR_CHAT_ENDPOINT,
   CREATOR_CHAT_MAX_MESSAGE_CHARS,
+  isSameOriginActionLink,
   readChatEvents,
   type CreatorChatRequest,
 } from "@/lib/creator-chat-protocol";
@@ -23,6 +24,17 @@ import {
   type CreatorChatNotice,
   type CreatorChatState,
 } from "@/lib/creator-chat-state";
+
+/**
+ * Origen de la app (F-31): `window.location.origin` no es estable entre SSR
+ * y cliente (no existe en el servidor), así que se usa la misma variable
+ * pública con la que el resto de la app calcula su origen (`siteUrl()` en
+ * `lib/catalog-seo.ts`). Se lee en cada llamada (no a nivel de módulo) para
+ * que responda a `process.env.NEXT_PUBLIC_APP_URL` en tests.
+ */
+function appOrigin(): string {
+  return new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").origin;
+}
 
 export interface CreatorChatProps {
   locale: string;
@@ -237,7 +249,7 @@ function ToolCard({ item }: { item: Extract<CreatorChatItem, { kind: "tool" }> }
           </pre>
         </details>
       ) : null}
-      {item.link ? (
+      {item.link && isSameOriginActionLink(item.link.url, appOrigin()) ? (
         <div className="mt-2 space-y-1">
           <a
             href={item.link.url}

@@ -8,6 +8,7 @@ import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { invitePath, sanitizePlayerName, type GameJoinTarget } from "@/lib/game-net";
 import { ConnectionBadge } from "./connection-badge";
 import { GameSessionShell } from "./game-session-shell";
@@ -175,7 +176,9 @@ export function NetworkGame({
           {t("status.expired")}
         </p>
       ) : null}
-      <MediaOverlay />
+      <ErrorBoundary>
+        <MediaOverlay />
+      </ErrorBoundary>
     </GameSessionShell>
   );
 }

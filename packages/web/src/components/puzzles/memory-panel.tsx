@@ -113,7 +113,7 @@ export function MemoryPanel({
       <div
         className="grid-cols-dynamic grid gap-2"
         style={{ "--cols": view.cols } as CSSProperties}
-        role="list"
+        role="listbox"
         aria-label={t("boardLabel")}
       >
         {view.cards.map((card) => {
@@ -123,9 +123,9 @@ export function MemoryPanel({
               key={card.id}
               type="button"
               variant="overlayGhost"
-              role="listitem"
+              role="option"
               aria-label={faceUp ? t("cardUp", { id: card.id }) : t("cardDown", { id: card.id })}
-              aria-pressed={faceUp}
+              aria-selected={faceUp}
               data-card-id={card.id}
               data-flipped={card.flipped}
               data-matched={card.matched}

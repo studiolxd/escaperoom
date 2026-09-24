@@ -343,7 +343,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
   );
 
   /** "Usar objeto…" / drag&drop: `RoomSession.useItemOnObject` resuelve regla o puente. */
-  const useItem = useCallback(
+  const applyItemUse = useCallback(
     (itemId: string, objectId: string) => {
       if (introOpen) return;
       const result = session.useItemOnObject(itemId, objectId, now(), PLAYER_ID);
@@ -365,23 +365,23 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
       } else if (event.type === "use-item") {
         setSelected(null);
         setPickerFor(null);
-        useItem(event.itemId, event.objectId);
+        applyItemUse(event.itemId, event.objectId);
       } else if (event.type === "enter-room") {
         enterRoom(event.roomId, true);
       } else if (event.type === "open-panel") {
         openPanel(event.puzzleId, event.objectId);
       }
     },
-    [useItem, enterRoom, openPanel],
+    [applyItemUse, enterRoom, openPanel],
   );
 
   const chooseItem = useCallback(
     (itemId: string) => {
       if (!pickerFor) return;
       setPickerFor(null);
-      useItem(itemId, pickerFor);
+      applyItemUse(itemId, pickerFor);
     },
-    [pickerFor, useItem],
+    [pickerFor, applyItemUse],
   );
 
   const onReady = useCallback((handle: RoomPlaytestHandle) => {

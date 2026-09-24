@@ -6,12 +6,6 @@
   "LocaleSwitcher": {
     "label": "Idioma"
   },
-  "Home": {
-    "showcase": "Página de prueba i18n (0.9)",
-    "title": "EscapeRoom",
-    "fallbackDemo": "Esta clave solo existe en el catálogo 'es': los demás idiomas caen aquí.",
-    "catalogCta": "Catálogo de salas"
-  },
   "Chat": {
     "title": "Chat",
     "empty": "Aún no hay mensajes",
@@ -481,8 +475,7 @@
     },
     "header": {
       "validate": "Validar",
-      "playtest": "Jugar",
-      "comingSoon": "Disponible próximamente"
+      "playtest": "Jugar"
     },
     "tools": {
       "label": "Herramientas",
@@ -524,8 +517,7 @@
       "sprite": "Sprite",
       "room": "Habitación",
       "position": "Celda",
-      "delete": "Borrar objeto",
-      "inspectorSoon": "Estados, reglas y demás propiedades se editarán en el inspector."
+      "delete": "Borrar objeto"
     },
     "errors": {
       "connection": "No se pudo abrir el borrador. Comprueba tu sesión y que tienes permiso para editar esta sala; seguimos reintentando.",
@@ -747,6 +739,7 @@
     }
   },
   "Catalog": {
+    "loading": "Cargando salas…",
     "metaTitle": "Catálogo de escape rooms online",
     "metaDescription": "Descubre escape rooms online cooperativos: filtra por idioma, dificultad, precio y número de jugadores, y lee las reseñas de quien ya las ha jugado.",
     "heading": "Salas",
@@ -1473,5 +1466,22 @@
     "switchToSignupLink": "Crea una",
     "switchToLoginPrompt": "¿Ya tienes cuenta?",
     "switchToLoginLink": "Inicia sesión"
+  },
+  "ErrorPage": {
+    "title": "Ha ocurrido un error",
+    "description": "Esta página no se ha podido cargar. Puedes reintentarlo o volver al inicio.",
+    "retry": "Reintentar",
+    "home": "Ir al inicio"
+  },
+  "ErrorBoundary": {
+    "title": "Ha ocurrido un error",
+    "description": "Este panel no se ha podido cargar. Puedes reintentarlo.",
+    "retry": "Reintentar"
+  },
+  "NotFound": {
+    "title": "No hemos encontrado esta página",
+    "description": "El enlace puede estar roto o la página ya no existe.",
+    "home": "Ir al inicio",
+    "browseCatalog": "Ver el catálogo"
   }
 }

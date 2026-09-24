@@ -10,4 +10,6 @@ export const baseClientSchema = z.object({
   NEXT_PUBLIC_COLYSEUS_URL: z.url().optional(),
   // WebSocket de edición del editor (ticket 3.3); default ws://localhost:2568.
   NEXT_PUBLIC_EDITOR_SYNC_URL: z.url().optional(),
+  // Sentry en el navegador (ticket 6.4, F-12); sin ella, deshabilitado.
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
 });

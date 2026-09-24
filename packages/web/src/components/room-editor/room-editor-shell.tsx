@@ -25,6 +25,7 @@ import {
 import type { EditorPalette } from "@escaperoom/game-runtime";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { Button } from "@/components/ui/button";
+import { ErrorBoundary } from "@/components/error-boundary";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
 import { PlaytestButton } from "./playtest-button";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
@@ -49,7 +50,11 @@ function CanvasLoading() {
   );
 }
 
-const renderCanvas = (props: RoomEditorCanvasProps) => <RoomEditorCanvas {...props} />;
+const renderCanvas = (props: RoomEditorCanvasProps) => (
+  <ErrorBoundary>
+    <RoomEditorCanvas {...props} />
+  </ErrorBoundary>
+);
 
 export interface RoomEditorShellProps {
   roomId: string;
@@ -145,6 +150,7 @@ export function RoomEditorShell(props: RoomEditorShellProps) {
       doc.destroy();
     };
     // `palette`, `t` y `locale` no deben recrear la sesión (solo se usan al crearla).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, syncUrl, demoPackage]);
 
   if (!ready || !session) {
@@ -264,14 +270,16 @@ function ValidatedWorkspace({
       canvasTab={canvasTab}
       onCanvasTabChange={setCanvasTab}
       rulesGraph={
-        <RulesGraph
-          doc={doc}
-          labels={graphLabels}
-          issues={validation.ruleGraphIssues}
-          height="100%"
-          focusRuleId={focusRuleId}
-          onSelectRule={(ruleId) => select({ kind: "rule", id: ruleId })}
-        />
+        <ErrorBoundary>
+          <RulesGraph
+            doc={doc}
+            labels={graphLabels}
+            issues={validation.ruleGraphIssues}
+            height="100%"
+            focusRuleId={focusRuleId}
+            onSelectRule={(ruleId) => select({ kind: "rule", id: ruleId })}
+          />
+        </ErrorBoundary>
       }
       inspector={
         <RoomEditorInspector

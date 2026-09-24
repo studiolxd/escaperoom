@@ -128,7 +128,7 @@ export class UiPlayer {
     const overlay = this.page.getByTestId("game-inventory-overlay");
     await expect(overlay.getByRole("button", { name: "Combinar" })).toBeVisible();
     for (const item of itemNames) {
-      await overlay.getByRole("listitem", { name: item, exact: true }).click();
+      await overlay.getByRole("option", { name: item, exact: true }).click();
     }
     await overlay.getByRole("button", { name: "Combinar" }).click();
     await expect(overlay).toContainText(`Has creado: ${expected}`);

@@ -38,10 +38,11 @@ async function loadPlaytestModel(playtestId: string, locale: string): Promise<Lo
  * para pedir (servidor a servidor) el paquete congelado y proyectar el modelo.
  */
 export default async function PlaytestPage({ params }: Props) {
-  const { locale, token: rawToken } = await params;
+  const { locale, token } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("EditorPlaytest");
-  const token = decodeURIComponent(rawToken);
+  // `token` ya viene decodificado por el router (`[token]`); decodificarlo otra
+  // vez lanzaba `URIError` (500) ante un `%` mal formado (B-20/F-15).
   const payload = readPlaytestToken(token);
   const expired = payload ? isPlaytestExpired(payload) : false;
   const loaded = payload && !expired ? await loadPlaytestModel(payload.playtestId, locale) : null;

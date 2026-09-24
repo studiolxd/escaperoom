@@ -6,11 +6,6 @@
   "LocaleSwitcher": {
     "label": "Taal"
   },
-  "Home": {
-    "showcase": "i18n-testpagina (0.9)",
-    "title": "EscapeRoom",
-    "catalogCta": "Kamercatalogus"
-  },
   "RoomPreview": {
     "badge": "isometrische preview (1.2)",
     "loading": "Kamers laden…",
@@ -439,8 +434,7 @@
     },
     "header": {
       "validate": "Valideren",
-      "playtest": "Spelen",
-      "comingSoon": "Binnenkort beschikbaar"
+      "playtest": "Spelen"
     },
     "tools": {
       "label": "Gereedschap",
@@ -482,8 +476,7 @@
       "sprite": "Sprite",
       "room": "Kamer",
       "position": "Vak",
-      "delete": "Object verwijderen",
-      "inspectorSoon": "Toestanden, regels en andere eigenschappen bewerk je in de inspector."
+      "delete": "Object verwijderen"
     },
     "errors": {
       "connection": "Het concept kon niet worden geopend. Controleer je sessie en of je deze kamer mag bewerken; we blijven het proberen.",
@@ -697,6 +690,7 @@
     }
   },
   "Catalog": {
+    "loading": "Kamers laden…",
     "metaTitle": "Catalogus van online escaperooms",
     "metaDescription": "Ontdek coöperatieve online escaperooms: filter op taal, moeilijkheid, prijs en aantal spelers, en lees reviews van mensen die ze hebben gespeeld.",
     "heading": "Kamercatalogus",
@@ -1327,5 +1321,22 @@
     "success": "Bedankt! We hebben je bericht ontvangen en reageren snel.",
     "sending": "Verzenden…",
     "error": "Het bericht kon niet worden verzonden. Probeer het opnieuw."
+  },
+  "ErrorPage": {
+    "title": "Er is iets misgegaan",
+    "description": "Deze pagina kon niet worden geladen. Je kunt het opnieuw proberen of terug naar de startpagina gaan.",
+    "retry": "Opnieuw proberen",
+    "home": "Naar de startpagina"
+  },
+  "ErrorBoundary": {
+    "title": "Er is iets misgegaan",
+    "description": "Dit paneel kon niet worden geladen. Je kunt het opnieuw proberen.",
+    "retry": "Opnieuw proberen"
+  },
+  "NotFound": {
+    "title": "We konden deze pagina niet vinden",
+    "description": "De link is mogelijk verbroken of de pagina bestaat niet meer.",
+    "home": "Naar de startpagina",
+    "browseCatalog": "Bekijk de catalogus"
   }
 }

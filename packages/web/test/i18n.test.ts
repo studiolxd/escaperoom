@@ -37,9 +37,6 @@ describe("i18n", () => {
         "Metadata.title",
         "Metadata.description",
         "LocaleSwitcher.label",
-        "Home.showcase",
-        "Home.title",
-        "Home.fallbackDemo",
         "CodeLock.title",
         "CodeLock.prompt",
         "CodeLock.submit",
@@ -195,9 +192,9 @@ describe("i18n", () => {
   });
 
   it("falls back to the default catalog when a key is missing", () => {
-    expect(en.Home).not.toHaveProperty("fallbackDemo");
+    expect((en as { Checkout?: unknown }).Checkout).toBeUndefined();
     const merged = deepMergeMessages(es, catalogs.en);
-    const home = merged.Home as Record<string, string>;
-    expect(home.fallbackDemo).toBe(es.Home.fallbackDemo);
+    const checkout = merged.Checkout as { kinds: Record<string, string> };
+    expect(checkout.kinds.room).toBe(es.Checkout.kinds.room);
   });
 });

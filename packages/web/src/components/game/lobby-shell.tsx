@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { LobbyHud } from "./lobby-hud";
 
 const LobbyCanvas = dynamic(() => import("./lobby-canvas"), {
@@ -30,7 +31,9 @@ export function LobbyShell() {
     <section className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10 bg-slate-950">
       <LobbyCanvas />
       <LobbyHud />
-      <MediaOverlay />
+      <ErrorBoundary>
+        <MediaOverlay />
+      </ErrorBoundary>
     </section>
   );
 }

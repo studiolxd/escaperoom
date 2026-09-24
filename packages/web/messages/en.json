@@ -6,11 +6,6 @@
   "LocaleSwitcher": {
     "label": "Language"
   },
-  "Home": {
-    "showcase": "i18n test page (0.9)",
-    "title": "EscapeRoom",
-    "catalogCta": "Room catalog"
-  },
   "RoomPreview": {
     "badge": "isometric preview (1.2)",
     "loading": "Loading rooms…",
@@ -470,8 +465,7 @@
     },
     "header": {
       "validate": "Validate",
-      "playtest": "Play",
-      "comingSoon": "Coming soon"
+      "playtest": "Play"
     },
     "tools": {
       "label": "Tools",
@@ -513,8 +507,7 @@
       "sprite": "Sprite",
       "room": "Room",
       "position": "Cell",
-      "delete": "Delete object",
-      "inspectorSoon": "States, rules and other properties will be edited in the inspector."
+      "delete": "Delete object"
     },
     "errors": {
       "connection": "The draft could not be opened. Check your session and that you may edit this room; we keep retrying.",
@@ -736,6 +729,7 @@
     }
   },
   "Catalog": {
+    "loading": "Loading rooms…",
     "metaTitle": "Online escape room catalog",
     "metaDescription": "Discover cooperative online escape rooms: filter by language, difficulty, price and number of players, and read reviews from people who have played them.",
     "heading": "Room catalog",
@@ -1436,5 +1430,22 @@
     "switchToSignupLink": "Create one",
     "switchToLoginPrompt": "Already have an account?",
     "switchToLoginLink": "Sign in"
+  },
+  "ErrorPage": {
+    "title": "Something went wrong",
+    "description": "This page failed to load. You can try again or go back home.",
+    "retry": "Try again",
+    "home": "Go home"
+  },
+  "ErrorBoundary": {
+    "title": "Something went wrong",
+    "description": "This panel failed to load. You can try again.",
+    "retry": "Try again"
+  },
+  "NotFound": {
+    "title": "We couldn't find this page",
+    "description": "The link may be broken or the page no longer exists.",
+    "home": "Go home",
+    "browseCatalog": "Browse the catalog"
   }
 }

@@ -217,7 +217,7 @@ export function SplitCluePanel({
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          <ul className="flex flex-wrap gap-2" role="list" aria-label={t("paletteLabel")}>
+          <ul className="flex flex-wrap gap-2" aria-label={t("paletteLabel")}>
             {palette.map((symbol) => (
               <li key={symbol}>
                 <Button

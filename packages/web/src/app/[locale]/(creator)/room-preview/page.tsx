@@ -1,4 +1,5 @@
 import { loadRoomPackage, toRuntimeModel } from "@escaperoom/game-runtime";
+import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { RoomPreviewShell } from "@/components/room-preview/room-preview-shell";
@@ -6,6 +7,9 @@ import { readReyAldricRoomPackageJson } from "@/lib/room-preview-fixture";
 import { resolveRoomPreviewPack } from "@/lib/room-preview-pack";
 
 type Props = { params: Promise<{ locale: string }> };
+
+/** Herramienta interna de validación visual: nunca se indexa (F-14). */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
  * Ruta de previsualización del runtime (tickets 1.1 y 1.2). Carga el fixture

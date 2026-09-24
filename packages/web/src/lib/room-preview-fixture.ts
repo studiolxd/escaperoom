@@ -9,10 +9,17 @@ import { findRepoRoot } from "./repo-root";
  */
 export const REY_ALDRIC_FIXTURE_PATH = "docs/reference/roompackage-rey-aldric.v1.json";
 
+let cachedJson: string | undefined;
+
 /**
  * Lee el JSON del fixture del Rey Aldric desde el repo. Solo se usa en el
  * servidor (Server Component / build), nunca en el bundle de cliente.
+ *
+ * Memo a nivel de módulo (F-11): el fixture es un fichero estático del repo
+ * (no cambia en caliente), pero se leía, parseaba y validaba de nuevo en
+ * cada petición a `play`, `room-preview`, `editor/[roomId]`, el observador…
  */
 export function readReyAldricRoomPackageJson(): string {
-  return readFileSync(join(findRepoRoot(process.cwd()), REY_ALDRIC_FIXTURE_PATH), "utf8");
+  cachedJson ??= readFileSync(join(findRepoRoot(process.cwd()), REY_ALDRIC_FIXTURE_PATH), "utf8");
+  return cachedJson;
 }

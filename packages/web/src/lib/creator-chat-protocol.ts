@@ -14,6 +14,27 @@ export const CREATOR_CHAT_CONTENT_TYPE = "application/x-ndjson; charset=utf-8" a
 /** Enlace accionable que devuelve una tool (playtest de `preview`, confirmación de `publish`). */
 export type CreatorChatLink = { kind: "preview" | "publish_confirm"; url: string };
 
+/**
+ * `url` de un `CreatorChatLink` viene del resultado de una tool (F-31): el
+ * orquestador (`server/creator-chat/orchestrator.ts`) ya exige `http(s):`,
+ * pero la tool puede ser un MCP remoto configurado por el propio creador
+ * (`CREATOR_CHAT_MCP_URL`) — un origen ajeno podría devolver un enlace de
+ * phishing con el texto "Confirmar publicación". Antes de pintarlo como
+ * enlace real, se exige además que su origen coincida con el de la propia
+ * app (`window.location.origin`, solo evaluable en cliente).
+ */
+export function isSameOriginActionLink(url: string, currentOrigin: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return (
+      (parsed.protocol === "https:" || parsed.protocol === "http:") &&
+      parsed.origin === currentOrigin
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** Por qué terminó una respuesta del asistente. */
 export type CreatorChatStopReason = "end_turn" | "refusal" | "max_tokens" | "other";
 

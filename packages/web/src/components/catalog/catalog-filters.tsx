@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { LOCALES } from "@escaperoom/config/locales";
 import { useRouter } from "@/i18n/navigation";
@@ -78,27 +78,28 @@ export function CatalogFilters({
 
   const [q, setQ] = useState(values.q ?? "");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const skipNextQNavigate = useRef(false);
 
-  function navigate(next: CatalogFilterValues) {
-    const query: Record<string, string> = {};
-    for (const [key, value] of Object.entries(next)) {
-      if (value) query[key] = value;
-    }
-    router.push({ pathname: CATALOG_PATH, query });
-  }
+  const navigate = useCallback(
+    (next: CatalogFilterValues) => {
+      const query: Record<string, string> = {};
+      for (const [key, value] of Object.entries(next)) {
+        if (value) query[key] = value;
+      }
+      router.push({ pathname: CATALOG_PATH, query });
+    },
+    [router],
+  );
 
   function onFieldChange(key: keyof CatalogFilterValues, value: string) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     navigate({ ...values, q: q || undefined, [key]: value || undefined });
   }
 
-  // Debounce solo el texto libre; el resto de campos navegan al cambiar.
+  // Debounce solo el texto libre; el resto de campos navegan al cambiar. Si
+  // `q` ya coincide con la URL actual (al montar, o porque el cambio viene de
+  // fuera: navegador/otro filtro), no hay nada que navegar.
   useEffect(() => {
-    if (skipNextQNavigate.current) {
-      skipNextQNavigate.current = false;
-      return;
-    }
+    if (q === (values.q ?? "")) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       navigate({ ...values, q: q || undefined });
@@ -106,12 +107,10 @@ export function CatalogFilters({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [q]);
+  }, [q, values, navigate]);
 
-  // Si la navegación viene de otro filtro (o del navegador), sincroniza `q`
-  // sin volver a disparar el debounce de arriba.
+  // Si la navegación viene de otro filtro (o del navegador), sincroniza `q`.
   useEffect(() => {
-    skipNextQNavigate.current = true;
     setQ(values.q ?? "");
   }, [values.q]);
 

@@ -6,11 +6,6 @@
   "LocaleSwitcher": {
     "label": "Idioma"
   },
-  "Home": {
-    "showcase": "Página de teste de i18n (0.9)",
-    "title": "EscapeRoom",
-    "catalogCta": "Catálogo de salas"
-  },
   "RoomPreview": {
     "badge": "pré-visualização isométrica (1.2)",
     "loading": "A carregar salas…",
@@ -439,8 +434,7 @@
     },
     "header": {
       "validate": "Validar",
-      "playtest": "Jogar",
-      "comingSoon": "Disponível em breve"
+      "playtest": "Jogar"
     },
     "tools": {
       "label": "Ferramentas",
@@ -482,8 +476,7 @@
       "sprite": "Sprite",
       "room": "Divisão",
       "position": "Célula",
-      "delete": "Apagar objeto",
-      "inspectorSoon": "Estados, regras e outras propriedades serão editados no inspetor."
+      "delete": "Apagar objeto"
     },
     "errors": {
       "connection": "Não foi possível abrir o rascunho. Verifica a tua sessão e se tens permissão para editar esta sala; continuamos a tentar.",
@@ -697,6 +690,7 @@
     }
   },
   "Catalog": {
+    "loading": "A carregar salas…",
     "metaTitle": "Catálogo de escape rooms online",
     "metaDescription": "Descobre escape rooms online cooperativos: filtra por idioma, dificuldade, preço e número de jogadores, e lê as avaliações de quem já jogou.",
     "heading": "Catálogo de salas",
@@ -1327,5 +1321,22 @@
     "success": "Obrigado! Recebemos a tua mensagem e responderemos em breve.",
     "sending": "A enviar…",
     "error": "Não foi possível enviar a mensagem. Tenta novamente."
+  },
+  "ErrorPage": {
+    "title": "Ocorreu um erro",
+    "description": "Esta página não carregou. Podes tentar novamente ou voltar ao início.",
+    "retry": "Tentar novamente",
+    "home": "Ir para o início"
+  },
+  "ErrorBoundary": {
+    "title": "Ocorreu um erro",
+    "description": "Este painel não carregou. Podes tentar novamente.",
+    "retry": "Tentar novamente"
+  },
+  "NotFound": {
+    "title": "Não encontrámos esta página",
+    "description": "O link pode estar quebrado ou a página já não existe.",
+    "home": "Ir para o início",
+    "browseCatalog": "Ver o catálogo"
   }
 }

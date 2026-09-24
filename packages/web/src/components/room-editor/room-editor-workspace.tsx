@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type * as Y from "yjs";
 import {
   EDIT_TOOLS,
   EDITOR_TILE_LAYERS,
-  renameObject,
-  toToolError,
   useRoomPackage,
   type EditToolController,
   type ToolError,
@@ -20,9 +18,14 @@ import {
 } from "@escaperoom/game-runtime";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
@@ -48,11 +51,8 @@ export interface RoomEditorWorkspaceProps {
   status: RoomEditorStatus;
   /** Lienzo Phaser (solo cliente); sin él se muestra un marcador (SSR, tests). */
   renderCanvas?: (props: RoomEditorCanvasProps) => ReactNode;
-  /**
-   * Inspector de propiedades (3.4). Si se pasa, sustituye al panel mínimo de
-   * selección de 3.1 (id, sprite, celda y borrar).
-   */
-  inspector?: ReactNode;
+  /** Inspector de propiedades (3.4): estados, reglas y demás del objeto seleccionado. */
+  inspector: ReactNode;
   /** Grafo de reglas (3.6) como segunda pestaña del área central. */
   rulesGraph?: ReactNode;
   /** Pestaña activa (controlada por quien monta el editor; por defecto el mapa). */
@@ -61,7 +61,7 @@ export interface RoomEditorWorkspaceProps {
   /** Panel del validador (3.7), bajo la selección. */
   validation?: ReactNode;
   /** Acciones de cabecera: validar (3.7), jugar (3.8), publicar (3.9). */
-  headerActions?: ReactNode;
+  headerActions: ReactNode;
 }
 
 /** Último `RuntimeModel` válido del paquete: un estado intermedio inválido no vacía el lienzo. */
@@ -135,7 +135,6 @@ export function RoomEditorWorkspace({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [controller, showRules]);
 
-  const selected = pkg.objects.find((object) => object.id === tools.selectedObjectId);
   const activeRoom = pkg.map.rooms.find((room) => room.id === activeRoomId);
   const onPointer = (event: EditPointerEvent) => controller.pointer(event);
 
@@ -146,30 +145,7 @@ export function RoomEditorWorkspace({
         <span className="rounded bg-white/10 px-2 py-0.5 text-xs text-white/70">
           {t(`status.${status}`)}
         </span>
-        <div className="ml-auto flex items-center gap-2">
-          {headerActions ?? (
-            <>
-              <Button
-                size="sm"
-                variant="ghost"
-                className={QUIET_BUTTON}
-                disabled
-                title={t("header.comingSoon")}
-              >
-                {t("header.validate")}
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className={QUIET_BUTTON}
-                disabled
-                title={t("header.comingSoon")}
-              >
-                {t("header.playtest")}
-              </Button>
-            </>
-          )}
-        </div>
+        <div className="ml-auto flex items-center gap-2">{headerActions}</div>
       </header>
 
       <div className="flex min-h-0 flex-1">
@@ -224,10 +200,7 @@ export function RoomEditorWorkspace({
               ))}
             </div>
             <Label
-              className={cn(
-                "ml-2 gap-2 text-xs font-normal text-white/70",
-                showRules && "hidden",
-              )}
+              className={cn("ml-2 gap-2 text-xs font-normal text-white/70", showRules && "hidden")}
             >
               {t("layers.label")}
               <Select
@@ -299,26 +272,7 @@ export function RoomEditorWorkspace({
         </main>
 
         <aside className="w-80 shrink-0 overflow-y-auto border-l border-white/10 p-3">
-          {inspector ?? (
-            <>
-              <h2 className="mb-2 text-sm font-semibold">{t("selection.title")}</h2>
-              {selected ? (
-                <SelectionPanel
-                  key={selected.id}
-                  doc={doc}
-                  object={selected}
-                  roomName={pkg.map.rooms.find((room) => room.id === selected.roomId)?.name}
-                  onRenamed={(id) => controller.select(id)}
-                  onDelete={() => controller.deleteSelection()}
-                />
-              ) : (
-                <p className="text-sm text-white/60">{t("selection.none")}</p>
-              )}
-              <div className="mt-4 border-t border-white/10 pt-3">
-                <p className="text-xs text-white/40">{t("selection.inspectorSoon")}</p>
-              </div>
-            </>
-          )}
+          {inspector}
           {activeRoom && (
             <div className="mt-4 border-t border-white/10 pt-3">
               <RoomEditorRoomPanel
@@ -355,74 +309,4 @@ function errorText(t: Translator, error: ToolError): string {
   return (ERROR_CODES as readonly string[]).includes(error.code)
     ? t(`errors.${error.code as (typeof ERROR_CODES)[number]}`)
     : error.message;
-}
-
-function SelectionPanel({
-  doc,
-  object,
-  roomName,
-  onRenamed,
-  onDelete,
-}: {
-  doc: Y.Doc;
-  object: RoomPackage["objects"][number];
-  roomName?: string;
-  onRenamed: (id: string) => void;
-  onDelete: () => void;
-}) {
-  const t = useTranslations("RoomEditor");
-  const [draftId, setDraftId] = useState(object.id);
-  const [error, setError] = useState<string | null>(null);
-
-  const submit = (event: { preventDefault(): void }) => {
-    event.preventDefault();
-    const next = draftId.trim();
-    if (!next || next === object.id) return;
-    try {
-      renameObject(doc, object.id, next);
-      setError(null);
-      onRenamed(next);
-    } catch (caught) {
-      setError(errorText(t, toToolError(caught)));
-    }
-  };
-
-  return (
-    <div className="space-y-3 text-sm" data-selected-object={object.id}>
-      <form onSubmit={submit} className="space-y-1">
-        <Label className="text-xs font-normal text-white/60" htmlFor="room-editor-object-id">
-          {t("selection.id")}
-        </Label>
-        <div className="flex gap-1">
-          <Input
-            id="room-editor-object-id"
-            className={cn(
-              "h-auto min-w-0 flex-1 rounded border bg-slate-900 px-2 py-1 font-mono text-sm",
-              error ? "border-red-500" : "border-white/15",
-            )}
-            value={draftId}
-            onChange={(event) => setDraftId(event.target.value)}
-            spellCheck={false}
-          />
-          <Button size="sm" type="submit" variant="ghost" className={QUIET_BUTTON}>
-            {t("selection.rename")}
-          </Button>
-        </div>
-        {error && <p className="text-xs text-red-300">{error}</p>}
-      </form>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-        <dt className="text-white/60">{t("selection.sprite")}</dt>
-        <dd className="font-mono">{object.sprite}</dd>
-        <dt className="text-white/60">{t("selection.room")}</dt>
-        <dd>{roomName ?? object.roomId}</dd>
-        <dt className="text-white/60">{t("selection.position")}</dt>
-        <dd className="font-mono">
-          {object.position.x}, {object.position.y}
-        </dd>
-      </dl>
-      <Button size="sm" variant="destructive" onClick={onDelete}>
-        {t("selection.delete")}
-      </Button>
-    </div>
-  );
 }

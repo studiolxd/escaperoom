@@ -103,9 +103,9 @@ function setup() {
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
     });
   const idCtx = (id: string) => ({ params: Promise.resolve({ id }) });
-  const codeCtx = (code: string) => ({
-    params: Promise.resolve({ code: encodeURIComponent(code) }),
-  });
+  // El router de Next ya decodifica los segmentos dinámicos: los handlers
+  // reciben `code` tal cual, no codificado (B-20/F-15).
+  const codeCtx = (code: string) => ({ params: Promise.resolve({ code }) });
 
   return {
     jobs,
@@ -227,6 +227,16 @@ describe("invitaciones por email (REST, ticket 5.6)", () => {
     expect(expired.status).toBe(410);
     expect(((await expired.json()) as ErrorJson).error.code).toBe("CONFIRMATION_EXPIRED");
     expect(t.keyStore.keys[0]!.status).toBe("pending_confirmation");
+  });
+
+  it("un código con `%` mal formado no tira un 500 (B-20/F-15)", async () => {
+    const t = setup();
+    // Antes de B-20/F-15, `postConfirm` volvía a hacer `decodeURIComponent`
+    // sobre un `code` que el router ya había decodificado: un `%` suelto
+    // (no una secuencia de escape válida) lanzaba `URIError` sin capturar.
+    const res = await t.confirm("clave-%-mal-formada", { token: "x" });
+    expect(res.status).toBe(403);
+    expect(((await res.json()) as ErrorJson).error.code).toBe("CONFIRMATION_INVALID");
   });
 
   it("generar con emails encola; reenvío 202; errores de permisos", async () => {

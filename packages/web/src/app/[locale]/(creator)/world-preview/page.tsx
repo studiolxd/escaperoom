@@ -1,10 +1,14 @@
 import { loadRoomPackage, toRuntimeModel } from "@escaperoom/game-runtime";
+import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { WorldPreviewShell } from "@/components/world-preview/world-preview-shell";
 import { worldPreviewPackage } from "@/lib/world-preview-fixture";
 
 type Props = { params: Promise<{ locale: string }> };
+
+/** Herramienta interna de validación visual: nunca se indexa (F-14). */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 /**
  * Ruta de previsualización del sistema de objetos (ticket 1.3). Carga una sala

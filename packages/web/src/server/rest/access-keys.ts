@@ -23,6 +23,9 @@ export type AccessKeyHandlerDeps = {
   invitations?: InvitationService;
 };
 
+// `code` ya viene decodificado por el router de segmentos dinámicos de Next
+// (`[code]`); un `decodeURIComponent` extra sobre un valor ya decodificado
+// lanza `URIError` (500) ante un `%` suelto o mal formado (B-20/F-15).
 export type AccessKeyRouteContext = { params: Promise<{ code: string }> };
 
 const STATUS_BY_CODE: Record<AccessKeyErrorCode, number> = {
@@ -199,7 +202,7 @@ export function createAccessKeyHandlers(deps: AccessKeyHandlerDeps) {
       return handle(async () => {
         const { code } = await ctx.params;
         const actor = await deps.resolveActor(request);
-        const key = await deps.accessKeys.regenerateKey(actor, decodeURIComponent(code));
+        const key = await deps.accessKeys.regenerateKey(actor, code);
         return Response.json(accessKeyJson(key), { status: 201, headers: NO_STORE });
       });
     },
@@ -220,7 +223,7 @@ export function createInvitationHandlers(deps: {
       return handle(async () => {
         const { code } = await ctx.params;
         const actor = await deps.resolveActor(request);
-        const result = await deps.invitations.resend(actor, decodeURIComponent(code));
+        const result = await deps.invitations.resend(actor, code);
         return Response.json(result, { status: 202, headers: NO_STORE });
       });
     },
@@ -232,10 +235,7 @@ export function createInvitationHandlers(deps: {
     async postConfirm(request: Request, ctx: AccessKeyRouteContext): Promise<Response> {
       return handle(async () => {
         const { code } = await ctx.params;
-        const result = await deps.invitations.confirm(
-          decodeURIComponent(code),
-          await readJson(request),
-        );
+        const result = await deps.invitations.confirm(code, await readJson(request));
         return Response.json(result, { headers: NO_STORE });
       });
     },
