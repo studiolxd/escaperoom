@@ -6,11 +6,6 @@
   "LocaleSwitcher": {
     "label": "Taal"
   },
-  "Home": {
-    "showcase": "i18n-testpagina (0.9)",
-    "title": "EscapeRoom",
-    "catalogCta": "Kamercatalogus"
-  },
   "RoomPreview": {
     "badge": "isometrische preview (1.2)",
     "loading": "Kamers laden…",

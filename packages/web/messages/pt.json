@@ -6,11 +6,6 @@
   "LocaleSwitcher": {
     "label": "Idioma"
   },
-  "Home": {
-    "showcase": "Página de teste de i18n (0.9)",
-    "title": "EscapeRoom",
-    "catalogCta": "Catálogo de salas"
-  },
   "RoomPreview": {
     "badge": "pré-visualização isométrica (1.2)",
     "loading": "A carregar salas…",

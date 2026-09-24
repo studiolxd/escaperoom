@@ -6,12 +6,6 @@
   "LocaleSwitcher": {
     "label": "Idioma"
   },
-  "Home": {
-    "showcase": "Página de prueba i18n (0.9)",
-    "title": "EscapeRoom",
-    "fallbackDemo": "Esta clave solo existe en el catálogo 'es': los demás idiomas caen aquí.",
-    "catalogCta": "Catálogo de salas"
-  },
   "Chat": {
     "title": "Chat",
     "empty": "Aún no hay mensajes",
