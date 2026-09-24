@@ -1,19 +1,29 @@
 "use client";
 
 import { useEffect } from "react";
+import { AlertTriangle } from "lucide-react";
 import * as Sentry from "@sentry/nextjs";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import "../globals.css";
 
 /**
  * Límite de error de la raíz (F-2): si `[locale]/layout.tsx` mismo falla
  * (antes de montar `NextIntlClientProvider`), este es el único que puede
- * capturarlo. Al reemplazar todo el documento no ve ni Tailwind ni el
- * contexto de next-intl (aviso de los docs de Next), así que lleva estilos
- * en línea y una copia mínima traducida a mano por locale (detectado del
- * primer segmento de la URL, ya que `localePrefix: "always"` lo garantiza).
- *
- * El `<button>` nativo es la excepción a "solo shadcn/ui" (ADR-019): el
- * `Button` de shadcn depende de clases de Tailwind que este documento no
- * carga (no hay `globals.css` aquí), así que renderizaría sin estilo.
+ * capturarlo. Al reemplazar todo el documento no ve el contexto de
+ * next-intl (aviso de los docs de Next para `global-error`), así que lleva
+ * una copia mínima traducida a mano por locale (detectado del primer
+ * segmento de la URL, ya que `localePrefix: "always"` lo garantiza). Sí
+ * puede importar `globals.css` (Tailwind + shadcn) aunque reemplace el
+ * documento entero, así que usa los mismos componentes que el resto de la
+ * app (ADR-019: ningún control nativo, sin excepciones).
  */
 const COPY: Record<string, { title: string; description: string; retry: string }> = {
   es: {
@@ -64,48 +74,26 @@ export default function GlobalError({
     Sentry.captureException(error);
   }, [error]);
 
-  const locale =
-    typeof window !== "undefined" ? localeForPathname(window.location.pathname) : "es";
+  const locale = typeof window !== "undefined" ? localeForPathname(window.location.pathname) : "es";
   const { title, description, retry: retryLabel } = COPY[locale]!;
 
   return (
     <html lang={locale}>
-      <body
-        style={{
-          display: "flex",
-          minHeight: "100dvh",
-          alignItems: "center",
-          justifyContent: "center",
-          margin: 0,
-          padding: "1.5rem",
-          fontFamily:
-            "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-          background: "#020617",
-          color: "#f8fafc",
-          textAlign: "center",
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: "28rem" }}>
-          <h1 style={{ fontSize: "1.25rem", fontWeight: 600, margin: 0 }}>{title}</h1>
-          <p style={{ fontSize: "0.9rem", color: "#cbd5e1", margin: 0 }}>{description}</p>
-          <button
-            type="button"
-            onClick={() => retry()}
-            style={{
-              alignSelf: "center",
-              borderRadius: "0.5rem",
-              border: "1px solid rgba(255,255,255,0.2)",
-              background: "#f8fafc",
-              color: "#020617",
-              padding: "0.5rem 1.25rem",
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-          >
-            {retryLabel}
-          </button>
-        </div>
+      <body className="bg-background text-foreground">
+        <main className="flex min-h-dvh items-center justify-center px-4 py-16">
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <AlertTriangle />
+              </EmptyMedia>
+              <EmptyTitle>{title}</EmptyTitle>
+              <EmptyDescription>{description}</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button onClick={() => retry()}>{retryLabel}</Button>
+            </EmptyContent>
+          </Empty>
+        </main>
       </body>
     </html>
   );
