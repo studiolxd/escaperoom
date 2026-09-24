@@ -92,6 +92,7 @@ Notas fechadas de sesiones de trabajo. No son fuente de verdad: lo que se decida
 | Nota | Contenido |
 |---|---|
 | [Noche 2026-09-23](notas/2026-09-23-noche-decisiones.md) | Sesión autónoma de agentes: PR integrados, decisiones tomadas por el coordinador y pendientes para revisar |
+| [Auditoría 2026-09-24](notas/2026-09-24-auditoria-seguridad-y-calidad.md) | Auditoría de seguridad, completitud, malas prácticas y rendimiento de todo el monorepo: hallazgos por área con fichero:línea, prioridades y plan de PRs para el agente que corrija |
 
 ---
 
