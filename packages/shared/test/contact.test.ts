@@ -47,13 +47,16 @@ describe("createContactService", () => {
     ).rejects.toBeInstanceOf(ContactError);
   });
 
-  it("propaga un fallo del transporte como DELIVERY_FAILED", async () => {
+  it("propaga un fallo del transporte como DELIVERY_FAILED con mensaje fijo (A-16)", async () => {
     const transport = createMemoryMailTransport();
     transport.failNext();
     const service = createContactService({ transport, to: "hello@studiolxd.com" });
 
     await expect(
       service.submit({ name: "Ada", email: "ada@example.com", message: "Hola" }),
-    ).rejects.toMatchObject({ code: "DELIVERY_FAILED" });
+    ).rejects.toMatchObject({
+      code: "DELIVERY_FAILED",
+      message: expect.not.stringContaining("Fallo simulado del transporte"),
+    });
   });
 });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logger } from "@escaperoom/kit/logger";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
 import type { MailTransport } from "../mail/transport";
 
@@ -114,10 +115,11 @@ export function createContactService(deps: { transport: MailTransport; to: strin
         });
         return { messageId };
       } catch (err) {
-        throw new ContactError(
-          "DELIVERY_FAILED",
-          err instanceof Error ? err.message : "Fallo al enviar el email de contacto",
-        );
+        // A-16: el detalle del fallo SMTP (credenciales, host, causa exacta)
+        // no debe llegar al cliente; se registra para depurar y se devuelve
+        // un mensaje fijo.
+        logger.warn({ err }, "contacto: fallo al enviar el email");
+        throw new ContactError("DELIVERY_FAILED", "No se ha podido enviar tu mensaje, inténtalo más tarde");
       }
     },
   };
