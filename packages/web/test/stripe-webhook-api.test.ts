@@ -15,7 +15,16 @@ import {
 import type { PurchaseConfirmationEmailJob } from "@escaperoom/shared/mail";
 import * as Y from "yjs";
 import type Stripe from "stripe";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const loggerMock = vi.hoisted(() => ({
+  error: vi.fn(),
+  warn: vi.fn(),
+  info: vi.fn(),
+  debug: vi.fn(),
+}));
+vi.mock("@escaperoom/kit/logger", () => ({ logger: loggerMock }));
+
 import { createStripeWebhookHandlers } from "../src/server/rest/stripe-webhook";
 
 const buyer: Actor = { userId: "compradora", organizationId: null, role: "member" };
@@ -199,6 +208,46 @@ describe("POST /api/stripe/webhook", () => {
     const { post } = setup();
     const res = await post(null);
     expect(res.status).toBe(400);
+  });
+
+  it("E-11: si enqueue devuelve null (Redis caído), no lanza y registra el fallo con logger.error", async () => {
+    const { store, purchases, roomLicenses, events, dedupe } = setup();
+    loggerMock.error.mockClear();
+    const purchase = await store.insertPendingPurchase({
+      id: "30000000-0000-4000-8000-000000000009",
+      userId: buyer.userId,
+      roomVersionId: VERSION,
+      amountCents: 299,
+      currency: "EUR",
+      paymentRef: "cs_test_9",
+    });
+    let nextEvent: Stripe.Event | null = null;
+    const handlers = createStripeWebhookHandlers({
+      purchases,
+      roomLicenses,
+      events,
+      dedupe,
+      confirmations: { enqueue: async () => null },
+      verify: () => {
+        if (!nextEvent) throw new Error("sin evento");
+        return nextEvent;
+      },
+    });
+    nextEvent = checkoutCompleted("evt_9", { purchaseType: "room", purchaseId: purchase.id }, "pi_9");
+    const res = await handlers.postWebhook(
+      new Request("http://localhost/api/stripe/webhook", {
+        method: "POST",
+        headers: { "stripe-signature": "t=1,v1=fake" },
+        body: "{}",
+      }),
+    );
+    expect(res.status).toBe(200);
+    const settled = await store.findPurchase(purchase.id);
+    expect(settled?.status).toBe("succeeded"); // la compra se liquida igual: el email es secundario.
+    expect(loggerMock.error).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "room", ref: purchase.id }),
+      expect.stringContaining("no se pudo encolar"),
+    );
   });
 
   it("checkout.session.completed (room) liquida la compra, transfiere el reparto y encola el email de confirmación", async () => {

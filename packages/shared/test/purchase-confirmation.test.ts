@@ -77,4 +77,41 @@ describe("entrega del email de confirmación de compra (specs/18 §3-4)", () => 
       ),
     ).rejects.toThrow();
   });
+
+  it("E-11: tras un envío correcto, marca confirmationSentAt (para el barrido del outbox)", async () => {
+    const store = createInMemoryPurchaseConfirmationStore({ "room:p1": roomDetails });
+    const transport = createMemoryMailTransport();
+    await deliverPurchaseConfirmationEmail(
+      { store, transport, appUrl: APP_URL },
+      { kind: "room", purchaseId: "p1" },
+    );
+    expect(store.sent.has("room:p1")).toBe(true);
+  });
+
+  it("E-11: un envío fallido NO marca confirmationSentAt (el barrido debe poder reencolarlo)", async () => {
+    const store = createInMemoryPurchaseConfirmationStore({ "room:p2": roomDetails });
+    const transport = createMemoryMailTransport();
+    transport.failNext();
+    await expect(
+      deliverPurchaseConfirmationEmail(
+        { store, transport, appUrl: APP_URL },
+        { kind: "room", purchaseId: "p2" },
+      ),
+    ).rejects.toThrow();
+    expect(store.sent.has("room:p2")).toBe(false);
+  });
+
+  it("E-11: si marcar confirmationSentAt falla, el envío ya hecho sigue contando como 'sent'", async () => {
+    const store = createInMemoryPurchaseConfirmationStore({ "room:p1": roomDetails });
+    store.markConfirmationSent = async () => {
+      throw new Error("db caída justo al marcar");
+    };
+    const transport = createMemoryMailTransport();
+    const result = await deliverPurchaseConfirmationEmail(
+      { store, transport, appUrl: APP_URL },
+      { kind: "room", purchaseId: "p1" },
+    );
+    expect(result.status).toBe("sent");
+    expect(transport.sent).toHaveLength(1);
+  });
 });

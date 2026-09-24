@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import type { Worker } from "bullmq";
 import { createQueueRedis } from "@escaperoom/kit/redis";
+import { closeSharedQueueConnection } from "@escaperoom/kit/queue";
 import { logger } from "@escaperoom/kit/logger";
 import { initNodeSentry } from "@escaperoom/kit/observability/sentry-node";
 import { storage } from "@escaperoom/kit/storage";
@@ -28,6 +29,7 @@ import { createAccessKeyEmailPurgeWorker } from "./access-key-email-purge";
 import { createIpUaPurgeWorker } from "./ip-ua-purge";
 import { createInvitationEmailWorker } from "./invitation-email";
 import { createPurchaseConfirmationEmailWorker } from "./purchase-confirmation-email";
+import { createPurchaseConfirmationOutboxWorker } from "./purchase-confirmation-outbox";
 import { createModerationSamplingWorker } from "./moderation-sampling";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
 import { startWorkerHealthServer } from "./health-server";
@@ -164,6 +166,19 @@ async function main(): Promise<void> {
     logger.info({ provider: transport?.provider }, "purchase confirmation email: consumiendo la cola");
   }
 
+  // Outbox (E-11): reencola cualquier compra/evento pagado sin confirmar tras
+  // el margen de gracia — la red si el enqueue del webhook se perdió (Redis
+  // caído justo al liquidar el pago). Solo tiene sentido con transporte
+  // configurado: sin él nadie consume lo que reencola.
+  const purchaseConfirmationOutboxConnection = transport ? createQueueRedis() : null;
+  const purchaseConfirmationOutbox =
+    transport && purchaseConfirmationOutboxConnection
+      ? await createPurchaseConfirmationOutboxWorker({
+          store: createPrismaPurchaseConfirmationStore(prisma),
+          connection: purchaseConfirmationOutboxConnection,
+        })
+      : null;
+
   // PDF de tarjetas: el mismo servicio que web, sin cola ni firma (solo renderiza y sube).
   const cardsConnection = createQueueRedis();
   const cards = createAccessKeyCardsWorker({
@@ -207,6 +222,7 @@ async function main(): Promise<void> {
       cards,
       partitions.worker,
       sampling.worker,
+      purchaseConfirmationOutbox?.worker,
     ].filter((w): w is Worker => Boolean(w));
 
   let closing = false;
@@ -231,6 +247,8 @@ async function main(): Promise<void> {
     await partitions.queue.close();
     await sampling.worker.close();
     await sampling.queue.close();
+    await purchaseConfirmationOutbox?.worker.close();
+    await purchaseConfirmationOutbox?.queue.close();
     await new Promise<void>((resolve, reject) =>
       healthServer ? healthServer.close((err) => (err ? reject(err) : resolve())) : resolve(),
     ).catch((err: unknown) => logger.warn({ err }, "analytics worker: fallo cerrando /healthz"));
@@ -243,6 +261,12 @@ async function main(): Promise<void> {
     await cardsConnection.quit().catch(() => undefined);
     await partitionsConnection.quit().catch(() => undefined);
     await samplingConnection.quit().catch(() => undefined);
+    await purchaseConfirmationOutboxConnection?.quit().catch(() => undefined);
+    // El propio barrido reencola con la conexión "productora" compartida de
+    // kit (misma que usaría un `createPurchaseConfirmationEmailQueue()` en
+    // web), no con `purchaseConfirmationOutboxConnection` (esa es solo del
+    // Worker que consume el scheduler).
+    if (purchaseConfirmationOutbox) await closeSharedQueueConnection().catch(() => undefined);
     await prisma.$disconnect().catch(() => undefined);
   };
 

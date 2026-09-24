@@ -1,4 +1,5 @@
 import type { PrismaClient } from "../../generated/client";
+import type { PurchaseConfirmationEmailJob } from "../mail";
 import { quotePricing, type PricingSnapshot } from "./pricing-tiers";
 import type { PurchaseConfirmationDetails, PurchaseConfirmationStore } from "./purchase-confirmation";
 
@@ -58,6 +59,51 @@ export function createPrismaPurchaseConfirmationStore(prisma: PrismaClient): Pur
         currency: purchase.currency,
         players: null,
       };
+    },
+
+    async markConfirmationSent(job): Promise<void> {
+      if (job.kind === "event_credits") {
+        await prisma.event.update({
+          where: { id: job.eventId },
+          data: { confirmationSentAt: new Date() },
+        });
+        return;
+      }
+      await prisma.purchase.update({
+        where: { id: job.purchaseId },
+        data: { confirmationSentAt: new Date() },
+      });
+    },
+
+    async findPendingConfirmations(olderThan): Promise<PurchaseConfirmationEmailJob[]> {
+      const [purchases, events] = await Promise.all([
+        prisma.purchase.findMany({
+          where: {
+            purchaseType: { in: ["room", "room_license"] },
+            status: "succeeded",
+            confirmationSentAt: null,
+            createdAt: { lt: olderThan },
+          },
+          select: { id: true, purchaseType: true },
+        }),
+        prisma.event.findMany({
+          where: {
+            confirmationSentAt: null,
+            createdAt: { lt: olderThan },
+            config: { path: ["payment", "status"], equals: "paid" },
+          },
+          select: { id: true },
+        }),
+      ]);
+      return [
+        ...purchases.map(
+          (p): PurchaseConfirmationEmailJob => ({
+            kind: p.purchaseType as "room" | "room_license",
+            purchaseId: p.id,
+          }),
+        ),
+        ...events.map((e): PurchaseConfirmationEmailJob => ({ kind: "event_credits", eventId: e.id })),
+      ];
     },
   };
 }

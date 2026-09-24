@@ -185,6 +185,8 @@ model event {
   playersPurchased        Int
   status                  eventStatus   @default(draft)
   createdAt               DateTime      @default(now()) @db.Timestamptz(6)
+  /// E-11: marca de verdad del email de confirmación de compra (event_credits); la pone el worker al entregarlo, no el webhook al encolarlo.
+  confirmationSentAt      DateTime?     @db.Timestamptz(6)
   accessKey               accessKey[]
   user                    user          @relation(fields: [organizerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   roomVersion             roomVersion   @relation(fields: [roomVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -373,6 +375,8 @@ model purchase {
   playSessionStartedAt  DateTime?      @db.Timestamptz(6)
   playSessionColyseusId String?
   createdAt             DateTime       @default(now()) @db.Timestamptz(6)
+  /// E-11: marca de verdad del email de confirmación de compra (room/room_license); la pone el worker al entregarlo, no el webhook al encolarlo.
+  confirmationSentAt    DateTime?      @db.Timestamptz(6)
   event                 event?         @relation(fields: [eventId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   room                  room?          @relation(fields: [resultingRoomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   roomVersion           roomVersion?   @relation(fields: [roomVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
