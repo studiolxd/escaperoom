@@ -57,6 +57,17 @@ export type LicenseVersionRef = {
   package: RoomPackage;
 };
 
+/**
+ * B-24: igual que `LicenseVersionRef` pero sin `package` — evita cargar el
+ * JSONB completo cuando solo hace falta validar la versión (comprobar que
+ * pertenece a la sala) y anotar su id, no forkearla.
+ */
+export type LicenseVersionInfo = {
+  id: string;
+  roomId: string;
+  semver: string;
+};
+
 export type LicensePurchaseStatus = "pending" | "succeeded" | "refunded" | "failed";
 
 /** Fila de `purchase` con `purchaseType = 'room_license'`. */
@@ -116,6 +127,9 @@ export interface RoomLicenseStore {
   findLatestVersion(roomId: string): Promise<LicenseVersionRef | null>;
   /** Versión por id (aunque la sala se haya borrado después: ya se pagó). */
   findVersion(versionId: string): Promise<LicenseVersionRef | null>;
+  /** B-24: igual que las dos anteriores pero sin cargar `package` (JSONB). */
+  findLatestVersionRef(roomId: string): Promise<LicenseVersionInfo | null>;
+  findVersionRef(versionId: string): Promise<LicenseVersionInfo | null>;
   findPurchase(id: string): Promise<LicensePurchaseRow | null>;
   /** Sala nacida de un fork (con su linaje), o `null`. */
   findForkRoom(roomId: string): Promise<ForkRoomRow | null>;
@@ -297,6 +311,29 @@ export function createRoomLicenseService(deps: {
     return version;
   }
 
+  /**
+   * B-24: igual que `resolveVersion` pero sin cargar `package` — para
+   * `startLicenseCheckout` con precio > 0, que solo necesita el id de la
+   * versión (nunca la forkea ahí: eso lo hace `confirmLicensePayment` al
+   * confirmarse el pago, con su propio `store.findVersion`).
+   */
+  async function resolveVersionRef(
+    room: LicenseRoomRef,
+    versionId: string | undefined,
+  ): Promise<LicenseVersionInfo> {
+    const version =
+      versionId === undefined
+        ? await store.findLatestVersionRef(room.id)
+        : await store.findVersionRef(versionId);
+    if (!version || version.roomId !== room.id) {
+      throw new RoomLicenseError(
+        "ROOM_VERSION_UNAVAILABLE",
+        "La sala no tiene esa versión publicada",
+      );
+    }
+    return version;
+  }
+
   async function assertNotOwned(userId: string, versionId: string): Promise<void> {
     const owned = await store.findOwnedLicense(userId, versionId);
     if (owned) {
@@ -397,11 +434,21 @@ export function createRoomLicenseService(deps: {
           "El autor no ofrece esta sala como licencia para otros creadores",
         );
       }
-      const version = await resolveVersion(room, data.roomVersionId);
-      await assertNotOwned(actor.userId, version.id);
+      // B-24: versión "ligera" (sin `package`) para validar y anotar el id;
+      // el JSONB completo solo hace falta si se va a forkear al momento
+      // (precio 0), no en el camino de pago (abajo).
+      const versionRef = await resolveVersionRef(room, data.roomVersionId);
+      await assertNotOwned(actor.userId, versionRef.id);
 
       const amountCents = room.licensePriceCents;
       if (amountCents === 0) {
+        const version = await store.findVersion(versionRef.id);
+        if (!version) {
+          throw new RoomLicenseError(
+            "ROOM_VERSION_UNAVAILABLE",
+            "La sala no tiene esa versión publicada",
+          );
+        }
         return { status: "succeeded", ...(await forkNow(room, version, actor.userId, 0)) };
       }
       if (!deps.payments) {
@@ -420,7 +467,7 @@ export function createRoomLicenseService(deps: {
         purchaseId,
         buyerId: actor.userId,
         roomId: room.id,
-        roomVersionId: version.id,
+        roomVersionId: versionRef.id,
         title: room.title,
         amountCents,
         currency: room.currency,
@@ -430,7 +477,7 @@ export function createRoomLicenseService(deps: {
       const purchase = await store.insertPendingPurchase({
         id: purchaseId,
         userId: actor.userId,
-        roomVersionId: version.id,
+        roomVersionId: versionRef.id,
         amountCents,
         currency: room.currency,
         ...splitLicenseAmount(amountCents),
@@ -639,6 +686,14 @@ export function createInMemoryRoomLicenseStore(opts: {
     async findVersion(versionId) {
       const found = versions.find((v) => v.id === versionId);
       return found ? copy(found) : null;
+    },
+    async findLatestVersionRef(roomId) {
+      const found = versions.filter((v) => v.roomId === roomId).at(-1);
+      return found ? { id: found.id, roomId: found.roomId, semver: found.semver } : null;
+    },
+    async findVersionRef(versionId) {
+      const found = versions.find((v) => v.id === versionId);
+      return found ? { id: found.id, roomId: found.roomId, semver: found.semver } : null;
     },
     async findPurchase(id) {
       const found = purchases.find((p) => p.id === id);

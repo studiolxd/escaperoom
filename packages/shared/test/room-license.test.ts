@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 import { parseRoomPackage, type RoomPackage } from "../src/schemas";
 import {
@@ -292,6 +292,25 @@ describe("license-checkout", () => {
     expect(await codeOf(t.licenses.startLicenseCheckout(buyer, ORIGIN))).toBe(
       "LICENSE_ALREADY_OWNED",
     );
+  });
+
+  it("B-24: con precio, resuelve la versión sin cargar el `package` (usa findLatestVersionRef, no findLatestVersion/findVersion)", async () => {
+    const t = setup();
+    const findVersion = vi.spyOn(t.store, "findVersion");
+    const findLatestVersion = vi.spyOn(t.store, "findLatestVersion");
+    const findLatestVersionRef = vi.spyOn(t.store, "findLatestVersionRef");
+    const result = await t.licenses.startLicenseCheckout(buyer, ORIGIN, {}, CHECKOUT_URLS);
+    expect(result.status).toBe("pending");
+    expect(findVersion).not.toHaveBeenCalled();
+    expect(findLatestVersion).not.toHaveBeenCalled();
+    expect(findLatestVersionRef).toHaveBeenCalledWith(ORIGIN);
+
+    // A precio 0 sí hace falta el `package` para sembrar el fork.
+    const free = setup({ licensePriceCents: 0 });
+    const findVersionFree = vi.spyOn(free.store, "findVersion");
+    const freeResult = await free.licenses.startLicenseCheckout(buyer, ORIGIN, {}, CHECKOUT_URLS);
+    expect(freeResult.status).toBe("succeeded");
+    expect(findVersionFree).toHaveBeenCalled();
   });
 
   it("confirmaciones concurrentes crean un único fork", async () => {
