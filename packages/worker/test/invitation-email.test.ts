@@ -124,9 +124,10 @@ describe("processInvitationEmail", () => {
       data: { code: keys[0]!.code, kind: "invitation" as const },
     };
     await expect(process(job)).rejects.toThrow("Fallo simulado del transporte");
-    // E-20: se marca ANTES de intentar el envío, así que un fallo del
-    // transporte no deja la clave sin `sentAt` (ver `markSendAttempt`).
-    expect(keyStore.keys[0]!.sentAt).not.toBeNull();
+    // Se marca DESPUÉS de un envío correcto, nunca antes: un fallo del
+    // transporte no debe dejar la clave con un `sentAt` mentiroso (E-20,
+    // entrega at-least-once a propósito — ver el comentario de `recordSent`).
+    expect(keyStore.keys[0]!.sentAt).toBeNull();
     await expect(process({ ...job, attemptsMade: 1 })).resolves.toMatchObject({ status: "sent" });
     expect(INVITATION_EMAIL_JOB_OPTIONS.attempts).toBe(5);
   });

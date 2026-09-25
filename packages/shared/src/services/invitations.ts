@@ -139,23 +139,24 @@ export function confirmationUrl(appUrl: string, locale: string, code: string, to
 }
 
 /**
- * Marca el intento de envío: `sentAt` y, si la clave espera confirmación,
- * `generated|sent → pending_confirmation`. Escritura condicional con
- * reintento (un canje o una confirmación simultáneos ganan y solo se añade
- * `sentAt`).
+ * Sella el envío: `sentAt` y, si la clave espera confirmación, `generated|sent
+ * → pending_confirmation`. Escritura condicional con reintento (un canje o una
+ * confirmación simultáneos ganan y solo se añade `sentAt`).
  *
- * **E-20**: se llama ANTES de `transport.send()`, no después. Sin esto, un
- * proceso que muere justo tras un envío correcto pero antes de persistirlo
- * hace que BullMQ reintente el job entero (nunca se marcó como completado) y
- * la persona reciba la invitación por duplicado — el fallo más visible aquí.
- * El coste es el contrario: si `transport.send()` lanza después, `sentAt`
- * queda puesto aunque no se entregara nada (BullMQ igualmente reintenta el
- * job, así que el siguiente intento sí lo envía; solo el campo informativo
- * miente un instante). No hace falta un outbox como el de compras (#119,
- * E-11): esto no es contabilidad ni tiene efecto legal, es una invitación a
- * jugar que se puede reenviar a mano (`resend`).
+ * Se llama DESPUÉS de un `transport.send()` que no lanzó — nunca antes: si se
+ * llamara antes, un fallo del transporte dejaría `sentAt` puesto sin que se
+ * hubiera entregado nada. La entrega es **at-least-once a propósito**: si el
+ * proceso muere justo tras un envío correcto pero antes de persistir esta
+ * marca, BullMQ reintenta el job entero (nunca se marcó como completado) y la
+ * persona recibe la invitación por duplicado. Es preferible a una
+ * invitación perdida (at-most-once), y el `X-Entity-Ref-ID` estable de
+ * `deliverInvitationEmail` (E-20) hace que los clientes de correo agrupen ese
+ * posible duplicado con el mensaje original en vez de mostrar dos hilos. No
+ * hace falta un outbox como el de compras (#119, E-11): esto no es
+ * contabilidad ni tiene efecto legal, es una invitación a jugar que además se
+ * puede reenviar a mano (`resend`).
  */
-async function markSendAttempt(
+async function recordSent(
   store: Pick<InvitationStore, "findKey" | "updateKey">,
   code: string,
   at: Date,
@@ -234,18 +235,18 @@ export async function deliverInvitationEmail(
     confirmUrl,
     expiresAt: key.expiresAt,
   });
-  // E-20: se marca antes de enviar (ver el comentario de `markSendAttempt`).
-  await markSendAttempt(deps.store, key.code, now());
   const { messageId } = await deps.transport.send({
     to: key.email,
     ...rendered,
-    // Ref estable por (code, kind), no `Date.now()`: reenviar la MISMA
-    // invitación (p. ej. un reintento de BullMQ) agrupa con el mensaje
-    // original en vez de crear un hilo nuevo cada vez (E-20). Un `resend`
+    // Ref estable por (code, kind), no `Date.now()`: un reintento de BullMQ
+    // de la MISMA entrega agrupa con el mensaje original en vez de crear un
+    // hilo nuevo cada vez (E-20) — así un posible duplicado at-least-once
+    // (ver `recordSent`) es menos molesto para quien lo recibe. Un `resend`
     // explícito con otro `kind` (invitación → recordatorio) sí es un mensaje
     // distinto y se hila aparte, que es lo que se quiere.
     headers: { "X-Entity-Ref-ID": `invitation:${job.kind}:${key.code}` },
   });
+  await recordSent(deps.store, key.code, now());
   return { status: "sent", messageId };
 }
 

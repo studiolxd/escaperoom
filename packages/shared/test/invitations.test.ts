@@ -424,7 +424,7 @@ describe("invitaciones por email (ticket 5.6)", () => {
     expect(t.jobs.map((j) => j.kind)).toEqual(["invitation", "bulk", "bulk", "bulk"]);
   });
 
-  it("fallo del transporte → el job falla (BullMQ reintenta) pero la clave ya quedó marcada (E-20); el reintento entrega", async () => {
+  it("fallo del transporte → el job falla (BullMQ reintenta) sin marcar la clave; el reintento entrega", async () => {
     const t = setup();
     const event = await t.createEvent();
     await t.invitations.activateAndInvite(author, event.id, {
@@ -435,18 +435,13 @@ describe("invitaciones por email (ticket 5.6)", () => {
     await expect(deliverInvitationEmail(t.deliveryDeps, job!)).rejects.toBeInstanceOf(
       MailDeliveryError,
     );
-    // E-20: se marca ANTES de intentar el envío, así que un fallo del
-    // transporte no deja la clave sin `sentAt` — el coste es el contrario al
-    // de antes: si el proceso muriera aquí (no es el caso: el fallo se
-    // propaga y BullMQ reintenta), la clave habría quedado marcada como
-    // enviada sin haberlo estado. Preferible a duplicar el envío al reintentar.
-    expect(t.keyStore.keys[0]).toMatchObject({
-      status: "pending_confirmation",
-      sentAt: new Date("2026-06-01T10:00:00Z"),
-    });
     await expect(deliverInvitationEmail(t.deliveryDeps, job!)).rejects.toBeInstanceOf(
       MailDeliveryError,
     );
+    // Se marca DESPUÉS de un envío correcto, nunca antes: un fallo del
+    // transporte no debe dejar la clave con un `sentAt` mentiroso (E-20,
+    // entrega at-least-once a propósito — ver el comentario de `recordSent`).
+    expect(t.keyStore.keys[0]).toMatchObject({ status: "generated", sentAt: null });
     await expect(deliverInvitationEmail(t.deliveryDeps, job!)).resolves.toMatchObject({
       status: "sent",
     });
