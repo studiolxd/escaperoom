@@ -15,7 +15,10 @@ export type SecurityEnv = Partial<
     | "LIVEKIT_URL"
     | "STORAGE_ENDPOINT"
     | "CSP_EXTRA_CONNECT_SRC"
-    | "NEXT_PUBLIC_SENTRY_DSN",
+    | "NEXT_PUBLIC_SENTRY_DSN"
+    | "NEXT_PUBLIC_PLAUSIBLE_DOMAIN"
+    | "NEXT_PUBLIC_PLAUSIBLE_SRC"
+    | "NEXT_PUBLIC_GA_MEASUREMENT_ID",
     string
   >
 >;
@@ -77,6 +80,25 @@ function unique(values: string[]): string[] {
   return [...new Set(values)];
 }
 
+/** Origen del script de Plausible: el SaaS por defecto o un self-host propio. */
+function plausibleOrigin(rawSrc: string | undefined): string[] {
+  const src = rawSrc?.trim() || "https://plausible.io/js/script.js";
+  try {
+    return [new URL(src).origin];
+  } catch {
+    return [];
+  }
+}
+
+/** Dominios de Google Analytics 4 / Google Tag Manager (gtag.js los usa juntos). */
+const GOOGLE_TAG_MANAGER_ORIGIN = "https://www.googletagmanager.com";
+const GOOGLE_ANALYTICS_CONNECT_ORIGINS = [
+  "https://www.google-analytics.com",
+  "https://*.google-analytics.com",
+  "https://*.analytics.google.com",
+  GOOGLE_TAG_MANAGER_ORIGIN,
+];
+
 /** Cabecera de la petición con su nonce, por si un Server Component lo necesita. */
 export const NONCE_HEADER = "x-nonce";
 
@@ -105,12 +127,30 @@ export function buildContentSecurityPolicy(nonce: string, env: SecurityEnv = {})
   ]);
   const extraConnect = (env.CSP_EXTRA_CONNECT_SRC ?? "").split(/\s+/u).filter(Boolean);
   const sentry = sentryOrigin(env.NEXT_PUBLIC_SENTRY_DSN);
+  // Plausible/GA solo entran en la CSP si sus variables están configuradas
+  // (docs/DEUDA.md «Claves reales de analítica antes de desplegar en producción»).
+  const plausible = env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN
+    ? plausibleOrigin(env.NEXT_PUBLIC_PLAUSIBLE_SRC)
+    : [];
+  const googleAnalyticsScript = env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+    ? [GOOGLE_TAG_MANAGER_ORIGIN]
+    : [];
+  const googleAnalyticsConnect = env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+    ? GOOGLE_ANALYTICS_CONNECT_ORIGINS
+    : [];
 
   const directives: Array<[string, string[]]> = [
     ["default-src", ["'self'"]],
     [
       "script-src",
-      ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", ...(dev ? ["'unsafe-eval'"] : [])],
+      [
+        "'self'",
+        `'nonce-${nonce}'`,
+        "'strict-dynamic'",
+        ...(dev ? ["'unsafe-eval'"] : []),
+        ...plausible,
+        ...googleAnalyticsScript,
+      ],
     ],
     // Estilos en línea: atributos `style` de React (paneles, editor de nodos)
     // y el CSS de next/font. No ejecutan código.
@@ -119,7 +159,18 @@ export function buildContentSecurityPolicy(nonce: string, env: SecurityEnv = {})
     ["img-src", ["'self'", "data:", "blob:", ...storage]],
     ["font-src", ["'self'", "data:"]],
     ["media-src", ["'self'", "data:", "blob:", ...storage]],
-    ["connect-src", unique(["'self'", ...realtime, ...storage, ...sentry, ...extraConnect])],
+    [
+      "connect-src",
+      unique([
+        "'self'",
+        ...realtime,
+        ...storage,
+        ...sentry,
+        ...plausible,
+        ...googleAnalyticsConnect,
+        ...extraConnect,
+      ]),
+    ],
     // Los workers de LiveKit (cifrado E2EE) se crean desde `blob:`.
     ["worker-src", ["'self'", "blob:"]],
     ["frame-src", ["'none'"]],
