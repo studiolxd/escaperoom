@@ -132,6 +132,27 @@ encontramos una forma fiable de emular el rendimiento por núcleo del runner des
 sistemáticamente lento (colas con temporizador, reintentos con backoff), la solución de fondo es
 subir su `testTimeout` explícitamente en el propio test, no ajustar el entorno de quien lo corre.
 
+## Cuidado: ejecuciones repetidas pueden acumular cuota de rate-limit
+
+`REDIS_URL` por defecto apunta al Redis **persistente** de
+`infra/docker-compose.dev.yml` (`:56380`, compartido por todos los
+worktrees) — a diferencia del Redis efímero que CI levanta desde cero en
+cada job. Los tests de rate-limit (`test/rate-limit.test.ts`,
+`test/audio-generation-api.test.ts`, `test/moderation-api.test.ts`,
+`test/onboarding-api.test.ts`…) escriben ahí sus contadores de cuota; si
+corres `pnpm verify:pr` varias veces seguidas en poco tiempo, esos contadores
+se acumulan entre ejecuciones y algunos de esos tests pueden empezar a fallar
+con 429/403 inesperados **sin que hayas tocado código relacionado** — lo
+comprobamos durante esta tarea: la primera ejecución del día solo falló por
+el timeout de `analytics-pipeline.integration.test.ts` (ver más abajo), y una
+ejecución posterior el mismo día encadenó 10 tests caídos, todos ellos de
+cuota/rate-limit. Si ves ese patrón, no es necesariamente un fallo real: dale
+un rato a que expiren las ventanas de cuota antes de asumir una regresión, o
+limpia manualmente las claves de rate-limit de ese Redis
+(`redis-cli -a redis_dev_only -p 56380 --no-auth-warning KEYS
+'escaperoom:*rate*'` para verlas). No implementamos una limpieza automática
+porque no sabemos si algún otro worktree la está usando a la vez.
+
 ## Resumen final
 
 Al terminar (o al fallar: el resumen se imprime también en el primer fallo, antes de salir con
