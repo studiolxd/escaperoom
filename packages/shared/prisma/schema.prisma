@@ -9,6 +9,10 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+/// Además de los `@@index` de abajo, dos índices parciales creados a mano
+/// (E-18, no representables en Prisma): `ixAccessKeyExpirySweep` (0006/0012,
+/// `expiresAt`) y `ixAccessKeyEventEmailPending` (E-7, `eventId` WHERE
+/// email IS NOT NULL AND email NOT LIKE 'purged:%', para la purga RGPD).
 model accessKey {
   code                String          @id
   eventId             String          @db.Uuid
@@ -38,6 +42,7 @@ model accessKey {
   @@index([eventId], map: "ixAccessKeyEvent")
   @@index([sessionId], map: "ixAccessKeySession")
   @@index([groupId], map: "ixAccessKeyGroup")
+  @@index([regeneratedFrom], map: "ixAccessKeyRegeneratedFrom")
 }
 
 model account {
@@ -72,6 +77,10 @@ model analyticsEvent {
   @@id([id, createdAt])
   @@index([sessionId], map: "ixAnalyticsEventSession")
   @@index([eventType, createdAt], map: "ixAnalyticsEventType")
+  /// E-7: construido a mano por partición con CREATE INDEX CONCURRENTLY +
+  /// ATTACH PARTITION (no se puede crear CONCURRENTLY directo sobre una
+  /// tabla particionada); las particiones mensuales futuras lo heredan solas.
+  @@index([roomVersionId, createdAt], map: "ixAnalyticsEventRoomVersion")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -101,6 +110,8 @@ model audioAsset {
 
   @@index([ownerId, createdAt(sort: Desc)], map: "ixAudioAssetOwner")
   @@index([createdAt], map: "ixAudioAssetPending")
+  @@index([organizationId], map: "ixAudioAssetOrganization")
+  @@index([reviewedBy], map: "ixAudioAssetReviewedBy")
 }
 
 model contentReport {
@@ -138,6 +149,9 @@ model contentReport {
 
   @@index([severity, createdAt], map: "ixContentReportSeverity")
   @@index([targetUserId, status], map: "ixContentReportTargetUser")
+  @@index([roomVersionId], map: "ixContentReportRoomVersion")
+  @@index([reviewId], map: "ixContentReportReview")
+  @@index([reporterId], map: "ixContentReportReporter")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -196,6 +210,7 @@ model event {
   purchase                purchase[]
 
   @@index([organizerId], map: "ixEventOrganizer")
+  @@index([roomVersionId], map: "ixEventRoomVersion")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -210,6 +225,8 @@ model eventRecording {
   createdAt      DateTime    @default(now()) @db.Timestamptz(6)
   deletedAt      DateTime?   @db.Timestamptz(6)
   gameSession    gameSession @relation(fields: [sessionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([sessionId], map: "ixEventRecordingSession")
 }
 
 model gameSession {
@@ -293,6 +310,11 @@ model moderationAppeal {
   user_moderationAppeal_reviewedByTouser user?             @relation("moderationAppeal_reviewedByTouser", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   room                                   room?             @relation(fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   moderationStrike                       moderationStrike? @relation(fields: [strikeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([creatorId], map: "ixModerationAppealCreator")
+  @@index([roomId], map: "ixModerationAppealRoom")
+  @@index([strikeId], map: "ixModerationAppealStrike")
+  @@index([contentReportId], map: "ixModerationAppealContentReport")
 }
 
 model organization {
@@ -357,6 +379,8 @@ model progressEvent {
 
   @@index([groupId], map: "ixProgressEventGroup")
   @@index([sessionId, createdAt], map: "ixProgressEventSession")
+  @@index([playerId], map: "ixProgressEventPlayer")
+  @@index([accessKeyCode], map: "ixProgressEventAccessKey")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -387,6 +411,9 @@ model purchase {
   user                  user           @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([userId, createdAt(sort: Desc)], map: "ixPurchaseUser")
+  @@index([eventId], map: "ixPurchaseEvent")
+  @@index([roomVersionId], map: "ixPurchaseRoomVersion")
+  @@index([resultingRoomId], map: "ixPurchaseResultingRoom")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -464,6 +491,7 @@ model roomUpdate {
   room       room     @relation(fields: [roomId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([roomId, id], map: "ixRoomUpdateRoom")
+  @@index([authorId], map: "ixRoomUpdateAuthor")
 }
 
 model roomVersion {
@@ -487,6 +515,9 @@ model roomVersion {
   @@index([roomId, publishedAt(sort: Desc)], map: "ixRoomVersionRoom")
 }
 
+/// E-7: índice parcial creado a mano (no representable en Prisma)
+/// `ixSessionCreatedAtUnpurged` sobre `createdAt` WHERE ip/userAgent aún sin
+/// purgar, para la purga horaria de `session-ip-ua-purge-prisma-store.ts`.
 model session {
   id                   String   @id
   expiresAt            DateTime @db.Timestamptz(6)
@@ -511,6 +542,10 @@ model stripeWebhookEvent {
 /// Registro inmutable de cada aceptación de Términos/Privacidad. El histórico
 /// completo vive aquí; `user.termsAcceptedVersion` es la última versión
 /// aceptada, desnormalizada para comparar rápido sin consultar esta tabla.
+/// E-7: índice parcial creado a mano (no representable en Prisma)
+/// `ixTermsAcceptanceAcceptedAtUnpurged` sobre `acceptedAt` WHERE
+/// ip/userAgent aún sin purgar, para la purga horaria de
+/// `terms-acceptance-ip-ua-purge-prisma-store.ts`.
 model termsAcceptance {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId     String
@@ -598,6 +633,7 @@ model moderationStrike {
   user_moderationStrike_userIdTouser    user               @relation("moderationStrike_userIdTouser", fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([userId, createdAt], map: "ixModerationStrikeUser")
+  @@index([contentReportId], map: "ixModerationStrikeContentReport")
 }
 
 enum accessKeyStatus {
