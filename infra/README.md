@@ -49,6 +49,49 @@ pnpm dev:env && pnpm db:reset
 > `migrate reset` los planes cacheados del pooler quedan inválidos (ENUMs
 > recreados).
 
+## Puertos por worktree (auditoría 2026-09-25)
+
+Igual que la base de datos, `pnpm dev:env` también aísla los puertos de web
+(`next dev`), Colyseus y el WebSocket de edición (`editor-sync`) para que un
+worktree enlazado nunca se quede sin querer con los del principal:
+
+| Servicio     | Worktree principal | Smoke E2E (`packages/e2e`) | Worktrees enlazados (rango) |
+| ------------ | ------------------- | -------------------------- | ---------------------------- |
+| web          | 3000                 | 3100                        | 3200–3299                    |
+| Colyseus     | 2567                 | 2667                        | 2700–2799                    |
+| editor-sync  | 2568                 | 2668                        | 2800–2899                    |
+
+En un enlazado, `pnpm dev:env` busca un puerto libre (nadie escucha en él,
+comprobado con `lsof`, y no está ya asignado a otro worktree) en cada rango, y
+guarda la asignación en `$(git rev-parse --git-common-dir)/escaperoom-dev-ports.json`
+(fuera del árbol de trabajo, común a todos los worktrees de este clon). Es
+idempotente: relanzar `pnpm dev:env` reutiliza los mismos tres puertos;
+`pnpm dev:env -- --force` los reasigna. Las entradas de worktrees ya borrados
+(`orca worktree rm`, `git worktree remove`) se descartan solas en la siguiente
+ejecución.
+
+Los puertos asignados se escriben en `packages/web/.env` (`PORT`, `APP_URL`,
+`NEXT_PUBLIC_APP_URL`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_COLYSEUS_URL`,
+`COLYSEUS_INTERNAL_URL`, `NEXT_PUBLIC_EDITOR_SYNC_URL`, `EDITOR_SYNC_PORT`,
+`EDITOR_SYNC_ALLOWED_ORIGINS`), `packages/colyseus-server/.env`
+(`COLYSEUS_PORT`) y `packages/worker/.env` (`APP_URL`), sin pisar el resto de
+cada fichero (mismo patrón que `REDIS_PREFIX`); si un `.env` no existe, se crea
+antes desde su `.env.example`. Con esto, `pnpm dev` **sin** `PORT=` en la línea
+de comandos ya arranca en el puerto propio del worktree — `packages/web/scripts/dev.ts`
+carga ese `.env` antes de invocar `next dev` (Commander lee `PORT` del entorno
+del proceso, no del `.env`, así que hace falta cargarlo primero) y arranca
+`editor-sync` en paralelo. El worktree principal sigue en 3000/2567/2568 (no se
+le escribe nada) y el `next build`/`next start` del smoke E2E
+(`packages/e2e/scripts/serve.ts`) no se ve afectado: pasa su propio `-p` y no
+lee `packages/web/.env`.
+
+Verificado a mano (sin patrón de test para scripts de shell en este repo):
+`pnpm dev:env` dos veces seguidas (misma asignación la segunda), `pnpm dev`
+sin `PORT=` arrancando en los tres puertos propios, `GET /es/play` en ese
+puerto respondiendo 200 y con `NEXT_PUBLIC_COLYSEUS_URL` del worktree
+embebido en los chunks compilados, y 3000/2567/2568 libres durante toda la
+prueba.
+
 ## Puertos (no estándar, para no chocar con otras suites)
 
 | Servicio                | Host                    | Contenedor  |

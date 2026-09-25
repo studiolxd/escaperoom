@@ -57,17 +57,22 @@ el flujo por defecto para cualquier tarea de código es:
    - Redis (`:56380`) SÍ es una instancia compartida entre worktrees, a
      diferencia de Postgres: `pnpm dev:env` también escribe (o actualiza,
      sin tocar el resto del fichero) `REDIS_PREFIX=<mismo slug que la BD>`
-     en los `.env` de `web`/`kit`/`worker`/`colyseus-server` (auditoría
-     2026-09-25, bloque CI/infra), para que las colas BullMQ y el pub/sub de
-     `editor-sync` de un worktree no se pisen con los de otro (dos `pnpm
-     dev`/workers reales corriendo a la vez). Si el agente copia esos `.env`
-     a mano en vez de dejar que `dev-env.sh` los gestione, pierde este
-     aislamiento. **Ojo:** esto NO arregla tests de rate-limit de `web`
-     fallando con 429/403 bajo `pnpm verify:pr` — esos tests corren siempre
-     con el rate limiter en memoria (nunca llegan a tocar Redis en este
-     entorno de dev, verificado); si fallan así, es contención de CPU de la
-     máquina compartida con otras sesiones (ver "Timeouts de CI" en
-     `docs/reference/verify-pr.md`), no un problema de Redis.
+     en los `.env` de `web`/`kit`/`worker`/`colyseus-server`/`shared`
+     (auditoría 2026-09-25, bloque CI/infra), para que las colas BullMQ y el
+     pub/sub de `editor-sync` de un worktree no se pisen con los de otro (dos
+     `pnpm dev`/workers reales corriendo a la vez). Si el agente copia esos
+     `.env` a mano en vez de dejar que `dev-env.sh` los gestione, pierde este
+     aislamiento. La config base de Vitest (`packages/config/vitest.config.ts`)
+     también carga ese `REDIS_PREFIX` para los tests de esos cinco paquetes
+     (`test.env`; en CI, sin `.env` de worktree, es un no-op) — antes de la
+     auditoría 2026-09-25 (puertos por worktree) no llegaba a los tests de
+     `web`, que seguían compartiendo prefijo entre worktrees. **Ojo:** esto NO
+     arregla tests de rate-limit de `web` fallando con 429/403 bajo
+     `pnpm verify:pr` — esos tests corren siempre con el rate limiter en
+     memoria (nunca llegan a tocar Redis en este entorno de dev, verificado);
+     si fallan así, es contención de CPU de la máquina compartida con otras
+     sesiones (ver "Timeouts de CI" en `docs/reference/verify-pr.md`), no un
+     problema de Redis.
    - En el nuevo worktree, correr: `pnpm dev:env` (requiere que
      `pnpm infra:up` ya esté levantado, normalmente ya lo está porque lo
      comparte con el principal) y luego `pnpm db:reset` para migrar y
@@ -75,16 +80,16 @@ el flujo por defecto para cualquier tarea de código es:
    - **Los puertos 3000 (web), 2567 (Colyseus) y 2568 (editor-sync) son del
      usuario**, aunque en ese momento estén libres: el worktree principal los
      usa cuando el usuario arranca `pnpm dev` ahí. **Ningún agente puede
-     levantar nada en esos puertos.** Si un agente levanta `pnpm dev` en su
-     worktree, debe hacerlo **siempre con puertos explícitos y libres**
-     (comprobados con `lsof -iTCP:<puerto> -sTCP:LISTEN`), p. ej.
-     `PORT=<libre> pnpm dev` para la web y los puertos de Colyseus/editor-sync
-     que tenga configurados en su `.env` (`COLYSEUS_PORT`, `EDITOR_SYNC_PORT`,
-     `NEXT_PUBLIC_COLYSEUS_URL`, `NEXT_PUBLIC_EDITOR_SYNC_URL`, `APP_URL`…),
-     y mirar la salida real del arranque para saber en qué puerto quedó. No
-     basta con confiar en que Next elija otro puerto "si el 3000 está
-     ocupado": si el usuario no tiene su `pnpm dev` corriendo, el 3000 está
-     libre y el agente se lo quedaría. Incluirlo explícitamente en el brief.
+     levantar nada en esos puertos.** Desde la auditoría 2026-09-25 (puertos
+     por worktree) esto es **automático**: `pnpm dev:env` en un worktree
+     enlazado le asigna tres puertos propios (web 3200-3299, Colyseus
+     2700-2799, editor-sync 2800-2899; registro en
+     `$(git rev-parse --git-common-dir)/escaperoom-dev-ports.json`, detalle en
+     `infra/README.md`) y los escribe en su `.env`, así que `pnpm dev` **sin**
+     `PORT=` ya arranca en esos puertos y nunca en 3000/2567/2568. Aun así, el
+     agente debe mirar la salida real del arranque para confirmar en qué
+     puerto quedó (no darlo por hecho), y correr `pnpm dev:env` como parte de
+     la preparación del worktree (paso 1 más abajo) antes de `pnpm dev`.
    - **Nunca matar procesos por patrón amplio** (`pkill -f "next dev"`,
      `pkill -f node`, `killall next`, etc.). Un `pkill -f "next dev"` mata
      TODOS los `next dev` de la máquina, incluido el del worktree principal
