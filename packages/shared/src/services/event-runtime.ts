@@ -64,7 +64,13 @@ export type ProgressMilestone =
 export type ProgressMilestoneKind = ProgressMilestone["kind"];
 
 /** Paquete publicado de un evento, tal como se congeló al publicar. */
-export type EventPackage = { eventId: string; roomVersionId: string; roomPackage: RoomPackage };
+export type EventPackage = {
+  eventId: string;
+  roomVersionId: string;
+  roomPackage: RoomPackage;
+  /** `event.config.allowVideo` (C-3, specs/12 §4): techo de vídeo del token LiveKit; default `false`. */
+  allowVideo: boolean;
+};
 
 /** Puerto de persistencia del runtime de eventos (Postgres o memoria). */
 export interface EventRuntimeStore {
@@ -243,7 +249,12 @@ export function createInMemoryEventRuntimeStore(opts: {
       if (!event || event.status !== "active") return null;
       const roomPackage = opts.packages[event.roomVersionId];
       return roomPackage
-        ? { eventId, roomVersionId: event.roomVersionId, roomPackage: structuredClone(roomPackage) }
+        ? {
+            eventId,
+            roomVersionId: event.roomVersionId,
+            roomPackage: structuredClone(roomPackage),
+            allowVideo: event.config.allowVideo,
+          }
         : null;
     },
 

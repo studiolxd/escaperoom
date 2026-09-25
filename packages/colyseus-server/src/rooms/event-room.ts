@@ -16,6 +16,7 @@ import {
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { MAX_EVENT_SPECTATORS } from "../constants.js";
 import { getEventRuntime } from "../events/runtime.js";
+import type { MediaRole } from "../media/index.js";
 import { GameRoom, type GameMilestone, type GameRoomOptions } from "./game-room.js";
 
 /**
@@ -97,12 +98,19 @@ export class EventRoom extends GameRoom {
   private readonly spectators = new Set<string>();
   private eventPackage!: RoomPackage;
   private roomVersionId = "";
+  /** `events.config.allowVideo` (C-3, specs/12 §4): techo de vídeo del token LiveKit. */
+  private eventAllowVideo = false;
   private recorder?: ProgressRecorder;
   /** Claims de cada jugador que ha entrado (grupo y cuenta para los hitos). */
   private readonly playerClaims = new Map<string, JoinClaims>();
 
   protected override loadRoomPackage(): RoomPackage {
     return this.eventPackage;
+  }
+
+  /** La `EventRoom` se autoriza con el `joinToken` del canje, no con `gameToken` (C-4). */
+  protected override requiresGameAccessToken(): boolean {
+    return false;
   }
 
   override async onCreate(options: EventRoomOptions = {}): Promise<void> {
@@ -119,9 +127,10 @@ export class EventRoom extends GameRoom {
     this.eventId = claims.eventId;
     this.eventPackage = loaded.roomPackage;
     this.roomVersionId = loaded.roomVersionId;
+    this.eventAllowVideo = loaded.allowVideo;
     this.recorder = createProgressRecorder(runtime, claims.sessionId);
 
-    super.onCreate(options);
+    await super.onCreate(options);
     this.playerCapacity = this.maxClients;
     this.maxClients = this.playerCapacity + MAX_EVENT_SPECTATORS;
     const metadata: EventRoomMetadata = { sessionId: this.eventSessionId, eventId: this.eventId };
@@ -208,6 +217,21 @@ export class EventRoom extends GameRoom {
 
   protected override canAct(client: Client): boolean {
     return !this.spectators.has(client.sessionId);
+  }
+
+  /** Observador o jugador (C-3): decide el rol del token LiveKit, nunca el payload del cliente. */
+  protected override mediaRoleFor(client: Client): MediaRole {
+    return this.spectators.has(client.sessionId) ? "observer" : "player";
+  }
+
+  /** Un observador no tiene fila en `players`: nombre genérico (C-3). */
+  protected override mediaNameFor(client: Client): string | undefined {
+    return this.spectators.has(client.sessionId) ? "Organizador" : super.mediaNameFor(client);
+  }
+
+  /** `events.config.allowVideo` (C-3, specs/12 §4): default `false`, decide el organizador. */
+  protected override mediaAllowVideoPolicy(): boolean {
+    return this.eventAllowVideo;
   }
 
   /** Observadores conectados (el panel no los cuenta como jugadores). */

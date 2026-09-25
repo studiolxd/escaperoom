@@ -93,6 +93,10 @@ export const tokensSchema = z.object({
   // él, /api/access-keys/redeem responde 503); en desarrollo hay uno fijo.
   JOIN_TOKEN_SECRET: z.string().optional(),
   JOIN_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().optional(),
+  // Secreto del gameToken de la `GameRoom` (C-4/B-4): compra B2C o partida de
+  // prueba sin compra. Obligatorio en producción (sin él, `game` rechaza
+  // cualquier `create`/`join`); en desarrollo hay uno fijo.
+  GAME_ACCESS_TOKEN_SECRET: z.string().optional(),
   // Secreto del enlace de confirmación de publicación por MCP. Obligatorio en
   // producción (sin él, la tool `publish` responde «no disponible»); en
   // desarrollo hay uno fijo.

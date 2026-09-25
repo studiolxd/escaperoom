@@ -87,24 +87,49 @@ describe("media en la room (integración con @colyseus/testing)", () => {
     expect(payload.canPublish).toBe(true);
   });
 
-  it("el observador recibe un token de solo suscripción", async () => {
+  it("C-3: `role`/`name` del payload se ignoran — `lobby_test` no tiene observadores", async () => {
     process.env.LIVEKIT_URL = "ws://localhost:7880";
     process.env.LIVEKIT_API_KEY = "devkey";
     process.env.LIVEKIT_API_SECRET = "secret";
 
     const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
-    const client = await colyseus.connectTo(room, { role: "observer" });
+    // `lobby_test` no lee `name` del join (siempre «Jugador N»): el nombre
+    // servidor-autoritativo del token de medios es ese, nunca el del payload.
+    const client = await colyseus.connectTo(room, { name: "Ana" });
+    const serverName = room.state.players.get(client.sessionId)!.name;
 
-    const payload = await requestMediaToken(client, { role: "observer" });
-    expect(payload.role).toBe("observer");
-    expect(payload.canPublish).toBe(false);
-    expect(payload.canPublishVideo).toBe(false);
+    // Un cliente que se declara observador (o con otro nombre) sigue recibiendo
+    // el rol/nombre reales que decide el servidor: nunca los del payload.
+    const payload = await requestMediaToken(client, { role: "observer", name: "Suplantado" });
+    expect(payload.role).toBe("player");
+    expect(payload.canPublish).toBe(true);
+    expect(payload.identity).toBe(client.sessionId);
 
     const segment = payload.token!.split(".")[1]!;
     const claims = JSON.parse(Buffer.from(segment, "base64url").toString("utf8")) as {
+      name?: string;
       video: { canPublish?: boolean; canSubscribe?: boolean };
     };
-    expect(claims.video.canPublish).toBe(false);
+    expect(claims.name).toBe(serverName);
+    expect(claims.video.canPublish).toBe(true);
     expect(claims.video.canSubscribe).toBe(true);
+  });
+
+  it("C-3: `allowVideo` del cliente solo puede rebajar la política, nunca subirla", async () => {
+    process.env.LIVEKIT_URL = "ws://localhost:7880";
+    process.env.LIVEKIT_API_KEY = "devkey";
+    process.env.LIVEKIT_API_SECRET = "secret";
+    process.env.LIVEKIT_ALLOW_VIDEO = "false";
+    try {
+      const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
+      const client = await colyseus.connectTo(room);
+
+      // La política del servidor es `false`; pedir `true` no la sube.
+      const payload = await requestMediaToken(client, { allowVideo: true });
+      expect(payload.allowVideo).toBe(false);
+      expect(payload.canPublishVideo).toBe(false);
+    } finally {
+      delete process.env.LIVEKIT_ALLOW_VIDEO;
+    }
   });
 });

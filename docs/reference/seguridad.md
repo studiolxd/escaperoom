@@ -96,13 +96,38 @@ al que inunda no se le inunda de errores. El cliente web vuelve a colocar el ava
 autoritativa si el descartado es un `move`, muestra el aviso del chat si es `chat` y, en el resto,
 una línea en el registro de la partida («Vas demasiado rápido…», en los 6 idiomas).
 
-**Observadores (ticket 5.9).** En la room `event`, el observador de solo lectura se rechaza con
-`PERMISSION_DENIED` **antes** del rate limit (`canAct` va primero en el envoltorio de mensajes): sus
-mensajes no llegan al limitador, así que no registran nada ni tocan la cuota de ningún jugador (las
-cuotas son por `sessionId`). Los jugadores de la misma room se limitan igual que en cualquier partida.
+**Observadores (ticket 5.9, corregido en C-8, auditoría 2026-09-24).** En la room `event`, el
+observador de solo lectura no puede actuar, pero desde C-8 el rate limit va **antes** que `canAct` en
+el envoltorio de mensajes: sus mensajes SÍ cuentan contra el cubo `total` (30/s), así que un
+observador que inunda a velocidad de línea queda acotado igual que cualquier jugador (antes se
+rechazaban con `PERMISSION_DENIED` sin pasar por el limitador, y cada rechazo respondía con
+`client.send`, lo que dejaba inundar a velocidad de línea con las respuestas de vuelta). Además, si se
+acumulan 25 rechazos en 10 s (una ráfaga; un observador real que prueba unas pocas acciones a lo
+largo de la partida no se acerca, la ventana se reinicia si pasan más de 10 s entre rechazos) se le
+corta la conexión (código 4403) en vez de seguir respondiendo `PERMISSION_DENIED` a cada mensaje.
+
+**Tope de transporte (C-8).** `GameRoom`/`LobbyTestRoom` fijan `maxMessagesPerSecond = 60`: por
+encima de eso, Colyseus corta la conexión él mismo antes de que el mensaje llegue a ningún handler ni
+al rate limiter de la app — un segundo cinturón por si el de arriba fallara.
 
 `GAME_MESSAGE_RATE_LIMIT=off` lo apaga. Solo lo usa el E2E de protocolo del ticket 2.12, cuyos
 clientes-máquina encadenan intentos sin cadencia humana; el resto de tests lo corren encendido.
+
+**`gameToken` (C-4/B-4).** Crear o unirse a una `GameRoom` "desnuda" (no `playtest`/`event`, que ya
+tenían su propio token) exige un `gameToken` HS256 (`GAME_ACCESS_TOKEN_SECRET`, mismo patrón que el
+`joinToken` de `event`, `packages/shared/src/services/game-access-token.ts`): o bien acredita una
+compra B2C `succeeded` sin jugar aún (`GET /api/rooms/:roomId/access`, que además reclama
+`purchase.playSessionStartedAt` con escritura condicional `IS NULL` — una compra = una partida,
+specs/02), o bien es una partida de prueba (`kind: "dev_test"`), que solo se acepta fuera de
+producción (`isDevFallbackAllowed`, comprobado también al verificar el token en Colyseus, no solo al
+firmarlo en web). `lobby_test` (ticket 0.5) ya no se registra en producción: es una room de prueba sin
+ningún gate propio.
+
+**CORS del matchmaker (C-4).** `@colyseus/core` refleja cualquier `Origin` por defecto
+(`matchMaker.controller.getCorsHeaders`, `Access-Control-Allow-Origin: <origin> | *`).
+`restrictMatchmakerCors` (`packages/colyseus-server/src/server.ts`) lo sobrescribe para responder solo
+al origen de `APP_URL`/`NEXT_PUBLIC_APP_URL`; sin ninguna de las dos (solo en desarrollo, `main.ts` las
+exige en producción) no restringe nada, para no romper `pnpm dev` con puertos que cambian.
 
 ## 3. CSP y cabeceras de seguridad
 

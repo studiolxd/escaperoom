@@ -12,6 +12,7 @@ import {
 import { MEDIA_TOKEN_MESSAGE, MEDIA_TOKEN_REQUEST_MESSAGE } from "../src/media/index";
 import { GameRoom } from "../src/rooms/game-room";
 import { getFreePort } from "./helpers/free-port";
+import { devTestGameToken } from "./helpers/game-token";
 
 /**
  * Integración de la `GameRoom` (ticket 2.8): la partida del Rey Aldric sobre
@@ -41,9 +42,14 @@ afterAll(async () => {
   await colyseus.shutdown();
 });
 
-/** Conecta un cliente de test tipado con el estado de la `GameRoom`. */
+/** Crea una `GameRoom` con el `gameToken` de prueba que exige `onCreate` (C-4). */
+function createGameRoom(options: Record<string, unknown> = {}) {
+  return colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, { gameToken: devTestGameToken(), ...options });
+}
+
+/** Conecta un cliente de test tipado con el estado de la `GameRoom` (mismo `gameToken`). */
 function join(room: GameRoom, options: object = {}) {
-  return colyseus.connectTo(room, options);
+  return colyseus.connectTo(room, { gameToken: devTestGameToken(), ...options });
 }
 
 type TestClient = Awaited<ReturnType<typeof join>>;
@@ -73,7 +79,7 @@ async function walk(room: GameRoom, client: TestClient, to: Point): Promise<void
 }
 
 async function startGame(): Promise<{ room: GameRoom; a: TestClient; b: TestClient }> {
-  const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {});
+  const room = await createGameRoom();
   const a = await join(room, { name: "Ana" });
   const b = await join(room, { name: "Bruno" });
   const intro = a.waitForMessage(GAME_MESSAGES.dialogShow);
@@ -98,7 +104,7 @@ async function enterBodega(room: GameRoom, client: TestClient): Promise<void> {
 
 describe("GameRoom — Rey Aldric sobre Colyseus", () => {
   it("solo el anfitrión empieza; la intro y el cronómetro llegan a todos", async () => {
-    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {});
+    const room = await createGameRoom();
     const a = await join(room);
     const b = await join(room);
 
@@ -218,7 +224,7 @@ describe("GameRoom — Rey Aldric sobre Colyseus", () => {
   });
 
   it("chat de la partida (specs/11 §4.4): desde el lobby, con autor y rate limit", async () => {
-    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {});
+    const room = await createGameRoom();
     const a = await join(room, { name: "Ana" });
     const b = await join(room, { name: "Bruno" });
 
@@ -243,7 +249,7 @@ describe("GameRoom — Rey Aldric sobre Colyseus", () => {
     );
     for (const [key] of saved) delete process.env[key];
     try {
-      const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {});
+      const room = await createGameRoom();
       const a = await join(room);
       const token = a.waitForMessage(MEDIA_TOKEN_MESSAGE);
       a.send(MEDIA_TOKEN_REQUEST_MESSAGE, { role: "player" });

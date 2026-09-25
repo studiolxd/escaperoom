@@ -22,6 +22,7 @@ export {
   type MediaTokenClient,
   type MediaTokenPayload,
   type ResolveMediaTokenInput,
+  type ServerMediaPolicy,
 } from "./service.js";
 export {
   buildVideoGrant,

@@ -47,8 +47,13 @@ export class PlaytestRoom extends GameRoom {
     return roomPackage;
   }
 
-  override onCreate(options: PlaytestRoomOptions = {}): void {
-    super.onCreate(options);
+  /** El playtest se autoriza con su propio token, no con `gameToken` (C-4). */
+  protected override requiresGameAccessToken(): boolean {
+    return false;
+  }
+
+  override async onCreate(options: PlaytestRoomOptions = {}): Promise<void> {
+    await super.onCreate(options);
     void this.setMetadata({ playtestId: this.playtest.playtestId });
     this.clock.setTimeout(
       () => void this.disconnect(PLAYTEST_EXPIRED_CLOSE_CODE),

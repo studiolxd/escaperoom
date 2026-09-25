@@ -10,6 +10,7 @@ import {
 } from "../src/message-rate-limit";
 import { GameRoom } from "../src/rooms/game-room";
 import { getFreePort } from "./helpers/free-port";
+import { devTestGameToken } from "./helpers/game-token";
 
 /**
  * Rate limit por mensaje de la `GameRoom` (ticket 6.3, specs/11 §9): la
@@ -114,9 +115,9 @@ describe("GameRoom — un cliente que inunda mensajes", () => {
   });
 
   it("se le descarta lo que excede su cuota (un solo aviso) y el otro jugador juega igual", async () => {
-    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {});
-    const flooder = await colyseus.connectTo(room, { name: "Ana" });
-    const other = await colyseus.connectTo(room, { name: "Bruno" });
+    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, { gameToken: devTestGameToken() });
+    const flooder = await colyseus.connectTo(room, { gameToken: devTestGameToken(), name: "Ana" });
+    const other = await colyseus.connectTo(room, { gameToken: devTestGameToken(), name: "Bruno" });
     flooder.send(GAME_MESSAGES.startGame, {});
     await expect.poll(() => other.state.phase).toBe("playing");
 

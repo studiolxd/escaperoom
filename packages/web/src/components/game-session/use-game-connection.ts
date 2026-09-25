@@ -86,7 +86,7 @@ export function useGameConnection({
     const parsedTarget = JSON.parse(targetKey) as GameJoinTarget;
     const joinTarget: GameJoinTarget =
       parsedTarget.kind === "game" && joinedRoomRef.current
-        ? { kind: "game", roomId: joinedRoomRef.current }
+        ? { kind: "game", roomId: joinedRoomRef.current, gameToken: parsedTarget.gameToken }
         : parsedTarget;
 
     setStatus("connecting");

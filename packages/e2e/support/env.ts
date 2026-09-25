@@ -98,6 +98,7 @@ export function serverEnv(): Record<string, string> {
     APP_SECRET: "e2e-app-secret-0123456789abcdef0123456789",
     BETTER_AUTH_SECRET: "e2e-better-auth-secret-0123456789abcdef01",
     JOIN_TOKEN_SECRET: "e2e-join-token-secret-0123456789abcdef012",
+    GAME_ACCESS_TOKEN_SECRET: "e2e-game-access-token-secret-0123456789ab",
     PLAYTEST_SECRET: "e2e-playtest-secret-0123456789abcdef01234",
     PUBLISH_CONFIRM_SECRET: "e2e-publish-confirm-secret-0123456789abcd",
     ANALYTICS_SERVER_SECRET: "e2e-analytics-server-secret-0123456789abc",

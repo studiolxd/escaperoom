@@ -29,7 +29,10 @@ const STATUS_DOT: Record<MediaStatus, string> = {
  * volcó en el store:
  *
  * - Sin claves LiveKit o sin token → estado "sin medios"; la partida sigue.
- * - Con token → conecta al SFU, reproduce el audio remoto y pinta los tiles.
+ * - Con token → conecta al SFU y reproduce el audio remoto, pero **sin
+ *   publicar mic/cámara automáticamente** (F-3, privacidad): `audio={false}
+ *   video={false}` en `LiveKitRoom`. El jugador los activa desde `MediaTiles`
+ *   con un gesto explícito (`setMicrophoneEnabled`/`setCameraEnabled`).
  * - Observador → entra en solo-suscripción (`canPublish: false` en el token y
  *   sin publicar audio/vídeo local).
  *
@@ -46,7 +49,6 @@ export function MediaOverlay() {
   const retry = useMediaStore((state) => state.retry);
 
   const connect = canConnectMedia(payload);
-  const isPlayer = payload?.role !== "observer";
 
   return (
     <div className="pointer-events-none absolute right-4 top-16 z-10 flex flex-col items-end gap-2">
@@ -62,8 +64,8 @@ export function MediaOverlay() {
           token={payload.token!}
           serverUrl={payload.url!}
           connect
-          audio={isPlayer}
-          video={payload.canPublishVideo}
+          audio={false}
+          video={false}
           onConnected={() => setStatus("connected")}
           onDisconnected={() => setStatus("disconnected")}
           onError={(mediaError) => setError(mediaError.message || "No se pudo conectar a LiveKit")}

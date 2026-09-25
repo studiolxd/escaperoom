@@ -21,6 +21,7 @@ import { GameRoom } from "../src/rooms/game-room";
 import type { GameRoomState } from "../src/schema/game-state";
 import { defineEventRoom } from "../src/server";
 import { getFreePort } from "./helpers/free-port";
+import { devTestGameToken } from "./helpers/game-token";
 
 /** DPA de la organización en regla: la puerta de 5.11 se prueba en `organizations.test.ts`. */
 const DPA_SIGNED: DpaGate = { requireDpa: async () => {} };
@@ -218,8 +219,11 @@ describe("room de evento con joinToken", () => {
     ).toContain(JOIN_TOKEN_ERRORS.invalid);
   });
 
-  it("la GameRoom del fixture sigue entrando sin joinToken", async () => {
-    const client = await colyseus.sdk.joinOrCreate<GameRoomState>(GAME_ROOM_NAME, { name: "Rey" });
+  it("la GameRoom del fixture sigue entrando sin joinToken (con gameToken de prueba, C-4)", async () => {
+    const client = await colyseus.sdk.joinOrCreate<GameRoomState>(GAME_ROOM_NAME, {
+      gameToken: devTestGameToken(),
+      name: "Rey",
+    });
     await client.waitForInitialState();
     expect(client.state.roomPackageId).toBe("room-rey-aldric");
   });

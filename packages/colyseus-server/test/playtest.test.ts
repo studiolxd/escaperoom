@@ -24,6 +24,7 @@ import { GameRoomState } from "../src/schema/game-state";
 import type { PlaytestRoom } from "../src/rooms/playtest-room";
 import { definePlaytestRoom } from "../src/server";
 import { getFreePort } from "./helpers/free-port";
+import { devTestGameToken } from "./helpers/game-token";
 
 /**
  * Playtest del editor (ticket 3.8): registro congelado, token del link de
@@ -299,11 +300,16 @@ describe("POST /internal/playtests", () => {
   });
 
   it("la GameRoom publicada sigue cargando solo el fixture por id", async () => {
-    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {});
-    const client = await colyseus.connectTo(room);
+    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {
+      gameToken: devTestGameToken(),
+    });
+    const client = await colyseus.connectTo(room, { gameToken: devTestGameToken() });
     await expect.poll(() => client.state.roomPackageId).toBe("room-rey-aldric");
     await expect(
-      colyseus.sdk.create(GAME_ROOM_NAME, { packageId: "draft-sala-de-prueba" }),
+      colyseus.sdk.create(GAME_ROOM_NAME, {
+        gameToken: devTestGameToken(),
+        packageId: "draft-sala-de-prueba",
+      }),
     ).rejects.toThrow();
   });
 });

@@ -25,7 +25,7 @@ import {
  */
 
 export type GameJoinTarget =
-  | { kind: "game"; roomId?: string; packageId?: string }
+  | { kind: "game"; roomId?: string; packageId?: string; gameToken?: string }
   | { kind: "playtest"; playtestId: string; token: string }
   | { kind: "event"; sessionId: string; joinToken: string }
   | { kind: "spectate"; sessionId: string; spectatorToken: string };
@@ -61,7 +61,13 @@ export function joinOptions(
   if (target.kind === "spectate") {
     return { sessionId: target.sessionId, spectatorToken: target.spectatorToken };
   }
-  return target.roomId || !target.packageId ? base : { ...base, packageId: target.packageId };
+  // `gameToken` (C-4) viaja siempre; `packageId` solo al crear (`roomId`
+  // ausente): unirse a una room ya creada por id no lo necesita.
+  return {
+    ...base,
+    ...(target.gameToken ? { gameToken: target.gameToken } : {}),
+    ...(target.roomId || !target.packageId ? {} : { packageId: target.packageId }),
+  };
 }
 
 /** Une a la room pedida; lanza si el servidor rechaza (link caducado, sala llena…). */
