@@ -221,6 +221,44 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
     return typeof origin === "object" && origin !== null && "actor" in origin;
   }
 
+  /** Conexión que hoy controla ese `clientID` de awareness en la sala, si alguna. */
+  function awarenessOwner(room: SyncRoom, clientId: number): Connection | undefined {
+    for (const conn of room.connections.values()) {
+      if (conn.awarenessIds.has(clientId)) return conn;
+    }
+    return undefined;
+  }
+
+  /**
+   * Filtra un update de awareness sin decodificar sus estados (mismo formato
+   * de cable que `encodeAwarenessUpdate`/`applyAwarenessUpdate` de
+   * `y-protocols`), quedándose solo con las entradas cuyo `clientID` pase
+   * `allow`. `null` si no queda ninguna.
+   */
+  function filterAwarenessUpdate(
+    update: Uint8Array,
+    allow: (clientId: number) => boolean,
+  ): Uint8Array | null {
+    const decoder = decoding.createDecoder(update);
+    const len = decoding.readVarUint(decoder);
+    const kept: { clientId: number; clock: number; state: string }[] = [];
+    for (let i = 0; i < len; i++) {
+      const clientId = decoding.readVarUint(decoder);
+      const clock = decoding.readVarUint(decoder);
+      const state = decoding.readVarString(decoder);
+      if (allow(clientId)) kept.push({ clientId, clock, state });
+    }
+    if (kept.length === 0) return null;
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, kept.length);
+    for (const entry of kept) {
+      encoding.writeVarUint(encoder, entry.clientId);
+      encoding.writeVarUint(encoder, entry.clock);
+      encoding.writeVarString(encoder, entry.state);
+    }
+    return encoding.toUint8Array(encoder);
+  }
+
   /**
    * Si falla la persistencia, el doc en memoria tiene cambios que no están en
    * Postgres. Se descarta la sala y se cierran sus conexiones: al reconectar,
@@ -340,8 +378,13 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
       const result = await drafts.restoreDraft(actor, roomId, target);
       return { changed: result !== null };
     }
-    // El plan se calcula sobre lo persistido: primero se vacía la cola.
-    await room.persisting;
+    // C-21: el plan se calcula contra el doc VIVO (`planRestoreAgainstDoc`),
+    // no contra lo persistido en Postgres. Solo el punto `target` —historia
+    // inmutable— viaja a BD; el lado "actual" del diff se lee de `room.doc`
+    // de forma síncrona en el mismo tick en que se calcula el update (sin
+    // await entre leerlo y aplicarlo más abajo), así que no queda ventana
+    // para que una edición concurrente se aplique al doc entre que se calcula
+    // el plan y se aplica, y se pierda o se aplique sobre una base obsoleta.
     const update = await drafts.planRestore(actor, roomId, target);
     if (!update) return { changed: false };
     if (room.closed) {
@@ -366,11 +409,18 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
         return;
       }
       case MESSAGE_AWARENESS: {
-        awarenessProtocol.applyAwarenessUpdate(
-          room.awareness,
+        // C-21: una conexión solo puede tocar `clientID`s que ya controla o
+        // que nadie más controla todavía (su primer anuncio de presencia) —
+        // nunca los de otra conexión, o cualquier cliente podría suplantar el
+        // cursor/estado de otro editor.
+        const filtered = filterAwarenessUpdate(
           decoding.readVarUint8Array(decoder),
-          conn,
+          (clientId) => {
+            const owner = awarenessOwner(room, clientId);
+            return owner === undefined || owner === conn;
+          },
         );
+        if (filtered) awarenessProtocol.applyAwarenessUpdate(room.awareness, filtered, conn);
         return;
       }
       case MESSAGE_QUERY_AWARENESS: {
