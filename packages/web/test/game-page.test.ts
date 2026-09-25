@@ -7,6 +7,10 @@ import {
   type GameSnapshot,
 } from "@escaperoom/game-runtime/session";
 import { loadRoomPackage } from "@escaperoom/game-runtime";
+import {
+  DEV_GAME_ACCESS_TOKEN_SECRET,
+  signGameAccessToken,
+} from "@escaperoom/shared/game-access-token";
 import { NextIntlClientProvider, createTranslator } from "next-intl";
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -64,6 +68,16 @@ const roomPackage = loadRoomPackage(readReyAldricRoomPackageJson());
 const LOCK_CODES = roomPackage.puzzles.flatMap((puzzle) =>
   puzzle.type === "code_lock" ? [puzzle.code] : [],
 );
+
+/** `gameToken` de partida de prueba (C-4): el secreto de desarrollo, activo bajo `NODE_ENV=test`. */
+function devGameToken(): string {
+  const now = Date.now();
+  return signGameAccessToken(
+    DEV_GAME_ACCESS_TOKEN_SECRET,
+    { kind: "dev_test", label: "test" },
+    { now, expiresAt: now + 15 * 60 * 1000 },
+  );
+}
 
 function render(element: ReactElement, locale = "es"): string {
   return renderToStaticMarkup(
@@ -140,6 +154,33 @@ describe("página /[locale]/play (SSR)", () => {
     expect(weird).toContain(tr("es", "join.create"));
   });
 
+  it("C-4: en producción real (sin ALLOW_DEV_SECRETS) la partida de prueba no existe (404)", async () => {
+    const savedNodeEnv = process.env.NODE_ENV;
+    const savedAllow = process.env.ALLOW_DEV_SECRETS;
+    // @ts-expect-error -- NODE_ENV es de solo lectura en el tipo, no en runtime
+    process.env.NODE_ENV = "production";
+    delete process.env.ALLOW_DEV_SECRETS;
+    try {
+      await expect(
+        PlayPage({
+          params: Promise.resolve({ locale: "es" }),
+          searchParams: Promise.resolve({}),
+        }),
+      ).rejects.toThrow();
+      // `?session=<id>` (evento) sigue disponible: no depende del gameToken de prueba.
+      await expect(
+        PlayPage({
+          params: Promise.resolve({ locale: "es" }),
+          searchParams: Promise.resolve({ session: "s-1" }),
+        }),
+      ).resolves.toBeTruthy();
+    } finally {
+      // @ts-expect-error -- idem
+      process.env.NODE_ENV = savedNodeEnv;
+      if (savedAllow !== undefined) process.env.ALLOW_DEV_SECRETS = savedAllow;
+    }
+  });
+
   it("el modelo que viaja al navegador no lleva códigos ni soluciones", () => {
     const serialized = JSON.stringify(buildGameModel(roomPackage, "es"));
     for (const code of LOCK_CODES) expect(serialized).not.toContain(`"${code}"`);
@@ -196,12 +237,12 @@ describe("GameSessionShell a partir del estado sincronizado", () => {
     it("pinta jugadores y fase desde el room state; el invitado espera al anfitrión", async () => {
       const hostRoom = await joinGameRoom(
         new Client(url),
-        { kind: "game", packageId: "room-rey-aldric" },
+        { kind: "game", packageId: "room-rey-aldric", gameToken: devGameToken() },
         "Ana",
       );
       const guestRoom = await joinGameRoom(
         new Client(url),
-        { kind: "game", roomId: hostRoom.roomId },
+        { kind: "game", roomId: hostRoom.roomId, gameToken: devGameToken() },
         "Bruno",
       );
       const guest = createNetworkGameClient(guestRoom);

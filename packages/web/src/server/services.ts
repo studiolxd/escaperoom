@@ -64,6 +64,7 @@ import {
   createPrismaOrganizationStore,
   type OrganizationService,
   readJoinTokenConfig,
+  readGameAccessTokenConfig,
   type InvitationService,
   type AccessKeyService,
   type RedeemService,
@@ -87,6 +88,9 @@ import {
   createPurchaseService,
   createPrismaPurchaseStore,
   type PurchaseService,
+  createRoomAccessService,
+  createPrismaRoomAccessStore,
+  type RoomAccessService,
   createCreatorConnectService,
   createPrismaCreatorConnectStore,
   type CreatorConnectService,
@@ -137,6 +141,7 @@ let moderation: ModerationService | undefined;
 let userDataRights: UserDataRightsService | undefined;
 let stripeClient: Stripe | null | undefined;
 let purchases: PurchaseService | undefined;
+let roomAccess: RoomAccessService | null | undefined;
 let creatorConnect: CreatorConnectService | undefined;
 let webhookDedupe: WebhookEventDedupeStore | undefined;
 let purchaseConfirmations: PurchaseConfirmationQueue | undefined;
@@ -533,6 +538,22 @@ export function getPurchaseService(): PurchaseService {
     });
   }
   return purchases;
+}
+
+/**
+ * `GET /api/rooms/:roomId/access` (B-4, auditoría 2026-09-24): si el usuario
+ * tiene una compra `room` `succeeded` de esa sala aún sin jugar, emite el
+ * `gameToken` (C-4, `GAME_ACCESS_TOKEN_SECRET`, compartido con
+ * colyseus-server) que exige la `GameRoom`. `null` si falta el secreto en
+ * producción (mismo criterio que `getRedeemService`).
+ */
+export function getRoomAccessService(): RoomAccessService | null {
+  if (roomAccess !== undefined) return roomAccess;
+  const gameToken = readGameAccessTokenConfig();
+  roomAccess = gameToken
+    ? createRoomAccessService({ store: createPrismaRoomAccessStore(prisma), gameToken })
+    : null;
+  return roomAccess;
 }
 
 /**

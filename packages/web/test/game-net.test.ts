@@ -35,6 +35,10 @@ import {
   type NetworkGameClient,
 } from "@escaperoom/game-runtime/session";
 import {
+  DEV_GAME_ACCESS_TOKEN_SECRET,
+  signGameAccessToken,
+} from "@escaperoom/shared/game-access-token";
+import {
   DEV_JOIN_TOKEN_SECRET,
   signJoinToken,
   signSpectatorToken,
@@ -65,6 +69,16 @@ const model = toRuntimeModel(roomPackage, { locale: "es" });
 const LOCK_CODES = roomPackage.puzzles.flatMap((puzzle) =>
   puzzle.type === "code_lock" ? [puzzle.code] : [],
 );
+
+/** `gameToken` de partida de prueba (C-4): el secreto de desarrollo, activo bajo `NODE_ENV=test`. */
+function devGameToken(): string {
+  const now = Date.now();
+  return signGameAccessToken(
+    DEV_GAME_ACCESS_TOKEN_SECRET,
+    { kind: "dev_test", label: "test" },
+    { now, expiresAt: now + 15 * 60 * 1000 },
+  );
+}
 
 let server: ReturnType<typeof createGameServer>;
 let url: string;
@@ -162,6 +176,14 @@ describe("protocolo espejo del runtime = constantes del servidor", () => {
       packageId: "room-rey-aldric",
     });
     expect(joinOptions({ kind: "game", roomId: "abc" })).toEqual({});
+    // C-4: el `gameToken` viaja siempre que lo hay, tanto al crear como al
+    // unirse por `roomId` (`packageId` no, ya no hace falta para unirse).
+    expect(joinOptions({ kind: "game", roomId: "abc", gameToken: "g.t.k" })).toEqual({
+      gameToken: "g.t.k",
+    });
+    expect(
+      joinOptions({ kind: "game", packageId: "room-rey-aldric", gameToken: "g.t.k" }),
+    ).toEqual({ packageId: "room-rey-aldric", gameToken: "g.t.k" });
     expect(joinOptions({ kind: "playtest", playtestId: "pt", token: "t~s" }, "")).toEqual({
       playtestId: "pt",
       token: "t~s",
@@ -282,7 +304,7 @@ describe("cliente de red contra una GameRoom real", () => {
   });
 
   it("se une, aplica el estado sincronizado al modelo del runtime y el servidor acepta sus acciones", async () => {
-    const ana = await join({ kind: "game", packageId: "room-rey-aldric" }, "Ana");
+    const ana = await join({ kind: "game", packageId: "room-rey-aldric", gameToken: devGameToken() }, "Ana");
     await until(ana, (snapshot) => snapshot.self !== null);
     const first = ana.client.getSnapshot();
     expect(first).toMatchObject({ phase: "lobby", roomPackageId: "room-rey-aldric" });
@@ -339,9 +361,12 @@ describe("cliente de red contra una GameRoom real", () => {
   });
 
   it("dos clientes ven el mismo estado tras una acción de uno (inventario, objetos, chat, posición)", async () => {
-    const ana = await join({ kind: "game", packageId: "room-rey-aldric" }, "Ana");
+    const ana = await join({ kind: "game", packageId: "room-rey-aldric", gameToken: devGameToken() }, "Ana");
     await until(ana, (snapshot) => snapshot.self !== null);
-    const bruno = await join({ kind: "game", roomId: ana.room.roomId }, "Bruno");
+    const bruno = await join(
+      { kind: "game", roomId: ana.room.roomId, gameToken: devGameToken() },
+      "Bruno",
+    );
     expect(bruno.room.roomId).toBe(ana.room.roomId);
     await until(ana, (snapshot) => snapshot.players.length === 2);
     await until(bruno, (snapshot) => snapshot.players.length === 2);
