@@ -300,3 +300,10 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `public/`, credenciales y quién lo ejecuta (script manual o paso de CI). Decidir
       también el almacenamiento definitivo de los binarios de la herramienta (`fuentes/`,
       `entregas/`, `referencias/`, hoy solo en local y con copia en `pipeline-assets`).
+- [ ] **404 de URLs que no existen.** Una URL sin ninguna página que la capture (p. ej.
+      `/es/una-ruta-que-no-existe`) no llega a `[locale]/not-found.tsx` ni a
+      `(public)/not-found.tsx`: al no haber `app/not-found.tsx` ni `app/layout.tsx` raíz
+      (el layout raíz efectivo es `[locale]/layout.tsx`), Next sirve su 404 por defecto,
+      en inglés y sin estilos. Añadir una ruta comodín (`app/[locale]/(public)/[...rest]/
+      page.tsx` que llame a `notFound()`) para que use el 404 con la shell pública, y
+      cubrir también las rutas sin prefijo de idioma. Encontrado en la PR #153.
