@@ -5,6 +5,8 @@
  */
 export * from "./actor";
 export * from "./common";
+export * from "./room-cover";
+export * from "./room-cover-prisma-store";
 export * from "./catalog";
 export * from "./catalog-listing";
 export * from "./reviews";
