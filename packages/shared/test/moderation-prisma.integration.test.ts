@@ -183,12 +183,18 @@ describe.skipIf(!process.env.DATABASE_URL)("moderación sobre Postgres (integrac
   });
 
   it("muestreo: la versión reciente entra una sola vez", async () => {
+    // Acotado a la sala propia de este fichero (`roomIds`, docs/DEUDA.md "test
+    // inestable: muestreo de moderación"): sin esto, `listUnsampledVersions`/
+    // `sampleRecentlyPublished` son globales sobre "roomVersion" y chocan con
+    // las versiones "published" recientes que crean otros ficheros de
+    // integración en el mismo Postgres compartido cuando la suite corre en
+    // paralelo (#134, #135, #136, #141, #150).
     const store = createPrismaModerationStore(prisma);
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const before = await store.listUnsampledVersions(since, 1000);
+    const before = await store.listUnsampledVersions(since, 1000, [roomId]);
     expect(before.some((v) => v.versionId === versionId)).toBe(true);
-    await service().sampleRecentlyPublished({ rate: 1 });
-    const after = await store.listUnsampledVersions(since, 1000);
+    await service().sampleRecentlyPublished({ rate: 1, roomIds: [roomId] });
+    const after = await store.listUnsampledVersions(since, 1000, [roomId]);
     expect(after.some((v) => v.versionId === versionId)).toBe(false);
   });
 

@@ -986,7 +986,8 @@
       "CONTENT_BLOCKED": "De moderatie-voorcontrole heeft enkele teksten van de kamer geblokkeerd. Pas ze aan of maak bezwaar.",
       "ACCOUNT_FROZEN": "Je account is bevroren terwijl een ernstige melding wordt beoordeeld: je kunt niet publiceren.",
       "CREATOR_SUSPENDED": "Publiceren is tijdelijk geschorst voor je account.",
-      "CREATOR_BANNED": "Je account kan geen kamers meer publiceren."
+      "CREATOR_BANNED": "Je account kan geen kamers meer publiceren.",
+      "NOTHING_TO_PUBLISH": "Het concept heeft geen wijzigingen sinds de laatst gepubliceerde versie: er is niets te publiceren."
     }
   },
   "McpConsent": {

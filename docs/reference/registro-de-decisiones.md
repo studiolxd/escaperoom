@@ -905,3 +905,62 @@ revisado proponga sobre estos objetos se detecta en CI (test de integración, co
 `verify` desde E-14) en vez de en producción. Añadir una construcción manual nueva implica ahora dos
 pasos más además del SQL: el comentario `///` y, si protege algo con impacto real, su caso en el
 test.
+
+---
+
+## ADR-035 — Semver automático al publicar; se retira el semver pedido por el autor (2026-09-25)
+
+**Contexto:** `nextSemver(existing, requested?)` (`packages/shared/src/services/room-publish.ts`)
+aceptaba un semver pedido por el autor o, si no se pedía, subía el parche sin mirar qué había
+cambiado en el `RoomPackage`. Eso obligaba a quien publica a decidir a mano si un cambio era MAJOR/
+MINOR/PATCH (nadie lo hacía: en la práctica todo el mundo dejaba el auto-incremento de parche, hasta
+para añadir o quitar puzzles) y dejaba una superficie de API (`PublishInput.semver`) que ni el editor
+ni el MCP llegaban a exponer — solo se podía forzar llamando directamente a `POST
+/api/rooms/:roomId/publish` con un cuerpo a mano.
+
+**Decisión:**
+
+- Se añade `classifyRoomPackageChange(previous: RoomPackage | null, candidate: RoomPackage):
+  "major" | "minor" | "patch" | "none"` (`packages/shared/src/services/room-version-diff.ts`), función
+  pura sin acceso a la base de datos:
+  - **MAJOR**: se añade o elimina algún `puzzles[]`, comparando por `id` (reordenar sin añadir ni
+    quitar no cuenta).
+  - **MINOR**: mismo conjunto de ids de `puzzles[]`, pero algún puzzle existente cambia de contenido
+    (cualquier campo — sin granularidad fina), o una regla de `rules[]` se añade, elimina o modifica
+    y referencia (en su `trigger`, alguna `condition` o alguna `action`, incluida la recursión dentro
+    de `delay`) un `puzzleId` presente en ambas versiones.
+  - **PATCH**: hay alguna diferencia de contenido (`objects`, `map`, `items`, `dialogs`, `hints`,
+    `meta.assetsManifest`, otros campos de `meta`, o una regla añadida/eliminada/modificada que no
+    referencia ningún puzzle) pero nada de lo anterior.
+  - **`"none"`**: los dos paquetes son idénticos, ignorando `meta.id`/`meta.authorId`/`meta.version`
+    (los fija siempre el servidor al congelar, nunca el contenido del draft).
+- `nextSemver(existing, change)` ya no acepta un semver pedido: aplica el bump según `change`
+  (`X.Y.Z` + MAJOR → `(X+1).0.0`; + MINOR → `X.(Y+1).0`; + PATCH → `X.Y.(Z+1)`), y `1.0.0` siempre en
+  la primera publicación (no llama a `classifyRoomPackageChange`: no hay versión previa que
+  clasificar).
+- **Caso "sin ningún cambio" (`change === "none"`), decidido:** en la publicación real
+  (`RoomPublishService.publish`) se rechaza con un error explícito, `NOTHING_TO_PUBLISH` (409) — no
+  se permite crear una versión idéntica a la anterior con un PATCH vacío. Motivo: cada `roomVersion`
+  es inmutable y pública (specs/13 §3); una versión sin ningún cambio de contenido no aporta nada al
+  histórico y confundiría a quien lo lee ("¿qué cambió en la 1.0.5?"). En cambio,
+  `checkPublishable` (la vista previa que usan tanto el editor como `inspect` de la confirmación
+  humana del MCP, ticket 4.5) **no** lanza este error: si no hay cambios, informa `nextSemver` igual
+  al `latestSemver` actual (publicar ahora repetiría la versión vigente) en vez de bloquear la mera
+  consulta de estado — el error solo aparece si de verdad se intenta escribir sin haber cambiado
+  nada.
+- Se quita `semver` de `PublishInput`, de la validación de `POST /api/rooms/:roomId/publish` (el
+  campo, si llega, se ignora) y de los tests que lo ejercitaban; el MCP (`publish`) y el editor ya no
+  lo exponían (comprobado: no había ningún campo de semver manual en ninguno de los dos).
+
+**Consecuencias:** publicar ya no requiere que nadie decida a mano el nivel de cambio; el semver
+resultante siempre refleja el contenido real. Republicar sin haber tocado el draft es ahora un error
+explícito en vez de una versión vacía silenciosa. `RoomPublishErrorCode` gana `NOTHING_TO_PUBLISH`
+(409 en REST, `NOT_PUBLISHABLE` en el código de error del MCP).
+
+**Alternativas descartadas:** permitir que "sin cambios" publique igual como PATCH — se descarta
+porque banaliza el historial de versiones y no hay ningún caso de uso real que dependa de poder
+"republicar" contenido idéntico (el hash de assets tampoco cambiaría). Clasificar por campo dentro de
+cada puzzle (en vez de "cambió sí/no") — se descarta por ser mucho más código y mucho más frágil
+(cualquier campo nuevo de una plantilla de puzzle habría que enseñárselo al clasificador) para un
+beneficio que DEUDA.md no pedía: la granularidad puzzle-a-puzzle ya es suficientemente informativa
+para MAJOR/MINOR/PATCH.

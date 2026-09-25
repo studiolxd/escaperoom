@@ -994,7 +994,8 @@
       "CONTENT_BLOCKED": "El pre-check de moderación ha bloqueado algunos textos de la sala. Corrígelos o apela el bloqueo.",
       "ACCOUNT_FROZEN": "Tu cuenta está congelada mientras se revisa un reporte grave: no puedes publicar.",
       "CREATOR_SUSPENDED": "Tu publicación está suspendida temporalmente por moderación.",
-      "CREATOR_BANNED": "Tu cuenta ya no puede publicar salas."
+      "CREATOR_BANNED": "Tu cuenta ya no puede publicar salas.",
+      "NOTHING_TO_PUBLISH": "El borrador no tiene ningún cambio desde la última versión publicada: no hay nada que publicar."
     }
   },
   "McpConsent": {
