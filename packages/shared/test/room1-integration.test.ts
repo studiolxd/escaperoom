@@ -204,4 +204,19 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
     expect(JSON.stringify(view)).not.toContain("4732");
     expect(view).not.toHaveProperty("code");
   });
+
+  // Regresión (2026-09-25): el playtest de sala terminaba con `end_game: timeout`
+  // nada más cargar. `createRoomSession` sin `now` deja `lastTickAt = 0`; al
+  // arrancar con `start(Date.now())` y hacer el primer `tick` poco después, el
+  // motor calculaba un delta de ~decenas de años y agotaba de inmediato
+  // cualquier timer de tiempo límite (aquí, `timeLimitSec: 3600`).
+  it("no termina por timeout al arrancar sin pasar `now` a createRoomSession", () => {
+    const session = newSession();
+    const t0 = Date.now();
+
+    session.start(t0);
+    session.tick(t0 + 250);
+
+    expect(session.ended).toBe(false);
+  });
 });

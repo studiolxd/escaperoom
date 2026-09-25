@@ -245,7 +245,10 @@ class RuleEngine {
 
   private primeEvent(event: GameEvent): void {
     if (event.type === "on_game_start") {
-      if (!this.current.flags.game_started) this.current.startedAt = this.now;
+      if (!this.current.flags.game_started) {
+        this.current.startedAt = this.now;
+        this.current.lastTickAt = this.now;
+      }
       this.current.flags.game_started = true;
       if (this.current.phase !== "ended") this.current.phase = "playing";
     }

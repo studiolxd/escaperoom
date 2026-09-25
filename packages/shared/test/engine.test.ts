@@ -295,6 +295,29 @@ describe("motor de reglas — delay y timers", () => {
     engine.tick(50000);
     expect(engine.state.flags.aviso).toBe(true);
   });
+
+  // Regresión (2026-09-25): el playtest de sala terminaba con `end_game: timeout`
+  // nada más cargar. Si el estado inicial trae `lastTickAt: 0` (valor por
+  // defecto cuando no se pasa `now`) pero `on_game_start` se dispatchea con un
+  // `now` real (p. ej. `Date.now()`), el primer `tick` calculaba un delta de
+  // ~décadas y agotaba de inmediato cualquier timer con `timeLimitSec`.
+  // `on_game_start` debe fijar también `lastTickAt`, no solo `startedAt`.
+  it("on_game_start fija lastTickAt además de startedAt, evitando un delta gigante en el primer tick", () => {
+    const engine = createEngine(makeState({ timeLimitSec: 60 }), [
+      makeRule({
+        id: "r-tiempo-agotado",
+        trigger: { type: "on_time_remaining_below", seconds: 0 },
+        actions: [{ type: "end_game", result: "timeout" }],
+      }),
+    ]);
+
+    const realNow = Date.now();
+    engine.dispatch({ type: "on_game_start" }, realNow);
+    const result = engine.tick(realNow + 250);
+
+    expect(engine.state.result).toBeUndefined();
+    expect(result.fired.map((f) => f.ruleId)).not.toContain("r-tiempo-agotado");
+  });
 });
 
 describe("motor de reglas — encadenamiento e idempotencia", () => {
