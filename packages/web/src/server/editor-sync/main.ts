@@ -30,6 +30,9 @@ const server = createWebEditorSyncServer({
   drafts: getRoomDraftService(),
   resolveActorFromRequest,
   allowedOrigins: allowedOriginsFromEnv(process.env),
+  // C-10: en producción sin `EDITOR_SYNC_ALLOWED_ORIGINS`/`NEXT_PUBLIC_APP_URL`
+  // configuradas, fallar cerrado en vez de aceptar cualquier `Origin`.
+  strictOriginWithoutAllowlist: process.env.NODE_ENV === "production",
 });
 const { port: listening } = await server.listen(port);
 console.log(`[editor-sync] WebSocket de edición en ws://localhost:${listening}/rooms/:roomId`);

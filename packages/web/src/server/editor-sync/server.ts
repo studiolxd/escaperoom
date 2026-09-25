@@ -48,12 +48,15 @@ export function createWebEditorSyncServer(deps: {
   drafts: RoomDraftService;
   resolveActorFromRequest: (request: Request) => Promise<Actor>;
   allowedOrigins?: readonly string[];
+  /** C-10: `true` en producción — sin `allowedOrigins`, falla cerrado en vez de aceptar cualquier `Origin`. */
+  strictOriginWithoutAllowlist?: boolean;
   logger?: EditorSyncServerOptions["logger"];
 }): EditorSyncServer {
   return createEditorSyncServer({
     drafts: deps.drafts,
     resolveActor: (request) => deps.resolveActorFromRequest(upgradeRequestToRequest(request)),
     allowedOrigins: deps.allowedOrigins,
+    strictOriginWithoutAllowlist: deps.strictOriginWithoutAllowlist,
     logger: deps.logger,
     // Sincronización entre procesos (specs/09 §2, decisión 2026-09-23):
     // updates persistidos por OTRO proceso (otra instancia de `editor-sync`
