@@ -255,3 +255,16 @@ Tareas pendientes que no bloquean pero hay que resolver.
         - Nota de slxd (SPEC.md, 2026-08-24): `react-hook-form` debe ser
           *external* si va en una librería de componentes compartida, porque
           empaquetado duplica el contexto del formulario.
+- [ ] **Páginas de error con la shell pública y componentes shadcn.** Las
+      páginas de error actuales (`app/[locale]/error.tsx` y
+      `app/[locale]/not-found.tsx`, PR #120) cuelgan de `[locale]`, fuera del
+      grupo `(public)`, así que se muestran **sin** la cabecera y el pie públicos
+      (`PublicHeader`/`PublicFooter` de `app/[locale]/(public)/layout.tsx`).
+      Crear una página de error (404 y error genérico) que use la shell pública
+      —extraer la shell a un componente reutilizable si hace falta— y solo
+      componentes shadcn/ui (p. ej. `Empty`, `Button`), con los textos en los
+      6 idiomas. `global-error.tsx` (sustituye al documento entero cuando falla
+      el layout raíz) no puede usar la shell con garantías: mantenerlo mínimo
+      pero coherente visualmente. Revisar también los `notFound()` de rutas
+      privadas (editor, creador) para que no enseñen la shell pública si no
+      corresponde.
