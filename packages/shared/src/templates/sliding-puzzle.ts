@@ -1,4 +1,5 @@
 import type { PuzzleState, SlidingPuzzleDefinition } from "../schemas";
+import { guardPlayable, initialPuzzleState, publicBase } from "./base";
 
 /**
  * Plantilla `sliding_puzzle` (specs/06 §2.5). Toda la lógica —mezcla, paridad y
@@ -194,7 +195,7 @@ export function createSlidingState(
   rng?: SlidingRng,
 ): SlidingPuzzleState {
   return {
-    state: def.requiresSolved.length > 0 ? "locked" : "available",
+    state: initialPuzzleState(def.requiresSolved),
     tiles: scrambleSlidingTiles(def, rng),
     moveCount: 0,
   };
@@ -205,7 +206,7 @@ export function slidingMovableIndices(
   state: SlidingPuzzleState,
   def: SlidingPuzzleDefinition,
 ): number[] {
-  if (state.state === "solved" || state.state === "locked" || state.state === "failed") return [];
+  if (guardPlayable(state.state) !== null) return [];
   return slidingNeighborIndices(def.grid, slidingBlankIndex(state.tiles));
 }
 
@@ -231,12 +232,8 @@ export function move(
 ): SlidingMoveResult {
   const blank = slidingBlankIndex(state.tiles);
 
-  if (state.state === "solved") {
-    return { outcome: "already_solved", state, blankIndex: blank };
-  }
-  if (state.state === "locked" || state.state === "failed") {
-    return { outcome: "unavailable", state, blankIndex: blank };
-  }
+  const guard = guardPlayable(state.state);
+  if (guard !== null) return { outcome: guard, state, blankIndex: blank };
   if (!slidingNeighborIndices(def.grid, blank).includes(index)) {
     return { outcome: "not_adjacent", state, blankIndex: blank };
   }
@@ -270,16 +267,12 @@ export function toSlidingPuzzlePublicView(
   def: SlidingPuzzleDefinition,
 ): SlidingPuzzlePublicView {
   return {
-    id: def.id,
-    type: "sliding_puzzle",
-    state: state.state,
+    ...publicBase(def.id, "sliding_puzzle", state.state, state.solvedAt, state.solvedBy),
     grid: { cols: def.grid.cols, rows: def.grid.rows },
     imageAsset: def.imageAsset,
     tiles: state.tiles.slice(),
     blankIndex: slidingBlankIndex(state.tiles),
     moveCount: state.moveCount,
-    solvedAt: state.solvedAt ?? null,
-    solvedBy: state.solvedBy ?? null,
   };
 }
 
