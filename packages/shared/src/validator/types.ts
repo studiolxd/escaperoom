@@ -11,6 +11,9 @@ export type ValidationStatus = "ok" | "warning" | "error";
 /** Checks del informe, en el orden en que se renderizan. */
 export type ValidationCheckId =
   | "references"
+  | "geometry"
+  | "structure"
+  | "spawn_capacity"
   | "orphans"
   | "dead_ends"
   | "solvability"

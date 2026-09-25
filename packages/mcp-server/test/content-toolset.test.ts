@@ -293,13 +293,36 @@ describe("errores legibles", () => {
       '❌ add_dialog: "d-fr.text" usa idiomas no declarados en la sala (fr); idiomas de la sala: es, en',
     );
 
+    // `subroomIds` limitado a `cripta` (sin objetos/spawns propios) y un
+    // tamaño que no deja nada fuera: el error de este caso es el RLE
+    // impar, no la geometría (auditoría D-3, que ya se prueba aparte).
     const map = await call(client, "set_map", {
       roomId,
       tileset: "medieval-v1",
-      size: { cols: 2, rows: 2 },
+      size: { cols: 8, rows: 6 },
+      subroomIds: [CRYPT],
       layers: [{ name: "ground", rle: [4] }],
     });
     expect(map.text).toContain("RLE mal formado");
+  });
+
+  it("encoger una habitación dejando objetos fuera se impide (D-3)", async () => {
+    const { client, drafts, roomId } = await withSmallRoom();
+    // «laboratorio» (10×8) tiene `cofre-lab` (3,2), `puerta-cripta` (9,4) y su
+    // spawn por defecto: una rejilla de 2×2 los deja fuera a los tres.
+    const shrink = await call(client, "set_map", {
+      roomId,
+      tileset: "medieval-v1",
+      size: { cols: 2, rows: 2 },
+      subroomIds: [LAB],
+    });
+    expect(shrink.isError).toBe(true);
+    expect(errorCode(shrink)).toBe("INVALID_INPUT");
+    expect(shrink.text).toContain("cofre-lab");
+    expect(shrink.text).toContain("puerta-cripta");
+    // Nada se aplicó: la habitación conserva su rejilla original.
+    const pkg = await draftPackage(drafts, roomId);
+    expect(pkg.map.rooms.find((room) => room.id === LAB)?.grid).toEqual({ cols: 10, rows: 8 });
   });
 
   it("la entrada se valida con los esquemas Zod compartidos", async () => {

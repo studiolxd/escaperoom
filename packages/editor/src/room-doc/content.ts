@@ -27,7 +27,7 @@ import {
   type RecordCollection,
   type RecordMap,
 } from "./doc-model";
-import { buildSubRoomRecord, localizedRecord } from "./serialize";
+import { buildRoomMap, buildRoomObjects, buildSubRoomRecord, localizedRecord } from "./serialize";
 import { decodeRle, parseTileKey, tileKey } from "./tiles";
 
 /**
@@ -113,6 +113,42 @@ function assertGridWithinLimits(grid: Grid): void {
   }
 }
 
+/**
+ * Impide encoger una habitación si deja objetos, spawnPoints o decoraciones
+ * fuera de la rejilla nueva (auditoría D-3): antes solo se recortaban los
+ * tiles (`pruneTilesOutside`) y el resto quedaba geométricamente inválido
+ * hasta que `toRuntimeModel`/el validador lo detectaban, ya en `publish()`.
+ * Aquí se avisa (y se impide) en el momento de encoger, con los ids afectados.
+ */
+function assertNothingLeftOutside(doc: Y.Doc, roomId: string, grid: Grid): void {
+  const room = buildRoomMap(doc).rooms.find((candidate) => candidate.id === roomId);
+  if (!room) return;
+  const outside = (x: number, y: number) => x < 0 || y < 0 || x >= grid.cols || y >= grid.rows;
+  const offenders: string[] = [];
+
+  for (const object of buildRoomObjects(doc)) {
+    if (object.roomId === roomId && outside(object.position.x, object.position.y)) {
+      offenders.push(`objeto «${object.id}»`);
+    }
+  }
+  for (const spawn of room.spawnPoints) {
+    if (outside(spawn.x, spawn.y)) offenders.push(`spawnPoint «${spawn.id}»`);
+  }
+  for (const decoration of room.decorations) {
+    if (outside(decoration.x, decoration.y)) offenders.push(`decoración «${decoration.sprite}»`);
+  }
+  for (const light of room.lighting) {
+    if (light.type === "torch" && outside(light.x, light.y)) offenders.push("antorcha");
+  }
+
+  if (offenders.length > 0) {
+    throw new RoomDocError(
+      "OUT_OF_BOUNDS",
+      `Encoger «${roomId}» a ${grid.cols}×${grid.rows} dejaría fuera: ${offenders.join(", ")}. Muévelos o bórralos antes de encoger la habitación.`,
+    );
+  }
+}
+
 /** Borra las celdas que quedan fuera de la rejilla (al encoger una habitación). */
 function pruneTilesOutside(room: RecordMap, grid: Grid): void {
   const tiles = room.get("tiles");
@@ -134,6 +170,7 @@ export function setSubRoomGrid(
   layers?: readonly TileLayer[],
 ): void {
   assertGridWithinLimits(grid);
+  assertNothingLeftOutside(doc, roomId, grid);
   doc.transact(() => {
     const room = subRoom(doc, roomId);
     room.set("cols", grid.cols);
@@ -199,12 +236,15 @@ export function defineSubRooms(
       const existing = subrooms.get(spec.id);
       if (existing) {
         existing.set("name", spec.name);
-        setSubRoomGrid(doc, spec.id, spec.grid);
+        // Los `spawnPoints` nuevos (si los hay) se fijan ANTES de redimensionar:
+        // así `setSubRoomGrid` comprueba la geometría final (auditoría D-3), no
+        // los puntos viejos que este mismo comando va a sustituir.
         if (spec.spawnPoints) {
           const list = new Y.Array<unknown>();
           list.push(spec.spawnPoints.map((point) => ({ ...point })));
           existing.set("spawnPoints", list);
         }
+        setSubRoomGrid(doc, spec.id, spec.grid);
         updated.push(spec.id);
         continue;
       }
