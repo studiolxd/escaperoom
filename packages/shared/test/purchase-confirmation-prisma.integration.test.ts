@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { PrismaClient } from "../generated/client";
 import type { PendingConfirmationsWindow } from "../src/services";
 import { createPrismaPurchaseConfirmationStore } from "../src/services";
@@ -65,7 +65,30 @@ describe.skipIf(!process.env.DATABASE_URL)(
   () => {
     let prisma: PrismaClient;
     const userId = `${TAG}-user`;
+    let roomId = "";
     let roomVersionId = "";
+    let semverSeq = 0;
+
+    /**
+     * B-16 (`uxPurchaseOwnedRoom`): como máximo una `purchase` `room`
+     * `succeeded` por `(userId, roomVersionId)`. Este fichero prueba el
+     * barrido de confirmación, no esa regla de negocio, así que cada
+     * `purchase` `room` `succeeded` que necesite un test usa SU PROPIA
+     * versión — nunca comparte `roomVersionId` con otra ya `succeeded`.
+     */
+    async function newRoomVersion(): Promise<string> {
+      semverSeq += 1;
+      const version = await prisma.roomVersion.create({
+        data: {
+          roomId,
+          semver: `1.0.${semverSeq}`,
+          package: {},
+          assetsHash: "test",
+          publishedBy: userId,
+        },
+      });
+      return version.id;
+    }
 
     beforeAll(async () => {
       prisma = new PrismaClient();
@@ -76,28 +99,22 @@ describe.skipIf(!process.env.DATABASE_URL)(
       const room = await prisma.room.create({
         data: { authorId: userId, title: `Sala de prueba ${TAG}` },
       });
-      const roomVersion = await prisma.roomVersion.create({
-        data: {
-          roomId: room.id,
-          semver: "1.0.0",
-          package: {},
-          assetsHash: "test",
-          publishedBy: userId,
-        },
-      });
-      roomVersionId = roomVersion.id;
+      roomId = room.id;
+    });
+
+    beforeEach(async () => {
+      roomVersionId = await newRoomVersion();
+    });
+
+    afterEach(async () => {
+      await prisma.purchase.deleteMany({ where: { userId } });
     });
 
     afterAll(async () => {
       if (!prisma) return;
-      const roomVersion = roomVersionId
-        ? await prisma.roomVersion.findUnique({ where: { id: roomVersionId } })
-        : null;
       await prisma.purchase.deleteMany({ where: { userId } });
-      if (roomVersion) {
-        await prisma.roomVersion.deleteMany({ where: { id: roomVersion.id } });
-        await prisma.room.deleteMany({ where: { id: roomVersion.roomId } });
-      }
+      await prisma.roomVersion.deleteMany({ where: { roomId } });
+      await prisma.room.deleteMany({ where: { id: roomId } });
       await prisma.user.deleteMany({ where: { id: userId } });
       await prisma.$disconnect();
     });
@@ -204,12 +221,12 @@ describe.skipIf(!process.env.DATABASE_URL)(
     it("respeta el límite por bucket (no vuelca sin tope una tabla grande)", async () => {
       const store = createPrismaPurchaseConfirmationStore(prisma);
       const purchases = await Promise.all(
-        Array.from({ length: 3 }, (_, i) =>
+        Array.from({ length: 3 }, async (_, i) =>
           prisma.purchase.create({
             data: {
               userId,
               purchaseType: "room",
-              roomVersionId,
+              roomVersionId: await newRoomVersion(),
               amountCents: 100,
               status: "succeeded",
               stripePaymentIntentId: `pi_limit_${TAG}_${i}`,

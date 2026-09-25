@@ -16,17 +16,23 @@ import {
   createPrismaModerationStore,
   createPrismaAccessKeyStore,
   createPrismaAccessKeyEmailPurgeStore,
+  createPrismaCreatorPayoutStore,
   createPrismaInvitationStore,
   createPrismaPurchaseConfirmationStore,
   createPrismaSessionIpUaPurgeStore,
   createPrismaTermsAcceptanceIpUaPurgeStore,
+  createStripeClient,
+  createStripeConnectGateway,
+  createStripePaymentGateway,
   readEmailPurgeSecret,
   readIpUaPurgeSecret,
+  readStripeConfig,
 } from "@escaperoom/shared/services";
 import { createAccessKeyCardsWorker } from "./access-key-cards";
 import { createAnalyticsPartitionsWorker } from "./analytics-partitions";
 import { createAccessKeyExpiryWorker } from "./access-key-expiry";
 import { createAccessKeyEmailPurgeWorker } from "./access-key-email-purge";
+import { createCreatorPayoutsWorker } from "./creator-payouts";
 import { createIpUaPurgeWorker } from "./ip-ua-purge";
 import { createInvitationEmailWorker } from "./invitation-email";
 import { createPurchaseConfirmationEmailWorker } from "./purchase-confirmation-email";
@@ -194,6 +200,26 @@ async function main(): Promise<void> {
         })
       : null;
 
+  // Reparto a creadores (B-9): reintenta la `Transfer` de cualquier compra
+  // `room`/`room_license` `succeeded` sin `stripeTransferId`, fuera del
+  // camino crítico del webhook de Stripe. Sin `STRIPE_SECRET_KEY` (dev/CI sin
+  // clave configurada) no hay nada que transferir: inactivo.
+  const stripeConfig = readStripeConfig();
+  const stripeClient = stripeConfig.configured ? createStripeClient(stripeConfig.secretKey) : null;
+  const payoutsConnection = stripeClient ? createQueueRedis() : null;
+  const payouts =
+    stripeClient && payoutsConnection
+      ? await createCreatorPayoutsWorker({
+          store: createPrismaCreatorPayoutStore(prisma),
+          connect: createStripeConnectGateway(stripeClient),
+          payments: createStripePaymentGateway(stripeClient),
+          connection: payoutsConnection,
+        })
+      : null;
+  if (!payouts) {
+    logger.warn("creator payouts: STRIPE_SECRET_KEY no configurado; job inactivo");
+  }
+
   // PDF de tarjetas: el mismo servicio que web, sin cola ni firma (solo renderiza y sube).
   const cardsConnection = createQueueRedis();
   const cards = createAccessKeyCardsWorker({
@@ -238,6 +264,7 @@ async function main(): Promise<void> {
       partitions.worker,
       sampling.worker,
       purchaseConfirmationOutbox?.worker,
+      payouts?.worker,
     ].filter((w): w is Worker => Boolean(w));
 
   let closing = false;
@@ -264,6 +291,8 @@ async function main(): Promise<void> {
     await sampling.queue.close();
     await purchaseConfirmationOutbox?.worker.close();
     await purchaseConfirmationOutbox?.queue.close();
+    await payouts?.worker.close();
+    await payouts?.queue.close();
     await new Promise<void>((resolve, reject) =>
       healthServer ? healthServer.close((err) => (err ? reject(err) : resolve())) : resolve(),
     ).catch((err: unknown) => logger.warn({ err }, "analytics worker: fallo cerrando /healthz"));
@@ -277,6 +306,7 @@ async function main(): Promise<void> {
     await partitionsConnection.quit().catch(() => undefined);
     await samplingConnection.quit().catch(() => undefined);
     await purchaseConfirmationOutboxConnection?.quit().catch(() => undefined);
+    await payoutsConnection?.quit().catch(() => undefined);
     // El propio barrido reencola con la conexión "productora" compartida de
     // kit (misma que usaría un `createPurchaseConfirmationEmailQueue()` en
     // web), no con `purchaseConfirmationOutboxConnection` (esa es solo del

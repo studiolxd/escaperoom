@@ -86,9 +86,6 @@ export type NewLicensePurchase = Omit<
   "id" | "createdAt" | "resultingRoomId" | "paymentRef" | "transferRef" | "status"
 >;
 
-/** Cuenta conectada del creador de origen de una versión, para el destino de la `Transfer`. */
-export type LicenseCreatorAccount = { authorId: string; stripeAccountId: string | null };
-
 /** Sala nueva del fork (el id lo fija el servicio para sembrar `meta.id`). */
 export type NewForkRoom = {
   id: string;
@@ -124,12 +121,12 @@ export interface RoomLicenseStore {
   findForkRoom(roomId: string): Promise<ForkRoomRow | null>;
   /** Licencia ya obtenida (`succeeded`) por el usuario para esa versión. */
   findOwnedLicense(userId: string, roomVersionId: string): Promise<LicensePurchaseRow | null>;
-  /** Cuenta conectada del autor de la sala de origen de esa versión. */
-  findCreatorAccountForVersion(roomVersionId: string): Promise<LicenseCreatorAccount | null>;
-  /** Adjunta la `Transfer` ya creada; `null` si la compra ya no existe. */
-  attachTransfer(purchaseId: string, transferRef: string): Promise<LicensePurchaseRow | null>;
   /** Escritura condicional `pending → failed`; `null` si ya no estaba `pending`. */
   markFailed(purchaseId: string): Promise<LicensePurchaseRow | null>;
+  /** La compra `succeeded` con esa referencia de pago (para `charge.refunded`, B-5). */
+  findPurchaseByPaymentRef(paymentRef: string): Promise<LicensePurchaseRow | null>;
+  /** Escritura condicional `succeeded → refunded`; `null` si no había compra `succeeded` con esa referencia. */
+  markRefundedByPaymentRef(paymentRef: string): Promise<LicensePurchaseRow | null>;
   /**
    * Compra `pending` con el id ya fijado y la referencia del checkout abierto
    * (`chkPurchasePaidNeedsStripe` exige referencia de pago si `amountCents > 0`).
@@ -374,6 +371,8 @@ export function createRoomLicenseService(deps: {
       actor: Actor,
       roomId: string,
       input: unknown = {},
+      /** Solo hace falta con precio > 0 (B-21): a precio 0 el fork es inmediato, sin checkout. */
+      urls?: { successUrl: string; cancelUrl: string },
     ): Promise<LicenseCheckoutResult> {
       requireUser(actor);
       const data = parseOrThrow(LicenseCheckoutInput, input ?? {});
@@ -411,6 +410,7 @@ export function createRoomLicenseService(deps: {
           "El pago de licencias todavía no está disponible",
         );
       }
+      if (!urls) throw new Error("startLicenseCheckout: faltan las urls de retorno del checkout");
       // Primero el checkout (con el id de la compra ya fijado en su metadata) y
       // luego la compra con su referencia: el CHECK de `purchase` no admite una
       // compra con importe y sin referencia de pago. Si la inserción fallara,
@@ -424,6 +424,8 @@ export function createRoomLicenseService(deps: {
         title: room.title,
         amountCents,
         currency: room.currency,
+        successUrl: urls.successUrl,
+        cancelUrl: urls.cancelUrl,
       });
       const purchase = await store.insertPendingPurchase({
         id: purchaseId,
@@ -438,12 +440,18 @@ export function createRoomLicenseService(deps: {
     },
 
     /**
-     * Pago de licencia confirmado: crea el fork, liquida la compra y
-     * transfiere el reparto (70 %) al creador de la sala de origen si ya
-     * completó el onboarding de Connect (specs/02 §5, specs/13 §4.2). Interna,
+     * Pago de licencia confirmado: crea el fork y liquida la compra. Interna,
      * sin actor: la invocará el webhook de Stripe tras verificar la firma.
-     * Idempotente: una segunda confirmación devuelve el mismo fork y no repite
-     * la transferencia.
+     * Idempotente: una segunda confirmación devuelve el mismo fork.
+     *
+     * La `Transfer` del reparto (70 %) al creador de la sala de origen YA NO
+     * se intenta aquí (B-9, auditoría 2026-09-24): si la cuenta Connect del
+     * creador no había completado el onboarding, un `createTransfer` que
+     * lanzaba dejaba este método reventando dentro del webhook de Stripe, que
+     * lo reintenta durante días — sin que `confirmLicensePayment` (ya
+     * `succeeded`) volviera a intentarse. `@escaperoom/worker` la resuelve por
+     * su cuenta con reintentos (`creator-payouts.ts`, mismo patrón que el
+     * outbox de confirmación de compra), fuera del camino crítico del webhook.
      */
     async confirmLicensePayment(
       purchaseId: string,
@@ -489,31 +497,47 @@ export function createRoomLicenseService(deps: {
       if (!result) {
         throw new RoomLicenseError("PURCHASE_NOT_PENDING", "La compra no está pendiente de pago");
       }
-
-      // Reparto ya transferido (replay del webhook): nada más que hacer.
-      if (result.purchase.transferRef || !deps.payments || (result.purchase.creatorShareCents ?? 0) <= 0) {
-        return result;
-      }
-      const creator = await store.findCreatorAccountForVersion(result.purchase.roomVersionId);
-      // Sin cuenta conectada (el creador de origen no ha hecho el onboarding
-      // todavía): la compra queda `succeeded` sin transferir; el reparto
-      // pendiente se resuelve en una iteración posterior (reintento manual/job).
-      if (!creator?.stripeAccountId) return result;
-
-      const transfer = await deps.payments.createTransfer({
-        purchaseId: result.purchase.id,
-        amountCents: result.purchase.creatorShareCents ?? 0,
-        currency: result.purchase.currency,
-        destinationAccountId: creator.stripeAccountId,
-        paymentIntentId: payment.paymentRef,
-      });
-      const withTransfer = await store.attachTransfer(result.purchase.id, transfer.transferId);
-      return withTransfer ? { room: result.room, purchase: withTransfer } : result;
+      return result;
     },
 
     /** `payment_intent.payment_failed` (`purchaseType: 'room_license'`): `pending → failed`. Interna, invocada por el webhook. */
     async markCheckoutFailed(purchaseId: string): Promise<LicensePurchaseRow | null> {
       return store.markFailed(purchaseId);
+    },
+
+    /**
+     * `charge.refunded`: `succeeded → refunded` SOLO si el reembolso es total
+     * (B-5); uno parcial se registra (log) pero no revoca el fork. Si ya se
+     * había transferido el reparto al creador de origen, se revierte
+     * proporcionalmente al importe reembolsado. Interna, invocada por el webhook.
+     */
+    async markRefunded(input: {
+      paymentIntentId: string;
+      amountRefundedCents: number;
+      chargeAmountCents: number;
+    }): Promise<LicensePurchaseRow | null> {
+      const purchase = await store.findPurchaseByPaymentRef(input.paymentIntentId);
+      if (!purchase || purchase.status !== "succeeded") return null;
+
+      const isFull = input.amountRefundedCents >= input.chargeAmountCents && input.chargeAmountCents > 0;
+      if (
+        deps.payments &&
+        purchase.transferRef &&
+        (purchase.creatorShareCents ?? 0) > 0 &&
+        input.chargeAmountCents > 0
+      ) {
+        const proportionalCents = Math.round(
+          (purchase.creatorShareCents ?? 0) * (input.amountRefundedCents / input.chargeAmountCents),
+        );
+        if (proportionalCents > 0) {
+          await deps.payments.reverseTransfer({
+            transferId: purchase.transferRef,
+            amountCents: proportionalCents,
+          });
+        }
+      }
+      if (!isFull) return purchase;
+      return store.markRefundedByPaymentRef(input.paymentIntentId);
     },
 
     /**
@@ -568,8 +592,6 @@ export function createInMemoryRoomLicenseStore(opts: {
   users?: Array<{ id: string; email: string }>;
   rooms?: LicenseRoomRef[];
   versions?: LicenseVersionRef[];
-  /** `user.stripeAccountId` de cada autor, por `authorId` (por defecto, sin cuenta). */
-  connectedAccounts?: Record<string, string>;
   drafts: {
     addRoom(room: { id: string; authorId: string }): void;
     insertUpdate(roomId: string, data: Uint8Array, authorId: string | null): Promise<unknown>;
@@ -584,7 +606,6 @@ export function createInMemoryRoomLicenseStore(opts: {
     (opts.rooms ?? []).map((r) => [r.id, { ...r }]),
   );
   const versions: LicenseVersionRef[] = (opts.versions ?? []).map((v) => structuredClone(v));
-  const connectedAccounts = new Map(Object.entries(opts.connectedAccounts ?? {}));
   const purchases: LicensePurchaseRow[] = [];
   let clock = Date.UTC(2026, 0, 1);
   const copy = <T>(v: T): T => structuredClone(v);
@@ -643,23 +664,20 @@ export function createInMemoryRoomLicenseStore(opts: {
       );
       return found ? copy(found) : null;
     },
-    async findCreatorAccountForVersion(roomVersionId) {
-      const version = versions.find((v) => v.id === roomVersionId);
-      if (!version) return null;
-      const room = rooms.get(version.roomId);
-      if (!room) return null;
-      return { authorId: room.authorId, stripeAccountId: connectedAccounts.get(room.authorId) ?? null };
-    },
-    async attachTransfer(purchaseId, transferRef) {
-      const row = purchases.find((p) => p.id === purchaseId);
-      if (!row) return null;
-      row.transferRef = transferRef;
-      return copy(row);
-    },
     async markFailed(purchaseId) {
       const row = purchases.find((p) => p.id === purchaseId);
       if (!row || row.status !== "pending") return null;
       row.status = "failed";
+      return copy(row);
+    },
+    async findPurchaseByPaymentRef(paymentRef) {
+      const found = purchases.find((p) => p.paymentRef === paymentRef);
+      return found ? copy(found) : null;
+    },
+    async markRefundedByPaymentRef(paymentRef) {
+      const row = purchases.find((p) => p.paymentRef === paymentRef);
+      if (!row || row.status !== "succeeded") return null;
+      row.status = "refunded";
       return copy(row);
     },
     async insertPendingPurchase(purchase) {

@@ -1,3 +1,4 @@
+import { publicOrigin } from "@/server/mcp-oauth";
 import { resolveActorFromRequest } from "@/server/context";
 import { createRoomLicenseHandlers, type RoomRouteContext } from "@/server/rest/room-license";
 import { getRoomLicenseService } from "@/server/services";
@@ -12,8 +13,15 @@ export const dynamic = "force-dynamic";
  * el fork es inmediato.
  */
 export function POST(request: Request, ctx: RoomRouteContext) {
+  const origin = publicOrigin(request.url);
   return createRoomLicenseHandlers({
     licenses: getRoomLicenseService(),
     resolveActor: resolveActorFromRequest,
+    // B-21: URL absoluta construida desde el origen real de la petición (nunca
+    // `NEXT_PUBLIC_APP_URL`, que Stripe rechaza si queda vacía/relativa).
+    buildUrls: (roomId) => ({
+      successUrl: `${origin}/es/checkout/confirmation?type=room_license&status=success&roomId=${roomId}`,
+      cancelUrl: `${origin}/es/checkout/confirmation?type=room_license&status=cancelled&roomId=${roomId}`,
+    }),
   }).postLicenseCheckout(request, ctx);
 }

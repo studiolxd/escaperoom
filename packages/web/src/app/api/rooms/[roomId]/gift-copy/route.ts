@@ -14,5 +14,7 @@ export function POST(request: Request, ctx: RoomRouteContext) {
   return createRoomLicenseHandlers({
     licenses: getRoomLicenseService(),
     resolveActor: resolveActorFromRequest,
+    // Sin checkout en este endpoint: nunca se invoca, pero el tipo lo exige.
+    buildUrls: () => ({ successUrl: "", cancelUrl: "" }),
   }).postGiftCopy(request, ctx);
 }

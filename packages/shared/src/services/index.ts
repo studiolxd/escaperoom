@@ -59,6 +59,8 @@ export * from "./purchase-confirmation";
 export * from "./purchase-confirmation-prisma-store";
 export * from "./creator-connect";
 export * from "./creator-connect-prisma-store";
+export * from "./creator-payouts";
+export * from "./creator-payouts-prisma-store";
 export * from "./stripe-gateway";
 export * from "./stripe-webhook-dedupe";
 export * from "./contact";

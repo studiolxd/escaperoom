@@ -10,8 +10,8 @@ import {
 export type PurchaseHandlerDeps = {
   purchases: PurchaseService;
   resolveActor: (request: Request) => Promise<Actor>;
-  /** URLs de retorno del Checkout, construidas por el adaptador (origen de la petición). */
-  buildUrls: (roomVersionId: string) => { successUrl: string; cancelUrl: string };
+  /** URLs de retorno del Checkout (B-21): el servicio las construye una vez conoce `purchaseId`/`roomId`. */
+  buildUrls: (ctx: { purchaseId: string; roomId: string }) => { successUrl: string; cancelUrl: string };
 };
 
 export type PurchaseRouteContext = { params: Promise<{ id: string }> };
@@ -23,6 +23,7 @@ const STATUS_BY_CODE: Record<PurchaseErrorCode, number> = {
   VALIDATION_ERROR: 422,
   ROOM_VERSION_UNAVAILABLE: 422,
   SALE_INDIVIDUAL_DISABLED: 422,
+  PURCHASE_OWN_ROOM: 422,
   ALREADY_OWNED: 409,
   PURCHASE_NOT_PENDING: 409,
   PAYMENT_GATEWAY_UNAVAILABLE: 501,
@@ -84,12 +85,11 @@ export function createPurchaseHandlers(deps: PurchaseHandlerDeps) {
         const actor = await deps.resolveActor(request);
         // La autorización va antes que el cuerpo: un anónimo recibe 401, no 400.
         deps.purchases.authorize(actor);
-        const body = (await readJson(request)) as { roomVersionId?: unknown };
-        const roomVersionId = typeof body?.roomVersionId === "string" ? body.roomVersionId : "";
+        const body = await readJson(request);
         const { purchase, checkoutUrl } = await deps.purchases.startRoomCheckout(
           actor,
           body,
-          deps.buildUrls(roomVersionId),
+          deps.buildUrls,
         );
         return Response.json(
           { purchase: purchaseJson(purchase), checkoutUrl },

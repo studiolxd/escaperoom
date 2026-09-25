@@ -21,7 +21,14 @@ export type CreatorConnectUserRef = {
 /** Puerto de persistencia (ADR-022): solo lee/escribe `user.stripeAccountId`. */
 export interface CreatorConnectStore {
   findUser(userId: string): Promise<CreatorConnectUserRef | null>;
-  saveAccountId(userId: string, accountId: string): Promise<void>;
+  /**
+   * Escritura condicional `stripeAccountId IS NULL → accountId` (B-22): dos
+   * `POST /api/me/stripe-connect` concurrentes del mismo usuario no deben
+   * crear dos cuentas Stripe y quedarse solo con la última en pisar la
+   * columna. `false` si ya había una cuenta (otra petición ganó la carrera):
+   * quien pierde descarta la cuenta que acaba de crear.
+   */
+  saveAccountId(userId: string, accountId: string): Promise<boolean>;
 }
 
 /**
@@ -39,6 +46,8 @@ export interface ConnectGateway {
   getAccountStatus(accountId: string): Promise<ConnectAccountStatus>;
   /** Enlace de un solo uso al dashboard Express de la cuenta (solo con onboarding completo). */
   createDashboardLink(accountId: string): Promise<{ url: string }>;
+  /** Descarta una cuenta huérfana (B-22): la creada por quien pierde la carrera de `saveAccountId`. */
+  deleteAccount(accountId: string): Promise<void>;
 }
 
 export type CreatorConnectErrorCode =
@@ -99,8 +108,19 @@ export function createCreatorConnectService(deps: {
       let accountId = user.stripeAccountId;
       if (!accountId) {
         const created = await deps.connect.createExpressAccount({ email: user.email });
-        accountId = created.accountId;
-        await deps.store.saveAccountId(user.id, accountId);
+        const saved = await deps.store.saveAccountId(user.id, created.accountId);
+        if (saved) {
+          accountId = created.accountId;
+        } else {
+          // Perdió la carrera: otra petición concurrente ya guardó su cuenta.
+          // Se descarta la que se acaba de crear y se usa la ganadora.
+          await deps.connect.deleteAccount(created.accountId);
+          const winner = await deps.store.findUser(user.id);
+          if (!winner?.stripeAccountId) {
+            throw new CreatorConnectError("NOT_FOUND", "Usuario no encontrado");
+          }
+          accountId = winner.stripeAccountId;
+        }
       }
       const link = await deps.connect.createOnboardingLink({ accountId, ...urls });
       return { url: link.url };
@@ -164,7 +184,9 @@ export function createInMemoryCreatorConnectStore(
     },
     async saveAccountId(userId, accountId) {
       const row = rows.get(userId);
-      if (row) row.stripeAccountId = accountId;
+      if (!row || row.stripeAccountId !== null) return false;
+      row.stripeAccountId = accountId;
+      return true;
     },
   };
 }
@@ -188,6 +210,9 @@ export function createFakeConnectGateway(): ConnectGateway & { accounts: Map<str
     },
     async createDashboardLink(accountId) {
       return { url: `https://connect.example.test/dashboard/${accountId}` };
+    },
+    async deleteAccount(accountId) {
+      accounts.delete(accountId);
     },
   };
 }

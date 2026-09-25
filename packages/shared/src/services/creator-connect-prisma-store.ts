@@ -12,7 +12,11 @@ export function createPrismaCreatorConnectStore(prisma: PrismaClient): CreatorCo
       return user;
     },
     async saveAccountId(userId, accountId) {
-      await prisma.user.update({ where: { id: userId }, data: { stripeAccountId: accountId } });
+      const { count } = await prisma.user.updateMany({
+        where: { id: userId, stripeAccountId: null },
+        data: { stripeAccountId: accountId },
+      });
+      return count > 0;
     },
   };
 }
