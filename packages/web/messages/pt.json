@@ -750,13 +750,13 @@
     "reviewsHeading": "Avaliações",
     "noReviews": "Esta sala ainda não tem avaliações.",
     "moreReviews": "Ver mais avaliações",
-    "stars": "{rating} de 5 estrelas"
+    "stars": "{rating, number} de 5 estrelas"
   },
   "Reviews": {
     "formHeading": "A tua avaliação",
     "editHeading": "Edita a tua avaliação",
     "ratingLabel": "Classificação",
-    "star": "{n, plural, one {# estrela} other {# estrelas}}",
+    "ratingOption": "{n, number} de 5 estrelas",
     "textLabel": "Comentário (opcional)",
     "submit": "Publicar avaliação",
     "update": "Guardar alterações",

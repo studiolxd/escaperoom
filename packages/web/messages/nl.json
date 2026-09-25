@@ -750,13 +750,13 @@
     "reviewsHeading": "Reviews",
     "noReviews": "Deze kamer heeft nog geen reviews.",
     "moreReviews": "Meer reviews bekijken",
-    "stars": "{rating} van 5 sterren"
+    "stars": "{rating, number} van 5 sterren"
   },
   "Reviews": {
     "formHeading": "Jouw review",
     "editHeading": "Je review bewerken",
     "ratingLabel": "Beoordeling",
-    "star": "{n, plural, one {# ster} other {# sterren}}",
+    "ratingOption": "{n, number} van 5 sterren",
     "textLabel": "Opmerking (optioneel)",
     "submit": "Review plaatsen",
     "update": "Wijzigingen opslaan",

@@ -16,6 +16,7 @@ import { RatingSummary } from "./rating-summary";
 import { ReviewForm } from "./review-form";
 import { RoomCoverUpload } from "./room-cover-upload";
 import { RoomPrice } from "./room-card";
+import { StarRating } from "./star-rating";
 
 function ReviewItem({ review }: { review: Review }) {
   const t = useTranslations("RoomDetail");
@@ -23,9 +24,8 @@ function ReviewItem({ review }: { review: Review }) {
   return (
     <li className="flex flex-col gap-1 border-b border-border py-3 last:border-b-0">
       <div className="flex items-center gap-2 text-sm">
-        <span aria-label={t("stars", { rating: review.rating })} className="text-amber-500">
-          {"★".repeat(review.rating)}
-          <span className="text-muted-foreground/40">{"★".repeat(5 - review.rating)}</span>
+        <span aria-label={t("stars", { rating: review.rating })}>
+          <StarRating value={review.rating} />
         </span>
         <span className="font-medium">{review.authorDisplayName}</span>
         <time dateTime={review.updatedAt} className="text-xs text-muted-foreground">
