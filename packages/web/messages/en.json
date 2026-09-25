@@ -1061,6 +1061,8 @@
       "INVALID_REQUEST": "The message is not valid (empty or too long?).",
       "CONVERSATION_NOT_FOUND": "The conversation has expired. Start a new one.",
       "BUSY": "Wait for the assistant to finish responding.",
+      "TOO_MANY_CONVERSATIONS": "You have too many open conversations. Close one before starting another.",
+      "DAILY_BUDGET_EXCEEDED": "You've used up today's chat budget. Try again tomorrow.",
       "MCP_UNAVAILABLE": "The creator tools are not responding. Try again in a moment.",
       "MODEL_AUTH": "The language model rejected the configured credential. Let the team know.",
       "MODEL_RATE_LIMITED": "The language model is overloaded. Wait a moment and try again.",

@@ -114,6 +114,16 @@ export const RATE_LIMIT_POLICIES = {
     user: { limit: 5, windowSeconds: 3600 },
   },
   /**
+   * `POST /api/creator-chat` (B-6): exige sesión, así que el cubo por
+   * usuario es el que importa; el de IP acota a quien rota de cuenta. El
+   * presupuesto de coste real (turnos/tokens por conversación y diarios) lo
+   * llevan `CreatorChatLimits` y `CreatorChatDailyBudget`, no esta cuota.
+   */
+  "creator-chat": {
+    ip: { limit: 60, windowSeconds: 600 },
+    user: { limit: 30, windowSeconds: 600 },
+  },
+  /**
    * `POST /api/mcp/oauth/register` — registro dinámico de clientes OAuth
    * (RFC 7591, A-4/D-4). Público, sin sesión: solo IP. Antes vivía en un
    * limitador en memoria por proceso con la primera entrada (falsificable) de
