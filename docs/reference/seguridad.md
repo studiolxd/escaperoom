@@ -47,6 +47,7 @@ canjea sus claves detrás del mismo NAT: los canjes correctos no la tocan.
 | `account-rights` | `GET /api/me/data-export`, `DELETE /api/me` (ticket 6.2) | 20 / 1 h | 5 / 1 h | — |
 | `contact-write` | `POST /api/contact` (público, sin sesión) | 5 / 10 min | — | — |
 | `terms-acceptance-write` | `POST /api/legal/terms-acceptance` (reaceptación de términos) | 20 / 1 h | 10 / 1 h | — |
+| `free-room-play` | `GET /api/rooms/:roomId/free-access` (público, sin sesión) | 20 / 1 h | — | — |
 
 Razonamiento de los números:
 
@@ -59,6 +60,11 @@ Razonamiento de los números:
   estricto.
 - **Derechos RGPD.** Ambas exigen sesión y no hay un motivo legítimo para pedirlas muchas veces
   seguidas; 5/hora por usuario basta y deja margen para reintentos tras un fallo de red.
+- **Sala gratis.** Solo IP, a propósito: funciona sin cuenta (punto i de "CTA Jugar",
+  `docs/DEUDA.md`), así que no hay cubo por usuario que oponerle. Cada emisión de `gameToken`
+  corresponde 1:1 a una `GameRoom` nueva, así que esta cuota es también el límite de rooms por IP
+  que pide el punto i contra abuso; 20/hora deja jugar varias veces de verdad sin abrir la puerta a
+  un bucle automatizado de creación de rooms.
 
 **Fuera de este limitador**, a propósito:
 

@@ -727,6 +727,7 @@
     "playersRange": "{min}–{max} Spieler",
     "minutes": "{minutes} Min.",
     "free": "Kostenlos",
+    "eventsOnly": "Nur für Events",
     "byAuthor": "von {author}",
     "rating": "{avg} von 5 ({count, plural, one {# Bewertung} other {# Bewertungen}})",
     "ratingCount": "{count, plural, one {# Bewertung} other {# Bewertungen}}",
@@ -750,7 +751,16 @@
     "reviewsHeading": "Bewertungen",
     "noReviews": "Dieser Raum hat noch keine Bewertungen.",
     "moreReviews": "Weitere Bewertungen",
-    "stars": "{rating, number} von 5 Sternen"
+    "stars": "{rating, number} von 5 Sternen",
+    "buyCta": "Kaufen",
+    "buyError": "Der Checkout konnte nicht gestartet werden. Bitte erneut versuchen.",
+    "loginToBuyCta": "Zum Kaufen anmelden",
+    "resumeCta": "Spiel fortsetzen",
+    "alreadyPlayed": "Du hast diesen Raum schon gespielt.",
+    "playFreeCta": "Kostenlos spielen",
+    "freeError": "Das kostenlose Spiel konnte nicht gestartet werden. Bitte erneut versuchen.",
+    "organizeEventCta": "Ein Event mit diesem Raum organisieren",
+    "eventsOnlyBadge": "Nur für Events"
   },
   "Reviews": {
     "formHeading": "Deine Bewertung",
@@ -856,6 +866,9 @@
     },
     "event": {
       "missingToken": "Der Zugangscode der Sitzung fehlt. Löse deinen Schlüssel erneut ein, um beizutreten."
+    },
+    "room": {
+      "missingToken": "Der Spielzugangscode fehlt. Kehre zur Raumseite zurück, um zu spielen."
     }
   },
   "Chat": {
@@ -893,6 +906,7 @@
     "items": "Gesammelte Objekte",
     "exit": "Verlassen",
     "review": "Bewertung schreiben",
+    "signIn": "Anmelden, um das Ergebnis zu speichern",
     "result": {
       "victory": "Sieg!",
       "timeout": "Die Zeit ist abgelaufen",
@@ -1065,6 +1079,18 @@
       "MODEL_ERROR": "Das Sprachmodell ist fehlgeschlagen. Bitte versuche es erneut.",
       "UNKNOWN": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
     }
+  },
+  "NewEvent": {
+    "heading": "Ein Event mit diesem Raum organisieren",
+    "titleLabel": "Eventtitel",
+    "playersLabel": "Geplante Spieler",
+    "pricingTitle": "Preis pro Spieler",
+    "pricingLoading": "Preisstufen werden geladen\u2026",
+    "pricingUnavailable": "Die Preisstufen konnten nicht geladen werden.",
+    "pricingRangeOpen": "{min}+ Spieler:",
+    "pricingRangeCapped": "{min}\u2013{max} Spieler:",
+    "submitError": "Das Event konnte nicht erstellt werden. Bitte erneut versuchen.",
+    "submit": "Event erstellen"
   },
   "EventPanel": {
     "metaTitle": "Event-Übersicht",

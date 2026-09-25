@@ -24,6 +24,12 @@ export interface ResultsScreenProps {
   onExit?: () => void;
   /** Si se indica, muestra el botón de dejar reseña. */
   onReview?: () => void;
+  /**
+   * Sala gratis jugada sin cuenta (punto i de "CTA Jugar", `docs/DEUDA.md`):
+   * si se indica, ofrece iniciar sesión (con retorno a la ficha) para
+   * guardar el resultado, reseñar la sala o entrar en el ranking.
+   */
+  signInHref?: string;
   className?: string;
 }
 
@@ -44,6 +50,7 @@ export function ResultsScreen({
   exitHref = "/",
   onExit,
   onReview,
+  signInHref,
   className,
 }: ResultsScreenProps) {
   const t = useTranslations("Results");
@@ -102,6 +109,11 @@ export function ResultsScreen({
         </dl>
 
         <div className="flex w-full flex-col gap-2">
+          {signInHref ? (
+            <Button asChild variant="overlay">
+              <Link href={signInHref}>{t("signIn")}</Link>
+            </Button>
+          ) : null}
           {onReview ? (
             <Button variant="overlay" onClick={onReview}>
               {t("review")}

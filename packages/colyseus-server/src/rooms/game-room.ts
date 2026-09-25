@@ -473,6 +473,20 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       }
       return;
     }
+    if (verified.claims.kind === "free") {
+      // Sala realmente gratis (punto i, `docs/DEUDA.md`): carga el paquete
+      // publicado, pero SIN `claimPlaySession` — no hay compra que reclamar
+      // ni consumir, el abuso ya se frenó al FIRMAR el token (cuota por IP).
+      const runtime = getGameAccessRuntime();
+      const roomPackage = runtime
+        ? await runtime.loadRoomVersionPackage(verified.claims.roomVersionId).catch(() => null)
+        : null;
+      if (!runtime || !roomPackage) {
+        throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.unavailable);
+      }
+      this.purchasedRoomPackage = roomPackage;
+      return;
+    }
     const runtime = getGameAccessRuntime();
     const roomPackage = runtime
       ? await runtime.loadRoomVersionPackage(verified.claims.roomVersionId).catch(() => null)
@@ -510,6 +524,15 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
         throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.devTestForbidden);
       }
       if (this.gameAccess?.kind !== "dev_test") {
+        throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.invalid);
+      }
+      return true;
+    }
+    if (verified.claims.kind === "free") {
+      if (
+        this.gameAccess?.kind !== "free" ||
+        this.gameAccess.roomVersionId !== verified.claims.roomVersionId
+      ) {
         throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.invalid);
       }
       return true;

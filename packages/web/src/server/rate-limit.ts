@@ -160,6 +160,16 @@ export const RATE_LIMIT_POLICIES = {
   "mcp-register": {
     ip: { limit: 20, windowSeconds: 3600 },
   },
+  /**
+   * `POST /api/rooms/:roomId/free-access` (punto i de "CTA Jugar",
+   * `docs/DEUDA.md`): emite un `gameToken` `kind: "free"` sin sesión ni
+   * compra para salas realmente gratis. Solo IP a propósito (funciona sin
+   * cuenta); cada emisión corresponde 1:1 a una `GameRoom` nueva, así que esta
+   * misma cuota es también el "límite de rooms por IP" contra abuso.
+   */
+  "free-room-play": {
+    ip: { limit: 20, windowSeconds: 3600 },
+  },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitPolicyName = keyof typeof RATE_LIMIT_POLICIES;

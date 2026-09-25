@@ -727,6 +727,7 @@
     "playersRange": "{min}–{max} spelers",
     "minutes": "{minutes} min",
     "free": "Gratis",
+    "eventsOnly": "Alleen voor evenementen",
     "byAuthor": "door {author}",
     "rating": "{avg} van 5 ({count, plural, one {# review} other {# reviews}})",
     "ratingCount": "{count, plural, one {# review} other {# reviews}}",
@@ -750,7 +751,16 @@
     "reviewsHeading": "Reviews",
     "noReviews": "Deze kamer heeft nog geen reviews.",
     "moreReviews": "Meer reviews bekijken",
-    "stars": "{rating, number} van 5 sterren"
+    "stars": "{rating, number} van 5 sterren",
+    "buyCta": "Kopen",
+    "buyError": "Kon de checkout niet starten. Probeer het opnieuw.",
+    "loginToBuyCta": "Log in om te kopen",
+    "resumeCta": "Spel hervatten",
+    "alreadyPlayed": "Je hebt deze kamer al gespeeld.",
+    "playFreeCta": "Gratis spelen",
+    "freeError": "Kon het gratis spel niet starten. Probeer het opnieuw.",
+    "organizeEventCta": "Organiseer een evenement met deze kamer",
+    "eventsOnlyBadge": "Alleen voor evenementen"
   },
   "Reviews": {
     "formHeading": "Jouw review",
@@ -856,6 +866,9 @@
     },
     "event": {
       "missingToken": "De toegangscode van de sessie ontbreekt. Wissel je sleutel opnieuw in om mee te doen."
+    },
+    "room": {
+      "missingToken": "De speltoegangscode ontbreekt. Ga terug naar de kamerpagina om te spelen."
     }
   },
   "Chat": {
@@ -893,6 +906,7 @@
     "items": "Verzamelde voorwerpen",
     "exit": "Afsluiten",
     "review": "Recensie schrijven",
+    "signIn": "Log in om je resultaat op te slaan",
     "result": {
       "victory": "Overwinning!",
       "timeout": "De tijd is om",
@@ -1065,6 +1079,18 @@
       "MODEL_ERROR": "Het taalmodel is mislukt. Probeer het opnieuw.",
       "UNKNOWN": "Er is iets misgegaan. Probeer het opnieuw."
     }
+  },
+  "NewEvent": {
+    "heading": "Organiseer een evenement met deze kamer",
+    "titleLabel": "Titel van het evenement",
+    "playersLabel": "Geplande spelers",
+    "pricingTitle": "Prijs per speler",
+    "pricingLoading": "Prijsschijven laden\u2026",
+    "pricingUnavailable": "Kon de prijsschijven niet laden.",
+    "pricingRangeOpen": "{min}+ spelers:",
+    "pricingRangeCapped": "{min}\u2013{max} spelers:",
+    "submitError": "Kon het evenement niet aanmaken. Probeer het opnieuw.",
+    "submit": "Evenement aanmaken"
   },
   "EventPanel": {
     "metaTitle": "Evenementoverzicht",

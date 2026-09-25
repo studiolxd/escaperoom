@@ -155,6 +155,7 @@ Checkout con **Stripe Checkout** hospedado (no se gestionan tarjetas directament
 |---|---|---|---|
 | POST | `/api/purchases/room-checkout` | usuario | `{ roomVersionId }` → valida `saleIndividual` y precio, crea `purchase` (`pending`) + Checkout Session con `metadata.purchaseId`. Devuelve `{ checkoutUrl }` |
 | GET | `/api/purchases/:id` | comprador o admin | Estado de una compra |
+| GET | `/api/rooms/:roomId/free-access` | público, sin sesión | `{ eligible, gameToken?, roomVersionId? }` (punto i de "CTA Jugar", `docs/DEUDA.md`; specs/02 §2.2): sala realmente gratis (`priceCents: 0` + `saleIndividual: true`), sin `purchase` ni Stripe. Rate-limitada por IP (`free-room-play`, `docs/reference/seguridad.md` §1) — cada emisión corresponde a una `GameRoom` nueva |
 
 El reparto 70/30 se calcula al liquidar el pago en el webhook (§7), no en la creación; el
 `stripeTransferId` lo resuelve un barrido periódico de `@escaperoom/worker` (B-9, auditoría

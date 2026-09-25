@@ -216,6 +216,19 @@ describe("withRateLimit", () => {
     }
     expect((await post(req("10.3.0.1"))).status).toBe(429);
   });
+
+  it("free-room-play: solo cuota por IP (punto i, 'CTA Jugar' — funciona sin cuenta)", async () => {
+    expect("user" in RATE_LIMIT_POLICIES["free-room-play"]).toBe(false);
+    const post = withRateLimit("free-room-play", ok, deps({ resolveUserId: async () => "ana" }));
+    const { limit } = RATE_LIMIT_POLICIES["free-room-play"].ip;
+    for (let i = 0; i < limit; i += 1) {
+      expect((await post(req("10.4.0.1"))).status).toBe(200);
+    }
+    const limited = await post(req("10.4.0.1"));
+    expect(limited.status).toBe(429);
+    // Otra IP, misma cuenta: nunca se rechaza por usuario, solo por IP.
+    expect((await post(req("10.4.0.2"))).status).toBe(200);
+  });
 });
 
 describe("tRPC reviews.upsert", () => {

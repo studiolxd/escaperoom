@@ -137,6 +137,8 @@ export interface GameSessionShellProps {
   title?: string;
   subtitle?: string;
   exitHref?: string;
+  /** Sala gratis sin cuenta (punto i, "CTA Jugar"): CTA de login en `ResultsScreen`. */
+  signInHref?: string;
   /** Capas extra sobre el canvas (p. ej. el overlay de voz/webcam). */
   children?: ReactNode;
 }
@@ -163,6 +165,7 @@ export function GameSessionShell({
   title,
   subtitle,
   exitHref,
+  signInHref,
   children,
 }: GameSessionShellProps) {
   const t = useTranslations("Game");
@@ -1114,7 +1117,14 @@ export function GameSessionShell({
 
       {children}
 
-      {summary ? <ResultsScreen summary={summary} exitHref={exitHref} className="z-40" /> : null}
+      {summary ? (
+        <ResultsScreen
+          summary={summary}
+          exitHref={exitHref}
+          signInHref={signInHref}
+          className="z-40"
+        />
+      ) : null}
     </section>
   );
 }

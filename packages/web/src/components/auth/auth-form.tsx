@@ -11,6 +11,11 @@ import { Link } from "@/i18n/navigation";
 
 type State = { kind: "idle" } | { kind: "sending" } | { kind: "sent" } | { kind: "error" };
 
+/** Conserva `callbackURL` al cambiar entre login/sign up (por defecto "/", no hace falta arrastrarlo). */
+function switchHref(path: "/login" | "/signup", callbackURL: string): string {
+  return callbackURL === "/" ? path : `${path}?callbackURL=${encodeURIComponent(callbackURL)}`;
+}
+
 export interface AuthFormProps extends React.ComponentProps<"div"> {
   mode: "login" | "signup";
   /** Ruta a la que vuelve Better Auth tras el login (por defecto, home). */
@@ -111,11 +116,13 @@ export function AuthForm({ mode, callbackURL = "/", className, ...props }: AuthF
               <FieldDescription className="text-center">
                 {mode === "login" ? (
                   <>
-                    {t("switchToSignupPrompt")} <Link href="/signup">{t("switchToSignupLink")}</Link>
+                    {t("switchToSignupPrompt")}{" "}
+                    <Link href={switchHref("/signup", callbackURL)}>{t("switchToSignupLink")}</Link>
                   </>
                 ) : (
                   <>
-                    {t("switchToLoginPrompt")} <Link href="/login">{t("switchToLoginLink")}</Link>
+                    {t("switchToLoginPrompt")}{" "}
+                    <Link href={switchHref("/login", callbackURL)}>{t("switchToLoginLink")}</Link>
                   </>
                 )}
               </FieldDescription>
