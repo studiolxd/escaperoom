@@ -278,3 +278,25 @@ Tareas pendientes que no bloquean pero hay que resolver.
       propias salas (filtro por ids o por un autor/etiqueta propios) o que el
       muestreo acepte un filtro inyectable en tests. Lo han señalado varias PRs
       de la auditoría (#134, #135, #136, #141, #150).
+- [ ] **Definir la generación de assets con Magnific en la plataforma.** Magnific va a
+      usarse (decisión del usuario, 2026-09-25): los textos legales ya lo declaran como
+      proveedor activo. Falta definir la funcionalidad: qué podrá generar o editar un
+      creador desde el editor (imágenes de objetos, fondos, retratos…), con qué flujo
+      (prompt, referencias, aprobación por paso como en `tools/assets-generator`), cómo
+      se cobra (créditos, como el audio de ElevenLabs en specs/15), moderación del
+      resultado (specs/17), titularidad y licencia de lo generado (specs/18 §2),
+      integración con la API de Magnific (credenciales, cuotas, reintentos), almacenamiento
+      en R2 y cómo entra en el `RoomPackage`/pack. Escribir la spec antes de implementar.
+      Referencia del uso interno actual: `tools/assets-generator/CLAUDE.md` ("Normas de
+      trabajo con Magnific").
+- [ ] **Publicar en R2 los packs generados por `tools/assets-generator`.** Hoy la salida
+      de la herramienta (`packs/<pack>/salida/`) se copia a mano a
+      `packages/web/public/packs/<pack>/` y se empaqueta con `pnpm pack:build`; el
+      `manifest.json` y los atlas no se versionan, así que ni CI ni producción los tienen
+      (en un clon limpio se ven placeholders). Definir e implementar el camino a
+      producción (specs/26 §9): build del pack → subida de atlas y manifiesto a
+      Cloudflare R2 con ruta versionada por pack y versión, cabeceras de caché/CDN, que
+      el runtime cargue el pack desde R2 (URL del manifiesto por pack/versión) en vez de
+      `public/`, credenciales y quién lo ejecuta (script manual o paso de CI). Decidir
+      también el almacenamiento definitivo de los binarios de la herramienta (`fuentes/`,
+      `entregas/`, `referencias/`, hoy solo en local y con copia en `pipeline-assets`).
