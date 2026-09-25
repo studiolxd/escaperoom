@@ -8,7 +8,6 @@ import { decorateSubroomTool } from "./decorate-subroom";
 import type { CreatorTool } from "./define";
 import { defineItemTool } from "./define-item";
 import { defineSubroomsTool } from "./define-subrooms";
-import { getFeaturedRoomTool } from "./get-featured-room";
 import { getPuzzleTool } from "./get-puzzle";
 import { getRoomTool } from "./get-room";
 import { getRoomGraphTool } from "./get-room-graph";
@@ -52,8 +51,6 @@ export const CREATOR_TOOLSET: readonly CreatorTool[] = [
   getTemplateCatalogTool,
   getPuzzleTool,
   getRulesForTool,
-  // Ejemplo del ticket 0.10
-  getFeaturedRoomTool,
 ];
 
 /** Nombres del toolset, en orden. */

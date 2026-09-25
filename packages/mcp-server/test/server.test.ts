@@ -5,12 +5,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   CREATOR_TOOL_NAMES,
   CREATOR_TOOLSET,
-  GET_FEATURED_ROOM_TOOL,
   MCP_ENDPOINT,
   actorFromEnv,
   createCreatorMcpServer,
   type CreatorMcpDeps,
 } from "../src";
+
+/** Tool sin identidad (`requiresIdentity: false`) real del toolset (D-28: la tool de ejemplo `get_featured_room` del ticket 0.10 se retiró). */
+const PUBLIC_QUERY_TOOL = "get_template_catalog";
 import { call, errorCode } from "./fixtures/client";
 import {
   ALDRIC_ROOM_ID,
@@ -70,7 +72,7 @@ describe("mcp-server en memoria", () => {
     expect(
       CREATOR_TOOLSET.filter((tool) => tool.ticket === "4.5").map((tool) => tool.name),
     ).toEqual(["preview", "publish"]);
-    expect(CREATOR_TOOL_NAMES).toContain(GET_FEATURED_ROOM_TOOL);
+    expect(CREATOR_TOOL_NAMES).toContain(PUBLIC_QUERY_TOOL);
   });
 
   it("valida la entrada con los esquemas Zod compartidos", async () => {
@@ -95,10 +97,10 @@ describe("mcp-server en memoria", () => {
     expect(errorCode(result)).toBe("FORBIDDEN");
   });
 
-  it("la tool de 0.10 sigue llamando al servicio de catálogo", async () => {
-    const result = await call(session.client, GET_FEATURED_ROOM_TOOL);
+  it("una consulta pública (requiresIdentity: false) no exige actor", async () => {
+    const result = await call(session.client, PUBLIC_QUERY_TOOL);
     expect(result.isError).toBe(false);
-    expect(JSON.parse(result.text)).toMatchObject({ id: "room-rey-aldric", viewer: AUTHOR });
+    expect(JSON.parse(result.text)).toBeInstanceOf(Array);
   });
 });
 
@@ -113,8 +115,8 @@ describe("auth del MCP", () => {
         expect(result.isError).toBe(true);
         expect(errorCode(result)).toBe("UNAUTHORIZED");
       }
-      // La consulta pública del catálogo (0.10) no exige identidad.
-      expect((await call(client, GET_FEATURED_ROOM_TOOL)).isError).toBe(false);
+      // La consulta pública del catálogo de plantillas no exige identidad.
+      expect((await call(client, PUBLIC_QUERY_TOOL)).isError).toBe(false);
     });
   });
 

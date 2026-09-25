@@ -11,9 +11,6 @@ export const MCP_ENDPOINT = "/mcp/creator" as const;
 
 export const MCP_SERVER_INFO = { name: "escaperoom-creator", version: "0.1.0" } as const;
 
-/** Nombre de la tool de ejemplo del ticket 0.10. */
-export const GET_FEATURED_ROOM_TOOL = "get_featured_room" as const;
-
 /**
  * Tope por defecto del texto de una respuesta de tool (specs/10 §5, coste de
  * tokens): 64 KB ≈ 16k tokens. Una sala mediana (el Rey Aldric, ~25 KB) cabe;
