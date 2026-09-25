@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ReviewForm } from "@/components/catalog/review-form";
 
 const refresh = vi.fn();
+const upsertRoomReview = vi.fn();
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh }),
@@ -14,6 +15,10 @@ vi.mock("next/navigation", () => ({
 vi.mock("next-intl", () => ({
   useTranslations: () => (key: string, values?: Record<string, unknown>) =>
     values ? `${key}:${JSON.stringify(values)}` : key,
+}));
+
+vi.mock("@/actions/reviews", () => ({
+  upsertRoomReview: (...args: unknown[]) => upsertRoomReview(...args),
 }));
 
 // jsdom no implementa ResizeObserver; lo usa `RadioGroupItem` (Radix) al montar.
@@ -29,6 +34,7 @@ describe("ReviewForm (F-7: radios de valoración con shadcn/ui)", () => {
     cleanup();
     vi.restoreAllMocks();
     refresh.mockClear();
+    upsertRoomReview.mockClear();
   });
 
   it("pinta la valoración como un RadioGroup accesible de shadcn/ui (F-7), con medios puntos (9 zonas)", () => {
@@ -41,10 +47,11 @@ describe("ReviewForm (F-7: radios de valoración con shadcn/ui)", () => {
     expect(screen.getAllByRole("radio")).toHaveLength(9);
   });
 
-  it("permite elegir un medio punto por teclado y lo envía en el POST", async () => {
-    const fetchMock = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(null, { status: 201 }));
+  it("permite elegir un medio punto por teclado y lo envía a la server action", async () => {
+    upsertRoomReview.mockResolvedValue({
+      ok: true,
+      data: { created: true, ratingAvg: 4, ratingCount: 1 },
+    });
     const user = userEvent.setup();
     render(
       <ReviewForm roomId="sala-1" initial={{ canReview: true, reason: "ok", review: null }} />,
@@ -59,19 +66,14 @@ describe("ReviewForm (F-7: radios de valoración con shadcn/ui)", () => {
 
     await user.click(screen.getByRole("button", { name: /submit/ }));
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/rooms/sala-1/reviews",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ rating: 4, text: "" }),
-      }),
-    );
+    expect(upsertRoomReview).toHaveBeenCalledWith("sala-1", { rating: 4, text: "" });
   });
 
   it("también permite elegir un medio punto exacto (p. ej. 3.5)", async () => {
-    const fetchMock = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(new Response(null, { status: 201 }));
+    upsertRoomReview.mockResolvedValue({
+      ok: true,
+      data: { created: true, ratingAvg: 3.5, ratingCount: 1 },
+    });
     const user = userEvent.setup();
     render(
       <ReviewForm roomId="sala-1" initial={{ canReview: true, reason: "ok", review: null }} />,
@@ -83,12 +85,18 @@ describe("ReviewForm (F-7: radios de valoración con shadcn/ui)", () => {
     await user.click(threeAndHalf);
     await user.click(screen.getByRole("button", { name: /submit/ }));
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/rooms/sala-1/reviews",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({ rating: 3.5, text: "" }),
-      }),
+    expect(upsertRoomReview).toHaveBeenCalledWith("sala-1", { rating: 3.5, text: "" });
+  });
+
+  it("sin elegir valoración, muestra el error bajo el campo y no llama a la action", async () => {
+    const user = userEvent.setup();
+    render(
+      <ReviewForm roomId="sala-1" initial={{ canReview: true, reason: "ok", review: null }} />,
     );
+
+    await user.click(screen.getByRole("button", { name: /submit/ }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("ratingRequired");
+    expect(upsertRoomReview).not.toHaveBeenCalled();
   });
 });
