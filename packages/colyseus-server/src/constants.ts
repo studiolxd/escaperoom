@@ -91,6 +91,7 @@ export const GAME_MESSAGES = {
   plateState: "plate_state",
   splitView: "split_view",
   hintRequest: "hint_request",
+  selectCharacter: "select_character",
   // Servidor → cliente
   puzzleView: "puzzle_view",
   attemptResult: "attempt_result",

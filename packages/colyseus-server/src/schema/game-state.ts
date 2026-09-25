@@ -18,6 +18,8 @@ export const GamePlayerState = schema(
     /** Habitación (subroom) actual. */
     roomId: t.string(),
     tint: t.string(),
+    /** Personaje jugable (`manifest.avatars[].id`, o el de reserva, A1/B4). */
+    characterId: t.string(),
     connected: t.boolean(),
   },
   "GamePlayerState",

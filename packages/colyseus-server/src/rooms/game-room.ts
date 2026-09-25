@@ -25,7 +25,9 @@ import {
   MAX_PLAYERS,
 } from "../constants.js";
 import { RoomChat } from "../chat.js";
+import { loadAvatarCharacterIds } from "../game/avatar-pack.js";
 import { resolveRoomPackage } from "../game/room-packages.js";
+import { isCharacterAvailable, pickPlayerCharacter } from "../characters.js";
 import { MEDIA_TOKEN_REQUEST_MESSAGE, sendMediaTokenToClient } from "../media/index.js";
 import {
   MESSAGE_RATE_LIMITED_ERROR,
@@ -50,6 +52,8 @@ export interface GameRoomOptions {
 /** Opciones de join. */
 export interface GameJoinOptions {
   name?: string;
+  /** Personaje elegido en el lobby (A1); si falta o está ocupado, el servidor asigna uno. */
+  characterId?: string;
 }
 
 /** Tiempo y pistas de la partida en el instante de un hito. */
@@ -90,6 +94,7 @@ const combinePayload = z.object({
 const puzzlePayload = z.object({ puzzleId: z.string().min(1).max(64) });
 const optionalPuzzlePayload = z.object({ puzzleId: z.string().min(1).max(64).optional() });
 const attemptPayload = z.object({ puzzleId: z.string().min(1).max(64), attempt: z.unknown() });
+const selectCharacterPayload = z.object({ characterId: z.string().min(1).max(64) });
 const platePayload = z.object({
   puzzleId: z.string().min(1).max(64).optional(),
   plateId: z.string().min(1).max(64),
@@ -239,6 +244,11 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     on(GAME_MESSAGES.hintRequest, (client, payload) =>
       this.withPayload(client, puzzlePayload, payload, (data) => this.handleHint(client, data)),
     );
+    on(GAME_MESSAGES.selectCharacter, (client, payload) =>
+      this.withPayload(client, selectCharacterPayload, payload, (data) =>
+        this.handleSelectCharacter(client, data),
+      ),
+    );
     on(CHAT_MESSAGE, (client, payload) => {
       const player = this.state.players.get(client.sessionId);
       if (player) this.chat.handle(client, player.name, payload, this.state.chat);
@@ -347,7 +357,11 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     const position = session.playerPosition(client.sessionId)!;
 
     const usedTints: string[] = [];
-    this.state.players.forEach((player) => usedTints.push(player.tint));
+    const usedCharacters: string[] = [];
+    this.state.players.forEach((existing) => {
+      usedTints.push(existing.tint);
+      usedCharacters.push(existing.characterId);
+    });
     const player = new GamePlayerState();
     player.id = client.sessionId;
     player.name = sanitizeName(options.name) ?? `Jugador ${this.state.players.size + 1}`;
@@ -355,6 +369,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     player.y = position.y;
     player.roomId = position.roomId;
     player.tint = pickPlayerTint(usedTints);
+    player.characterId = this.resolveJoinCharacter(options.characterId, usedCharacters);
     player.connected = true;
     this.state.players.set(client.sessionId, player);
     if (!this.state.hostId) this.state.hostId = client.sessionId;
@@ -375,6 +390,39 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   // — Handlers ————————————————————————————————————————————————————
+
+  /**
+   * Personajes seleccionables del pack (A1/B4): el servidor es la autoridad,
+   * valida contra esta lista y contra los ya ocupados en la sala. Mientras
+   * falten personajes (hoy solo `caballero-m`), el resto cae al maniquí de
+   * reserva, que no es único.
+   */
+  private availableCharacters(): readonly string[] {
+    return loadAvatarCharacterIds();
+  }
+
+  /** `characterId` de un jugador que se une: el elegido si es válido, o el primero libre. */
+  private resolveJoinCharacter(requested: string | undefined, usedCharacters: string[]): string {
+    const available = this.availableCharacters();
+    if (requested && isCharacterAvailable(requested, available, usedCharacters)) {
+      return requested;
+    }
+    return pickPlayerCharacter(available, usedCharacters);
+  }
+
+  private handleSelectCharacter(client: Client, data: { characterId: string }): void {
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+    const usedCharacters: string[] = [];
+    this.state.players.forEach((existing) => {
+      if (existing.id !== client.sessionId) usedCharacters.push(existing.characterId);
+    });
+    if (!isCharacterAvailable(data.characterId, this.availableCharacters(), usedCharacters)) {
+      this.fail(client, GAME_ERRORS.notAvailable, "Ese personaje ya está en uso.");
+      return;
+    }
+    player.characterId = data.characterId;
+  }
 
   private handleStart(client: Client): void {
     if (client.sessionId !== this.state.hostId) {
