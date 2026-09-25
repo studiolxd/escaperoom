@@ -323,6 +323,43 @@ describe("proyecciones de la UI", () => {
     expect(emitted).toHaveLength(1);
   });
 
+  it("F-23: walkSteps llama a onDone cuando manda el último paso (sin cancelar antes)", () => {
+    const steps = stepsBetween({ x: 0, y: 0 }, { x: 10, y: 0 });
+    expect(steps.length).toBeGreaterThan(1);
+    const scheduled: Array<() => void> = [];
+    let done = false;
+    walkSteps(steps, () => undefined, {
+      schedule: (callback) => scheduled.push(callback),
+      onDone: () => {
+        done = true;
+      },
+    });
+    expect(done).toBe(false); // aún quedan pasos por mandar.
+    while (scheduled.length > 0) scheduled.shift()!();
+    expect(done).toBe(true);
+  });
+
+  it("F-23: walkSteps llama a onDone de inmediato si ya está en el destino (sin pasos)", () => {
+    let done = false;
+    walkSteps([], () => undefined, { onDone: () => (done = true) });
+    expect(done).toBe(true);
+  });
+
+  it("F-23: onDone NO se llama si se cancela antes de mandar el último paso (enterRoom no cruza de golpe)", () => {
+    const steps = stepsBetween({ x: 0, y: 0 }, { x: 10, y: 0 });
+    const scheduled: Array<() => void> = [];
+    let done = false;
+    const { cancel } = walkSteps(steps, () => undefined, {
+      schedule: (callback) => scheduled.push(callback),
+      onDone: () => {
+        done = true;
+      },
+    });
+    cancel();
+    while (scheduled.length > 0) scheduled.shift()!();
+    expect(done).toBe(false);
+  });
+
   it("toSessionSummary usa las stats del servidor y el resultado", () => {
     const { client } = (() => {
       const local = createLocalGameClient(reyAldric(), { tickMs: false });

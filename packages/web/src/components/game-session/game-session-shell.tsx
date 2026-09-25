@@ -485,15 +485,22 @@ export function GameSessionShell({
 
   /** Camina en pasos válidos hasta `target` (placas, mirillas, puertas). */
   const walkTo = useCallback(
-    (target: { x: number; y: number }) => {
+    (target: { x: number; y: number }, onArrive?: () => void) => {
       const me = snapshotRef.current.self;
-      if (!me) return;
+      if (!me) {
+        onArrive?.();
+        return;
+      }
       const from = handleRef.current?.avatarCell() ?? { x: me.x, y: me.y };
       stopWalking();
-      const { cancel } = walkSteps(stepsBetween(from, target), (step) => {
-        client.move(step.x, step.y);
-        handleRef.current?.placeAvatar(step.x, step.y);
-      });
+      const { cancel } = walkSteps(
+        stepsBetween(from, target),
+        (step) => {
+          client.move(step.x, step.y);
+          handleRef.current?.placeAvatar(step.x, step.y);
+        },
+        { onDone: onArrive },
+      );
       walkCancelRef.current = cancel;
     },
     [client, stopWalking],
@@ -541,11 +548,20 @@ export function GameSessionShell({
 
   const enterRoom = useCallback(
     (targetRoomId: string, doorPosition?: { x: number; y: number }) => {
-      if (doorPosition) walkTo(doorPosition);
-      client.move(0, 0, targetRoomId);
-      pushLog(
-        tp("log.enterRoom", { room: model.subroomsById[targetRoomId]?.name ?? targetRoomId }),
-      );
+      // F-23: el `move` de cruce solo se manda cuando el avatar ha llegado
+      // de verdad a la puerta — `walkTo` ahora paga los pasos intermedios en
+      // el tiempo (antes, un bucle síncrono los mandaba todos antes de que
+      // esta función siguiera, así que mandar el cruce justo después ya
+      // llegaba en orden; con el ritmo nuevo, mandarlo antes de que termine
+      // de andar llegaba al servidor con el jugador aún lejos de la puerta).
+      const crossDoor = () => {
+        client.move(0, 0, targetRoomId);
+        pushLog(
+          tp("log.enterRoom", { room: model.subroomsById[targetRoomId]?.name ?? targetRoomId }),
+        );
+      };
+      if (doorPosition) walkTo(doorPosition, crossDoor);
+      else crossDoor();
     },
     [client, model, walkTo, pushLog, tp],
   );

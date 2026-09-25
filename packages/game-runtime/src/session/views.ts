@@ -127,22 +127,36 @@ export function walkSteps(
   options: {
     intervalMs?: number;
     schedule?: (callback: () => void, ms: number) => unknown;
+    /**
+     * Se llama cuando se ha mandado el último paso (o de inmediato si no
+     * hay ninguno) — nunca si `cancel()` corta la caminata antes de llegar
+     * (p. ej. `enterRoom` en `game-session-shell.tsx` solo manda el `move`
+     * de cruce de habitación cuando el avatar ha llegado de verdad).
+     */
+    onDone?: () => void;
   } = {},
 ): { cancel: () => void } {
   const intervalMs = options.intervalMs ?? AVATAR_MOVE_EMIT_MS;
   const schedule = options.schedule ?? ((callback, ms) => setTimeout(callback, ms));
   let cancelled = false;
   let index = 0;
+  const finish = () => {
+    if (!cancelled) options.onDone?.();
+  };
+  const cancel = () => {
+    cancelled = true;
+  };
+  if (steps.length === 0) {
+    finish();
+    return { cancel };
+  }
   const sendNext = () => {
     if (cancelled || index >= steps.length) return;
     emit(steps[index]!);
     index += 1;
     if (index < steps.length) schedule(sendNext, intervalMs);
+    else finish();
   };
   sendNext();
-  return {
-    cancel: () => {
-      cancelled = true;
-    },
-  };
+  return { cancel };
 }
