@@ -8,6 +8,7 @@ import {
   type PricingTierRow,
   type PricingTierService,
 } from "@escaperoom/shared/services";
+import { handleDomainErrors, NO_STORE, readJson } from "./_http";
 
 /** Dependencias inyectables de los handlers de admin (testeables sin Postgres). */
 export type AdminHandlerDeps = {
@@ -29,36 +30,8 @@ const STATUS_BY_CODE: Record<AdminErrorCode, number> = {
   VALIDATION_ERROR: 422,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number, extra = {}): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status, headers: NO_STORE });
-}
-
-/** Cuerpo JSON en una clase aparte para distinguir 400 (JSON roto) de 422 (datos). */
-class BadJsonError extends Error {}
-
-async function readJson(request: Request): Promise<unknown> {
-  try {
-    return await request.json();
-  } catch {
-    throw new BadJsonError("El cuerpo no es JSON válido");
-  }
-}
-
 /** Traduce errores de dominio a la forma de error REST (specs/13 §1). */
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof AdminError) {
-      const extra = err.issues.length > 0 ? { issues: err.issues } : {};
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code], extra);
-    }
-    if (err instanceof BadJsonError) return errorResponse("BAD_REQUEST", err.message, 400);
-    throw err;
-  }
-}
+const handle = handleDomainErrors(AdminError, STATUS_BY_CODE);
 
 function settingJson(s: PlatformSetting) {
   return {

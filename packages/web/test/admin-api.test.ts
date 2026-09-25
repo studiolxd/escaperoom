@@ -147,12 +147,12 @@ describe("REST /api/admin/settings/:key", () => {
     expect(await errorCode(res)).toBe("UNAUTHORIZED");
   });
 
-  it("clave desconocida → 404; JSON roto → 400", async () => {
+  it("clave desconocida → 404; JSON roto → 400 INVALID_JSON (A-22)", async () => {
     const api = setup();
     expect((await api.getSetting("noExiste", "admin")).status).toBe(404);
     const res = await api.patchSetting("maxPlayersPerRoom", undefined, "admin", "{no-json");
     expect(res.status).toBe(400);
-    expect(await errorCode(res)).toBe("BAD_REQUEST");
+    expect(await errorCode(res)).toBe("INVALID_JSON");
   });
 });
 
