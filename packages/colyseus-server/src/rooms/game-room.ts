@@ -79,7 +79,7 @@ export const GAME_ACCESS_ERRORS = {
   devTestForbidden: "GAME_TOKEN_DEV_TEST_FORBIDDEN",
   /** La compra no existe, no tiene la versión, o Postgres no está configurado. */
   unavailable: "GAME_UNAVAILABLE",
-  /** `purchase.playSessionStartedAt` ya estaba fijado: la partida ya se jugó. */
+  /** La compra ya está consumida (terminó) o "en curso" en otra room, sin caducar. */
   playSessionUsed: "PLAY_SESSION_ALREADY_USED",
 } as const;
 
@@ -383,12 +383,14 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
 
   /**
    * Verifica el `gameToken` de creación (C-4/B-4) y, si acredita una compra,
-   * reclama su única partida (`GameAccessStore.claimPlaySession`, escritura
-   * condicional `IS NULL`: specs/02, "una compra = una partida"). Rechaza con
+   * RECLAMA su partida (`GameAccessStore.claimPlaySession`, escritura
+   * condicional: specs/02, "una compra = una partida", consumida al
+   * terminar — `onMilestone`/`onDispose` más abajo). Rechaza con
    * `ServerError` (nunca un stack trace, specs/11 §7) si el token falta, es
    * inválido, es una partida de prueba fuera de un entorno que la permita, o
-   * la compra ya se jugó. Deja `this.gameAccess`/`this.purchasedRoomPackage`
-   * listos para `onAuth`/`loadRoomPackage`.
+   * la compra ya está consumida o en curso en otra room sin caducar. Deja
+   * `this.gameAccess`/`this.purchasedRoomPackage` listos para
+   * `onAuth`/`loadRoomPackage`.
    */
   private async authorizeGameAccessCreate(options: GameRoomOptions): Promise<void> {
     const config = readGameAccessTokenConfig();

@@ -25,23 +25,36 @@ Ingreso futuro (v2): comisión de marketplace 20–30 % sobre licencias de event
 
 Comprar una sala **no da derecho a jugarla indefinidamente**: da derecho a **una partida**.
 
-- Al comprar (`purchase_type = 'room'`), `purchases.play_session_started_at` queda `NULL` — la
-  sala está "sin estrenar".
-- Cuando el comprador (host) crea la partida por primera vez (matchmake contra el `LobbyRoom`
-  de Colyseus), el servidor comprueba que `play_session_started_at IS NULL`; si lo está, lo
-  rellena y guarda el id de la `GameRoom`. Una segunda llamada a matchmake para la misma compra
-  se rechaza, **salvo que sea una reconexión a la misma `GameRoom`** (cubierto por el protocolo).
-- `GET /api/rooms/:roomId/access` devuelve `{ owned, playable }`; `playable: false` cuando ya se
-  consumió la única partida.
+**Resuelta (bloque 3 de la auditoría, 2026-09-25):** si el grupo abandona antes de terminar, la
+partida **no se pierde**: la compra solo se consume al llegar a `game_ended` (victoria, derrota o
+tiempo agotado), nunca por crear la sesión ni por una caída de conexión. Tres estados de
+`purchase`:
+
+- **Libre** (`play_session_started_at IS NULL`, o "en curso" pero caducada — ver más abajo): la
+  compra está "sin estrenar" (o se puede reintentar).
+- **En curso** (`play_session_started_at` fijado, `play_session_ended_at` `NULL`): la `GameRoom`
+  de esa compra existe y sigue viva. Al crear la partida por primera vez (`GameRoom.onCreate`,
+  ticket 2.8), el servidor comprueba esta condición con una escritura condicional; si la gana,
+  rellena `play_session_started_at` y `play_session_colyseus_id`. Una segunda creación para la
+  misma compra se rechaza mientras siga en curso — pero **si la `GameRoom` se cierra sin llegar a
+  `game_ended`** (todos se fueron, se expulsó la room…), la reclamación se **libera**
+  (`play_session_started_at`/`play_session_colyseus_id` vuelven a `NULL`) y la compra vuelve a
+  estar libre. Reconectar a la MISMA `GameRoom` sigue funcionando mientras esté viva (mismo
+  `gameToken` de la compra, cubierto por el protocolo).
+- **Consumida** (`play_session_ended_at` fijado): definitivo. `playable` nunca vuelve a `true`.
+
+**Caída del servidor sin `onDispose`:** una reclamación "en curso" mucho más vieja que la
+duración máxima de una partida (`GAME_TIME_LIMIT_SEC`, 1 h) más un margen —
+`PLAY_SESSION_STALE_AFTER_SECONDS` = 2 h, `packages/shared/src/services/game-access.ts`— se trata
+como libre y se puede volver a reclamar. Vive en la propia condición de la escritura, no en un
+job de limpieza.
+
+- `GET /api/rooms/:roomId/access` devuelve `{ owned, playable, gameToken?, roomId? }`: libre y en
+  curso son ambas `playable: true` (en curso además lleva `roomId`, para que el cliente se UNA a
+  esa `GameRoom` en vez de crear otra); consumida es `playable: false` sin token.
 - El comprador invita a sus amigos gratis: los invitados entran con enlace/código de sesión sin
   pasar por checkout.
-- `GET /api/rooms/:roomId/access` y el botón de catálogo deciden "Jugar" vs. "Comprar".
-
-**Decisión abierta (matiz de producto):** si el grupo abandona antes de terminar, ¿"una vez"
-significa literal (se pierde igual) o solo cuenta si llegan a `game_ended`? La implementación
-actual es la literal: **se consume al crear la sesión, no al terminarla**. Es lo primero que un
-usuario real reclamará si se le corta la conexión a mitad de partida; debe cerrarse antes de
-lanzar (ver `plan/00-plan-maestro.md`, riesgos de producto).
+- El botón de catálogo decide "Jugar"/"Reanudar" vs. "Comprar" a partir de esta misma ruta.
 
 ### 2.2 Publicación y precios
 

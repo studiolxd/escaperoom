@@ -18,7 +18,7 @@ const ROOM_ID = "11111111-1111-4111-8111-111111111111";
 const ROOM_VERSION_ID = "22222222-2222-4222-8222-222222222222";
 const buyer: Actor = { userId: "compradora", organizationId: null, role: "member" };
 
-type AccessJson = { owned: boolean; playable: boolean; gameToken?: string };
+type AccessJson = { owned: boolean; playable: boolean; gameToken?: string; roomId?: string };
 
 function request(): Request {
   return new Request("http://localhost/api/rooms/x/access");
@@ -60,6 +60,8 @@ describe("GET /api/rooms/:roomId/access", () => {
             roomVersionId: ROOM_VERSION_ID,
             status: "succeeded",
             playSessionStartedAt: null,
+            playSessionEndedAt: null,
+            playSessionColyseusId: null,
           },
         ]),
         gameToken: { secret: SECRET, ttlSeconds: 900 },
@@ -70,7 +72,7 @@ describe("GET /api/rooms/:roomId/access", () => {
     expect((await res.json()) as AccessJson).toEqual({ owned: false, playable: false });
   });
 
-  it("compra succeeded sin jugar: 200 con gameToken válido", async () => {
+  it("libre (nunca reclamada): 200 con gameToken válido, sin roomId", async () => {
     const handlers = createRoomAccessHandlers({
       roomAccess: createRoomAccessService({
         store: createInMemoryRoomAccessStore([
@@ -81,6 +83,8 @@ describe("GET /api/rooms/:roomId/access", () => {
             roomVersionId: ROOM_VERSION_ID,
             status: "succeeded",
             playSessionStartedAt: null,
+            playSessionEndedAt: null,
+            playSessionColyseusId: null,
           },
         ]),
         gameToken: { secret: SECRET, ttlSeconds: 900 },
@@ -91,6 +95,56 @@ describe("GET /api/rooms/:roomId/access", () => {
     const body = (await res.json()) as AccessJson;
     expect(body.owned).toBe(true);
     expect(body.playable).toBe(true);
+    expect(body.roomId).toBeUndefined();
     expect(verifyGameAccessToken(SECRET, body.gameToken).ok).toBe(true);
+  });
+
+  it("en curso (reclamada, no caducada): 200 con gameToken y roomId para unirse", async () => {
+    const handlers = createRoomAccessHandlers({
+      roomAccess: createRoomAccessService({
+        store: createInMemoryRoomAccessStore([
+          {
+            userId: buyer.userId,
+            roomId: ROOM_ID,
+            purchaseId: "purchase-1",
+            roomVersionId: ROOM_VERSION_ID,
+            status: "succeeded",
+            playSessionStartedAt: new Date(),
+            playSessionEndedAt: null,
+            playSessionColyseusId: "colyseus-room-abc",
+          },
+        ]),
+        gameToken: { secret: SECRET, ttlSeconds: 900 },
+      }),
+      resolveActor: async () => buyer,
+    });
+    const res = await handlers.getAccess(request(), { params: Promise.resolve({ roomId: ROOM_ID }) });
+    const body = (await res.json()) as AccessJson;
+    expect(body.owned).toBe(true);
+    expect(body.playable).toBe(true);
+    expect(body.roomId).toBe("colyseus-room-abc");
+  });
+
+  it("consumida (la partida terminó): 200 con playable:false", async () => {
+    const handlers = createRoomAccessHandlers({
+      roomAccess: createRoomAccessService({
+        store: createInMemoryRoomAccessStore([
+          {
+            userId: buyer.userId,
+            roomId: ROOM_ID,
+            purchaseId: "purchase-1",
+            roomVersionId: ROOM_VERSION_ID,
+            status: "succeeded",
+            playSessionStartedAt: new Date(),
+            playSessionEndedAt: new Date(),
+            playSessionColyseusId: "colyseus-room-abc",
+          },
+        ]),
+        gameToken: { secret: SECRET, ttlSeconds: 900 },
+      }),
+      resolveActor: async () => buyer,
+    });
+    const res = await handlers.getAccess(request(), { params: Promise.resolve({ roomId: ROOM_ID }) });
+    expect((await res.json()) as AccessJson).toEqual({ owned: true, playable: false });
   });
 });
