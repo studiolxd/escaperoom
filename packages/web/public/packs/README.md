@@ -78,3 +78,32 @@ proyección o animaciones explícitas.
 > Sin pack (o con un manifiesto que no valida), la previsualización dibuja
 > **placeholders procedurales** con el nombre de cada frame. Al añadir el pack,
 > los frames se resuelven desde el atlas sin tocar código.
+
+## `manifest.json`/`atlas-*` no se comitean — ni CI ni producción los generan hoy
+
+`manifest.json` y `atlas-*.{png,json}` están en `.gitignore` (son artefactos
+derivados, no fuente): cada persona que quiera ver el pack real en local corre
+`pnpm pack:build medieval-v1` una vez. **Ni el `verify` de CI ni el build de
+producción corren `pack:build`**: un clon limpio o un deploy siempre pintan
+`RoomScene` con placeholders procedurales (recuadros isométricos con el nombre
+del frame), para todo el pack — tiles, sprites, iconos del mundo y avatares
+por igual. Esto es así desde antes de los avatares seleccionables, no algo que
+cambien ellos.
+
+Lo que **no** depende de `pack:build`: los iconos de inventario que pinta
+`ItemIcon` (`icons/<frame>.png`, servidos directos por Next desde este mismo
+directorio, sin pasar por el atlas) y cualquier fichero suelto de `public/`;
+esos se ven bien en cualquier entorno con solo el checkout.
+
+Lo que **sí** depende de `pack:build`: el sprite real de cada personaje y el
+resto del tilemap dentro de Phaser (usan el atlas). El servidor de Colyseus
+**no** depende de él en absoluto: la lista de personajes seleccionables
+(`manifest.avatars`) la lee directamente de `pack.config.json` — fuente
+versionada de la que `build-pack.ts` deriva `manifest.avatars` — precisamente
+para que la unicidad de personaje (A1) funcione igual con o sin pack
+compilado (`packages/colyseus-server/src/game/avatar-pack.ts`).
+
+Publicar el pack real de verdad (más allá del placeholder de dev) es la vía
+de `specs/26` §9: subirlo a R2 con versión inmutable; ese cableado (que el
+build o el deploy publiquen ahí, y que el runtime lo resuelva desde R2 en vez
+de `public/packs/`) sigue pendiente y es una tarea aparte, no de esta PR.
