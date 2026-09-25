@@ -1,6 +1,5 @@
 "use client";
 
-import "@xyflow/react/dist/style.css";
 import dynamic from "next/dynamic";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
@@ -8,7 +7,6 @@ import * as Y from "yjs";
 import {
   EditToolController,
   EditorSyncProvider,
-  RulesGraph,
   deleteRule,
   initRoomDoc,
   isRoomDocEmpty,
@@ -18,10 +16,10 @@ import {
   useRoomValidation,
   ValidationPanel,
   type InspectorTarget,
-  type RulesGraphLabelsInput,
   type ValidationPanelLabelsInput,
   type ValidationTarget,
 } from "@escaperoom/editor";
+import type { RulesGraphLabelsInput, RulesGraphProps } from "@escaperoom/editor/rules-graph";
 import type { EditorPalette } from "@escaperoom/game-runtime";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { Button } from "@/components/ui/button";
@@ -40,6 +38,17 @@ const RoomEditorCanvas = dynamic(() => import("./room-editor-canvas"), {
   ssr: false,
   loading: () => <CanvasLoading />,
 });
+
+/**
+ * React Flow (`@xyflow/react`) y su CSS solo se descargan al montar el grafo
+ * de reglas, no en el bundle inicial del editor (auditoría F-16): antes se
+ * importaban desde el barrel de `@escaperoom/editor` de forma estática, igual
+ * que el resto del editor (que sí necesita cargar de inmediato).
+ */
+const RulesGraph = dynamic<RulesGraphProps>(
+  () => import("@escaperoom/editor/rules-graph").then((mod) => mod.RulesGraph),
+  { ssr: false },
+);
 
 function CanvasLoading() {
   const t = useTranslations("RoomEditor");
