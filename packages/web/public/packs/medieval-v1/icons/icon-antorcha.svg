@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-<polygon points="58.000,112.000 66.000,108.000 88.000,62.000 80.000,58.000" fill="#704e2a" stroke="#3e1c00" stroke-width="1" stroke-linejoin="round"/>
-<ellipse cx="84.00" cy="58.00" rx="12.00" ry="7.00" fill="#2a2523"/>
-<path d="M76.96,58.00 Q76.08,38.20 84.00,14.00 Q92.80,40.40 91.04,58.00 Z" fill="#e8641c"/>
-<path d="M79.64,56.90 Q78.76,44.62 84.00,29.62 Q90.12,45.99 88.36,56.90 Z" fill="#f7c33a"/>
-<path d="M81.89,55.80 Q81.01,49.86 84.00,42.60 Q87.87,50.52 86.11,55.80 Z" fill="#fff0a0"/>
-</svg>
