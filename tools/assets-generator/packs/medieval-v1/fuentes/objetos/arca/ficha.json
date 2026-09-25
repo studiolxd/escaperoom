@@ -1,0 +1,28 @@
+{
+  "asset": "objetos/arca",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Arca: master → 3D",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-25T09:08:48+00:00",
+      "magnific": "ks6KYuv16B",
+      "prompt": "Game prop design of a medieval treasure chest (arca) for an isometric escape room game, closed, locked with a large iron padlock that has a 4-digit number dial on its front. Sturdy dark wood planks with thick iron bands and rivets, rounded domed lid, chunky simple bold shapes, no fine engravings. Seen in a three-quarter front view slightly from above, whole object visible and centered, symmetrical. Exactly the same stylized 3D toon rendering, soft shading, saturated colors and soft upper-left lighting as the reference images (the knight and the inventory icons). Edges defined only by light and shading, no outline. Isolated on a flat uniform light grey background, no floor, no shadow, no text."
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-p1",
+      "creditos": 580,
+      "fecha": "2026-09-25T09:40:43+00:00",
+      "magnific": "jUZjOkMLD0"
+    }
+  ],
+  "creditos_total": 760
+}

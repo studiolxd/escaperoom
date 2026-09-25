@@ -1,0 +1,74 @@
+{
+ "_": "Objetos planos de pared (scripts/blender/render_pared.py): frame -> [imagen de fuentes/pared/, alto real en m, altura del centro, grosor del tablero; 0 = tela sin tablero]. encuadre: ortho y altura del centro de los sprites de pared. salidas: carpeta de renders/ de cada PARTE.",
+ "encuadre": {
+  "ortho": 3.0,
+  "centro_z": 1.0
+ },
+ "salidas": {
+  "salon": "pared-salon",
+  "bodega": "pared-bodega",
+  "estandarte": "estandarte"
+ },
+ "piezas": {
+  "cuadro-rey": [
+   "cuadro-rey",
+   1.15,
+   1.3,
+   0.06
+  ],
+  "cuadro-reino-4torres": [
+   "cuadro-reino-4torres",
+   0.9,
+   1.3,
+   0.06
+  ],
+  "cuadro-reino-brasero": [
+   "cuadro-reino-brasero",
+   0.9,
+   1.3,
+   0.06
+  ],
+  "cuadro-reino-estatuas": [
+   "cuadro-reino-estatuas",
+   0.9,
+   1.3,
+   0.06
+  ],
+  "tapiz-7-dragones": [
+   "tapiz-7-dragones",
+   1.7,
+   1.25,
+   0.0
+  ],
+  "tapiz-dragones": [
+   "tapiz-dragones",
+   1.7,
+   1.25,
+   0.0
+  ],
+  "estandarte": [
+   "estandarte",
+   1.6,
+   1.35,
+   0.0
+  ],
+  "mural-completo": [
+   "mural-completo",
+   1.6,
+   1.4,
+   0.04
+  ],
+  "mural-desordenado": [
+   "mural-desordenado",
+   1.6,
+   1.4,
+   0.04
+  ],
+  "mirilla": [
+   "mirilla",
+   0.34,
+   1.5,
+   0.03
+  ]
+ }
+}

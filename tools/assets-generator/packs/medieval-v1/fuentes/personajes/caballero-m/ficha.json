@@ -1,0 +1,45 @@
+{
+  "asset": "personajes/caballero-m",
+  "space": {
+    "nombre": "Personajes jugables",
+    "url": "https://www.magnific.com/app/spaces/a2d36c51-07a1-4cd4-951f-476295691b74"
+  },
+  "proceso": "Master GPT 2 (2K, 3:4) con las hojas de caras y cuerpos → retoque por zonas de las manos (guantes) → 3D con Tripo → exportar_mixamo.py → Mixamo (idle, andar, alcanzar)",
+  "referencias": [
+    "estilos/castillo-toon/referencias/hoja_caras.png",
+    "estilos/castillo-toon/referencias/hoja_cuerpos.png"
+  ],
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "resolucion": "2k",
+      "aspecto": "3:4",
+      "creditos": 180,
+      "magnific": "cpCZ2dC0eP",
+      "prompt": "Full-body character design of a playable hero for an isometric RPG, in exactly the same art style, 3D toon rendering, shading and proportions as the characters in the body reference sheet: a young male medieval knight with short brown hair, brown eyes and a friendly determined expression, polished silver plate armor with two identical symmetrical rounded pauldrons, a plain bright blue tabard with no emblem or symbol, brown leather belt, gloves and boots, exactly one sword sheathed at his left hip, and a round wooden shield strapped on his back (only the shield on the back, no other weapon). Face style: large expressive eyes with a thick dark upper lash line and a big colored iris with a single white highlight, thick expressive eyebrows, a small simple nose drawn only as one short curved line on the shadow side with no nostrils, a small mouth, soft rosy blush on the cheeks, soft rounded jawline — exactly like the faces in the face reference sheet. Edges are defined only by light and shading, like a clean 3D toon render. Front view facing the camera, neutral A-pose with arms slightly away from the body, feet apart, standing straight, whole body visible and centered, both hands empty. Soft light from the upper left. The character is isolated on a flat uniform light grey background with nothing else in the image, no floor."
+    },
+    {
+      "paso": "retoque",
+      "herramienta": "retouch",
+      "notas": "retoque por zonas de las manos: guantes de cuero marrón oscuro, máscara ajustada a la silueta de la mano (3 intentos; el v3 es el aprobado)",
+      "magnific": "u57mRjtQLD"
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "Tripo",
+      "creditos": 775,
+      "magnific": "vQlB6SNa47"
+    },
+    {
+      "paso": "mixamo",
+      "herramienta": "Mixamo (manual)",
+      "notas": "auto-rig + Happy Idle, Walking (in place), Picking Up; FBX Binary, With Skin, 30 fps"
+    }
+  ],
+  "comparativa": "25/09/2026, mismo prompt y referencias: GPT 2 elegido (toon 3D sin contorno, nariz simple, diseño correcto). Nano Banana Pro: contorno oscuro y demasiado chibi. Seedream 5 Pro: más realista, nariz dibujada. Klein: contorno y nariz detallada.",
+  "notas": "Para cada personaje nuevo: el mismo prompt con la ficha nueva (docs/personajes.md) + este master como referencia de identidad del estilo.",
+  "creditos_total": 955
+}

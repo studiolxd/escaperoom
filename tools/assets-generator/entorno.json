@@ -1,0 +1,11 @@
+{
+  "_": "Versiones con las que se validó que las salidas son reproducibles (25/09/2026). Con otra versión de Blender (EEVEE) los renders pueden cambiar: scripts/verificar.py avisa. Blender: variable BLENDER o la ruta por defecto de macOS.",
+  "blender": "5.2.2",
+  "blender_ruta_mac": "/Applications/Blender.app/Contents/MacOS/Blender",
+  "python": "3.9",
+  "pillow": "11.3.0",
+  "numpy": "2.0.2",
+  "node": "26",
+  "sharp": "0.34.5",
+  "pnpm": "12.5.1"
+}

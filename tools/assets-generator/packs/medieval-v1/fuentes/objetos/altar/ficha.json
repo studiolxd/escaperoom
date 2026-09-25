@@ -1,0 +1,28 @@
+{
+  "asset": "objetos/altar",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Catacumbas · altar: master → 3D (agua en Blender)",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-25T12:29:19+00:00",
+      "magnific": "lJzwhx0gv9",
+      "prompt": "Game prop design of a sacred stone altar for the royal catacombs of a medieval castle, for an isometric escape room game. A sturdy rectangular altar block of warm grey stone (the same stone as the pedestal of the reference brazier), about waist high, with a stepped base. On its top there is a wide shallow rectangular basin carved into the stone, completely dry and empty, and a small carved stone spout on one short side where water would enter. Simple carved arch panels on the front. No inscriptions, no letters, no symbols, no objects on top. Chunky simple bold shapes, no fine engravings. Seen in a three-quarter view slightly from above, whole object visible and centered. Exactly the same stylized 3D toon rendering, soft shading and soft upper-left lighting as the reference image. Edges defined only by light and shading, no outline. Isolated on a flat uniform light grey background, no floor, no shadow, no text."
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-p1",
+      "creditos": 580,
+      "fecha": "2026-09-25T12:30:59+00:00",
+      "magnific": "xSZlmObjfW"
+    }
+  ],
+  "creditos_total": 760
+}

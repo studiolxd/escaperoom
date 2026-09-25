@@ -1,0 +1,28 @@
+{
+  "asset": "objetos/sarcofago",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Catacumbas · sarcófago: master → 3D",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-25T12:29:16+00:00",
+      "magnific": "xSZl8HojfW",
+      "prompt": "Game prop design of the stone sarcophagus of a betrayed medieval king in the royal catacombs of a castle, for an isometric escape room game. A long rectangular sarcophagus of warm grey stone (the same stone as the references), with a thick lid on which the effigy of the king lies carved in stone: lying on his back, eyes closed, a simple crown, hands joined on the chest holding a long sword. Simple carved panels with arches on the sides, a stepped base. Everything the same single stone color, no gold, no colored details. No inscriptions, no letters, no symbols. Chunky simple bold carved shapes, no fine engravings. Seen in a three-quarter view slightly from above, whole object visible and centered. Exactly the same stylized 3D toon rendering, soft shading and soft upper-left lighting as the reference images. Edges defined only by light and shading, no outline. Isolated on a flat uniform light grey background, no floor, no shadow, no text."
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-p1",
+      "creditos": 580,
+      "fecha": "2026-09-25T12:30:54+00:00",
+      "magnific": "JNT4H94Oq4"
+    }
+  ],
+  "creditos_total": 760
+}

@@ -1,0 +1,28 @@
+{
+  "asset": "objetos/vasija",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Catacumbas · vasija: master → 3D (x8 en Blender)",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-25T12:29:25+00:00",
+      "magnific": "LwASmSbswO",
+      "prompt": "Game prop design of a single sacred funerary urn that holds the ashes of an ancient king, for the royal catacombs of a medieval castle, for an isometric escape room game. A tall ceramic amphora-like vase with a round body, a narrow neck, two small handles and a round lid with a knob, glazed deep terracotta red with one wide ochre band around the body, sealed. Chunky simple bold shapes, no fine painted details, no text, no symbols. Seen in a three-quarter view slightly from above, whole object visible and centered, symmetrical. Exactly the same stylized 3D toon rendering, soft shading, saturated colors and soft upper-left lighting as the reference image. Edges defined only by light and shading, no outline. Isolated on a flat uniform light grey background, no floor, no shadow, no text."
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-p1",
+      "creditos": 580,
+      "fecha": "2026-09-25T12:31:10+00:00",
+      "magnific": "SyYJEDwUb8"
+    }
+  ],
+  "creditos_total": 760
+}

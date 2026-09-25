@@ -1,0 +1,45 @@
+{
+  "asset": "objetos/estatua",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Estatua caballero: master → retoque yelmo → master final → 3D",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-25T11:23:03+00:00",
+      "magnific": "WDCTmFIcXe",
+      "prompt": "Game prop design of a stone statue of a medieval knight for the throne room of a castle, for an isometric escape room game. The whole statue is carved from a single warm light grey stone, the same stone as the pedestal of the reference brazier but a little lighter, no other colors. The knight stands upright and symmetrical in an honor guard pose: both hands resting on the pommel of a long sword whose point touches the ground between his feet. Closed great helm with a simple eye slit, plate armor with a surcoat, a short cape, no shield, no weapon other than the single sword. Larger than life. He stands on a square stone pedestal block with simple chamfered edges, same style as the reference brazier pedestal. Chunky simple bold carved shapes, no fine engravings, no inscriptions, no emblems. Seen in a three-quarter front view slightly from above, whole statue and pedestal visible and centered. Exactly the same stylized 3D toon rendering, soft shading and soft upper-left lighting as the reference image. Edges defined only by light and shading, no outline. Isolated on a flat uniform light grey background, no floor, no shadow, no text."
+    },
+    {
+      "paso": "retoque",
+      "herramienta": "retouch",
+      "modelo": "Auto",
+      "creditos": 10,
+      "fecha": "2026-09-25T11:26:01+00:00",
+      "magnific": "4Rp6DYL9Aa",
+      "prompt": "The head of a stone knight statue wearing a closed medieval sugarloaf great helm in proportion with the body: head-sized, as wide as it is tall, rounded and slightly pointed at the top, with a single horizontal eye slit, a vertical reinforcement strip down the middle of the face and a few small breathing holes on the lower part. Carved from the same warm light grey stone as the rest of the statue, chunky simple bold shapes, same stylized toon shading and soft upper-left lighting, sitting naturally on the neck and shoulders, flat light grey background around it."
+    },
+    {
+      "paso": "subida (retoque local)",
+      "herramienta": "upload",
+      "modelo": null,
+      "creditos": 0,
+      "fecha": "2026-09-25T11:27:55+00:00",
+      "magnific": "fHUuwnPCDY"
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-p1",
+      "creditos": 580,
+      "fecha": "2026-09-25T11:28:03+00:00",
+      "magnific": "eI5BKzMdqL"
+    }
+  ],
+  "creditos_total": 770
+}

@@ -1,0 +1,29 @@
+{
+  "asset": "objetos/trono",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Trono: master → 3D",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-25T11:37:31+00:00",
+      "magnific": "TdQDlBoVNR",
+      "prompt": "Game prop design of the royal throne of a medieval castle throne room, for an isometric escape room game. A large sturdy throne of dark noble wood with a tall straight backrest and wide armrests, the seat and the inner backrest upholstered in deep red velvet like a royal mantle, simple grey iron fittings with round rivets on the corners and armrests, same wood, iron and rivets as the reference chest. The throne stands on a low platform of two wide steps made of the same warm grey stone as the pedestal of the reference brazier. Chunky simple bold shapes, no fine carvings, no coats of arms, no emblems, no crown shapes. Symmetrical, seen in a three-quarter front view slightly from above, whole object visible and centered. Exactly the same stylized 3D toon rendering, soft shading, saturated colors and soft upper-left lighting as the reference images. Edges defined only by light and shading, no outline. Isolated on a flat uniform light grey background, no floor, no shadow, no text."
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-v31",
+      "creditos": 1160,
+      "fecha": "2026-09-25T11:40:26+00:00",
+      "magnific": "vQgC2Vva47"
+    }
+  ],
+  "creditos_total": 1340,
+  "notas": "El nodo 'Trono — Master' del Space falló; el master se generó fuera y se añadió al Space. 3D con Tripo v3.1 alta calidad (1.160 créditos)."
+}

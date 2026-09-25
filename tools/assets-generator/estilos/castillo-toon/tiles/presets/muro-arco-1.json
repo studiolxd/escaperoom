@@ -1,0 +1,7 @@
+{
+  "type": "pared",
+  "params": {
+    "seed": 5,
+    "feature": "arco"
+  }
+}

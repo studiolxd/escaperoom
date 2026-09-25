@@ -1,0 +1,166 @@
+{
+  "_": "Fichas de las imágenes de pared por grupo del Space (el salón agrupa los cuadros y tapices de la pista). Los recortes y el alfa de los tapices se hicieron en local.",
+  "cuadro-rey": {
+    "asset": "pared/cuadro-rey",
+    "space": {
+      "nombre": "Objetos · Sala del trono",
+      "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+    },
+    "proceso": "Cuadro del rey (master final)",
+    "pasos": [
+      {
+        "paso": "master",
+        "herramienta": "text-to-image",
+        "modelo": "GPT 2",
+        "creditos": 180,
+        "fecha": "2026-09-25T09:21:23+00:00",
+        "magnific": "husmcpgvqL",
+        "prompt": "A framed royal portrait painting for a medieval fantasy game, seen perfectly straight from the front, flat, same golden chunky frame and same oil-painting style as the reference image (visible brushstrokes, warm varnish tones, old-master look). New composition designed so a detail is easy to count: King Aurelio (older king, white beard, golden crown, red mantle with white ermine fur, same friendly stylized face as in the reference) shown as a bust on the LEFT half of the canvas, slightly smaller. On the RIGHT half, clearly visible in the background landscape and not covered by the king, a castle with EXACTLY FOUR tall round towers standing in a row, all four the same style with red conical roofs, evenly spaced and clearly separated so they are easy to count: one, two, three, four. No other towers anywhere else in the painting. Soft light from the upper left. The frame fills the image edge to edge on a flat light grey background, no wall, no shadow, no text."
+      }
+    ],
+    "creditos_total": 180
+  },
+  "estandarte": {
+    "asset": "pared/estandarte",
+    "space": {
+      "nombre": "Objetos · Sala del trono",
+      "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+    },
+    "proceso": "Estandarte real",
+    "pasos": [
+      {
+        "paso": "master",
+        "herramienta": "text-to-image",
+        "modelo": "GPT 2",
+        "creditos": 180,
+        "fecha": "2026-09-25T12:55:44+00:00",
+        "magnific": "lJz7RxUgv9",
+        "prompt": "A medieval royal banner (estandarte) for a castle hall in a fantasy game, seen perfectly straight from the front, flat. A long narrow vertical banner of deep red woven fabric with a golden border, hanging from a short dark iron rod with round iron end knobs, ending at the bottom in a swallowtail cut (two points). In the upper middle, one simple bold golden royal crown emblem. Same fabric, colors, golden trim and iron rod as the reference tapestry. No text, no letters, no animals, no other symbols. Same stylized 3D toon rendering, soft shading and soft upper-left lighting as the reference. Edges defined only by light and shading, no outline. Centered on a flat uniform light grey background, no wall, no shadow, no text."
+      }
+    ],
+    "creditos_total": 180
+  },
+  "mirilla": {
+    "asset": "pared/mirilla",
+    "space": {
+      "nombre": "Objetos · Sala del trono",
+      "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+    },
+    "proceso": "Bodega · mirilla",
+    "pasos": [
+      {
+        "paso": "master",
+        "herramienta": "text-to-image",
+        "modelo": "GPT 2",
+        "creditos": 180,
+        "fecha": "2026-09-25T12:15:03+00:00",
+        "magnific": "SyYJWjkUb8",
+        "prompt": "A medieval iron peephole for a castle wall in a fantasy game, seen perfectly straight from the front, flat. A thick square grey iron plate with bevelled edges and four round rivets in the corners (same grey iron and rivets as the reference chest), with a single horizontal narrow viewing slit in the middle that is pitch black inside, and a small hinged iron shutter lifted above the slit. Chunky simple bold shapes, no text, no symbols. Exactly the same stylized 3D toon rendering, soft shading and soft upper-left lighting as the reference image. Edges defined only by light and shading, no outline. The plate is centered and fills most of the image on a flat uniform light grey background, no wall, no shadow, no text."
+      }
+    ],
+    "creditos_total": 180
+  },
+  "mural": {
+    "asset": "pared/mural",
+    "space": {
+      "nombre": "Objetos · Sala del trono",
+      "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+    },
+    "proceso": "Bodega · mural de la vendimia: master → cesto vacío → 5 racimos",
+    "pasos": [
+      {
+        "paso": "master",
+        "herramienta": "text-to-image",
+        "modelo": "GPT 2",
+        "creditos": 180,
+        "fecha": "2026-09-25T12:15:00+00:00",
+        "magnific": "KL6xiC7kqp",
+        "prompt": "A square medieval wall mural made of painted glazed ceramic tiles (azulejos) for the wine cellar of a castle in a fantasy game, seen perfectly straight from the front, flat. The mural is a 3 by 3 grid of nine large square tiles with thin grout lines between them, surrounded by a simple border of plain blue and ochre tiles. The painted scene, in a warm hand-painted ceramic style with blue, ochre, green and purple glazes, shows the grape harvest: two peasants on the left carrying a big basket and pouring grapes into ONE large wooden wine barrel on the right, and in the air between the basket and the barrel EXACTLY FIVE big bunches of purple grapes falling into the barrel, large, evenly spaced and clearly separated so they are easy to count: one, two, three, four, five. No other grapes, barrels or bunches anywhere else in the scene; vineyard hills and sky in the background. The scene continues across the tile seams so each tile shows a different part of it. Soft light from the upper left. The mural fills the image edge to edge on a flat light grey background, no wall, no shadow, no text, no numbers."
+      },
+      {
+        "paso": "retoque",
+        "herramienta": "retouch",
+        "modelo": "Auto",
+        "creditos": 10,
+        "fecha": "2026-09-25T12:18:04+00:00",
+        "magnific": "mEsfwVKhJQ",
+        "prompt": "The empty inside of a tilted woven straw basket, only woven straw, no grapes inside, same hand-painted glazed ceramic tile style and colors as the rest of the mural."
+      },
+      {
+        "paso": "retoque",
+        "herramienta": "retouch",
+        "modelo": "Auto",
+        "creditos": 10,
+        "fecha": "2026-09-25T12:18:46+00:00",
+        "magnific": "ovrmgGB829",
+        "prompt": "One single bunch of purple grapes with a small green stem, falling through the air, same size and same hand-painted glazed ceramic tile style as the other falling grape bunches of the mural, with the vineyard hills behind it."
+      }
+    ],
+    "creditos_total": 200
+  },
+  "salon": {
+    "asset": "pared/salon",
+    "space": {
+      "nombre": "Objetos · Sala del trono",
+      "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+    },
+    "proceso": "Salón · cuadros y tapices de la pista (4 torres, 7 dragones, brasero apagado, 2 estatuas, tapiz decorativo)",
+    "pasos": [
+      {
+        "paso": "master",
+        "herramienta": "text-to-image",
+        "modelo": "GPT 2",
+        "creditos": 180,
+        "fecha": "2026-09-25T11:54:04+00:00",
+        "magnific": "UPWJjcDwny",
+        "prompt": "A framed landscape painting for a medieval fantasy game, seen perfectly straight from the front, flat, with exactly the same thick chunky golden frame and the same classical oil-painting style as the reference painting (visible brushstrokes, warm varnish tones, old-master look). It shows the kingdom: green rolling hills, a winding river and a cloudy sky, and in the center a big castle on a hill with EXACTLY FOUR tall round towers, all four the same style with red conical roofs and small flags, standing in a row, evenly spaced and clearly separated so they are easy to count: one, two, three, four. The four towers are large and fill the middle of the canvas. No other towers, buildings or castles anywhere else in the painting, no people. Soft light from the upper left. The frame fills the image edge to edge on a flat light grey background, no wall, no shadow, no text."
+      },
+      {
+        "paso": "master",
+        "herramienta": "text-to-image",
+        "modelo": "GPT 2",
+        "creditos": 180,
+        "fecha": "2026-09-25T11:57:39+00:00",
+        "magnific": "UPWJS77wny",
+        "prompt": "A medieval woven wall tapestry for a castle throne room, for a fantasy game, seen perfectly straight from the front, flat. A tall rectangular hanging tapestry of deep red woven fabric with a golden woven border, hanging from a thick dark iron rod with round iron end knobs (same grey iron as the reference chest), with a short golden fringe at the bottom edge. On the red field there are EXACTLY SEVEN small golden dragons, all the same size and the same simple bold silhouette (side view, wings up), arranged in two neat rows: FOUR dragons in the upper row and THREE dragons in the lower row, evenly spaced and clearly separated from each other so they are easy to count: one, two, three, four, five, six, seven. No other dragons, animals, figures or symbols anywhere else on the tapestry, only simple border patterns. Visible woven fabric texture, soft folds, the same stylized 3D toon rendering, soft shading, saturated colors and soft upper-left lighting as the reference image. Edges defined only by light and shading, no outline. The tapestry is centered on a flat uniform light grey background, no wall, no shadow, no text."
+      },
+      {
+        "paso": "master",
+        "herramienta": "text-to-image",
+        "modelo": "GPT 2",
+        "creditos": 180,
+        "fecha": "2026-09-25T12:00:25+00:00",
+        "magnific": "4Rpi6Qh9Aa",
+        "prompt": "A framed painting for a medieval fantasy game, seen perfectly straight from the front, flat, with exactly the same thick chunky golden frame with square corner blocks and the same classical oil-painting style as the first reference painting (visible brushstrokes, warm varnish tones, old-master look). It shows, as a still life in a dim stone hall, the brazier of the second reference image (a wide iron bowl with rivets on a square stone pedestal) burning with bright orange flames, and floating in the air above the flames EXACTLY THREE glowing round orange embers, well separated from each other and from the flames so they are easy to count: one, two, three. The brazier is large and centered. No other embers, sparks, candles, lights, people or objects anywhere else in the painting. Soft light from the upper left and the warm glow of the fire. The frame fills the image edge to edge on a flat light grey background, no wall, no shadow, no text."
+      },
+      {
+        "paso": "master",
+        "herramienta": "text-to-image",
+        "modelo": "GPT 2",
+        "creditos": 180,
+        "fecha": "2026-09-25T12:00:28+00:00",
+        "magnific": "TdQpDOhVNR",
+        "prompt": "A framed painting for a medieval fantasy game, seen perfectly straight from the front, flat, with exactly the same thick chunky golden frame with square corner blocks and the same classical oil-painting style as the first reference painting (visible brushstrokes, warm varnish tones, old-master look). It shows a large arched wooden castle gate in a stone wall, and on each side of the gate one stone knight statue exactly like the second reference image (closed helm, both hands on a sword pointing down, cape, on a square stone pedestal): EXACTLY TWO statues, one on the left and one on the right, both large, facing forward, symmetrical and clearly separated so they are easy to count: one, two. No other statues, people, figures or animals anywhere else in the painting. Soft light from the upper left. The frame fills the image edge to edge on a flat light grey background, no wall, no shadow, no text."
+      },
+      {
+        "paso": "master",
+        "herramienta": "text-to-image",
+        "modelo": "GPT 2",
+        "creditos": 180,
+        "fecha": "2026-09-25T12:05:22+00:00",
+        "magnific": "rgRsw1mxtc",
+        "prompt": "A medieval woven wall tapestry for a castle throne room, for a fantasy game, seen perfectly straight from the front, flat. Exactly the same tapestry as the reference image (same deep red woven fabric, same golden braided border, same thick dark iron rod with round iron end knobs and red hanging loops, same golden fringe at the bottom, same size and proportions), but instead of the small dragons it shows ONE SINGLE large golden dragon emblem in the center, rearing up with spread wings, filling most of the red field, like a royal coat of arms. Only one dragon, no small dragons, no other animals, figures or symbols. Visible woven fabric texture, soft folds, the same stylized 3D toon rendering, soft shading, saturated colors and soft upper-left lighting. Edges defined only by light and shading, no outline. Centered on a flat uniform light grey background, no wall, no shadow, no text."
+      },
+      {
+        "paso": "retoque",
+        "herramienta": "retouch",
+        "modelo": "Auto",
+        "creditos": 10,
+        "fecha": "2026-09-25T12:05:41+00:00",
+        "magnific": "UPWO6enwny",
+        "prompt": "Classical oil painting with visible brushstrokes: the inside of a cold unlit iron brazier bowl filled with charred black logs, black charcoal and grey ash, completely cold: no fire, no flames, no embers, no sparks, no glow, no floating lights; above it only the dim stone wall of the hall in the same warm muted old-master colors and brushwork as the rest of the painting."
+      }
+    ],
+    "creditos_total": 910
+  }
+}

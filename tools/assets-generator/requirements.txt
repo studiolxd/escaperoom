@@ -1,0 +1,4 @@
+# Python de los scripts de empaquetado y del generador de tiles (Blender usa su propio Python).
+# Versiones validadas: ver entorno.json.
+Pillow==11.3.0
+numpy==2.0.2

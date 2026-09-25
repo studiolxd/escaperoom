@@ -1,0 +1,350 @@
+{
+  "id": "medieval-v1",
+  "version": "1.0.0-rc.1",
+  "estilo": "castillo-toon",
+  "descripcion": "Pack medieval de EscapeRoom (escape room del Rey Aldric).",
+  "proyeccion": {
+    "tileWidth": 64,
+    "tileHeight": 32,
+    "scale": 2
+  },
+  "collides": {
+    "1": false,
+    "2": false,
+    "3": false,
+    "10": true,
+    "20": false,
+    "21": false,
+    "22": false
+  },
+  "referencia_escala": "personajes/caballero-m/mixamo/idle.fbx",
+  "exportador": "escaperoom",
+  "blender_extra": [
+    {
+      "_": "renders que no son objetos, paredes ni personajes (los ejecuta scripts/verificar.py): script del pack -> carpeta de renders/",
+      "script": "blender/sala_prueba.py",
+      "salida": "sala-prueba"
+    }
+  ],
+  "avatar": {
+    "_": "animaciones: nombre del FBX de Mixamo -> fotogramas, tramo del clip [inicio, fin) (null = fotogramas clave por la extensión de la mano) y bucle. acciones: FBX -> (acción del runtime, fps). direcciones: dirección del render -> dirección del runtime.",
+    "animaciones": {
+      "idle": {
+        "fotogramas": 8,
+        "tramo": [
+          0.0,
+          1.0
+        ],
+        "bucle": true
+      },
+      "andar": {
+        "fotogramas": 8,
+        "tramo": [
+          0.0,
+          1.0
+        ],
+        "bucle": true
+      },
+      "alcanzar": {
+        "fotogramas": 4,
+        "tramo": null,
+        "bucle": false
+      }
+    },
+    "acciones": {
+      "idle": [
+        "idle",
+        8
+      ],
+      "andar": [
+        "walk",
+        12
+      ],
+      "alcanzar": [
+        "interact",
+        8
+      ]
+    },
+    "direcciones": {
+      "abajo-der": "e",
+      "abajo-izq": "s",
+      "arriba-izq": "w",
+      "arriba-der": "n"
+    },
+    "tamanos": {
+      "2x": [
+        128,
+        192
+      ],
+      "1x": [
+        64,
+        96
+      ]
+    },
+    "origen_por_defecto": [
+      0.5,
+      0.886
+    ],
+    "etiquetas": {
+      "caballero-m": {
+        "es": {
+          "text": "Caballero"
+        },
+        "en": {
+          "text": "Knight"
+        }
+      },
+      "caballero-f": {
+        "es": {
+          "text": "Caballera"
+        },
+        "en": {
+          "text": "Knight"
+        }
+      },
+      "arquero-m": {
+        "es": {
+          "text": "Arquero"
+        },
+        "en": {
+          "text": "Archer"
+        }
+      },
+      "arquero-f": {
+        "es": {
+          "text": "Arquera"
+        },
+        "en": {
+          "text": "Archer"
+        }
+      },
+      "mago-m": {
+        "es": {
+          "text": "Mago"
+        },
+        "en": {
+          "text": "Wizard"
+        }
+      },
+      "mago-f": {
+        "es": {
+          "text": "Maga"
+        },
+        "en": {
+          "text": "Witch"
+        }
+      },
+      "campesino-m": {
+        "es": {
+          "text": "Campesino"
+        },
+        "en": {
+          "text": "Peasant"
+        }
+      },
+      "campesina-f": {
+        "es": {
+          "text": "Campesina"
+        },
+        "en": {
+          "text": "Peasant"
+        }
+      }
+    }
+  },
+  "iconos": {
+    "_": "hojas: imagen de fuentes/iconos/ -> ids de sus objetos en orden de lectura ('-' = objeto que no se entrega). alias: icono que es copia de otro.",
+    "tamanos": {
+      "1x": 64,
+      "2x": 128,
+      "master": 512
+    },
+    "hojas": [
+      {
+        "imagen": "hoja_iconos.png",
+        "ids": [
+          "-",
+          "vela",
+          "antorcha",
+          "caliz",
+          "busto",
+          "espejo",
+          "pergamino"
+        ]
+      },
+      {
+        "imagen": "llave-oro.png",
+        "ids": [
+          "llave-oro"
+        ]
+      },
+      {
+        "imagen": "llave-plata.png",
+        "ids": [
+          "llave-plata"
+        ]
+      },
+      {
+        "imagen": "llave-bronce.png",
+        "ids": [
+          "llave-bronce"
+        ]
+      },
+      {
+        "imagen": "yesquero.png",
+        "ids": [
+          "yesquero"
+        ]
+      }
+    ],
+    "alias": {}
+  },
+  "derivados": {
+    "_": "Imágenes de entregas/ que se sacan de otra (scripts/empaquetar/empaquetar_derivados.py): vista de inspección, puzles y copias de fuentes hechas a mano (copia: true copia el archivo o la carpeta tal cual; fx-spark se dibujó a mano y su código se perdió). fuente relativa al pack; recorte = caja [x0,y0,x1,y1] o 'alfa' (caja del contenido); lado_max = reducir sin deformar (thumbnail); tamano = tamaño exacto; metodo = bicubic | lanczos. icono: centrar en lienzos cuadrados ({tamano} en la salida) ocupando relleno del lado, como los iconos.",
+    "imagenes": [
+      {
+        "salida": "objetos/inspeccion/cuadro-reino-4torres.png",
+        "fuente": "fuentes/pared/cuadro-reino-4torres.png",
+        "lado_max": 1024,
+        "metodo": "bicubic"
+      },
+      {
+        "salida": "objetos/inspeccion/cuadro-reino-brasero.png",
+        "fuente": "fuentes/pared/cuadro-reino-brasero.png",
+        "lado_max": 1024,
+        "metodo": "bicubic"
+      },
+      {
+        "salida": "objetos/inspeccion/cuadro-reino-estatuas.png",
+        "fuente": "fuentes/pared/cuadro-reino-estatuas.png",
+        "lado_max": 1024,
+        "metodo": "bicubic"
+      },
+      {
+        "salida": "objetos/inspeccion/cuadro-rey.png",
+        "fuente": "fuentes/pared/cuadro-rey.png",
+        "lado_max": 1024,
+        "metodo": "bicubic"
+      },
+      {
+        "salida": "objetos/inspeccion/estandarte.png",
+        "fuente": "fuentes/pared/estandarte.png",
+        "lado_max": 1024,
+        "metodo": "bicubic"
+      },
+      {
+        "salida": "objetos/inspeccion/mirilla.png",
+        "fuente": "fuentes/pared/mirilla.png",
+        "lado_max": 1024,
+        "metodo": "bicubic"
+      },
+      {
+        "salida": "objetos/inspeccion/mural-completo.png",
+        "fuente": "fuentes/pared/mural-completo.png",
+        "lado_max": 1024,
+        "metodo": "bicubic"
+      },
+      {
+        "salida": "objetos/inspeccion/mural-desordenado.png",
+        "fuente": "fuentes/pared/mural-desordenado.png",
+        "lado_max": 1024,
+        "metodo": "bicubic"
+      },
+      {
+        "salida": "objetos/inspeccion/tapiz-7-dragones.png",
+        "fuente": "fuentes/pared/tapiz-7-dragones.png",
+        "lado_max": 1024,
+        "metodo": "lanczos"
+      },
+      {
+        "salida": "objetos/inspeccion/tapiz-dragones.png",
+        "fuente": "fuentes/pared/tapiz-dragones.png",
+        "lado_max": 1024,
+        "metodo": "lanczos"
+      },
+      {
+        "salida": "objetos/inspeccion/vasijas-8.png",
+        "fuente": "renders/vasijas/sprite_vasijas-8_abajo-izq.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/puzles/mural-vendimia-3x3.png",
+        "fuente": "fuentes/pared/mural-completo.png",
+        "recorte": [
+          131,
+          119,
+          1839,
+          1847
+        ],
+        "tamano": [
+          1024,
+          1024
+        ],
+        "metodo": "lanczos"
+      },
+      {
+        "salida": "fx",
+        "fuente": "fuentes/fx/fx-spark",
+        "copia": true
+      },
+      {
+        "salida": "objetos/{tamano}/llave-bronce-suelo.png",
+        "fuente": "renders/sala-prueba/sprite_llave-bronce-suelo.png",
+        "recorte": "alfa",
+        "icono": {
+          "relleno": 0.9,
+          "tamanos": {
+            "1x": 64,
+            "2x": 128,
+            "master": 512
+          }
+        }
+      }
+    ]
+  },
+  "objetos": {
+    "_": "colgados: prefijos de los frames que cuelgan de un muro (su origin se calcula para la celda del muro). alias: frames que el fixture aún pide -> frame que los sustituye.",
+    "colgados": [
+      "cuadro-",
+      "tapiz-",
+      "estandarte",
+      "mural-",
+      "compartimento",
+      "ranura-",
+      "mirilla",
+      "antorcha"
+    ],
+    "alias": {
+      "cuadro-reino": "cuadro-reino-estatuas"
+    },
+    "extra_pivotes": {
+      "llave-bronce-suelo": {
+        "lienzo_1x": [
+          64,
+          64
+        ],
+        "pivote": [
+          0.5,
+          0.5
+        ]
+      }
+    }
+  },
+  "fx": [
+    {
+      "key": "fx-spark",
+      "fotogramas": 16,
+      "frameRate": 16,
+      "repeat": -1,
+      "tamano_1x": [
+        64,
+        64
+      ]
+    }
+  ],
+  "notas_salida": [
+    "Muros de 2,4 m (64×136 a 1×). `tile-20`, `tile-21` y `tile-22` son el muro con hueco de arco (la hoja de la puerta y la reja son objetos `puerta-*`/`reja-*` que se dibujan encima).",
+    "`sprites/`: variantes `-der` / `-x` / `-y` para la otra pared o el otro eje; piezas de muro sin tileId (`muro-arco`, `muro-ventana`, `muro-esquina`, `muro-remate`, `trampilla`).",
+    "`avatar/`: 80 frames por personaje. `fx/`: brillo reutilizable `fx-spark-1..16` (64×64 a 1×; estrella dorada que aparece, gira y se apaga)."
+  ]
+}

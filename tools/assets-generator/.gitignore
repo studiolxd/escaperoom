@@ -1,0 +1,14 @@
+# --- generado o regenerable ---
+__pycache__/
+*.pyc
+*.bak
+.DS_Store
+node_modules/
+# renders de Blender y del generador de tiles (estilos/*/renders/, packs/*/renders/): se regeneran
+renders/
+# carpeta del pack para el juego (scripts/empaquetar/empaquetar_pack.py -> packs/*/salida/)
+salida/
+# --- secretos ---
+.env
+*.env
+**/credenciales*

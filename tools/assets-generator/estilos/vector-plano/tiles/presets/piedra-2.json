@@ -1,0 +1,20 @@
+{
+  "type": "piedra",
+  "params": {
+    "seed": 21,
+    "grid": 4,
+    "jitter": 0.6,
+    "gray_min": 152,
+    "gray_max": 192,
+    "tint": [
+      4,
+      4,
+      0
+    ],
+    "mortar": "#3a3836",
+    "gap": 0.14,
+    "shadow": 40,
+    "highlight": 26,
+    "noise_alpha": 0.3
+  }
+}

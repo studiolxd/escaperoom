@@ -1,0 +1,68 @@
+{
+  "_": "Fichas de los iconos de inventario (ver entregas/iconos/LEEME.md y la biblia del estilo, §6).",
+  "llave-oro": {
+    "asset": "iconos/llave-oro.png",
+    "space": {
+      "nombre": "Personajes jugables",
+      "url": "https://www.magnific.com/app/spaces/a2d36c51-07a1-4cd4-951f-476295691b74"
+    },
+    "pasos": [
+      {
+        "paso": "master",
+        "herramienta": "text-to-image",
+        "modelo": "GPT 2",
+        "resolucion": "2k",
+        "aspecto": "1:1",
+        "creditos": 180,
+        "referencias": [
+          "master del caballero",
+          "hoja de cuerpos"
+        ],
+        "prompt": "Game inventory icon of a single antique treasure-chest key made of shiny gold, in exactly the same art style, stylized 3D toon rendering, shading and saturated colors as the character in the reference images. Chunky exaggerated proportions for readability at small size: a large ornate round bow with a simple trefoil shape and one round hole, a short thick shaft, and a big simple bit with two or three bold teeth. Simple bold shapes, no fine engravings or filigree. Front view, the key lying flat facing the camera, placed diagonally with the bow at the upper left and the bit at the lower right, centered, filling most of the frame. Warm yellow gold with clean toon highlights, edges defined only by light and shading, no outline. Soft light from the upper left. Isolated on a flat uniform light grey background, no shadow, nothing else in the image."
+      }
+    ],
+    "notas": "El nodo del Space falló; se generó fuera (variante 1 elegida como ancla de estilo)."
+  },
+  "llave-plata": {
+    "asset": "iconos/llave-plata.png",
+    "pasos": [
+      {
+        "paso": "tinte local",
+        "notas": "teñida en local desde llave-oro (misma forma)"
+      }
+    ]
+  },
+  "llave-bronce": {
+    "asset": "iconos/llave-bronce.png",
+    "pasos": [
+      {
+        "paso": "tinte local",
+        "notas": "teñida en local desde llave-oro (misma forma)"
+      }
+    ]
+  },
+  "yesquero": {
+    "asset": "iconos/yesquero.png",
+    "pasos": [
+      {
+        "paso": "master",
+        "modelo": "GPT 2",
+        "notas": "generado aparte (5 versiones; la 5 es la aprobada; las demás, en archivo/ de pipeline-assets)"
+      }
+    ]
+  },
+  "hoja_iconos": {
+    "asset": "iconos/hoja_iconos.png",
+    "pasos": [
+      {
+        "paso": "master",
+        "modelo": "GPT 2",
+        "referencias": [
+          "llave-oro (ancla)",
+          "master del caballero"
+        ],
+        "notas": "una sola generación para compartir vista y luz: vela, antorcha, cáliz, busto, espejo, pergamino (+ una llave que no se usa); prompt no guardado"
+      }
+    ]
+  }
+}

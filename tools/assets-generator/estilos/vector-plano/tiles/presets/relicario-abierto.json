@@ -1,0 +1,7 @@
+{
+  "type": "sprite",
+  "params": {
+    "kind": "relicario",
+    "state": "abierto"
+  }
+}

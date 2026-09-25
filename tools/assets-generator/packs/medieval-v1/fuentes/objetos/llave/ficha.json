@@ -1,0 +1,19 @@
+{
+  "asset": "objetos/llave",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Llave de bronce (3D)",
+  "pasos": [
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-p1",
+      "creditos": 580,
+      "fecha": "2026-09-25T09:34:19+00:00",
+      "magnific": "SynSwmFUb8"
+    }
+  ],
+  "creditos_total": 580
+}

@@ -1,0 +1,28 @@
+{
+  "asset": "objetos/barril",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Bodega · barril: master → 3D (estados y pila en Blender)",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-25T12:14:52+00:00",
+      "magnific": "fHUQwWNCDY",
+      "prompt": "Game prop design of a single medieval oak wine barrel for the wine cellar of a castle, for an isometric escape room game. Standing upright, closed, classic bulging barrel shape made of dark brown oak staves with visible seams, four thick grey iron hoops with round rivets (same iron and rivets as the reference chest), a flat round top lid made of planks. Chunky simple bold shapes, no text, no numbers, no symbols, no tap. Seen in a three-quarter front view slightly from above, whole object visible and centered. Exactly the same stylized 3D toon rendering, soft shading, saturated colors and soft upper-left lighting as the reference image. Edges defined only by light and shading, no outline. Isolated on a flat uniform light grey background, no floor, no shadow, no text."
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-p1",
+      "creditos": 580,
+      "fecha": "2026-09-25T12:17:36+00:00",
+      "magnific": "CqwFPxTEEy"
+    }
+  ],
+  "creditos_total": 760
+}

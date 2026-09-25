@@ -1,0 +1,22 @@
+{
+  "name": "assets-generator",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.5.1",
+  "scripts": {
+    "tiles:build": "python3 scripts/tiles/tilegen.py build --all",
+    "tiles:preview": "node scripts/tiles/preview.mjs",
+    "tiles:preview-estetica": "node scripts/tiles/preview-estetica.mjs",
+    "objetos": "python3 scripts/empaquetar/empaquetar_objeto.py --todos",
+    "pack": "python3 scripts/empaquetar/empaquetar_pack.py",
+    "verificar": "python3 scripts/verificar.py",
+    "validar": "python3 scripts/comun/validar.py",
+    "fichas": "python3 scripts/fichas.py"
+  },
+  "devDependencies": {
+    "sharp": "0.34.5"
+  },
+  "engines": {
+    "node": ">=26"
+  }
+}

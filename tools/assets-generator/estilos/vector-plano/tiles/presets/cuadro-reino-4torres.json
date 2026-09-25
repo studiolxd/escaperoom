@@ -1,0 +1,7 @@
+{
+  "type": "sprite",
+  "params": {
+    "kind": "cuadro-reino",
+    "state": "4torres"
+  }
+}
