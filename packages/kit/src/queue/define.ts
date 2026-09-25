@@ -25,7 +25,11 @@ export const DEFAULT_JOB_OPTIONS: JobsOptions = {
   attempts: 3,
   backoff: { type: "exponential", delay: 5000 },
   removeOnComplete: 1000,
-  removeOnFail: 5000,
+  // E-23: un job fallido conserva su payload completo en Redis (para
+  // analítica, incluye playerId/sessionId) mientras no se purga; antes
+  // solo tenía tope por cantidad (5000, sin límite de tiempo). Ahora lo
+  // que llegue antes: como mucho 500 o 24 h.
+  removeOnFail: { count: 500, age: 24 * 60 * 60 },
 };
 
 /**
