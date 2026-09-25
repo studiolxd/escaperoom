@@ -483,12 +483,22 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   /**
-   * Gancho de hitos (ticket 5.12): no hace nada en la `GameRoom`; la
-   * `EventRoom` lo sobrescribe para persistirlos. Se llama de forma síncrona
-   * desde el bucle de juego, así que quien lo implemente no debe bloquear.
+   * Gancho de hitos (ticket 5.12): la `EventRoom` lo sobrescribe entero para
+   * persistirlos (sin llamar a `super`). Aquí solo consume el `game_ended`
+   * de una compra B2C (B-4): marca `playSessionEndedAt` — consumo
+   * DEFINITIVO de la única partida de la compra (specs/02, decisión del
+   * README: se gasta al terminar, no al crear). Se llama de forma síncrona
+   * desde el bucle de juego: la escritura es asíncrona y no bloquea.
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- punto de extensión
-  protected onMilestone(milestone: GameMilestone): void {}
+  protected onMilestone(milestone: GameMilestone): void {
+    if (milestone.kind !== "game_ended" || this.gameAccess?.kind !== "purchase") return;
+    const purchaseId = this.gameAccess.purchaseId;
+    getGameAccessRuntime()
+      ?.markPlaySessionEnded(purchaseId)
+      .catch((err: unknown) => {
+        logger.warn({ err, roomId: this.roomId, purchaseId }, "game-access: fallo al consumir la compra");
+      });
+  }
 
   /** Reloj de un hito: ahora, tiempo jugado y pistas acumuladas. */
   private milestoneClock(): GameMilestoneClock {
@@ -579,6 +589,26 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.chat.leave(client.sessionId);
     this.messageLimiter?.forget(client.sessionId);
     this.deniedActions.delete(client.sessionId);
+  }
+
+  /**
+   * Si la room se cierra sin que la partida terminara (B-4: todos se fueron,
+   * se expulsó la room, el servidor se reinicia con gracia…) y era de una
+   * compra, LIBERA la reclamación (`playSessionStartedAt`/
+   * `playSessionColyseusId` a `NULL`) para que se pueda volver a jugar. Si
+   * terminó (`this.ended`, fijado por `announceEnd`), ya está consumida
+   * (`onMilestone`): no toca nada. `EventRoom` sobrescribe `onDispose` entero
+   * (vacía su cola de progreso) y nunca juega paquetes comprados, así que no
+   * llama a `super`.
+   */
+  onDispose(): Promise<void> | void {
+    if (this.ended || this.gameAccess?.kind !== "purchase") return;
+    const purchaseId = this.gameAccess.purchaseId;
+    return getGameAccessRuntime()
+      ?.releasePlaySession(purchaseId, this.roomId)
+      .catch((err: unknown) => {
+        logger.warn({ err, roomId: this.roomId, purchaseId }, "game-access: fallo al liberar la compra");
+      });
   }
 
   // — Handlers ————————————————————————————————————————————————————

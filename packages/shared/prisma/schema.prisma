@@ -404,8 +404,11 @@ model purchase {
   /// B-9: instante del último intento del barrido de payouts (`creator-payouts.ts`); `NULL` si nunca se ha intentado. Ordena la cola para que una compra bloqueada (creador sin onboarding) no acapare `limit` para siempre.
   payoutAttemptAt       DateTime?      @db.Timestamptz(6)
   status                purchaseStatus @default(pending)
+  /// B-4 (bloque 3, auditoría 2026-09-24): instante en que `GameRoom.onCreate` reclamó la partida (escritura condicional). `NULL` = libre. Reclamada mucho antes de `PLAY_SESSION_STALE_AFTER_SECONDS` sin `playSessionEndedAt` (servidor caído sin `onDispose`) se puede volver a reclamar.
   playSessionStartedAt  DateTime?      @db.Timestamptz(6)
   playSessionColyseusId String?
+  /// B-4: instante en que la partida TERMINÓ (victoria, derrota o tiempo agotado — hito `game_ended`). Consumo definitivo de la única partida (specs/02): a partir de aquí `playable` nunca vuelve a `true`. Si la room se cierra (`onDispose`) sin llegar aquí, `playSessionStartedAt`/`playSessionColyseusId` se liberan a `NULL` (se puede reintentar).
+  playSessionEndedAt    DateTime?      @db.Timestamptz(6)
   createdAt             DateTime       @default(now()) @db.Timestamptz(6)
   /// E-11: marca de verdad del email de confirmación de compra (room/room_license); la pone el worker al entregarlo, no el webhook al encolarlo.
   confirmationSentAt    DateTime?      @db.Timestamptz(6)

@@ -8,7 +8,13 @@ export function createPrismaRoomAccessStore(prisma: PrismaClient): RoomAccessSto
       const row = await prisma.purchase.findFirst({
         where: { userId, purchaseType: "room", status: "succeeded", roomVersion: { roomId } },
         orderBy: { createdAt: "desc" },
-        select: { id: true, roomVersionId: true, playSessionStartedAt: true },
+        select: {
+          id: true,
+          roomVersionId: true,
+          playSessionStartedAt: true,
+          playSessionEndedAt: true,
+          playSessionColyseusId: true,
+        },
       });
       if (!row) return null;
       return {
@@ -16,6 +22,8 @@ export function createPrismaRoomAccessStore(prisma: PrismaClient): RoomAccessSto
         // `chkPurchaseTarget` garantiza `roomVersionId` en una compra `room`.
         roomVersionId: row.roomVersionId ?? "",
         playSessionStartedAt: row.playSessionStartedAt,
+        playSessionEndedAt: row.playSessionEndedAt,
+        playSessionColyseusId: row.playSessionColyseusId,
       };
     },
   };
