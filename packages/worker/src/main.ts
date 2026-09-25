@@ -20,6 +20,7 @@ import {
   createPrismaMcpOAuthPurgeStore,
   createPrismaPurchaseConfirmationStore,
   createPrismaSessionIpUaPurgeStore,
+  createPrismaStripeWebhookEventPurgeStore,
   createPrismaTermsAcceptanceIpUaPurgeStore,
   readEmailPurgeSecret,
   readIpUaPurgeSecret,
@@ -34,6 +35,7 @@ import { createInvitationEmailWorker } from "./invitation-email";
 import { createPurchaseConfirmationEmailWorker } from "./purchase-confirmation-email";
 import { createPurchaseConfirmationOutboxWorker } from "./purchase-confirmation-outbox";
 import { createModerationSamplingWorker } from "./moderation-sampling";
+import { createStripeWebhookPurgeWorker } from "./stripe-webhook-purge";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
 import { startWorkerHealthServer } from "./health-server";
 
@@ -120,7 +122,11 @@ async function main(): Promise<void> {
         })
       : null;
   if (!emailPurge) {
-    logger.warn("access-key email purge: APP_SECRET no configurado; job inactivo");
+    // E-16: en producción esto es un fallo de configuración real (el email de
+    // participantes, posiblemente de menores, no se purga nunca), no un aviso
+    // de desarrollo — `logger.error` para que salte una alerta.
+    const log = process.env.NODE_ENV === "production" ? logger.error : logger.warn;
+    log.call(logger, "access-key email purge: APP_SECRET no configurado; job inactivo");
   }
 
   // Purga de IP/user-agent de session y termsAcceptance: mismo APP_SECRET.
@@ -225,6 +231,13 @@ async function main(): Promise<void> {
     connection: samplingConnection,
   });
 
+  // Purga de stripeWebhookEvent (B-19): nunca se limpiaba, crecía sin límite.
+  const stripeWebhookPurgeConnection = createQueueRedis();
+  const stripeWebhookPurge = await createStripeWebhookPurgeWorker({
+    store: createPrismaStripeWebhookEventPurgeStore(prisma),
+    connection: stripeWebhookPurgeConnection,
+  });
+
   // Purga del OAuth del MCP (A-15): filas `mcp-oauth:*` caducadas en `verification`.
   const mcpOAuthPurgeConnection = createQueueRedis();
   const mcpOAuthPurge = await createMcpOAuthPurgeWorker({
@@ -247,6 +260,7 @@ async function main(): Promise<void> {
       partitions.worker,
       sampling.worker,
       purchaseConfirmationOutbox?.worker,
+      stripeWebhookPurge.worker,
       mcpOAuthPurge.worker,
     ].filter((w): w is Worker => Boolean(w));
 
@@ -274,6 +288,8 @@ async function main(): Promise<void> {
     await sampling.queue.close();
     await purchaseConfirmationOutbox?.worker.close();
     await purchaseConfirmationOutbox?.queue.close();
+    await stripeWebhookPurge.worker.close();
+    await stripeWebhookPurge.queue.close();
     await mcpOAuthPurge.worker.close();
     await mcpOAuthPurge.queue.close();
     await new Promise<void>((resolve, reject) =>
@@ -289,6 +305,7 @@ async function main(): Promise<void> {
     await partitionsConnection.quit().catch(() => undefined);
     await samplingConnection.quit().catch(() => undefined);
     await purchaseConfirmationOutboxConnection?.quit().catch(() => undefined);
+    await stripeWebhookPurgeConnection.quit().catch(() => undefined);
     await mcpOAuthPurgeConnection.quit().catch(() => undefined);
     // El propio barrido reencola con la conexión "productora" compartida de
     // kit (misma que usaría un `createPurchaseConfirmationEmailQueue()` en

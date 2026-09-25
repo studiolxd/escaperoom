@@ -267,9 +267,16 @@ describe("export de tarjetas", () => {
         t.cards.getExport(other, result.jobId, { appUrl: APP_URL }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
 
+      // E-8: sin `codes` explícitos ("todas las vivas"), el job encolado no
+      // lleva ningún código en claro — el worker los relee de Postgres.
+      const queuedJob = await t.queue.find(result.jobId);
+      expect(queuedJob?.data.filter.codes).toBeNull();
+
       await t.queue.runPending((jobId, data) => t.cards.runExportJob(jobId, data, t.blobs));
       const done = await t.cards.getExport(author, result.jobId, { appUrl: APP_URL });
       expect(done.status).toBe("completed");
+      // El job terminado tampoco conserva códigos.
+      expect((await t.queue.find(result.jobId))?.data.filter.codes).toBeNull();
       const url = new URL(done.downloadUrl!);
       expect(url.pathname).toBe(`/api/exports/${result.jobId}/download`);
 

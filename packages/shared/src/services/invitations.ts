@@ -142,6 +142,19 @@ export function confirmationUrl(appUrl: string, locale: string, code: string, to
  * Sella el envío: `sentAt` y, si la clave espera confirmación, `generated|sent
  * → pending_confirmation`. Escritura condicional con reintento (un canje o una
  * confirmación simultáneos ganan y solo se añade `sentAt`).
+ *
+ * Se llama DESPUÉS de un `transport.send()` que no lanzó — nunca antes: si se
+ * llamara antes, un fallo del transporte dejaría `sentAt` puesto sin que se
+ * hubiera entregado nada. La entrega es **at-least-once a propósito**: si el
+ * proceso muere justo tras un envío correcto pero antes de persistir esta
+ * marca, BullMQ reintenta el job entero (nunca se marcó como completado) y la
+ * persona recibe la invitación por duplicado. Es preferible a una
+ * invitación perdida (at-most-once), y el `X-Entity-Ref-ID` estable de
+ * `deliverInvitationEmail` (E-20) hace que los clientes de correo agrupen ese
+ * posible duplicado con el mensaje original en vez de mostrar dos hilos. No
+ * hace falta un outbox como el de compras (#119, E-11): esto no es
+ * contabilidad ni tiene efecto legal, es una invitación a jugar que además se
+ * puede reenviar a mano (`resend`).
  */
 async function recordSent(
   store: Pick<InvitationStore, "findKey" | "updateKey">,
@@ -225,8 +238,13 @@ export async function deliverInvitationEmail(
   const { messageId } = await deps.transport.send({
     to: key.email,
     ...rendered,
-    // Cada invitación es un mensaje propio: que el cliente no las agrupe en un hilo.
-    headers: { "X-Entity-Ref-ID": `${key.code}:${now().getTime()}` },
+    // Ref estable por (code, kind), no `Date.now()`: un reintento de BullMQ
+    // de la MISMA entrega agrupa con el mensaje original en vez de crear un
+    // hilo nuevo cada vez (E-20) — así un posible duplicado at-least-once
+    // (ver `recordSent`) es menos molesto para quien lo recibe. Un `resend`
+    // explícito con otro `kind` (invitación → recordatorio) sí es un mensaje
+    // distinto y se hila aparte, que es lo que se quiere.
+    headers: { "X-Entity-Ref-ID": `invitation:${job.kind}:${key.code}` },
   });
   await recordSent(deps.store, key.code, now());
   return { status: "sent", messageId };

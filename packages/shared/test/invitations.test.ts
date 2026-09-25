@@ -184,6 +184,30 @@ describe("invitaciones por email (ticket 5.6)", () => {
     expect(t.keyStore.keys.every((k) => k.sentAt !== null)).toBe(true);
   });
 
+  it("E-20: X-Entity-Ref-ID estable por (code, kind), no por Date.now()", async () => {
+    const t = setup();
+    const event = await t.createEvent();
+    await t.invitations.activateAndInvite(author, event.id, {
+      keyPlan: [{ type: "individual", emails: emails(1) }],
+    });
+    const [job] = t.jobs;
+    await deliverInvitationEmail(t.deliveryDeps, job!);
+    const code = t.keyStore.keys[0]!.code;
+    expect(t.transport.sent[0]!.headers).toEqual({
+      "X-Entity-Ref-ID": `invitation:${job!.kind}:${code}`,
+    });
+
+    // Un reenvío explícito (recordatorio) usa la MISMA referencia salvo por
+    // `kind`: sigue siendo estable, no lleva ningún reloj.
+    t.advance(HOUR);
+    await t.invitations.resend(author, code);
+    const [reminderJob] = t.jobs;
+    await deliverInvitationEmail(t.deliveryDeps, reminderJob!);
+    expect(t.transport.sent[1]!.headers).toEqual({
+      "X-Entity-Ref-ID": `invitation:${reminderJob!.kind}:${code}`,
+    });
+  });
+
   it("confirmar con el enlace cambia el estado de la clave y el resumen refleja N/30 confirmados", async () => {
     const t = setup();
     const event = await t.createEvent();
@@ -414,6 +438,9 @@ describe("invitaciones por email (ticket 5.6)", () => {
     await expect(deliverInvitationEmail(t.deliveryDeps, job!)).rejects.toBeInstanceOf(
       MailDeliveryError,
     );
+    // Se marca DESPUÉS de un envío correcto, nunca antes: un fallo del
+    // transporte no debe dejar la clave con un `sentAt` mentiroso (E-20,
+    // entrega at-least-once a propósito — ver el comentario de `recordSent`).
     expect(t.keyStore.keys[0]).toMatchObject({ status: "generated", sentAt: null });
     await expect(deliverInvitationEmail(t.deliveryDeps, job!)).resolves.toMatchObject({
       status: "sent",

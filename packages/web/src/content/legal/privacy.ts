@@ -133,18 +133,22 @@ export const privacyPolicy: LegalDocument = {
         "Facturas y registros de facturación: 6 años tras su emisión, conforme al artículo 30 del " +
           "Código de Comercio.",
         [
-          "Clave de acceso con email de un participante: 12 meses tras el evento en general, y 3 " +
-            "meses cuando la audiencia del evento es educativa (minimización reforzada por la posible " +
-            "presencia de menores; véase la sección 10 del ",
+          "Clave de acceso con email de un participante: 12 meses tras la finalización del evento en " +
+            "general, y 3 meses cuando la audiencia del evento es educativa (minimización reforzada " +
+            "por la posible presencia de menores; véase la sección 10 del ",
           legalLink("Anexo de encargo de tratamiento", "/legal/dpa"),
-          "). En ambos casos, pasado el plazo el email se sustituye por un valor no reversible " +
-            "(hash).",
+          "). Si el evento nunca llega a jugarse, el plazo se cuenta desde su creación en vez de " +
+            "desde su finalización. En ambos casos, pasado el plazo el email se seudonimiza (se " +
+            "sustituye por un hash calculado con una clave que solo conserva la plataforma; no es una " +
+            "anonimización total, ya que en teoría el email original podría recalcularse con esa " +
+            "clave).",
         ],
         "Grabación de sesión (cuando existe consentimiento): 90 días.",
         "Dirección IP y navegador (user agent) de tus sesiones abiertas y de cada aceptación de " +
-          "los Términos de Servicio y esta política: 90 días, pasados los cuales se sustituyen por " +
-          "un valor no reversible (hash). El registro de que hubo una sesión, o una aceptación con " +
-          "su fecha, se conserva 2 años; pasado ese plazo la fila se borra por completo.",
+          "los Términos de Servicio y esta política: 90 días, pasados los cuales se seudonimizan (se " +
+          "sustituyen por un hash calculado con una clave que solo conserva la plataforma; no es una " +
+          "anonimización total). El registro de que hubo una sesión, o una aceptación con su fecha, " +
+          "se conserva 2 años; pasado ese plazo la fila se borra por completo.",
         "Eventos de analítica detallados: 24 meses; los datos agregados y anonimizados se conservan " +
           "sin límite de tiempo.",
         "Reportes e historial de moderación: sin borrado automático, para poder detectar reincidencia.",

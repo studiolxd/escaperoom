@@ -14,6 +14,7 @@ export type UserDataRightsHandlerDeps = {
 const STATUS_BY_CODE: Record<UserDataRightsErrorCode, number> = {
   UNAUTHORIZED: 401,
   NOT_FOUND: 404,
+  SOLE_ORG_OWNER: 409,
 };
 
 const NO_STORE = { "Cache-Control": "no-store" };

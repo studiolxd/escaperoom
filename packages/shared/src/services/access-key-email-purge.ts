@@ -15,14 +15,21 @@ import { isDevFallbackAllowed } from "@escaperoom/env";
  *
  * **"El evento terminó"**: el esquema no tiene un campo propio para ello
  * (`event` no lleva fecha de fin ni transición automática a `closed` — nada en
- * el código la dispara hoy). La señal que se usa aquí es indirecta: TODAS las
+ * el código la dispara hoy). La señal principal es indirecta: TODAS las
  * sesiones de partida (`gameSession`) del evento han acabado (`ended` o
  * `aborted`, que siempre sellan `endedAt` juntos — ver
  * `event-runtime-prisma-store.ts`), tomando la más tardía como instante de
- * fin. Un evento sin sesiones creadas, o con alguna aún `pending`/
- * `in_progress`, no cuenta como terminado y no purga nada. Es una heurística
- * razonable (no un campo inequívoco del dominio); si el negocio define en el
- * futuro un fin de evento explícito, esta es la pieza a actualizar.
+ * fin.
+ *
+ * **E-16 (retención de eventos nunca jugados)**: un evento sin sesiones
+ * creadas, o con alguna aún `pending`/`in_progress` que nunca se resuelve, no
+ * tiene esa señal y conservaría el email indefinidamente. Cutoff alternativo:
+ * cuando el evento no cuenta como "terminado" por sesiones, se usa
+ * `event.createdAt` (siempre presente, a diferencia de `gameSession`) como
+ * instante de referencia — el mismo plazo por audiencia se cuenta entonces
+ * desde la creación del evento en vez de desde su fin. Es una heurística (no
+ * un campo inequívoco del dominio); si el negocio define en el futuro un fin
+ * de evento explícito, esta es la pieza a actualizar.
  */
 
 /** Meses de retención del email según la audiencia del evento. */
@@ -47,9 +54,17 @@ export function readEmailPurgeSecret(
   return configured || (isDevFallbackAllowed(env) ? DEV_EMAIL_PURGE_SECRET : null);
 }
 
-/** Clave derivada: separación de dominio respecto a otros usos de `APP_SECRET`. */
-function hashingKey(secret: string): Buffer {
-  return createHmac("sha256", secret).update("escaperoom/access-key-email-purge/v1").digest();
+/** Dominio de derivación de clave: separación respecto a otros usos de `APP_SECRET` (ip-ua-purge, ...). */
+const EMAIL_HASH_DOMAIN = "escaperoom/access-key-email-purge/v1";
+
+/**
+ * Clave derivada por dominio. Es la MISMA función que usa
+ * `AccessKeyEmailPurgeStore` para pasar la clave (ya derivada, nunca
+ * `APP_SECRET` crudo) al `hmac()` de pgcrypto en SQL — así el hash calculado
+ * en Node y el calculado en Postgres son comparables byte a byte (E-3).
+ */
+export function deriveEmailPurgeHashKey(secret: string): Buffer {
+  return createHmac("sha256", secret).update(EMAIL_HASH_DOMAIN).digest();
 }
 
 /**
@@ -59,7 +74,7 @@ function hashingKey(secret: string): Buffer {
  * hubo un email distinto en cada fila sin poder reconstruirlo.
  */
 export function hashPurgedEmail(email: string, secret: string): string {
-  const digest = createHmac("sha256", hashingKey(secret))
+  const digest = createHmac("sha256", deriveEmailPurgeHashKey(secret))
     .update(email.toLowerCase())
     .digest("hex");
   return `${PURGED_EMAIL_PREFIX}${digest}`;

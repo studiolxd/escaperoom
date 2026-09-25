@@ -10,8 +10,12 @@ const { pinoInstance, pinoFactory, pinoOptions } = vi.hoisted(() => {
   };
   // Holder survives clearAllMocks — pino() runs once at module import,
   // before any test's beforeEach.
-  const pinoOptions: { current?: { level?: string; redact?: { paths: string[] } } } = {};
-  const pinoFactory = vi.fn((opts?: { level?: string; redact?: { paths: string[] } }) => {
+  type PinoOpts = {
+    level?: string;
+    formatters?: { log?: (obj: Record<string, unknown>) => Record<string, unknown> };
+  };
+  const pinoOptions: { current?: PinoOpts } = {};
+  const pinoFactory = vi.fn((opts?: PinoOpts) => {
     pinoOptions.current = opts;
     return pinoInstance;
   });
@@ -27,10 +31,19 @@ beforeEach(() => {
 });
 
 describe("logger", () => {
-  it("configures pino with redact paths for sensitive keys", () => {
-    expect(pinoOptions.current?.redact?.paths).toEqual(
-      expect.arrayContaining(["email", "*.email", "token", "*.token"]),
-    );
+  it("configures pino with a formatters.log hook that scrubs sensitive keys at any depth (E-10)", () => {
+    const scrubbed = pinoOptions.current?.formatters?.log?.({
+      email: "a@b.example",
+      user: { token: "abc", nested: { authorization: "Bearer x" } },
+      items: [{ accessToken: "at" }, { ipAddress: "203.0.113.1" }],
+      safe: "ok",
+    });
+    expect(scrubbed).toMatchObject({
+      email: "[redacted]",
+      user: { token: "[redacted]", nested: { authorization: "[redacted]" } },
+      items: [{ accessToken: "[redacted]" }, { ipAddress: "[redacted]" }],
+      safe: "ok",
+    });
   });
 
   it("defaults the level to info outside development when LOG_LEVEL is unset", () => {

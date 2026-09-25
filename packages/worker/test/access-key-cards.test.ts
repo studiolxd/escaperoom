@@ -57,10 +57,20 @@ const event = {
 const data: CardExportJobData = {
   eventId: EVENT,
   organizerId: "autora",
-  codes: keys.map((k) => k.code),
   locale: "es",
   appUrl: "https://escape.test",
+  cards: keys.length,
+  filter: { codes: keys.map((k) => k.code) },
 };
+
+/** Job de BullMQ mínimo que necesita `processAccessKeyCardsExport`. */
+function fakeJob(overrides: Partial<CardExportJobData> = {}) {
+  const updateData = vi.fn(async (next: CardExportJobData) => {
+    job.data = next;
+  });
+  const job = { id: JOB, data: { ...data, ...overrides }, updateData };
+  return job;
+}
 
 function service() {
   return createAccessKeyCardsService({
@@ -80,7 +90,8 @@ describe("processAccessKeyCardsExport", () => {
     HEAVY,
     async () => {
       const blobs = createInMemoryBlobStore();
-      const result = await processAccessKeyCardsExport(service(), blobs, JOB, data);
+      const job = fakeJob();
+      const result = await processAccessKeyCardsExport(service(), blobs, job);
 
       expect(result).toEqual({ storageKey: exportStorageKey(JOB), cards: 100 });
       const stored = blobs.objects.get(exportStorageKey(JOB))!;
@@ -88,13 +99,17 @@ describe("processAccessKeyCardsExport", () => {
       expect(Buffer.from(stored.bytes.subarray(0, 5)).toString("latin1")).toBe("%PDF-");
       const pdf = await PDFDocument.load(stored.bytes);
       expect(pdf.getPageCount()).toBe(13);
+
+      // E-8: el job terminado no conserva los códigos.
+      expect(job.updateData).toHaveBeenCalledWith({ ...data, filter: { codes: null } });
+      expect(job.data.filter.codes).toBeNull();
     },
   );
 
   it("un error de dominio no se reintenta; uno de infraestructura sí", async () => {
     const blobs = createInMemoryBlobStore();
     await expect(
-      processAccessKeyCardsExport(service(), blobs, JOB, { ...data, organizerId: "otra" }),
+      processAccessKeyCardsExport(service(), blobs, fakeJob({ organizerId: "otra" })),
     ).rejects.toBeInstanceOf(UnrecoverableError);
 
     const failing = {
@@ -102,9 +117,12 @@ describe("processAccessKeyCardsExport", () => {
         throw new Error("bucket caído");
       }),
     };
-    const err = await processAccessKeyCardsExport(failing, blobs, JOB, data).catch((e) => e);
+    const failingJob = fakeJob();
+    const err = await processAccessKeyCardsExport(failing, blobs, failingJob).catch((e) => e);
     expect(err).not.toBeInstanceOf(UnrecoverableError);
     expect(err).not.toBeInstanceOf(AccessKeyCardsError);
     expect((err as Error).message).toBe("bucket caído");
+    // Incluso al fallar, el job no debe quedarse con los códigos.
+    expect(failingJob.data.filter.codes).toBeNull();
   });
 });

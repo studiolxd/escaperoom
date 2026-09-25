@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "../generated/client";
 import { createPrismaAccessKeyEmailPurgeStore } from "../src/services/access-key-email-purge-prisma-store";
-import { isPurgedEmail } from "../src/services/access-key-email-purge";
+import { hashPurgedEmail, isPurgedEmail } from "../src/services/access-key-email-purge";
 
 // ---------------------------------------------------------------------------
 // Integración GATEADA por entorno: en CI no hay Postgres, así que se salta. En
@@ -39,6 +39,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
     async function makeEvent(opts: {
       audience: "general" | "educational";
       sessions: Array<{ status: "pending" | "ended" | "aborted"; endedAt: Date | null }>;
+      createdAt?: Date;
     }) {
       const event = await prisma.event.create({
         data: {
@@ -49,6 +50,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
           status: "active",
           pricingSnapshot: {},
           playersPurchased: 8,
+          ...(opts.createdAt ? { createdAt: opts.createdAt } : {}),
         },
       });
       eventIds.push(event.id);
@@ -149,6 +151,39 @@ describe.skipIf(!process.env.DATABASE_URL)(
       expect(byCode[kOpen]).toBe("otro@centro.example");
       // El plazo general (12 meses) aún no ha pasado desde hoy.
       expect(byCode[kRecent]).toBe("reciente@centro.example");
+
+      // E-3: el hash de pgcrypto (clave derivada pasada desde Node) es
+      // exactamente comparable con el que calcula `hashPurgedEmail` en Node.
+      expect(byCode[kDone]).toBe(hashPurgedEmail("alumna@centro.example", SECRET));
+      expect(byCode[kEdu]).toBe(hashPurgedEmail("menor@centro.example", SECRET));
+    });
+
+    it("E-16: un evento nunca jugado (sin sesiones, o con una pending que nunca se resuelve) purga por event.createdAt", async () => {
+      const oldCreatedAt = new Date("2019-01-01T00:00:00Z");
+      const neverPlayed = await makeEvent({ audience: "general", sessions: [], createdAt: oldCreatedAt });
+      const stuckPending = await makeEvent({
+        audience: "general",
+        sessions: [{ status: "pending", endedAt: null }],
+        createdAt: oldCreatedAt,
+      });
+      const neverPlayedRecent = await makeEvent({ audience: "general", sessions: [] });
+
+      const kNever = await makeKey(neverPlayed.id, `${TAG}-NEVER`, "nunca@centro.example");
+      const kStuck = await makeKey(stuckPending.id, `${TAG}-STUCK`, "atascado@centro.example");
+      const kNeverRecent = await makeKey(neverPlayedRecent.id, `${TAG}-NEVER-RECENT`, "reciente-nunca@centro.example");
+
+      const store = createPrismaAccessKeyEmailPurgeStore(prisma);
+      await store.purgeExpiredEmails(NOW, SECRET);
+
+      const rows = await prisma.accessKey.findMany({
+        where: { code: { in: [kNever, kStuck, kNeverRecent] } },
+      });
+      const byCode = Object.fromEntries(rows.map((r) => [r.code, r.email]));
+
+      expect(isPurgedEmail(byCode[kNever]!)).toBe(true);
+      expect(isPurgedEmail(byCode[kStuck]!)).toBe(true);
+      // Evento nunca jugado pero reciente: el plazo aún no ha pasado desde su creación.
+      expect(byCode[kNeverRecent]).toBe("reciente-nunca@centro.example");
     });
 
     it("es idempotente: repetir la pasada no vuelve a hashear un email ya purgado", async () => {

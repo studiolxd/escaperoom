@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { PrismaClient } from "../generated/client";
 import { createPrismaSessionIpUaPurgeStore } from "../src/services/session-ip-ua-purge-prisma-store";
-import { isPurgedValue } from "../src/services/ip-ua-purge";
+import { hashPurgedValue, isPurgedValue } from "../src/services/ip-ua-purge";
 
 // ---------------------------------------------------------------------------
 // Integración GATEADA por entorno: en CI no hay Postgres, así que se salta. En
@@ -98,6 +98,11 @@ describe.skipIf(!process.env.DATABASE_URL)(
       expect(isPurgedValue(byId[oldId]!.userAgent!)).toBe(true);
       expect(byId[recentId]!.ipAddress).toBe("203.0.113.8");
       expect(byId[recentId]!.userAgent).toBe("recent-agent");
+
+      // E-3: el hash de pgcrypto (clave derivada pasada desde Node) es
+      // exactamente comparable con el que calcula `hashPurgedValue` en Node.
+      expect(byId[oldId]!.ipAddress).toBe(hashPurgedValue("203.0.113.7", SECRET, "ip"));
+      expect(byId[oldId]!.userAgent).toBe(hashPurgedValue("old-agent", SECRET, "ua"));
     });
 
     it("es idempotente: repetir la pasada no vuelve a hashear una sesión ya purgada", async () => {

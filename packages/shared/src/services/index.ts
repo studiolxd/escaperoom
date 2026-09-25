@@ -64,6 +64,8 @@ export * from "./creator-connect";
 export * from "./creator-connect-prisma-store";
 export * from "./stripe-gateway";
 export * from "./stripe-webhook-dedupe";
+export * from "./stripe-webhook-purge";
+export * from "./stripe-webhook-purge-prisma-store";
 export * from "./contact";
 export * from "./legal-acceptance";
 export * from "./legal-acceptance-prisma-store";
