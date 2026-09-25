@@ -62,9 +62,17 @@ export class PlaytestRoom extends GameRoom {
   }
 
   /**
+   * Sin ventana de reconexión (C-2, bloque 4): una sesión de prueba es corta
+   * y descartable, así que cualquier desconexión —caída de red o pestaña
+   * cerrada— pasa directamente a `onLeave`, sin la gracia/plaza reservada de
+   * la `GameRoom`/`EventRoom` publicadas.
+   */
+  override onDrop(): void {}
+
+  /**
    * En una prueba es habitual recargar o cerrar la pestaña: si se va el
    * anfitrión, lo es el siguiente jugador conectado (si no, nadie podría
-   * empezar). La `GameRoom` publicada no cambia (su reconexión es de fase 6).
+   * empezar), sin esperar a `HOST_REASSIGN_GRACE_SEC`.
    */
   override onLeave(client: Client): void {
     super.onLeave(client);

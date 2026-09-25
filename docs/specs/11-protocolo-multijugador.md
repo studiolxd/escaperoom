@@ -256,8 +256,41 @@ Cliente                          Servidor (GameRoom)                Externo
   TTL = duración máxima de la sesión.
 - En eventos educativos: token con vídeo desactivado por defecto (`canPublishVideo: false` hasta
   activación explícita).
-- **Reconexión:** Colyseus `allowReconnection()` con 60 s de gracia; LiveKit reconecta con su token
-  (aún válido). El estado del jugador (`connected: false → true`) se preserva.
+- **Reconexión** (C-1/C-2, auditoría 2026-09-24 — sustituye la redacción anterior de 60 s fijos):
+  - **Desconexión sin consentir** (caída de red, pestaña cerrada): la plaza —posición, inventario,
+    `characterId`— se reserva con `allowReconnection()`. En el **lobby** (aún sin empezar), la
+    gracia es de **60 s**: pasado ese tiempo se purga la plaza (no queda cupo fantasma). **En
+    juego** (`playing`), la plaza se reserva **hasta que la partida termina**, no solo 60 s: quien
+    vuelve —con el SDK de Colyseus (token de reconexión nativo) o con el mismo `joinToken`/
+    `gameToken` desde otra pestaña (`EventRoom`, C-1: mismo `playerId`, hereda la plaza y expulsa
+    el socket anterior sin gracia)— recupera exactamente su jugador.
+  - **Anfitrión:** si el anfitrión se desconecta, a los **60 s** otro jugador conectado pasa a
+    anfitrión PROVISIONAL (para no bloquear al resto — el puesto, no la plaza). Si el anfitrión
+    original vuelve en cualquier momento antes de que la partida termine, RECUPERA el puesto y el
+    provisional lo pierde.
+  - **Tokens** (`EventRoom`): el `joinToken` tiene que servir tanto para el `join` inicial como
+    para volver a la MISMA plaza durante toda la partida, así que su TTL por defecto sube al tope
+    configurable (`MAX_JOIN_TOKEN_TTL_SECONDS`, 2 h); un operador con salas más cortas puede
+    acortarlo con `JOIN_TOKEN_TTL_SECONDS`. Un token robado solo sirve para ocupar/heredar la MISMA
+    plaza (`playerId`), nunca otra: no da más control que el que ya tenía esa plaza.
+  - LiveKit reconecta con su propio token (independiente del de Colyseus).
+
+### 8.1 Fin de partida y cierre
+
+Al terminar la partida (`game_ended`: victoria, derrota o tiempo agotado):
+
+1. Se difunde `game_ended` con el resultado y las estadísticas (§6), como hasta ahora.
+2. **Ya no se admite ninguna reconexión**: toda plaza con una reconexión pendiente se rechaza de
+   inmediato (aunque la desconexión hubiera sido un segundo antes del final).
+3. La room se mantiene **5 minutos** (`RESULTS_ROOM_LIFETIME_SEC`) para que todos vean la pantalla
+   de resultados con calma.
+4. Pasado ese margen, la room desconecta a todos los clientes y se destruye (`onDispose`).
+5. Los resultados quedan persistidos fuera de la room para poder consultarlos después de que se
+   cierre: en `EventRoom`, el hito `game_ended` ya escribe en `progressEvent` (`specs/14` §8.1) el
+   resultado, la duración y las pistas usadas, y cierra `group.completedAt` de los grupos que
+   jugaron — suficiente para una pantalla de resultados fuera de la room. La `GameRoom` B2C
+   (compra sin evento) no tiene panel de resultados fuera de la room; si se necesita, es un
+   ticket aparte (no lo cubre esta corrección).
 
 ## 9. Rate limiting y validaciones de protocolo
 

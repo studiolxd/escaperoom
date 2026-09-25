@@ -1,7 +1,15 @@
 import { randomInt } from "node:crypto";
-import { Room, ServerError, type Client } from "@colyseus/core";
+import {
+  CloseCode,
+  Room,
+  ServerError,
+  type Client,
+  type Deferred,
+  type Delayed,
+} from "@colyseus/core";
 import { z } from "zod";
 import { logger } from "@escaperoom/kit/logger";
+import { sanitizeChatText } from "@escaperoom/shared/chat";
 import type { EngineResult } from "@escaperoom/shared/engine";
 import { resolveLocalizedText } from "@escaperoom/shared/hints";
 import {
@@ -30,7 +38,10 @@ import {
   GAME_MESSAGES,
   GAME_TICK_MS,
   GAME_TIME_LIMIT_SEC,
+  HOST_REASSIGN_GRACE_SEC,
+  LOBBY_RECONNECT_GRACE_SEC,
   MAX_PLAYERS,
+  RESULTS_ROOM_LIFETIME_SEC,
 } from "../constants.js";
 import { RoomChat } from "../chat.js";
 import { devTestGameTokenAllowed, getGameAccessRuntime } from "../game/access-runtime.js";
@@ -224,13 +235,28 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   private seed = 0;
   private ended = false;
   /** Paneles abiertos por jugador: tras cada acción se les reenvía la vista. */
-  private readonly openPanels = new Map<string, Set<string>>();
+  protected readonly openPanels = new Map<string, Set<string>>();
   /** Chat de la partida (specs/11 §4.4): en cualquier fase, también en el lobby. */
-  private readonly chat = new RoomChat();
+  protected readonly chat = new RoomChat();
   /** Rate limit por mensaje y jugador (specs/11 §9); `undefined` = apagado. */
-  private messageLimiter?: MessageRateLimiter;
+  protected messageLimiter?: MessageRateLimiter;
   /** Rechazos de un observador dentro de la ventana (C-8): tras el tope, se le corta. */
-  private readonly deniedActions = new Map<string, { count: number; windowStart: number }>();
+  protected readonly deniedActions = new Map<string, { count: number; windowStart: number }>();
+  /**
+   * C-2: reconexión en curso por `sessionId` (lo que devuelve
+   * `allowReconnection`). Se rechazan todas al terminar la partida —ya no se
+   * puede seguir jugando— y se cancela la de quien vuelve.
+   */
+  protected readonly pendingReconnections = new Map<string, Deferred<Client>>();
+  /** C-2: temporizador de reasignación de anfitrión (60 s), por `sessionId` desconectado. */
+  protected readonly hostReassignTimers = new Map<string, Delayed>();
+  /**
+   * C-2 (ajuste de producto): anfitrión ORIGINAL mientras un anfitrión
+   * PROVISIONAL ocupa el puesto (se reasignó a los `HOST_REASSIGN_GRACE_SEC`
+   * de una desconexión). Si el original vuelve antes de que termine la
+   * partida, recupera el puesto y esto se limpia; `null` si nadie espera.
+   */
+  protected originalHostId: string | null = null;
   /** Claims del `gameToken` que autorizó crear esta room (C-4/B-4); ausente en Playtest/Event. */
   protected gameAccess?: GameAccessClaims;
   /** Paquete resuelto por una compra B2C (B-4): pisa `resolveRoomPackage(options.packageId)`. */
@@ -355,6 +381,23 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
    */
   protected messageRateLimits(): GameMessageRateLimits | null {
     return readGameMessageRateLimits();
+  }
+
+  /**
+   * Puntos de extensión de los plazos de C-2 (segundos): puros `const` por
+   * defecto, pero como método para que los tests puedan acortarlos con una
+   * subclase en vez de esperar minutos reales.
+   */
+  protected lobbyReconnectGraceSeconds(): number {
+    return LOBBY_RECONNECT_GRACE_SEC;
+  }
+
+  protected hostReassignGraceSeconds(): number {
+    return HOST_REASSIGN_GRACE_SEC;
+  }
+
+  protected resultsRoomLifetimeSeconds(): number {
+    return RESULTS_ROOM_LIFETIME_SEC;
   }
 
   /**
@@ -583,15 +626,167 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.publish(moved.engine);
   }
 
-  override onLeave(client: Client): void {
-    // El jugador conserva su inventario (puede llevar la llave de oro): solo se
-    // marca desconectado. La reconexión con gracia es de fase 6.
+  /**
+   * Desconexión SIN consentir (caída de red, cierre de pestaña): specs/11
+   * §8.1. El jugador conserva su inventario, posición y `characterId` —solo
+   * se marca desconectado— y se le reserva la plaza:
+   * - En juego (`playing`): hasta que la partida termine (`"manual"`; el
+   *   propio `announceEnd` rechaza todas las pendientes).
+   * - En el lobby: `LOBBY_RECONNECT_GRACE_SEC`, para no dejar cupo fantasma.
+   * Si era el anfitrión, `scheduleHostReassignment` cubre el otro plazo (el
+   * puesto, no la plaza).
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- firma exigida por Colyseus (`code`, subclases lo usan)
+  override onDrop(client: Client, code?: number): void {
     const player = this.state.players.get(client.sessionId);
     if (player) player.connected = false;
-    this.openPanels.delete(client.sessionId);
-    this.chat.leave(client.sessionId);
-    this.messageLimiter?.forget(client.sessionId);
-    this.deniedActions.delete(client.sessionId);
+    if (client.sessionId === this.state.hostId) this.scheduleHostReassignment(client.sessionId);
+    if (this.ended) return; // `onLeave` purga: tras `game_ended` no hay reconexión.
+    const seconds = this.state.phase === "playing" ? ("manual" as const) : this.lobbyReconnectGraceSeconds();
+    const reservation = this.allowReconnection(client, seconds);
+    reservation.catch(() => undefined); // evita "unhandled rejection"; `onLeave` hace la purga real.
+    this.pendingReconnections.set(client.sessionId, reservation);
+  }
+
+  /** La reconexión de `onDrop` tuvo éxito (specs/11 §8.1): recupera plaza y, si tocaba, anfitrión. */
+  override onReconnect(client: Client): void {
+    this.pendingReconnections.delete(client.sessionId);
+    const player = this.state.players.get(client.sessionId);
+    if (player) player.connected = true;
+    this.cancelHostReassignment(client.sessionId);
+    if (this.originalHostId === client.sessionId) {
+      // Recupera el puesto; el anfitrión provisional lo pierde.
+      this.state.hostId = client.sessionId;
+      this.originalHostId = null;
+    }
+    this.openPanels.set(client.sessionId, new Set());
+    this.chat.join(client.sessionId);
+  }
+
+  /**
+   * Salida EFECTIVA (specs/11 §8.1): consentida (botón «salir») o porque la
+   * reconexión de `onDrop` se agotó/rechazó (grace vencida o fin de
+   * partida). En ambos casos ya no vuelve: purga la plaza y, si aún era
+   * anfitrión (nunca llegó a reasignarse), lo reasigna ya mismo.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- firma exigida por Colyseus (`code`, subclases lo usan)
+  override onLeave(client: Client, code?: number): void {
+    this.pendingReconnections.delete(client.sessionId);
+    this.purgePlayer(client.sessionId);
+  }
+
+  /**
+   * Un cliente nuevo (`sessionId` distinto) hereda la plaza de otro con la
+   * misma identidad externa (C-1/C-2: la misma persona —pestaña duplicada
+   * mientras la anterior sigue conectada, o una pestaña cerrada que se
+   * reabre sin el token nativo de Colyseus—, nunca alguien nuevo). Copia
+   * posición, inventario, personaje, tinte y paneles abiertos; expulsa al
+   * socket anterior sin gracia (ya se ha migrado lo necesario) y, si tenía
+   * el puesto de anfitrión (en curso o solo reservado como original),
+   * traspasa la referencia. Solo la usa `EventRoom` (tiene una identidad de
+   * jugador estable —el `playerId` del `joinToken`—, ausente en la
+   * `GameRoom` desnuda, donde el `gameToken` no distingue personas).
+   */
+  protected adoptSeat(previousSessionId: string, newClient: Client, displayName: string): void {
+    const newId = newClient.sessionId;
+    const session = this.ensureSession(newId);
+    const previous = this.state.players.get(previousSessionId);
+    if (previous) {
+      session.renamePlayer(previousSessionId, newId);
+      const player = new GamePlayerState();
+      player.id = newId;
+      player.name = sanitizeName(displayName) ?? previous.name;
+      player.x = previous.x;
+      player.y = previous.y;
+      player.roomId = previous.roomId;
+      player.tint = previous.tint;
+      player.characterId = previous.characterId;
+      player.connected = true;
+      this.state.players.set(newId, player);
+      this.state.players.delete(previousSessionId);
+      const inventory = this.state.inventories.get(previousSessionId);
+      if (inventory) {
+        this.state.inventories.set(newId, inventory);
+        this.state.inventories.delete(previousSessionId);
+      }
+      if (this.state.hostId === previousSessionId) this.state.hostId = newId;
+      if (this.originalHostId === previousSessionId) this.originalHostId = newId;
+    } else {
+      // La plaza anterior ya se había purgado del todo (tardó en volver más
+      // que la gracia disponible): entra como si fuera nueva.
+      const moved = session.spawnPlayer(newId, this.logicalNow());
+      const position = session.playerPosition(newId)!;
+      const usedTints: string[] = [];
+      this.state.players.forEach((existing) => usedTints.push(existing.tint));
+      const player = new GamePlayerState();
+      player.id = newId;
+      player.name = sanitizeName(displayName) ?? `Jugador ${this.state.players.size + 1}`;
+      player.x = position.x;
+      player.y = position.y;
+      player.roomId = position.roomId;
+      player.tint = pickPlayerTint(usedTints);
+      player.characterId = this.resolveJoinCharacter(undefined, []);
+      player.connected = true;
+      this.state.players.set(newId, player);
+      if (!this.state.hostId) this.state.hostId = newId;
+      this.publish(moved.engine);
+    }
+    this.openPanels.set(newId, new Set(this.openPanels.get(previousSessionId) ?? []));
+    this.openPanels.delete(previousSessionId);
+    this.chat.leave(previousSessionId);
+    this.chat.join(newId);
+    this.messageLimiter?.forget(previousSessionId);
+    this.deniedActions.delete(previousSessionId);
+    this.cancelHostReassignment(previousSessionId);
+    this.pendingReconnections.get(previousSessionId)?.reject(new Error("duplicate_session"));
+    this.pendingReconnections.delete(previousSessionId);
+    this.clients.get(previousSessionId)?.leave(CloseCode.CONSENTED, "duplicate_session");
+  }
+
+  /** Libera por completo la plaza de `sessionId` (purga tras la gracia, o salida consentida). */
+  private purgePlayer(sessionId: string): void {
+    this.cancelHostReassignment(sessionId);
+    this.state.players.delete(sessionId);
+    this.state.inventories.delete(sessionId);
+    this.openPanels.delete(sessionId);
+    this.chat.leave(sessionId);
+    this.messageLimiter?.forget(sessionId);
+    this.deniedActions.delete(sessionId);
+    if (this.originalHostId === sessionId) this.originalHostId = null;
+    if (this.state.hostId === sessionId) this.reassignHostNow();
+  }
+
+  /**
+   * Anfitrión ausente: a los `HOST_REASSIGN_GRACE_SEC` de su desconexión,
+   * otro jugador conectado pasa a anfitrión PROVISIONAL (ajuste de
+   * producto); no toca la plaza (esa la gestiona `onDrop`/`allowReconnection`).
+   * Se cancela si vuelve antes (`onReconnect`) o si su plaza se purga antes
+   * (`purgePlayer`, p. ej. en el lobby).
+   */
+  protected scheduleHostReassignment(sessionId: string): void {
+    this.cancelHostReassignment(sessionId);
+    const timer = this.clock.setTimeout(() => {
+      this.hostReassignTimers.delete(sessionId);
+      if (this.state.hostId !== sessionId) return; // ya se resolvió de otra forma
+      this.originalHostId = sessionId;
+      this.reassignHostNow();
+    }, this.hostReassignGraceSeconds() * 1000);
+    this.hostReassignTimers.set(sessionId, timer);
+  }
+
+  protected cancelHostReassignment(sessionId: string): void {
+    this.hostReassignTimers.get(sessionId)?.clear();
+    this.hostReassignTimers.delete(sessionId);
+  }
+
+  /** Pasa el anfitrión al primer jugador conectado que no sea el actual (o a nadie: `""`). */
+  protected reassignHostNow(): void {
+    const current = this.state.hostId;
+    let next = "";
+    this.state.players.forEach((candidate, sessionId) => {
+      if (next === "" && candidate.connected && sessionId !== current) next = sessionId;
+    });
+    this.state.hostId = next;
   }
 
   /**
@@ -710,11 +905,18 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     current: { roomId: string; x: number; y: number },
     targetRoomId: string,
   ): void {
-    // Desde el lado de la puerta hay que estar a su alcance; desde el otro lado
-    // (la puerta vive en la habitación destino) no hay objeto con el que medir.
-    const door = this.roomPackage.objects.find(
-      (object) => object.roomId === current.roomId && object.leadsTo === targetRoomId,
-    );
+    // C-6: una conexión entre dos habitaciones puede declararse desde
+    // cualquiera de los dos lados (`canEnterRoom`, en `shared`, ya la trata
+    // como bidireccional); si solo se buscaba la puerta declarada en la
+    // habitación de SALIDA, cruzar en el sentido contrario no exigía
+    // distancia alguna (bastaba con `canEnterRoom` == puerta abierta).
+    const door =
+      this.roomPackage.objects.find(
+        (object) => object.roomId === current.roomId && object.leadsTo === targetRoomId,
+      ) ??
+      this.roomPackage.objects.find(
+        (object) => object.roomId === targetRoomId && object.leadsTo === current.roomId,
+      );
     const nearDoor = door === undefined || distance(current, door.position) <= GAME_DOOR_REACH;
     if (!nearDoor || !session.canEnterRoom(current.roomId, targetRoomId)) {
       this.fail(client, GAME_ERRORS.roomLocked, "La puerta está cerrada o demasiado lejos.");
@@ -949,6 +1151,16 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   private handleHint(client: Client, payload: z.infer<typeof puzzlePayload>): void {
     const session = this.playing(client);
     if (!session) return;
+    // C-7: sin esto se leían pistas de puzzles `locked` de fases posteriores
+    // (fuera de la habitación del jugador) y se quemaban pistas de puzzles
+    // `solved` (ya no hace falta ninguna).
+    const puzzle = this.accessiblePuzzle(client, session, payload.puzzleId);
+    if (!puzzle) return;
+    const state = session.puzzleState(puzzle.id);
+    if (state === "locked" || state === "solved") {
+      this.fail(client, GAME_ERRORS.notAvailable, "Ese puzzle no admite pistas ahora.");
+      return;
+    }
     const result = session.requestHint(payload.puzzleId);
     if (!result.ok) {
       this.fail(client, GAME_ERRORS.notAvailable, result.error.code);
@@ -980,7 +1192,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   // — Sincronización ——————————————————————————————————————————————
 
   /** Crea la sesión con el primer jugador como principal (el motor lo siembra). */
-  private ensureSession(firstPlayerId: string): RoomSession {
+  protected ensureSession(firstPlayerId: string): RoomSession {
     this.session ??= createRoomSession(this.roomPackage, {
       playerId: firstPlayerId,
       playerIds: [firstPlayerId],
@@ -1147,6 +1359,19 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       result: toSessionResult(session.state.result) ?? "aborted",
       ...this.milestoneClock(),
     });
+    // Fin de partida y cierre (specs/11 §8.1, ajuste de producto): ya no se
+    // puede reconectar para seguir jugando —se rechazan todas las
+    // reconexiones pendientes—, y la room se mantiene un margen para la
+    // pantalla de resultados antes de desconectar a todos y destruirse.
+    for (const reservation of this.pendingReconnections.values()) reservation.reject(new Error("game_ended"));
+    this.pendingReconnections.clear();
+    for (const timer of this.hostReassignTimers.values()) timer.clear();
+    this.hostReassignTimers.clear();
+    this.clock.setTimeout(() => {
+      this.disconnect().catch((err: unknown) => {
+        logger.warn({ err, roomId: this.roomId }, "game-room: fallo al cerrar la room tras los resultados");
+      });
+    }, this.resultsRoomLifetimeSeconds() * 1000);
   }
 
   // — Utilidades ——————————————————————————————————————————————————
@@ -1227,9 +1452,24 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 }
 
+/** Formato invisible/de control (zero-width, marcas direccionales…): specs/26 C-18. */
+const INVISIBLE_FORMAT_CHARS = /\p{Cf}/gu;
+
+/**
+ * C-18: reutiliza `sanitizeChatText` (HTML, caracteres de control, espacios)
+ * y además quita el formato invisible (`\p{Cf}`: zero-width space/joiner,
+ * marcas direccionales…) que aquella no cubre — un nombre hecho enteramente
+ * de esos caracteres se veía vacío pero pasaba el `.trim()`.
+ */
 function sanitizeName(name: unknown): string | undefined {
   if (typeof name !== "string") return undefined;
-  const clean = name.replace(/[<>]/g, "").trim().slice(0, 32);
+  // `sanitizeChatText` quita las etiquetas COMPLETAS (`<b>…</b>`); el
+  // `[<>]` suelto es solo para lo que quede sin cerrar (`<script`).
+  const clean = sanitizeChatText(name)
+    .replace(/[<>]/g, "")
+    .replace(INVISIBLE_FORMAT_CHARS, "")
+    .trim()
+    .slice(0, 32);
   return clean.length > 0 ? clean : undefined;
 }
 

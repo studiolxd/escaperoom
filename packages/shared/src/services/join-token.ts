@@ -19,11 +19,20 @@ import { isDevFallbackAllowed } from "@escaperoom/env";
 /** Secreto de desarrollo: solo fuera de `NODE_ENV=production`. */
 export const DEV_JOIN_TOKEN_SECRET = "dev-join-token-secret-no-usar-en-produccion";
 
-/** Caducidad por defecto: 15 min para hacer el `join` (tras él, la reconexión es de Colyseus). */
-export const DEFAULT_JOIN_TOKEN_TTL_SECONDS = 15 * 60;
-
 /** Tope configurable: un `joinToken` nunca vive más de 2 h (una partida + margen). */
 export const MAX_JOIN_TOKEN_TTL_SECONDS = 2 * 60 * 60;
+
+/**
+ * Caducidad por defecto (C-1/C-2, auditoría 2026-09-24): el mismo token sirve
+ * tanto para el `join` inicial como para volver a entrar en la MISMA plaza si
+ * la pestaña se cierra o cae la red (`EventRoom.onJoin` la reconoce por
+ * `playerId` y hereda el estado — `adoptSeat`, `game-room.ts`). Con 15 min una
+ * desconexión tardía ya no podía reentrar aunque su plaza siguiera reservada
+ * durante toda la partida (specs/11 §8.1); se sube al tope configurable (2 h,
+ * cubre partidas largas + margen). El operador puede acortarlo con
+ * `JOIN_TOKEN_TTL_SECONDS` si su catálogo no tiene salas tan largas.
+ */
+export const DEFAULT_JOIN_TOKEN_TTL_SECONDS = MAX_JOIN_TOKEN_TTL_SECONDS;
 
 /** Audiencia del token: la room de evento de Colyseus. */
 export const JOIN_TOKEN_AUDIENCE = "escaperoom:event-room";

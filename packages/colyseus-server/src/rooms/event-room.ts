@@ -1,4 +1,5 @@
 import { ServerError, type Client } from "@colyseus/core";
+import { logger } from "@escaperoom/kit/logger";
 import type { SessionLiveProgress } from "@escaperoom/shared/event-progress";
 import {
   accountUserId,
@@ -103,6 +104,19 @@ export class EventRoom extends GameRoom {
   private recorder?: ProgressRecorder;
   /** Claims de cada jugador que ha entrado (grupo y cuenta para los hitos). */
   private readonly playerClaims = new Map<string, JoinClaims>();
+  /**
+   * C-1: `playerId` (identidad estable del `joinToken`) → `sessionId` del
+   * cliente activo con esa identidad. Detecta duplicados —misma persona con
+   * varias pestañas, o una pestaña que se cerró y se reabre— sin depender
+   * del token nativo de reconexión de Colyseus.
+   */
+  private readonly activeSeatByPlayerId = new Map<string, string>();
+  /**
+   * C-15: autorizados en `onAuth` que aún no han terminado `onJoin` — el
+   * cliente no cuenta en `this.clients` hasta entonces, así que el cupo por
+   * sí solo no basta para cerrar la carrera de varios `onAuth` a la vez.
+   */
+  private inFlightJoins = 0;
 
   protected override loadRoomPackage(): RoomPackage {
     return this.eventPackage;
@@ -134,7 +148,15 @@ export class EventRoom extends GameRoom {
     this.playerCapacity = this.maxClients;
     this.maxClients = this.playerCapacity + MAX_EVENT_SPECTATORS;
     const metadata: EventRoomMetadata = { sessionId: this.eventSessionId, eventId: this.eventId };
-    void this.setMetadata(metadata);
+    // C-15: la ruta interna `/internal/events/:id/progress` filtra por esta
+    // metadata; si `setMetadata` fallara en silencio, la room quedaría
+    // invisible para el panel del organizador sin ningún aviso.
+    await this.setMetadata(metadata).catch((err: unknown) => {
+      logger.warn(
+        { err, roomId: this.roomId, sessionId: this.eventSessionId },
+        "event-room: fallo al fijar la metadata de la room",
+      );
+    });
   }
 
   /** Vacía la cola de hitos antes de destruir la room (también al apagar el servidor). */
@@ -194,9 +216,20 @@ export class EventRoom extends GameRoom {
     if (claims.sessionId !== this.eventSessionId) {
       throw new ServerError(EVENT_JOIN_FORBIDDEN_CODE, JOIN_TOKEN_ERRORS.wrongSession);
     }
-    if (this.clients.length - this.spectators.size >= this.playerCapacity) {
+    // C-1: si ya hay una plaza para este `playerId` (misma persona, otra
+    // pestaña abierta o una reconexión que llega sin el token nativo de
+    // Colyseus), esto no es un jugador nuevo que compita por cupo — `onJoin`
+    // la heredará (`adoptSeat`) en vez de sumar una plaza más.
+    const hasSeat = this.activeSeatByPlayerId.has(claims.playerId);
+    // C-15: el cupo se evaluaba en `onAuth`, pero el cliente no entra en
+    // `this.clients` hasta `onJoin` — varias autorizaciones concurrentes
+    // podían pasar todas el `<` antes de que ninguna contara. `inFlightJoins`
+    // reserva el cupo desde el momento en que se autoriza.
+    const occupied = this.clients.length - this.spectators.size + this.inFlightJoins;
+    if (!hasSeat && occupied >= this.playerCapacity) {
       throw new ServerError(EVENT_JOIN_FORBIDDEN_CODE, JOIN_TOKEN_ERRORS.sessionFull);
     }
+    if (!hasSeat) this.inFlightJoins += 1;
     return { role: "player", claims };
   }
 
@@ -206,13 +239,34 @@ export class EventRoom extends GameRoom {
       this.spectators.add(client.sessionId);
       return;
     }
-    this.playerClaims.set(client.sessionId, auth.claims);
-    super.onJoin(client, { name: auth.claims.displayName });
+    const claims = auth.claims;
+    this.inFlightJoins = Math.max(0, this.inFlightJoins - 1);
+    this.playerClaims.set(client.sessionId, claims);
+    const previousSessionId = this.activeSeatByPlayerId.get(claims.playerId);
+    this.activeSeatByPlayerId.set(claims.playerId, client.sessionId);
+    if (previousSessionId !== undefined && previousSessionId !== client.sessionId) {
+      this.playerClaims.delete(previousSessionId);
+      this.adoptSeat(previousSessionId, client, claims.displayName);
+      return;
+    }
+    super.onJoin(client, { name: claims.displayName });
   }
 
-  override onLeave(client: Client): void {
+  override onDrop(client: Client, code?: number): void {
+    // Los observadores no reservan plaza ni admiten reconexión (specs/19 §2).
+    if (this.spectators.has(client.sessionId)) return;
+    super.onDrop(client, code);
+  }
+
+  override onLeave(client: Client, code?: number): void {
     if (this.spectators.delete(client.sessionId)) return;
-    super.onLeave(client);
+    this.inFlightJoins = Math.max(0, this.inFlightJoins - 1);
+    const claims = this.playerClaims.get(client.sessionId);
+    super.onLeave(client, code);
+    if (claims && this.activeSeatByPlayerId.get(claims.playerId) === client.sessionId) {
+      this.activeSeatByPlayerId.delete(claims.playerId);
+    }
+    this.playerClaims.delete(client.sessionId);
   }
 
   protected override canAct(client: Client): boolean {

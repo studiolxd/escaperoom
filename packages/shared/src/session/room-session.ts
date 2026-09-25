@@ -521,6 +521,42 @@ export class RoomSession {
   }
 
   /**
+   * Traspasa el estado de juego (posición, inventario, runtime del motor,
+   * autoría de placas/puzzles) de `oldPlayerId` a `newPlayerId` (C-1/C-2,
+   * auditoría 2026-09-24): la MISMA persona vuelve con una `sessionId`
+   * distinta (pestaña duplicada que hereda la plaza, o reconexión sin el
+   * token nativo de Colyseus), nunca alguien nuevo. Es responsabilidad del
+   * llamador no invocarlo si `newPlayerId` ya tiene estado propio. No-op si
+   * `oldPlayerId` no tenía estado (la plaza ya se había purgado).
+   */
+  renamePlayer(oldPlayerId: string, newPlayerId: string): void {
+    if (oldPlayerId === newPlayerId) return;
+    const position = this.positions.get(oldPlayerId);
+    if (position !== undefined) {
+      this.positions.set(newPlayerId, position);
+      this.positions.delete(oldPlayerId);
+    }
+    const inventory = this.engine.state.inventory[oldPlayerId];
+    if (inventory !== undefined) {
+      this.engine.state.inventory[newPlayerId] = inventory;
+      delete this.engine.state.inventory[oldPlayerId];
+    }
+    const runtime = this.engine.state.players[oldPlayerId];
+    if (runtime !== undefined) {
+      this.engine.state.players[newPlayerId] = runtime;
+      delete this.engine.state.players[oldPlayerId];
+    }
+    for (const runtime of Object.values(this.engine.state.puzzleStates)) {
+      if (runtime.solvedBy === oldPlayerId) runtime.solvedBy = newPlayerId;
+    }
+    for (const state of this.templates.simultaneous_plates.values()) {
+      for (const plate of Object.values(state.plates)) {
+        if (plate.activatedBy === oldPlayerId) plate.activatedBy = newPlayerId;
+      }
+    }
+  }
+
+  /**
    * Coloca a un jugador en un punto de aparición de la habitación inicial (la
    * primera del mapa) o de la pedida. No valida puertas: es la entrada a la
    * partida, no un movimiento.
@@ -772,11 +808,9 @@ export class RoomSession {
     const plate = def.plates.find((candidate) => candidate.objectId === plateObjectId);
     if (!plate) return { outcome: "unknown_plate", engine: null };
     const position = this.positions.get(playerId);
-    if (
-      active &&
-      position &&
-      (position.roomId !== def.roomId || !isOnCell(position, plate.x, plate.y))
-    ) {
+    // C-6: exigir estar sobre la placa también para DESACTIVARLA (antes solo
+    // se comprobaba al activar); si no, cualquiera la apaga a distancia.
+    if (position && (position.roomId !== def.roomId || !isOnCell(position, plate.x, plate.y))) {
       return { outcome: "unavailable", engine: null };
     }
     return this.applyPlate(puzzleId, plateObjectId, active, now, playerId);
