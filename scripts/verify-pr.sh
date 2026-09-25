@@ -14,6 +14,7 @@
 #   pnpm verify:pr --cpu-throttle   # best-effort para tests sensibles al paralelismo — ver el aviso en el propio paso
 #   pnpm verify:pr --no-cache       # ignora la caché compartida de turbo entre worktrees
 #   pnpm verify:pr --skip-install   # no corre `pnpm install` aunque cambie pnpm-lock.yaml
+#   pnpm verify:pr --no-audit       # no corre `pnpm audit --prod` (paridad con el job `verify` de CI)
 #
 # Requiere el entorno de worktree ya preparado (`pnpm infra:up`, `pnpm dev:env`,
 # `pnpm db:migrate && pnpm db:seed` — nunca `pnpm db:reset` desde un agente).
@@ -28,6 +29,14 @@ skip() { printf '\033[1;90m· %s\033[0m\n' "$1"; }
 warn() { printf '\033[1;33m! %s\033[0m\n' "$1"; }
 die()  { printf '\033[1;31m✖ %s\033[0m\n' "$1" >&2; exit 1; }
 
+# Sin jq/lsof no podemos ni parsear el --dry=json de turbo ni comprobar los
+# puertos del e2e: mejor abortar aquí con un mensaje claro que fallar a medio
+# camino (o peor, seguir silenciosamente sin haber verificado nada — ver el
+# comentario junto a AFFECTED_JSON más abajo).
+for bin in jq lsof; do
+  command -v "$bin" >/dev/null 2>&1 || die "falta '$bin' en PATH: pnpm verify:pr lo necesita (detección de afectados / puertos del e2e)."
+done
+
 # --- Argumentos --------------------------------------------------------------
 ALL=false
 E2E_FORCE=""   # "" (auto) | "yes" | "no"
@@ -36,6 +45,7 @@ LOCK_TIMEOUT="${VERIFY_PR_LOCK_TIMEOUT:-2700}"
 CPU_THROTTLE=false
 NO_CACHE=false
 SKIP_INSTALL=false
+NO_AUDIT=false
 
 for arg in "$@"; do
   case "$arg" in
@@ -47,8 +57,9 @@ for arg in "$@"; do
     --cpu-throttle) CPU_THROTTLE=true ;;
     --no-cache) NO_CACHE=true ;;
     --skip-install) SKIP_INSTALL=true ;;
+    --no-audit) NO_AUDIT=true ;;
     -h | --help)
-      sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
@@ -150,12 +161,36 @@ else
   record_step "Install" 0 SALTADO "pnpm-lock.yaml no cambió"
 fi
 
+# --- pnpm audit --prod (paridad con el job `verify` de CI) -------------------
+# Barato (no compila ni toca la base de datos) e independiente de qué
+# paquetes estén afectados, así que corre siempre y fuera del lock — igual
+# que el último paso del job `verify` de ci.yml.
+if $NO_AUDIT; then
+  record_step "pnpm audit --prod" 0 SALTADO "--no-audit"
+else
+  run_step "pnpm audit --prod" pnpm audit --prod
+fi
+
 # --- Paquetes afectados (turbo --affected) ------------------------------------
+# Un fallo aquí (turbo revienta, o su JSON no se puede parsear) tiene que
+# abortar el script (die), no degradar en silencio a "sin paquetes
+# afectados": eso haría que la puerta de calidad terminara en OK sin haber
+# verificado nada, justo lo que no puede pasar. "Cero paquetes afectados" solo
+# es un resultado válido cuando turbo de verdad respondió eso, no cuando algo
+# salió mal y no sabemos qué contestar.
 AFFECTED_PACKAGES=""
 if ! $ALL; then
   step "Paquetes afectados (turbo --affected)"
-  AFFECTED_JSON=$(pnpm exec turbo run build --affected --dry=json 2>/dev/null || echo '{"packages":[]}')
-  AFFECTED_PACKAGES=$(printf '%s' "$AFFECTED_JSON" | jq -r '.packages[]?' | sort -u)
+  AFFECTED_ERR_FILE=$(mktemp)
+  if ! AFFECTED_JSON=$(pnpm exec turbo run build --affected --dry=json 2>"$AFFECTED_ERR_FILE"); then
+    cat "$AFFECTED_ERR_FILE" >&2
+    rm -f "$AFFECTED_ERR_FILE"
+    die "'turbo run build --affected --dry=json' falló: no puedo saber qué paquetes hay que verificar. Revisa el error de arriba, o usa --all si quieres forzar el monorepo completo a sabiendas."
+  fi
+  rm -f "$AFFECTED_ERR_FILE"
+  if ! AFFECTED_PACKAGES=$(printf '%s' "$AFFECTED_JSON" | jq -r '.packages[]?' | sort -u); then
+    die "no pude parsear con jq la salida de 'turbo --affected --dry=json'. Salida: $AFFECTED_JSON"
+  fi
   if [ -z "$AFFECTED_PACKAGES" ]; then
     ok "ningún paquete afectado por el diff con main"
   else

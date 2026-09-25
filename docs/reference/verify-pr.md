@@ -22,11 +22,18 @@ pnpm verify:pr --lock-timeout=N # segundos esperando el lock de máquina (por de
 pnpm verify:pr --cpu-throttle   # heurístico para tests sensibles al paralelismo — no fiable, ver más abajo
 pnpm verify:pr --no-cache       # ignora la caché compartida de turbo entre worktrees
 pnpm verify:pr --skip-install   # no corre `pnpm install` aunque cambie pnpm-lock.yaml
+pnpm verify:pr --no-audit       # no corre `pnpm audit --prod` (paridad con el job `verify` de CI)
 ```
 
 Requiere el worktree ya preparado: `pnpm infra:up`, `pnpm dev:env`, `pnpm db:migrate && pnpm
 db:seed` (nunca `pnpm db:reset` desde un agente — [[feedback_db_reset_bloqueado]] en la memoria de
-la coordinadora). El script no lo hace por ti.
+la coordinadora). El script no lo hace por ti. También requiere `jq` y `lsof` en el `PATH`
+(los comprueba al arrancar y aborta con un mensaje claro si faltan — los necesita para parsear
+el `--dry=json` de turbo y para comprobar los puertos del e2e).
+
+Un fallo real de `turbo --affected --dry=json` (o de `jq` al parsear su salida) **aborta el
+script** en vez de degradar en silencio a "ningún paquete afectado": una puerta de calidad que
+termina en verde sin haber sabido qué verificar es peor que una que falla ruidosamente.
 
 ## Qué detecta como "afectado"
 
