@@ -66,8 +66,15 @@ export default function RoomEditorCanvas({
     };
   }, [pack]);
 
+  // `setModel` reconstruye la sala entera en Phaser (F-21): con varias
+  // actualizaciones del modelo dentro del mismo frame (p. ej. varias
+  // transacciones Yjs seguidas), como mínimo se agrupan por frame (RAF) para
+  // que solo la última se aplique, en vez de una reconstrucción por cada una.
   useEffect(() => {
-    runtimeRef.current?.setModel(model);
+    const frame = requestAnimationFrame(() => {
+      runtimeRef.current?.setModel(model);
+    });
+    return () => cancelAnimationFrame(frame);
   }, [model]);
 
   useEffect(() => {

@@ -10,7 +10,8 @@
     "./validation": "./src/validation/core.ts",
     "./room-doc": "./src/room-doc/core.ts",
     "./inspector": "./src/inspector/core.ts",
-    "./template-config": "./src/template-config/index.ts"
+    "./template-config": "./src/template-config/index.ts",
+    "./rules-graph": "./src/rules-graph/index.ts"
   },
   "scripts": {
     "lint": "eslint .",

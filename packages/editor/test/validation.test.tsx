@@ -251,7 +251,9 @@ describe("<ValidationPanel> y <RulesGraph> con los hallazgos", () => {
     );
     expect(html).toContain('data-section="route"');
     expect(html.split('data-subject-id="').length - 1).toBe(criticalRoute!.steps.length);
-    expect(html).toContain("Resolver p-sello-final &quot;4538&quot;");
+    // El código del candado no viaja en el informe (auditoría D-14).
+    expect(html).toContain("Resolver p-sello-final (candado de 4 dígitos)");
+    expect(html).not.toContain("4538");
     expect(html).not.toContain('data-section="errors"');
   });
 

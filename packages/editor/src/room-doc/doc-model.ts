@@ -39,7 +39,29 @@ export const ROOM_DOC_KEYS = {
   rules: "rules",
   dialogs: "dialogs",
   hints: "hints",
+  /** Versión de la FORMA del doc (auditoría D-24), no de `meta.packageFormat`. */
+  docFormat: "docFormat",
 } as const;
+
+/**
+ * Versión actual de la forma del doc Yjs (specs/09 §2). Hoy solo hay una: esto
+ * reserva el hueco para que un cambio futuro de la forma del doc (nueva
+ * colección, campo movido…) pueda distinguir un doc viejo de uno nuevo antes
+ * de leerlo, igual que `meta.packageFormat` lo hace para el `RoomPackage`
+ * (auditoría D-24, ADR-028). Ningún doc real ha necesitado migrar todavía.
+ */
+export const CURRENT_ROOM_DOC_FORMAT = 1;
+
+/** Versión de la forma del doc; `0` si es anterior a que este campo existiera. */
+export function readRoomDocFormat(doc: Y.Doc): number {
+  const value = doc.getMap<unknown>(ROOM_DOC_KEYS.docFormat).get("version");
+  return typeof value === "number" ? value : 0;
+}
+
+/** Sella el doc con la versión actual de su forma (salas nuevas y cargadas de un `RoomPackage`). */
+export function writeRoomDocFormat(doc: Y.Doc): void {
+  doc.getMap<unknown>(ROOM_DOC_KEYS.docFormat).set("version", CURRENT_ROOM_DOC_FORMAT);
+}
 
 /** Colecciones cuyas entradas son un `Y.Map` por id. */
 export type RecordCollection = "subrooms" | "objects" | "items" | "puzzles" | "dialogs" | "hints";

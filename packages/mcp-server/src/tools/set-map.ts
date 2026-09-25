@@ -1,5 +1,5 @@
 import { listIds, setSubRoomGrid, setTileset } from "@escaperoom/editor/room-doc";
-import { GridSchema, MapSchema, TileLayerSchema } from "@escaperoom/shared/schemas";
+import { GridSchema, ID_PATTERN, TileLayerSchema } from "@escaperoom/shared/schemas";
 import { z } from "zod";
 import { mutateDraft, mutationResult } from "../draft-writer";
 import { ToolError } from "../results";
@@ -20,7 +20,7 @@ export const setMapTool = defineTool({
   ticket: "4.2",
   inputSchema: z.object({
     roomId: RoomIdSchema,
-    tileset: MapSchema.shape.tileset.min(1),
+    tileset: z.string().regex(ID_PATTERN),
     size: GridSchema.optional(),
     layers: z.array(TileLayerSchema).optional(),
     subroomIds: z

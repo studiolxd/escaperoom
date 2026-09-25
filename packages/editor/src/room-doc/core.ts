@@ -4,6 +4,7 @@
  */
 export * from "./tiles";
 export * from "./doc-model";
+export * from "./migrate";
 export * from "./serialize";
 export * from "./commands";
 export * from "./decor";

@@ -2,7 +2,12 @@ import { createHash } from "node:crypto";
 import type * as Y from "yjs";
 import { safeParseRoomPackage, type RoomPackage } from "../schemas";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
-import { renderValidationReport, validateRoomPackage, type ValidationReport } from "../validator";
+import {
+  renderValidationReport,
+  validateRoomPackage,
+  type AssetManifestInput,
+  type ValidationReport,
+} from "../validator";
 import { isAnonymous, type Actor } from "./actor";
 import type { AdminDirectory } from "./admin";
 import type { AudioAssetService } from "./audio-assets";
@@ -467,6 +472,23 @@ export function createRoomPublishService(deps: {
   supportedPackageFormats?: readonly string[];
   /** Moderación (6.1). Sin ella (tests antiguos, superficies sin BD) no hay pre-check. */
   moderation?: PublishModerationGate;
+  /**
+   * Manifiesto del pack gráfico para el check `assets` del validador
+   * (auditoría D-13): sin esto el check nunca comprobaba nada al publicar
+   * ("Assets no comprobados"). Devuelve `undefined` si no hay manifiesto
+   * (degrada a aviso, no bloquea): un clon limpio sin `pnpm pack:build` debe
+   * poder publicar igual.
+   */
+  loadAssetManifest?: (pkg: RoomPackage) => Promise<AssetManifestInput | undefined>;
+  /**
+   * Smoke test de `@escaperoom/game-runtime` (`toRuntimeModel`, auditoría
+   * D-3): `shared` no puede depender de `game-runtime` (sería una dependencia
+   * circular), así que quien instancia el servicio inyecta la comprobación.
+   * Debe lanzar si el paquete no carga en el runtime (posiciones fuera de la
+   * rejilla, RLE inválido…); sin ella (tests, superficies sin runtime) no se
+   * comprueba.
+   */
+  runtimeModelCheck?: (pkg: RoomPackage) => void;
 }) {
   const { store, drafts, assets, storage } = deps;
   const supportedFormats = deps.supportedPackageFormats ?? SUPPORTED_PACKAGE_FORMATS;
@@ -576,13 +598,30 @@ export function createRoomPublishService(deps: {
       );
     }
 
-    const report = validateRoomPackage(draftPackage);
+    const assetManifest = await deps.loadAssetManifest?.(draftPackage);
+    const report = validateRoomPackage(draftPackage, assetManifest ? { assetManifest } : {});
     if (!report.ok) {
       throw new RoomPublishError(
         "VALIDATION_FAILED",
         "La sala no pasa la validación: corrige los errores ❌ antes de publicar",
         { report, reportText: renderValidationReport(report) },
       );
+    }
+
+    // Smoke test del runtime (auditoría D-3): el validador ya comprueba
+    // geometría y referencias, pero `toRuntimeModel` es la fuente de verdad de
+    // lo que de verdad carga la partida; una publicación no debe poder dejar
+    // el runtime sin poder construir el modelo.
+    if (deps.runtimeModelCheck) {
+      try {
+        deps.runtimeModelCheck(draftPackage);
+      } catch (error) {
+        throw new RoomPublishError(
+          "VALIDATION_FAILED",
+          `El paquete no carga en el runtime: ${error instanceof Error ? error.message : String(error)}`,
+          { report, reportText: renderValidationReport(report) },
+        );
+      }
     }
 
     const refs = collectAssetRefs(draftPackage);

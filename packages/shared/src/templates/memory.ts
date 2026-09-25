@@ -40,8 +40,16 @@ export interface MemoryCard {
   id: string;
   /** Índice de la posición en el tablero (0..n-1). */
   index: number;
-  /** Símbolo asignado (secreto hasta que la carta se voltea). */
+  /** Símbolo asignado (secreto hasta que la carta se voltea; solo para mostrar). */
   symbol: string;
+  /**
+   * Id de la pareja a la que pertenece la carta (`pair.id` del creador, o
+   * `decoy:<n>` — único por señuelo, así que nunca empareja). El emparejamiento
+   * usa SIEMPRE `pairId`, nunca `symbol` (auditoría D-7): dos parejas con el
+   * mismo `symbol` (el creador puede repetirlo sin querer) resolvían las dos a
+   * la vez porque la clave interna se indexaba por símbolo.
+   */
+  pairId: string;
   /** Fila del tablero. */
   row: number;
   /** Columna del tablero. */
@@ -180,20 +188,21 @@ export function memoryRows(def: MemoryPuzzleDefinition): number {
  * parejas. Las posiciones se barajan con Fisher–Yates.
  */
 export function shuffleMemoryCards(def: MemoryPuzzleDefinition, rng: MemoryRng): MemoryCard[] {
-  const symbols: string[] = [];
+  const entries: { symbol: string; pairId: string }[] = [];
   for (const pair of def.pairs) {
-    symbols.push(pair.symbol, pair.symbol);
+    entries.push({ symbol: pair.symbol, pairId: pair.id }, { symbol: pair.symbol, pairId: pair.id });
   }
   const decoys = def.decoys ?? 0;
   for (let i = 0; i < decoys; i += 1) {
-    symbols.push(`decoy:${i}`);
+    entries.push({ symbol: `decoy:${i}`, pairId: `decoy:${i}` });
   }
 
   const cols = memoryCols(def);
-  return fisherYates(symbols, rng).map((symbol, index) => ({
+  return fisherYates(entries, rng).map(({ symbol, pairId }, index) => ({
     id: `carta-${index}`,
     index,
     symbol,
+    pairId,
     row: Math.floor(index / cols),
     col: index % cols,
   }));
@@ -220,29 +229,28 @@ export function findMemoryCard(state: MemoryState, cardId: string): MemoryCard |
   return state.cards.find((card) => card.id === cardId) ?? null;
 }
 
-/** Clave interna de pareja por símbolo (nunca sale al cliente). */
-function pairKeyForSymbol(state: MemoryState, symbol: string): string {
-  const index = state.cards.findIndex((card) => card.symbol === symbol);
-  return index >= 0 ? `symbol:${index}` : "";
-}
-
-/** Traduce el id declarado (`par-uva`) a la clave interna del estado. */
-function pairKeyForPair(state: MemoryState, def: MemoryPuzzleDefinition, pairId: string): string {
-  const pair = def.pairs.find((candidate) => candidate.id === pairId);
-  return pair === undefined ? pairId : pairKeyForSymbol(state, pair.symbol);
-}
-
 /**
  * Voltea una carta. Valida disponibilidad, turno, carta conocida y que no esté
  * ya boca arriba; revela el símbolo y, al completar la pareja o agotar
  * `maxFlipsPerTurn`, resuelve el turno.
  */
+export interface FlipCardOptions {
+  /**
+   * Jugadores de la partida, en orden estable (`RoomSession.players()`), para
+   * rotar el turno en `turnMode: "per_player"` (auditoría D-8). Sin ella, el
+   * turno no rota (mismo comportamiento que antes de conocer a los
+   * jugadores: el creador puede probar el puzzle sin partida real).
+   */
+  players?: readonly string[];
+}
+
 export function flipCard(
   state: MemoryState,
   def: MemoryPuzzleDefinition,
   cardId: string,
   actorId: string,
   now: number,
+  options: FlipCardOptions = {},
 ): MemoryFlipResult {
   if (state.state === "solved") return flipResult("already_solved", state, cardId);
   if (state.state === "locked" || state.state === "failed") {
@@ -259,8 +267,9 @@ export function flipCard(
   const card = findMemoryCard(state, cardId);
   if (card === null) return flipResult("unknown_card", state, cardId);
 
-  const key = pairKeyForSymbol(state, card.symbol);
-  if (state.matchedPairIds.includes(key)) return flipResult("already_matched", state, cardId);
+  if (state.matchedPairIds.includes(card.pairId)) {
+    return flipResult("already_matched", state, cardId);
+  }
   if (state.flippedCardIds.includes(cardId)) return flipResult("already_flipped", state, cardId);
 
   const maxFlips = maxFlipsPerTurnOf(def);
@@ -269,14 +278,11 @@ export function flipCard(
   const turnOwner = state.currentPlayerId ?? (def.turnMode === "per_player" ? actorId : null);
 
   const flippedCards = state.cards.filter((candidate) => flippedCardIds.includes(candidate.id));
-  const matchedSymbol = findMatchingSymbol(flippedCards);
+  const matchedPairId = findMatchingPairId(flippedCards);
 
-  if (matchedSymbol !== null) {
-    const matchedKey = pairKeyForSymbol(state, matchedSymbol);
-    const matchedPairIds = [...state.matchedPairIds, matchedKey];
-    const solved = targetPairIdsOf(def).every((pairId) =>
-      matchedPairIds.includes(pairKeyForPair(state, def, pairId)),
-    );
+  if (matchedPairId !== null) {
+    const matchedPairIds = [...state.matchedPairIds, matchedPairId];
+    const solved = targetPairIdsOf(def).every((pairId) => matchedPairIds.includes(pairId));
 
     const next: MemoryState = {
       ...state,
@@ -307,7 +313,7 @@ export function flipCard(
   }
 
   const turnChanged = def.turnMode === "per_player";
-  const nextPlayerId = turnChanged ? nextTurnOwner(state, def, actorId) : null;
+  const nextPlayerId = turnChanged ? nextTurnOwner(state, options.players, actorId) : null;
   const next: MemoryState = {
     ...state,
     state: "in_progress",
@@ -334,7 +340,7 @@ export function toMemoryPublicView(
 ): MemoryPublicView {
   const matched = new Set(state.matchedPairIds);
   const flipped = new Set(state.flippedCardIds);
-  const targetKeys = targetPairIdsOf(def).map((pairId) => pairKeyForPair(state, def, pairId));
+  const targetKeys = targetPairIdsOf(def);
 
   return {
     id: def.id,
@@ -343,7 +349,7 @@ export function toMemoryPublicView(
     cols: memoryCols(def),
     rows: memoryRows(def),
     cards: state.cards.map((card) => {
-      const matchedNow = matched.has(pairKeyForSymbol(state, card.symbol));
+      const matchedNow = matched.has(card.pairId);
       const flippedNow = flipped.has(card.id);
       return {
         id: card.id,
@@ -396,16 +402,18 @@ export function isCoherentMemoryDefinition(def: MemoryPuzzleDefinition): boolean
 }
 
 /**
- * Símbolo que forma pareja entre las cartas volteadas. Los señuelos usan
- * símbolos `decoy:<n>` sin par, así que nunca casan.
+ * `pairId` que forma pareja entre las cartas volteadas (auditoría D-7:
+ * siempre por `pairId`, nunca por `symbol` — dos parejas con el mismo símbolo
+ * no deben resolverse juntas). Los señuelos tienen `pairId` único por carta,
+ * así que nunca casan.
  */
-function findMatchingSymbol(cards: MemoryCard[]): string | null {
+function findMatchingPairId(cards: MemoryCard[]): string | null {
   const counts = new Map<string, number>();
   for (const card of cards) {
-    if (card.symbol.startsWith("decoy:")) continue;
-    const next = (counts.get(card.symbol) ?? 0) + 1;
-    if (next >= 2) return card.symbol;
-    counts.set(card.symbol, next);
+    if (card.pairId.startsWith("decoy:")) continue;
+    const next = (counts.get(card.pairId) ?? 0) + 1;
+    if (next >= 2) return card.pairId;
+    counts.set(card.pairId, next);
   }
   return null;
 }
@@ -417,11 +425,10 @@ function findMatchingSymbol(cards: MemoryCard[]): string | null {
  */
 function nextTurnOwner(
   state: MemoryState,
-  def: MemoryPuzzleDefinition,
+  players: readonly string[] | undefined,
   actorId: string,
 ): string | null {
   const current = state.currentPlayerId ?? actorId;
-  const players = (def as { players?: string[] }).players;
   if (players === undefined || players.length === 0) return null;
   const index = players.indexOf(current);
   if (index < 0) return players[0] ?? null;
