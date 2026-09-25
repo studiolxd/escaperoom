@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { PlaytestButton } from "@/components/room-editor/playtest-button";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Link } from "@/i18n/navigation";
 import { trackOnboardingStep } from "@/lib/analytics-client";
 
@@ -93,13 +94,16 @@ export function OnboardingWizard() {
           <div className="space-y-4">
             <h2 className="font-semibold">{t("step2.title")}</h2>
             <p className="text-sm text-muted-foreground">{t("step2.body")}</p>
-            <div className="space-y-2">
-              <Label className="items-start text-sm font-normal">
-                <input
-                  type="radio"
-                  name="template"
-                  checked={template === "rey-aldric"}
-                  onChange={() => setTemplate("rey-aldric")}
+            <RadioGroup
+              name="template"
+              value={template}
+              onValueChange={(value) => setTemplate(value as "rey-aldric" | "blank")}
+              className="space-y-2"
+            >
+              <Label htmlFor="onboarding-template-rey-aldric" className="items-start text-sm font-normal">
+                <RadioGroupItem
+                  id="onboarding-template-rey-aldric"
+                  value="rey-aldric"
                   className="mt-1"
                 />
                 <span>
@@ -108,21 +112,15 @@ export function OnboardingWizard() {
                   <span className="text-muted-foreground">{t("step2.templateDesc")}</span>
                 </span>
               </Label>
-              <Label className="items-start text-sm font-normal">
-                <input
-                  type="radio"
-                  name="template"
-                  checked={template === "blank"}
-                  onChange={() => setTemplate("blank")}
-                  className="mt-1"
-                />
+              <Label htmlFor="onboarding-template-blank" className="items-start text-sm font-normal">
+                <RadioGroupItem id="onboarding-template-blank" value="blank" className="mt-1" />
                 <span>
                   <span className="font-medium">{t("step2.blankOption")}</span>
                   <br />
                   <span className="text-muted-foreground">{t("step2.blankDesc")}</span>
                 </span>
               </Label>
-            </div>
+            </RadioGroup>
 
             {create.kind !== "done" && (
               <Button onClick={createRoom} disabled={create.kind === "creating"}>
