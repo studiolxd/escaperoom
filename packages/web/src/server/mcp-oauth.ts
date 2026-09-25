@@ -71,12 +71,28 @@ export function getMcpToolRateLimiter(): RateLimiter {
 }
 
 /**
+ * A-20/D-6: cuando la identidad viene de la cookie de sesión (sin token, ver
+ * abajo), hace falta el mismo criterio anti-CSRF que `decide()`
+ * (`rest/mcp-oauth.ts`) y `publish-confirm.ts` — la cookie `SameSite=Lax`
+ * viaja igual en un POST cross-site; con token OAuth no hace falta (el
+ * `Authorization` no lo pone el navegador solo).
+ */
+export function isSameOriginAsIssuer(request: Request, issuer: string): boolean {
+  const origin = request.headers.get("origin");
+  if (origin) return origin === issuer;
+  return request.headers.get("sec-fetch-site") === "same-origin";
+}
+
+/**
  * Identidad de `/mcp/creator`: con `Authorization: Bearer`, SOLO el access
  * token OAuth (un token inválido es 401 `invalid_token`, sin probar otra
- * vía); sin él, la cookie de sesión de Better Auth (chat web integrado).
+ * vía); sin él, la cookie de sesión de Better Auth (chat web integrado), y
+ * solo si la petición viene del propio origen (A-20/D-6).
  */
 export const authenticateMcpRequest: HttpAuthenticator = async (request) => {
   if (bearerToken(request)) return authenticateOAuthBearer(getMcpOAuthProvider(request), request);
+  const provider = getMcpOAuthProvider(request);
+  if (!isSameOriginAsIssuer(request, provider.issuer)) return null;
   return resolveActorFromRequest(request);
 };
 
