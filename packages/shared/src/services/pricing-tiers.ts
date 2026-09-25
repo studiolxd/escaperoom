@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logger } from "@escaperoom/kit/logger";
 import { AdminError, parseOrThrow, requireAdmin, type AdminDirectory } from "./admin";
 import type { Actor } from "./actor";
 import { UUID_RE } from "./common";
@@ -286,7 +287,12 @@ export function createPricingTierService(deps: { store: PricingTierStore; now?: 
               { path: "activeUntil", message: "Debe ser ≥ activeFrom del tramo" },
             ]);
           }
-          return { closed: await tx.closeTier(tier.id, data.activeUntil), created: null };
+          const closed = await tx.closeTier(tier.id, data.activeUntil);
+          logger.info(
+            { actor: actor.userId, route: "PATCH /api/admin/pricing-tiers/:id", target: tier.id },
+            "pricing-tiers: tramo retirado (activeUntil fijado sin sucesor)",
+          );
+          return { closed, created: null };
         }
 
         const effectiveFrom = data.effectiveFrom ?? (tier.activeFrom > at ? tier.activeFrom : at);
@@ -313,6 +319,15 @@ export function createPricingTierService(deps: { store: PricingTierStore; now?: 
         assertNoOverlap({ ...successor, activeUntil: null }, others);
         const closed = await tx.closeTier(tier.id, effectiveFrom);
         const created = await tx.insertTier(successor);
+        logger.info(
+          {
+            actor: actor.userId,
+            route: "PATCH /api/admin/pricing-tiers/:id",
+            target: tier.id,
+            successor: created.id,
+          },
+          "pricing-tiers: tramo cerrado y reemplazado por su sucesor",
+        );
         return { closed, created };
       });
     },

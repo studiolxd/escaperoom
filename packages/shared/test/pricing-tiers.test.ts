@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   AdminError,
   ANONYMOUS_ACTOR,
@@ -9,6 +9,9 @@ import {
   type PricingSnapshot,
   type PricingTierRow,
 } from "../src/services";
+
+const loggerMock = vi.hoisted(() => ({ error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() }));
+vi.mock("@escaperoom/kit/logger", () => ({ logger: loggerMock }));
 
 const admin: Actor = { userId: "admin", organizationId: null, role: "member" };
 const user: Actor = { userId: "usuaria", organizationId: null, role: "member" };
@@ -78,9 +81,16 @@ describe("pricingTier — tramos versionados", () => {
     });
 
     t.advance(1000);
+    loggerMock.info.mockClear();
     const { closed, created } = await t.pricing.updateTier(admin, tierId(3), {
       priceCentsPerPlayer: 70,
     });
+
+    // A-21: el cierre (con sucesor) también deja autor/ruta/objetivo.
+    expect(loggerMock.info).toHaveBeenCalledWith(
+      expect.objectContaining({ actor: admin.userId, target: tierId(3) }),
+      expect.any(String),
+    );
 
     // El evento conserva su snapshot byte a byte y su total.
     expect(t.events[0]!.pricingSnapshot).toEqual(before);
@@ -139,11 +149,22 @@ describe("pricingTier — tramos versionados", () => {
   it("retirar un tramo con activeUntil (sin sucesor) y crear otro después sin solape", async () => {
     const t = setup();
     const at = new Date(t.now.getTime() + 3600_000);
+    loggerMock.info.mockClear();
     const { closed, created } = await t.pricing.updateTier(admin, tierId(4), {
       activeUntil: at.toISOString(),
     });
     expect(closed.activeUntil).toEqual(at);
     expect(created).toBeNull();
+
+    // A-21: retirar un tramo deja autor/ruta/objetivo en un log estructurado.
+    expect(loggerMock.info).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actor: admin.userId,
+        route: "PATCH /api/admin/pricing-tiers/:id",
+        target: tierId(4),
+      }),
+      expect.any(String),
+    );
 
     // Antes del cierre, 151–300 se solapa con 151+ → CONFLICT; desde el cierre, cabe.
     expect(
