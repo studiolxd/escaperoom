@@ -32,8 +32,10 @@ import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
  * créditos internos, redondeo a la unidad, mínimo 1 crédito. Aquí se fija como
  * "1 crédito por cada `CHARACTERS_PER_CREDIT` caracteres" — la tarifa exacta
  * de ElevenLabs y el precio en euros de un crédito (packs de 5/10/25 €,
- * specs/02 §1) dependen del ticket 5.1/5.2, aún sin implementar. **Decisión
- * abierta a revisar** (ver ADR en `docs/reference/registro-de-decisiones.md`).
+ * specs/02 §1) dependen del ticket 5.2 (compra de packs de créditos), aún sin
+ * implementar — Stripe ya está cableado (5.1) para salas, licencias y
+ * eventos, pero no hay checkout de packs de créditos. **Decisión abierta a
+ * revisar** (ver ADR en `docs/reference/registro-de-decisiones.md`).
  */
 export const CHARACTERS_PER_CREDIT = 40;
 

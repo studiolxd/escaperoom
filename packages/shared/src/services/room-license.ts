@@ -265,7 +265,7 @@ export function createRoomLicenseService(deps: {
   store: RoomLicenseStore;
   /** `roomPackageToDoc` de 3.1 en web; en tests, cualquier builder puro. */
   buildDoc: RoomPackageDocBuilder;
-  /** `null` hasta que 5.1 cablee Stripe: el checkout de pago responde `PAYMENT_GATEWAY_UNAVAILABLE`. */
+  /** `null` sin `STRIPE_SECRET_KEY` configurada: el checkout de pago responde `PAYMENT_GATEWAY_UNAVAILABLE`. */
   payments: PaymentGateway | null;
   newId?: () => string;
 }) {
