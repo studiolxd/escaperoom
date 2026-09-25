@@ -205,3 +205,38 @@ Tareas pendientes que no bloquean pero hay que resolver.
       gratis (o un endpoint de pruebas equivalente limitado a test); quitar el
       tipo de token `dev_test` si ya no se usa; revisar enlaces internos y docs
       que la mencionen.
+- [ ] **Formularios con server actions, React Hook Form y errores bajo cada
+      campo.** Revisar todos los formularios para que usen **server actions** +
+      **React Hook Form** (con el `Form`/`Field` de shadcn/ui y el resolver de
+      Zod) y muestren los errores **debajo de su campo**, nunca con la
+      validación nativa del navegador (quitar `required`, `type="email"`,
+      `minLength`/`maxLength`/`pattern` como mecanismo de validación y usar
+      `noValidate`).
+      - **Estado actual:** React Hook Form no está instalado; no hay ninguna
+        server action (`"use server"`); los formularios envían con `fetch` a
+        rutas REST y usan validación nativa. Existe `components/ui/field.tsx`.
+      - **Formularios (`<form>`):** `components/auth/auth-form.tsx`,
+        `catalog/review-form.tsx`, `contact/contact-form.tsx`,
+        `redeem/redeem-form.tsx`, `mcp-oauth/consent-login.tsx`,
+        `onboarding/onboarding-login.tsx`, `editor/room-languages-editor.tsx`,
+        `game-session/network-game.tsx` (nombre del jugador),
+        `app/[locale]/(play)/oauth/consent/page.tsx`. Los inputs de chat
+        (`chat/chat-panel.tsx`, `creator-chat/creator-chat.tsx`) y los filtros
+        del catálogo (`catalog/catalog-filters.tsx`) no son formularios clásicos:
+        decidir caso por caso (al menos, sin validación nativa).
+      - **Otras mutaciones con `fetch` desde componentes** a revisar si encajan
+        como server actions: `room-cover-upload`, `event-dashboard`,
+        `spectator-game`, `confirm-attendance`, `accept-terms-button`,
+        `moderation-queue`, `onboarding-wizard`, `payouts-panel`,
+        `confirm-publish`, `playtest-button`.
+      - **No perder al migrar:** las server actions deben llamar a los mismos
+        servicios de `@escaperoom/shared` y conservar el **rate limiting**
+        (`withRateLimit`), la comprobación de origen/CSRF, el contrato de
+        errores (A-22) y los mensajes traducidos (next-intl, 6 idiomas). Las
+        rutas REST **siguen existiendo** (las usan el MCP, la API pública de
+        specs/13 y los tests): las server actions son la vía de la UI, no un
+        sustituto de la API. Esquemas Zod compartidos entre cliente
+        (RHF) y servidor.
+      - **UI:** solo shadcn/ui (`pnpm --filter @escaperoom/web exec shadcn add
+        form` si hace falta), errores accesibles (`aria-invalid`,
+        `aria-describedby`) y foco al primer campo con error.
