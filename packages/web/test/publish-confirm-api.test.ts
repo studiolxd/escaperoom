@@ -148,9 +148,13 @@ describe("POST /api/publish-confirm (confirmación humana, ticket 4.5)", { timeo
     expect(invalid.status).toBe(400);
     expect(((await invalid.json()) as ErrorJson).error.code).toBe("INVALID_TOKEN");
 
-    for (const body of [{}, "no es json", { token: 3 }]) {
+    const badJson = await api.post("no es json", "autora");
+    expect(badJson.status).toBe(400);
+    expect(((await badJson.json()) as ErrorJson).error.code).toBe("INVALID_JSON");
+
+    for (const body of [{}, { token: 3 }]) {
       const res = await api.post(body, "autora");
-      expect(res.status).toBe(400);
+      expect(res.status).toBe(422);
       expect(((await res.json()) as ErrorJson).error.code).toBe("VALIDATION_ERROR");
     }
     expect(await api.store.listVersions(ROOM_ID)).toEqual([]);

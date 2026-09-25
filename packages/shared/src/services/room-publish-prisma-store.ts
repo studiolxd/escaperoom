@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "../../generated/client";
+import { createPrismaAdminDirectory } from "./admin-prisma-store";
 import type { RoomPackage } from "../schemas";
 import type {
   RoomPublishStore,
@@ -65,13 +66,7 @@ function txOps(db: Db): RoomPublishTx {
 export function createPrismaRoomPublishStore(prisma: PrismaClient): RoomPublishStore {
   return {
     listSemvers: listSemvers(prisma),
-    async isAdmin(userId) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { isAdmin: true },
-      });
-      return user?.isAdmin === true;
-    },
+    ...createPrismaAdminDirectory(prisma),
     findRoom(roomId) {
       return prisma.room.findFirst({
         where: { id: roomId, deletedAt: null },

@@ -4,6 +4,7 @@ import nextConfig from "../next.config";
 import {
   API_CONTENT_SECURITY_POLICY,
   buildContentSecurityPolicy,
+  reportToHeaderValue,
   serviceOrigins,
   staticSecurityHeaders,
 } from "../src/lib/security-headers";
@@ -95,6 +96,34 @@ describe("buildContentSecurityPolicy", () => {
       "wss://x.example",
     ]);
   });
+
+  it("A-23: en producción, sin NEXT_PUBLIC_COLYSEUS_URL/NEXT_PUBLIC_EDITOR_SYNC_URL, no autoriza los localhost de dev", () => {
+    const prodNoRealtime = buildContentSecurityPolicy("abc123", { NODE_ENV: "production" });
+    const connect = directive(prodNoRealtime, "connect-src");
+    expect(connect).not.toEqual(expect.arrayContaining([expect.stringContaining("localhost")]));
+  });
+
+  it("A-23: con Sentry configurado, la CSP lleva report-to/report-uri", () => {
+    const withSentry = buildContentSecurityPolicy("abc123", {
+      NODE_ENV: "production",
+      NEXT_PUBLIC_SENTRY_DSN: "https://examplePublicKey@o0.ingest.sentry.io/123",
+    });
+    expect(withSentry).toContain("report-to csp-endpoint");
+    expect(withSentry).toContain(
+      "report-uri https://o0.ingest.sentry.io/api/123/security/?sentry_key=examplePublicKey",
+    );
+    expect(prod).not.toContain("report-to");
+    expect(prod).not.toContain("report-uri");
+  });
+
+  it("A-23: reportToHeaderValue solo con Sentry, con el mismo endpoint que report-uri", () => {
+    expect(reportToHeaderValue(undefined)).toBeNull();
+    const value = reportToHeaderValue("https://examplePublicKey@o0.ingest.sentry.io/123");
+    expect(JSON.parse(value ?? "{}")).toMatchObject({
+      group: "csp-endpoint",
+      endpoints: [{ url: "https://o0.ingest.sentry.io/api/123/security/?sentry_key=examplePublicKey" }],
+    });
+  });
 });
 
 describe("proxy.ts — respuesta de página", () => {
@@ -119,7 +148,7 @@ describe("proxy.ts — respuesta de página", () => {
 });
 
 describe("next.config.ts — cabeceras fijas", () => {
-  it("todas las rutas llevan nosniff, referrer, marcos, permisos y COOP; la API, CSP cerrada", async () => {
+  it("todas las rutas llevan nosniff, referrer, marcos, permisos, COOP y CORP; la API, CSP cerrada", async () => {
     const rules = await nextConfig.headers!();
     const all = rules.find((rule) => rule.source === "/:path*")!;
     const keys = all.headers.map((h) => h.key);
@@ -130,6 +159,7 @@ describe("next.config.ts — cabeceras fijas", () => {
         "X-Frame-Options",
         "Permissions-Policy",
         "Cross-Origin-Opener-Policy",
+        "Cross-Origin-Resource-Policy",
       ]),
     );
     const api = rules.find((rule) => rule.source === "/api/:path*")!;
@@ -139,11 +169,36 @@ describe("next.config.ts — cabeceras fijas", () => {
     expect(nextConfig.poweredByHeader).toBe(false);
   });
 
+  it("A-23: la CSP cerrada de la API también cubre /.well-known/* y /mcp/*", async () => {
+    const rules = await nextConfig.headers!();
+    const wellKnown = rules.find((rule) => rule.source === "/.well-known/:path*");
+    const mcp = rules.find((rule) => rule.source === "/mcp/:path*");
+    expect(wellKnown?.headers).toEqual([
+      { key: "Content-Security-Policy", value: API_CONTENT_SECURITY_POLICY },
+    ]);
+    expect(mcp?.headers).toEqual([
+      { key: "Content-Security-Policy", value: API_CONTENT_SECURITY_POLICY },
+    ]);
+  });
+
   it("HSTS solo en producción; cámara y micro solo para la propia web (LiveKit)", () => {
     const find = (env: { NODE_ENV: string }, key: string) =>
       staticSecurityHeaders(env).find((h) => h.key === key)?.value;
     expect(find({ NODE_ENV: "production" }, "Strict-Transport-Security")).toContain("max-age=");
     expect(find({ NODE_ENV: "development" }, "Strict-Transport-Security")).toBeUndefined();
     expect(find({ NODE_ENV: "production" }, "Permissions-Policy")).toContain("camera=(self)");
+  });
+
+  it("A-23: Cross-Origin-Resource-Policy same-origin; Report-To solo con Sentry configurado", () => {
+    const find = (env: Record<string, string>, key: string) =>
+      staticSecurityHeaders(env).find((h) => h.key === key)?.value;
+    expect(find({ NODE_ENV: "production" }, "Cross-Origin-Resource-Policy")).toBe("same-origin");
+    expect(find({ NODE_ENV: "production" }, "Report-To")).toBeUndefined();
+    expect(
+      find(
+        { NODE_ENV: "production", NEXT_PUBLIC_SENTRY_DSN: "https://k@o0.ingest.sentry.io/1" },
+        "Report-To",
+      ),
+    ).toContain("csp-endpoint");
   });
 });

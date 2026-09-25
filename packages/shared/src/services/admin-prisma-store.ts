@@ -5,8 +5,13 @@ import type { PricingTierStore, PricingTierTx } from "./pricing-tiers";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
-/** `user.isAdmin` consultado en cada llamada (sin cachear en la sesión). */
-function adminDirectory(prisma: PrismaClient): AdminDirectory {
+/**
+ * `user.isAdmin` consultado en cada llamada (sin cachear en la sesión). Único
+ * `AdminDirectory` Prisma del repo (§9.1) — antes reimplementado idéntico en
+ * `purchases-prisma-store.ts`, `events-prisma-store.ts` y
+ * `room-publish-prisma-store.ts`.
+ */
+export function createPrismaAdminDirectory(prisma: PrismaClient): AdminDirectory {
   return {
     async isAdmin(userId) {
       const user = await prisma.user.findUnique({
@@ -21,7 +26,7 @@ function adminDirectory(prisma: PrismaClient): AdminDirectory {
 /** Implementación Prisma de `platformSetting` (specs/14 §8). */
 export function createPrismaPlatformSettingStore(prisma: PrismaClient): PlatformSettingStore {
   return {
-    ...adminDirectory(prisma),
+    ...createPrismaAdminDirectory(prisma),
     findSetting(key) {
       return prisma.platformSetting.findUnique({ where: { key } });
     },
@@ -62,7 +67,7 @@ function pricingTx(db: Db): PricingTierTx {
  */
 export function createPrismaPricingTierStore(prisma: PrismaClient): PricingTierStore {
   return {
-    ...adminDirectory(prisma),
+    ...createPrismaAdminDirectory(prisma),
     listTiers: pricingTx(prisma).listTiers,
     withPricingLock(fn) {
       return prisma.$transaction(async (tx) => {

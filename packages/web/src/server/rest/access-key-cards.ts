@@ -6,6 +6,7 @@ import {
   type CardExportBlobStore,
   type ExportStatusView,
 } from "@escaperoom/shared/services";
+import { errorResponse, handleDomainErrors, NO_STORE, readJson } from "./_http";
 import type { EventRouteContext } from "./events";
 
 /** Dependencias inyectables de los handlers del PDF de tarjetas (testeables sin Redis ni bucket). */
@@ -30,38 +31,8 @@ const STATUS_BY_CODE: Record<AccessKeyCardsErrorCode, number> = {
   EXPORT_LINK_EXPIRED: 410,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number, extra = {}): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status, headers: NO_STORE });
-}
-
-class BadJsonError extends Error {}
-
-/** Cuerpo JSON opcional (sin cuerpo = todas las claves vivas). */
-async function readJson(request: Request): Promise<unknown> {
-  const text = await request.text();
-  if (text.trim() === "") return {};
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    throw new BadJsonError("El cuerpo no es JSON válido");
-  }
-}
-
 /** Traduce errores de dominio a la forma de error REST (specs/13 §1). */
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof AccessKeyCardsError) {
-      const extra = err.issues.length > 0 ? { issues: err.issues } : {};
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code], extra);
-    }
-    if (err instanceof BadJsonError) return errorResponse("BAD_REQUEST", err.message, 400);
-    throw err;
-  }
-}
+const handle = handleDomainErrors(AccessKeyCardsError, STATUS_BY_CODE);
 
 export function exportStatusJson(view: ExportStatusView) {
   return {
@@ -102,9 +73,14 @@ export function createAccessKeyCardsHandlers(deps: AccessKeyCardsHandlerDeps) {
         const { id } = await ctx.params;
         const actor = await deps.resolveActor(request);
         deps.cards.authorize(actor);
-        const result = await deps.cards.exportCards(actor, id, await readJson(request), {
-          appUrl: deps.appUrl,
-        });
+        const result = await deps.cards.exportCards(
+          actor,
+          id,
+          await readJson(request, { allowEmpty: true }),
+          {
+            appUrl: deps.appUrl,
+          },
+        );
         if (result.kind === "pdf") {
           return pdfResponse(result.bytes, result.filename, {
             "X-Access-Key-Cards": String(result.cards),

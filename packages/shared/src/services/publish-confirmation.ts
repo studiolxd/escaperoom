@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { isDevFallbackAllowed } from "@escaperoom/env";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
+import { requireUser } from "./common";
 import {
   RoomPublishError,
   type PublishCheck,
@@ -238,7 +239,7 @@ export function createPublishConfirmationService(deps: {
 
   /** Token válido y del actor que lo usa. */
   function authorize(actor: Actor, token: string): PublishConfirmationClaims {
-    if (isAnonymous(actor)) throw new PublishConfirmationError("UNAUTHORIZED", "No hay sesión");
+    requireUser(actor, PublishConfirmationError);
     const verified = verifyPublishConfirmation(token, deps.config.secret, now());
     if (!verified.ok) {
       throw verified.error === "EXPIRED"

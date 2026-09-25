@@ -4,6 +4,7 @@ import {
   type CreatorConnectErrorCode,
   type CreatorConnectService,
 } from "@escaperoom/shared/services";
+import { handleDomainErrors, NO_STORE } from "./_http";
 
 /** Dependencias inyectables de los handlers de Connect (testeables sin Postgres ni Stripe). */
 export type CreatorConnectHandlerDeps = {
@@ -19,22 +20,7 @@ const STATUS_BY_CODE: Record<CreatorConnectErrorCode, number> = {
   ONBOARDING_NOT_COMPLETE: 409,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number): Response {
-  return Response.json({ error: { code, message } }, { status, headers: NO_STORE });
-}
-
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof CreatorConnectError) {
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code]);
-    }
-    throw err;
-  }
-}
+const handle = handleDomainErrors(CreatorConnectError, STATUS_BY_CODE);
 
 /**
  * Handlers REST de onboarding de Stripe Connect (specs/13 §2). Adaptadores

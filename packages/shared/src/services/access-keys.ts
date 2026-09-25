@@ -1,7 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
+import { UUID_RE, requireUser } from "./common";
 import type { EventRow, EventService, EventStatus, EventStore, EventView } from "./events";
 import type { DpaGate } from "./organizations";
 
@@ -371,7 +372,6 @@ export function applyRedemption(key: AccessKeyRow, now: Date): AccessKeyPatch {
 
 // ── Esquemas de entrada ────────────────────────────────────────────────────
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const uuid = z.string().regex(UUID_RE, "UUID no válido");
 
 const keyRequestShape = {
@@ -531,13 +531,9 @@ export function createAccessKeyService(deps: {
   const now = deps.now ?? (() => new Date());
   const newCode = () => generateAccessKeyCode(deps.random);
 
-  function requireUser(actor: Actor): void {
-    if (isAnonymous(actor)) throw new AccessKeyError("UNAUTHORIZED", "No hay sesión");
-  }
-
   /** Solo el organizador gestiona las claves de su evento. */
   async function findOwnEvent(actor: Actor, eventId: string): Promise<EventRow> {
-    requireUser(actor);
+    requireUser(actor, AccessKeyError);
     const event = UUID_RE.test(eventId) ? await store.findEvent(eventId) : null;
     if (!event) throw new AccessKeyError("NOT_FOUND", "Evento no encontrado");
     if (event.organizerId !== actor.userId) {
@@ -705,7 +701,7 @@ export function createAccessKeyService(deps: {
   }
 
   async function findOwnKey(actor: Actor, rawCode: string): Promise<AccessKeyRow> {
-    requireUser(actor);
+    requireUser(actor, AccessKeyError);
     const code = normalizeAccessKeyCode(rawCode);
     const key = code ? await store.findKey(code) : null;
     if (!key) throw new AccessKeyError("NOT_FOUND", "Clave no encontrada");
@@ -719,7 +715,7 @@ export function createAccessKeyService(deps: {
   return {
     /** Solo el guard de sesión (los adaptadores lo usan antes de leer el cuerpo). */
     authorize(actor: Actor): void {
-      requireUser(actor);
+      requireUser(actor, AccessKeyError);
     },
 
     /** Puerta del DPA (5.11) para quien envía emails sobre claves ya generadas (5.6). */

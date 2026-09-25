@@ -1,4 +1,5 @@
 import { Prisma, type PrismaClient } from "../../generated/client";
+import { createPrismaAdminDirectory } from "./admin-prisma-store";
 import type { PurchaseStore, RoomPurchaseRow } from "./purchases";
 
 type DbPurchase = Prisma.purchaseGetPayload<object>;
@@ -30,6 +31,7 @@ function toPurchase(row: DbPurchase): RoomPurchaseRow {
  */
 export function createPrismaPurchaseStore(prisma: PrismaClient): PurchaseStore {
   return {
+    ...createPrismaAdminDirectory(prisma),
     async findVersion(versionId) {
       const row = await prisma.roomVersion.findUnique({
         where: { id: versionId },
@@ -120,10 +122,6 @@ export function createPrismaPurchaseStore(prisma: PrismaClient): PurchaseStore {
         where: { purchaseType: "room", stripePaymentIntentId: paymentRef },
       });
       return toPurchase(row);
-    },
-    async isAdmin(userId) {
-      const user = await prisma.user.findUnique({ where: { id: userId }, select: { isAdmin: true } });
-      return user?.isAdmin === true;
     },
   };
 }

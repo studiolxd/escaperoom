@@ -241,7 +241,12 @@ HTTP se entrega al handler de la ruta en el mismo proceso; con `CREATOR_CHAT_MCP
 - **HTTP (`/mcp/creator` en `packages/web`):** OAuth 2.1 según la especificación de autorización
   de MCP (`src/oauth`, equivalente de `@slxd/mcp-auth` con librerías estándar), o la cookie de
   sesión de Better Auth para el chat web integrado. Con `Authorization: Bearer` solo vale el access
-  token OAuth.
+  token OAuth (A-24) — un token de **sesión** obtenido del plugin `bearer` de Better Auth (el que
+  usan otras superficies con `Authorization: Bearer <token-de-sesión>`) NO sirve aquí: en cuanto la
+  petición trae `Authorization`, `/mcp/creator` la valida SOLO como token OAuth
+  (`authenticateOAuthBearer`) y responde 401 `error="invalid_token"`, aunque el token de sesión sea
+  válido para el resto de la web. Para el chat web integrado, no mandes `Authorization`: la cookie
+  de sesión basta.
 
 ### OAuth 2.1 para clientes MCP remotos
 

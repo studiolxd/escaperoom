@@ -5,6 +5,7 @@ import {
   type PurchaseService,
   type RoomPurchaseRow,
 } from "@escaperoom/shared/services";
+import { handleDomainErrors, NO_STORE, readJson } from "./_http";
 
 /** Dependencias inyectables de los handlers de compras (testeables sin Postgres ni Stripe). */
 export type PurchaseHandlerDeps = {
@@ -29,35 +30,8 @@ const STATUS_BY_CODE: Record<PurchaseErrorCode, number> = {
   PAYMENT_GATEWAY_UNAVAILABLE: 501,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number, extra = {}): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status, headers: NO_STORE });
-}
-
-class BadJsonError extends Error {}
-
-async function readJson(request: Request): Promise<unknown> {
-  try {
-    return await request.json();
-  } catch {
-    throw new BadJsonError("El cuerpo no es JSON válido");
-  }
-}
-
 /** Traduce errores de dominio a la forma de error REST (specs/13 §1). */
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof PurchaseError) {
-      const extra = err.issues.length > 0 ? { issues: err.issues } : {};
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code], extra);
-    }
-    if (err instanceof BadJsonError) return errorResponse("BAD_REQUEST", err.message, 400);
-    throw err;
-  }
-}
+const handle = handleDomainErrors(PurchaseError, STATUS_BY_CODE);
 
 export function purchaseJson(p: RoomPurchaseRow) {
   return {

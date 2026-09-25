@@ -144,6 +144,14 @@ export const RATE_LIMIT_POLICIES = {
     user: { limit: 30, windowSeconds: 600 },
   },
   /**
+   * `POST /api/rooms/:roomId/cover-image` (A-12): el autor sube la portada
+   * de su sala. Antes sin cuota (E-17/A-12).
+   */
+  "room-cover-write": {
+    ip: { limit: 20, windowSeconds: 3600 },
+    user: { limit: 10, windowSeconds: 3600 },
+  },
+  /**
    * `POST /api/mcp/oauth/register` — registro dinámico de clientes OAuth
    * (RFC 7591, A-4/D-4). Público, sin sesión: solo IP. Antes vivía en un
    * limitador en memoria por proceso con la primera entrada (falsificable) de

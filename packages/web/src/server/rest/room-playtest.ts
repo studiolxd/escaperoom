@@ -8,6 +8,7 @@ import {
 } from "@escaperoom/shared/services";
 import { playtestPath } from "@/lib/playtest-link";
 import { PlaytestLaunchError, type PlaytestLauncher } from "../playtest-launcher";
+import { errorResponse, NO_STORE } from "./_http";
 import type { RoomRouteContext } from "./room-draft";
 
 /** Dependencias inyectables del handler de playtest (testeables sin Postgres ni Colyseus). */
@@ -37,13 +38,6 @@ const STATUS_BY_CODE: Record<RoomDraftErrorCode, number> = {
   PAYLOAD_TOO_LARGE: 413,
   INVALID_UPDATE: 422,
 };
-
-function errorResponse(code: string, message: string, status: number, details?: unknown): Response {
-  return Response.json(
-    { error: { code, message, ...(details !== undefined ? { details } : {}) } },
-    { status },
-  );
-}
 
 /**
  * `POST /api/rooms/:roomId/playtest` (specs/09 §3): «Jugar» desde el editor.
@@ -75,12 +69,9 @@ export function createRoomPlaytestHandlers(deps: RoomPlaytestHandlerDeps) {
         }
         const converted = docToRoomPackage(buildDraftDoc(draft), deps.serialize);
         if (!converted.ok) {
-          return errorResponse(
-            "INVALID_DRAFT",
-            "El draft aún no forma un RoomPackage válido",
-            422,
-            converted.errors,
-          );
+          return errorResponse("INVALID_DRAFT", "El draft aún no forma un RoomPackage válido", 422, {
+            details: converted.errors,
+          });
         }
         const created = await deps.launcher.create({
           roomPackage: converted.pkg,
@@ -93,14 +84,14 @@ export function createRoomPlaytestHandlers(deps: RoomPlaytestHandlerDeps) {
           expiresAt: new Date(created.expiresAt).toISOString(),
           path: playtestPath(created.token),
         };
-        return Response.json(body, { status: 201, headers: { "Cache-Control": "no-store" } });
+        return Response.json(body, { status: 201, headers: NO_STORE });
       } catch (err) {
         if (err instanceof RoomDraftError) {
           return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code]);
         }
         if (err instanceof PlaytestLaunchError) {
           return err.code === "UNPLAYABLE"
-            ? errorResponse("PLAYTEST_UNPLAYABLE", err.message, 422, err.details)
+            ? errorResponse("PLAYTEST_UNPLAYABLE", err.message, 422, { details: err.details })
             : errorResponse("PLAYTEST_UNAVAILABLE", err.message, 502);
         }
         throw err;

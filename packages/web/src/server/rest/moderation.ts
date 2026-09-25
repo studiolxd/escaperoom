@@ -10,6 +10,7 @@ import {
   type QueueItem,
 } from "@escaperoom/shared/services";
 import { consumeRateLimit } from "@/server/rate-limit";
+import { handleDomainErrors, NO_STORE, queryOf, readJson } from "./_http";
 
 /** Dependencias inyectables de los handlers de moderación (testeables sin Postgres). */
 export type ModerationHandlerDeps = {
@@ -32,47 +33,8 @@ const STATUS_BY_CODE: Record<ModerationErrorCode, number> = {
   NOTHING_TO_APPEAL: 409,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number, extra = {}): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status, headers: NO_STORE });
-}
-
-class BadJsonError extends Error {}
-
-async function readJson(request: Request): Promise<unknown> {
-  const text = await request.text();
-  if (!text.trim()) return {};
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    throw new BadJsonError("El cuerpo no es JSON válido");
-  }
-}
-
 /** Traduce errores de dominio a la forma de error REST (specs/13 §1). */
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof ModerationError) {
-      const extra = err.issues.length > 0 ? { issues: err.issues } : {};
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code], extra);
-    }
-    if (err instanceof BadJsonError) return errorResponse("BAD_REQUEST", err.message, 400);
-    throw err;
-  }
-}
-
-function queryOf(request: Request, keys: readonly string[]): Record<string, string> {
-  const params = new URL(request.url).searchParams;
-  return Object.fromEntries(
-    keys.flatMap((k) => {
-      const v = params.get(k);
-      return v === null ? [] : [[k, v]];
-    }),
-  );
-}
+const handle = handleDomainErrors(ModerationError, STATUS_BY_CODE);
 
 const iso = (d: Date | null) => d?.toISOString() ?? null;
 
@@ -185,7 +147,7 @@ export function createModerationHandlers(deps: ModerationHandlerDeps) {
     async postRoomReport(request: Request, ctx: ModerationRoomRouteContext): Promise<Response> {
       return handle(async () => {
         const { roomId } = await ctx.params;
-        const body = await readJson(request);
+        const body = await readJson(request, { allowEmpty: true });
         const fields = body && typeof body === "object" && !Array.isArray(body) ? body : {};
         return createReport(request, { ...fields, targetType: "room", targetId: roomId });
       });
@@ -193,7 +155,9 @@ export function createModerationHandlers(deps: ModerationHandlerDeps) {
 
     /** `POST /api/reports` — `{ targetType: room|review|user, targetId, category, reason, details? }`. */
     async postReport(request: Request): Promise<Response> {
-      return handle(async () => createReport(request, await readJson(request)));
+      return handle(async () =>
+        createReport(request, await readJson(request, { allowEmpty: true })),
+      );
     },
 
     /** `GET /api/admin/reports?status=&severity=&limit=` — cola priorizada con SLA. */
@@ -217,7 +181,11 @@ export function createModerationHandlers(deps: ModerationHandlerDeps) {
         const { id } = await ctx.params;
         const actor = await deps.resolveActor(request);
         await moderation.authorizeModeration(actor);
-        const result = await moderation.resolveReport(actor, id, await readJson(request));
+        const result = await moderation.resolveReport(
+          actor,
+          id,
+          await readJson(request, { allowEmpty: true }),
+        );
         return Response.json(
           {
             report: reportJson(result.report),
@@ -240,7 +208,11 @@ export function createModerationHandlers(deps: ModerationHandlerDeps) {
       return handle(async () => {
         const { roomId } = await ctx.params;
         const actor = await deps.resolveActor(request);
-        const appeal = await moderation.appealRoom(actor, roomId, await readJson(request));
+        const appeal = await moderation.appealRoom(
+          actor,
+          roomId,
+          await readJson(request, { allowEmpty: true }),
+        );
         return Response.json(appealJson(appeal), { status: 201, headers: NO_STORE });
       });
     },
@@ -249,7 +221,10 @@ export function createModerationHandlers(deps: ModerationHandlerDeps) {
     async postAccountAppeal(request: Request): Promise<Response> {
       return handle(async () => {
         const actor = await deps.resolveActor(request);
-        const appeal = await moderation.appealAccount(actor, await readJson(request));
+        const appeal = await moderation.appealAccount(
+          actor,
+          await readJson(request, { allowEmpty: true }),
+        );
         return Response.json(appealJson(appeal), { status: 201, headers: NO_STORE });
       });
     },
@@ -282,7 +257,11 @@ export function createModerationHandlers(deps: ModerationHandlerDeps) {
         const { id } = await ctx.params;
         const actor = await deps.resolveActor(request);
         await moderation.authorizeModeration(actor);
-        const result = await moderation.resolveAppeal(actor, id, await readJson(request));
+        const result = await moderation.resolveAppeal(
+          actor,
+          id,
+          await readJson(request, { allowEmpty: true }),
+        );
         return Response.json(
           { appeal: appealJson(result.appeal), standing: standingJson(result.standing) },
           { headers: NO_STORE },

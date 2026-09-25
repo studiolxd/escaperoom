@@ -14,26 +14,6 @@ export type UploadMime = (typeof UPLOAD_ALLOWED_MIME)[number];
 
 export const UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
 
-/**
- * Charset allowed inside ONE key segment (no `/` — that is the separator).
- * S3-safe characters.
- */
-const UPLOAD_KEY_SEGMENT_CHARS = "[a-zA-Z0-9!_.*'()-]+";
-
-/**
- * A segment may not be `.` nor `..`: the caller prefixes the key with its own
- * scope (`uploads/${userId}/…`), and a key like `../../other/x.png` would climb
- * straight out of it. Also rejects an empty segment, so a leading `/`, a
- * trailing `/` and any `//` are out.
- */
-const UPLOAD_KEY_SEGMENT = `(?!\\.\\.?(?:/|$))${UPLOAD_KEY_SEGMENT_CHARS}`;
-
-export const UPLOAD_KEY_REGEX = new RegExp(`^${UPLOAD_KEY_SEGMENT}(?:/${UPLOAD_KEY_SEGMENT})*$`);
-
-export function isValidUploadKey(key: string): boolean {
-  return UPLOAD_KEY_REGEX.test(key);
-}
-
 export function isUploadMime(value: string): value is UploadMime {
   return (UPLOAD_ALLOWED_MIME as readonly string[]).includes(value);
 }

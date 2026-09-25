@@ -5,7 +5,7 @@ import {
   createInMemoryPurchaseStore,
   createPurchaseService,
   PurchaseError,
-  splitRoomAmount,
+  splitPlatformFee,
   type Actor,
   type PaymentGateway,
   type PurchaseRoomRef,
@@ -60,9 +60,9 @@ const buildUrls = ({ purchaseId, roomId }: { purchaseId: string; roomId: string 
 });
 
 describe("purchases", () => {
-  it("splitRoomAmount reparte 70/30 redondeando la comisión", () => {
-    expect(splitRoomAmount(299)).toEqual({ platformFeeCents: 90, creatorShareCents: 209 });
-    expect(splitRoomAmount(0)).toEqual({ platformFeeCents: 0, creatorShareCents: 0 });
+  it("splitPlatformFee reparte 70/30 redondeando la comisión (§9.1, fusionado con room-license)", () => {
+    expect(splitPlatformFee(299)).toEqual({ platformFeeCents: 90, creatorShareCents: 209 });
+    expect(splitPlatformFee(0)).toEqual({ platformFeeCents: 0, creatorShareCents: 0 });
   });
 
   it("authorize exige sesión", () => {

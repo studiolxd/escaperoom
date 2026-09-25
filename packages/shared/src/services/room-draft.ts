@@ -1,5 +1,6 @@
 import * as Y from "yjs";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
+import { UUID_RE, requireUser } from "./common";
 
 /**
  * Borrador colaborativo de una sala (specs/09 §2, specs/14 §5). El documento de
@@ -127,8 +128,6 @@ export const DEFAULT_SNAPSHOT_EVERY = 100;
 export const DEFAULT_MAX_UPDATE_BYTES = 1024 * 1024;
 /** Tamaño máximo de página del historial de snapshots. */
 export const MAX_HISTORY_LIMIT = 100;
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Aplica un draft (snapshot + updates) sobre un doc Yjs nuevo. */
 export function buildDraftDoc(draft: Pick<RoomDraft, "snapshot" | "updates">): Y.Doc {
@@ -352,7 +351,7 @@ export function createRoomDraftService(deps: {
   }
 
   async function authorize(actor: Actor, roomId: string): Promise<DraftRoomRef> {
-    if (isAnonymous(actor)) throw new RoomDraftError("UNAUTHORIZED", "No hay sesión");
+    requireUser(actor, RoomDraftError);
     const room = UUID_RE.test(roomId) ? await store.findRoom(roomId) : null;
     if (!room) throw new RoomDraftError("NOT_FOUND", "Sala no encontrada");
     if (room.authorId !== actor.userId) {
@@ -371,7 +370,7 @@ export function createRoomDraftService(deps: {
       actor: Actor,
       input: { title: string; initialUpdate?: (roomId: string) => Uint8Array },
     ): Promise<DraftRoomRef> {
-      if (isAnonymous(actor)) throw new RoomDraftError("UNAUTHORIZED", "No hay sesión");
+      requireUser(actor, RoomDraftError);
       const room = await store.createRoom({ authorId: actor.userId, title: input.title });
       if (input.initialUpdate) {
         const data = input.initialUpdate(room.id);

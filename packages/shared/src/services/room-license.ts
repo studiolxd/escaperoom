@@ -2,7 +2,8 @@ import * as Y from "yjs";
 import { z } from "zod";
 import type { RoomPackage } from "../schemas";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
+import { requireUser, splitPlatformFee } from "./common";
 import type { PaymentGateway } from "./events";
 
 /**
@@ -32,9 +33,6 @@ import type { PaymentGateway } from "./events";
  */
 
 // ── Tipos de dominio ───────────────────────────────────────────────────────
-
-/** Reparto de licencias: 70 % creador de origen / 30 % plataforma (specs/02 §1). */
-export const LICENSE_PLATFORM_FEE_RATE = 0.3;
 
 export type LicenseRoomStatus = "draft" | "published" | "unlisted" | "archived" | "removed";
 
@@ -228,15 +226,6 @@ export const GiftCopyInput = z
 
 // ── Piezas puras ───────────────────────────────────────────────────────────
 
-/** Reparto de un precio de licencia: 30 % plataforma (redondeado), resto al creador. */
-export function splitLicenseAmount(amountCents: number): {
-  platformFeeCents: number;
-  creatorShareCents: number;
-} {
-  const platformFeeCents = Math.round(amountCents * LICENSE_PLATFORM_FEE_RATE);
-  return { platformFeeCents, creatorShareCents: amountCents - platformFeeCents };
-}
-
 /**
  * Primer update Yjs del draft del fork: el `package` congelado con `meta.id` y
  * `meta.authorId` del fork (la publicación los vuelve a fijar igualmente). El
@@ -282,10 +271,6 @@ export function createRoomLicenseService(deps: {
 }) {
   const { store } = deps;
   const newId = deps.newId ?? (() => crypto.randomUUID());
-
-  function requireUser(actor: Actor): void {
-    if (isAnonymous(actor)) throw new RoomLicenseError("UNAUTHORIZED", "No hay sesión");
-  }
 
   async function findRoom(roomId: string): Promise<LicenseRoomRef> {
     const room = UUID_RE.test(roomId) ? await store.findRoom(roomId) : null;
@@ -383,7 +368,7 @@ export function createRoomLicenseService(deps: {
           roomVersionId: version.id,
           amountCents,
           currency: origin.currency,
-          ...splitLicenseAmount(amountCents),
+          ...splitPlatformFee(amountCents),
         },
       },
     });
@@ -395,7 +380,7 @@ export function createRoomLicenseService(deps: {
   return {
     /** Solo el guard de sesión (los adaptadores lo usan antes de leer el cuerpo). */
     authorize(actor: Actor): void {
-      requireUser(actor);
+      requireUser(actor, RoomLicenseError);
     },
 
     /**
@@ -411,7 +396,7 @@ export function createRoomLicenseService(deps: {
       /** Solo hace falta con precio > 0 (B-21): a precio 0 el fork es inmediato, sin checkout. */
       urls?: { successUrl: string; cancelUrl: string },
     ): Promise<LicenseCheckoutResult> {
-      requireUser(actor);
+      requireUser(actor, RoomLicenseError);
       const data = parseOrThrow(LicenseCheckoutInput, input ?? {});
       const room = await findRoom(roomId);
       // Una sala sin publicar o retirada por moderación no existe para terceros.
@@ -480,7 +465,7 @@ export function createRoomLicenseService(deps: {
         roomVersionId: versionRef.id,
         amountCents,
         currency: room.currency,
-        ...splitLicenseAmount(amountCents),
+        ...splitPlatformFee(amountCents),
         paymentRef: checkout.checkoutRef,
       });
       return { status: "pending", purchase, checkoutUrl: checkout.url };
@@ -593,7 +578,7 @@ export function createRoomLicenseService(deps: {
      * exige `licensable`: regalar es una decisión expresa del autor.
      */
     async giftCopy(actor: Actor, roomId: string, input: unknown): Promise<ForkResult> {
-      requireUser(actor);
+      requireUser(actor, RoomLicenseError);
       const room = await findRoom(roomId);
       if (room.authorId !== actor.userId) {
         throw new RoomLicenseError("FORBIDDEN", "Solo el autor puede regalar copias de esta sala");

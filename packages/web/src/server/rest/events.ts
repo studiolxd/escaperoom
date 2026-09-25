@@ -5,6 +5,7 @@ import {
   type EventService,
   type EventView,
 } from "@escaperoom/shared/services";
+import { handleDomainErrors, NO_STORE, queryOf, readJson } from "./_http";
 
 /** Dependencias inyectables de los handlers de eventos (testeables sin Postgres ni Stripe). */
 export type EventHandlerDeps = {
@@ -31,36 +32,8 @@ const STATUS_BY_CODE: Record<EventErrorCode, number> = {
   PAYMENT_GATEWAY_UNAVAILABLE: 501,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number, extra = {}): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status, headers: NO_STORE });
-}
-
-/** Cuerpo JSON en una clase aparte para distinguir 400 (JSON roto) de 422 (datos). */
-class BadJsonError extends Error {}
-
-async function readJson(request: Request): Promise<unknown> {
-  try {
-    return await request.json();
-  } catch {
-    throw new BadJsonError("El cuerpo no es JSON válido");
-  }
-}
-
 /** Traduce errores de dominio a la forma de error REST (specs/13 §1). */
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof EventError) {
-      const extra = err.issues.length > 0 ? { issues: err.issues } : {};
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code], extra);
-    }
-    if (err instanceof BadJsonError) return errorResponse("BAD_REQUEST", err.message, 400);
-    throw err;
-  }
-}
+const handle = handleDomainErrors(EventError, STATUS_BY_CODE);
 
 /** Forma pública de un evento: `playersPurchased` se expone como `playersPlanned` (la entrada). */
 export function eventJson(e: EventView) {
@@ -157,13 +130,7 @@ export function createEventHandlers(deps: EventHandlerDeps) {
     async listMyEvents(request: Request): Promise<Response> {
       return handle(async () => {
         const actor = await deps.resolveActor(request);
-        const params = new URL(request.url).searchParams;
-        const query = Object.fromEntries(
-          (["cursor", "limit"] as const).flatMap((k) => {
-            const v = params.get(k);
-            return v === null ? [] : [[k, v]];
-          }),
-        );
+        const query = queryOf(request, ["cursor", "limit"]);
         const page = await deps.events.listMyEvents(actor, query);
         return Response.json(
           { items: page.items.map(eventJson), nextCursor: page.nextCursor },

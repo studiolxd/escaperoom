@@ -4,6 +4,7 @@ import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { isAnonymous, RoomDraftError, type Actor, type RoomDraftService } from "@escaperoom/shared/services";
 import * as Y from "yjs";
 import { z } from "zod";
+import { errorResponse, handleDomainErrors, NO_STORE, readJson } from "./_http";
 
 /** Únicos orígenes admitidos del paso 2 del wizard (specs/20 §2). */
 export type OnboardingRoomTemplate = "rey-aldric" | "blank";
@@ -20,15 +21,11 @@ const STATUS_BY_CODE = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
-  INVALID_UPDATE: 400,
+  INVALID_UPDATE: 422,
   PAYLOAD_TOO_LARGE: 413,
 } as const;
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number) {
-  return Response.json({ error: { code, message } }, { status, headers: NO_STORE });
-}
+const handle = handleDomainErrors(RoomDraftError, STATUS_BY_CODE);
 
 /** `POST /api/onboarding/rooms` (A-9): única ruta del wizard que validaba a mano. */
 const CreateRoomBodySchema = z.object({
@@ -85,28 +82,22 @@ export function createOnboardingHandlers(deps: OnboardingHandlerDeps) {
   return {
     /** `POST /api/onboarding/rooms` — `{ template: "rey-aldric" | "blank", title? }`. */
     async postCreateRoom(request: Request): Promise<Response> {
-      const actor = await deps.resolveActor(request);
-      if (isAnonymous(actor)) {
-        return errorResponse("UNAUTHORIZED", "Inicia sesión para crear tu primera sala", 401);
-      }
+      return handle(async () => {
+        const actor = await deps.resolveActor(request);
+        if (isAnonymous(actor)) {
+          return errorResponse("UNAUTHORIZED", "Inicia sesión para crear tu primera sala", 401);
+        }
 
-      let body: unknown;
-      try {
-        body = await request.json();
-      } catch {
-        return errorResponse("VALIDATION_ERROR", "El cuerpo no es JSON válido", 400);
-      }
-      const parsed = CreateRoomBodySchema.safeParse(body);
-      if (!parsed.success) {
-        return errorResponse(
-          "VALIDATION_ERROR",
-          '"template" debe ser "rey-aldric" o "blank"; "title" (opcional) una cadena no vacía',
-          400,
-        );
-      }
-      const { template, title } = parsed.data;
+        const parsed = CreateRoomBodySchema.safeParse(await readJson(request));
+        if (!parsed.success) {
+          return errorResponse(
+            "VALIDATION_ERROR",
+            '"template" debe ser "rey-aldric" o "blank"; "title" (opcional) una cadena no vacía',
+            422,
+          );
+        }
+        const { template, title } = parsed.data;
 
-      try {
         if (template === "blank") {
           const roomTitle = title || "Mi primera sala";
           const room = await deps.drafts.createDraft(actor, {
@@ -137,13 +128,7 @@ export function createOnboardingHandlers(deps: OnboardingHandlerDeps) {
           },
         });
         return Response.json({ roomId: room.id, template }, { status: 201, headers: NO_STORE });
-      } catch (error) {
-        if (error instanceof RoomDraftError) {
-          const status = STATUS_BY_CODE[error.code] ?? 400;
-          return errorResponse(error.code, error.message, status);
-        }
-        throw error;
-      }
+      });
     },
   };
 }
