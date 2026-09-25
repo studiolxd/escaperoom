@@ -207,10 +207,10 @@ export const privacyPolicy: LegalDocument = {
           "Espacio Económico Europeo, la transferencia se ampara en las Cláusulas Contractuales Tipo " +
           "aprobadas por la Comisión Europea u otro mecanismo de transferencia válido conforme al " +
           "RGPD.",
-        "LiveKit Cloud — solo si se activa como plan de contingencia para audio/vídeo en tránsito; " +
-          "mientras el servicio se opere en modo self-hosted, este proveedor no interviene.",
-        "Magnific — generación y edición de assets visuales (imágenes) con IA, prevista para el " +
-          "editor; todavía no activa. Mientras no se active, este proveedor no interviene.",
+        "Magnific (Freepik Company, S.L.U.) — generación y edición de assets visuales " +
+          "(imágenes) con IA para el editor. Recibe los prompts y las imágenes de referencia que " +
+          "el creador decida subir. Sede en Málaga, España, Unión Europea; no supone una " +
+          "transferencia internacional.",
         [
           "Plausible — analítica de producto agregada, sin cookies ni identificación individual. " +
             "Empresa y servidores en la Unión Europea; no supone una transferencia internacional " +

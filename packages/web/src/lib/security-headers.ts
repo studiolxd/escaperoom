@@ -52,15 +52,6 @@ export function serviceOrigins(raw: string | undefined): string[] {
   }
 }
 
-/** LiveKit Cloud reparte las conexiones entre hosts regionales del mismo dominio. */
-function liveKitOrigins(raw: string | undefined): string[] {
-  const origins = serviceOrigins(raw);
-  const host = origins[0] ? new URL(origins[0]).host : "";
-  return host.endsWith(".livekit.cloud")
-    ? [...origins, "wss://*.livekit.cloud", "https://*.livekit.cloud"]
-    : origins;
-}
-
 function httpOrigin(raw: string | undefined): string[] {
   return serviceOrigins(raw).filter((origin) => origin.startsWith("http"));
 }
@@ -156,7 +147,7 @@ export function buildContentSecurityPolicy(nonce: string, env: SecurityEnv = {})
   const realtime = unique([
     ...serviceOrigins(env.NEXT_PUBLIC_COLYSEUS_URL || (dev ? DEFAULT_COLYSEUS_URL : undefined)),
     ...serviceOrigins(env.NEXT_PUBLIC_EDITOR_SYNC_URL || (dev ? DEFAULT_EDITOR_SYNC_URL : undefined)),
-    ...liveKitOrigins(env.NEXT_PUBLIC_LIVEKIT_URL || env.LIVEKIT_URL),
+    ...serviceOrigins(env.NEXT_PUBLIC_LIVEKIT_URL || env.LIVEKIT_URL),
   ]);
   const extraConnect = (env.CSP_EXTRA_CONNECT_SRC ?? "").split(/\s+/u).filter(Boolean);
   const sentry = sentryOrigin(env.NEXT_PUBLIC_SENTRY_DSN);

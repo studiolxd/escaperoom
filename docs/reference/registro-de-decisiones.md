@@ -122,7 +122,13 @@ a la de Colyseus y muere con ella.
 self-hosted; posibilidad de grabar con Egress.
 
 **Alternativas descartadas/valoradas:** mesh WebRTC puro (SimplePeer) solo válido para N ≤ 6 y
-degrada; Daily/Twilio (pricing por minuto, menos control); LiveKit Cloud (plan B, probar en Fase 2).
+degrada; Daily/Twilio (pricing por minuto, menos control); LiveKit Cloud (plan B, probado y
+descartado, ver actualización 2026-09-25).
+
+**Actualización 2026-09-25:** el plan B (LiveKit Cloud) queda descartado; el servicio opera solo
+en self-hosted. Deja de figurar como proveedor/subencargado en la política de privacidad y el DPA
+(`packages/web/src/content/legal/`), y desaparece el caso especial de CSP para `*.livekit.cloud`
+en `packages/web/src/lib/security-headers.ts`.
 
 ---
 
