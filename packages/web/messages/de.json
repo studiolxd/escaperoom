@@ -1345,6 +1345,18 @@
     "home": "Zur Startseite",
     "browseCatalog": "Katalog ansehen"
   },
+  "PublicErrorPage": {
+    "title": "Es ist ein Fehler aufgetreten",
+    "description": "Diese Seite konnte nicht geladen werden. Du kannst es erneut versuchen oder zur Startseite zurückkehren.",
+    "retry": "Erneut versuchen",
+    "home": "Zur Startseite"
+  },
+  "PublicNotFound": {
+    "title": "Diese Seite wurde nicht gefunden",
+    "description": "Der Link ist möglicherweise fehlerhaft oder die Seite existiert nicht mehr.",
+    "home": "Zur Startseite",
+    "browseCatalog": "Katalog ansehen"
+  },
   "ThemeToggle": {
     "label": "Design",
     "light": "Hell",

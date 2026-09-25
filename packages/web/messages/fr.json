@@ -1345,6 +1345,18 @@
     "home": "Retour à l'accueil",
     "browseCatalog": "Voir le catalogue"
   },
+  "PublicErrorPage": {
+    "title": "Une erreur est survenue",
+    "description": "Cette page n'a pas pu se charger. Vous pouvez réessayer ou revenir à l'accueil.",
+    "retry": "Réessayer",
+    "home": "Retour à l'accueil"
+  },
+  "PublicNotFound": {
+    "title": "Page introuvable",
+    "description": "Le lien est peut-être rompu ou la page n'existe plus.",
+    "home": "Retour à l'accueil",
+    "browseCatalog": "Voir le catalogue"
+  },
   "ThemeToggle": {
     "label": "Thème",
     "light": "Clair",

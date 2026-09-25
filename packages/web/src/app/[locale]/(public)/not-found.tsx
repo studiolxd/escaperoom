@@ -12,20 +12,18 @@ import {
 } from "@/components/ui/empty";
 
 /**
- * 404 del segmento `[locale]` (F-2): antes no había `not-found.tsx` propio y
- * `notFound()` (p. ej. `layout.tsx` con un locale inválido, o una sala que no
- * existe) caía en la página genérica de Next, sin traducir.
- *
- * Es el respaldo de rutas SIN chrome propio (creador, jugar, auth): al vivir
- * en `[locale]`, sustituye también la shell pública si el 404 ocurre dentro
- * de `(public)`, así que ese grupo tiene su propio `not-found.tsx` con
- * cabecera/pie públicos (deuda técnica, PR #120).
+ * 404 del grupo `(public)`: al vivir en el mismo segmento que
+ * `(public)/layout.tsx`, Next lo envuelve con la cabecera y el pie públicos
+ * (`PublicHeader`/`PublicFooter`) en vez de sustituir todo el árbol como
+ * hacía el `[locale]/not-found.tsx` genérico (deuda técnica, PR #120). Ese
+ * genérico se mantiene como respaldo para el resto de grupos (creador,
+ * jugar, auth), que no llevan la shell pública.
  */
-export default async function LocaleNotFound() {
-  const t = await getTranslations("NotFound");
+export default async function PublicNotFound() {
+  const t = await getTranslations("PublicNotFound");
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-16 text-foreground">
+    <main className="flex flex-1 items-center justify-center bg-background px-4 py-16 text-foreground">
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">

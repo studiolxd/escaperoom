@@ -1493,6 +1493,18 @@
     "home": "Ir al inicio",
     "browseCatalog": "Ver el catálogo"
   },
+  "PublicErrorPage": {
+    "title": "Ha ocurrido un error",
+    "description": "Esta página no se ha podido cargar. Puedes reintentarlo o volver al inicio.",
+    "retry": "Reintentar",
+    "home": "Ir al inicio"
+  },
+  "PublicNotFound": {
+    "title": "No hemos encontrado esta página",
+    "description": "El enlace puede estar roto o la página ya no existe.",
+    "home": "Ir al inicio",
+    "browseCatalog": "Ver el catálogo"
+  },
   "ThemeToggle": {
     "label": "Tema",
     "light": "Claro",
