@@ -437,6 +437,17 @@
       "validate": "Valideren",
       "playtest": "Spelen"
     },
+    "players": {
+      "button": "Spelers",
+      "title": "Spelers van de kamer",
+      "description": "Minimum en maximum aantal spelers dat deze kamer toestaat (tot {ceiling}).",
+      "min": "Minimum",
+      "max": "Maximum",
+      "save": "Opslaan",
+      "cancel": "Annuleren",
+      "errorRange": "Minimum en maximum moeten tussen 1 en {ceiling} liggen",
+      "errorOrder": "Het minimum mag niet groter zijn dan het maximum"
+    },
     "tools": {
       "label": "Gereedschap",
       "select": "Selecteren",
@@ -703,9 +714,11 @@
     "difficulty": "Moeilijkheid",
     "anyDifficulty": "Alle moeilijkheden",
     "players": "Spelers",
-    "anyPlayers": "Elk aantal",
-    "playersSolo": "Alleen spelen",
-    "playersUpTo": "Tot {n} spelers",
+    "anyPlayers": "Alle",
+    "playersFrom": "Van",
+    "playersToLabel": "tot",
+    "playersFromOption": "Van {n}",
+    "playersToOption": "tot {n}",
     "priceFree": "Gratis",
     "priceMax": "Maximumprijs",
     "priceUnlimited": "Geen limiet",

@@ -1,5 +1,6 @@
 import {
   isLanguageCode,
+  MAX_PLAYERS_PER_ROOM_CEILING,
   type Difficulty,
   type RoomPackage,
   type RoomPackageMeta,
@@ -112,7 +113,9 @@ export type CatalogSort = (typeof CATALOG_SORTS)[number];
  * - `languages`: la sala incluye TODOS los idiomas pedidos (`@>`);
  * - `difficulties`: la dificultad está entre las pedidas;
  * - `minPrice`/`maxPrice`: precio individual en céntimos (sin precio = 0);
- * - `players`: la sala admite ese nº de jugadores (`min ≤ n ≤ max`);
+ * - `playersMin`/`playersMax`: rango "de X a Y" pedido; casa cualquier sala
+ *   cuyo propio rango `[min,max]` solape con `[playersMin,playersMax]`
+ *   (compatible con el antiguo `?players=N`, que equivale a `[N,N]`);
  * - `q`: el título contiene el texto (sin distinguir mayúsculas).
  */
 export type CatalogListFilter = {
@@ -120,7 +123,8 @@ export type CatalogListFilter = {
   difficulties: Difficulty[];
   minPrice: number | null;
   maxPrice: number | null;
-  players: number | null;
+  playersMin: number | null;
+  playersMax: number | null;
   q: string | null;
   sort: CatalogSort;
 };
@@ -209,8 +213,12 @@ export const MAX_LANGUAGE_FILTER = 10;
 export const CATALOG_DEFAULT_LIMIT = 12;
 export const CATALOG_MAX_LIMIT = 48;
 export const CATALOG_MAX_QUERY_LENGTH = 100;
-/** Tope del filtro de jugadores (muy por encima de `maxPlayersPerRoom`). */
-export const CATALOG_MAX_PLAYERS = 100;
+/**
+ * Tope del filtro de jugadores: el mismo techo real de una sala
+ * (`MAX_PLAYERS_PER_ROOM_CEILING`), así el rango "de X a Y" del catálogo
+ * nunca ofrece opciones que ninguna sala puede declarar.
+ */
+export const CATALOG_MAX_PLAYERS = MAX_PLAYERS_PER_ROOM_CEILING;
 
 type MultiValue = string | readonly string[] | undefined;
 
@@ -299,6 +307,13 @@ export type CatalogListInput = {
   difficulty?: MultiValue | number | readonly number[];
   minPrice?: string | number | null;
   maxPrice?: string | number | null;
+  minPlayers?: string | number | null;
+  maxPlayers?: string | number | null;
+  /**
+   * Compatibilidad con enlaces antiguos (`?players=N`, selector "N jugadores"
+   * de un solo valor): equivale a `minPlayers=N&maxPlayers=N`. Si se pasa
+   * junto a `minPlayers`/`maxPlayers`, estos últimos tienen prioridad.
+   */
   players?: string | number | null;
   q?: string | null;
   sort?: string | null;
@@ -331,13 +346,24 @@ export function parseCatalogQuery(input: CatalogListInput = {}): {
   if (!(CATALOG_SORTS as readonly string[]).includes(sort)) {
     throw new CatalogError("VALIDATION_ERROR", `Orden no válido: "${sort}"`);
   }
+  const legacyPlayers = parseIntParam("players", input.players, { min: 1, max: CATALOG_MAX_PLAYERS });
+  const playersMin =
+    parseIntParam("minPlayers", input.minPlayers, { min: 1, max: CATALOG_MAX_PLAYERS }) ??
+    legacyPlayers;
+  const playersMax =
+    parseIntParam("maxPlayers", input.maxPlayers, { min: 1, max: CATALOG_MAX_PLAYERS }) ??
+    legacyPlayers;
+  if (playersMin !== null && playersMax !== null && playersMin > playersMax) {
+    throw new CatalogError("VALIDATION_ERROR", '"minPlayers" no puede ser mayor que "maxPlayers"');
+  }
   return {
     filter: {
       languages: parseLanguageFilter(input.language),
       difficulties: parseDifficulties(input.difficulty),
       minPrice,
       maxPrice,
-      players: parseIntParam("players", input.players, { min: 1, max: CATALOG_MAX_PLAYERS }),
+      playersMin,
+      playersMax,
       q: q.length > 0 ? q : null,
       sort: sort as CatalogSort,
     },

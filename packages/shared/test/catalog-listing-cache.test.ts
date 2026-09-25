@@ -11,7 +11,8 @@ const FILTER: CatalogListFilter = {
   difficulties: [],
   minPrice: null,
   maxPrice: null,
-  players: null,
+  playersMin: null,
+  playersMax: null,
   q: null,
   sort: "recent",
 };
@@ -117,7 +118,8 @@ describe("createCachedPublishedRoomListing", () => {
       difficulties: FILTER.difficulties,
       minPrice: FILTER.minPrice,
       maxPrice: FILTER.maxPrice,
-      players: FILTER.players,
+      playersMin: FILTER.playersMin,
+      playersMax: FILTER.playersMax,
       sort: FILTER.sort,
     };
 
