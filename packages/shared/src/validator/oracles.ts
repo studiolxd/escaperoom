@@ -14,7 +14,7 @@ import {
   isPipesSolvable,
   isSimultaneousPlatesSolvable,
   isSlidingPuzzleSolvable,
-  isSolvableGiven,
+  isCodeLockSolvable,
   isSplitClueSolvable,
   isSplitClueSolvableForGroup,
 } from "../templates";
@@ -51,7 +51,7 @@ export function isTemplateSolvable(
     case "hidden_key":
       return isHiddenKeySolvableGiven(createHiddenKeyState(puzzle), puzzle);
     case "code_lock":
-      return isSolvableGiven(createCodeLockState(puzzle), puzzle);
+      return isCodeLockSolvable(createCodeLockState(puzzle), puzzle);
     case "simultaneous_plates":
       return isSimultaneousPlatesSolvable(createSimultaneousPlatesState(puzzle), puzzle);
     case "combine_items":

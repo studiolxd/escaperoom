@@ -8,9 +8,10 @@ import {
   type AssetManifestInput,
   type ValidationReport,
 } from "../validator";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
 import type { AdminDirectory } from "./admin";
 import type { AudioAssetService } from "./audio-assets";
+import { UUID_RE, requireUser } from "./common";
 import type { ModerationService, PublishPrecheck } from "./moderation";
 import { buildDraftDoc, type RoomDraftTx } from "./room-draft";
 
@@ -204,7 +205,6 @@ export const SUPPORTED_PACKAGE_FORMATS: readonly string[] = ["roompackage/v1"];
 /** Longitud máxima del changelog de una versión. */
 export const MAX_CHANGELOG_LENGTH = 5000;
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SEMVER_RE = /^(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})$/;
 /** Referencias de asset del creador que se empaquetan (3.11: `library:`/`upload:`). */
 const ASSET_REF_RE = /^(library|upload):\S+$/;
@@ -500,7 +500,7 @@ export function createRoomPublishService(deps: {
   }
 
   async function authorizeAuthor(actor: Actor, roomId: string): Promise<PublishRoomRef> {
-    if (isAnonymous(actor)) throw new RoomPublishError("UNAUTHORIZED", "No hay sesión");
+    requireUser(actor, RoomPublishError);
     const room = await findRoom(roomId);
     if (room.authorId !== actor.userId) {
       throw new RoomPublishError("FORBIDDEN", "Solo el autor puede publicar esta sala");
@@ -776,7 +776,7 @@ export function createRoomPublishService(deps: {
       roomId: string,
       versionId: string,
     ): Promise<{ version: RoomVersionMeta; package: RoomPackage }> {
-      if (isAnonymous(actor)) throw new RoomPublishError("UNAUTHORIZED", "No hay sesión");
+      requireUser(actor, RoomPublishError);
       const room = await findRoom(roomId);
       if (room.authorId !== actor.userId && !(await store.isAdmin(actor.userId))) {
         throw new RoomPublishError("FORBIDDEN", "Solo el autor puede leer el paquete de la sala");

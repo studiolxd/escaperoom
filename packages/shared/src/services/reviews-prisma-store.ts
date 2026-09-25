@@ -1,7 +1,6 @@
 import type { PrismaClient } from "../../generated/client";
+import { UUID_RE } from "./common";
 import type { Review, ReviewStore } from "./reviews";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type ReviewRow = {
   id: string;

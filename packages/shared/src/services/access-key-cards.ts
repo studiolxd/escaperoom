@@ -2,8 +2,9 @@ import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { isDevFallbackAllowed } from "@escaperoom/env";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
 import { isLiveAccessKey, normalizeAccessKeyCode, type AccessKeyRow } from "./access-keys";
+import { UUID_RE, requireUser } from "./common";
 import {
   CARD_LOCALES,
   isCardLocale,
@@ -231,8 +232,6 @@ export function buildExportDownloadUrl(
 
 // ── Servicio ───────────────────────────────────────────────────────────────
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /** Hoja de tarjetas ya resuelta: evento, idioma y claves en orden. */
 export type CardSheet = {
   eventId: string;
@@ -300,12 +299,8 @@ export function createAccessKeyCardsService(deps: {
   const render = deps.render ?? renderAccessKeyCardsPdf;
   const newJobId = deps.newJobId ?? randomUUID;
 
-  function requireUser(actor: Actor): void {
-    if (isAnonymous(actor)) throw new AccessKeyCardsError("UNAUTHORIZED", "No hay sesión");
-  }
-
   async function findOwnEvent(actor: Actor, eventId: string): Promise<EventRow> {
-    requireUser(actor);
+    requireUser(actor, AccessKeyCardsError);
     const event = UUID_RE.test(eventId) ? await store.findEvent(eventId) : null;
     if (!event) throw new AccessKeyCardsError("NOT_FOUND", "Evento no encontrado");
     if (event.organizerId !== actor.userId) {
@@ -399,7 +394,7 @@ export function createAccessKeyCardsService(deps: {
   return {
     /** Solo el guard de sesión (los adaptadores lo usan antes de leer el cuerpo). */
     authorize(actor: Actor): void {
-      requireUser(actor);
+      requireUser(actor, AccessKeyCardsError);
     },
 
     prepareSheet,
@@ -452,7 +447,7 @@ export function createAccessKeyCardsService(deps: {
       jobId: string,
       opts: { appUrl: string },
     ): Promise<ExportStatusView> {
-      requireUser(actor);
+      requireUser(actor, AccessKeyCardsError);
       const job = UUID_RE.test(jobId) && deps.queue ? await deps.queue.find(jobId) : null;
       if (!job) throw new AccessKeyCardsError("NOT_FOUND", "Export no encontrado");
       if (job.data.organizerId !== actor.userId) {

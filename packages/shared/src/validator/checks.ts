@@ -1,3 +1,4 @@
+import { assertNever } from "../exhaustive";
 import type { Grid, PuzzleDefinition, RoomPackage, Rule, RuleAction, RuleCondition } from "../schemas";
 import { flattenActions, puzzleGrants, type RoomIndex } from "./model";
 import type { DoubleUseItem, ValidationIssue } from "./types";
@@ -84,8 +85,15 @@ export function ruleReferences(rule: Rule): RuleReference[] {
     case "on_item_collected":
       push("item", trigger.itemId, "trigger", "trigger.itemId");
       break;
-    default:
+    // Sin id de entidad que referenciar (specs/05 §1.2).
+    case "on_game_start":
+    case "on_timer":
+    case "on_timer_end":
+    case "on_time_remaining_below":
+    case "on_all_players_in_zone":
       break;
+    default:
+      assertNever(trigger, "ruleReferences trigger");
   }
 
   rule.conditions.forEach((condition, i) => {
@@ -115,8 +123,18 @@ export function ruleReferences(rule: Rule): RuleReference[] {
         case "delay":
           visit(action.actions, `${path}.actions`);
           break;
-        default:
+        // Sin id de entidad que referenciar (specs/05 §1.3).
+        case "show_image":
+        case "play_sound":
+        case "spawn_effect":
+        case "set_flag":
+        case "start_timer":
+        case "pause_timer":
+        case "stop_timer":
+        case "end_game":
           break;
+        default:
+          assertNever(action, "ruleReferences action");
       }
     });
   };

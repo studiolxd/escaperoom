@@ -12,6 +12,7 @@ import {
   validateRoomPackage,
   type AssetManifestInput,
 } from "@escaperoom/shared/validator";
+import { errorResponse, NO_STORE } from "./_http";
 import type { RoomRouteContext } from "./room-draft";
 
 /** Dependencias inyectables del handler de validación (testeables sin Postgres). */
@@ -35,13 +36,6 @@ const STATUS_BY_CODE: Record<RoomDraftErrorCode, number> = {
   INVALID_UPDATE: 422,
 };
 
-function errorResponse(code: string, message: string, status: number, details?: unknown): Response {
-  return Response.json(
-    { error: { code, message, ...(details !== undefined ? { details } : {}) } },
-    { status },
-  );
-}
-
 /**
  * `POST /api/rooms/:roomId/validate` (specs/09 §5, specs/22 §2): valida el
  * draft actual con el mismo validador que corre en el editor y en
@@ -64,18 +58,15 @@ export function createRoomValidateHandlers(deps: RoomValidateHandlerDeps) {
         }
         const converted = docToRoomPackage(buildDraftDoc(draft), deps.serialize);
         if (!converted.ok) {
-          return errorResponse(
-            "INVALID_DRAFT",
-            "El draft aún no forma un RoomPackage válido",
-            422,
-            converted.errors,
-          );
+          return errorResponse("INVALID_DRAFT", "El draft aún no forma un RoomPackage válido", 422, {
+            details: converted.errors,
+          });
         }
         const assetManifest = await deps.loadAssetManifest?.(converted.pkg);
         const report = validateRoomPackage(converted.pkg, assetManifest ? { assetManifest } : {});
         return Response.json(
           { roomId, ok: report.ok, report, text: renderValidationReport(report) },
-          { headers: { "Cache-Control": "no-store" } },
+          { headers: NO_STORE },
         );
       } catch (err) {
         if (err instanceof RoomDraftError) {

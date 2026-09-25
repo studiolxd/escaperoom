@@ -22,10 +22,12 @@ export interface CreatorToolClient {
 }
 
 /**
- * Tools del MCP que no se ofrecen al modelo del chat: el ejemplo de paridad
- * del ticket 0.10 no sirve para crear salas y solo gasta tokens.
+ * Tools del MCP que no se ofrecen al modelo del chat. Vacío por defecto: el
+ * ejemplo de paridad del ticket 0.10 (`get_featured_room`) que ocupaba este
+ * hueco se retiró del toolset de producción (D-28), así que ya no hace falta
+ * ocultarlo; el conjunto queda como punto de extensión para el futuro.
  */
-export const CHAT_HIDDEN_TOOLS: ReadonlySet<string> = new Set(["get_featured_room"]);
+export const CHAT_HIDDEN_TOOLS: ReadonlySet<string> = new Set();
 
 export type McpHttpToolClientOptions = {
   /** URL de `/mcp/creator`. */

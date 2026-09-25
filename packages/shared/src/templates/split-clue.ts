@@ -1,5 +1,6 @@
 import type { PuzzleState, Rect, SplitClueDefinition } from "../schemas";
 import { MAX_SPLIT_CLUE_VIEWPOINTS_FOR_SUBSET } from "../schemas/limits";
+import { constantTimeEqual, guardPlayable, initialPuzzleState, publicBase } from "./base";
 
 /**
  * Plantilla `split_clue` (specs/06 §2.7). La información está repartida entre
@@ -98,7 +99,7 @@ export interface SplitCluePublicView {
 /** Un puzzle con `requiresSolved` pendiente arranca `locked`; si no, `available`. */
 export function createSplitClueState(def: SplitClueDefinition): SplitClueState {
   return {
-    state: def.requiresSolved.length > 0 ? "locked" : "available",
+    state: initialPuzzleState(def.requiresSolved),
     attempts: 0,
     bridged: false,
   };
@@ -203,12 +204,8 @@ export function submitCombination(
   now: number,
   playerId?: string,
 ): SplitClueSubmitResult {
-  if (state.state === "solved") {
-    return { outcome: "already_solved", state, attempts: state.attempts };
-  }
-  if (state.state === "locked" || state.state === "failed") {
-    return { outcome: "unavailable", state, attempts: state.attempts };
-  }
+  const guard = guardPlayable(state.state);
+  if (guard !== null) return { outcome: guard, state, attempts: state.attempts };
 
   const evaluated = evaluateCombination(def, input);
   if (evaluated === "incomplete") {
@@ -245,10 +242,8 @@ export function placeSplitClueBridge(
   def: SplitClueDefinition,
   playerId?: string,
 ): SplitClueBridgeResult {
-  if (state.state === "solved") return { outcome: "already_solved", state };
-  if (state.state === "locked" || state.state === "failed") {
-    return { outcome: "unavailable", state };
-  }
+  const guard = guardPlayable(state.state);
+  if (guard !== null) return { outcome: guard, state };
   if (!def.soloBridgeItemId) return { outcome: "unavailable", state };
   if (state.bridged) return { outcome: "already_bridged", state };
   const next: SplitClueState = {
@@ -272,9 +267,7 @@ export function toSplitCluePublicView(
 ): SplitCluePublicView {
   const visible = effectiveVisibility(def, viewpointId, state.bridged);
   return {
-    id: def.id,
-    type: "split_clue",
-    state: state.state,
+    ...publicBase(def.id, "split_clue", state.state, state.solvedAt, state.solvedBy),
     inputUI: def.inputUI,
     viewpointId,
     fragmentsCount: def.fragments.length,
@@ -283,8 +276,6 @@ export function toSplitCluePublicView(
     bridgeAvailable: def.soloBridgeItemId !== undefined,
     bridged: state.bridged,
     attempts: state.attempts,
-    solvedAt: state.solvedAt ?? null,
-    solvedBy: state.solvedBy ?? null,
   };
 }
 
@@ -409,14 +400,14 @@ function evaluateCombination(
     const candidate = input.trim();
     const solution = def.fragments.join("");
     if (candidate.length === 0 || candidate.length < solution.length) return "incomplete";
-    return candidate === solution ? "correct" : "wrong";
+    return constantTimeEqual(candidate, solution) ? "correct" : "wrong";
   }
 
   if (!Array.isArray(input)) return "incomplete";
   const submitted = input.map((fragment) => String(fragment).trim());
   if (submitted.length < def.fragments.length) return "incomplete";
   if (submitted.length > def.fragments.length) return "wrong";
-  return submitted.every((fragment, index) => fragment === def.fragments[index])
+  return submitted.every((fragment, index) => constantTimeEqual(fragment, def.fragments[index] ?? ""))
     ? "correct"
     : "wrong";
 }

@@ -1,5 +1,7 @@
+import { assertNever } from "../exhaustive";
 import { MAX_TIMER_EVENTS_PER_TICK } from "../schemas/limits";
 import type { FlagValue, Rule, RuleAction, RuleCondition, RuleTrigger } from "../schemas/rules";
+import { GRANT_ITEM_RULE_ID, OPEN_OBJECT_STATE, RESERVED_FLAGS } from "./constants";
 import type {
   DeferredAction,
   Engine,
@@ -128,6 +130,14 @@ function triggerMatches(trigger: RuleTrigger, event: GameEvent): boolean {
 class RuleEngine {
   private current: GameState;
   private readonly orderedRules: Rule[];
+  /**
+   * Reglas agrupadas por `trigger.type` (D-18): `evaluateEvent` se llama por
+   * cada evento (incluida la cascada) y antes recorría **todas** las reglas
+   * de la sala para descartar por tipo de trigger; con esto solo mira las
+   * que podrían casar. El orden dentro de cada grupo es el mismo que
+   * `orderedRules` (prioridad desc., luego declaración).
+   */
+  private readonly rulesByTriggerType: Map<RuleTrigger["type"], Rule[]>;
   private readonly maxChainDepth: number;
   private readonly defaultPlayerId: string;
   private now: number;
@@ -138,6 +148,12 @@ class RuleEngine {
       .map((rule, index) => ({ rule, index }))
       .sort((a, b) => b.rule.priority - a.rule.priority || a.index - b.index)
       .map(({ rule }) => rule);
+    this.rulesByTriggerType = new Map();
+    for (const rule of this.orderedRules) {
+      const group = this.rulesByTriggerType.get(rule.trigger.type);
+      if (group) group.push(rule);
+      else this.rulesByTriggerType.set(rule.trigger.type, [rule]);
+    }
     this.maxChainDepth = options.maxChainDepth ?? DEFAULT_MAX_CHAIN_DEPTH;
     this.defaultPlayerId = options.playerId ?? DEFAULT_PLAYER_ID;
     this.now = options.now ?? state.lastTickAt ?? 0;
@@ -198,7 +214,7 @@ class RuleEngine {
 
     const remaining = remainingSeconds(this.current, now);
     if (remaining !== undefined) {
-      this.current.flags.time_remaining = remaining;
+      this.current.flags[RESERVED_FLAGS.TIME_REMAINING] = remaining;
     }
     const thresholdEvents = this.collectThresholdEvents(now);
 
@@ -220,7 +236,7 @@ class RuleEngine {
     const ctx: ActionContext = {
       now: this.now,
       playerId: this.defaultPlayerId,
-      ruleId: "__grant_item__",
+      ruleId: GRANT_ITEM_RULE_ID,
       event: { type: "on_item_collected", itemId },
     };
     const draft = cloneState(this.current);
@@ -245,11 +261,11 @@ class RuleEngine {
 
   private primeEvent(event: GameEvent): void {
     if (event.type === "on_game_start") {
-      if (!this.current.flags.game_started) {
+      if (!this.current.flags[RESERVED_FLAGS.GAME_STARTED]) {
         this.current.startedAt = this.now;
         this.current.lastTickAt = this.now;
       }
-      this.current.flags.game_started = true;
+      this.current.flags[RESERVED_FLAGS.GAME_STARTED] = true;
       if (this.current.phase !== "ended") this.current.phase = "playing";
     }
     if (event.type === "on_enter_room" && event.playerId) {
@@ -265,7 +281,7 @@ class RuleEngine {
       this.current.players[event.playerId] ??= {};
     }
 
-    const candidates = this.orderedRules.filter(
+    const candidates = (this.rulesByTriggerType.get(event.type) ?? []).filter(
       (rule) => !this.isOnceFired(rule) && triggerMatches(rule.trigger, event),
     );
     const emitted: GameEvent[] = [];
@@ -405,7 +421,7 @@ class RuleEngine {
         });
         return;
       case "unlock_door":
-        state.objectStates[action.objectId] = "open";
+        state.objectStates[action.objectId] = OPEN_OBJECT_STATE;
         out.effects.push({ type: "unlock_door", objectId: action.objectId });
         return;
       case "grant_item": {
@@ -512,10 +528,12 @@ class RuleEngine {
         state.result = action.result;
         state.endedAt = ctx.now;
         state.phase = "ended";
-        state.flags.game_ended = true;
+        state.flags[RESERVED_FLAGS.GAME_ENDED] = true;
         for (const timer of Object.values(state.timers)) timer.running = false;
         out.effects.push({ type: "end_game", result: action.result });
         return;
+      default:
+        assertNever(action, "RuleEngine.applyAction");
     }
   }
 
@@ -536,7 +554,7 @@ class RuleEngine {
   }
 
   private timerHasOnTimerListener(timerId: string): boolean {
-    return this.orderedRules.some(
+    return (this.rulesByTriggerType.get("on_timer") ?? []).some(
       (rule) => rule.trigger.type === "on_timer" && rule.trigger.timerId === timerId,
     );
   }
@@ -575,7 +593,7 @@ class RuleEngine {
     const remaining = remainingSeconds(this.current, now);
     if (remaining === undefined) return [];
     const events: GameEvent[] = [];
-    for (const rule of this.orderedRules) {
+    for (const rule of this.rulesByTriggerType.get("on_time_remaining_below") ?? []) {
       if (rule.trigger.type !== "on_time_remaining_below") continue;
       if (remaining <= rule.trigger.seconds) {
         events.push({ type: "on_time_remaining_below", seconds: rule.trigger.seconds });

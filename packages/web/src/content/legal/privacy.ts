@@ -59,9 +59,9 @@ export const privacyPolicy: LegalDocument = {
           "contenido de la sala sobre la que trabaja se envían al proveedor del modelo de lenguaje " +
           "configurado (véase la sección 6) para ejecutar el contrato (artículo 6.1.b del RGPD).",
         [
-          "Analítica de producto (planificada, no activa todavía): Plausible, que no usa cookies, por " +
-            "interés legítimo (artículo 6.1.f del RGPD) con mecanismo de oposición; Google " +
-            "Analytics, solo con tu consentimiento previo (artículo 6.1.a del RGPD). Véase la ",
+          "Analítica de producto: Plausible, que no usa cookies, por interés legítimo (artículo 6.1.f " +
+            "del RGPD) con mecanismo de oposición; Google Analytics, solo con tu consentimiento previo " +
+            "(artículo 6.1.a del RGPD). Véase la ",
           legalLink("Política de Cookies", "/legal/cookies"),
           ".",
         ],
@@ -123,9 +123,7 @@ export const privacyPolicy: LegalDocument = {
     },
     {
       heading: "4. Cuánto tiempo conservamos los datos",
-      paragraphs: [
-        "Los plazos de conservación son:",
-      ],
+      paragraphs: ["Los plazos de conservación son:"],
       list: [
         "Cuenta cerrada por el usuario: los campos identificativos se anonimizan de inmediato; se " +
           "conserva un registro transaccional de las compras, sin datos personales visibles, por " +
@@ -162,8 +160,8 @@ export const privacyPolicy: LegalDocument = {
         "Puedes ejercer en cualquier momento tus derechos de acceso, rectificación, supresión, " +
           "limitación del tratamiento, oposición y portabilidad escribiendo a hello@studiolxd.com. " +
           "Cuando un tratamiento se basa en tu consentimiento (por ejemplo, la grabación de una " +
-          "sesión o, cuando se active, Google Analytics), puedes retirarlo en cualquier momento, sin " +
-          "que eso afecte a la licitud del tratamiento anterior.",
+          "sesión o Google Analytics), puedes retirarlo en cualquier momento, sin que eso afecte a la " +
+          "licitud del tratamiento anterior.",
         "Si consideras que no hemos atendido correctamente tu solicitud, puedes presentar una " +
           "reclamación ante la Agencia Española de Protección de Datos (aepd.es, calle Jorge Juan, " +
           "6, 28001 Madrid).",
@@ -220,15 +218,15 @@ export const privacyPolicy: LegalDocument = {
         "LiveKit Cloud — solo si se activa como plan de contingencia para audio/vídeo en tránsito; " +
           "mientras el servicio se opere en modo self-hosted, este proveedor no interviene.",
         [
-          "Plausible — analítica de producto planificada, no activa todavía; no usa cookies. Mientras " +
-            "no se active, este proveedor no interviene (véase la ",
+          "Plausible — analítica de producto; no usa cookies ni identifica a nadie individualmente " +
+            "(véase la ",
           legalLink("Política de Cookies", "/legal/cookies"),
           ").",
         ],
         [
-          "Google Analytics — analítica de producto planificada, no activa todavía; usa cookies " +
-            "(`_ga`/`_ga_*`) y solo se cargaría con consentimiento previo. Mientras no se active, este " +
-            "proveedor no interviene (véase la ",
+          "Google Analytics — analítica de producto; usa cookies (`_ga`/`_ga_*`) y solo se carga con tu " +
+            "consentimiento previo, con sede en Estados Unidos y las mismas garantías de transferencia " +
+            "que el resto de proveedores de esta lista (véase la ",
           legalLink("Política de Cookies", "/legal/cookies"),
           ").",
         ],

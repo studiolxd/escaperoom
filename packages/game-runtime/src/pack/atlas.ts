@@ -83,8 +83,13 @@ export function packAtlas(
   const height = Math.max(1, usedHeight + padding);
   const rgba = new Uint8Array(width * height * 4);
 
+  // D-28: `input.find` por frame dentro de este bucle era O(n²) (un pack de
+  // ~250 frames ya hace ~30k comparaciones); con un mapa por nombre queda en
+  // O(n). Los nombres de frame son únicos (lo exige `checkNames`), así que
+  // el mapa no pierde información frente al `find`.
+  const byFrame = new Map(input.map((candidate) => [candidate.frame, candidate]));
   for (const frame of frames) {
-    const source = input.find((candidate) => candidate.frame === frame.frame);
+    const source = byFrame.get(frame.frame);
     if (!source) {
       continue;
     }

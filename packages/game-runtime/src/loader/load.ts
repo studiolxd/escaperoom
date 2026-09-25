@@ -2,7 +2,6 @@ import {
   RoomPackageSchema,
   formatRoomPackageError,
   toReadableIssues,
-  type LocalizedText,
   type PuzzleDefinition,
   type RoomPackage,
   type Rule,
@@ -11,6 +10,7 @@ import {
   type TileLayer,
   type WorldObject,
 } from "@escaperoom/shared/schemas";
+import { resolveLocalizedText } from "@escaperoom/shared/hints";
 import { RoomPackageLoadError } from "./errors";
 import type {
   RuntimeDialog,
@@ -257,15 +257,13 @@ function panelForObject(roomPackage: RoomPackage, object: WorldObject): string |
   )?.id;
 }
 
-/** Resuelve un `LocalizedText` al locale pedido, con fallback al primer idioma. */
-export function resolveLocalizedText(text: LocalizedText, locale: string): string {
-  const preferred = text[locale];
-  if (preferred) {
-    return preferred.text;
-  }
-  const first = Object.values(text)[0];
-  return first?.text ?? "";
-}
+// D-26: `resolveLocalizedText` reutiliza la de `@escaperoom/shared/hints`
+// (import arriba) en vez de duplicarla; se re-exporta con el mismo nombre
+// para no romper a quien la importaba desde aquí (`world/inspection.ts`, el
+// barrel de `game-runtime`). Su cadena de fallback es más completa
+// (idioma pedido → `es` → primera entrada, ADR-018) que la que había aquí
+// (idioma pedido → primera entrada).
+export { resolveLocalizedText };
 
 function toRuntimeSubRoom(room: SubRoom): RuntimeSubRoom {
   const { cols, rows } = room.grid;

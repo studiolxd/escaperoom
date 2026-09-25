@@ -135,5 +135,25 @@ export function serverEnv(): Record<string, string> {
     ANTHROPIC_API_KEY: "",
     // Los límites anti-abuso (ticket 6.3) se quedan **encendidos**: la suite
     // juega a ritmo de persona y comprueba que la UI real cabe en ellos.
+    // Sin analítica (docs/DEUDA.md «Claves reales de analítica antes de
+    // desplegar en producción»): la suite arranca con NODE_ENV=production
+    // (`scripts/serve.ts`), donde `validateAnalyticsEnvOnBoot` (@escaperoom/web
+    // env.ts) exige claves reales de Plausible/GA salvo este escape explícito.
+    // El e2e no debe depender de dominios externos ni cargar ningún script de
+    // analítica. NEXT_PUBLIC_PLAUSIBLE_DOMAIN/NEXT_PUBLIC_GA_MEASUREMENT_ID se
+    // fijan vacíos EXPLÍCITAMENTE (no basta con omitirlos): si el `.env` de
+    // `packages/web` de este worktree tiene los valores de desarrollo de
+    // `.env.example` (para probar el banner con `pnpm dev`), `next build`
+    // los recoge de ahí en cuanto `serverEnv()` no diga lo contrario —
+    // `ACTIVE_OPTIONAL_CATEGORIES` (`cookie-consent-config.ts`) quedaría con
+    // "analytics" y el banner de cookies interceptaría los clics de la
+    // partida (confirmado: así fallaba el smoke antes de este fix, con
+    // `TimeoutError` en clics tapados por el banner, no por falta de
+    // arranque). Vacíos aquí, el build del e2e nunca depende de lo que haya
+    // en ese `.env` local.
+    ANALYTICS_DISABLED: "1",
+    NEXT_PUBLIC_PLAUSIBLE_DOMAIN: "",
+    NEXT_PUBLIC_PLAUSIBLE_SRC: "",
+    NEXT_PUBLIC_GA_MEASUREMENT_ID: "",
   };
 }

@@ -4,6 +4,7 @@ import {
   type EventPanelErrorCode,
   type EventPanelService,
 } from "@escaperoom/shared/services";
+import { handleDomainErrors, NO_STORE } from "./_http";
 
 /** Dependencias inyectables de los handlers del panel (testeables sin Postgres ni Colyseus). */
 export type EventPanelHandlerDeps = {
@@ -23,22 +24,8 @@ const STATUS_BY_CODE: Record<EventPanelErrorCode, number> = {
   SPECTATOR_UNAVAILABLE: 503,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
 /** Traduce errores de dominio a la forma de error REST (specs/13 §1). */
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof EventPanelError) {
-      return Response.json(
-        { error: { code: err.code, message: err.message } },
-        { status: STATUS_BY_CODE[err.code], headers: NO_STORE },
-      );
-    }
-    throw err;
-  }
-}
+const handle = handleDomainErrors(EventPanelError, STATUS_BY_CODE);
 
 /**
  * Handlers REST del panel del organizador (ticket 5.9, specs/19 §2).

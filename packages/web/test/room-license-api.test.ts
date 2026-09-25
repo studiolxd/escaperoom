@@ -232,9 +232,9 @@ describe("POST /api/rooms/:roomId/gift-copy", () => {
     expect(t.store.purchases).toEqual([]);
   });
 
-  it("errores de entrada: JSON roto 400, email no válido 422, propio email 422, repetido 409", async () => {
+  it("errores de entrada: JSON roto 400 INVALID_JSON (A-22), email no válido 422, propio email 422, repetido 409", async () => {
     const t = setup();
-    expect(await errorCode(await t.gift(undefined, "autora", "{"), 400)).toBe("BAD_REQUEST");
+    expect(await errorCode(await t.gift(undefined, "autora", "{"), 400)).toBe("INVALID_JSON");
     expect(await errorCode(await t.gift({ recipientEmail: "x" }, "autora"), 422)).toBe(
       "VALIDATION_ERROR",
     );

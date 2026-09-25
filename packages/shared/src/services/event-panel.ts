@@ -1,7 +1,8 @@
 import { LOCALES, type Locale } from "@escaperoom/config/locales";
 import { resolveMailLocale } from "../mail/templates";
 import type { AccessKeyStore, SessionSeats } from "./access-keys";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
+import { UUID_RE, requireUser } from "./common";
 import type { EventRow, EventStatus } from "./events";
 import type { InvitationStats, InvitationStore } from "./invitations";
 import {
@@ -154,8 +155,6 @@ export type SpectatorTicket = {
   expiresAt: string;
   colyseus: { endpoint: string; roomName: string };
 };
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function liveState(progress: SessionLiveProgress): PanelSessionState {
   if (progress.phase === "lobby") return "lobby";
@@ -439,7 +438,7 @@ export function createEventPanelService(deps: EventPanelDeps) {
 
   /** Solo el organizador del evento (specs/19 §2): ni otros usuarios ni anónimos. */
   async function findOwnEvent(actor: Actor, eventId: string): Promise<EventRow> {
-    if (isAnonymous(actor)) throw new EventPanelError("UNAUTHORIZED", "No hay sesión");
+    requireUser(actor, EventPanelError);
     const event = UUID_RE.test(eventId) ? await deps.keys.findEvent(eventId) : null;
     if (!event) throw new EventPanelError("NOT_FOUND", "Evento no encontrado");
     if (event.organizerId !== actor.userId) {

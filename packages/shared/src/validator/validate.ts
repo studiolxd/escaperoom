@@ -1,3 +1,4 @@
+import { assertNever } from "../exhaustive";
 import { MAX_VALIDATE_PLAYER_COUNTS, type RoomPackage } from "../schemas";
 import { clueRequirements, computeCodeClues } from "./clues";
 import {
@@ -262,8 +263,10 @@ function describeMove(
                 : `Resolver ${puzzle.id}`,
           };
         }
-        default:
+        case "combine_items":
           return { ...base, description: `Resolver ${puzzle.id}` };
+        default:
+          return assertNever(puzzle, "describeMove");
       }
     }
     case "combine": {
@@ -546,9 +549,17 @@ function solvabilityCheck(
   // Modo solitario: mecánicas cooperativas sin objeto-puente (specs/22 §2.1).
   issues.push(...soloIssues);
   const truncated = results.filter((result) => result.searchTruncated);
+  // D-28: el aviso de truncamiento no mencionaba que, para llegar hasta ahí,
+  // la búsqueda pudo haber ignorado el orden de descubrimiento de los
+  // dígitos (`ignoredClueOrder`) antes de agotar el presupuesto — el check
+  // "code_hints" ya lo reporta como issue propio, pero este resumen es lo
+  // primero que se lee.
+  const reorderedBeforeTruncation = results.some(
+    (result) => result.ignoredClueOrder && result.searchTruncated,
+  );
   const summary =
     truncated.length > 0
-      ? `Solvabilidad: la victoria es alcanzable (${playersLabel(playerCounts)}), pero la ruta exacta no se verificó con ${playersLabel(truncated.map((r) => r.playerCount))} (presupuesto de estados agotado)`
+      ? `Solvabilidad: la victoria es alcanzable (${playersLabel(playerCounts)}), pero la ruta exacta no se verificó con ${playersLabel(truncated.map((r) => r.playerCount))} (presupuesto de estados agotado)${reorderedBeforeTruncation ? "; además, la ruta encontrada ignora el orden de descubrimiento de los dígitos (clue_order)" : ""}`
       : `Solvabilidad: ruta crítica verificada (${playersLabel(playerCounts)}; ver secuencia abajo)`;
   const result = check(
     "solvability",

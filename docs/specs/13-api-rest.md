@@ -25,6 +25,13 @@ procesos distintos.
   superficie REST.
 - **Errores:** siempre `{ "error": { "code": "STRING_CODE", "message": "texto legible" } }` con el
   HTTP status correspondiente (400/401/403/404/409/422/429/500). Nunca se filtra un stack trace.
+  Códigos fijados en toda la superficie REST (A-22, auditoría 2026-09-24 — antes variaban de un
+  adaptador a otro; el contrato compartido vive en `packages/web/src/server/rest/_http.ts`):
+  - `VALIDATION_ERROR` = **422** en todas las rutas (nunca 400).
+  - Cuerpo JSON roto (no parsea) = `INVALID_JSON` **400** — distinto de `VALIDATION_ERROR`: es la
+    forma, no el contenido.
+  - Sin sesión = `UNAUTHORIZED` **401** (nunca `UNAUTHENTICATED` ni otra variante).
+  - Toda respuesta privada (con sesión) o de error lleva `Cache-Control: no-store`.
 - **Paginación:** cursor-based (`?cursor=...&limit=20`), respuesta
   `{ items: [...], nextCursor: string | null }`.
 - **Idempotencia:** todo POST con efecto económico (checkout, generación de claves en lote) acepta

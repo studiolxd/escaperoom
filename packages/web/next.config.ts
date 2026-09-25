@@ -20,12 +20,15 @@ const nextConfig: NextConfig = {
    * API, que solo sirve JSON, lleva una CSP que no permite cargar nada.
    */
   async headers() {
+    const apiCsp = [{ key: "Content-Security-Policy", value: API_CONTENT_SECURITY_POLICY }];
     return [
       { source: "/:path*", headers: staticSecurityHeaders(process.env) },
-      {
-        source: "/api/:path*",
-        headers: [{ key: "Content-Security-Policy", value: API_CONTENT_SECURITY_POLICY }],
-      },
+      { source: "/api/:path*", headers: apiCsp },
+      // A-23: la CSP de API también en el descubrimiento OAuth/MCP
+      // (`/.well-known/*`) y en las rutas del propio MCP (`/mcp/*`) — antes
+      // solo cubría `/api/:path*`, y esas dos sirven JSON igual que la API.
+      { source: "/.well-known/:path*", headers: apiCsp },
+      { source: "/mcp/:path*", headers: apiCsp },
     ];
   },
 };
