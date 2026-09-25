@@ -68,14 +68,29 @@ Tareas pendientes que no bloquean pero hay que resolver.
            de evento; nunca como destino genérico o de reserva del CTA de la
            ficha. El único caso legítimo para enlazar `/redeem` desde la ficha es
            que la sala tenga un **evento activo vinculado al viewer**.
-        h. **Sala sin venta individual y sin evento:** si `saleIndividual:
-           false` o `priceCents: null` y el viewer no tiene ningún evento activo
-           asociado, hoy no hay ningún camino de acceso real. No enlazar a
-           `/redeem` por defecto: decidir y documentar qué se muestra (CTA
-           deshabilitado con explicación, u ocultarlo). Si resulta que debería
-           existir el caso de producto "sala realmente gratis, jugable sin
-           clave ni compra", dejarlo como **pregunta abierta en la PR**, sin
-           improvisar una solución.
+        h. **Sala solo para eventos** (`saleIndividual: false`, `saleEvents:
+           true`) — **decidido (2026-09-25):** etiqueta "Solo para eventos" y
+           botón "Organizar un evento con esta sala", que lleva al flujo de
+           crear evento con el precio por jugador visible. Cualquier usuario con
+           sesión puede organizar un evento con una sala con venta para eventos
+           (`events.ts createEvent`: solo exige `saleEvents` o ser el autor), así
+           que es un camino real también para particulares. Si una sala no
+           tuviera ningún modo de venta, no se muestra botón. Corregir specs/02
+           §3.1, que dice "elige una sala que ya posee", para que refleje el
+           código (cualquier sala con `saleEvents`).
+        i. **Salas gratis** (precio 0 con venta individual) — **decidido
+           (2026-09-25): se juegan sin cuenta.** Botón "Jugar gratis" que abre la
+           partida sin iniciar sesión (sin `purchase` ni Stripe: el servidor
+           emite el `gameToken` de una partida gratuita), con cuotas por IP
+           contra abuso; la cuenta es opcional al terminar para guardar el
+           resultado, reseñar o entrar en el ranking. Hoy no existe atajo de
+           Stripe para precio 0 (`purchases.ts:192-194`), así que hay que crear
+           este flujo. Actualizar specs/02 §2.2 (salas gratis) y specs/13 (acceso).
+        j. **Etiqueta "Gratis" engañosa:** `room-card.tsx:12` muestra "Gratis"
+           si `!room.priceCents`, es decir también con precio `null` (sala sin
+           venta individual) y con precio 0 que hoy no se puede jugar. Mostrar
+           "Gratis" solo con precio 0 y `saleIndividual: true`; con precio
+           `null`, la etiqueta "Solo para eventos" del punto h.
 - [ ] **Permitir valoraciones en medios puntos.**
       - **Estado actual:** `review.rating` es `Int @db.SmallInt`
         (`packages/shared/prisma/schema.prisma:431`), con `CHECK` en la base
