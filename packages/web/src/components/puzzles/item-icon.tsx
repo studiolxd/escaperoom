@@ -17,7 +17,7 @@ export interface ItemIconProps {
   frame?: string;
   /** URL base del pack (sin barra final). */
   baseUrl?: string;
-  /** Nombre del item; alimenta el fallback y el `title`. */
+  /** Nombre del item; alimenta el monograma del fallback. */
   name: string;
   /** Tamaño en píxeles del cuadro del icono (por defecto 28). */
   size?: number;
@@ -79,10 +79,10 @@ export function ItemIcon({ frame, baseUrl, name, size = 28, className }: ItemIco
       // segundo archivo "1x" que pedir) y se ve nítido en pantallas retina.
       srcSet={`${src} 2x`}
       alt=""
+      aria-hidden="true"
       width={size}
       height={size}
       draggable={false}
-      title={name}
       onError={() => setStage((current) => current + 1)}
       className={cn("shrink-0 object-contain", className)}
     />

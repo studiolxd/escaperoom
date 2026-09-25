@@ -788,12 +788,19 @@ export function GameSessionShell({
         </div>
       </div>
 
-      {/* Jugadores e invitación */}
-      <aside className="pointer-events-auto absolute left-4 top-40 z-10 flex w-56 flex-col gap-2 rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-white backdrop-blur">
+      {/* Jugadores e invitación. Altura total acotada (además del tope del propio
+          registro, ticket 6.5): en pantallas de 720 px, con varios jugadores y
+          varias líneas de registro a la vez, el aside podía llegar a estirarse
+          hasta tapar la barra de objetos (bottom-left) y robarle los clics — le
+          pasó a la barra de objetos con `pointer-events`, no solo visualmente. */}
+      <aside className="pointer-events-auto absolute left-4 top-40 z-10 flex max-h-52 w-56 flex-col gap-2 overflow-y-auto rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-white backdrop-blur">
         <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
           {t("lobby.players", { count: snapshot.players.length })}
         </span>
-        <ul className="flex flex-col gap-1 text-xs" data-testid="game-players">
+        <ul
+          className="flex max-h-20 flex-col gap-1 overflow-y-auto text-xs"
+          data-testid="game-players"
+        >
           {snapshot.players.map((player) => (
             <li key={player.id} className="flex items-center gap-2">
               <span
@@ -818,8 +825,8 @@ export function GameSessionShell({
         <span className="mt-1 text-[0.65rem] uppercase tracking-wide text-white/50">
           {tp("log.title")}
         </span>
-        {/* Altura acotada: el registro crece con la partida y, sin tope, el panel
-            tapaba la barra de objetos en pantallas de 720 px (ticket 6.5). */}
+        {/* Tope propio además del de arriba: el registro es lo que más crece
+            dentro del aside a lo largo de la partida. */}
         <ul
           className="flex max-h-24 flex-col gap-0.5 overflow-y-auto text-[0.65rem] text-white/70"
           aria-live="polite"
