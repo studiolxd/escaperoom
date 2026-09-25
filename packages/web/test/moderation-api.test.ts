@@ -1,3 +1,4 @@
+import { __resetInMemoryRateLimitersForTests } from "@escaperoom/kit/rate-limit";
 import {
   ANONYMOUS_ACTOR,
   createInMemoryModerationStore,
@@ -6,6 +7,10 @@ import {
 } from "@escaperoom/shared/services";
 import { describe, expect, it } from "vitest";
 import { createModerationHandlers } from "../src/server/rest/moderation";
+
+// Ver la nota igual en `test/rate-limit.test.ts` (entrada "Tests de rate
+// limit deterministas", `docs/DEUDA.md`).
+__resetInMemoryRateLimitersForTests();
 
 const ROOM = "11111111-1111-4111-8111-111111111111";
 const REVIEW = "44444444-4444-4444-8444-444444444444";

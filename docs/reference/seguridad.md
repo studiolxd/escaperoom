@@ -18,8 +18,16 @@ un límite en el código, cámbialo aquí (y al revés).
 (`<prefijo>:rls:<política>:<ip|user>:<id>`) con los instantes de los intentos **aceptados**; el
 recorte, el alta, el recuento y el más antiguo van en un `MULTI`. Un intento que se pasa se retira,
 así que insistir tras el 429 no alarga el bloqueo y `Retry-After` dice cuándo caduca el aceptado más
-antiguo. Sin `REDIS_URL` (dev, tests, CI) el mismo algoritmo corre en memoria, por proceso. Si Redis
-cae, el limitador **falla abierto** (se registra el error): el canje no se cae con Redis.
+antiguo. Sin `REDIS_URL` (dev, tests, CI) el mismo algoritmo corre en memoria, por proceso.
+
+**Si Redis cae (E-22, auditoría).** `RedisSlidingWindowStore` YA NO falla abierto: cae a un
+`MemorySlidingWindowStore` propio del proceso, que sigue limitando (por proceso, no coordinado entre
+réplicas — el mismo régimen que cuando no hay `REDIS_URL` en absoluto) en vez de dejar pasar todo. Un
+"permitir todo" sin Redis convertía cualquier corte en una ventana libre para la fuerza bruta de
+`redeem`, que es precisamente el objetivo más sensible de este limitador. Se avisa con `logger.error`
+solo la **primera vez** que Redis falla en ese proceso (no en cada petición mientras dure el corte).
+Código y test: `packages/kit/src/rate-limit/sliding-redis.ts`,
+`packages/kit/test/rate-limit-sliding.test.ts`.
 
 **Claves.** Siempre por IP + ruta; con sesión, además por usuario (un usuario que cambia de IP sigue
 contando). El anónimo solo cuenta por IP. La sesión solo se consulta si la petición trae cookie o

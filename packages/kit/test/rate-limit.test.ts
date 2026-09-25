@@ -25,13 +25,14 @@ describe("MemoryRateLimitStore", () => {
     expect(other.ok).toBe(true);
   });
 
-  it("opens a fresh window once it expired", async () => {
-    const store = new MemoryRateLimitStore();
+  it("opens a fresh window once it expired (reloj inyectado, sin esperas reales)", async () => {
+    let now = 1_000_000;
+    const store = new MemoryRateLimitStore(() => now);
     await store.hit("k", 1, 1);
     const blocked = await store.hit("k", 1, 1);
     expect(blocked.ok).toBe(false);
 
-    await new Promise((r) => setTimeout(r, 1100));
+    now += 1_100;
     const reopened = await store.hit("k", 1, 1);
     expect(reopened.ok).toBe(true);
   });

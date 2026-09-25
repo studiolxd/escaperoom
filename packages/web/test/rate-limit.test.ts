@@ -1,4 +1,7 @@
-import { MemorySlidingWindowStore } from "@escaperoom/kit/rate-limit";
+import {
+  __resetInMemoryRateLimitersForTests,
+  MemorySlidingWindowStore,
+} from "@escaperoom/kit/rate-limit";
 import {
   ANONYMOUS_ACTOR,
   createAccessKeyService,
@@ -30,7 +33,16 @@ import {
  * El canje se prueba a través del route module real (`app/api/.../route.ts`),
  * con los servicios en memoria inyectados por `vi.mock`: así se comprueba el
  * cableado del límite, no solo el wrapper.
+ *
+ * `__resetInMemoryRateLimitersForTests()` al principio del módulo: defensa
+ * adicional (no la causa real del 429 inesperado de "Tests de rate limit
+ * deterministas", `docs/DEUDA.md` — esa era `REDIS_PREFIX` en
+ * `scripts/verify-pr.sh`, ya arreglada, ver `docs/reference/verify-pr.md`)
+ * para que este fichero nunca dependa del estado que deje otro en el
+ * singleton EN MEMORIA de `@escaperoom/kit/rate-limit`, aunque llegaran a
+ * compartirlo.
  */
+__resetInMemoryRateLimitersForTests();
 
 const services = vi.hoisted(() => ({ redeem: null as RedeemService | null }));
 vi.mock("@/server/services", () => ({ getRedeemService: () => services.redeem }));

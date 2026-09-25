@@ -6,6 +6,7 @@ vi.mock("../src/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
+import { logger } from "../src/logger";
 import { clientIpFromHeaders, tooManyRequestsResponse } from "../src/rate-limit/http";
 import { MemorySlidingWindowStore } from "../src/rate-limit/sliding";
 import { RedisSlidingWindowStore } from "../src/rate-limit/sliding-redis";
@@ -156,11 +157,21 @@ describe.each([
 });
 
 describe("RedisSlidingWindowStore", () => {
-  it("falla abierto si Redis no responde", async () => {
+  it("E-22: si Redis no responde, cae a un limitador en memoria por proceso (no deja pasar todo)", async () => {
     const redis = new FakeRedis();
     redis.down = true;
-    const store = new RedisSlidingWindowStore(redis as unknown as Redis, "test");
-    await expect(store.hit("k", 0, 60)).resolves.toEqual({ ok: true, retryAfter: 0 });
+    const errorLog = vi.mocked(logger.error);
+    const c = clock();
+    const store = new RedisSlidingWindowStore(redis as unknown as Redis, "test", c.now);
+
+    // Sigue limitando: el repliegue en memoria tiene su propio límite (2).
+    expect((await store.hit("k", 2, 60)).ok).toBe(true);
+    expect((await store.hit("k", 2, 60)).ok).toBe(true);
+    expect((await store.hit("k", 2, 60)).ok).toBe(false);
+
+    // Se avisa con logger.error, pero solo una vez aunque Redis siga caído.
+    expect(errorLog).toHaveBeenCalledTimes(1);
+    expect(errorLog.mock.calls[0]![1]).toMatch(/falling back to an in-memory per-process limiter/);
   });
 
   it("solo guarda los aceptados en el sorted set", async () => {

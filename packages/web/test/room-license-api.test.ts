@@ -14,12 +14,20 @@ import {
   type LicenseRoomRef,
   type PaymentGateway,
 } from "@escaperoom/shared/services";
-import { MemorySlidingWindowStore } from "@escaperoom/kit/rate-limit";
+import {
+  __resetInMemoryRateLimitersForTests,
+  MemorySlidingWindowStore,
+} from "@escaperoom/kit/rate-limit";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
 import { consumeGiftCopyRecipientLimit, RATE_LIMIT_POLICIES } from "../src/server/rate-limit";
 import { createRoomLicenseHandlers } from "../src/server/rest/room-license";
 import type { RoomLicenseService } from "@escaperoom/shared/services";
+
+// Ver la nota igual en `test/rate-limit.test.ts` (entrada "Tests de rate
+// limit deterministas", `docs/DEUDA.md`): defensa adicional, no la causa real
+// del 429 (esa era `REDIS_PREFIX` en `scripts/verify-pr.sh`, ya arreglada).
+__resetInMemoryRateLimitersForTests();
 
 const quotaServices = vi.hoisted(() => ({ licenses: null as RoomLicenseService | null }));
 vi.mock("@/server/services", () => ({ getRoomLicenseService: () => quotaServices.licenses }));

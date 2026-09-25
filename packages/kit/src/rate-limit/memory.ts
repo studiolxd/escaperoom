@@ -30,13 +30,22 @@ export interface RateLimitStore {
   hit(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult>;
 }
 
+/**
+ * Duplicated from `./sliding` on purpose (not re-exported): this module has no
+ * imports so a single-instance consumer never pulls in Redis/logger, and a
+ * cross-import would defeat that.
+ */
+export type Clock = () => number;
+
 /** In-memory fixed-window store. Single-instance only. */
 export class MemoryRateLimitStore implements RateLimitStore {
   private buckets = new Map<string, { count: number; resetAt: number }>();
   private lastSweep = 0;
 
+  constructor(private readonly now: Clock = Date.now) {}
+
   async hit(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
-    const now = Date.now();
+    const now = this.now();
     this.sweep(now);
 
     const windowMs = windowSeconds * 1000;

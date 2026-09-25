@@ -1,3 +1,4 @@
+import { __resetInMemoryRateLimitersForTests } from "@escaperoom/kit/rate-limit";
 import {
   ANONYMOUS_ACTOR,
   createAudioGenerationService,
@@ -12,6 +13,10 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import { RATE_LIMIT_POLICIES } from "../src/server/rate-limit";
 import { createAudioGenerationHandlers } from "../src/server/rest/audio-generation";
 import type { AudioGenerationService } from "@escaperoom/shared/services";
+
+// Ver la nota igual en `test/rate-limit.test.ts` (entrada "Tests de rate
+// limit deterministas", `docs/DEUDA.md`).
+__resetInMemoryRateLimitersForTests();
 
 const quotaServices = vi.hoisted(() => ({ generation: null as AudioGenerationService | null }));
 vi.mock("@/server/services", () => ({ getAudioGenerationService: () => quotaServices.generation }));

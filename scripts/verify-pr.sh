@@ -315,6 +315,23 @@ fi
 # Redis/SeaweedFS de infra/docker-compose.dev.yml (compartidos por todos los
 # worktrees, puertos fijos): activan los *.integration.test.ts (E-14), que si
 # no se saltan silenciosamente con `describe.skipIf`.
+#
+# REDIS_PREFIX: NUNCA el genérico "escaperoom" por defecto (entrada "Tests de
+# rate limit deterministas", `docs/DEUDA.md`) — con él, los tests de
+# `packages/web` que hablan con el route module real (`rate-limit.test.ts`,
+# `room-license-api.test.ts`…) dejan de usar el store EN MEMORIA aislado por
+# proceso (el diseño documentado más abajo, "REDIS_PREFIX por worktree") y
+# pasan a compartir el Redis real y PERSISTENTE de `infra/docker-compose.dev
+# .yml` entre ejecuciones de `pnpm verify:pr` (y entre worktrees, si ninguno
+# tiene REDIS_PREFIX en su entorno de shell): las claves de cuota sobreviven
+# de una tirada a la siguiente y el 429/403 deja de depender de qué test
+# corra, sino de qué quedó pendiente de expirar del run anterior — el 429
+# "inesperado" que describía esta entrada de deuda. `pnpm dev:env` ya deja el
+# prefijo propio del worktree en `packages/web/.env`/`packages/shared/.env`;
+# se lee de ahí primero.
+if [ -z "${REDIS_PREFIX:-}" ] && [ -f "$SHARED_ENV_FILE" ]; then
+  REDIS_PREFIX=$(sed -n 's/^REDIS_PREFIX=//p' "$SHARED_ENV_FILE" | head -1)
+fi
 : "${REDIS_URL:=redis://:redis_dev_only@localhost:56380}"
 : "${REDIS_PREFIX:=escaperoom}"
 : "${QUEUES_ENABLED:=true}"

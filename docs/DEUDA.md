@@ -216,12 +216,28 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `[locale]/layout.tsx`, un segmento dinámico), es la vía que documenta Next para ese
       caso — bypassa todo el árbol de layouts, con su propio `<html>/<body>` y copia fija
       en español (sin next-intl, no hay locale que resolver). Encontrado en la PR #153.
-- [ ] **Tests de rate limit deterministas.** Los tests de rate limit de `packages/web`
-      (`rate-limit.test.ts`, `room-license-api.test.ts`, `onboarding-api.test.ts`,
-      `moderation-api.test.ts`, `audio-generation-api.test.ts`…) usan ventanas de tiempo
-      reales con el limitador en memoria y fallan con `429` inesperados cuando la máquina
-      va cargada (varios agentes a la vez, `turbo` lanzando lint+typecheck+test+build).
-      Como `pnpm verify:pr` aborta en el primer fallo, el smoke E2E ni llega a correr: lo
-      han sufrido casi todas las PRs de la auditoría (#146–#155). Hacerlos deterministas:
-      reloj inyectable en el limitador (o `vi.useFakeTimers`), identificadores únicos por
-      test (IP/usuario) y sin depender de la velocidad de la máquina.
+- [x] **Tests de rate limit deterministas.** Causa real (reproducida en verde/rojo alternando
+      `pnpm verify:pr` varias veces seguidas, no la CPU): `scripts/verify-pr.sh` exportaba
+      `REDIS_PREFIX=escaperoom` — el genérico, sin el sufijo por worktree — para TODA la
+      tubería de `turbo`, incluido `packages/web:test`. Eso hacía que los tests de rate-limit
+      de `web` (`rate-limit.test.ts`, `room-license-api.test.ts`, `onboarding-api.test.ts`,
+      `moderation-api.test.ts`, `audio-generation-api.test.ts`), pensados para correr
+      aislados con el store EN MEMORIA por proceso (ver "`REDIS_PREFIX` por worktree" de
+      `docs/reference/verify-pr.md`), hablaran en realidad con el Redis real y PERSISTENTE de
+      `infra/docker-compose.dev.yml`: las claves de cuota (`escaperoom:rls:*`, confirmado con
+      `redis-cli KEYS`) sobrevivían de una tirada de `pnpm verify:pr` a la siguiente — y entre
+      worktrees distintos, si ninguno tenía `REDIS_PREFIX` ya puesto en su shell — así que el
+      429/403 dependía de qué había quedado sin expirar de la ejecución anterior, no de qué
+      test corría. Arreglado: `scripts/verify-pr.sh` ahora lee el `REDIS_PREFIX` propio del
+      worktree de `packages/shared/.env` (el que ya deja `pnpm dev:env`) antes de caer al
+      genérico. Verificado con `pnpm verify:pr --all --no-e2e` en verde 3 veces seguidas tras
+      limpiar las claves contaminadas por el diagnóstico.
+      De paso, dos mejoras menores de determinismo que sí eran reales (aunque no la causa del
+      429): `packages/kit/test/rate-limit.test.ts` tenía una espera real
+      (`setTimeout(…, 1100)`), sustituida por un reloj inyectado — `MemoryRateLimitStore`
+      ahora acepta un `Clock` opcional, como ya tenía `MemorySlidingWindowStore`; y se añadió
+      `__resetInMemoryRateLimitersForTests()` (`packages/kit/src/rate-limit/index.ts`),
+      llamado al principio de cada fichero de test que ejercita una ruta real limitada, como
+      defensa adicional para que ningún test dependa del estado que deje otro. También E-22
+      (auditoría): `RedisSlidingWindowStore` ya no falla abierto si Redis cae, cae a un
+      `MemorySlidingWindowStore` por proceso (`docs/reference/seguridad.md` §1).
