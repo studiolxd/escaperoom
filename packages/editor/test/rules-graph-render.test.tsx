@@ -62,6 +62,33 @@ describe("<RulesGraph> — render básico", () => {
     expect(html).toContain("Solo lectura");
     expect(html).not.toContain("newRule");
   });
+
+  it("usa el `Select` y el `Button` del host vía `components` (auditoría F-6)", () => {
+    const doc = new Y.Doc();
+    writeRules(doc, rules.slice(0, 1));
+    const html = renderToStaticMarkup(
+      <RulesGraph
+        doc={doc}
+        labels={labels}
+        height={480}
+        components={{
+          Button: (props) => <button {...props} data-host-kit="button" type="button" />,
+          Select: ({ value, options, placeholder, ...rest }) => (
+            <select {...rest} data-host-kit="select" defaultValue={value}>
+              {placeholder !== undefined ? <option value="">{placeholder}</option> : null}
+              {options.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          ),
+        }}
+      />,
+    );
+    expect(html).toContain('data-host-kit="button"');
+    expect(html).toContain('data-host-kit="select"');
+  });
 });
 
 describe("<RulesGraph> — foco desde el inspector (3.4)", () => {
