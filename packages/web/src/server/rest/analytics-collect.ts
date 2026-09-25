@@ -6,11 +6,10 @@ import {
   type AnalyticsEventInput,
 } from "@escaperoom/shared/schemas";
 import { isAnonymous, type Actor } from "@escaperoom/shared/services";
+import { BadJsonError, errorResponse, NO_STORE, readJson } from "./_http";
 
 /** Cabecera del secreto servidor-a-servidor (A-2, ticket 6.6). */
 export const ANALYTICS_SERVER_SECRET_HEADER = "x-analytics-server-secret";
-
-const NO_STORE = { "Cache-Control": "no-store" };
 
 /** Dependencias inyectables del handler (testeable sin Redis ni base de datos). */
 export type AnalyticsCollectDeps = {
@@ -43,7 +42,7 @@ function isServerOriginRequest(serverSecret: string | null, header: string | nul
 }
 
 function badRequest(code: string, message: string, extra: Record<string, unknown> = {}): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status: 400, headers: NO_STORE });
+  return errorResponse(code, message, 400, extra);
 }
 
 /**
@@ -64,9 +63,12 @@ export function createAnalyticsCollectHandler(deps: AnalyticsCollectDeps) {
   return async function POST(request: Request): Promise<Response> {
     let body: unknown;
     try {
-      body = await request.json();
-    } catch {
-      return badRequest("INVALID_JSON", "El cuerpo de la petición debe ser JSON válido");
+      body = await readJson(request);
+    } catch (err) {
+      if (err instanceof BadJsonError) {
+        return badRequest("INVALID_JSON", "El cuerpo de la petición debe ser JSON válido");
+      }
+      throw err;
     }
 
     const result = validateAnalyticsCollect(body);
