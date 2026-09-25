@@ -12,7 +12,8 @@
     "./eslint/react": "./eslint/react.mjs",
     "./eslint/nextjs": "./eslint/nextjs.mjs",
     "./vitest": "./vitest.config.ts",
-    "./locales": "./src/locales.ts"
+    "./locales": "./src/locales.ts",
+    "./redis-prefix": "./src/redis-prefix.ts"
   },
   "scripts": {
     "lint": "eslint .",
