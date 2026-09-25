@@ -17,6 +17,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "verify": "bash scripts/verify.sh",
+    "verify:pr": "bash scripts/verify-pr.sh",
     "infra:up": "docker compose -f infra/docker-compose.dev.yml up -d",
     "infra:down": "docker compose -f infra/docker-compose.dev.yml down",
     "dev:env": "bash scripts/dev-env.sh",
