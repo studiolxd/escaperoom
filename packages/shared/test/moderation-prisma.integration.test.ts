@@ -149,6 +149,39 @@ describe.skipIf(!process.env.DATABASE_URL)("moderación sobre Postgres (integrac
     expect(row).toMatchObject({ status: "overturned", reviewedBy: ids.mod });
   });
 
+  it("A-18: countPendingByTarget agrega en SQL en vez de listar toda la cola pendiente", async () => {
+    const moderation = service();
+    const store = createPrismaModerationStore(prisma);
+    // Dos denunciantes distintos sobre la misma sala (report() solo dedupe
+    // por el mismo reportador+objetivo, así que ambos crean fila propia).
+    const first = await moderation.report(actor(ids.jugadora), {
+      targetType: "room",
+      targetId: roomId,
+      category: "spam",
+      reason: "Motivo 1",
+    });
+    const second = await moderation.report(actor(ids.mod), {
+      targetType: "room",
+      targetId: roomId,
+      category: "quality",
+      reason: "Motivo 2",
+    });
+    try {
+      const counts = await store.countPendingByTarget([{ targetType: "room", targetId: roomId }]);
+      expect(counts.get(`room:${roomId}`)).toBeGreaterThanOrEqual(2);
+
+      const queue = await moderation.listQueue(actor(ids.mod));
+      const entry = queue.find((q) => q.report.id === second.report.id);
+      expect(entry?.reportsOnTarget).toBe(counts.get(`room:${roomId}`));
+
+      // Sin objetivos pedidos, no hace falta tocar la base.
+      expect(await store.countPendingByTarget([])).toEqual(new Map());
+    } finally {
+      await moderation.resolveReport(actor(ids.mod), first.report.id, { status: "dismissed" });
+      await moderation.resolveReport(actor(ids.mod), second.report.id, { status: "dismissed" });
+    }
+  });
+
   it("muestreo: la versión reciente entra una sola vez", async () => {
     const store = createPrismaModerationStore(prisma);
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);

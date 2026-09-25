@@ -241,6 +241,14 @@ export interface ModerationStore extends ModerationTx {
   canModerate(userId: string): Promise<boolean>;
   /** Salas (de `roomIds`) con un evento `active` (prioridad de la cola, §4.2). */
   roomsWithActiveEvent(roomIds: readonly string[]): Promise<Set<string>>;
+  /**
+   * Nº de reportes `pending` por objetivo (§4.2, A-18): agregado sobre solo
+   * los objetivos pedidos, en vez de listar toda la cola pendiente para
+   * contarlos en JS. La clave del mapa es `${targetType}:${targetId}`.
+   */
+  countPendingByTarget(
+    targets: readonly { targetType: ReportTargetType; targetId: string }[],
+  ): Promise<Map<string, number>>;
   /** Versiones publicadas desde `since` que aún no tienen un reporte de muestreo. */
   listUnsampledVersions(
     since: Date,
@@ -696,12 +704,19 @@ export function createModerationService(deps: {
         ...(q.severity ? { severity: q.severity } : {}),
         limit: q.limit,
       });
-      const pending =
-        q.status === "pending" ? rows : await store.listReports({ status: "pending" });
-      const targetKey = (r: ContentReportRow) =>
-        `${r.targetType}:${r.reviewId ?? r.roomId ?? r.targetUserId}`;
-      const counts = new Map<string, number>();
-      for (const r of pending) counts.set(targetKey(r), (counts.get(targetKey(r)) ?? 0) + 1);
+      const targetOf = (r: ContentReportRow) => ({
+        targetType: r.targetType,
+        targetId: r.reviewId ?? r.roomId ?? r.targetUserId ?? "",
+      });
+      const targetKey = (r: ContentReportRow) => {
+        const t = targetOf(r);
+        return `${t.targetType}:${t.targetId}`;
+      };
+      const uniqueTargets = new Map(rows.map((r) => [targetKey(r), targetOf(r)]));
+      const counts =
+        uniqueTargets.size > 0
+          ? await store.countPendingByTarget([...uniqueTargets.values()])
+          : new Map<string, number>();
       const roomIds = [...new Set(rows.flatMap((r) => (r.roomId ? [r.roomId] : [])))];
       const active =
         roomIds.length > 0 ? await store.roomsWithActiveEvent(roomIds) : new Set<string>();
@@ -1341,6 +1356,17 @@ export function createInMemoryModerationStore(
     },
     async roomsWithActiveEvent(roomIds) {
       return new Set(roomIds.filter((id) => activeEventRoomIds.has(id)));
+    },
+    async countPendingByTarget(targets) {
+      const wanted = new Set(targets.map((t) => `${t.targetType}:${t.targetId}`));
+      const counts = new Map<string, number>();
+      for (const r of reports.values()) {
+        if (r.status !== "pending") continue;
+        const key = `${r.targetType}:${r.reviewId ?? r.roomId ?? r.targetUserId ?? ""}`;
+        if (!wanted.has(key)) continue;
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+      return counts;
     },
     async listUnsampledVersions(since, limit) {
       const sampled = new Set(
