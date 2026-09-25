@@ -293,5 +293,25 @@ describe.skipIf(!process.env.DATABASE_URL)(
         code: "ROOM_NOT_FOUND",
       });
     });
+
+    it("medios puntos: se guardan en escala doblada (2-10) y la media sale ya dividida", async () => {
+      const reviews = createReviewService({ store: createPrismaReviewStore(prisma) });
+      const roomId = roomIds.castillo!;
+
+      // Continúa del test anterior: ana (rating 4) y bruno (rating 3) ya
+      // reseñaron el castillo. Ana pasa a un medio punto.
+      const edited = await reviews.upsertReview(actor(userIds.ana), roomId, { rating: 4.5 });
+      expect(edited).toMatchObject({ created: false, ratingAvg: 3.8, ratingCount: 2 });
+      expect(edited.review.rating).toBe(4.5);
+
+      const row = await prisma.review.findUniqueOrThrow({
+        where: { userId_roomId: { userId: userIds.ana, roomId } },
+        select: { rating: true },
+      });
+      expect(row.rating).toBe(9);
+
+      const detail = await catalog().getRoom(ANONYMOUS_ACTOR, roomId);
+      expect(detail).toMatchObject({ ratingAvg: 3.8, ratingCount: 2 });
+    });
   },
 );

@@ -59,7 +59,6 @@ Colyseus en cuanto haya más de un nodo.
 
 - Separación a su **propio nodo antes que cualquier otro componente** (es el que más CPU consume
   por participante con vídeo).
-- LiveKit Cloud como salida si el self-hosted da problemas de NAT.
 - Matiz del pico de septiembre: como el **vídeo está apagado por defecto en eventos**, el pico
   escolar pesa sobre LiveKit mucho menos de lo que su volumen de sesiones sugeriría — la mayoría
   son solo audio.

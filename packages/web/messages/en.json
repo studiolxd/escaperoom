@@ -789,13 +789,13 @@
     "reviewsHeading": "Reviews",
     "noReviews": "This room has no reviews yet.",
     "moreReviews": "See more reviews",
-    "stars": "{rating} out of 5 stars"
+    "stars": "{rating, number} out of 5 stars"
   },
   "Reviews": {
     "formHeading": "Your review",
     "editHeading": "Edit your review",
     "ratingLabel": "Rating",
-    "star": "{n, plural, one {# star} other {# stars}}",
+    "ratingOption": "{n, number} out of 5 stars",
     "textLabel": "Comment (optional)",
     "submit": "Post review",
     "update": "Save changes",
@@ -1452,6 +1452,18 @@
     "retry": "Try again"
   },
   "NotFound": {
+    "title": "We couldn't find this page",
+    "description": "The link may be broken or the page no longer exists.",
+    "home": "Go home",
+    "browseCatalog": "Browse the catalog"
+  },
+  "PublicErrorPage": {
+    "title": "Something went wrong",
+    "description": "This page failed to load. You can try again or go back home.",
+    "retry": "Try again",
+    "home": "Go home"
+  },
+  "PublicNotFound": {
     "title": "We couldn't find this page",
     "description": "The link may be broken or the page no longer exists.",
     "home": "Go home",

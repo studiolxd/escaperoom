@@ -12,11 +12,12 @@ type ReviewRow = {
   user: { name: string };
 };
 
+/** `review.rating` en BD está en escala doblada (2–10); aquí se expone 1–5 con medios puntos. */
 function toReview(row: ReviewRow): Review {
   return {
     id: row.id,
     roomId: row.roomId,
-    rating: row.rating,
+    rating: row.rating / 2,
     text: row.text,
     authorDisplayName: row.user.name,
     createdAt: row.createdAt.toISOString(),
@@ -68,9 +69,11 @@ export function createPrismaReviewStore(prisma: PrismaClient): ReviewStore {
     async upsert({ userId, roomId, rating, text }) {
       // `xmax = 0` distingue la fila recién insertada de la actualizada por el
       // ON CONFLICT, en una sola sentencia atómica sobre UNIQUE(userId, roomId).
+      // `rating` llega en escala 1–5 (medios puntos); se dobla para la BD.
+      const doubled = Math.round(rating * 2);
       const rows = await prisma.$queryRaw<Array<{ id: string; created: boolean }>>`
         INSERT INTO "review" ("userId", "roomId", rating, text)
-        VALUES (${userId}, ${roomId}::uuid, ${rating}, ${text})
+        VALUES (${userId}, ${roomId}::uuid, ${doubled}, ${text})
         ON CONFLICT ("userId", "roomId")
         DO UPDATE SET rating = EXCLUDED.rating, text = EXCLUDED.text
         RETURNING id, (xmax = 0) AS created`;
@@ -110,7 +113,8 @@ export function createPrismaReviewStore(prisma: PrismaClient): ReviewStore {
         _avg: { rating: true },
         _count: { _all: true },
       });
-      return { avg: agg._avg.rating, count: agg._count._all };
+      const avg = agg._avg.rating;
+      return { avg: avg === null ? null : avg / 2, count: agg._count._all };
     },
   };
 }

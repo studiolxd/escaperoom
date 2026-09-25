@@ -26,7 +26,7 @@ describe("buildContentSecurityPolicy", () => {
     NODE_ENV: "production",
     NEXT_PUBLIC_COLYSEUS_URL: "wss://play.example.com",
     NEXT_PUBLIC_EDITOR_SYNC_URL: "wss://sync.example.com",
-    LIVEKIT_URL: "wss://escaperoom.livekit.cloud",
+    LIVEKIT_URL: "wss://livekit.example.com",
     STORAGE_ENDPOINT: "https://cuenta.r2.cloudflarestorage.com",
   });
 
@@ -46,8 +46,8 @@ describe("buildContentSecurityPolicy", () => {
         "wss://play.example.com",
         "https://play.example.com",
         "wss://sync.example.com",
-        "wss://escaperoom.livekit.cloud",
-        "wss://*.livekit.cloud",
+        "wss://livekit.example.com",
+        "https://livekit.example.com",
         "https://cuenta.r2.cloudflarestorage.com",
       ]),
     );

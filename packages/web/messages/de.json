@@ -750,13 +750,13 @@
     "reviewsHeading": "Bewertungen",
     "noReviews": "Dieser Raum hat noch keine Bewertungen.",
     "moreReviews": "Weitere Bewertungen",
-    "stars": "{rating} von 5 Sternen"
+    "stars": "{rating, number} von 5 Sternen"
   },
   "Reviews": {
     "formHeading": "Deine Bewertung",
     "editHeading": "Bewertung bearbeiten",
     "ratingLabel": "Bewertung",
-    "star": "{n, plural, one {# Stern} other {# Sterne}}",
+    "ratingOption": "{n, number} von 5 Sternen",
     "textLabel": "Kommentar (optional)",
     "submit": "Bewertung veröffentlichen",
     "update": "Änderungen speichern",
@@ -1340,6 +1340,18 @@
     "retry": "Erneut versuchen"
   },
   "NotFound": {
+    "title": "Diese Seite wurde nicht gefunden",
+    "description": "Der Link ist möglicherweise fehlerhaft oder die Seite existiert nicht mehr.",
+    "home": "Zur Startseite",
+    "browseCatalog": "Katalog ansehen"
+  },
+  "PublicErrorPage": {
+    "title": "Es ist ein Fehler aufgetreten",
+    "description": "Diese Seite konnte nicht geladen werden. Du kannst es erneut versuchen oder zur Startseite zurückkehren.",
+    "retry": "Erneut versuchen",
+    "home": "Zur Startseite"
+  },
+  "PublicNotFound": {
     "title": "Diese Seite wurde nicht gefunden",
     "description": "Der Link ist möglicherweise fehlerhaft oder die Seite existiert nicht mehr.",
     "home": "Zur Startseite",

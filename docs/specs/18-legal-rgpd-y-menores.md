@@ -136,7 +136,6 @@ firmado y debe listarse en la política de privacidad:
 | ElevenLabs | Texto → audio | Confirmar ubicación de procesamiento y garantías si es fuera del EEE |
 | Resend/Postmark | Emails transaccionales | Confirmar ubicación de servidores |
 | Cloudflare R2 | Almacenamiento de assets y grabaciones | — |
-| LiveKit Cloud (solo si se activa como plan B) | Audio/vídeo en tránsito | Requiere su propio DPA; self-hosted evita este subprocesador mientras se mantenga |
 
 ## 4. Protección de menores — síntesis y lo que falta
 

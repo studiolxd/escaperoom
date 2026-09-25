@@ -2,13 +2,21 @@
 
 Tareas pendientes que no bloquean pero hay que resolver.
 
-- [ ] **Retirar `world-preview` o dejarlo solo para desarrollo.** Ruta
-      `packages/web/src/app/[locale]/(creator)/world-preview/`. Decidir si se
-      elimina o si se restringe a entorno de desarrollo (no accesible en
-      producción).
-- [ ] **`room-preview` solo accesible desde el editor.** Ruta
-      `packages/web/src/app/[locale]/(creator)/room-preview/`. Que no se pueda
-      abrir directamente por URL, solo lanzándola desde el editor.
+- [x] **Retirar `world-preview` o dejarlo solo para desarrollo.** Ruta
+      `packages/web/src/app/[locale]/(creator)/world-preview/`. Resuelto:
+      restringida con `isDevFallbackAllowed()` (mismo criterio que `/play`
+      sin `?session`) — `notFound()` en producción, sigue disponible en
+      desarrollo para validar el runtime a mano.
+- [x] **`room-preview` solo accesible desde el editor.** Ruta
+      `packages/web/src/app/[locale]/(creator)/room-preview/`. Resuelto con
+      el mismo criterio que `world-preview` (`isDevFallbackAllowed()`) en vez
+      de un token firmado/comprobación de autoría: la ruta no toma `roomId`
+      ni previsualiza el borrador real de una sala, siempre renderiza la
+      fixture fija del Rey Aldric — el editor real usa "Jugar"
+      (`/api/rooms/:roomId/playtest`) para previsualizar la sala concreta, no
+      esta ruta. Sin contenido de autor real que proteger, el token firmado
+      propuesto en la redacción original de esta entrada no aportaba nada
+      sobre `isDevFallbackAllowed()`.
 - [ ] **Mínimo y máximo de jugadores por sala, coherentes con sus pruebas.**
       - **Configuración:** la sala declara mínimo y máximo de jugadores
         (`meta.players { min, max }` ya existe en el formato, techo 8); comprobar
@@ -91,41 +99,6 @@ Tareas pendientes que no bloquean pero hay que resolver.
            venta individual) y con precio 0 que hoy no se puede jugar. Mostrar
            "Gratis" solo con precio 0 y `saleIndividual: true`; con precio
            `null`, la etiqueta "Solo para eventos" del punto h.
-- [ ] **Permitir valoraciones en medios puntos.**
-      - **Estado actual:** `review.rating` es `Int @db.SmallInt`
-        (`packages/shared/prisma/schema.prisma:431`), con `CHECK` en la base
-        `review_rating_check` (`rating >= 1 AND rating <= 5`). La valoración de
-        `packages/web/src/components/catalog/review-form.tsx` es un `RadioGroup`
-        (shadcn, desde la PR #144) de 5 estrellas enteras. `ReviewItem` en
-        `room-detail.tsx` pinta con `"★".repeat(review.rating)`, asume enteros.
-      - **Depende de:** los componentes `StarRating` (soporta decimales/medios) y
-        `RatingSummary`, que hoy solo existen en la rama del worktree
-        `juego-en-vivo` (`packages/web/src/components/catalog/star-rating.tsx`);
-        hacer esta tarea después de integrarla.
-      - **Cambio necesario:**
-        a. **Esquema/BD:** admitir medios puntos. Recomendado: escala doblada
-           (guardar 2–10 enteros y dividir entre 2 en la capa de servicio) para
-           evitar problemas de precisión; alternativa `Decimal(2,1)`. Migración
-           de Prisma y actualizar `review_rating_check` al nuevo rango.
-        b. **Servicio** (`packages/shared/src/services/reviews.ts` y
-           `reviews-prisma-store.ts`): validar que el rating sea uno de
-           {1, 1.5, 2, …, 5} (o {2..10} con escala doblada), no solo un entero
-           entre 1 y 5; revisar también el esquema Zod de la API de reseñas y
-           la media del catálogo (`catalog-listing.ts`, `AVG(rating)`), que con
-           escala doblada debe dividirse entre 2.
-        c. **Selector de valoración** (`review-form.tsx`): sustituir las 5
-           estrellas enteras por un control con medios puntos (p. ej. dos zonas
-           clicables por estrella: mitad izquierda = medio punto, mitad derecha
-           = punto entero), reutilizando `StarRating` para el estado visual y
-           manteniendo la accesibilidad de teclado del `RadioGroup` (solo
-           shadcn/ui, ADR-019).
-        d. **Listado de reseñas** (`ReviewItem` en `room-detail.tsx`): pintar el
-           rating individual con `StarRating` en vez de `"★".repeat`.
-        e. **Traducciones:** `RoomDetail.stars` ("{rating} de 5 estrellas") y
-           `Reviews.ratingLabel` siguen valiendo, pero revisar el `aria-label`
-           del nuevo selector (p. ej. "3,5 de 5 estrellas") en los 6 idiomas.
-      - **Datos existentes:** los ratings enteros ya guardados (1–5) siguen
-        siendo válidos; con escala doblada, la migración los multiplica por 2.
 - [ ] **Claves reales de analítica antes de desplegar en producción.** En
       desarrollo se activan Plausible y Google Analytics con valores de prueba
       (para ver el banner de consentimiento de cookies). Antes del primer
@@ -255,7 +228,7 @@ Tareas pendientes que no bloquean pero hay que resolver.
         - Nota de slxd (SPEC.md, 2026-08-24): `react-hook-form` debe ser
           *external* si va en una librería de componentes compartida, porque
           empaquetado duplica el contexto del formulario.
-- [ ] **Páginas de error con la shell pública y componentes shadcn.** Las
+- [x] **Páginas de error con la shell pública y componentes shadcn.** Las
       páginas de error actuales (`app/[locale]/error.tsx` y
       `app/[locale]/not-found.tsx`, PR #120) cuelgan de `[locale]`, fuera del
       grupo `(public)`, así que se muestran **sin** la cabecera y el pie públicos
@@ -268,6 +241,20 @@ Tareas pendientes que no bloquean pero hay que resolver.
       pero coherente visualmente. Revisar también los `notFound()` de rutas
       privadas (editor, creador) para que no enseñen la shell pública si no
       corresponde.
+      Resuelto: `app/[locale]/(public)/error.tsx` y
+      `app/[locale]/(public)/not-found.tsx` nuevos, en el mismo segmento que
+      `(public)/layout.tsx` — Next envuelve `error.tsx`/`not-found.tsx` con el
+      `layout.tsx` de su propio segmento (no lo sustituye, solo el de
+      segmentos por debajo), así que heredan la cabecera/pie públicos sin
+      necesidad de extraer un componente de shell aparte. Mismos componentes
+      shadcn (`Empty`, `Button`) que los genéricos de `[locale]`, con textos
+      propios (`PublicErrorPage`/`PublicNotFound`, 6 idiomas) para no acoplar
+      ambas versiones. Los genéricos de `[locale]/error.tsx` y
+      `[locale]/not-found.tsx` (sin shell) se mantienen como respaldo para el
+      resto de grupos (creador, jugar, auth): ninguno tiene `notFound()`
+      dentro de `(public)`, así que ya no enseñan la shell pública por error
+      — verificado (`editor/[roomId]`, `dev/rules-graph`, `dev/validation`,
+      `play`). `global-error.tsx` ya estaba mínimo y coherente (no tocado).
 - [ ] **Test inestable: muestreo de moderación.**
       `packages/shared/test/moderation-prisma.integration.test.ts` › "muestreo: la
       versión reciente entra una sola vez" falla de forma intermitente cuando
@@ -278,3 +265,41 @@ Tareas pendientes que no bloquean pero hay que resolver.
       propias salas (filtro por ids o por un autor/etiqueta propios) o que el
       muestreo acepte un filtro inyectable en tests. Lo han señalado varias PRs
       de la auditoría (#134, #135, #136, #141, #150).
+- [ ] **Definir la generación de assets con Magnific en la plataforma.** Magnific va a
+      usarse (decisión del usuario, 2026-09-25): los textos legales ya lo declaran como
+      proveedor activo. Falta definir la funcionalidad: qué podrá generar o editar un
+      creador desde el editor (imágenes de objetos, fondos, retratos…), con qué flujo
+      (prompt, referencias, aprobación por paso como en `tools/assets-generator`), cómo
+      se cobra (créditos, como el audio de ElevenLabs en specs/15), moderación del
+      resultado (specs/17), titularidad y licencia de lo generado (specs/18 §2),
+      integración con la API de Magnific (credenciales, cuotas, reintentos), almacenamiento
+      en R2 y cómo entra en el `RoomPackage`/pack. Escribir la spec antes de implementar.
+      Referencia del uso interno actual: `tools/assets-generator/CLAUDE.md` ("Normas de
+      trabajo con Magnific").
+- [ ] **Publicar en R2 los packs generados por `tools/assets-generator`.** Hoy la salida
+      de la herramienta (`packs/<pack>/salida/`) se copia a mano a
+      `packages/web/public/packs/<pack>/` y se empaqueta con `pnpm pack:build`; el
+      `manifest.json` y los atlas no se versionan, así que ni CI ni producción los tienen
+      (en un clon limpio se ven placeholders). Definir e implementar el camino a
+      producción (specs/26 §9): build del pack → subida de atlas y manifiesto a
+      Cloudflare R2 con ruta versionada por pack y versión, cabeceras de caché/CDN, que
+      el runtime cargue el pack desde R2 (URL del manifiesto por pack/versión) en vez de
+      `public/`, credenciales y quién lo ejecuta (script manual o paso de CI). Decidir
+      también el almacenamiento definitivo de los binarios de la herramienta (`fuentes/`,
+      `entregas/`, `referencias/`, hoy solo en local y con copia en `pipeline-assets`).
+- [ ] **404 de URLs que no existen.** Una URL sin ninguna página que la capture (p. ej.
+      `/es/una-ruta-que-no-existe`) no llega a `[locale]/not-found.tsx` ni a
+      `(public)/not-found.tsx`: al no haber `app/not-found.tsx` ni `app/layout.tsx` raíz
+      (el layout raíz efectivo es `[locale]/layout.tsx`), Next sirve su 404 por defecto,
+      en inglés y sin estilos. Añadir una ruta comodín (`app/[locale]/(public)/[...rest]/
+      page.tsx` que llame a `notFound()`) para que use el 404 con la shell pública, y
+      cubrir también las rutas sin prefijo de idioma. Encontrado en la PR #153.
+- [ ] **Tests de rate limit deterministas.** Los tests de rate limit de `packages/web`
+      (`rate-limit.test.ts`, `room-license-api.test.ts`, `onboarding-api.test.ts`,
+      `moderation-api.test.ts`, `audio-generation-api.test.ts`…) usan ventanas de tiempo
+      reales con el limitador en memoria y fallan con `429` inesperados cuando la máquina
+      va cargada (varios agentes a la vez, `turbo` lanzando lint+typecheck+test+build).
+      Como `pnpm verify:pr` aborta en el primer fallo, el smoke E2E ni llega a correr: lo
+      han sufrido casi todas las PRs de la auditoría (#146–#155). Hacerlos deterministas:
+      reloj inyectable en el limitador (o `vi.useFakeTimers`), identificadores únicos por
+      test (IP/usuario) y sin depender de la velocidad de la máquina.

@@ -210,7 +210,9 @@ function catalogSelect(onlyRoomId: string | null): Prisma.Sql {
        WHERE r.status = 'published' AND r."deletedAt" IS NULL ${roomScope}
        ORDER BY v."roomId", v."publishedAt" DESC
     ), s AS (
-      SELECT "roomId", AVG(rating)::float8 AS avg, COUNT(*)::int AS count
+      -- rating en BD está en escala doblada (2-10, medios puntos): se divide
+      -- entre 2 aquí para que avg salga ya en la escala 1-5 de la API.
+      SELECT "roomId", (AVG(rating)::float8 / 2) AS avg, COUNT(*)::int AS count
         FROM "review"
        WHERE "roomId" IN (SELECT "roomId" FROM latest) AND "hiddenAt" IS NULL
        GROUP BY "roomId"
@@ -319,6 +321,14 @@ export type CachedPublishedRoomListingOptions = {
 const DEFAULT_CATALOG_CACHE_TTL_SECONDS = 60;
 
 /**
+ * Cambia cuando el formato de lo cacheado varía de forma incompatible (aquí:
+ * `ratingAvg` pasa a calcularse sobre la escala doblada de `review.rating`)
+ * para que las claves antiguas, escritas por código previo al cambio,
+ * simplemente dejen de leerse en vez de servir valores duplicados.
+ */
+const CATALOG_CACHE_VERSION = "v2";
+
+/**
  * Serializa un valor con las claves de cada objeto ordenadas, para que el
  * mismo filtro dé siempre la misma clave de cache sin importar el orden en
  * que se construyó.
@@ -361,7 +371,7 @@ export function createCachedPublishedRoomListing(
     keyPart: string,
     load: () => Promise<T>,
   ): Promise<T> {
-    const key = `${prefix}:catalog:${op}:${keyPart}`;
+    const key = `${prefix}:catalog:${CATALOG_CACHE_VERSION}:${op}:${keyPart}`;
     const start = Date.now();
     try {
       const cached = await cacheStore.get(key);
