@@ -78,3 +78,14 @@ export const MEDIA_PROTOCOL = {
  * trocea los desplazamientos largos en pasos algo menores.
  */
 export const GAME_MAX_STEP_CELLS = 3;
+
+/**
+ * Cadencia máxima de `move` (specs/11 §9: el servidor limita a 10 msg/s, ver
+ * `message-rate-limit.ts`). El overlay de Phaser (arrastre del avatar) y
+ * `walkTo` (F-23, `game-session-shell.tsx`) pacan los pasos intermedios a
+ * como mucho esta cadencia para no disparar `RATE_LIMITED`. Vive aquí (y no
+ * en `phaser/room-scene.ts`, que la reexporta para no romper a quien ya la
+ * importa de ahí) porque `web` la necesita sin arrastrar Phaser a un entorno
+ * sin `window` (SSR, tests de Vitest en `node`).
+ */
+export const AVATAR_MOVE_EMIT_MS = 100;

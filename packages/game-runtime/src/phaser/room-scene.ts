@@ -32,6 +32,7 @@ import {
   type ObjectStateMap,
 } from "../world";
 import { EDIT_EVENT, type EditCell, type EditSceneEvent } from "../edit";
+import { AVATAR_MOVE_EMIT_MS as SESSION_AVATAR_MOVE_EMIT_MS } from "../session/protocol";
 import { AvatarController } from "./avatar";
 import {
   ISO_TILE_HEIGHT,
@@ -120,8 +121,8 @@ export interface ScenePlayer {
   connected: boolean;
 }
 
-/** Cadencia máxima del evento `avatar-move` (≈10 msg/s, specs/11 §9). */
-export const AVATAR_MOVE_EMIT_MS = 100;
+/** Cadencia máxima del evento `avatar-move` (≈10 msg/s, specs/11 §9): ver `session/protocol.ts`. */
+export const AVATAR_MOVE_EMIT_MS = SESSION_AVATAR_MOVE_EMIT_MS;
 
 /** Avatar de otro jugador: se interpola hacia la última posición del servidor. */
 interface RemoteAvatar {
