@@ -729,3 +729,113 @@ solo lectura en el mismo puerto (`59002`).
 S3); apuntar dev directamente a un bucket R2 real de staging (comparte datos entre desarrolladores,
 sin aislamiento por worktree, y arriesga cuota/factura de un servicio real por un entorno local);
 `garage` (S3-compatible más nuevo, con menos recorrido probado que SeaweedFS en este stack).
+---
+
+## ADR-031 — Avatares: 8 personajes seleccionables únicos, pivote 88,6 %, sombra y anillo del motor, producción desde 3D (2026-09-25)
+
+**Contexto:** el primer personaje del pack gráfico (`caballero-m`, `pipeline-assets/entregas/
+avatares/caballero-m/`) llegó con un cambio de criterio de producto: de "1 avatar tintable" (4
+colores = 4 jugadores, `specs/04` §2 y §8 previos) a **8 personajes medievales cerrados**
+(caballero/a, arquero/a, mago/a, campesino/a) entre los que cada jugador elige uno. Se producen de
+uno en uno. La entrega también trajo, para los 8 personajes por igual, más fotogramas (80 por
+personaje: idle 8, andar 8×4 direcciones, interactuar 4), un pivote distinto al resto del pack y la
+decisión de que la sombra de contacto la pinte el motor, no el sprite.
+
+**Decisión — personajes únicos por sesión:** dos jugadores de la misma sesión no pueden tener el
+mismo personaje. El servidor es la autoridad: valida `characterId` contra `manifest.avatars` y
+contra los ya ocupados en esa sesión (resuelve la carrera de dos que eligen a la vez procesando las
+uniones/selecciones en el orden en que llegan a la room de Colyseus), y lo difunde en el estado
+(`GamePlayerState.characterId`). El lobby (`specs/19` §1) muestra los personajes ocupados como no
+disponibles. Mientras falten personajes (hoy solo `caballero-m`): al unirse sin elegir, el servidor
+asigna el primer personaje libre; si no queda ninguno libre, ese jugador usa el **maniquí SVG
+tintado** que existía antes de esta decisión, ahora como personaje de reserva (`characterId`
+`maniqui`) — no es único, no aparece en `manifest.avatars` (no seleccionable), y varios jugadores
+pueden compartirlo. La identidad visual entre jugadores que comparten personaje (o el maniquí) se
+resuelve con un **anillo de color bajo los pies** (el mismo color que ya usaba el chat), no
+tintando el sprite del personaje: tintar arruinaría los colores propios de cada personaje.
+
+**Decisión — pivote al 88,6 % del alto del frame:** excepción a "abajo-centro" del resto del pack
+(`specs/26` §3.1). El punto de apoyo del avatar está al 88,6 % del alto del frame (desde arriba),
+centrado en horizontal — `avatarOrigin: [0.5, 0.886]` en el manifiesto, mismo valor para los 8
+personajes. En proyección isométrica, el pie adelantado y la puntera quedan por debajo del punto de
+apoyo en pantalla: pivotar en el borde inferior obligaría a cortar los pies; dejando el espacio y
+pivotando al 88,6 %, el personaje se apoya en el suelo sin flotar ni hundirse. El runtime lee
+`avatarOrigin` del manifiesto con `[0.5, 1]` por defecto (compatibilidad con packs sin el campo).
+
+**Decisión — sombra de contacto en el motor:** los sprites de avatar no llevan sombra horneada; el
+runtime dibuja una elipse de sombra en su propia capa bajo el avatar, en el mismo punto de apoyo del
+pivote. Una sombra pegada al sprite se movería con el cuerpo al andar, parpadearía entre frames, se
+dibujaría por encima de otros objetos en el orden isométrico y quedaría falsa en desniveles. Los
+objetos estáticos del mundo pueden seguir llevando sombra horneada (no cambia para ellos).
+
+**Decisión — producción desde 3D (aclara ADR-001):** para los avatares, la vía elegida es master 2D
+→ modelo 3D → rig/animación → render isométrico, porque garantiza la luz y la proyección exactas en
+las 4 direcciones y la coherencia entre los 80 frames de cada personaje. No es obligatoria para el
+resto del pack (tiles, sprites de objetos siguen su propio flujo). De cada personaje se conserva
+además un master 2D a 1536×2048 y su modelo 3D, para reutilizar (retrato del lobby/chat, nuevas
+animaciones o direcciones) sin regenerar desde cero.
+
+**Titularidad (aclara `18` §2.3):** las imágenes de los avatares las genera el equipo (no los
+usuarios) con herramientas bajo licencia comercial (Magnific plan de pago, Blender, Mixamo); su
+titularidad es de la plataforma. `18` §2.3 trata específicamente el audio de voz generado por IA
+para jugadores (ElevenLabs), un caso distinto. Cada personaje documenta herramientas y fecha en su
+`LEEME.md`.
+
+**Consecuencias:** `build-pack.ts` acepta subcarpetas `avatar/<characterId>/…` (un personaje por
+carpeta) además de ficheros sueltos en `avatar/` (el maniquí); exige 80 frames por cada personaje
+declarado en `pack.config.json → avatars` (error si la entrega es parcial, aviso si aún no llegó
+ninguno). `AvatarController` (Phaser) recibe `characterId`; `avatarAnimKey`/`avatarFrameName` pasan
+a incluirlo en el nombre del frame (`avatar-<characterId>-<dir>-<acción>-<n>`). Se corrigió además
+un fallo preexistente e independiente del arte en `directionFromGridDelta` (B2): con un paso de
+rejilla de un solo eje, el desempate entre ejes de pantalla siempre caía en e/w, así que la
+dirección nunca daba "n" ni "s" al moverse en vertical.
+
+**Alternativas descartadas:** tintar también el sprite del personaje para distinguir jugadores que
+comparten personaje (descartado: arruina el color propio de cada personaje, además de que el anillo
+ya resuelve la identificación sin ese coste); permitir personajes repetidos sin restricción
+(descartado por decisión de producto, ver contexto); crear un modelo Prisma nuevo solo para
+persistir `characterId` por jugador (descartado: no hay tabla de participante por `sessionId` de
+Colyseus en vivo donde encaje, y no se justifica crearla solo para este campo — queda documentado
+como no persistido en `specs/14` §6.3, vive en `GameRoomState` mientras dura la partida).
+
+---
+
+## ADR-032 — Iconos de inventario: vista 3/4 común, "mechero" pasa a "yesquero", `icon-busto` entra en la spec (2026-09-25)
+
+**Contexto:** ampliación del mismo encargo de avatares (misma entrega gráfica, mismo pack): llegaron
+los 10 iconos de inventario definitivos (`pipeline-assets/entregas/iconos/`, PNG a 1×/2×/master),
+sustituyendo los SVG provisionales de `specs/26` §4.3. La entrega trajo tres correcciones sobre lo
+documentado hasta ahora.
+
+**Decisión — vista 3/4 común (C1):** los 9 iconos (más `icon-busto`) comparten una misma vista de
+cámara (3/4 desde arriba, ≈30°), toon 3D como los personajes, sin contorno ni sombra propia, luz
+arriba-izquierda, cada objeto ocupando ≈80 % del lienzo, legibles sobre fondo claro y oscuro. Antes
+la spec solo pedía "formato cuadrado, legible sobre panel oscuro", sin fijar cámara. Una vista común
+hace que los iconos se sientan del mismo juego cuando se ven juntos en el inventario, y la 3/4 lee
+mejor los objetos verticales (cáliz, vela, busto) que una vista frontal pura.
+
+**Decisión — "mechero" pasa a llamarse "yesquero" (C2):** el item `mechero`/`icon-mechero` del
+fixture del Rey Aldric pasa a `yesquero`/`icon-yesquero` ("Yesquero" en vez de "Mechero de
+pedernal"). Un mechero no existe en la época del juego; el yesquero (cajita de hierro con yesca,
+pedernal y eslabón) es el útil medieval equivalente y es lo que dibuja el icono entregado. Cambia el
+id en `docs/reference/roompackage-rey-aldric.v1.json` y toda referencia a él (specs, fixtures y
+tests de `colyseus-server`, `e2e`, `editor` y `mcp-server`). El icono `icon-mechero` (copia temporal
+del yesquero, para que el pack siguiera validando mientras no se renombraba) se retira del pack una
+vez completado el renombrado.
+
+**Decisión — `icon-busto` entra en la spec (C3):** el fixture ya usaba `icon-busto` (item
+`busto-piedra`) pero `specs/26` §4.3 y `reference/pack-grafico-lista-assets.md` solo enumeraban 9
+iconos, sin él — un hueco de documentación, no de producto (el frame llevaba tiempo entregado). Se
+añade a ambos documentos; ya no hace falta el aviso de "frame declarado pero no existe" que lanzaba
+`pack:build`.
+
+**Consecuencias:** `ItemIcon` (`packages/web/src/components/puzzles/item-icon.tsx`) prueba primero
+`.png` y luego `.svg` (antes al revés, disparaba un 404 de más por icono ahora que el pack entrega
+PNG) y declara `srcSet="<url> 2x"` — el pack entrega un único PNG por frame ya a escala ×2, así que
+marcarlo como tal evita que una pantalla retina pida algo que no existe. El inventario del HUD
+(`game-session-shell.tsx`) sube el icono de 16 a 28 px para que se lean las ilustraciones nuevas.
+
+**Alternativas descartadas:** mantener `icon-mechero` indefinidamente como alias del yesquero
+(descartado: arrastra confusión de nombres sin motivo una vez que todo el repo puede renombrarse en
+la misma PR); versionar `icon-busto.svg` a partir del PNG entregado (descartado por la nota de la
+coordinadora: usar el PNG entregado tal cual, no crear un SVG que no existe en origen).
