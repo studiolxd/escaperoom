@@ -114,6 +114,15 @@ export const RATE_LIMIT_POLICIES = {
     user: { limit: 5, windowSeconds: 3600 },
   },
   /**
+   * `POST /api/audio/generate/preview` (B-7): la preview no cobra créditos ni
+   * comprueba nada más allá del saldo, así que sin cuota era gratis e
+   * ilimitada (hasta 5000 caracteres por llamada a ElevenLabs).
+   */
+  "audio-preview": {
+    ip: { limit: 40, windowSeconds: 600 },
+    user: { limit: 20, windowSeconds: 600 },
+  },
+  /**
    * `POST /api/creator-chat` (B-6): exige sesión, así que el cubo por
    * usuario es el que importa; el de IP acota a quien rota de cuenta. El
    * presupuesto de coste real (turnos/tokens por conversación y diarios) lo

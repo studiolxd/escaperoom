@@ -21,6 +21,7 @@ export * from "./credits";
 export * from "./credits-prisma-store";
 export * from "./elevenlabs-client";
 export * from "./audio-generation";
+export * from "./audio-preview-cache-redis";
 export * from "./room-publish";
 export * from "./room-publish-prisma-store";
 export * from "./publish-confirmation";
