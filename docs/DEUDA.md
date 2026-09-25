@@ -240,3 +240,18 @@ Tareas pendientes que no bloquean pero hay que resolver.
       - **UI:** solo shadcn/ui (`pnpm --filter @escaperoom/web exec shadcn add
         form` si hace falta), errores accesibles (`aria-invalid`,
         `aria-describedby`) y foco al primer campo con error.
+      - **Referencia: mirar cómo está hecho en `/Users/suvi/Dev/slxd`** (solo
+        lectura) y seguir el mismo patrón:
+        - React Hook Form + `zodResolver`:
+          `apps/account/src/components/auth/SignInForm.tsx`, `SignUpForm.tsx`,
+          `ForgotPasswordForm.tsx`, `ResetPasswordForm.tsx`,
+          `InvitationSignUpForm.tsx`, y formularios en diálogo
+          `apps/account/src/components/admin/AdjustCreditsDialog.tsx`,
+          `GrantAddonDialog.tsx`, `GrantPlanDialog.tsx`.
+        - Server actions con tests: `apps/web/src/actions/contact.ts` y
+          `newsletter.ts` (+ `*.test.ts`),
+          `apps/lmsmcp/src/app/[locale]/mcp/login/actions.ts`, y el contacto de
+          `apps/corporate`.
+        - Nota de slxd (SPEC.md, 2026-08-24): `react-hook-form` debe ser
+          *external* si va en una librería de componentes compartida, porque
+          empaquetado duplica el contexto del formulario.
