@@ -60,3 +60,38 @@ Tareas pendientes que no bloquean pero hay que resolver.
            `/es/play` solo firma partidas de prueba `dev_test`); si la compra
            está "en curso", reconectar a esa partida; si está consumida, mostrar
            que ya se jugó (y, si aplica, ofrecer volver a comprar).
+- [ ] **Permitir valoraciones en medios puntos.**
+      - **Estado actual:** `review.rating` es `Int @db.SmallInt`
+        (`packages/shared/prisma/schema.prisma:431`), con `CHECK` en la base
+        `review_rating_check` (`rating >= 1 AND rating <= 5`). La valoración de
+        `packages/web/src/components/catalog/review-form.tsx` es un `RadioGroup`
+        (shadcn, desde la PR #144) de 5 estrellas enteras. `ReviewItem` en
+        `room-detail.tsx` pinta con `"★".repeat(review.rating)`, asume enteros.
+      - **Depende de:** los componentes `StarRating` (soporta decimales/medios) y
+        `RatingSummary`, que hoy solo existen en la rama del worktree
+        `juego-en-vivo` (`packages/web/src/components/catalog/star-rating.tsx`);
+        hacer esta tarea después de integrarla.
+      - **Cambio necesario:**
+        a. **Esquema/BD:** admitir medios puntos. Recomendado: escala doblada
+           (guardar 2–10 enteros y dividir entre 2 en la capa de servicio) para
+           evitar problemas de precisión; alternativa `Decimal(2,1)`. Migración
+           de Prisma y actualizar `review_rating_check` al nuevo rango.
+        b. **Servicio** (`packages/shared/src/services/reviews.ts` y
+           `reviews-prisma-store.ts`): validar que el rating sea uno de
+           {1, 1.5, 2, …, 5} (o {2..10} con escala doblada), no solo un entero
+           entre 1 y 5; revisar también el esquema Zod de la API de reseñas y
+           la media del catálogo (`catalog-listing.ts`, `AVG(rating)`), que con
+           escala doblada debe dividirse entre 2.
+        c. **Selector de valoración** (`review-form.tsx`): sustituir las 5
+           estrellas enteras por un control con medios puntos (p. ej. dos zonas
+           clicables por estrella: mitad izquierda = medio punto, mitad derecha
+           = punto entero), reutilizando `StarRating` para el estado visual y
+           manteniendo la accesibilidad de teclado del `RadioGroup` (solo
+           shadcn/ui, ADR-019).
+        d. **Listado de reseñas** (`ReviewItem` en `room-detail.tsx`): pintar el
+           rating individual con `StarRating` en vez de `"★".repeat`.
+        e. **Traducciones:** `RoomDetail.stars` ("{rating} de 5 estrellas") y
+           `Reviews.ratingLabel` siguen valiendo, pero revisar el `aria-label`
+           del nuevo selector (p. ej. "3,5 de 5 estrellas") en los 6 idiomas.
+      - **Datos existentes:** los ratings enteros ya guardados (1–5) siguen
+        siendo válidos; con escala doblada, la migración los multiplica por 2.
