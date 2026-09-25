@@ -1,6 +1,7 @@
 import { parseEnv, requireInProduction } from "@escaperoom/env";
-import { baseClientSchema } from "@escaperoom/env/client";
+import { analyticsClientSchema, baseClientSchema } from "@escaperoom/env/client";
 import {
+  analyticsSchema,
   baseServerSchema,
   creatorChatSchema,
   editorSyncSchema,
@@ -33,13 +34,17 @@ export const env = parseEnv({
     .extend(creatorChatSchema.shape)
     .extend(observabilitySchema.shape)
     .extend(elevenLabsSchema.shape)
-    .extend(stripeSchema.shape),
-  clientSchema: baseClientSchema,
+    .extend(stripeSchema.shape)
+    .extend(analyticsSchema.shape),
+  clientSchema: baseClientSchema.extend(analyticsClientSchema.shape),
   clientSource: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_COLYSEUS_URL: process.env.NEXT_PUBLIC_COLYSEUS_URL,
     NEXT_PUBLIC_EDITOR_SYNC_URL: process.env.NEXT_PUBLIC_EDITOR_SYNC_URL,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    NEXT_PUBLIC_PLAUSIBLE_DOMAIN: process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN,
+    NEXT_PUBLIC_PLAUSIBLE_SRC: process.env.NEXT_PUBLIC_PLAUSIBLE_SRC,
+    NEXT_PUBLIC_GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
   },
 });
 
@@ -61,9 +66,44 @@ export const REQUIRED_IN_PRODUCTION = [
   "STORAGE_BUCKET",
 ] as const;
 
+/**
+ * Valores de `.env.example`: evidentes para desarrollo, pero que un despliegue
+ * real no debe llevar puestos sin darse cuenta (docs/DEUDA.md «Claves reales
+ * de analítica antes de desplegar en producción»).
+ */
+const DEV_ANALYTICS_PLACEHOLDERS = {
+  NEXT_PUBLIC_PLAUSIBLE_DOMAIN: "localhost",
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: "G-DEV0000000",
+} as const;
+
+/**
+ * Falla fuerte en producción si faltan las claves de Plausible/Google
+ * Analytics o si siguen siendo los valores de desarrollo de `.env.example`
+ * (docs/DEUDA.md). `ANALYTICS_DISABLED=1` es el único escape explícito para
+ * desplegar a propósito sin analítica; su ausencia nunca debe interpretarse
+ * como "sin analítica", solo como un despliegue mal configurado.
+ */
+export function validateAnalyticsEnvOnBoot(): void {
+  if (env.NODE_ENV !== "production" || env.ANALYTICS_DISABLED) return;
+  const problems = Object.entries(DEV_ANALYTICS_PLACEHOLDERS)
+    .filter(([key, devValue]) => {
+      const value = env[key as keyof typeof DEV_ANALYTICS_PLACEHOLDERS];
+      return !value || value === devValue;
+    })
+    .map(([key, devValue]) => `${key} falta o sigue siendo el valor de desarrollo ("${devValue}")`);
+  if (problems.length > 0) {
+    throw new Error(
+      `Analítica sin configurar en producción (docs/DEUDA.md «Claves reales de analítica antes de ` +
+        `desplegar en producción»): ${problems.join("; ")}. Si el despliegue es deliberadamente sin ` +
+        `analítica, fija ANALYTICS_DISABLED=1.`,
+    );
+  }
+}
+
 /** Llamado desde `instrumentation.ts`: valida y registra el modo activo. */
 export function validateEnvOnBoot(): void {
   requireInProduction(env, REQUIRED_IN_PRODUCTION);
+  validateAnalyticsEnvOnBoot();
   // Sin valores: solo qué modo está activo (E-4 pide loguearlo al arrancar).
   console.info(`[env] NODE_ENV=${env.NODE_ENV} validado`);
 }
