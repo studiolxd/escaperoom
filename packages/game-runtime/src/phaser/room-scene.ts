@@ -202,6 +202,22 @@ export class RoomScene extends Phaser.Scene {
   /** Antorchas y agua: se repintan cuando cambia un objeto del que dependen. */
   private reactiveObjects: Phaser.GameObjects.GameObject[] = [];
   private reactiveIds = new Set<string>();
+  /**
+   * F-22: capa estática de la reactiva (fondo del canal de agua; brasa de las
+   * antorchas apagadas) — sin tween, así que un solo `Graphics` reutilizado y
+   * repintado (`clear()` + refill) en cada `drawReactive`, en vez de un
+   * `Graphics` nuevo por celda/antorcha en cada llamada.
+   */
+  private reactiveWaterLayer?: Phaser.GameObjects.Graphics;
+  private reactiveEmberLayer?: Phaser.GameObjects.Graphics;
+  /**
+   * F-22: elementos animados (antorcha encendida; brillo de una celda de
+   * canal que fluye), por clave estable (posición). `drawReactive` solo crea
+   * o destruye los que entran o salen del conjunto — el resto conserva su
+   * `Graphics`/tween tal cual, en vez de reconstruir la capa entera (todas
+   * las antorchas y canales de la sala) en cada `setObjectState`.
+   */
+  private readonly reactiveAnimated = new Map<string, Phaser.GameObjects.Graphics>();
   private ambientOverlay?: Phaser.GameObjects.Rectangle;
   private resolver!: PackFrameResolver;
   private collision!: CollisionGrid;
@@ -236,6 +252,8 @@ export class RoomScene extends Phaser.Scene {
   private localTint?: number;
   private localCharacterId: string;
   private players: ScenePlayer[] = [];
+  /** F-22: último array recibido en `setPlayers`, para no reconstruir nada si es el mismo (referencia). */
+  private lastPlayersInput?: readonly ScenePlayer[];
   private readonly remoteAvatars = new Map<string, RemoteAvatar>();
   /** Estados que llegaron (del servidor) antes de que Phaser creara la escena. */
   private readonly earlyObjectStates = new Map<string, string>();
@@ -364,6 +382,11 @@ export class RoomScene extends Phaser.Scene {
    * se interpolan hacia su última posición sincronizada.
    */
   setPlayers(players: readonly ScenePlayer[]): void {
+    // F-22: mismo array que la última vez (con `toGameSnapshot` incremental,
+    // F-4, es la referencia habitual cuando nadie más se movió) — no
+    // reconstruye `this.players` ni el `Map` de `syncRemoteAvatars`.
+    if (players === this.lastPlayersInput) return;
+    this.lastPlayersInput = players;
     this.players = players.map((player) => ({ ...player }));
     if (!this.built || this.transitioning) {
       return;
@@ -1206,20 +1229,35 @@ export class RoomScene extends Phaser.Scene {
    * puzzles `pipes`, que corre animado hacia el altar cuando fluye.
    */
   private drawReactive(room: RuntimeSubRoom): void {
-    this.clearReactive();
     this.reactiveIds = reactiveObjectIds(this.model, room.id);
+
+    const waterLayer = this.reactiveWaterLayer ?? this.reactive(this.add.graphics());
+    this.reactiveWaterLayer = waterLayer;
+    waterLayer.setDepth(DEPTH.water);
+    waterLayer.clear();
+
+    const emberLayer = this.reactiveEmberLayer ?? this.reactive(this.add.graphics());
+    this.reactiveEmberLayer = emberLayer;
+    emberLayer.setDepth(DEPTH.halo).setBlendMode(Phaser.BlendModes.ADD);
+    emberLayer.clear();
+
+    // F-22: qué claves animadas hacen falta esta vez — lo que no esté aquí
+    // al final se destruye; lo que ya existía se deja tal cual (no reinicia
+    // su tween ni se recrea) salvo que sea nuevo.
+    const wantedAnimated = new Set<string>();
 
     for (const channel of resolveWaterChannels(this.model, room.id, this.objectState)) {
       channel.cells.forEach((cell, index) => {
         const { x, y } = tileToWorld(cell.x, cell.y);
-        const bed = this.reactive(this.add.graphics());
-        bed.setDepth(DEPTH.water);
-        bed.fillStyle(channel.flowing ? 0x2f7fd8 : 0x3b3326, channel.flowing ? 0.85 : 0.9);
-        fillDiamond(bed, x, y, ISO_TILE_WIDTH * 0.42, ISO_TILE_HEIGHT * 0.42);
+        waterLayer.fillStyle(channel.flowing ? 0x2f7fd8 : 0x3b3326, channel.flowing ? 0.85 : 0.9);
+        fillDiamond(waterLayer, x, y, ISO_TILE_WIDTH * 0.42, ISO_TILE_HEIGHT * 0.42);
         if (!channel.flowing) {
           return;
         }
         // El agua avanza celda a celda desde la entrada: brillo que recorre el canal.
+        const key = `shine:${cell.x}:${cell.y}`;
+        wantedAnimated.add(key);
+        if (this.reactiveAnimated.has(key)) return;
         const shine = this.reactive(this.add.graphics());
         shine.setDepth(DEPTH.water).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
         shine.fillStyle(0x9ad7ff, 0.9);
@@ -1233,19 +1271,23 @@ export class RoomScene extends Phaser.Scene {
           repeat: -1,
           repeatDelay: channel.cells.length * 90,
         });
+        this.reactiveAnimated.set(key, shine);
       });
     }
 
     for (const torch of resolveTorchLights(this.model, room.id, this.objectState)) {
       const { x, y } = tileToWorld(torch.x, torch.y);
-      const halo = this.reactive(this.add.graphics());
-      halo.setDepth(DEPTH.halo).setBlendMode(Phaser.BlendModes.ADD);
       if (!torch.lit) {
-        // Antorcha apagada: solo un punto de brasa tenue.
-        halo.fillStyle(0x7a4a22, 0.25);
-        halo.fillCircle(x, y, 8);
+        // Antorcha apagada: solo un punto de brasa tenue (capa estática).
+        emberLayer.fillStyle(0x7a4a22, 0.25);
+        emberLayer.fillCircle(x, y, 8);
         continue;
       }
+      const key = `torch:${torch.x}:${torch.y}`;
+      wantedAnimated.add(key);
+      if (this.reactiveAnimated.has(key)) continue;
+      const halo = this.reactive(this.add.graphics());
+      halo.setDepth(DEPTH.halo).setBlendMode(Phaser.BlendModes.ADD);
       for (let ring = 4; ring >= 1; ring -= 1) {
         halo.fillStyle(0xffd27f, 0.05);
         halo.fillCircle(x, y, ring * 42);
@@ -1257,6 +1299,16 @@ export class RoomScene extends Phaser.Scene {
         yoyo: true,
         repeat: -1,
       });
+      this.reactiveAnimated.set(key, halo);
+    }
+
+    for (const [key, graphics] of this.reactiveAnimated) {
+      if (wantedAnimated.has(key)) continue;
+      this.tweens.killTweensOf(graphics);
+      graphics.destroy();
+      this.reactiveAnimated.delete(key);
+      const index = this.reactiveObjects.indexOf(graphics);
+      if (index !== -1) this.reactiveObjects.splice(index, 1);
     }
   }
 
@@ -1271,6 +1323,12 @@ export class RoomScene extends Phaser.Scene {
       object.destroy();
     }
     this.reactiveObjects = [];
+    // F-22: las capas estáticas y los elementos animados se destruyeron
+    // arriba (están en `reactiveObjects`); hay que olvidar las referencias
+    // para no reutilizar objetos ya destruidos en el próximo `drawReactive`.
+    this.reactiveWaterLayer = undefined;
+    this.reactiveEmberLayer = undefined;
+    this.reactiveAnimated.clear();
   }
 
   private buildAvatar(room: RuntimeSubRoom): void {

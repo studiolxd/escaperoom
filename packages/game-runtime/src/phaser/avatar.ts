@@ -65,6 +65,14 @@ export class AvatarController {
   private currentAnim?: string;
   private moving = false;
   private interacting = false;
+  /**
+   * F-22: objeto reutilizado por `cellPosition` (llamada cada frame desde
+   * `emitAvatarMove`/el cálculo de movimiento hacia un clic) para no asignar
+   * uno nuevo por frame. Todos sus llamadores leen `x`/`y` de inmediato
+   * (nunca guardan la referencia para más tarde), así que reflejar la
+   * posición actual en el mismo objeto es seguro.
+   */
+  private readonly cellPositionView: { x: number; y: number } = { x: 0, y: 0 };
 
   constructor(options: AvatarControllerOptions) {
     this.scene = options.scene;
@@ -99,7 +107,9 @@ export class AvatarController {
   }
 
   get cellPosition(): { x: number; y: number } {
-    return { ...this.cell };
+    this.cellPositionView.x = this.cell.x;
+    this.cellPositionView.y = this.cell.y;
+    return this.cellPositionView;
   }
 
   get gridCell(): { x: number; y: number } {
