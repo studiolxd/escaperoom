@@ -4,10 +4,14 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { headers } from "next/headers";
 import { cn } from "@/lib/utils";
 import { routing } from "@/i18n/routing";
+import { NONCE_HEADER } from "@/lib/security-headers";
 import { ConsentProvider } from "@/components/consent/consent-provider";
 import { CookieBanner, CookiePreferencesDialog } from "@/components/consent/cookie-consent-ui";
+import { PlausibleScript } from "@/components/analytics/plausible-script";
+import { GoogleAnalyticsScript } from "@/components/analytics/google-analytics-script";
 import "../globals.css";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
@@ -46,6 +50,8 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   setRequestLocale(locale);
   const messages = await getMessages();
+  const nonce = (await headers()).get(NONCE_HEADER) ?? "";
+  const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
   return (
     <html lang={locale} className={cn("font-sans", geist.variable)}>
@@ -55,6 +61,10 @@ export default async function LocaleLayout({ children, params }: Props) {
             {children}
             <CookieBanner />
             <CookiePreferencesDialog />
+            <PlausibleScript nonce={nonce} />
+            {gaMeasurementId ? (
+              <GoogleAnalyticsScript measurementId={gaMeasurementId} nonce={nonce} />
+            ) : null}
           </ConsentProvider>
         </NextIntlClientProvider>
       </body>
