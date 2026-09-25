@@ -1,6 +1,7 @@
 import type { PuzzleState } from "../schemas/puzzle";
 import type { RoomPackage } from "../schemas/roompackage";
 import type { FlagValue } from "../schemas/rules";
+import { RESERVED_FLAGS } from "./constants";
 import type { GameState, InitialStateOptions, PlayerRuntime, PuzzleRuntime } from "./types";
 
 /**
@@ -34,11 +35,11 @@ export function createInitialState(
   }
 
   const flags: Record<string, FlagValue> = {
-    game_started: false,
-    game_ended: false,
+    [RESERVED_FLAGS.GAME_STARTED]: false,
+    [RESERVED_FLAGS.GAME_ENDED]: false,
   };
   if (options.timeLimitSec !== undefined) {
-    flags.time_remaining = options.timeLimitSec;
+    flags[RESERVED_FLAGS.TIME_REMAINING] = options.timeLimitSec;
   }
 
   return {
