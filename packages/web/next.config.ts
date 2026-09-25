@@ -15,6 +15,15 @@ const nextConfig: NextConfig = {
   ],
   poweredByHeader: false,
   /**
+   * DEUDA "404 de URLs que no existen" (auditoría 2026-09-24): el root
+   * efectivo es `[locale]/layout.tsx` (segmento dinámico), así que Next no
+   * admite un `app/not-found.tsx` normal para las URLs sin locale que
+   * `proxy.ts` no redirige (su matcher trata cualquier segmento con un punto
+   * como asset estático). `global-not-found` es la vía documentada para ese
+   * caso — ver `app/global-not-found.tsx`.
+   */
+  experimental: { globalNotFound: true },
+  /**
    * Cabeceras de seguridad (ticket 6.3). Las fijas van en todas las respuestas;
    * la CSP de las páginas lleva nonce y la pone `src/proxy.ts` por petición. La
    * API, que solo sirve JSON, lleva una CSP que no permite cargar nada.

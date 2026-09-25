@@ -41,7 +41,7 @@ export interface ReviewStore {
 }
 
 export type ReviewErrorCode =
-  | "UNAUTHENTICATED"
+  | "UNAUTHORIZED"
   | "ROOM_NOT_FOUND"
   | "REVIEW_NOT_ALLOWED"
   | "VALIDATION_ERROR"
@@ -212,7 +212,7 @@ export function createReviewService(deps: { store: ReviewStore }) {
       ratingCount: number;
     }> {
       if (isAnonymous(actor)) {
-        throw new ReviewError("UNAUTHENTICATED", "Inicia sesión para reseñar");
+        throw new ReviewError("UNAUTHORIZED", "Inicia sesión para reseñar");
       }
       const data = parseReviewInput(input);
       const room = await requireRoom(roomId);

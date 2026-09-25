@@ -194,6 +194,33 @@ describe("eventos — validación", () => {
     expect(event.maxSimultaneousSessions).toBe(10);
   });
 
+  it("playersPlanned no puede desbordar la capacidad de sesión (smallint, B-17)", async () => {
+    const { events } = setup();
+    await rejects(
+      events.createEvent(
+        organizer,
+        baseInput({ maxSimultaneousSessions: 1, playersPlanned: 32_768 }),
+      ),
+      "VALIDATION_ERROR",
+    );
+    const event = await events.createEvent(
+      organizer,
+      baseInput({ maxSimultaneousSessions: 1, playersPlanned: 32_767 }),
+    );
+    expect(event.playersPurchased).toBe(32_767);
+
+    await rejects(
+      events.updateEvent(organizer, event.id, { playersPlanned: 32_768 }),
+      "VALIDATION_ERROR",
+    );
+    await rejects(
+      events.updateEvent(organizer, event.id, { maxSimultaneousSessions: 0 }),
+      "VALIDATION_ERROR",
+    );
+    const patched = await events.updateEvent(organizer, event.id, { maxSimultaneousSessions: 2 });
+    expect(patched.maxSimultaneousSessions).toBe(2);
+  });
+
   it("reglas de caducidad: tipos únicos y forma estricta", async () => {
     const { events } = setup();
     await rejects(

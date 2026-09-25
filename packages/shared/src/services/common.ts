@@ -1,10 +1,10 @@
 /**
  * Piezas compartidas por varios servicios de dominio (auditoría 2026-09-24,
- * §9.1): antes reimplementadas de forma idéntica en ≥12 ficheros. `catalog.ts`
- * y `catalog-listing.ts` siguen con su propio `UUID_RE` (se migrarán aparte).
- * El `AdminDirectory` Prisma único vive en `admin-prisma-store.ts` (capa que
- * ya conocía Prisma) y lo reutilizan `purchases-prisma-store.ts`,
- * `events-prisma-store.ts` y `room-publish-prisma-store.ts`.
+ * §9.1): antes reimplementadas de forma idéntica en ≥12 ficheros, incluido
+ * `catalog-listing.ts` (A-22). El `AdminDirectory` Prisma único vive en
+ * `admin-prisma-store.ts` (capa que ya conocía Prisma) y lo reutilizan
+ * `purchases-prisma-store.ts`, `events-prisma-store.ts` y
+ * `room-publish-prisma-store.ts`.
  */
 import { isAnonymous, type Actor } from "./actor";
 
