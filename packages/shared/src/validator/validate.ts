@@ -4,9 +4,9 @@ import { clueRequirements, computeCodeClues } from "./clues";
 import {
   analyzeDoubleUse,
   analyzeRepeatableRules,
+  checkCooperativeBridges,
   checkGeometry,
   checkReferences,
-  checkSoloBridges,
   checkSpawnCapacity,
   checkStructuralInvariants,
   guardLabel,
@@ -145,11 +145,7 @@ export function validateRoomPackage(
       closures.map((closure) => closure.state),
     ),
     deadEndsCheck(index, closures, plainOracle, playerCounts),
-    solvabilityCheck(
-      solvability,
-      playerCounts,
-      playerCounts.includes(1) ? checkSoloBridges(pkg) : [],
-    ),
+    solvabilityCheck(solvability, playerCounts, checkCooperativeBridges(pkg, playerCounts)),
     codeHintsCheck(codeClues, solvability),
     ruleCutsCheck(pkg),
     doubleUseCheck(doubleUse),
@@ -531,7 +527,7 @@ function deadEndsCheck(
 function solvabilityCheck(
   results: readonly SolvabilityResult[],
   playerCounts: readonly number[],
-  soloIssues: readonly ValidationIssue[],
+  bridgeIssues: readonly ValidationIssue[],
 ): ValidationCheck {
   const failing = results.filter((result) => !result.solvable);
   const issues = mergeBlocked(
@@ -546,8 +542,9 @@ function solvabilityCheck(
       ids: [],
     });
   }
-  // Modo solitario: mecánicas cooperativas sin objeto-puente (specs/22 §2.1).
-  issues.push(...soloIssues);
+  // Mecánicas cooperativas sin objeto-puente para algún tamaño de grupo que
+  // la sala admite (specs/22 §2.1, generalizado de "modo solitario" a N).
+  issues.push(...bridgeIssues);
   const truncated = results.filter((result) => result.searchTruncated);
   // D-28: el aviso de truncamiento no mencionaba que, para llegar hasta ahí,
   // la búsqueda pudo haber ignorado el orden de descubrimiento de los
@@ -568,7 +565,7 @@ function solvabilityCheck(
     summary,
     failing.length > 0
       ? `Solvabilidad: sin victoria posible con ${playersLabel(failing.map((r) => r.playerCount))}`
-      : `Solvabilidad: la sala admite 1 jugador, pero ${soloIssues.map((issue) => issue.ids[0]).join(", ")} no declara(n) objeto-puente`,
+      : `Solvabilidad: la sala admite algún grupo por debajo de lo que exige la prueba, pero ${bridgeIssues.map((issue) => issue.ids[0]).join(", ")} no declara(n) objeto-puente`,
   );
   if (result.passed && truncated.length > 0) result.status = "warning";
   return result;
