@@ -72,13 +72,19 @@ el flujo por defecto para cualquier tarea de código es:
      `pnpm infra:up` ya esté levantado, normalmente ya lo está porque lo
      comparte con el principal) y luego `pnpm db:reset` para migrar y
      sembrar esa base nueva desde cero.
-   - **El puerto 3000 está ocupado por el worktree principal** (el usuario
-     tiene `pnpm dev` corriendo ahí para probar la app). Decirle al agente
-     explícitamente en el brief que si levanta `pnpm dev` en su worktree,
-     Next.js/turbo elegirán otro puerto libre automáticamente si 3000 está
-     ocupado — confírmaselo en el brief para que no dé por hecho que su app
-     está en 3000 al describir cómo verificar visualmente, y que mire la
-     salida real del arranque para saber en qué puerto quedó.
+   - **Los puertos 3000 (web), 2567 (Colyseus) y 2568 (editor-sync) son del
+     usuario**, aunque en ese momento estén libres: el worktree principal los
+     usa cuando el usuario arranca `pnpm dev` ahí. **Ningún agente puede
+     levantar nada en esos puertos.** Si un agente levanta `pnpm dev` en su
+     worktree, debe hacerlo **siempre con puertos explícitos y libres**
+     (comprobados con `lsof -iTCP:<puerto> -sTCP:LISTEN`), p. ej.
+     `PORT=<libre> pnpm dev` para la web y los puertos de Colyseus/editor-sync
+     que tenga configurados en su `.env` (`COLYSEUS_PORT`, `EDITOR_SYNC_PORT`,
+     `NEXT_PUBLIC_COLYSEUS_URL`, `NEXT_PUBLIC_EDITOR_SYNC_URL`, `APP_URL`…),
+     y mirar la salida real del arranque para saber en qué puerto quedó. No
+     basta con confiar en que Next elija otro puerto "si el 3000 está
+     ocupado": si el usuario no tiene su `pnpm dev` corriendo, el 3000 está
+     libre y el agente se lo quedaría. Incluirlo explícitamente en el brief.
    - **Nunca matar procesos por patrón amplio** (`pkill -f "next dev"`,
      `pkill -f node`, `killall next`, etc.). Un `pkill -f "next dev"` mata
      TODOS los `next dev` de la máquina, incluido el del worktree principal
