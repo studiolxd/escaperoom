@@ -462,10 +462,17 @@ model purchase {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// E-18: `trgReviewUpdatedAt` (trigger `setUpdatedAt`, 0009_reviews) pone
 /// `updatedAt` en cada UPDATE — por eso el campo no lleva `@updatedAt` aquí.
+/// `review_rating_check` (`rating BETWEEN 2 AND 10`,
+/// 20260925160000_review_rating_half_points): escala doblada para admitir
+/// medios puntos sin problemas de precisión — la capa de servicio
+/// (`reviews.ts`/`reviews-prisma-store.ts`) expone/valida 1–5 con pasos de
+/// 0,5 y convierte ×2 al escribir, ÷2 al leer.
 model review {
   id                         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId                     String
   roomId                     String          @db.Uuid
+  /// Escala doblada en BD (2–10 enteros) = 1–5 con medios puntos de cara al
+  /// usuario. Ver `review_rating_check` en el comentario del modelo.
   rating                     Int             @db.SmallInt
   text                       String?
   createdAt                  DateTime        @default(now()) @db.Timestamptz(6)
