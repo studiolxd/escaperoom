@@ -47,8 +47,8 @@ export function matchesCatalogFilter(room: CatalogRoom, filter: CatalogListFilte
     (filter.difficulties.length === 0 || filter.difficulties.includes(room.difficulty)) &&
     (filter.minPrice === null || price >= filter.minPrice) &&
     (filter.maxPrice === null || price <= filter.maxPrice) &&
-    (filter.players === null ||
-      (room.players.min <= filter.players && room.players.max >= filter.players)) &&
+    (filter.playersMin === null || room.players.max >= filter.playersMin) &&
+    (filter.playersMax === null || room.players.min <= filter.playersMax) &&
     (filter.q === null || room.title.toLocaleLowerCase().includes(filter.q.toLocaleLowerCase()))
   );
 }
@@ -180,11 +180,11 @@ function whereClause(filter: CatalogListFilter): Prisma.Sql {
   if (filter.maxPrice !== null) {
     conditions.push(Prisma.sql`COALESCE(r."priceCents", 0) <= ${filter.maxPrice}`);
   }
-  if (filter.players !== null) {
-    conditions.push(
-      Prisma.sql`(${meta} -> 'players' ->> 'min')::int <= ${filter.players}
-                 AND (${meta} -> 'players' ->> 'max')::int >= ${filter.players}`,
-    );
+  if (filter.playersMin !== null) {
+    conditions.push(Prisma.sql`(${meta} -> 'players' ->> 'max')::int >= ${filter.playersMin}`);
+  }
+  if (filter.playersMax !== null) {
+    conditions.push(Prisma.sql`(${meta} -> 'players' ->> 'min')::int <= ${filter.playersMax}`);
   }
   if (filter.q !== null) {
     conditions.push(
@@ -320,12 +320,14 @@ export type CachedPublishedRoomListingOptions = {
 const DEFAULT_CATALOG_CACHE_TTL_SECONDS = 60;
 
 /**
- * Cambia cuando el formato de lo cacheado varía de forma incompatible (aquí:
- * `ratingAvg` pasa a calcularse sobre la escala doblada de `review.rating`)
+ * Cambia cuando el formato de lo cacheado varía de forma incompatible (v2:
+ * `ratingAvg` pasa a calcularse sobre la escala doblada de `review.rating`;
+ * v3: el filtro de jugadores pasa de `players: N` a un rango
+ * `playersMin`/`playersMax`, así que la clave de la consulta cambia de forma)
  * para que las claves antiguas, escritas por código previo al cambio,
  * simplemente dejen de leerse en vez de servir valores duplicados.
  */
-const CATALOG_CACHE_VERSION = "v2";
+const CATALOG_CACHE_VERSION = "v3";
 
 /**
  * Serializa un valor con las claves de cada objeto ordenadas, para que el

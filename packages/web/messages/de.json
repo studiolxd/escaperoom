@@ -437,6 +437,17 @@
       "validate": "Prüfen",
       "playtest": "Spielen"
     },
+    "players": {
+      "button": "Spieler",
+      "title": "Spieler des Raums",
+      "description": "Mindest- und Höchstanzahl der Spieler, die dieser Raum unterstützt (bis zu {ceiling}).",
+      "min": "Minimum",
+      "max": "Maximum",
+      "save": "Speichern",
+      "cancel": "Abbrechen",
+      "errorRange": "Minimum und Maximum müssen zwischen 1 und {ceiling} liegen",
+      "errorOrder": "Das Minimum darf nicht größer als das Maximum sein"
+    },
     "tools": {
       "label": "Werkzeuge",
       "select": "Auswählen",
@@ -703,9 +714,11 @@
     "difficulty": "Schwierigkeit",
     "anyDifficulty": "Alle Schwierigkeiten",
     "players": "Spieler",
-    "anyPlayers": "Beliebige Anzahl",
-    "playersSolo": "Einzelspiel",
-    "playersUpTo": "Bis zu {n} Spieler",
+    "anyPlayers": "Beliebig",
+    "playersFrom": "Von",
+    "playersToLabel": "bis",
+    "playersFromOption": "Von {n}",
+    "playersToOption": "bis {n}",
     "priceFree": "Kostenlos",
     "priceMax": "Höchstpreis",
     "priceUnlimited": "Kein Limit",

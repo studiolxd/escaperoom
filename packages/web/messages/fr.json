@@ -437,6 +437,17 @@
       "validate": "Valider",
       "playtest": "Jouer"
     },
+    "players": {
+      "button": "Joueurs",
+      "title": "Joueurs de la salle",
+      "description": "Nombre minimum et maximum de joueurs admis par cette salle (jusqu'à {ceiling}).",
+      "min": "Minimum",
+      "max": "Maximum",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "errorRange": "Le minimum et le maximum doivent être compris entre 1 et {ceiling}",
+      "errorOrder": "Le minimum ne peut pas dépasser le maximum"
+    },
     "tools": {
       "label": "Outils",
       "select": "Sélectionner",
@@ -703,9 +714,11 @@
     "difficulty": "Difficulté",
     "anyDifficulty": "Toutes les difficultés",
     "players": "Joueurs",
-    "anyPlayers": "Nombre indifférent",
-    "playersSolo": "Jeu en solo",
-    "playersUpTo": "Jusqu'à {n} joueurs",
+    "anyPlayers": "Indifférent",
+    "playersFrom": "De",
+    "playersToLabel": "à",
+    "playersFromOption": "De {n}",
+    "playersToOption": "à {n}",
     "priceFree": "Gratuit",
     "priceMax": "Prix maximum",
     "priceUnlimited": "Sans limite",

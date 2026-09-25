@@ -10,7 +10,15 @@ import { getCatalogService } from "@/server/services";
 type SearchParams = Record<string, string | string[] | undefined>;
 type Props = { params: Promise<{ locale: string }>; searchParams: Promise<SearchParams> };
 
-const FILTER_KEYS = ["q", "language", "difficulty", "players", "maxPrice", "sort"] as const;
+const FILTER_KEYS = [
+  "q",
+  "language",
+  "difficulty",
+  "minPlayers",
+  "maxPlayers",
+  "maxPrice",
+  "sort",
+] as const;
 
 function toSearchParams(raw: SearchParams): URLSearchParams {
   const params = new URLSearchParams();
@@ -64,6 +72,13 @@ export default async function CatalogPage({ params, searchParams }: Props) {
     for (const key of FILTER_KEYS) {
       const value = query.get(key);
       if (value) filters[key] = value;
+    }
+    // Compatibilidad con enlaces antiguos `?players=N`: si no llegó un rango
+    // explícito, se refleja en el selector como "de N a N".
+    const legacyPlayers = query.get("players");
+    if (legacyPlayers && !filters.minPlayers && !filters.maxPlayers) {
+      filters.minPlayers = legacyPlayers;
+      filters.maxPlayers = legacyPlayers;
     }
   }
 

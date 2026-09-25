@@ -469,6 +469,17 @@
       "validate": "Validate",
       "playtest": "Play"
     },
+    "players": {
+      "button": "Players",
+      "title": "Room players",
+      "description": "Minimum and maximum players this room supports (up to {ceiling}).",
+      "min": "Minimum",
+      "max": "Maximum",
+      "save": "Save",
+      "cancel": "Cancel",
+      "errorRange": "Minimum and maximum must be between 1 and {ceiling}",
+      "errorOrder": "The minimum can't be greater than the maximum"
+    },
     "tools": {
       "label": "Tools",
       "select": "Select",
@@ -743,9 +754,11 @@
     "difficulty": "Difficulty",
     "anyDifficulty": "Any difficulty",
     "players": "Players",
-    "anyPlayers": "Any number",
-    "playersSolo": "Solo play",
-    "playersUpTo": "Up to {n} players",
+    "anyPlayers": "Any",
+    "playersFrom": "From",
+    "playersToLabel": "to",
+    "playersFromOption": "From {n}",
+    "playersToOption": "to {n}",
     "priceFree": "Free",
     "priceMax": "Maximum price",
     "priceUnlimited": "No limit",

@@ -13,6 +13,7 @@ import {
   readObject,
   roomDocToPackage,
   roomPackageToDoc,
+  useRoomPackage,
   useRoomValidation,
   ValidationPanel,
   type InspectorTarget,
@@ -29,6 +30,7 @@ import { EDITOR_UI_KIT } from "./editor-ui-kit";
 import { PlaytestButton } from "./playtest-button";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
 import { RoomEditorInspector } from "./room-editor-inspector";
+import { RoomPlayersDialog } from "./room-players-dialog";
 import {
   RoomEditorWorkspace,
   type CanvasTab,
@@ -220,6 +222,7 @@ function ValidatedWorkspace({
   const graphLabels = useTranslations("RulesGraph").raw("labels") as RulesGraphLabelsInput;
   const { doc, controller } = session;
   const validation = useRoomValidation(doc, roomDocToPackage);
+  const pkg = useRoomPackage(doc);
   const tools = useSyncExternalStore(
     controller.subscribe,
     controller.getState,
@@ -313,6 +316,7 @@ function ValidatedWorkspace({
       }
       headerActions={
         <>
+          <RoomPlayersDialog doc={doc} players={pkg.meta.players} />
           <Button
             size="sm"
             variant="ghost"
