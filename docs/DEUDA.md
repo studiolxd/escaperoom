@@ -29,3 +29,34 @@ Tareas pendientes que no bloquean pero hay que resolver.
         (o el máximo) por debajo de lo que exigen las pruebas ya colocadas, el
         editor debe avisar indicando qué pruebas quedan sin camino para ese
         número de jugadores.
+- [ ] **CTA "Jugar" no distingue salas de pago sin acceso** (frontend,
+      complemento de B-4 / ticket 5.1).
+      - **Dónde:** `packages/web/src/components/catalog/room-detail.tsx:181-183`.
+        El botón principal siempre dice `t("playCta")` ("Jugar la sala") y
+        enlaza a `/redeem`, sin mirar `room.priceCents` ni el acceso del usuario.
+      - **Estado del backend (tras la PR #140):** ya existen
+        `GET /api/rooms/:roomId/access` (`{owned, playable, gameToken?}`, con la
+        compra libre / en curso / consumida) y el gate de compra en Colyseus
+        (`GameRoom` exige `gameToken`; la partida se consume al terminar). El
+        checkout individual (`POST /api/purchases/room-checkout`, Stripe
+        Checkout, webhook, `checkout/confirmation`) también existe, pero ningún
+        componente del frontend lo invoca. Sin `STRIPE_SECRET_KEY` el servicio
+        de pagos es `null` (responde 501).
+      - **Lo que falta en el frontend:**
+        a. Pasar a `RoomDetailView` el estado de acceso del viewer a la sala
+           (análogo a `viewer: ReviewViewerState`), leído de
+           `GET /api/rooms/:roomId/access`.
+        b. Si `room.priceCents > 0` y el viewer no tiene acceso: CTA "Comprar"
+           (nueva clave `RoomDetail.buyCta` en los 6 idiomas) que llame a
+           `POST /api/purchases/room-checkout` y redirija a `checkoutUrl`
+           (patrón fetch + redirect de `payouts-panel.tsx`).
+        c. Si el viewer no ha iniciado sesión: el CTA de compra lleva primero a
+           login/registro con retorno a la sala, sin lanzar el checkout.
+        d. Si `room.priceCents === 0` o el viewer ya tiene acceso: mantener
+           "Jugar la sala".
+        e. Reutilizar `checkout/confirmation` como destino tras el pago.
+        f. **Jugar una sala comprada:** con acceso `playable`, el CTA "Jugar"
+           crea la `GameRoom` con el `gameToken` del endpoint de acceso (hoy
+           `/es/play` solo firma partidas de prueba `dev_test`); si la compra
+           está "en curso", reconectar a esa partida; si está consumida, mostrar
+           que ya se jugó (y, si aplica, ofrecer volver a comprar).
