@@ -60,7 +60,7 @@ Tareas pendientes que no bloquean pero hay que resolver.
       endpoint de pruebas equivalente limitado a test); quitar el tipo de
       token `dev_test` si ya no se usa; revisar enlaces internos y docs que la
       mencionen.
-- [ ] **Formularios con server actions, React Hook Form y errores bajo cada
+- [x] **Formularios con server actions, React Hook Form y errores bajo cada
       campo.** Revisar todos los formularios para que usen **server actions** +
       **React Hook Form** (con el `Form`/`Field` de shadcn/ui y el resolver de
       Zod) y muestren los errores **debajo de su campo**, nunca con la
@@ -110,6 +110,39 @@ Tareas pendientes que no bloquean pero hay que resolver.
         - Nota de slxd (SPEC.md, 2026-08-24): `react-hook-form` debe ser
           *external* si va en una librería de componentes compartida, porque
           empaquetado duplica el contexto del formulario.
+      Resuelto: `react-hook-form` + `@hookform/resolvers` instalados en
+      `packages/web`; el `form` de shadcn del registro actual es un stub
+      vacío (sustituido por el patrón `Field`/`Controller` de RHF, que ya
+      documentaba `components/ui/field.tsx`), así que los formularios usan
+      `Field`/`FieldLabel`/`FieldError` + `register`/`Controller`,
+      `noValidate` y `aria-invalid`/`aria-describedby`. Contrato de error de
+      las Server Actions (`server/actions/action-result.ts`): mismo
+      `{ code, message, issues? }` que A-22, con `consumeActionRateLimit`
+      (reconstruye IP/sesión desde `headers()` para reutilizar
+      `RATE_LIMIT_POLICIES`/`consumeRateLimit` sin `Request`). Migrados a
+      server actions que llaman a los mismos servicios de
+      `@escaperoom/shared` (rutas REST intactas): `contact-form.tsx`
+      (`sendContactMessage`, cuota `contact-write`), `redeem-form.tsx`
+      (`redeemAccessKey`, cuota `redeem`), `catalog/review-form.tsx`
+      (`upsertRoomReview`, cuota `review-write`; no toca
+      `server/rest/room-reviews.ts`, migrado aparte al contrato A-22) y
+      `events/new-event-form.tsx` (`createMinimalEvent`; sin cuota, igual que
+      la ruta REST que sustituye). `auth-form.tsx`, `mcp-oauth/consent-login.tsx`
+      y `onboarding/onboarding-login.tsx` (Google + enlace mágico de Better
+      Auth, no un servicio propio) comparten el hook `useEmailSignIn` con
+      RHF; Better Auth ya gestiona su propio rate limiting/CSRF.
+      `editor/room-languages-editor.tsx` no tiene servidor al que llamar
+      (opera sobre el doc Yjs local): solo `noValidate`/`aria-invalid`/
+      `aria-describedby`, sin RHF. `app/[locale]/(play)/oauth/consent/page.tsx`
+      no aplica: el `<form>` de la decisión son campos ocultos + botones que
+      se envían de forma nativa a propósito (flujo de redirección OAuth); no
+      hay entrada de usuario que validar. Pendiente:
+      `game-session/network-game.tsx` (excluido, zona del bloque 10 en
+      paralelo) y las "otras mutaciones con `fetch`" (`room-cover-upload`,
+      `event-dashboard`, `spectator-game`, `confirm-attendance`,
+      `accept-terms-button`, `moderation-queue`, `onboarding-wizard`,
+      `payouts-panel`, `confirm-publish`, `playtest-button`): quedan fuera de
+      esta PR por alcance, sin cambios de comportamiento que perder.
 - [x] **Páginas de error con la shell pública y componentes shadcn.** Las
       páginas de error actuales (`app/[locale]/error.tsx` y
       `app/[locale]/not-found.tsx`, PR #120) cuelgan de `[locale]`, fuera del
