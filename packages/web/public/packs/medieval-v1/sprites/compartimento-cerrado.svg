@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-<g transform="matrix(0.89445 -0.44723 0 -1 32.00 160.00)">
-<polygon points="11.776,52.000 59.776,52.000 59.776,100.000 11.776,100.000" fill="#94928c" stroke="#72706a" stroke-width="0.6" stroke-linejoin="round"/>
-<polygon points="15.776,56.000 55.776,56.000 55.776,96.000 15.776,96.000" fill="#a09e98" stroke="#72706a" stroke-width="0.6" stroke-linejoin="round"/>
-<line x1="21.78" y1="76.00" x2="49.78" y2="76.00" stroke="#787670" stroke-width="0.8" stroke-linecap="round" opacity="0.6"/>
-</g>
-</svg>

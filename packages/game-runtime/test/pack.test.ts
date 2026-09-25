@@ -13,7 +13,11 @@ import {
   resolveIconFrame,
   resolveSpriteFrame,
   resolveTileFrame,
+  spriteOrigin,
+  spriteSize,
   tileCollides,
+  tileOrigin,
+  tileSize,
   validateAtlasFrames,
   validatePack,
   validatePackAgainstModel,
@@ -172,7 +176,7 @@ describe("collectRequiredFrames y validador de pack", () => {
     const paths = issues.map((issue) => issue.path);
     expect(issues.every((issue) => issue.severity === "error")).toBe(true);
     expect(paths).toContain("tiles.2");
-    expect(paths).toContain("sprites.arca-cerrada");
+    expect(paths).toContain("sprites.arca-cerrada-der");
     expect(paths).toContain("ui.icons.icon-vela");
   });
 
@@ -283,5 +287,64 @@ describe("colisión desde el manifiesto", () => {
     const grid = buildCollisionGrid(salon, { manifest: buildPlaceholderManifest(model) });
     expect(grid.blocks(-1, 0)).toBe(true);
     expect(grid.blocks(salon.width, salon.height)).toBe(true);
+  });
+
+  it("la huella de varias celdas (footprint) también bloquea, además del ancla", () => {
+    const model = loadModel();
+    const bodega = model.subroomsById["bodega"];
+    if (!bodega) throw new Error("falta la habitación bodega");
+
+    const grid = buildCollisionGrid(bodega);
+    // mesa-catas está en (9,6) con footprint 1×3 en (8,6) y (10,6) (specs/26 §2).
+    expect(grid.blocks(9, 6)).toBe(true);
+    expect(grid.blocks(8, 6)).toBe(true);
+    expect(grid.blocks(10, 6)).toBe(true);
+    expect(grid.blocks(7, 6)).toBe(false);
+  });
+});
+
+describe("size/origin por frame (specs/26 §3.2)", () => {
+  it("PackTileEntrySchema/PackSpriteEntrySchema aceptan size/origin opcionales", () => {
+    const manifest = {
+      ...validManifest(),
+      tiles: {
+        ...validManifest().tiles,
+        "10": { frame: "tile-10", collides: true, size: [64, 136], origin: [0.5, 1] },
+      },
+      sprites: { arca: { frame: "arca", size: [102, 92], origin: [0.5, 0.9782] } },
+    };
+    const result = PackManifestSchema.safeParse(manifest);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tiles["10"]?.size).toEqual([64, 136]);
+      expect(result.data.sprites.arca?.origin).toEqual([0.5, 0.9782]);
+    }
+  });
+
+  it("un origen puede salir de [0, 1] (p. ej. la mirilla)", () => {
+    const manifest = {
+      ...validManifest(),
+      sprites: { mirilla: { frame: "mirilla", origin: [1.09, 0.5] } },
+    };
+    expect(PackManifestSchema.safeParse(manifest).success).toBe(true);
+  });
+
+  it("tileSize/tileOrigin y spriteSize/spriteOrigin caen a los valores por defecto sin entrada", () => {
+    const manifest = validManifest();
+    expect(tileSize(manifest, 1)).toBeUndefined();
+    expect(tileOrigin(manifest, 1)).toEqual([0.5, 1]);
+    expect(spriteSize(manifest, "no-declarado")).toBeUndefined();
+    expect(spriteOrigin(manifest, "no-declarado")).toEqual([0.5, 1]);
+  });
+
+  it("tileSize/tileOrigin y spriteSize/spriteOrigin devuelven lo declarado por el manifiesto", () => {
+    const manifest: PackManifest = {
+      ...validManifest(),
+      tiles: { "10": { frame: "tile-10", collides: true, size: [64, 136], origin: [0.5, 1] } },
+      sprites: { arca: { frame: "arca", size: [102, 92], origin: [0.5, 0.9782] } },
+    };
+    expect(tileSize(manifest, 10)).toEqual([64, 136]);
+    expect(spriteSize(manifest, "arca")).toEqual([102, 92]);
+    expect(spriteOrigin(manifest, "arca")).toEqual([0.5, 0.9782]);
   });
 });

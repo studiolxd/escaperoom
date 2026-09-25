@@ -45,9 +45,14 @@ produce un estudio externo con plazo propio; el runtime lo consume cuando el pac
 | Proyección | isométrica 2:1 |
 | Celda (footprint en pantalla) | **64 × 32 px** a 1× |
 | Export de referencia | 1× (64×32) y 2× (128×64) para pantallas HiDPI |
-| Origen/pivote | **abajo-centro** del rombo de la celda (documentado en el manifiesto); **excepción: avatares**, ver abajo |
-| Overhang | permitido hacia arriba (paredes, columnas, objetos altos); nunca hacia abajo/lados |
+| Origen/pivote | **abajo-centro** del rombo de la celda por defecto; **origen por frame** en el manifiesto (`origins`, §6) cuando el objeto lo necesita (colgados de muro, mirilla…); **excepción: avatares**, ver abajo |
+| Overhang | libre hacia arriba; hacia los lados y hacia delante hasta ½ celda (32 px a 1×); más allá, huella de varias celdas declarada en el objeto (specs/04 §3.1). Depth por la celda del ancla |
 | Direcciones de avatar | 4 sentidos de rejilla (`n`, `e`, `s`, `w`), dibujados en iso |
+
+**Lienzo real por frame.** A diferencia de un lienzo canónico compartido, cada sprite tiene el
+suyo (p. ej. arca 102×92, trono 94×122, muro 64×136, todo a 1×): `pack.config.sizes[frame]` lo
+declara y el manifiesto lo copia a `tiles[tileId].size` / `sprites[frame].size` (§6). Sin esta
+entrada, el runtime usa el tamaño real del frame en el atlas dividido por `projection.scale`.
 
 **Pivote del avatar (excepción a "abajo-centro").** El punto de apoyo (suelo bajo el personaje)
 está al **88,6 % del alto del frame** (desde arriba), centrado en horizontal —
@@ -116,16 +121,19 @@ Los muros **no** son tiles del tileset de suelo: se pintan como **sprites con ov
 abajo-centro, depth-sort por `x+y`, `collides: true`), porque **suben** por encima de la celda.
 
 - **Celda/huella:** rombo **2:1** (64×32 a 1×), igual que el suelo.
-- **Lienzo:** más alto que la huella — **64×64** a 1× (**128×128** a 2×). Un muro más alto (con
-  cornisa o viga) es cambiar el preset (`height`/`canvas_h`); v1 no lo necesita porque **ningún
-  elemento decorativo sobresale del alto del muro**. Base apoyada en la celda, cuerpo creciendo
-  **hacia arriba** con padding transparente alrededor.
+- **Lienzo:** más alto que la huella — **64×136** a 1× (**128×272** a 2×; muro de 2,4 m de altura
+  física, `pack.config.sizes`). Cuadros, tapices, antorchas y mirillas cuelgan a 1,3–2,1 m de
+  altura sobre esa cara. Base apoyada en la celda, cuerpo creciendo **hacia arriba** con padding
+  transparente alrededor. Las piezas con hueco de arco (`tile-20`/`tile-21`/`tile-22`) comparten
+  el mismo lienzo: la hoja de puerta/reja es un objeto aparte, no parte del muro.
 - **Dos caras visibles:** un muro iso enseña **cara izquierda** y **cara derecha** (y opcionalmente
   el **canto superior**). Solo esas dos: dibujar las cuatro taparía la sala. Las dos caras siguen la
   **luz única del pack** (a igual luz: una más clara, otra más oscura).
 - **Tileable y con piezas:** tramo **recto** sin costuras (repetible a lo largo del grid), **esquina**
-  (L) y, si se puede, cruce y **arco/paso**. Variantes: muro **normal**, **con antorcha**,
-  **con tapiz/estandarte**, **con ventana/mirilla**. La **puerta** sigue siendo objeto, no muro.
+  (L) y, si se puede, cruce y **arco/paso**. La entrega final **no** usa muros decorados
+  (`muro-antorcha`/`muro-tapiz`): antorcha, tapiz y estandarte son **objetos colgados** sobre el
+  muro liso (`tile-10`), no variantes del propio tile — más frames reutilizables, mismo resultado
+  visual. La **puerta** sigue siendo objeto, no muro.
 - **Decoración sobre la cara:** antorcha, tapiz, ventana, arco y remate se dibujan **sobre la cara
   larga** del muro, en su mismo espacio 2D (heredan la luz de esa cara) y **sin desplazar el pivote**
   (la base sigue siendo el rombo 2:1 abajo-centro). El **arco** es un **hueco de medio punto
@@ -249,6 +257,9 @@ cronómetro/pista en el mismo estilo).
 - El pack debe sentirse correcto con **caída suave** de luz (degradado radial, sin círculo de borde
   neto); el runtime aplica el halo, pero los sprites no deben incluir su propio halo fijo.
 - Los assets de antorcha/brasero se entregan en estado apagado y encendido.
+- La luz `torch` ligada a un `objectId` se coloca en la **celda del objeto** que gobierna (p. ej. la
+  del brasero real), no en una celda arbitraria: así el halo sigue al objeto si se mueve en el
+  fixture.
 
 ## 6. Manifiesto del pack (`manifest.json`)
 
@@ -263,10 +274,10 @@ interface PackManifest {
   packageFormat: string;   // versión del RoomPackage con la que se probó ("roompackage/v1")
   projection: { tileWidth: 64; tileHeight: 32; scale: number };
   atlases: { key: string; image: string; data: string }[];
-  /** Mapa tileId → frame + colisión (el runtime no infiere colisión del número). */
-  tiles: Record<string, { frame: string; collides: boolean }>;
-  /** Frame por identificador de sprite del RoomPackage (objetos, estados, decoración). */
-  sprites: Record<string, { frame: string }>;
+  /** Mapa tileId → frame + colisión (el runtime no infiere colisión del número) + lienzo/origen. */
+  tiles: Record<string, { frame: string; collides: boolean; size?: [number, number]; origin?: [number, number] }>;
+  /** Frame por identificador de sprite del RoomPackage (objetos, estados, decoración) + lienzo/origen. */
+  sprites: Record<string, { frame: string; size?: [number, number]; origin?: [number, number] }>;
   anims: { key: string; frames: string[]; frameRate: number; repeat: number }[];
   /** Frame por `ItemDef.icon`. */
   ui: { icons: Record<string, string> };
@@ -278,6 +289,20 @@ interface PackManifest {
   avatarOrigin?: [number, number];
 }
 ```
+
+`size`/`origin` por frame (§3.1): `size` es el lienzo lógico a 1× (sin él, el runtime usa el
+tamaño real del frame en el atlas / `projection.scale`); `origin` es la fracción `[ox, oy]` del
+frame que cae en `tileAnchor(x, y)` (sin él, `[0.5, 1]`, abajo-centro). `pack:build` los toma de
+`pack.config.json` (`sizes`/`origins`, mismas claves que los nombres de frame) y los copia tal
+cual al manifiesto.
+
+### 6.1 Frames añadidos por la entrega 3D (no exhaustivo del §4.2 original)
+
+`cuadro-reino-brasero`, `cuadro-reino-estatuas` (sustituyen al `cuadro-reino` genérico: con el
+mismo cuadro para dos retratos no se distingue qué contar), `canal-tramo` (decoración del canal
+visible), `estandarte`, y las variantes de orientación `-der` (pegado a la columna x=0) y `-x`
+(puerta/reja/umbral/escalón en una columna). `tile-20`/`tile-21` **no** son umbral/escalón — son
+piezas de muro con hueco de arco; la hoja de puerta/reja es el objeto que se ve a través.
 
 ## 7. Checklist de entrega
 

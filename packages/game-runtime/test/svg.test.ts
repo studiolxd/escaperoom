@@ -28,6 +28,28 @@ describe("canvasForFrame", () => {
   it("devuelve null para un frame desconocido", () => {
     expect(canvasForFrame("no-existe")).toBeNull();
   });
+
+  it("usa el lienzo declarado por el pack (sizes) en vez del canónico, escalado a 2×", () => {
+    expect(canvasForFrame("arca", { arca: [102, 92] })).toEqual({ width: 204, height: 184 });
+    // Un frame sin entrada en `sizes` sigue la tabla canónica de siempre.
+    expect(canvasForFrame("cuadro-rey", { arca: [102, 92] })).toEqual({ width: 192, height: 192 });
+    // Un frame nuevo sin lienzo canónico (p. ej. un muro más alto) solo existe vía `sizes`.
+    expect(canvasForFrame("muro-arco", { "muro-arco": [64, 136] })).toEqual({
+      width: 128,
+      height: 272,
+    });
+  });
+});
+
+describe("checkSvgAspect / checkPngAspect con `sizes`", () => {
+  it("no comprueba la proporción canónica cuando el frame tiene lienzo propio declarado", () => {
+    // Un cuadro (96×96 canónico) declarado como 102×92 no encaja en 1:1, pero al declararlo en
+    // `sizes` deja de comprobarse contra el lienzo canónico (specs/26 §3.1).
+    expect(checkSvgAspect(SQUARE_SVG, "cuadro-rey")).not.toBeNull();
+    expect(checkSvgAspect(SQUARE_SVG, "cuadro-rey", { "cuadro-rey": [102, 92] })).toBeNull();
+    expect(checkPngAspect("cuadro-rey", 200, 100)).not.toBeNull();
+    expect(checkPngAspect("cuadro-rey", 200, 100, { "cuadro-rey": [102, 92] })).toBeNull();
+  });
 });
 
 describe("rasterizeSvg", () => {

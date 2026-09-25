@@ -184,7 +184,7 @@ describe("validador — assets referenciados que no existen en el manifest", () 
     const manifest = fullManifest(reyAldric);
     const [someTile] = Object.keys(manifest.tiles);
     delete manifest.tiles[someTile!];
-    delete manifest.sprites["arca-abierta"];
+    delete manifest.sprites["arca-abierta-der"];
     delete manifest.ui.icons["icon-caliz"];
 
     const report = validateRoomPackage(reyAldric, { assetManifest: manifest });
@@ -198,7 +198,7 @@ describe("validador — assets referenciados que no existen en el manifest", () 
     const sprite = check.issues.find((issue) => issue.code === "missing_sprite_asset")!;
     expect(sprite.ids).toEqual(["arca-candado"]);
     expect(sprite.message).toBe(
-      "el sprite «arca-abierta» (usado en arca-candado) no existe en manifest.sprites",
+      "el sprite «arca-abierta-der» (usado en arca-candado) no existe en manifest.sprites",
     );
     const icon = check.issues.find((issue) => issue.code === "missing_icon_asset")!;
     expect(icon.ids).toEqual(["caliz-real"]);

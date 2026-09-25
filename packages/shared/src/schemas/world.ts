@@ -92,6 +92,13 @@ export const WorldObjectSchema = z.object({
   distribution: z.enum(["first_click", "all_players", "assigned"]).optional(),
   hidingSpot: z.object({ contains: z.string() }).optional(),
   leadsTo: z.string().optional(),
+  /**
+   * Huella de varias celdas (specs/26 §2, specs/04 §3.1): celdas **adicionales**
+   * (además de `position`, el ancla) que ocupa el objeto — p. ej. una mesa
+   * 1×3 declara las otras dos celdas de su fila. Colisionan todas; el
+   * depth-sort sigue usando solo la celda del ancla.
+   */
+  footprint: z.array(PositionSchema).max(8).optional(),
 });
 
 /** Catálogo de objetos del inventario — specs/08 §2.4. */

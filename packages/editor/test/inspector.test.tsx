@@ -89,6 +89,7 @@ describe("generador de formularios desde los esquemas Zod", () => {
       "distribution",
       "hidingSpot",
       "leadsTo",
+      "footprint",
     ]);
     const field = (path: string) => findField(root, path);
     expect(field("roomId")).toMatchObject({ kind: "text", ref: "room", optional: false });
@@ -359,12 +360,12 @@ describe("renombrar ids reescribe todas las referencias en una transacción", ()
 
     const pkg = roomDocToPackage(doc);
     expect(pkg.objects.map((o) => o.id)).not.toContain("arca-candado");
-    // Conserva el orden y el resto de propiedades (sprite `arca` intacto).
+    // Conserva el orden y el resto de propiedades (sprite `arca-der` intacto).
     expect(pkg.objects.findIndex((o) => o.id === "arca-tesoro")).toBe(
       fixture.objects.findIndex((o) => o.id === "arca-candado"),
     );
     expect(pkg.objects.find((o) => o.id === "arca-tesoro")).toMatchObject({
-      sprite: "arca",
+      sprite: "arca-der",
       lockedBy: "p-candado-arca",
     });
     expect(pkg.puzzles.find((p) => p.id === "p-candado-arca")?.unlocks).toEqual(["arca-tesoro"]);

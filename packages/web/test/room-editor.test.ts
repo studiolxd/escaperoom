@@ -56,7 +56,7 @@ describe("palette del editor (pack medieval-v1)", () => {
     });
     expect(palette.tiles.find((tile) => tile.tileId === 1)?.layer).toBe("ground");
     const trono = palette.sprites.find((entry) => entry.sprite === "trono");
-    expect(trono?.thumbnail).toBe("/packs/medieval-v1/sprites/trono.svg");
+    expect(trono?.thumbnail).toBe("/packs/medieval-v1/sprites/trono.png");
   });
 
   it("sin manifiesto generado se deriva de las fuentes y de pack.config.json", () => {
@@ -120,7 +120,7 @@ describe("<RoomEditorWorkspace> — render", () => {
     expect(html).toContain('aria-current="page"');
     expect(count(html, 'data-palette="tiles"')).toBe(1);
     expect(count(html, "data-tool=")).toBe(7);
-    expect(html).toContain("/packs/medieval-v1/sprites/trono.svg");
+    expect(html).toContain("/packs/medieval-v1/sprites/trono.png");
     // Contador derivado del doc: el trono ya está colocado una vez.
     expect(html).toContain("1 colocado");
     expect(html).toContain("data-header-actions");

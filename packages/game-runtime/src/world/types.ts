@@ -32,4 +32,6 @@ export interface InspectionResult {
   distribution?: DistributionMode;
   /** ¿Se abrió ya el contenedor? */
   opened?: boolean;
+  /** Imagen grande de inspección (`on_interact` + `show_image`, specs/26 §6.1). */
+  image?: { image: string; caption?: string };
 }

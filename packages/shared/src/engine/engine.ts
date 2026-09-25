@@ -434,6 +434,13 @@ class RuleEngine {
       case "show_dialog":
         out.effects.push({ type: "show_dialog", dialogId: action.dialogId });
         return;
+      case "show_image":
+        out.effects.push({
+          type: "show_image",
+          image: action.image,
+          ...(action.caption ? { caption: action.caption } : {}),
+        });
+        return;
       case "play_sound":
         out.effects.push({ type: "play_sound", soundId: action.soundId });
         return;

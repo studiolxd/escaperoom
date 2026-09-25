@@ -21,7 +21,13 @@ interacciones con el servidor está en `11-protocolo-multijugador.md`; la lógic
 - **Cámara y oclusión (revisión 2026-09-22, ADR-001):** isométrico **fijo** (sin rotación de cámara)
   y **sin elevaciones/multinivel en v1** — rejilla plana con paredes en dos lados, para que la
   autoría (editor y MCP) sea tan simple como un top-down. **Política de oclusión:** las paredes y
-  objetos que quedan por delante de un avatar se desvanecen (alpha) automáticamente.
+  objetos que quedan por delante de un avatar se desvanecen (alpha) automáticamente. Implementación
+  v1 (dado el guarda de "sin elevaciones"): un muro es "de frente" (más cerca de la cámara; su cara
+  hacia la sala nunca la ve la cámara) cuando la celda vecina hacia el interior (`tx-1` o `ty-1`)
+  está libre de muro — es la última barrera antes del interior transitable —, así que se pinta con
+  alpha reducido de forma fija (no depende de dónde esté el avatar), dejando ver el interior y lo
+  que cuelga de ella (puerta, reja, mirillas…). Un muro de refuerzo detrás del que lleva el hueco
+  (p. ej. una fila de cierre extra) queda oculto tras el de frente y no hace falta desvanecerlo.
 - **Arte:** puede producirse como **sprites isométricos pre-renderizados desde 3D** (3D para
   producir, 2D para jugar); si se usa IA para generar arte, revisar titularidad/licencias
   (`specs/18`).
@@ -63,6 +69,7 @@ interface WorldObject {
   distribution?: 'first_click' | 'all_players' | 'assigned'; // al abrir un objeto con inventario
   hidingSpot?: { contains: string };  // escondite: objeto que oculta
   leadsTo?: string;               // puertas: habitación destino
+  footprint?: { x: number; y: number }[]; // celdas adicionales que ocupa (huella de varias celdas)
 }
 ```
 
@@ -70,6 +77,9 @@ interface WorldObject {
   `rotated_90`) con sprite/animación asociado. El runtime no impone vocabulario cerrado: solo
   sabe pintar el estado actual.
 - Estados con animación de transición opcional (`animation: "slide_up"`).
+- **Objetos con huella de varias celdas** (`specs/26` §2, p. ej. una mesa 1×3 o un sarcófago 1×2):
+  `footprint` declara las celdas **adicionales** a `position` (el ancla). Colisionan todas; el
+  depth-sort y el orden de dibujo siguen usando solo la celda del ancla.
 
 ### 3.2 Objetos con inventario interno
 
@@ -120,7 +130,11 @@ contenido pasa a la "zona de descubrimiento". Comportamiento configurable con `d
   El mismo evento se emite al **arrastrar** (drag&drop) un item del inventario sobre un objeto del
   mundo. Ejemplo canónico: el armario se abre por las tres vías (menú desde Espacio, menú desde
   clic y arrastre de la llave sobre el armario).
-- Al inspeccionar, se muestran diálogos/descripciones (`show_dialog`).
+- Al inspeccionar, se muestran diálogos/descripciones (`show_dialog`) y, cuando la pista es un
+  conteo que no se lee al tamaño del sprite (dragones de un tapiz, torres de un cuadro, vasijas…),
+  una imagen grande (`show_image`, `specs/26` §3.4/§6.1): abre un panel con la imagen de
+  `entregas/objetos/inspeccion/` subida con el pack (`inspect/<nombre>.png`). Sin esta acción, el
+  mínimo es un `show_dialog` descriptivo.
 - **El diálogo se cierra** al completarse la acción (usar un objeto con éxito, abrir un candado,
   resolver un puzzle) o con `Esc`; no se queda abierto bloqueando.
 - **La intro bloquea el juego**: hasta cerrar el diálogo de intro no se puede mover al avatar ni

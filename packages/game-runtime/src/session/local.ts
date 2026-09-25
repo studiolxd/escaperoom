@@ -1,5 +1,6 @@
 import { filterChatText } from "@escaperoom/shared/chat";
 import type { EngineResult } from "@escaperoom/shared/engine";
+import { resolveLocalizedText } from "@escaperoom/shared/hints";
 import type { PuzzleDefinition, RoomPackage } from "@escaperoom/shared/schemas";
 import {
   createRoomSession,
@@ -158,6 +159,14 @@ export function createLocalGameClient(
     if (result) {
       for (const effect of result.effects) {
         if (effect.type === "show_dialog") emit({ type: "dialog_show", dialogId: effect.dialogId });
+        else if (effect.type === "show_image")
+          emit({
+            type: "image_show",
+            image: effect.image,
+            ...(effect.caption
+              ? { caption: resolveLocalizedText(effect.caption, options.locale ?? "es") }
+              : {}),
+          });
         else if (effect.type === "set_object_state")
           emit({ type: "object_state_changed", objectId: effect.objectId, state: effect.state });
         else if (effect.type === "unlock_door")

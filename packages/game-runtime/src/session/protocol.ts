@@ -42,6 +42,7 @@ export const GAME_PROTOCOL = {
   splitFragments: "split_fragments",
   hintDelivered: "hint_delivered",
   dialogShow: "dialog_show",
+  imageShow: "image_show",
   objectStateChanged: "object_state_changed",
   itemGranted: "item_granted",
   puzzleSolved: "puzzle_solved",

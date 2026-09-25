@@ -106,3 +106,38 @@ export function resolveFxFrame(manifest: PackManifest | undefined): string {
 export function tileCollides(manifest: PackManifest | undefined, tileId: number): boolean {
   return manifest?.tiles[String(tileId)]?.collides ?? false;
 }
+
+/** Origen (fracción del frame en `tileAnchor`) por defecto: abajo-centro. */
+export const DEFAULT_FRAME_ORIGIN: readonly [number, number] = [0.5, 1];
+
+/** Lienzo lógico (a 1×) de un `tileId` según el manifiesto, si lo declara. */
+export function tileSize(
+  manifest: PackManifest | undefined,
+  tileId: number,
+): readonly [number, number] | undefined {
+  return manifest?.tiles[String(tileId)]?.size;
+}
+
+/** Origen de un `tileId` según el manifiesto (o `[0.5, 1]` por defecto). */
+export function tileOrigin(
+  manifest: PackManifest | undefined,
+  tileId: number,
+): readonly [number, number] {
+  return manifest?.tiles[String(tileId)]?.origin ?? DEFAULT_FRAME_ORIGIN;
+}
+
+/** Lienzo lógico (a 1×) de un sprite del `RoomPackage`, si el manifiesto lo declara. */
+export function spriteSize(
+  manifest: PackManifest | undefined,
+  sprite: string,
+): readonly [number, number] | undefined {
+  return manifest?.sprites[sprite]?.size;
+}
+
+/** Origen de un sprite del `RoomPackage` (o `[0.5, 1]` por defecto). */
+export function spriteOrigin(
+  manifest: PackManifest | undefined,
+  sprite: string,
+): readonly [number, number] {
+  return manifest?.sprites[sprite]?.origin ?? DEFAULT_FRAME_ORIGIN;
+}

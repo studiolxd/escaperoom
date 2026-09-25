@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { PositionSchema, RectSchema } from "./common";
+import { LocalizedTextSchema, PositionSchema, RectSchema } from "./common";
 import { MAX_ACTIONS_PER_LIST, MAX_DELAY_DEPTH, MIN_TIMER_DURATION_SEC } from "./limits";
 import { PuzzleStateSchema } from "./puzzle";
+import type { LocalizedText } from "./common";
 
 /** Valores admitidos por flags libres del creador (specs/05 §1). */
 export const FlagValueSchema = z.union([z.boolean(), z.number(), z.string()]);
@@ -52,6 +53,7 @@ export type RuleAction =
   | { type: "grant_item"; itemId: string; to: string }
   | { type: "consume_item"; itemId: string }
   | { type: "show_dialog"; dialogId: string }
+  | { type: "show_image"; image: string; caption?: LocalizedText }
   | { type: "start_timer"; id: string; durationSec?: number }
   | { type: "pause_timer"; id: string }
   | { type: "stop_timer"; id: string }
@@ -71,6 +73,11 @@ function leafActionVariants() {
     z.object({ type: z.literal("grant_item"), itemId: z.string(), to: z.string() }),
     z.object({ type: z.literal("consume_item"), itemId: z.string() }),
     z.object({ type: z.literal("show_dialog"), dialogId: z.string() }),
+    z.object({
+      type: z.literal("show_image"),
+      image: z.string().min(1),
+      caption: LocalizedTextSchema.optional(),
+    }),
     z.object({
       type: z.literal("start_timer"),
       id: z.string(),

@@ -94,14 +94,20 @@ const FRAME_CANVASES: Record<string, { width: number; height: number }> = {
 /** Tolerancia de aspecto: 3 % de desviación sobre el lienzo canónico. */
 export const ASPECT_TOLERANCE = 0.03;
 
+/** Lienzo lógico por frame declarado por el pack (`pack.config.sizes`, a 1×). */
+export type FrameSizes = Record<string, [number, number]>;
+
 /**
  * Comprueba que el `viewBox` del SVG encaja con el aspecto del lienzo canónico
  * del frame. Devuelve un aviso legible si no encaja (un suelo iso 2:1 dibujado
  * en un viewBox de otro aspecto se verá con márgenes o deformado), o `null` si
- * encaja o no hay medidas.
+ * encaja o no hay medidas. Si el pack declara `pack.config.sizes[frame]`, ese
+ * lienzo (real, no canónico) es la fuente de verdad y no se comprueba aspecto
+ * (specs/26 §3.1): cada objeto tiene su propio lienzo, no uno "canónico".
  */
-export function checkSvgAspect(svg: string, frame: string): string | null {
-  const expected = expectedAspectForFrame(frame);
+export function checkSvgAspect(svg: string, frame: string, sizes?: FrameSizes): string | null {
+  if (sizes?.[frame]) return null;
+  const expected = expectedAspectForFrame(frame, sizes);
   const box = readSvgViewBox(svg);
   if (expected === null || box === null) return null;
 
@@ -120,8 +126,8 @@ const AVATAR_CANVAS = { width: 64, height: 96 };
 const FX_CANVAS = { width: 64, height: 64 };
 
 /** Aspecto (ancho/alto) del lienzo canónico del frame, si lo tiene. */
-export function expectedAspectForFrame(frame: string): number | null {
-  const canvas = canvasForFrame(frame);
+export function expectedAspectForFrame(frame: string, sizes?: FrameSizes): number | null {
+  const canvas = canvasForFrame(frame, sizes);
   if (!canvas) return null;
   return canvas.width / canvas.height;
 }
@@ -167,8 +173,14 @@ export const PNG_ASPECT_TOLERANCE = 0.01;
  * proporción no encaja, es un error del pack (no se genera esa imagen).
  * Devuelve el mensaje de error, o `null` si encaja (o el frame es desconocido).
  */
-export function checkPngAspect(frame: string, width: number, height: number): string | null {
-  const expected = expectedAspectForFrame(frame);
+export function checkPngAspect(
+  frame: string,
+  width: number,
+  height: number,
+  sizes?: FrameSizes,
+): string | null {
+  if (sizes?.[frame]) return null;
+  const expected = expectedAspectForFrame(frame, sizes);
   if (expected === null || height <= 0) return null;
   const actual = width / height;
   if (Math.abs(actual - expected) / expected <= PNG_ASPECT_TOLERANCE) return null;
@@ -179,8 +191,20 @@ export function checkPngAspect(frame: string, width: number, height: number): st
   );
 }
 
-/** Lienzo canónico (a la escala de entrega) de un frame, o `null` si no está. */
-export function canvasForFrame(frame: string): { width: number; height: number } | null {
+/**
+ * Lienzo (a la escala de entrega) de un frame, o `null` si no está. Si el pack
+ * declara `sizes[frame]` (a 1×), ese es el lienzo lógico real del frame
+ * (specs/26 §2): cada sprite tiene su propio tamaño, no uno canónico
+ * compartido. Sin `sizes`, cae a la tabla canónica (packs antiguos).
+ */
+export function canvasForFrame(
+  frame: string,
+  sizes?: FrameSizes,
+): { width: number; height: number } | null {
+  const declared = sizes?.[frame];
+  if (declared) {
+    return scaleCanvas({ width: declared[0], height: declared[1] });
+  }
   const base = baseCanvasForFrame(frame);
   return base ? scaleCanvas(base) : null;
 }
@@ -202,8 +226,12 @@ function baseCanvasForFrame(frame: string): { width: number; height: number } | 
  * (detección por píxeles opacos, a alta resolución) antes de escalar. Así el
  * rombo `a sangre` llena la celda sin márgenes sin tocar el SVG de origen.
  */
-export async function rasterizeSvg(svg: string, frame: string): Promise<RasterizedImage> {
-  const canvas = canvasForFrame(frame);
+export async function rasterizeSvg(
+  svg: string,
+  frame: string,
+  sizes?: FrameSizes,
+): Promise<RasterizedImage> {
+  const canvas = canvasForFrame(frame, sizes);
   const base = sharp(Buffer.from(svg), { density: 384 });
 
   if (!canvas) {
@@ -211,7 +239,7 @@ export async function rasterizeSvg(svg: string, frame: string): Promise<Rasteriz
     return { width: info.width, height: info.height, rgba: data };
   }
 
-  const needsReframe = checkSvgAspect(svg, frame) !== null;
+  const needsReframe = checkSvgAspect(svg, frame, sizes) !== null;
   const piped = needsReframe ? await reframeToAspect(base, canvas) : base;
 
   const resized = await piped

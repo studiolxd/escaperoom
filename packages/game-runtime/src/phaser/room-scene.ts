@@ -6,6 +6,10 @@ import {
   PLACEHOLDER_CHARACTER_ID,
   resolveSpriteFrame,
   resolveTileFrame,
+  spriteOrigin,
+  spriteSize,
+  tileOrigin,
+  tileSize,
   type CollisionGrid,
   type PackManifest,
 } from "../pack";
@@ -151,9 +155,20 @@ const DEPTH = {
 } as const;
 
 const FLOOR_TILE_SIZE = { width: ISO_TILE_WIDTH, height: ISO_TILE_HEIGHT };
-const WALL_TILE_SIZE = { width: 64, height: 64 };
+/** Lienzo de reserva sin manifiesto (packs antiguos/placeholder): muro 2,4 m. */
+const WALL_TILE_SIZE = { width: 64, height: 136 };
 const SPRITE_SIZE = { width: 64, height: 96 };
 const SPAWN_MARKER_DEPTH_SUB = 90;
+
+/**
+ * Alpha de los muros del frente (specs/04 §1: "las paredes... que quedan por
+ * delante... se desvanecen"). Con la guarda de "sin elevaciones/multinivel"
+ * (ADR-001), el frente de cada sala son siempre los muros de la fila/columna
+ * mayor (los más próximos a la cámara): su cara hacia la sala no la ve la
+ * cámara, así que se atenúan de forma fija (no depende de la posición del
+ * avatar) para dejar ver el interior y los objetos colgados de ellos.
+ */
+const WALL_FRONT_ALPHA = 0.32;
 
 /**
  * Escena del runtime de producto: pinta un `RuntimeSubRoom` con el
@@ -548,6 +563,28 @@ export class RoomScene extends Phaser.Scene {
     return sprite.setScale(scale.x, scale.y);
   }
 
+  /**
+   * Tamaño lógico (a 1×) para pintar un frame: el declarado por el manifiesto
+   * (`manifest.tiles[tileId].size` / `manifest.sprites[sprite].size`) si lo
+   * hay; si no, el tamaño real del frame en el atlas dividido por
+   * `projection.scale` (specs/26 §3.2); si tampoco hay atlas (placeholder),
+   * el tamaño de reserva.
+   */
+  private resolveDisplaySize(
+    explicit: readonly [number, number] | undefined,
+    ref: FrameRef,
+    fallback: { width: number; height: number },
+  ): { width: number; height: number } {
+    if (explicit) {
+      return { width: explicit[0], height: explicit[1] };
+    }
+    if (ref.size) {
+      const scale = this.manifest.projection.scale || 1;
+      return { width: ref.size.width / scale, height: ref.size.height / scale };
+    }
+    return fallback;
+  }
+
   /** Suelo: capa `ground` como tiles uniformes 64×32. */
   private drawGround(room: RuntimeSubRoom): void {
     const ground = room.layers.find((layer) => layer.name === "ground");
@@ -571,12 +608,30 @@ export class RoomScene extends Phaser.Scene {
     }
   }
 
-  /** Muros y demás capas: sprites con overhang, pivote abajo-centro de la celda. */
+  /**
+   * Muros y demás capas: sprites con overhang, pivote y tamaño por frame
+   * (`manifest.tiles[tileId]`, specs/26 §3.2). Un muro es "de frente" (los más
+   * próximos a la cámara, su cara hacia la sala no la ve) cuando la celda
+   * vecina hacia el interior (`tx-1` o `ty-1`) está libre de muro: es la
+   * última barrera antes del interior transitable, así que se desvanece
+   * (specs/04 §1) para dejar ver el interior y lo que cuelga de ella (puerta,
+   * reja, mirillas…). No basta con "última fila/columna de la rejilla": una
+   * sala puede tener un muro de refuerzo detrás del que lleva el hueco (p. ej.
+   * la bodega, fila 10 con el arco/reja + fila 11 de cierre) — ese muro
+   * trasero queda oculto tras el de frente y no hace falta desvanecerlo.
+   */
   private drawWalls(room: RuntimeSubRoom): void {
     for (const layer of room.layers) {
       if (layer.name === "ground") {
         continue;
       }
+      const isWallAt = (tx: number, ty: number): boolean =>
+        tx >= 0 &&
+        ty >= 0 &&
+        tx < room.width &&
+        ty < room.height &&
+        (layer.tiles[ty * room.width + tx] ?? 0) !== 0;
+
       for (let ty = 0; ty < room.height; ty += 1) {
         for (let tx = 0; tx < room.width; tx += 1) {
           const tileId = layer.tiles[ty * room.width + tx] ?? 0;
@@ -584,10 +639,21 @@ export class RoomScene extends Phaser.Scene {
             continue;
           }
           const frame = resolveTileFrame(this.manifest, tileId);
-          const ref = this.resolver.resolve(frame, WALL_TILE_SIZE);
+          const explicitSize = tileSize(this.manifest, tileId);
+          const ref = this.resolver.resolve(
+            frame,
+            explicitSize ? { width: explicitSize[0], height: explicitSize[1] } : WALL_TILE_SIZE,
+          );
+          const size = this.resolveDisplaySize(explicitSize, ref, WALL_TILE_SIZE);
+          const origin = tileOrigin(this.manifest, tileId);
           const anchor = tileAnchor(tx, ty);
-          const image = this.add.image(anchor.x, anchor.y, ref.key, ref.frame).setOrigin(0.5, 1);
-          this.fitToLogicalSize(image, ref, WALL_TILE_SIZE);
+          const isFront =
+            (tx > 0 && !isWallAt(tx - 1, ty)) || (ty > 0 && !isWallAt(tx, ty - 1));
+          const image = this.add
+            .image(anchor.x, anchor.y, ref.key, ref.frame)
+            .setOrigin(origin[0], origin[1])
+            .setAlpha(isFront ? WALL_FRONT_ALPHA : 1);
+          this.fitToLogicalSize(image, ref, size);
           this.track(image.setDepth(isoDepth(tx, ty, DEPTH.tileSub) + 1));
         }
       }
@@ -597,18 +663,24 @@ export class RoomScene extends Phaser.Scene {
   private drawDecorations(room: RuntimeSubRoom): void {
     for (const decoration of room.decorations) {
       const frame = resolveSpriteFrame(this.manifest, decoration.sprite);
-      const ref = this.resolver.resolve(frame, SPRITE_SIZE);
+      const explicitSize = spriteSize(this.manifest, decoration.sprite);
+      const ref = this.resolver.resolve(
+        frame,
+        explicitSize ? { width: explicitSize[0], height: explicitSize[1] } : SPRITE_SIZE,
+      );
+      const size = this.resolveDisplaySize(explicitSize, ref, SPRITE_SIZE);
+      const origin = spriteOrigin(this.manifest, decoration.sprite);
       const anchor = tileAnchor(decoration.x, decoration.y);
       const depth = isoDepth(decoration.x, decoration.y, DEPTH.decorationSub) + 1;
 
       const decorationImage = this.add
         .image(anchor.x, anchor.y, ref.key, ref.frame)
-        .setOrigin(0.5, 1);
-      this.fitToLogicalSize(decorationImage, ref, SPRITE_SIZE);
+        .setOrigin(origin[0], origin[1]);
+      this.fitToLogicalSize(decorationImage, ref, size);
       this.track(decorationImage.setDepth(depth));
 
       if (this.showLabels) {
-        this.label(decoration.sprite, anchor.x, anchor.y - SPRITE_SIZE.height, depth);
+        this.label(decoration.sprite, anchor.x, anchor.y - size.height, depth);
       }
     }
   }
@@ -616,8 +688,15 @@ export class RoomScene extends Phaser.Scene {
   private drawObjects(room: RuntimeSubRoom): void {
     for (const object of room.objects) {
       const state = currentObjectState(this.objectState, object);
-      const frame = resolveSpriteFrame(this.manifest, resolveObjectStateSprite(object, state));
-      const ref = this.resolver.resolve(frame, SPRITE_SIZE);
+      const spriteId = resolveObjectStateSprite(object, state);
+      const frame = resolveSpriteFrame(this.manifest, spriteId);
+      const explicitSize = spriteSize(this.manifest, spriteId);
+      const ref = this.resolver.resolve(
+        frame,
+        explicitSize ? { width: explicitSize[0], height: explicitSize[1] } : SPRITE_SIZE,
+      );
+      const size = this.resolveDisplaySize(explicitSize, ref, SPRITE_SIZE);
+      const origin = spriteOrigin(this.manifest, spriteId);
       const anchor = tileAnchor(object.position.x, object.position.y);
       const depth = isoDepth(object.position.x, object.position.y, DEPTH.objectSub) + 1;
 
@@ -625,9 +704,9 @@ export class RoomScene extends Phaser.Scene {
         this.add
           .ellipse(
             anchor.x,
-            anchor.y - SPRITE_SIZE.height * 0.35,
-            SPRITE_SIZE.width * 0.72,
-            SPRITE_SIZE.height * 0.22,
+            anchor.y - size.height * 0.35,
+            size.width * 0.72,
+            size.height * 0.22,
             0xffe08a,
             0,
           )
@@ -635,8 +714,10 @@ export class RoomScene extends Phaser.Scene {
           .setBlendMode(Phaser.BlendModes.ADD),
       );
 
-      const sprite = this.add.sprite(anchor.x, anchor.y, ref.key, ref.frame).setOrigin(0.5, 1);
-      this.fitToLogicalSize(sprite, ref, SPRITE_SIZE);
+      const sprite = this.add
+        .sprite(anchor.x, anchor.y, ref.key, ref.frame)
+        .setOrigin(origin[0], origin[1]);
+      this.fitToLogicalSize(sprite, ref, size);
       this.track(sprite.setDepth(depth));
 
       const view: ObjectView = {
@@ -658,7 +739,7 @@ export class RoomScene extends Phaser.Scene {
 
       if (this.showLabels) {
         const suffix = object.lockedBy ? " (bloqueado)" : "";
-        this.label(`${object.id}${suffix}`, anchor.x, anchor.y - SPRITE_SIZE.height, depth);
+        this.label(`${object.id}${suffix}`, anchor.x, anchor.y - size.height, depth);
       }
     }
   }
@@ -813,10 +894,16 @@ export class RoomScene extends Phaser.Scene {
       return;
     }
     const state = currentObjectState(this.objectState, object);
-    const frame = resolveSpriteFrame(this.manifest, resolveObjectStateSprite(object, state));
-    const ref = this.resolver.resolve(frame, SPRITE_SIZE);
+    const spriteId = resolveObjectStateSprite(object, state);
+    const frame = resolveSpriteFrame(this.manifest, spriteId);
+    const explicitSize = spriteSize(this.manifest, spriteId);
+    const ref = this.resolver.resolve(
+      frame,
+      explicitSize ? { width: explicitSize[0], height: explicitSize[1] } : SPRITE_SIZE,
+    );
     view.sprite.setTexture(ref.key, ref.frame);
-    const scale = this.resolver.displayScaleFor(ref, SPRITE_SIZE);
+    const size = this.resolveDisplaySize(explicitSize, ref, SPRITE_SIZE);
+    const scale = this.resolver.displayScaleFor(ref, size);
     view.sprite.setScale(scale.x, scale.y);
     view.baseScaleX = scale.x;
     view.baseScaleY = scale.y;
@@ -915,6 +1002,14 @@ export class RoomScene extends Phaser.Scene {
     }
     if (result.panelPuzzleId) {
       this.emit({ type: "open-panel", objectId, puzzleId: result.panelPuzzleId });
+    }
+    if (result.image) {
+      this.emit({
+        type: "show-image",
+        objectId,
+        image: result.image.image,
+        ...(result.image.caption ? { caption: result.image.caption } : {}),
+      });
     }
     if (text) {
       this.showDialog(text);

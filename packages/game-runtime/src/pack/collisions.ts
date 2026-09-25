@@ -72,6 +72,9 @@ export function buildCollisionGrid(
     for (const object of room.objects) {
       if (objectBlocks(object)) {
         block(Math.round(object.position.x), Math.round(object.position.y));
+        for (const cell of object.footprint ?? []) {
+          block(Math.round(cell.x), Math.round(cell.y));
+        }
       }
     }
   }

@@ -71,6 +71,17 @@ interface PackConfig {
   avatars?: PackAvatar[];
   /** Punto de apoyo del avatar como fracción `[x, y]` del frame (A4, specs/26 §3.1). */
   avatarOrigin?: [number, number];
+  /**
+   * Lienzo lógico por frame a 1× (specs/26 §2/§3.1): cada sprite tiene el
+   * suyo (p. ej. arca 102×92, muro 64×136), no uno canónico. Sustituye la
+   * comprobación de proporción canónica para el frame declarado.
+   */
+  sizes?: Record<string, [number, number]>;
+  /**
+   * Fracción `[ox, oy]` del frame que cae en `tileAnchor(x, y)` por frame
+   * (specs/26 §3.1). Sin entrada, el runtime usa `[0.5, 1]`.
+   */
+  origins?: Record<string, [number, number]>;
 }
 
 interface CliOptions {
@@ -142,6 +153,7 @@ async function readImagesInDir(
   dir: string,
   label: string,
   options: CliOptions,
+  sizes: Record<string, [number, number]> | undefined,
 ): Promise<{ frames: AtlasFrameInput[]; issues: PackValidationIssue[] }> {
   const entries = (await readdir(dir)).filter(isImageEntry).sort();
   const frames: AtlasFrameInput[] = [];
@@ -169,13 +181,13 @@ async function readImagesInDir(
     let decoded;
     if (isSvg) {
       const svg = await readFile(join(dir, entry), "utf8");
-      const aspectIssue = checkSvgAspect(svg, frame);
+      const aspectIssue = checkSvgAspect(svg, frame, sizes);
       if (aspectIssue) {
         issues.push({ path: `${label}/${entry}`, message: aspectIssue, severity: "warning" });
       }
-      decoded = await rasterizeSvg(svg, frame);
+      decoded = await rasterizeSvg(svg, frame, sizes);
     } else {
-      const normalized = await normalizePng(await readFile(join(dir, entry)), frame);
+      const normalized = await normalizePng(await readFile(join(dir, entry)), frame, sizes);
       if (normalized.error) {
         // Un PNG con proporción incorrecta NO se genera (no se reencuadra).
         issues.push({ path: `${label}/${entry}`, message: normalized.error, severity: "error" });
@@ -201,13 +213,14 @@ async function readKindFrames(
   packDir: string,
   kind: Kind,
   options: CliOptions,
+  sizes: Record<string, [number, number]> | undefined,
 ): Promise<{ frames: AtlasFrameInput[]; issues: PackValidationIssue[] }> {
   const dir = join(packDir, kind);
   if (!existsSync(dir)) {
     return { frames: [], issues: [] };
   }
 
-  const direct = await readImagesInDir(dir, kind, options);
+  const direct = await readImagesInDir(dir, kind, options, sizes);
   if (kind !== "avatar") {
     return direct;
   }
@@ -221,7 +234,12 @@ async function readKindFrames(
   const frames = [...direct.frames];
   const issues = [...direct.issues];
   for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
-    const nested = await readImagesInDir(join(dir, entry.name), `${kind}/${entry.name}`, options);
+    const nested = await readImagesInDir(
+      join(dir, entry.name),
+      `${kind}/${entry.name}`,
+      options,
+      sizes,
+    );
     frames.push(...nested.frames);
     issues.push(...nested.issues);
   }
@@ -301,12 +319,21 @@ function buildManifest(
         severity: "warning",
       });
     }
-    tiles[tileId] = { frame, collides: collides ?? false };
+    const size = config.sizes?.[frame];
+    const origin = config.origins?.[frame];
+    tiles[tileId] = {
+      frame,
+      collides: collides ?? false,
+      ...(size ? { size } : {}),
+      ...(origin ? { origin } : {}),
+    };
   }
 
   const sprites: PackManifest["sprites"] = {};
   for (const frame of framesByKind.sprites) {
-    sprites[frame] = { frame };
+    const size = config.sizes?.[frame];
+    const origin = config.origins?.[frame];
+    sprites[frame] = { frame, ...(size ? { size } : {}), ...(origin ? { origin } : {}) };
   }
 
   const icons: Record<string, string> = {};
@@ -398,7 +425,12 @@ async function main(): Promise<void> {
   await mkdir(options.packDir, { recursive: true });
 
   for (const kind of KINDS) {
-    const { frames, issues: frameIssues } = await readKindFrames(options.packDir, kind, options);
+    const { frames, issues: frameIssues } = await readKindFrames(
+      options.packDir,
+      kind,
+      options,
+      config.sizes,
+    );
     issues.push(...frameIssues);
     framesByKind[kind] = frames.map((frame) => frame.frame);
     if (frames.length === 0) {

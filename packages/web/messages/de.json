@@ -143,6 +143,7 @@
       "items": "Gegenstände"
     },
     "dialog": "Dialog",
+    "inspectImage": "Bild",
     "intro": "Einleitung",
     "close": "Schließen",
     "menu": {

@@ -28,9 +28,9 @@
         ],
         "decorations": [
           { "sprite": "tapiz-dragones", "x": 4, "y": 0 },
-          { "sprite": "tapiz-dragones", "x": 15, "y": 0 },
+          { "sprite": "tapiz-dragones", "x": 16, "y": 0 },
           { "sprite": "columna", "x": 2, "y": 3 }, { "sprite": "columna", "x": 17, "y": 3 },
-          { "sprite": "estandarte", "x": 2, "y": 10 }, { "sprite": "estandarte", "x": 17, "y": 10 }
+          { "sprite": "estandarte", "x": 2, "y": 0 }, { "sprite": "estandarte", "x": 18, "y": 0 }
         ],
         "spawnPoints": [
           { "id": "spawn-1", "x": 10, "y": 12 },
@@ -39,7 +39,7 @@
           { "id": "spawn-4", "x": 8,  "y": 12 }
         ],
         "lighting": [
-          { "type": "torch", "x": 5, "y": 1, "objectId": "brasero" },
+          { "type": "torch", "x": 4, "y": 6, "objectId": "brasero" },
           { "type": "ambient", "color": "#3a2f22", "intensity": 0.6 }
         ]
       },
@@ -52,8 +52,9 @@
           { "name": "walls", "rle": [18, 10, 1, 10, 16, 0, 1, 10, 1, 10, 16, 0, 1, 10, 1, 10, 16, 0, 1, 10, 1, 10, 16, 0, 1, 10, 1, 10, 16, 0, 1, 10, 1, 10, 16, 0, 1, 10, 1, 10, 16, 0, 1, 10, 1, 10, 16, 0, 1, 10, 1, 10, 16, 0, 1, 10, 7, 10, 1, 22, 4, 10, 1, 21, 5, 10, 18, 10] }
         ],
         "decorations": [
-          { "sprite": "barriles", "x": 1, "y": 2 }, { "sprite": "barriles", "x": 1, "y": 4 },
-          { "sprite": "barriles", "x": 16, "y": 2 }, { "sprite": "barril-suelto", "x": 15, "y": 8 }
+          { "sprite": "barriles-der", "x": 1, "y": 2 }, { "sprite": "barriles-der", "x": 1, "y": 4 },
+          { "sprite": "barriles", "x": 16, "y": 2 },
+          { "sprite": "antorcha", "x": 2, "y": 0 }, { "sprite": "antorcha", "x": 14, "y": 0 }
         ],
         "spawnPoints": [
           { "id": "spawn-1", "x": 9, "y": 2 },
@@ -62,7 +63,7 @@
           { "id": "spawn-4", "x": 7, "y": 2 }
         ],
         "lighting": [
-          { "type": "torch", "x": 3, "y": 1 }, { "type": "torch", "x": 14, "y": 1 },
+          { "type": "torch", "x": 2, "y": 0 }, { "type": "torch", "x": 14, "y": 0 },
           { "type": "ambient", "color": "#2a1f16", "intensity": 0.5 }
         ]
       },
@@ -75,8 +76,11 @@
           { "name": "walls", "rle": [20,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 1,10,18,0,1,10, 20,10] }
         ],
         "decorations": [
-          { "sprite": "antorcha", "x": 2, "y": 1 }, { "sprite": "antorcha", "x": 17, "y": 1 },
-          { "sprite": "antorcha", "x": 2, "y": 18 }, { "sprite": "antorcha", "x": 17, "y": 18 }
+          { "sprite": "antorcha", "x": 2, "y": 0 }, { "sprite": "antorcha", "x": 17, "y": 0 },
+          { "sprite": "antorcha-der", "x": 0, "y": 6 }, { "sprite": "antorcha-der", "x": 0, "y": 13 },
+          { "sprite": "canal-tramo", "x": 2, "y": 4 }, { "sprite": "canal-tramo", "x": 3, "y": 4 },
+          { "sprite": "canal-tramo", "x": 5, "y": 4 }, { "sprite": "canal-tramo", "x": 6, "y": 4 },
+          { "sprite": "canal-tramo", "x": 7, "y": 4 }, { "sprite": "canal-tramo", "x": 8, "y": 4 }
         ],
         "spawnPoints": [
           { "id": "spawn-1", "x": 10, "y": 17 },
@@ -96,11 +100,11 @@
     { "id": "cuadro-aurelio", "roomId": "salon-trono", "type": "escondite", "position": { "x": 6, "y": 0 }, "sprite": "cuadro-rey", "states": { "closed": "cuadro-rey", "open": "cuadro-rey-torcido" }, "initialState": "closed", "interactable": true,
       "hidingSpot": { "contains": "llave-bronce" } },
     { "id": "retrato-2", "roomId": "salon-trono", "type": "decorativo", "position": { "x": 8, "y": 0 }, "sprite": "cuadro-reino-4torres", "states": {}, "initialState": "", "interactable": true },
-    { "id": "retrato-3", "roomId": "salon-trono", "type": "decorativo", "position": { "x": 12, "y": 0 }, "sprite": "cuadro-reino", "states": {}, "initialState": "", "interactable": true },
-    { "id": "retrato-4", "roomId": "salon-trono", "type": "decorativo", "position": { "x": 14, "y": 0 }, "sprite": "cuadro-reino", "states": {}, "initialState": "", "interactable": true },
+    { "id": "retrato-3", "roomId": "salon-trono", "type": "decorativo", "position": { "x": 12, "y": 0 }, "sprite": "cuadro-reino-brasero", "states": {}, "initialState": "", "interactable": true },
+    { "id": "retrato-4", "roomId": "salon-trono", "type": "decorativo", "position": { "x": 14, "y": 0 }, "sprite": "cuadro-reino-estatuas", "states": {}, "initialState": "", "interactable": true },
     { "id": "tapiz-dragones", "roomId": "salon-trono", "type": "decorativo", "position": { "x": 10, "y": 0 }, "sprite": "tapiz-7-dragones", "states": {}, "initialState": "", "interactable": true },
-    { "id": "armario", "roomId": "salon-trono", "type": "cajon", "position": { "x": 18, "y": 4 }, "sprite": "armario", "states": { "closed": "armario", "open": "armario-abierto" }, "initialState": "closed", "interactable": true },
-    { "id": "arca-candado", "roomId": "salon-trono", "type": "mecanismo", "position": { "x": 18, "y": 6 }, "sprite": "arca", "states": { "closed": "arca-cerrada", "open": "arca-abierta" }, "initialState": "closed", "interactable": true, "lockedBy": "p-candado-arca" },
+    { "id": "armario", "roomId": "salon-trono", "type": "cajon", "position": { "x": 1, "y": 4 }, "sprite": "armario-der", "states": { "closed": "armario-der", "open": "armario-abierto-der" }, "initialState": "closed", "interactable": true },
+    { "id": "arca-candado", "roomId": "salon-trono", "type": "mecanismo", "position": { "x": 1, "y": 6 }, "sprite": "arca-der", "states": { "closed": "arca-cerrada-der", "open": "arca-abierta-der" }, "initialState": "closed", "interactable": true, "lockedBy": "p-candado-arca" },
     { "id": "brasero", "roomId": "salon-trono", "type": "mecanismo", "position": { "x": 4, "y": 6 }, "sprite": "brasero", "states": { "unlit": "brasero-apagado", "lit": "brasero-encendido" }, "initialState": "unlit", "interactable": true },
     { "id": "estatua-izq", "roomId": "salon-trono", "type": "decorativo", "position": { "x": 7, "y": 3 }, "sprite": "estatua-caballero", "states": {}, "initialState": "", "interactable": true },
     { "id": "estatua-der", "roomId": "salon-trono", "type": "decorativo", "position": { "x": 13, "y": 3 }, "sprite": "estatua-caballero", "states": {}, "initialState": "", "interactable": true },
@@ -108,22 +112,26 @@
     { "id": "placa-der", "roomId": "salon-trono", "type": "mecanismo", "position": { "x": 14, "y": 11 }, "sprite": "placa-piedra", "states": { "up": "placa-arriba", "down": "placa-hundida" }, "initialState": "up", "interactable": true },
     { "id": "puerta-bodega", "roomId": "salon-trono", "type": "puerta", "position": { "x": 10, "y": 13 }, "sprite": "puerta-madera", "states": { "closed": "puerta-cerrada", "open": "puerta-abierta" }, "initialState": "closed", "interactable": true, "lockedBy": "p-placas-estatuas", "leadsTo": "bodega" },
 
-    { "id": "mural-vendimia", "roomId": "bodega", "type": "mecanismo", "position": { "x": 2, "y": 1 }, "sprite": "mural-azulejos", "states": { "scrambled": "mural-desordenado", "complete": "mural-completo" }, "initialState": "scrambled", "interactable": true, "lockedBy": "p-mural-vendimia" },
-    { "id": "mural-ranura", "roomId": "bodega", "type": "mecanismo", "position": { "x": 2, "y": 3 }, "sprite": "ranura-caliz", "states": { "empty": "ranura-vacia", "filled": "ranura-con-caliz" }, "initialState": "empty", "interactable": true },
-    { "id": "compartimento-plata", "roomId": "bodega", "type": "cajon", "position": { "x": 2, "y": 4 }, "sprite": "compartimento", "states": { "closed": "compartimento-cerrado", "open": "compartimento-abierto" }, "initialState": "closed", "interactable": true },
+    { "id": "mural-vendimia", "roomId": "bodega", "type": "mecanismo", "position": { "x": 3, "y": 0 }, "sprite": "mural-azulejos", "states": { "scrambled": "mural-desordenado", "complete": "mural-completo" }, "initialState": "scrambled", "interactable": true, "lockedBy": "p-mural-vendimia" },
+    { "id": "compartimento-plata", "roomId": "bodega", "type": "cajon", "position": { "x": 3, "y": 0 }, "sprite": "compartimento", "states": { "closed": "compartimento-cerrado", "open": "compartimento-abierto" }, "initialState": "closed", "interactable": true },
+    { "id": "mural-ranura", "roomId": "bodega", "type": "mecanismo", "position": { "x": 3, "y": 0 }, "sprite": "ranura-caliz", "states": { "empty": "ranura-vacia", "filled": "ranura-con-caliz" }, "initialState": "empty", "interactable": true },
     { "id": "barril-espejo", "roomId": "bodega", "type": "escondite", "position": { "x": 15, "y": 8 }, "sprite": "barril-suelto", "states": { "closed": "barril-cerrado", "open": "barril-movido" }, "initialState": "closed", "interactable": true,
       "hidingSpot": { "contains": "espejo" } },
-    { "id": "mesa-catas", "roomId": "bodega", "type": "mecanismo", "position": { "x": 9, "y": 6 }, "sprite": "mesa-catas", "states": { "idle": "mesa", "active": "mesa-activa" }, "initialState": "idle", "interactable": true, "lockedBy": "p-copas-memoria" },
+    { "id": "mesa-catas", "roomId": "bodega", "type": "mecanismo", "position": { "x": 9, "y": 6 }, "sprite": "mesa-catas", "states": { "idle": "mesa", "active": "mesa-activa" }, "initialState": "idle", "interactable": true, "lockedBy": "p-copas-memoria",
+      "footprint": [ { "x": 8, "y": 6 }, { "x": 10, "y": 6 } ] },
     { "id": "reja-escalera", "roomId": "bodega", "type": "puerta", "position": { "x": 12, "y": 10 }, "sprite": "reja", "states": { "closed": "reja-cerrada", "open": "reja-abierta" }, "initialState": "closed", "interactable": true, "lockedBy": "p-reja-mirillas", "leadsTo": "catacumbas" },
     { "id": "mirilla-a", "roomId": "bodega", "type": "mecanismo", "position": { "x": 10, "y": 10 }, "sprite": "mirilla", "states": {}, "initialState": "", "interactable": true },
     { "id": "mirilla-b", "roomId": "bodega", "type": "mecanismo", "position": { "x": 14, "y": 10 }, "sprite": "mirilla", "states": {}, "initialState": "", "interactable": true },
 
-    { "id": "sarcofago", "roomId": "catacumbas", "type": "decorativo", "position": { "x": 10, "y": 8 }, "sprite": "sarcofago", "states": {}, "initialState": "", "interactable": true },
-    { "id": "altar", "roomId": "catacumbas", "type": "mecanismo", "position": { "x": 10, "y": 4 }, "sprite": "altar", "states": { "dry": "altar-seco", "flowing": "altar-con-agua" }, "initialState": "dry", "interactable": true },
-    { "id": "canal-entrada", "roomId": "catacumbas", "type": "mecanismo", "position": { "x": 2, "y": 4 }, "sprite": "canal", "states": {}, "initialState": "", "interactable": true, "lockedBy": "p-canal-agua" },
+    { "id": "sarcofago", "roomId": "catacumbas", "type": "decorativo", "position": { "x": 10, "y": 8 }, "sprite": "sarcofago", "states": {}, "initialState": "", "interactable": true,
+      "footprint": [ { "x": 11, "y": 8 } ] },
+    { "id": "altar", "roomId": "catacumbas", "type": "mecanismo", "position": { "x": 10, "y": 4 }, "sprite": "altar", "states": { "dry": "altar-seco", "flowing": "altar-con-agua" }, "initialState": "dry", "interactable": true,
+      "footprint": [ { "x": 11, "y": 4 } ] },
+    { "id": "canal-entrada", "roomId": "catacumbas", "type": "mecanismo", "position": { "x": 1, "y": 4 }, "sprite": "canal", "states": {}, "initialState": "", "interactable": true, "lockedBy": "p-canal-agua" },
     { "id": "compuerta-oro", "roomId": "catacumbas", "type": "cajon", "position": { "x": 4, "y": 4 }, "sprite": "compuerta", "states": { "closed": "compuerta-cerrada", "open": "compuerta-abierta" }, "initialState": "closed", "interactable": true, "lockedBy": "p-combina" },
     { "id": "relicario", "roomId": "catacumbas", "type": "mecanismo", "position": { "x": 10, "y": 2 }, "sprite": "relicario", "states": { "sealed": "relicario-sellado", "open": "relicario-abierto" }, "initialState": "sealed", "interactable": true, "lockedBy": "p-sello-final" },
-    { "id": "vasijas", "roomId": "catacumbas", "type": "decorativo", "position": { "x": 16, "y": 10 }, "sprite": "vasijas-8", "states": {}, "initialState": "", "interactable": true }
+    { "id": "vasijas", "roomId": "catacumbas", "type": "decorativo", "position": { "x": 16, "y": 10 }, "sprite": "vasijas-8", "states": {}, "initialState": "", "interactable": true,
+      "footprint": [ { "x": 17, "y": 10 } ] }
   ],
 
   "items": [
@@ -150,7 +158,7 @@
     },
     {
       "id": "p-llave-cuadro", "type": "hidden_key", "layer": "world",
-      "roomId": "salon-trono", "position": { "x": 6, "y": 0 },
+      "roomId": "salon-trono", "position": { "x": 6, "y": 1 },
       "requiresSolved": [], "grantsItems": ["llave-bronce"], "unlocks": [],
       "hidingSpot": { "objectId": "cuadro-aurelio" },
       "revealAnimation": "shake"
@@ -228,7 +236,42 @@
     { "id": "r-inspeccionar-cuadro", "priority": 0, "once": true,
       "trigger": { "type": "on_interact", "objectId": "cuadro-aurelio" },
       "conditions": [],
-      "actions": [ { "type": "show_dialog", "dialogId": "d-cuadro" } ] },
+      "actions": [
+        { "type": "show_dialog", "dialogId": "d-cuadro" },
+        { "type": "show_image", "image": "cuadro-rey" }
+      ] },
+
+    { "id": "r-inspeccionar-retrato-2", "priority": 0, "once": true,
+      "trigger": { "type": "on_interact", "objectId": "retrato-2" },
+      "conditions": [],
+      "actions": [
+        { "type": "show_dialog", "dialogId": "d-retrato-2" },
+        { "type": "show_image", "image": "cuadro-reino-4torres" }
+      ] },
+
+    { "id": "r-inspeccionar-retrato-3", "priority": 0, "once": true,
+      "trigger": { "type": "on_interact", "objectId": "retrato-3" },
+      "conditions": [],
+      "actions": [
+        { "type": "show_dialog", "dialogId": "d-retrato-3" },
+        { "type": "show_image", "image": "cuadro-reino-brasero" }
+      ] },
+
+    { "id": "r-inspeccionar-retrato-4", "priority": 0, "once": true,
+      "trigger": { "type": "on_interact", "objectId": "retrato-4" },
+      "conditions": [],
+      "actions": [
+        { "type": "show_dialog", "dialogId": "d-retrato-4" },
+        { "type": "show_image", "image": "cuadro-reino-estatuas" }
+      ] },
+
+    { "id": "r-inspeccionar-tapiz-dragones", "priority": 0, "once": true,
+      "trigger": { "type": "on_interact", "objectId": "tapiz-dragones" },
+      "conditions": [],
+      "actions": [
+        { "type": "show_dialog", "dialogId": "d-tapiz-dragones" },
+        { "type": "show_image", "image": "tapiz-7-dragones" }
+      ] },
 
     { "id": "r-encender-brasero", "priority": 0, "once": true,
       "trigger": { "type": "on_interact", "objectId": "brasero" },
@@ -322,6 +365,7 @@
       "conditions": [],
       "actions": [
         { "type": "show_dialog", "dialogId": "d-vasijas" },
+        { "type": "show_image", "image": "vasijas-8" },
         { "type": "set_flag", "flag": "digito4", "value": 8 }
       ] },
 
@@ -360,17 +404,21 @@
     { "id": "d-intro", "text": { "es": { "text": "Profecía: «Solo los leales que despierten el fuego, equilibren la mesa y encaminen la luz, liberarán al Rey antes de que la última arena caiga.» Tenéis 60 minutos." } } },
     { "id": "d-cuadro", "text": { "es": { "text": "El retrato del Rey Aurelio, el más grande de los cuatro reinos. Su reloj de sol tiene cuatro torres. El cuadro cruje ligeramente…" } } },
     { "id": "d-brasero", "text": { "es": { "text": "El brasero arde: tres brasas flotan sobre las llamas. Se insinúa un número entre el fuego: el 3." } } },
-    { "id": "d-mural", "text": { "es": { "text": "El mural se completa: los campesinos llevan las uvas al barril número 5. Un compartimento se abre tras el azulejo central." } } },
+    { "id": "d-mural", "text": { "es": { "text": "El mural se completa: los campesinos vierten cinco racimos en el barril. Un compartimento se abre tras el azulejo central." } } },
+    { "id": "d-retrato-2", "text": { "es": { "text": "Un castillo con cuatro torres." } } },
+    { "id": "d-retrato-3", "text": { "es": { "text": "Un brasero apagado. Remite al brasero real: hay que encenderlo para ver las brasas." } } },
+    { "id": "d-retrato-4", "text": { "es": { "text": "Dos estatuas guardan una puerta." } } },
+    { "id": "d-tapiz-dragones", "text": { "es": { "text": "Siete dragones dorados bordados." } } },
     { "id": "d-ranura", "text": { "es": { "text": "El cáliz encaja perfectamente en la ranura. Un mecanismo antiguo lo sujeta… aunque parece que podría recuperarse si hiciera falta." } } },
     { "id": "d-pergamino", "text": { "es": { "text": "Pergamino: «Los vinos encantados guardan memoria de pares: la uva con la uva, el sol con el sol, la llave con la llave.»" } } },
-    { "id": "d-catacumbas", "text": { "es": { "text": "Las catacumbas huelen a incienso y a magia oscura. El relicario aguarda sellado sobre el altar. El canal de agua sagrada está seco." } } },
+    { "id": "d-catacumbas", "text": { "es": { "text": "Las catacumbas huelen a incienso y a magia oscura. El relicario aguarda sellado tras el altar. El canal de agua sagrada está seco." } } },
     { "id": "d-sarcofago", "text": { "es": { "text": "Aquí yace Aldric, el Rey Traicionado. La inscripción reza: «Cuatro reinos me vieron nacer, cinco uvas me vieron caer, tres pares me vieron llorar, ocho vasijas me vieron partir.»" } } },
     { "id": "d-vasijas", "text": { "es": { "text": "Ocho vasijas sagradas custodian las cenizas de los antiguos reyes." } } },
     { "id": "d-aviso", "text": { "es": { "text": "La arena casi ha caído. ¡Diez minutos!" } } }
   ],
 
   "hints": [
-    { "id": "hint-arca-1", "puzzleId": "p-candado-arca", "tier": 1, "text": { "es": { "text": "Los cuatro retratos del fondo, de izquierda a derecha: torres, dragones, brasas, estatuas. Contad lo que muestra cada uno." } }, "cost": 1 },
+    { "id": "hint-arca-1", "puzzleId": "p-candado-arca", "tier": 1, "text": { "es": { "text": "Los cuatro retratos a la derecha del Rey, de izquierda a derecha: torres, dragones, brasas, estatuas." } }, "cost": 1 },
     { "id": "hint-arca-2", "puzzleId": "p-candado-arca", "tier": 2, "text": { "es": { "text": "4 torres, 7 dragones, 3 brasas, 2 estatuas. Pero el brasero hay que encenderlo primero." } }, "cost": 2 },
     { "id": "hint-sello-1", "puzzleId": "p-sello-final", "tier": 1, "text": { "es": { "text": "El epitafio del sarcófago recuerda los números del castillo." } }, "cost": 1 },
     { "id": "hint-sello-2", "puzzleId": "p-sello-final", "tier": 2, "text": { "es": { "text": "4 reinos, 5 del barril del mural, 3 pares de copas, 8 vasijas." } }, "cost": 2 },

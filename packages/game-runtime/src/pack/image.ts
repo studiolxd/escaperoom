@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { canvasForFrame, checkPngAspect, type RasterizedImage } from "./svg";
+import { canvasForFrame, checkPngAspect, type FrameSizes, type RasterizedImage } from "./svg";
 
 /**
  * Normalización de **PNG** para `pack:build`. A diferencia del SVG (que puede
@@ -23,13 +23,17 @@ export interface PngNormalizeResult {
   warning: string | null;
 }
 
-export async function normalizePng(png: Buffer, frame: string): Promise<PngNormalizeResult> {
+export async function normalizePng(
+  png: Buffer,
+  frame: string,
+  sizes?: FrameSizes,
+): Promise<PngNormalizeResult> {
   const decoded = sharp(png).ensureAlpha();
   const meta = await decoded.metadata();
   const width = meta.width ?? 0;
   const height = meta.height ?? 0;
 
-  const aspectError = checkPngAspect(frame, width, height);
+  const aspectError = checkPngAspect(frame, width, height, sizes);
   if (aspectError) {
     const { data, info } = await decoded.raw().toBuffer({ resolveWithObject: true });
     return {
@@ -39,7 +43,7 @@ export async function normalizePng(png: Buffer, frame: string): Promise<PngNorma
     };
   }
 
-  const canvas = canvasForFrame(frame);
+  const canvas = canvasForFrame(frame, sizes);
   const shouldShrink = canvas !== null && (width > canvas.width || height > canvas.height);
   const isSmaller = canvas !== null && (width < canvas.width || height < canvas.height);
 

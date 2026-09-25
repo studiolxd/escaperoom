@@ -365,6 +365,24 @@ describe("loader: proyección de inspección sin filtrar secretos", () => {
     expect(model.objectsById["armario"]?.inspectPanelPuzzleId).toBeUndefined();
   });
 
+  it("deriva la imagen de inspección de las reglas on_interact + show_image (specs/26 §3.4)", () => {
+    const model = loadFixtureModel();
+    expect(model.objectsById["cuadro-aurelio"]?.inspectImage).toEqual({ image: "cuadro-rey" });
+    expect(model.objectsById["retrato-2"]?.inspectImage).toEqual({
+      image: "cuadro-reino-4torres",
+    });
+    expect(model.objectsById["vasijas"]?.inspectImage).toEqual({ image: "vasijas-8" });
+    // Objetos sin `show_image` en su regla no tienen imagen.
+    expect(model.objectsById["armario"]?.inspectImage).toBeUndefined();
+  });
+
+  it("show_image llega también a InspectionResult.image, junto al diálogo", () => {
+    const model = loadFixtureModel();
+    const result = inspectObject(model, "cuadro-aurelio");
+    expect(result?.image).toEqual({ image: "cuadro-rey" });
+    expect(result?.dialog?.text).toContain("Aurelio");
+  });
+
   it("expone los estados declarados y no copia reglas ni acciones crudas", () => {
     const model = loadFixtureModel();
     const cuadro = model.objectsById["cuadro-aurelio"];

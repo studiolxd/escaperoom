@@ -518,6 +518,9 @@ export function checkGeometry(pkg: RoomPackage): ValidationIssue[] {
 
   for (const object of pkg.objects) {
     at(object.roomId, object.position.x, object.position.y, `el objeto «${object.id}»`, object.id);
+    for (const cell of object.footprint ?? []) {
+      at(object.roomId, cell.x, cell.y, `la huella del objeto «${object.id}»`, object.id);
+    }
   }
 
   for (const puzzle of pkg.puzzles) {

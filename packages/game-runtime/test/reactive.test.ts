@@ -28,7 +28,7 @@ function withState(objectId: string, state: string) {
 describe("iluminación reactiva", () => {
   it("la antorcha del Salón depende del brasero", () => {
     const initial = resolveTorchLights(model, "salon-trono", createObjectStateMap(model));
-    expect(initial).toEqual([{ x: 5, y: 1, lit: false, drivenBy: "brasero" }]);
+    expect(initial).toEqual([{ x: 4, y: 6, lit: false, drivenBy: "brasero" }]);
     const lit = resolveTorchLights(model, "salon-trono", withState("brasero", "lit"));
     expect(lit[0]?.lit).toBe(true);
   });
@@ -57,9 +57,9 @@ describe("canal de agua", () => {
       toObjectId: "altar",
       flowing: false,
     });
-    expect(dry?.cells[0]).toEqual({ x: 2, y: 4 });
+    expect(dry?.cells[0]).toEqual({ x: 1, y: 4 });
     expect(dry?.cells.at(-1)).toEqual({ x: 10, y: 4 });
-    expect(dry?.cells).toHaveLength(9);
+    expect(dry?.cells).toHaveLength(10);
 
     const [wet] = resolveWaterChannels(model, "catacumbas", withState("altar", "flowing"));
     expect(wet?.flowing).toBe(true);

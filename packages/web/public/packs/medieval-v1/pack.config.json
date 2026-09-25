@@ -1,11 +1,37 @@
 {
-  "collides": { "1": false, "2": false, "3": false, "10": true, "20": false, "21": false, "22": false },
-  "avatarOrigin": [0.5, 0.886],
+  "id": "medieval-v1",
+  "version": "1.0.0-rc.1",
+  "packageFormat": "roompackage/v1",
+  "projection": {
+    "tileWidth": 64,
+    "tileHeight": 32,
+    "scale": 2
+  },
+  "collides": {
+    "1": false,
+    "2": false,
+    "3": false,
+    "10": true,
+    "20": false,
+    "21": false,
+    "22": false
+  },
   "avatars": [
     {
       "id": "caballero-m",
-      "label": { "es": { "text": "Caballero" }, "en": { "text": "Knight" } }
+      "label": {
+        "es": {
+          "text": "Caballero"
+        },
+        "en": {
+          "text": "Knight"
+        }
+      }
     }
+  ],
+  "avatarOrigin": [
+    0.5,
+    0.886
   ],
   "anims": [
     {
@@ -171,6 +197,1129 @@
       ],
       "frameRate": 8,
       "repeat": 0
+    },
+    {
+      "key": "fx-spark",
+      "frames": [
+        "fx-spark-1",
+        "fx-spark-2",
+        "fx-spark-3",
+        "fx-spark-4",
+        "fx-spark-5",
+        "fx-spark-6",
+        "fx-spark-7",
+        "fx-spark-8",
+        "fx-spark-9",
+        "fx-spark-10",
+        "fx-spark-11",
+        "fx-spark-12",
+        "fx-spark-13",
+        "fx-spark-14",
+        "fx-spark-15",
+        "fx-spark-16"
+      ],
+      "frameRate": 16,
+      "repeat": -1
     }
-  ]
+  ],
+  "sizes": {
+    "altar": [
+      110,
+      94
+    ],
+    "altar-con-agua": [
+      110,
+      94
+    ],
+    "altar-con-agua-der": [
+      110,
+      94
+    ],
+    "altar-der": [
+      110,
+      94
+    ],
+    "altar-seco": [
+      110,
+      94
+    ],
+    "altar-seco-der": [
+      110,
+      94
+    ],
+    "antorcha": [
+      46,
+      122
+    ],
+    "antorcha-der": [
+      46,
+      122
+    ],
+    "arca": [
+      102,
+      92
+    ],
+    "arca-abierta": [
+      102,
+      92
+    ],
+    "arca-abierta-der": [
+      102,
+      92
+    ],
+    "arca-cerrada": [
+      102,
+      92
+    ],
+    "arca-cerrada-der": [
+      102,
+      92
+    ],
+    "arca-der": [
+      102,
+      92
+    ],
+    "armario": [
+      118,
+      108
+    ],
+    "armario-abierto": [
+      118,
+      108
+    ],
+    "armario-abierto-der": [
+      118,
+      108
+    ],
+    "armario-der": [
+      118,
+      108
+    ],
+    "barril-cerrado": [
+      84,
+      76
+    ],
+    "barril-movido": [
+      84,
+      76
+    ],
+    "barril-suelto": [
+      84,
+      76
+    ],
+    "barriles": [
+      80,
+      84
+    ],
+    "barriles-der": [
+      80,
+      84
+    ],
+    "brasero": [
+      60,
+      104
+    ],
+    "brasero-apagado": [
+      60,
+      104
+    ],
+    "brasero-encendido": [
+      60,
+      104
+    ],
+    "canal": [
+      66,
+      64
+    ],
+    "canal-tramo": [
+      60,
+      48
+    ],
+    "canal-tramo-y": [
+      60,
+      48
+    ],
+    "canal-y": [
+      66,
+      64
+    ],
+    "columna": [
+      52,
+      138
+    ],
+    "columna-base": [
+      52,
+      138
+    ],
+    "columna-capital": [
+      52,
+      138
+    ],
+    "compartimento": [
+      98,
+      140
+    ],
+    "compartimento-abierto": [
+      98,
+      140
+    ],
+    "compartimento-abierto-der": [
+      98,
+      140
+    ],
+    "compartimento-cerrado": [
+      98,
+      140
+    ],
+    "compartimento-cerrado-der": [
+      98,
+      140
+    ],
+    "compartimento-der": [
+      98,
+      140
+    ],
+    "compuerta": [
+      60,
+      80
+    ],
+    "compuerta-abierta": [
+      60,
+      80
+    ],
+    "compuerta-abierta-y": [
+      60,
+      80
+    ],
+    "compuerta-cerrada": [
+      60,
+      80
+    ],
+    "compuerta-cerrada-y": [
+      60,
+      80
+    ],
+    "compuerta-y": [
+      60,
+      80
+    ],
+    "cuadro-reino": [
+      84,
+      118
+    ],
+    "cuadro-reino-4torres": [
+      84,
+      118
+    ],
+    "cuadro-reino-4torres-der": [
+      84,
+      118
+    ],
+    "cuadro-reino-brasero": [
+      84,
+      118
+    ],
+    "cuadro-reino-brasero-der": [
+      84,
+      118
+    ],
+    "cuadro-reino-estatuas": [
+      84,
+      118
+    ],
+    "cuadro-reino-estatuas-der": [
+      84,
+      118
+    ],
+    "cuadro-rey": [
+      98,
+      128
+    ],
+    "cuadro-rey-der": [
+      98,
+      128
+    ],
+    "cuadro-rey-torcido": [
+      98,
+      128
+    ],
+    "cuadro-rey-torcido-der": [
+      98,
+      128
+    ],
+    "escalon": [
+      64,
+      42
+    ],
+    "escalon-x": [
+      64,
+      42
+    ],
+    "estandarte": [
+      62,
+      128
+    ],
+    "estandarte-der": [
+      62,
+      128
+    ],
+    "estatua-caballero": [
+      66,
+      128
+    ],
+    "estatua-caballero-der": [
+      66,
+      128
+    ],
+    "fx-spark-1": [
+      64,
+      64
+    ],
+    "fx-spark-10": [
+      64,
+      64
+    ],
+    "fx-spark-11": [
+      64,
+      64
+    ],
+    "fx-spark-12": [
+      64,
+      64
+    ],
+    "fx-spark-13": [
+      64,
+      64
+    ],
+    "fx-spark-14": [
+      64,
+      64
+    ],
+    "fx-spark-15": [
+      64,
+      64
+    ],
+    "fx-spark-16": [
+      64,
+      64
+    ],
+    "fx-spark-2": [
+      64,
+      64
+    ],
+    "fx-spark-3": [
+      64,
+      64
+    ],
+    "fx-spark-4": [
+      64,
+      64
+    ],
+    "fx-spark-5": [
+      64,
+      64
+    ],
+    "fx-spark-6": [
+      64,
+      64
+    ],
+    "fx-spark-7": [
+      64,
+      64
+    ],
+    "fx-spark-8": [
+      64,
+      64
+    ],
+    "fx-spark-9": [
+      64,
+      64
+    ],
+    "icon-antorcha": [
+      64,
+      64
+    ],
+    "icon-busto": [
+      64,
+      64
+    ],
+    "icon-caliz": [
+      64,
+      64
+    ],
+    "icon-espejo": [
+      64,
+      64
+    ],
+    "icon-llave-bronce": [
+      64,
+      64
+    ],
+    "icon-llave-oro": [
+      64,
+      64
+    ],
+    "icon-llave-plata": [
+      64,
+      64
+    ],
+    "icon-mechero": [
+      64,
+      64
+    ],
+    "icon-pergamino": [
+      64,
+      64
+    ],
+    "icon-vela": [
+      64,
+      64
+    ],
+    "icon-yesquero": [
+      64,
+      64
+    ],
+    "llave-bronce-suelo": [
+      64,
+      64
+    ],
+    "mesa": [
+      126,
+      102
+    ],
+    "mesa-activa": [
+      126,
+      102
+    ],
+    "mesa-activa-der": [
+      126,
+      102
+    ],
+    "mesa-catas": [
+      126,
+      102
+    ],
+    "mesa-catas-der": [
+      126,
+      102
+    ],
+    "mesa-der": [
+      126,
+      102
+    ],
+    "mirilla": [
+      54,
+      106
+    ],
+    "mirilla-der": [
+      54,
+      106
+    ],
+    "mural-azulejos": [
+      98,
+      140
+    ],
+    "mural-azulejos-der": [
+      98,
+      140
+    ],
+    "mural-completo": [
+      98,
+      140
+    ],
+    "mural-completo-der": [
+      98,
+      140
+    ],
+    "mural-desordenado": [
+      98,
+      140
+    ],
+    "mural-desordenado-der": [
+      98,
+      140
+    ],
+    "muro-arco": [
+      64,
+      136
+    ],
+    "muro-arco-x": [
+      64,
+      136
+    ],
+    "muro-esquina": [
+      64,
+      136
+    ],
+    "muro-remate": [
+      64,
+      136
+    ],
+    "muro-ventana": [
+      64,
+      136
+    ],
+    "muro-ventana-x": [
+      64,
+      136
+    ],
+    "placa-arriba": [
+      64,
+      38
+    ],
+    "placa-hundida": [
+      64,
+      38
+    ],
+    "placa-piedra": [
+      64,
+      38
+    ],
+    "puerta-abierta": [
+      122,
+      110
+    ],
+    "puerta-abierta-x": [
+      122,
+      110
+    ],
+    "puerta-cerrada": [
+      122,
+      110
+    ],
+    "puerta-cerrada-x": [
+      122,
+      110
+    ],
+    "puerta-madera": [
+      122,
+      110
+    ],
+    "puerta-madera-x": [
+      122,
+      110
+    ],
+    "ranura-caliz": [
+      98,
+      140
+    ],
+    "ranura-caliz-der": [
+      98,
+      140
+    ],
+    "ranura-con-caliz": [
+      98,
+      140
+    ],
+    "ranura-con-caliz-der": [
+      98,
+      140
+    ],
+    "ranura-vacia": [
+      98,
+      140
+    ],
+    "ranura-vacia-der": [
+      98,
+      140
+    ],
+    "reja": [
+      124,
+      110
+    ],
+    "reja-abierta": [
+      124,
+      110
+    ],
+    "reja-abierta-x": [
+      124,
+      110
+    ],
+    "reja-cerrada": [
+      124,
+      110
+    ],
+    "reja-cerrada-x": [
+      124,
+      110
+    ],
+    "reja-x": [
+      124,
+      110
+    ],
+    "relicario": [
+      68,
+      70
+    ],
+    "relicario-abierto": [
+      68,
+      70
+    ],
+    "relicario-abierto-der": [
+      68,
+      70
+    ],
+    "relicario-der": [
+      68,
+      70
+    ],
+    "relicario-sellado": [
+      68,
+      70
+    ],
+    "relicario-sellado-der": [
+      68,
+      70
+    ],
+    "sarcofago": [
+      116,
+      98
+    ],
+    "sarcofago-der": [
+      116,
+      98
+    ],
+    "tapiz-7-dragones": [
+      80,
+      130
+    ],
+    "tapiz-7-dragones-der": [
+      80,
+      130
+    ],
+    "tapiz-dragones": [
+      80,
+      130
+    ],
+    "tapiz-dragones-der": [
+      80,
+      130
+    ],
+    "tile-1": [
+      64,
+      32
+    ],
+    "tile-10": [
+      64,
+      136
+    ],
+    "tile-2": [
+      64,
+      32
+    ],
+    "tile-20": [
+      64,
+      136
+    ],
+    "tile-21": [
+      64,
+      136
+    ],
+    "tile-22": [
+      64,
+      136
+    ],
+    "tile-3": [
+      64,
+      32
+    ],
+    "tile-madera": [
+      64,
+      32
+    ],
+    "trampilla": [
+      64,
+      32
+    ],
+    "trono": [
+      94,
+      122
+    ],
+    "trono-der": [
+      94,
+      122
+    ],
+    "umbral": [
+      52,
+      36
+    ],
+    "umbral-x": [
+      52,
+      36
+    ],
+    "vasijas-8": [
+      128,
+      94
+    ],
+    "vasijas-8-der": [
+      128,
+      94
+    ]
+  },
+  "origins": {
+    "altar": [
+      0.5,
+      0.8849
+    ],
+    "altar-con-agua": [
+      0.5,
+      0.8849
+    ],
+    "altar-con-agua-der": [
+      0.5,
+      0.8849
+    ],
+    "altar-der": [
+      0.5,
+      0.8849
+    ],
+    "altar-seco": [
+      0.5,
+      0.8849
+    ],
+    "altar-seco-der": [
+      0.5,
+      0.8849
+    ],
+    "antorcha": [
+      1.1957,
+      0.8525
+    ],
+    "antorcha-der": [
+      -0.1957,
+      0.8525
+    ],
+    "arca": [
+      0.5,
+      0.9782
+    ],
+    "arca-abierta": [
+      0.5,
+      0.9782
+    ],
+    "arca-abierta-der": [
+      0.5,
+      0.9782
+    ],
+    "arca-cerrada": [
+      0.5,
+      0.9782
+    ],
+    "arca-cerrada-der": [
+      0.5,
+      0.9782
+    ],
+    "arca-der": [
+      0.5,
+      0.9782
+    ],
+    "armario": [
+      0.5,
+      0.9671
+    ],
+    "armario-abierto": [
+      0.5,
+      0.9671
+    ],
+    "armario-abierto-der": [
+      0.5,
+      0.9671
+    ],
+    "armario-der": [
+      0.5,
+      0.9671
+    ],
+    "barril-cerrado": [
+      0.5,
+      0.942
+    ],
+    "barril-movido": [
+      0.5,
+      0.942
+    ],
+    "barril-suelto": [
+      0.5,
+      0.942
+    ],
+    "barriles": [
+      0.5,
+      0.9443
+    ],
+    "barriles-der": [
+      0.5,
+      0.9443
+    ],
+    "brasero": [
+      0.5,
+      0.9807
+    ],
+    "brasero-apagado": [
+      0.5,
+      0.9807
+    ],
+    "brasero-encendido": [
+      0.5,
+      0.9807
+    ],
+    "canal": [
+      0.5,
+      0.9688
+    ],
+    "canal-tramo": [
+      0.5,
+      0.9583
+    ],
+    "canal-tramo-y": [
+      0.5,
+      0.9583
+    ],
+    "canal-y": [
+      0.5,
+      0.9688
+    ],
+    "columna": [
+      0.5,
+      0.9855
+    ],
+    "columna-base": [
+      0.5,
+      0.9855
+    ],
+    "columna-capital": [
+      0.5,
+      0.9855
+    ],
+    "compartimento": [
+      0.8265,
+      0.8714
+    ],
+    "compartimento-abierto": [
+      0.8265,
+      0.8714
+    ],
+    "compartimento-abierto-der": [
+      0.1735,
+      0.8714
+    ],
+    "compartimento-cerrado": [
+      0.8265,
+      0.8714
+    ],
+    "compartimento-cerrado-der": [
+      0.1735,
+      0.8714
+    ],
+    "compartimento-der": [
+      0.1735,
+      0.8714
+    ],
+    "compuerta": [
+      0.5,
+      0.975
+    ],
+    "compuerta-abierta": [
+      0.5,
+      0.975
+    ],
+    "compuerta-abierta-y": [
+      0.5,
+      0.975
+    ],
+    "compuerta-cerrada": [
+      0.5,
+      0.975
+    ],
+    "compuerta-cerrada-y": [
+      0.5,
+      0.975
+    ],
+    "compuerta-y": [
+      0.5,
+      0.975
+    ],
+    "cuadro-reino": [
+      0.881,
+      0.8475
+    ],
+    "cuadro-reino-4torres": [
+      0.881,
+      0.8475
+    ],
+    "cuadro-reino-4torres-der": [
+      0.119,
+      0.8475
+    ],
+    "cuadro-reino-brasero": [
+      0.881,
+      0.8475
+    ],
+    "cuadro-reino-brasero-der": [
+      0.119,
+      0.8475
+    ],
+    "cuadro-reino-estatuas": [
+      0.881,
+      0.8475
+    ],
+    "cuadro-reino-estatuas-der": [
+      0.119,
+      0.8475
+    ],
+    "cuadro-rey": [
+      0.8265,
+      0.8594
+    ],
+    "cuadro-rey-der": [
+      0.1735,
+      0.8594
+    ],
+    "cuadro-rey-torcido": [
+      0.8265,
+      0.8594
+    ],
+    "cuadro-rey-torcido-der": [
+      0.1735,
+      0.8594
+    ],
+    "escalon": [
+      0.5,
+      0.9524
+    ],
+    "escalon-x": [
+      0.5,
+      0.9524
+    ],
+    "estandarte": [
+      1.0161,
+      0.8594
+    ],
+    "estandarte-der": [
+      -0.0161,
+      0.8594
+    ],
+    "estatua-caballero": [
+      0.5,
+      0.9844
+    ],
+    "estatua-caballero-der": [
+      0.5,
+      0.9844
+    ],
+    "llave-bronce-suelo": [
+      0.5,
+      0.75
+    ],
+    "mesa": [
+      0.5,
+      0.8583
+    ],
+    "mesa-activa": [
+      0.5,
+      0.8583
+    ],
+    "mesa-activa-der": [
+      0.5,
+      0.8583
+    ],
+    "mesa-catas": [
+      0.5,
+      0.8583
+    ],
+    "mesa-catas-der": [
+      0.5,
+      0.8583
+    ],
+    "mesa-der": [
+      0.5,
+      0.8583
+    ],
+    "mirilla": [
+      1.0926,
+      0.8302
+    ],
+    "mirilla-der": [
+      -0.0926,
+      0.8302
+    ],
+    "mural-azulejos": [
+      0.8265,
+      0.8714
+    ],
+    "mural-azulejos-der": [
+      0.1735,
+      0.8714
+    ],
+    "mural-completo": [
+      0.8265,
+      0.8714
+    ],
+    "mural-completo-der": [
+      0.1735,
+      0.8714
+    ],
+    "mural-desordenado": [
+      0.8265,
+      0.8714
+    ],
+    "mural-desordenado-der": [
+      0.1735,
+      0.8714
+    ],
+    "placa-arriba": [
+      0.5,
+      0.9474
+    ],
+    "placa-hundida": [
+      0.5,
+      0.9474
+    ],
+    "placa-piedra": [
+      0.5,
+      0.9474
+    ],
+    "puerta-abierta": [
+      0.5,
+      0.8701
+    ],
+    "puerta-abierta-x": [
+      0.5,
+      0.8701
+    ],
+    "puerta-cerrada": [
+      0.5,
+      0.8701
+    ],
+    "puerta-cerrada-x": [
+      0.5,
+      0.8701
+    ],
+    "puerta-madera": [
+      0.5,
+      0.8701
+    ],
+    "puerta-madera-x": [
+      0.5,
+      0.8701
+    ],
+    "ranura-caliz": [
+      0.8265,
+      0.8714
+    ],
+    "ranura-caliz-der": [
+      0.1735,
+      0.8714
+    ],
+    "ranura-con-caliz": [
+      0.8265,
+      0.8714
+    ],
+    "ranura-con-caliz-der": [
+      0.1735,
+      0.8714
+    ],
+    "ranura-vacia": [
+      0.8265,
+      0.8714
+    ],
+    "ranura-vacia-der": [
+      0.1735,
+      0.8714
+    ],
+    "reja": [
+      0.5,
+      0.8661
+    ],
+    "reja-abierta": [
+      0.5,
+      0.8661
+    ],
+    "reja-abierta-x": [
+      0.5,
+      0.8661
+    ],
+    "reja-cerrada": [
+      0.5,
+      0.8661
+    ],
+    "reja-cerrada-x": [
+      0.5,
+      0.8661
+    ],
+    "reja-x": [
+      0.5,
+      0.8661
+    ],
+    "relicario": [
+      0.5,
+      0.9715
+    ],
+    "relicario-abierto": [
+      0.5,
+      0.9715
+    ],
+    "relicario-abierto-der": [
+      0.5,
+      0.9715
+    ],
+    "relicario-der": [
+      0.5,
+      0.9715
+    ],
+    "relicario-sellado": [
+      0.5,
+      0.9715
+    ],
+    "relicario-sellado-der": [
+      0.5,
+      0.9715
+    ],
+    "sarcofago": [
+      0.5,
+      0.8712
+    ],
+    "sarcofago-der": [
+      0.5,
+      0.8712
+    ],
+    "tapiz-7-dragones": [
+      0.9,
+      0.8615
+    ],
+    "tapiz-7-dragones-der": [
+      0.1,
+      0.8615
+    ],
+    "tapiz-dragones": [
+      0.9,
+      0.8615
+    ],
+    "tapiz-dragones-der": [
+      0.1,
+      0.8615
+    ],
+    "trono": [
+      0.5,
+      0.9448
+    ],
+    "trono-der": [
+      0.5,
+      0.9448
+    ],
+    "umbral": [
+      0.5,
+      0.9444
+    ],
+    "umbral-x": [
+      0.5,
+      0.9444
+    ],
+    "vasijas-8": [
+      0.5,
+      0.8386
+    ],
+    "vasijas-8-der": [
+      0.5,
+      0.8386
+    ]
+  }
 }
