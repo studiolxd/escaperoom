@@ -464,7 +464,8 @@ pierde contexto no tóxico); bloquear el envío con error (misma fricción y peo
 **Contexto:** `specs/15` §2 fija la fórmula de coste («nº de caracteres × tarifa ElevenLabs →
 créditos internos, redondeo a la unidad, mínimo 1 crédito, margen ≥ 50 %») pero deja abierta la
 tarifa exacta: ni `specs/02` ni `specs/15` fijan cuántos caracteres vale un crédito, y el precio en
-euros de un crédito depende de los packs de compra (tickets 5.1/5.2), aún sin implementar.
+euros de un crédito depende de los packs de compra (ticket 5.2), aún sin implementar — Stripe ya
+está cableado (5.1) para salas, licencias y eventos, pero no hay checkout de packs de créditos.
 `specs/10` (MCP del creador) tampoco prevé una tool de generación de audio; `specs/15` §3 describe
 la integración como un botón en el editor («texto → previsualización → confirmar»).
 
@@ -473,8 +474,8 @@ la integración como un botón en el editor («texto → previsualización → c
 1. **Tarifa provisional: 1 crédito = 40 caracteres** (redondeo hacia arriba, mínimo 1 crédito por
    generación), en `CHARACTERS_PER_CREDIT` (`packages/shared/src/services/audio-generation.ts`).
    Es una cifra de trabajo para poder implementar y testear el servicio; **hay que revisarla contra
-   el contrato real con ElevenLabs y el precio en euros de un crédito cuando 5.1/5.2 fijen los
-   packs de compra**, para garantizar el margen ≥ 50 % que pide la spec.
+   el contrato real con ElevenLabs y el precio en euros de un crédito cuando 5.2 fije los packs de
+   compra**, para garantizar el margen ≥ 50 % que pide la spec.
 2. **Cuenta que se cobra:** si el actor tiene una organización activa, se cobra a la cuenta de esa
    organización; si no, a su cuenta personal. No hay lógica adicional de reparto (no hace falta:
    una única cuenta por organización, migración 0004).

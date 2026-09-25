@@ -63,7 +63,7 @@ describe("reviewService.upsertReview", () => {
     const { reviews, store } = setup();
     await expect(
       reviews.upsertReview(ANONYMOUS_ACTOR, "sala", { rating: 5 }),
-    ).rejects.toMatchObject({ code: "UNAUTHENTICATED" });
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     await expect(reviews.upsertReview(actor("carla"), "sala", { rating: 5 })).rejects.toMatchObject(
       { code: "REVIEW_NOT_ALLOWED" },
     );

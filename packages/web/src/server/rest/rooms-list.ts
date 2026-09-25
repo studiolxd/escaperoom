@@ -5,6 +5,7 @@ import {
   type CatalogListInput,
   type CatalogService,
 } from "@escaperoom/shared/services";
+import { handleDomainErrors } from "./_http";
 
 /** Dependencias inyectables de los handlers REST del catálogo (testeables sin base de datos). */
 export type RoomsListHandlerDeps = {
@@ -25,19 +26,7 @@ const STATUS_BY_CODE: Record<CatalogErrorCode, number> = {
  */
 const PUBLIC_CACHE = "public, s-maxage=60, stale-while-revalidate=300";
 
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (error instanceof CatalogError) {
-      return Response.json(
-        { error: { code: error.code, message: error.message } },
-        { status: STATUS_BY_CODE[error.code] },
-      );
-    }
-    throw error;
-  }
-}
+const handle = handleDomainErrors(CatalogError, STATUS_BY_CODE);
 
 /**
  * Query string → entrada del servicio. `language` y `difficulty` se aceptan
