@@ -94,8 +94,21 @@ export type EditorSyncServerOptions = {
   maxDocBytes?: number;
   /** Conexiones simultáneas por `userId` en la misma sala (C-11): protege de un mismo usuario agotando memoria con muchas pestañas/scripts. */
   maxConnectionsPerUser?: number;
-  /** Mensajes por segundo que admite un socket antes de cerrarlo (C-11). */
+  /**
+   * Mensajes por segundo que admite un socket antes de cerrarlo (C-11), SIN
+   * contar `MESSAGE_AWARENESS` (tiene su propio cubo, ver
+   * `maxAwarenessMessagesPerSecond`): cubre `syncStep2`/`update`,
+   * `MESSAGE_QUERY_AWARENESS` y `MESSAGE_RESTORE`. Ver
+   * `DEFAULT_MAX_MESSAGES_PER_SECOND` para cómo se fijó el valor por defecto.
+   */
   maxMessagesPerSecond?: number;
+  /**
+   * Mensajes `MESSAGE_AWARENESS` (cursor/selección de otros editores) por
+   * segundo que admite un socket (C-11): cubo aparte del genérico de arriba
+   * — el objetivo de C-11 es frenar abusos, no penalizar presencia legítima
+   * de alta frecuencia (cursores) compartiendo cupo con las escrituras al doc.
+   */
+  maxAwarenessMessagesPerSecond?: number;
   /** `syncStep1` (fuerza `encodeStateAsUpdate` del doc entero) por minuto que admite un socket (C-11). */
   maxSyncStep1PerMinute?: number;
   /** Intervalo de ping para detectar conexiones muertas (0 lo desactiva). */
@@ -118,8 +131,46 @@ const DEFAULT_PING_INTERVAL_MS = 30_000;
 const DEFAULT_MAX_DOC_BYTES = 20 * 1024 * 1024;
 /** Un mismo usuario editando desde varias pestañas/dispositivos no suele pasar de un puñado (C-11). */
 const DEFAULT_MAX_CONNECTIONS_PER_USER = 8;
-const DEFAULT_MAX_MESSAGES_PER_SECOND = 50;
-const DEFAULT_MAX_SYNC_STEP1_PER_MINUTE = 20;
+/**
+ * C-11, revisado tras la review de la coordinadora en la PR #159: el pico
+ * REAL de mensajes/s de un editor legítimo no es un número inventado, es
+ * medible en el propio cliente — `STROKE_FLUSH_INTERVAL_MS` (ver
+ * `room-doc/tool-controller.ts`, auditoría D-17) limita el pincel/borrador a
+ * como mucho un volcado de trazo (una transacción Yjs = un mensaje WS) cada
+ * 32 ms, es decir `1000 / 32 ≈ 31,3` mensajes/s sostenidos durante una
+ * pincelada continua — el único origen de tráfico de alta frecuencia que
+ * escribe hoy en el doc (colocar/decorar/antorcha son un mensaje por clic;
+ * arrastrar un objeto no toca el doc hasta soltar). El límite anterior (50)
+ * daba un margen de ×1,6 sobre ese pico: de sobra en el caso medio, pero sin
+ * margen para jitter del `setInterval`/reloj del navegador ni para una
+ * pincelada en el instante exacto en que además llega un `MESSAGE_RESTORE` o
+ * un `MESSAGE_QUERY_AWARENESS` (que SÍ comparten este cubo, ver más abajo).
+ * Se fija ×4 sobre el pico medido — el test de regresión
+ * "trazo realista de pincel + awareness no provoca cierre" en `test/sync.test.ts`
+ * reproduce ese pico exacto contra el valor por defecto (sin overrides) y
+ * comprueba que no se corta. `MESSAGE_AWARENESS` NO cuenta aquí — tiene su
+ * propio cubo, ver `DEFAULT_MAX_AWARENESS_MESSAGES_PER_SECOND`.
+ */
+export const DEFAULT_MAX_MESSAGES_PER_SECOND = 120;
+/**
+ * Todavía no hay UI de presencia (cursor/selección de otros editores) que
+ * emita `MESSAGE_AWARENESS` en el cliente — cuando se implemente, medirá su
+ * propio pico real con la misma metodología que `STROKE_FLUSH_INTERVAL_MS` de
+ * arriba y este valor se revisará entonces. Mientras tanto se deja un cupo
+ * generoso (los presence-cursors de otros editores colaborativos suelen
+ * throttlear entre 10 y 30 Hz en el cliente) para no acoplar por adelantado
+ * un límite de servidor a una implementación que aún no existe.
+ */
+export const DEFAULT_MAX_AWARENESS_MESSAGES_PER_SECOND = 60;
+/**
+ * `EditorSyncProvider` reconecta con backoff exponencial (100 ms → 10 s, ver
+ * `sync/provider.ts`): incluso en el peor caso de una red que parpadea sin
+ * parar (cada intento conecta y se cae al instante, reiniciando el backoff),
+ * el número de reconexiones LOGRADAS —las únicas que mandan `syncStep1`— en
+ * un minuto no se acerca a este tope; se deja ×2 de margen sobre esa
+ * estimación para no cortar una reconexión legítima tras un corte de red.
+ */
+export const DEFAULT_MAX_SYNC_STEP1_PER_MINUTE = 30;
 
 /** Códigos de cierre propios (rango 4000–4999 reservado a aplicaciones). */
 export const CLOSE_PERSISTENCE_FAILED = 4500;
@@ -187,8 +238,9 @@ type Connection = ActorOrigin & {
   /** `clientID`s de awareness controlados por esta conexión. */
   awarenessIds: Set<number>;
   alive: boolean;
-  /** C-11: cadencia de mensajes y de `syncStep1` de ESTA conexión. */
+  /** C-11: cadencia de mensajes (sin awareness), de awareness y de `syncStep1` de ESTA conexión. */
   messageBucket: TokenBucket;
+  awarenessBucket: TokenBucket;
   syncStep1Bucket: TokenBucket;
 };
 
@@ -246,6 +298,8 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
   const maxDocBytes = options.maxDocBytes ?? DEFAULT_MAX_DOC_BYTES;
   const maxConnectionsPerUser = options.maxConnectionsPerUser ?? DEFAULT_MAX_CONNECTIONS_PER_USER;
   const maxMessagesPerSecond = options.maxMessagesPerSecond ?? DEFAULT_MAX_MESSAGES_PER_SECOND;
+  const maxAwarenessMessagesPerSecond =
+    options.maxAwarenessMessagesPerSecond ?? DEFAULT_MAX_AWARENESS_MESSAGES_PER_SECOND;
   const maxSyncStep1PerMinute = options.maxSyncStep1PerMinute ?? DEFAULT_MAX_SYNC_STEP1_PER_MINUTE;
   const wss = new WebSocketServer({
     noServer: true,
@@ -602,6 +656,10 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
       awarenessIds: new Set(),
       alive: true,
       messageBucket: new TokenBucket(maxMessagesPerSecond, maxMessagesPerSecond / 1000),
+      awarenessBucket: new TokenBucket(
+        maxAwarenessMessagesPerSecond,
+        maxAwarenessMessagesPerSecond / 1000,
+      ),
       syncStep1Bucket: new TokenBucket(maxSyncStep1PerMinute, maxSyncStep1PerMinute / 60_000),
     };
     room.connections.set(socket, conn);
@@ -612,13 +670,30 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
     });
     socket.on("message", (raw: RawData) => {
       if (room.closed) return;
-      // C-11: cadencia genérica de mensajes/s, antes de decodificar nada.
-      if (!conn.messageBucket.tryTake()) {
-        socket.close(CLOSE_POLICY_VIOLATION, "too many messages");
+      const data = toUint8Array(raw);
+      // C-11: cadencia por tipo de mensaje, antes de procesar nada — se
+      // detecta el tipo (un varuint) sin decodificar el resto. `MESSAGE_AWARENESS`
+      // tiene su propio cubo, más generoso (ver `maxAwarenessMessagesPerSecond`):
+      // no comparte cupo con las escrituras al doc para no penalizar presencia
+      // legítima de alta frecuencia con el límite pensado para frenar abusos.
+      let messageType: number;
+      try {
+        messageType = decoding.readVarUint(decoding.createDecoder(data));
+      } catch (err) {
+        logger.warn(`[editor-sync] mensaje inválido en ${room.roomId}`, err);
+        socket.close(CLOSE_INVALID_DATA, "invalid message");
+        return;
+      }
+      const bucket = messageType === MESSAGE_AWARENESS ? conn.awarenessBucket : conn.messageBucket;
+      if (!bucket.tryTake()) {
+        socket.close(
+          CLOSE_POLICY_VIOLATION,
+          messageType === MESSAGE_AWARENESS ? "too many awareness updates" : "too many messages",
+        );
         return;
       }
       try {
-        handleMessage(room, conn, toUint8Array(raw));
+        handleMessage(room, conn, data);
       } catch (err) {
         logger.warn(`[editor-sync] mensaje inválido en ${room.roomId}`, err);
         socket.close(CLOSE_INVALID_DATA, "invalid message");

@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { parseRoomPackage, type RoomPackage } from "@escaperoom/shared/schemas";
 import {
   ANONYMOUS_ACTOR,
   buildDraftDoc,
@@ -15,16 +18,30 @@ import * as Y from "yjs";
 import {
   EditorSyncProvider,
   EditorSyncRestoreError,
+  EditToolController,
   MESSAGE_AWARENESS,
   MESSAGE_QUERY_AWARENESS,
   MESSAGE_SYNC,
+  roomPackageToDoc,
+  STROKE_FLUSH_INTERVAL_MS,
   SYNC_PATH_PREFIX,
 } from "../src";
 import {
   CLOSE_PERSISTENCE_FAILED,
   createEditorSyncServer,
+  DEFAULT_MAX_AWARENESS_MESSAGES_PER_SECOND,
+  DEFAULT_MAX_MESSAGES_PER_SECOND,
+  DEFAULT_MAX_SYNC_STEP1_PER_MINUTE,
   type EditorSyncServerOptions,
 } from "../src/sync/server";
+
+/** Mismo fixture que `room-doc.test.ts`: trae la sub-sala "bodega" (18×12) para pintar de verdad. */
+const fixturePath = fileURLToPath(
+  new URL("../../../docs/reference/roompackage-rey-aldric.v1.json", import.meta.url),
+);
+const fixture: RoomPackage = parseRoomPackage(
+  JSON.parse(readFileSync(fixturePath, "utf8")) as unknown,
+);
 
 const ROOM_ID = "11111111-1111-4111-8111-111111111111";
 const MISSING_ROOM_ID = "99999999-9999-4999-8999-999999999999";
@@ -649,6 +666,119 @@ describe("WebSocket de edición: límites de tamaño y cadencia (C-11/C-12)", ()
       return encoding.toUint8Array(encoder);
     };
     for (let i = 0; i < 5; i++) raw.send(frame());
+
+    await waitFor(() => closes.length > 0);
+    expect(closes[0]).toBe(1008);
+  });
+
+  it("C-11: DEFAULT_MAX_MESSAGES_PER_SECOND deja al menos ×3 de margen sobre el pico real del pincel", () => {
+    // El pico real de un editor legítimo no es un número inventado: es el
+    // propio throttle del cliente (`STROKE_FLUSH_INTERVAL_MS`, auditoría
+    // D-17) el que decide cuántas transacciones Yjs por segundo puede
+    // producir una pincelada continua. Si algún día se acelera ese throttle
+    // sin revisar el límite del servidor, este test avisa.
+    const realPeakPerSecond = 1000 / STROKE_FLUSH_INTERVAL_MS;
+    expect(DEFAULT_MAX_MESSAGES_PER_SECOND).toBeGreaterThanOrEqual(realPeakPerSecond * 3);
+  });
+
+  it("C-11: un trazo de pincel realista + awareness a 20 Hz no provoca ningún cierre (defaults reales)", async () => {
+    const store = newStore();
+    const seed = roomPackageToDoc(fixture);
+    await store.insertSnapshot(ROOM_ID, Y.encodeStateAsUpdate(seed), 0n);
+    seed.destroy();
+
+    // Sin overrides: reproduce exactamente los límites que corren en producción.
+    const { url } = await startServer(store);
+    const doc = new Y.Doc();
+    const a = connectClient(url, "autora", doc);
+    await a.whenSynced();
+    const closes: number[] = [];
+    a.on("connection-close", ({ code }) => closes.push(code));
+
+    // Presencia simulada (todavía no hay UI de cursor compartido, pero C-11
+    // reserva cupo aparte para cuando la haya): 20 Hz es un ritmo habitual de
+    // throttle de cursor en editores colaborativos.
+    const awarenessTimer = setInterval(() => {
+      a.awareness.setLocalStateField("cursor", { x: Math.random() * 100, y: Math.random() * 100 });
+    }, 50);
+
+    const tools = new EditToolController(doc, { roomId: "bodega" });
+    tools.selectTile(3, "ground");
+    let x = 1;
+    const y = 1;
+    tools.pointer({ phase: "down", cell: { x, y } });
+    const durationMs = 1500;
+    const start = Date.now();
+    // ~200 Hz de eventos de puntero — mucho más rápido que cualquier ratón
+    // real — para comprobar que es el throttle interno del cliente
+    // (`STROKE_FLUSH_INTERVAL_MS`), no la cadencia de esta simulación, quien
+    // gobierna cuántos mensajes WS salen de verdad.
+    while (Date.now() - start < durationMs) {
+      x = 1 + (x % 16); // recorre la fila dentro de la rejilla 18×12 de "bodega"
+      tools.pointer({ phase: "move", cell: { x, y } });
+      await new Promise((resolve) => setTimeout(resolve, 4));
+    }
+    tools.pointer({ phase: "up", cell: { x, y } });
+    clearInterval(awarenessTimer);
+
+    expect(closes).toEqual([]);
+    expect(a.status).toBe("connected");
+  }, 5000);
+
+  it("C-11: varias reconexiones tras un corte de red no agotan el cupo de syncStep1/min (defaults reales)", async () => {
+    const store = newStore();
+    const { url } = await startServer(store);
+    const a = connectClient(url);
+    await a.whenSynced();
+
+    // 8 reconexiones en rápida sucesión: bastante más de lo que produce un
+    // corte de red normal (backoff 100 ms → 10 s) y aun así muy por debajo
+    // de DEFAULT_MAX_SYNC_STEP1_PER_MINUTE.
+    expect(8).toBeLessThan(DEFAULT_MAX_SYNC_STEP1_PER_MINUTE);
+    for (let i = 0; i < 8; i++) {
+      a.disconnect();
+      a.connect();
+      await a.whenSynced();
+    }
+    expect(a.status).toBe("connected");
+  });
+
+  it("C-11: un flood muy por encima del pico real sigue cerrando el socket (defaults reales)", async () => {
+    const store = newStore();
+    const { url } = await startServer(store);
+    const room = `${url}${SYNC_PATH_PREFIX}${encodeURIComponent(ROOM_ID)}`;
+    const raw = new WsWebSocket(room, { headers: { "x-test-user": "autora" } });
+    cleanups.push(() => raw.close());
+    await new Promise<void>((resolve) => raw.once("open", () => resolve()));
+    const closes: number[] = [];
+    raw.on("close", (code) => closes.push(code));
+
+    const queryEncoder = encoding.createEncoder();
+    encoding.writeVarUint(queryEncoder, MESSAGE_QUERY_AWARENESS);
+    const frame = encoding.toUint8Array(queryEncoder);
+    // Muy por encima de DEFAULT_MAX_MESSAGES_PER_SECOND: un cliente que se
+    // salta cualquier throttle, no una pincelada real.
+    for (let i = 0; i < 10 * DEFAULT_MAX_MESSAGES_PER_SECOND; i++) raw.send(frame);
+
+    await waitFor(() => closes.length > 0);
+    expect(closes[0]).toBe(1008);
+  });
+
+  it("C-11: un flood de awareness muy por encima del pico razonable cierra el socket sin tocar el cubo genérico", async () => {
+    const store = newStore();
+    const { url } = await startServer(store);
+    const room = `${url}${SYNC_PATH_PREFIX}${encodeURIComponent(ROOM_ID)}`;
+    const raw = new WsWebSocket(room, { headers: { "x-test-user": "autora" } });
+    cleanups.push(() => raw.close());
+    await new Promise<void>((resolve) => raw.once("open", () => resolve()));
+    const closes: number[] = [];
+    raw.on("close", (code) => closes.push(code));
+
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, MESSAGE_AWARENESS);
+    encoding.writeVarUint8Array(encoder, new Uint8Array([0])); // update vacío (0 entradas): válido y barato
+    const frame = encoding.toUint8Array(encoder);
+    for (let i = 0; i < 10 * DEFAULT_MAX_AWARENESS_MESSAGES_PER_SECOND; i++) raw.send(frame);
 
     await waitFor(() => closes.length > 0);
     expect(closes[0]).toBe(1008);
