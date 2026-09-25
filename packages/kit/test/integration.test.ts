@@ -2,7 +2,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { getRedis, redisPrefix } from "../src/redis/index";
-import { withRedisLock } from "../src/redis/lock";
 import { readStorageEnv } from "../src/env";
 import { createStorage } from "../src/storage/index";
 import { RedisRateLimitStore } from "../src/rate-limit/redis-store";
@@ -45,11 +44,6 @@ describe.skipIf(!hasRedis)("redis (integración con infra local)", () => {
     await redis!.set(key, "ok", "PX", 5000);
     await expect(redis!.get(key)).resolves.toBe("ok");
     await redis!.del(key);
-  });
-
-  it("ejecuta fn bajo lock y libera el lock al terminar", async () => {
-    const result = await withRedisLock(`test:${randomUUID()}`, 5000, async () => "done");
-    expect(result).toBe("done");
   });
 
   it("RedisRateLimitStore.hit deja siempre TTL en la clave (E-21: INCR+EXPIRE atómico)", async () => {

@@ -5,6 +5,7 @@ import {
   type RoomDraftErrorCode,
   type RoomDraftService,
 } from "@escaperoom/shared/services";
+import { errorResponse, handleDomainErrors, NO_STORE } from "./_http";
 
 /** Dependencias inyectables de los handlers del draft (testeables sin Postgres). */
 export type RoomDraftHandlerDeps = {
@@ -23,21 +24,8 @@ const STATUS_BY_CODE: Record<RoomDraftErrorCode, number> = {
   INVALID_UPDATE: 422,
 };
 
-function errorResponse(code: string, message: string, status: number): Response {
-  return Response.json({ error: { code, message } }, { status });
-}
-
 /** Traduce errores de dominio a la forma de error REST (specs/13 §1). */
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof RoomDraftError) {
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code]);
-    }
-    throw err;
-  }
-}
+const handle = handleDomainErrors(RoomDraftError, STATUS_BY_CODE);
 
 function snapshotMetaJson(s: DraftSnapshotMeta) {
   return {
@@ -81,7 +69,7 @@ export function createRoomDraftHandlers(deps: RoomDraftHandlerDeps) {
               data: toBase64(u.data),
             })),
           },
-          { headers: { "Cache-Control": "no-store" } },
+          { headers: NO_STORE },
         );
       });
     },
@@ -112,7 +100,7 @@ export function createRoomDraftHandlers(deps: RoomDraftHandlerDeps) {
             },
             snapshot: result.snapshot ? snapshotMetaJson(result.snapshot) : null,
           },
-          { status: 201 },
+          { status: 201, headers: NO_STORE },
         );
       });
     },
@@ -123,9 +111,18 @@ export function createRoomDraftHandlers(deps: RoomDraftHandlerDeps) {
         const { roomId } = await ctx.params;
         const actor = await deps.resolveActor(request);
         const limitParam = new URL(request.url).searchParams.get("limit");
-        const limit = limitParam === null ? undefined : Number(limitParam);
+        let limit: number | undefined;
+        if (limitParam !== null) {
+          // A-24: antes `Number(limitParam)` convertía cualquier valor no numérico
+          // en `NaN`, que el servicio acababa tratando como 1 en silencio — un
+          // `?limit=abc` no avisaba de que su valor se había ignorado.
+          limit = Number(limitParam);
+          if (!Number.isInteger(limit) || limit < 1) {
+            return errorResponse("VALIDATION_ERROR", "limit debe ser un entero positivo", 422);
+          }
+        }
         const items = await deps.drafts.listHistory(actor, roomId, limit);
-        return Response.json({ items: items.map(snapshotMetaJson), nextCursor: null });
+        return Response.json({ items: items.map(snapshotMetaJson), nextCursor: null }, { headers: NO_STORE });
       });
     },
   };

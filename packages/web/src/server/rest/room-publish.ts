@@ -5,6 +5,7 @@ import {
   type RoomPublishService,
   type RoomVersionMeta,
 } from "@escaperoom/shared/services";
+import { handleDomainErrors, NO_STORE, readJson } from "./_http";
 
 /** Dependencias inyectables de los handlers de publicación (testeables sin Postgres ni R2). */
 export type RoomPublishHandlerDeps = {
@@ -19,7 +20,8 @@ export const PUBLISH_STATUS_BY_CODE: Record<RoomPublishErrorCode, number> = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
-  VALIDATION_ERROR: 400,
+  // A-22: fijado en specs/13 §1 — VALIDATION_ERROR es 422 en todas las rutas (era 400 aquí).
+  VALIDATION_ERROR: 422,
   VERSION_CONFLICT: 409,
   ROOM_NOT_PUBLISHABLE: 409,
   INVALID_PACKAGE: 422,
@@ -35,25 +37,17 @@ export const PUBLISH_STATUS_BY_CODE: Record<RoomPublishErrorCode, number> = {
   CONTENT_BLOCKED: 422,
 };
 
-function errorResponse(code: string, message: string, status: number, extra: object = {}) {
-  return Response.json({ error: { code, message, ...extra } }, { status });
-}
-
 /**
  * Traduce errores de dominio a la forma de error REST (specs/13 §1). El
- * detalle (informe del validador, audios bloqueantes, campos) viaja dentro de
- * `error` para que el editor lo muestre tal cual.
+ * `details` (informe del validador, audios bloqueantes, campos) se spreadea
+ * en `error` tal cual (`report`, `reportText`, …), no anidado bajo `details`
+ * — así lo espera el editor.
  */
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof RoomPublishError) {
-      return errorResponse(err.code, err.message, PUBLISH_STATUS_BY_CODE[err.code], err.details);
-    }
-    throw err;
-  }
-}
+const handle = handleDomainErrors(
+  RoomPublishError,
+  PUBLISH_STATUS_BY_CODE,
+  (err) => ({ ...err.details }) as Record<string, unknown>,
+);
 
 export function versionJson(v: RoomVersionMeta) {
   return {
@@ -77,15 +71,7 @@ export function createRoomPublishHandlers(deps: RoomPublishHandlerDeps) {
       return handle(async () => {
         const { roomId } = await ctx.params;
         const actor = await deps.resolveActor(request);
-        const text = await request.text();
-        let body: unknown = undefined;
-        if (text.trim()) {
-          try {
-            body = JSON.parse(text) as unknown;
-          } catch {
-            return errorResponse("VALIDATION_ERROR", "El cuerpo no es JSON válido", 400);
-          }
-        }
+        const body = await readJson(request, { allowEmpty: true });
         const result = await deps.publish.publish(actor, roomId, body);
         return Response.json(
           {
@@ -101,7 +87,7 @@ export function createRoomPublishHandlers(deps: RoomPublishHandlerDeps) {
             })),
             moderationFlags: result.moderationFlags,
           },
-          { status: 201 },
+          { status: 201, headers: NO_STORE },
         );
       });
     },
@@ -124,7 +110,7 @@ export function createRoomPublishHandlers(deps: RoomPublishHandlerDeps) {
         const result = await deps.publish.getVersionPackage(actor, roomId, versionId);
         return Response.json(
           { version: versionJson(result.version), package: result.package },
-          { headers: { "Cache-Control": "private, no-store" } },
+          { headers: NO_STORE },
         );
       });
     },

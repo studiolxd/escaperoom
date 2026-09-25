@@ -50,7 +50,10 @@ const STATUS: Partial<Record<CreatorChatErrorCode, number>> = {
 };
 
 function errorResponse(code: CreatorChatErrorCode, message: string): Response {
-  return Response.json({ error: { code, message } }, { status: STATUS[code] ?? 500 });
+  return Response.json(
+    { error: { code, message } },
+    { status: STATUS[code] ?? 500, headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 /**

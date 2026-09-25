@@ -5,6 +5,7 @@ import {
   type PublishConfirmationErrorCode,
   type PublishConfirmationService,
 } from "@escaperoom/shared/services";
+import { BadJsonError, errorResponse, NO_STORE, readJson } from "./_http";
 import { PUBLISH_STATUS_BY_CODE, versionJson } from "./room-publish";
 
 /** Dependencias inyectables del handler de confirmación (testeable sin Postgres ni R2). */
@@ -19,12 +20,9 @@ const STATUS_BY_CONFIRMATION_CODE: Record<PublishConfirmationErrorCode, number> 
   FORBIDDEN: 403,
   INVALID_TOKEN: 400,
   EXPIRED: 410,
-  VALIDATION_ERROR: 400,
+  // A-22: fijado en specs/13 §1 — VALIDATION_ERROR es 422 en todas las rutas.
+  VALIDATION_ERROR: 422,
 };
-
-function errorResponse(code: string, message: string, status: number, extra: object = {}) {
-  return Response.json({ error: { code, message, ...extra } }, { status });
-}
 
 /**
  * `POST /api/publish-confirm` — `{ token }` (ticket 4.5). El creador confirma
@@ -66,13 +64,20 @@ export function createPublishConfirmHandlers(deps: PublishConfirmHandlerDeps) {
           503,
         );
       }
-      const body = (await request.json().catch(() => null)) as { token?: unknown } | null;
-      if (typeof body?.token !== "string" || !body.token) {
-        return errorResponse("VALIDATION_ERROR", "Falta el token de confirmación", 400);
+      let body: unknown;
+      try {
+        body = await readJson(request);
+      } catch (err) {
+        if (err instanceof BadJsonError) return errorResponse("INVALID_JSON", err.message, 400);
+        throw err;
+      }
+      const token = (body as { token?: unknown } | null)?.token;
+      if (typeof token !== "string" || !token) {
+        return errorResponse("VALIDATION_ERROR", "Falta el token de confirmación", 422);
       }
       try {
         const actor = await deps.resolveActor(request);
-        const result = await deps.confirmations.confirm(actor, body.token);
+        const result = await deps.confirmations.confirm(actor, token);
         return Response.json(
           {
             version: versionJson(result.version),
@@ -80,7 +85,7 @@ export function createPublishConfirmHandlers(deps: PublishConfirmHandlerDeps) {
               .filter((c) => c.status === "warning")
               .map((c) => ({ id: c.id, summary: c.summary })),
           },
-          { status: 201, headers: { "Cache-Control": "no-store" } },
+          { status: 201, headers: NO_STORE },
         );
       } catch (err) {
         if (err instanceof PublishConfirmationError) {

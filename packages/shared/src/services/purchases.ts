@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { logger } from "@escaperoom/kit/logger";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
+import { requireUser, splitPlatformFee } from "./common";
 import type { PaymentGateway } from "./events";
 
 /**
@@ -16,8 +17,6 @@ import type { PaymentGateway } from "./events";
  */
 
 // ── Tipos de dominio ───────────────────────────────────────────────────────
-
-export const ROOM_PLATFORM_FEE_RATE = 0.3;
 
 export type RoomPurchaseStatus = "pending" | "succeeded" | "refunded" | "failed";
 
@@ -128,15 +127,6 @@ export const RoomCheckoutInput = z
 
 // ── Piezas puras ───────────────────────────────────────────────────────────
 
-/** Reparto de una venta individual: 30 % plataforma (redondeado), resto al creador. */
-export function splitRoomAmount(amountCents: number): {
-  platformFeeCents: number;
-  creatorShareCents: number;
-} {
-  const platformFeeCents = Math.round(amountCents * ROOM_PLATFORM_FEE_RATE);
-  return { platformFeeCents, creatorShareCents: amountCents - platformFeeCents };
-}
-
 const SALABLE_STATUSES: ReadonlySet<PurchaseRoomStatus> = new Set(["published", "unlisted"]);
 
 // ── Servicio ───────────────────────────────────────────────────────────────
@@ -152,13 +142,9 @@ export function createPurchaseService(deps: {
   const { store } = deps;
   const newId = deps.newId ?? (() => crypto.randomUUID());
 
-  function requireUser(actor: Actor): void {
-    if (isAnonymous(actor)) throw new PurchaseError("UNAUTHORIZED", "No hay sesión");
-  }
-
   return {
     authorize(actor: Actor): void {
-      requireUser(actor);
+      requireUser(actor, PurchaseError);
     },
 
     /**
@@ -181,7 +167,7 @@ export function createPurchaseService(deps: {
         cancelUrl: string;
       },
     ): Promise<RoomCheckoutResult> {
-      requireUser(actor);
+      requireUser(actor, PurchaseError);
       const data = parseOrThrow(RoomCheckoutInput, input);
       const version = await store.findVersion(data.roomVersionId);
       if (!version) throw new PurchaseError("ROOM_VERSION_UNAVAILABLE", "Versión no encontrada");
@@ -233,7 +219,7 @@ export function createPurchaseService(deps: {
 
     /** `GET /api/purchases/:id` — el comprador o un admin. */
     async getPurchase(actor: Actor, id: string): Promise<RoomPurchaseRow> {
-      requireUser(actor);
+      requireUser(actor, PurchaseError);
       const purchase = UUID_RE.test(id) ? await store.findPurchase(id) : null;
       if (!purchase) throw new PurchaseError("NOT_FOUND", "Compra no encontrada");
       if (purchase.userId !== actor.userId && !(await store.isAdmin(actor.userId))) {
@@ -269,7 +255,7 @@ export function createPurchaseService(deps: {
         throw new PurchaseError("PURCHASE_NOT_PENDING", "La compra no está pendiente de pago");
       }
 
-      const { platformFeeCents, creatorShareCents } = splitRoomAmount(purchase.amountCents);
+      const { platformFeeCents, creatorShareCents } = splitPlatformFee(purchase.amountCents);
       const result = await store.settlePurchase(purchase.id, {
         paymentRef: input.paymentIntentId,
         platformFeeCents,

@@ -7,6 +7,7 @@ import {
   type AudioErrorCode,
 } from "@escaperoom/shared/services";
 import type { AudioLibraryTrack } from "@escaperoom/shared/audio";
+import { BadJsonError, handleDomainErrors, NO_STORE, queryOf, readJson } from "./_http";
 
 /** Dependencias inyectables de los handlers de audio (testeables sin Postgres ni R2). */
 export type AudioHandlerDeps = {
@@ -32,38 +33,8 @@ const STATUS_BY_CODE: Record<AudioErrorCode, number> = {
 /** Holgura para las cabeceras multipart al pre-filtrar por `Content-Length`. */
 const MULTIPART_OVERHEAD_BYTES = 64 * 1024;
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number, extra = {}): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status, headers: NO_STORE });
-}
-
-class BadRequestError extends Error {}
-
-async function readJson(request: Request): Promise<unknown> {
-  try {
-    return await request.json();
-  } catch {
-    throw new BadRequestError("El cuerpo no es JSON válido");
-  }
-}
-
 /** Traduce errores de dominio a la forma de error REST (specs/13 §1). */
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof AudioError) {
-      const extra = {
-        ...(err.issues.length > 0 ? { issues: err.issues } : {}),
-        ...(err.rejectionReason ? { rejectionReason: err.rejectionReason } : {}),
-      };
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code], extra);
-    }
-    if (err instanceof BadRequestError) return errorResponse("BAD_REQUEST", err.message, 400);
-    throw err;
-  }
-}
+const handle = handleDomainErrors(AudioError, STATUS_BY_CODE);
 
 function trackJson(t: AudioLibraryTrack) {
   return { ...t, ref: `library:${t.id}` };
@@ -141,7 +112,7 @@ export function createAudioHandlers(deps: AudioHandlerDeps) {
         try {
           form = await request.formData();
         } catch {
-          throw new BadRequestError("Se esperaba un formulario multipart con el campo `file`");
+          throw new BadJsonError("Se esperaba un formulario multipart con el campo `file`");
         }
         const file = form.get("file");
         if (!(file instanceof Blob)) {
@@ -173,13 +144,7 @@ export function createAudioHandlers(deps: AudioHandlerDeps) {
     async listModerationQueue(request: Request): Promise<Response> {
       return handle(async () => {
         const actor = await deps.resolveActor(request);
-        const params = new URL(request.url).searchParams;
-        const query = Object.fromEntries(
-          ["status", "limit"].flatMap((k) => {
-            const v = params.get(k);
-            return v === null ? [] : [[k, v]];
-          }),
-        );
+        const query = queryOf(request, ["status", "limit"]);
         const rows = await deps.audio.listModerationQueue(actor, query);
         return Response.json(
           { items: rows.map(moderationJson), nextCursor: null },

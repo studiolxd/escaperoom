@@ -1,4 +1,5 @@
 import { ContactError, type ContactErrorCode, type ContactService } from "@escaperoom/shared/services";
+import { errorResponse, handleDomainErrors, NO_STORE, readJson } from "./_http";
 
 /** Dependencias inyectables del handler de contacto (testeable sin SMTP). */
 export type ContactHandlerDeps = {
@@ -12,23 +13,7 @@ const STATUS_BY_CODE: Record<ContactErrorCode, number> = {
   DELIVERY_FAILED: 502,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number, extra = {}): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status, headers: NO_STORE });
-}
-
-class BadJsonError extends Error {}
-
-async function readJson(request: Request): Promise<unknown> {
-  const text = await request.text();
-  if (!text.trim()) return {};
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    throw new BadJsonError("El cuerpo no es JSON válido");
-  }
-}
+const handle = handleDomainErrors(ContactError, STATUS_BY_CODE);
 
 /**
  * Handler REST del formulario de contacto público. Adaptador fino sobre
@@ -36,7 +21,7 @@ async function readJson(request: Request): Promise<unknown> {
  */
 export function createContactHandler(deps: ContactHandlerDeps) {
   return async function postContact(request: Request): Promise<Response> {
-    try {
+    return handle(async () => {
       if (!deps.contact) {
         return errorResponse(
           "DELIVERY_UNAVAILABLE",
@@ -44,16 +29,9 @@ export function createContactHandler(deps: ContactHandlerDeps) {
           503,
         );
       }
-      const body = await readJson(request);
+      const body = await readJson(request, { allowEmpty: true });
       const { messageId } = await deps.contact.submit(body);
       return Response.json({ ok: true, messageId }, { status: 200, headers: NO_STORE });
-    } catch (err) {
-      if (err instanceof ContactError) {
-        const extra = err.issues.length > 0 ? { issues: err.issues } : {};
-        return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code], extra);
-      }
-      if (err instanceof BadJsonError) return errorResponse("BAD_REQUEST", err.message, 400);
-      throw err;
-    }
+    });
   };
 }

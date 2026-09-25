@@ -46,9 +46,9 @@ function setup(snapshotEvery = 100) {
         }),
         ctx(),
       ),
-    getHistory: (user?: string) =>
+    getHistory: (user?: string, query = "") =>
       handlers.getHistory(
-        new Request(url("history"), { headers: user ? { "x-test-user": user } : {} }),
+        new Request(url("history") + query, { headers: user ? { "x-test-user": user } : {} }),
         ctx(),
       ),
   };
@@ -130,6 +130,17 @@ describe("REST del draft Yjs (specs/13 §4)", () => {
     }
     const own = (await (await api.getDraft("autora")).json()) as DraftJson;
     expect(own.updates).toHaveLength(1);
+  });
+
+  it("A-24: ?limit no numérico o ≤0 → 422 en vez de tratarse en silencio como 1", async () => {
+    const api = setup();
+    for (const query of ["?limit=abc", "?limit=0", "?limit=-1", "?limit=1.5"]) {
+      const res = await api.getHistory("autora", query);
+      expect(res.status).toBe(422);
+      expect((await res.json()).error.code).toBe("VALIDATION_ERROR");
+    }
+    // Un límite válido sigue funcionando igual que antes.
+    expect((await api.getHistory("autora", "?limit=1")).status).toBe(200);
   });
 
   it("sin sesión → 401; sala inexistente → 404", async () => {

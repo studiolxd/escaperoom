@@ -4,6 +4,7 @@ import {
   type AudioGenerationErrorCode,
   type AudioGenerationService,
 } from "@escaperoom/shared/services";
+import { handleDomainErrors, NO_STORE, readJson } from "./_http";
 
 /** Dependencias inyectables de los handlers de generación de audio (ticket 4.9). */
 export type AudioGenerationHandlerDeps = {
@@ -19,34 +20,7 @@ const STATUS_BY_CODE: Record<AudioGenerationErrorCode, number> = {
   INSUFFICIENT_CREDITS: 402,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number, extra = {}): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status, headers: NO_STORE });
-}
-
-class BadRequestError extends Error {}
-
-async function readJson(request: Request): Promise<unknown> {
-  try {
-    return await request.json();
-  } catch {
-    throw new BadRequestError("El cuerpo no es JSON válido");
-  }
-}
-
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof AudioGenerationError) {
-      const extra = err.issues.length > 0 ? { issues: err.issues } : {};
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code], extra);
-    }
-    if (err instanceof BadRequestError) return errorResponse("BAD_REQUEST", err.message, 400);
-    throw err;
-  }
-}
+const handle = handleDomainErrors(AudioGenerationError, STATUS_BY_CODE);
 
 function requireGeneration(generation: AudioGenerationService | null): AudioGenerationService {
   if (!generation) {

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { parseMp3 } from "../audio/mp3";
 import { uploadAudioRef } from "../audio/refs";
 import type { Actor } from "./actor";
-import { isAnonymous } from "./actor";
+import { requireUser } from "./common";
 import {
   createManualAudioModeration,
   type AudioAssetRow,
@@ -124,7 +124,7 @@ export function createNoopAudioPreviewCache(): AudioPreviewCache {
 }
 
 function requireSession(actor: Actor): void {
-  if (isAnonymous(actor)) throw new AudioGenerationError("UNAUTHORIZED", "No hay sesión");
+  requireUser(actor, AudioGenerationError);
 }
 
 function parseOrThrow<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {

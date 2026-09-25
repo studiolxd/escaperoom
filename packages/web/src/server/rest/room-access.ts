@@ -1,4 +1,5 @@
-import type { Actor, RoomAccessService } from "@escaperoom/shared/services";
+import { isUuid, type Actor, type RoomAccessService } from "@escaperoom/shared/services";
+import { NO_STORE } from "./_http";
 
 /** Dependencias inyectables del handler de acceso (testeable sin Postgres). */
 export type RoomAccessHandlerDeps = {
@@ -8,9 +9,6 @@ export type RoomAccessHandlerDeps = {
 };
 
 export type RoomAccessRouteContext = { params: Promise<{ roomId: string }> };
-
-const NO_STORE = { "Cache-Control": "no-store" };
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * `GET /api/rooms/:roomId/access` (specs/13, B-4): `{ owned, playable }`, y
@@ -28,7 +26,7 @@ export function createRoomAccessHandlers(deps: RoomAccessHandlerDeps) {
           { status: 503, headers: NO_STORE },
         );
       }
-      if (!UUID_RE.test(roomId)) {
+      if (!isUuid(roomId)) {
         return Response.json({ owned: false, playable: false }, { headers: NO_STORE });
       }
       const actor = await deps.resolveActor(request);

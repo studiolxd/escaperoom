@@ -5,6 +5,7 @@ import {
   type OrganizationErrorCode,
   type OrganizationService,
 } from "@escaperoom/shared/services";
+import { handleDomainErrors, NO_STORE, readJson } from "./_http";
 
 /** Dependencias inyectables de los handlers de organizaciones (testeables sin Postgres). */
 export type OrganizationHandlerDeps = {
@@ -23,35 +24,8 @@ const STATUS_BY_CODE: Record<OrganizationErrorCode, number> = {
   DPA_VERSION_MISMATCH: 409,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number, extra = {}): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status, headers: NO_STORE });
-}
-
-class BadJsonError extends Error {}
-
-async function readJson(request: Request): Promise<unknown> {
-  try {
-    return await request.json();
-  } catch {
-    throw new BadJsonError("El cuerpo no es JSON válido");
-  }
-}
-
 /** Traduce errores de dominio a la forma de error REST (specs/13 §1). */
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof OrganizationError) {
-      const extra = err.issues.length > 0 ? { issues: err.issues } : {};
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code], extra);
-    }
-    if (err instanceof BadJsonError) return errorResponse("BAD_REQUEST", err.message, 400);
-    throw err;
-  }
-}
+const handle = handleDomainErrors(OrganizationError, STATUS_BY_CODE);
 
 function dpaJson(s: DpaStatus) {
   return {
