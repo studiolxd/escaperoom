@@ -194,3 +194,14 @@ Tareas pendientes que no bloquean pero hay que resolver.
         formato del contrato, ortogonal a la del contenido); no hay UI de
         rankings ni notificaciones a compradores que actualizar. Si se toca la
         pantalla de confirmación de publicación, solo shadcn/ui (ADR-019).
+- [ ] **Retirar la ruta de partida de prueba `/[locale]/play`.** Debe desaparecer
+      antes de pasar a producto; en realidad se puede quitar en cuanto esté
+      hecho el flujo de **salas gratis jugables sin cuenta** (punto i de la
+      entrada "CTA 'Jugar'…"), que la sustituye como forma de jugar una sala sin
+      compra. Hoy ya responde 404 en producción salvo con `ALLOW_DEV_SECRETS`
+      (PR #140: firma `gameToken` `dev_test`). Al retirarla, migrar lo que
+      depende de ella: el e2e de partida (`packages/e2e/tests/game.reyaldric.spec.ts`,
+      smoke de CI) y el de reconexión del bloque 4 deben usar el flujo de sala
+      gratis (o un endpoint de pruebas equivalente limitado a test); quitar el
+      tipo de token `dev_test` si ya no se usa; revisar enlaces internos y docs
+      que la mencionen.
