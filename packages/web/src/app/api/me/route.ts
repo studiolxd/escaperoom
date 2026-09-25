@@ -1,43 +1,23 @@
-import { auth } from "@/lib/auth";
-import { toMeResponse } from "@/lib/me";
-import { prisma } from "@escaperoom/shared/db";
 import { resolveActorFromRequest } from "@/server/context";
 import { withRateLimit } from "@/server/rate-limit";
+import { createMeHandlers } from "@/server/rest/me";
 import { createUserDataRightsHandlers } from "@/server/rest/user-data-rights";
-import { getUserDataRightsService } from "@/server/services";
+import { getMeService, getUserDataRightsService } from "@/server/services";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/me — perfil del usuario autenticado, sus organizaciones y el saldo
- * de créditos (personal + por organización) (specs/13 §2).
+ * de créditos personal (specs/13 §2). Vía `MeService` (A-24): antes esta
+ * `route.ts` resolvía la sesión con `auth.api.getSession` directo (saltándose
+ * `resolveActorFromRequest`) y traía la organización y `creditAccount`
+ * enteras con `include`, sin `no-store`.
  */
 export async function GET(request: Request) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) {
-    return Response.json(
-      { error: { code: "UNAUTHORIZED", message: "No hay sesión" } },
-      { status: 401 },
-    );
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: {
-      member: { include: { organization: true } },
-      creditAccount: true,
-    },
-  });
-
-  if (!user) {
-    return Response.json(
-      { error: { code: "NOT_FOUND", message: "Usuario no encontrado" } },
-      { status: 404 },
-    );
-  }
-
-  return Response.json(toMeResponse(user));
+  return createMeHandlers({ me: getMeService(), resolveActor: resolveActorFromRequest }).getMe(
+    request,
+  );
 }
 
 /**

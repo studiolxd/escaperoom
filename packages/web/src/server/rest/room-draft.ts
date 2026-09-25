@@ -123,7 +123,16 @@ export function createRoomDraftHandlers(deps: RoomDraftHandlerDeps) {
         const { roomId } = await ctx.params;
         const actor = await deps.resolveActor(request);
         const limitParam = new URL(request.url).searchParams.get("limit");
-        const limit = limitParam === null ? undefined : Number(limitParam);
+        let limit: number | undefined;
+        if (limitParam !== null) {
+          // A-24: antes `Number(limitParam)` convertía cualquier valor no numérico
+          // en `NaN`, que el servicio acababa tratando como 1 en silencio — un
+          // `?limit=abc` no avisaba de que su valor se había ignorado.
+          limit = Number(limitParam);
+          if (!Number.isInteger(limit) || limit < 1) {
+            return errorResponse("VALIDATION_ERROR", "limit debe ser un entero positivo", 422);
+          }
+        }
         const items = await deps.drafts.listHistory(actor, roomId, limit);
         return Response.json({ items: items.map(snapshotMetaJson), nextCursor: null });
       });

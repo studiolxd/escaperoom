@@ -77,16 +77,16 @@ export function handleDomainErrors<E extends DomainError>(
       return await fn();
     } catch (err) {
       if (err instanceof ErrorClass) {
-        const { code, message, name: _name, stack: _stack, ...rest } = err as unknown as DomainError &
-          Record<string, unknown>;
+        const raw = err as unknown as DomainError & Record<string, unknown>;
         const extra: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(rest)) {
+        for (const [key, value] of Object.entries(raw)) {
+          if (key === "code" || key === "message" || key === "name" || key === "stack") continue;
           if (value === undefined || value === null) continue;
           if (Array.isArray(value) && value.length === 0) continue;
           extra[key] = value;
         }
-        const status = statusByCode[code] ?? 500;
-        return errorResponse(code, message, status, extra);
+        const status = statusByCode[raw.code] ?? 500;
+        return errorResponse(raw.code, raw.message, status, extra);
       }
       if (err instanceof BadJsonError) return errorResponse("INVALID_JSON", err.message, 400);
       throw err;
