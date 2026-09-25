@@ -57,15 +57,13 @@ docker-compose.yml (extracto)
   (20–60 €/mes). A partir de ahí, LiveKit se separa a su propio nodo **antes** que cualquier otro
   componente (es el que más CPU consume por participante con vídeo).
 
-### 2.2 Plan B: LiveKit Cloud
+### 2.2 Plan B: LiveKit Cloud — descartado (2026-09-25)
 
-- **Probar LiveKit Cloud en Fase 2**, no como fallback de emergencia — con tráfico real de prueba
-  entre redes distintas (móvil, wifi doméstica, red corporativa simulada) antes de comprometerse
-  a self-hosted para producción.
-- Criterio de cambio a Cloud: tasa de fallo de conexión > 3–5 % en sesiones de evento (no en B2C,
-  donde la red es más predecible), o coste de soporte/debugging de NAT que supere el ahorro.
-- El código de aplicación **no debe acoplarse** al hecho de ser self-hosted: se usa el SDK oficial
-  y la única diferencia es la URL y las credenciales — decisión reversible sin tocar el protocolo.
+**Decisión: no se usa LiveKit Cloud.** El servicio opera solo en modo self-hosted (§2.1), en la
+propia infraestructura. Ver `docs/reference/registro-de-decisiones.md`.
+
+- El código de aplicación sigue sin acoplarse a ser self-hosted: se usa el SDK oficial y la única
+  diferencia con un hipotético proveedor gestionado sería la URL y las credenciales.
 
 ## 3. Gestión de ancho de banda
 

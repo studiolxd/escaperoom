@@ -264,7 +264,6 @@ modalidad de licencia; si es del propio organizador, 100 % plataforma o gratis (
 - ElevenLabs: coste variable cubierto por créditos (margen objetivo ≥ 50 %).
 - Stripe: 1,5 % + 0,25 € por transacción europea.
 - Moderación: tiempo humano (cola de revisión).
-- LiveKit Cloud (si se usa en vez de self-hosted): €/minuto de media — monitorizar en Fase 2.
 
 ### 9.3 Palancas de crecimiento
 

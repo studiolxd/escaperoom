@@ -113,6 +113,5 @@ Estas quedan explícitamente sin cerrar y se listan para no perderlas de vista:
 
 | Tema | Dónde se resolverá |
 |---|---|
-| LiveKit self-hosted vs. Cloud | Prueba con tráfico real en Fase 2; ver `specs/12-voz-y-webcam-livekit.md` |
 | Titularidad del audio ElevenLabs, plazos fiscales, plantilla de DPA | Asesoría legal; ver `specs/18-legal-rgpd-y-menores.md` |
 | Job de purga de `analyticsEvent` | Fase 6; ver `specs/14-modelo-de-datos-sql.md` |
