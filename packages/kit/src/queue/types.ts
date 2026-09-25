@@ -21,6 +21,14 @@ export type QueueHandle<TPayload> = QueueDefinition<TPayload> & {
    * callers must tolerate "the work will happen on the next maintenance run").
    */
   enqueue(payload: TPayload, opts?: JobsOptions): Promise<string | null>;
+  /**
+   * Adds many jobs in one round trip to Redis (BullMQ `addBulk`), instead of
+   * `await`ing `enqueue()` once per item (B-23: a bulk of up to
+   * `MAX_REMINDERS_PER_REQUEST` sequential awaits). Returns one id-or-null
+   * per input item, same order — null for a disabled queue, an infra error,
+   * or an individually invalid `jobId` (the rest of the batch still enqueues).
+   */
+  enqueueBulk(items: Array<{ payload: TPayload; opts?: JobsOptions }>): Promise<Array<string | null>>;
   /** The lazy underlying BullMQ Queue — null when queues are disabled. */
   getQueue(): Queue<TPayload> | null;
 };

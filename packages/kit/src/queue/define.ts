@@ -25,7 +25,11 @@ export const DEFAULT_JOB_OPTIONS: JobsOptions = {
   attempts: 3,
   backoff: { type: "exponential", delay: 5000 },
   removeOnComplete: 1000,
-  removeOnFail: 5000,
+  // E-23: un job fallido conserva su payload completo en Redis (para
+  // analítica, incluye playerId/sessionId) mientras no se purga; antes
+  // solo tenía tope por cantidad (5000, sin límite de tiempo). Ahora lo
+  // que llegue antes: como mucho 500 o 24 h.
+  removeOnFail: { count: 500, age: 24 * 60 * 60 },
 };
 
 /**
@@ -146,6 +150,52 @@ export function createDefineQueue(config: QueuesRuntimeConfig) {
           if (process.env.NODE_ENV !== "production") throw err;
           return null;
         }
+      },
+      async enqueueBulk(items: Array<{ payload: TPayload; opts?: JobsOptions }>) {
+        const results: Array<string | null> = new Array(items.length).fill(null);
+        if (items.length === 0) return results;
+        const q = ensureQueue();
+        if (!q) {
+          logger.debug(
+            { queue: def.name, count: items.length },
+            "queue: disabled, enqueueBulk skipped",
+          );
+          return results;
+        }
+        // Misma comprobación de `jobId` que `enqueue`, por elemento: el resto
+        // del lote se encola igual (deja `null` solo en su posición).
+        const toAdd: Array<{ name: string; data: TPayload; opts?: JobsOptions; at: number }> = [];
+        items.forEach((item, i) => {
+          if (typeof item.opts?.jobId === "string") {
+            const problem = jobIdProblem(item.opts.jobId);
+            if (problem) {
+              reportJobIdDefect(problem, { queue: def.name, jobId: item.opts.jobId });
+              return;
+            }
+          }
+          toAdd.push({ name: def.name, data: item.payload, opts: item.opts, at: i });
+        });
+        if (toAdd.length === 0) return results;
+        try {
+          const jobs = await q.addBulk(toAdd);
+          jobs.forEach((job, k) => {
+            results[toAdd[k]!.at] = job.id ?? null;
+          });
+        } catch (err) {
+          if (isQueueInfraError(err)) {
+            logger.warn(
+              { err, queue: def.name, count: toAdd.length },
+              "queue: enqueueBulk failed",
+            );
+          } else {
+            logger.error(
+              { err, queue: def.name, count: toAdd.length },
+              "queue: enqueueBulk rejected",
+            );
+            if (process.env.NODE_ENV !== "production") throw err;
+          }
+        }
+        return results;
       },
     };
   };

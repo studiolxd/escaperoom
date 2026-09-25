@@ -229,6 +229,30 @@ export function createPrismaModerationStore(prisma: PrismaClient): ModerationSto
       });
       return new Set(rows.map((r) => r.roomVersion.roomId));
     },
+    // A-18: agregado por objetivo (ixContentReportRoom/-Review/-Reporter,
+    // ixContentReportStatus) en vez de listar toda la cola pendiente para
+    // contar cuántos reportes comparten objetivo con cada fila de la página.
+    async countPendingByTarget(targets) {
+      const roomIds = targets.filter((t) => t.targetType === "room").map((t) => t.targetId);
+      const reviewIds = targets.filter((t) => t.targetType === "review").map((t) => t.targetId);
+      const userIds = targets.filter((t) => t.targetType === "user").map((t) => t.targetId);
+      if (roomIds.length === 0 && reviewIds.length === 0 && userIds.length === 0) {
+        return new Map();
+      }
+      const rows = await prisma.$queryRaw<Array<{ targetType: string; targetId: string; n: bigint }>>`
+        SELECT "targetType",
+               COALESCE("roomId"::text, "reviewId"::text, "targetUserId") AS "targetId",
+               count(*) AS n
+          FROM "contentReport"
+         WHERE status = 'pending'
+           AND (
+             ("targetType" = 'room' AND "roomId" = ANY(${roomIds}::uuid[]))
+             OR ("targetType" = 'review' AND "reviewId" = ANY(${reviewIds}::uuid[]))
+             OR ("targetType" = 'user' AND "targetUserId" = ANY(${userIds}::text[]))
+           )
+         GROUP BY "targetType", COALESCE("roomId"::text, "reviewId"::text, "targetUserId")`;
+      return new Map(rows.map((r) => [`${r.targetType}:${r.targetId}`, Number(r.n)]));
+    },
     async listUnsampledVersions(since, limit) {
       return prisma.$queryRaw<
         Array<{ roomId: string; versionId: string; authorId: string; publishedAt: Date }>

@@ -81,6 +81,12 @@ export interface InvitationStore extends Pick<
 export interface InvitationQueue {
   /** Id del job, o `null` si la cola está deshabilitada o Redis cayó. */
   enqueue(job: InvitationEmailJob): Promise<string | null>;
+  /**
+   * B-23: un job por elemento en una sola llamada (BullMQ `addBulk`), en vez
+   * de `await`ear `enqueue()` una vez por código (hasta
+   * `MAX_REMINDERS_PER_REQUEST` seguidos). Mismo orden en la respuesta.
+   */
+  enqueueBulk(jobs: InvitationEmailJob[]): Promise<Array<string | null>>;
 }
 
 // ── Esquemas y vistas ──────────────────────────────────────────────────────
@@ -279,10 +285,10 @@ export function createInvitationService(deps: {
   }
 
   async function enqueue(codes: string[], kind: InvitationEmailKind): Promise<EnqueueResult> {
-    let queued = 0;
-    for (const code of codes) {
-      if ((await deps.queue.enqueue({ code, kind })) !== null) queued++;
-    }
+    // B-23: un `addBulk` en vez de hasta MAX_REMINDERS_PER_REQUEST `await`
+    // secuenciales (un round-trip a Redis por código).
+    const ids = await deps.queue.enqueueBulk(codes.map((code) => ({ code, kind })));
+    const queued = ids.filter((id) => id !== null).length;
     return { requested: codes.length, queued };
   }
 

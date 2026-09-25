@@ -439,7 +439,15 @@ export function getInvitationService(): InvitationService {
   invitations ??= createInvitationService({
     store: createPrismaInvitationStore(prisma),
     accessKeys: getAccessKeyService(),
-    queue: createInvitationEmailQueue(),
+    // B-23: el handle del kit toma {payload, opts}[]; InvitationQueue no
+    // expone `opts` (invitations.ts nunca fija un jobId propio).
+    queue: (() => {
+      const emailQueue = createInvitationEmailQueue();
+      return {
+        enqueue: (job) => emailQueue.enqueue(job),
+        enqueueBulk: (jobs) => emailQueue.enqueueBulk(jobs.map((payload) => ({ payload }))),
+      };
+    })(),
     confirmation: readConfirmationTokenConfig(),
   });
   return invitations;
