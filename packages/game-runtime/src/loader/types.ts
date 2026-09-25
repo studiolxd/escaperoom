@@ -81,12 +81,16 @@ export interface RuntimeObject {
   leadsTo?: string;
   distribution?: "first_click" | "all_players" | "assigned";
   hidingSpot?: { contains: string };
+  /** Celdas adicionales que ocupa el objeto, además de `position` (specs/26 §2). */
+  footprint?: Position[];
   /** Diálogo que muestra la inspección (`on_interact` + `show_dialog`). */
   inspectDialogId?: string;
   /** Puzzle de panel que abre la inspección (`on_interact` + `open_panel_puzzle`). */
   inspectPanelPuzzleId?: string;
   /** `true` si la regla de inspección tiene condiciones (las evalúa el motor de 1.4). */
   inspectConditioned?: boolean;
+  /** Imagen grande que muestra la inspección (`on_interact` + `show_image`). */
+  inspectImage?: { image: string; caption?: string };
   /**
    * Acciones del menú contextual derivadas de los **triggers** de las reglas
    * (`on_interact` → `inspect`, `on_use_item` → `use_item`); sin reglas, las

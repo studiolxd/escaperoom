@@ -108,12 +108,12 @@ describe("comandos de iluminación (SubRoom.lighting)", () => {
   it("antorchas por posición u objeto y luz ambiente reproducen el fixture", () => {
     const doc = bareAldric();
     // Salón: antorcha gobernada por el brasero + ambiente.
-    addTorch(doc, "salon-trono", { x: 5, y: 1, objectId: "brasero" });
+    addTorch(doc, "salon-trono", { x: 4, y: 6, objectId: "brasero" });
     setAmbientLight(doc, "salon-trono", { color: "#3a2f22", intensity: 0.6 });
     // Bodega: dos antorchas libres; la segunda se coloca mal y se mueve.
-    addTorch(doc, "bodega", { x: 3, y: 1 });
+    addTorch(doc, "bodega", { x: 2, y: 0 });
     addTorch(doc, "bodega", { x: 4, y: 4, objectId: "mesa-catas" });
-    updateTorch(doc, "bodega", 1, { x: 14, y: 1, objectId: null });
+    updateTorch(doc, "bodega", 1, { x: 14, y: 0, objectId: null });
     setAmbientLight(doc, "bodega", { color: "#ffffff", intensity: 1 });
     // Cambiar el ambiente lo sustituye en su sitio (no añade otro).
     setAmbientLight(doc, "bodega", { color: "#2a1f16", intensity: 0.5 });

@@ -1,4 +1,4 @@
-import type { Position, Rect } from "../schemas/common";
+import type { LocalizedText, Position, Rect } from "../schemas/common";
 import type { PuzzleState } from "../schemas/puzzle";
 import type { FlagValue, RuleAction, RuleTrigger } from "../schemas/rules";
 
@@ -100,6 +100,7 @@ export interface GameState {
  */
 export type EngineEffect =
   | { type: "show_dialog"; dialogId: string }
+  | { type: "show_image"; image: string; caption?: LocalizedText }
   | { type: "play_sound"; soundId: string }
   | { type: "spawn_effect"; effectId: string; position?: Position }
   | { type: "open_panel_puzzle"; puzzleId: string }

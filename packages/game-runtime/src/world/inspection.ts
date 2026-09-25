@@ -49,6 +49,7 @@ export function inspectObject(
     ...(object.inspectDialogId ? { dialogId: object.inspectDialogId } : {}),
     ...(dialog ? { dialog } : {}),
     ...(object.inspectPanelPuzzleId ? { panelPuzzleId: object.inspectPanelPuzzleId } : {}),
+    ...(object.inspectImage ? { image: object.inspectImage } : {}),
     ...(contents ? { contents } : {}),
     ...(hasInventory ? { distribution: object.distribution ?? "first_click" } : {}),
     ...(options.containers?.[objectId]

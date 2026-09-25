@@ -1,7 +1,16 @@
 # Pack gráfico v1 — lista de assets (nombre | tamaño | descripción)
 
 Compañera de `specs/26-pack-grafico-v1.md`. El **nombre del archivo debe ser exactamente el frame**
-(el id del `RoomPackage`); PNG con alpha 2:1, pivote abajo-centro, un PNG por frame.
+(el id del `RoomPackage`); PNG con alpha, pivote por frame (por defecto abajo-centro), un PNG por
+frame.
+
+> **Entrega definitiva (assets 3D toon, medieval-v1 1.0.0-rc.1):** los tamaños de esta tabla eran
+> los del generador de placeholders (SVG plano, lienzo canónico compartido por tipo). La entrega
+> real usa **un lienzo propio por frame** (arca 102×92, trono 94×122, muro 64×136…), sin
+> proporción canónica forzada. La **fuente de verdad** de tamaños y orígenes es
+> `pack.config.json` del pack (`sizes`/`origins`), que `pack:build` copia al `manifest.json`
+> (`specs/26` §6). Esta tabla queda como referencia de qué frames existen y su descripción; para el
+> tamaño exacto de un frame, consultar `pack.config.json`, no esta tabla.
 
 **Tiles vs sprites:** la *celda* de rejilla es siempre **64×32**. Los **tiles** (suelo) van dentro del
 tilemap y **todos comparten el mismo tamaño** (64×32). Todo lo que tiene **altura** (muros, columnas,

@@ -47,6 +47,7 @@ const PIPES_GATE_INDEX = 2 * 5 + 3; // compuerta de oro en (3,2) de un 5×5
 const ONCE_RULES = [
   "r-inicio",
   "r-inspeccionar-cuadro",
+  "r-imagen-cuadro",
   "r-revelar-cuadro",
   "r-abrir-armario",
   "r-encender-brasero",
@@ -60,6 +61,7 @@ const ONCE_RULES = [
   "r-canal-resuelto",
   "r-inspeccionar-sarcofago",
   "r-inspeccionar-vasijas",
+  "r-imagen-vasijas",
   "r-sello-resuelto",
 ] as const;
 

@@ -134,6 +134,11 @@ export function aldricScript(pkg: RoomPackage): {
     rule("r-inicio");
     puzzle("p-llave-cuadro");
     rule("r-inspeccionar-cuadro");
+    rule("r-imagen-cuadro");
+    rule("r-inspeccionar-retrato-2");
+    rule("r-inspeccionar-retrato-3");
+    rule("r-inspeccionar-retrato-4");
+    rule("r-inspeccionar-tapiz-dragones");
     rule("r-revelar-cuadro");
     rule("r-abrir-armario");
     // La mesa de combinar: de momento solo la receta cuyos ingredientes ya se
@@ -181,6 +186,7 @@ export function aldricScript(pkg: RoomPackage): {
     rule("r-entrar-catacumbas");
     rule("r-inspeccionar-sarcofago");
     rule("r-inspeccionar-vasijas");
+    rule("r-imagen-vasijas");
     object("compuerta-oro");
     // Ya hay llave de plata (mural) y compuerta: la mesa de combinar completa.
     puzzle("p-combina", true);

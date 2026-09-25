@@ -34,17 +34,35 @@ export const PackAtlasSchema = z.object({
 });
 
 /**
+ * Lienzo lógico del frame a 1× (`[ancho, alto]`, specs/26 §2): cada sprite
+ * tiene el suyo (p. ej. arca 102×92, muro 64×136), no uno canónico. Sin esta
+ * entrada, el runtime usa el tamaño real del frame en el atlas / `scale`.
+ */
+export const PackSizeSchema = z.tuple([z.number(), z.number()]);
+
+/**
+ * Fracción `[ox, oy]` del frame que cae en `tileAnchor(x, y)` (specs/26 §3.1).
+ * Puede salir de `[0, 1]` (p. ej. la mirilla, `ox = 1.09`): no se restringe.
+ * Sin esta entrada, el runtime usa `[0.5, 1]` (abajo-centro).
+ */
+export const PackOriginSchema = z.tuple([z.number(), z.number()]);
+
+/**
  * Entrada de `manifest.tiles`: frame del atlas y **colisión explícita** por
  * `tileId`. `collides` es obligatorio (el runtime no lo infiere del número).
  */
 export const PackTileEntrySchema = z.object({
   frame: z.string().min(1),
   collides: z.boolean(),
+  size: PackSizeSchema.optional(),
+  origin: PackOriginSchema.optional(),
 });
 
 /** Frame por identificador de sprite del `RoomPackage` (objetos, estados, decoración). */
 export const PackSpriteEntrySchema = z.object({
   frame: z.string().min(1),
+  size: PackSizeSchema.optional(),
+  origin: PackOriginSchema.optional(),
 });
 
 /** Animación declarada por el pack (`key`, frames, cadencia y repetición). */
@@ -164,6 +182,8 @@ export const PackManifestSchema = z
 
 export type PackProjection = z.infer<typeof PackProjectionSchema>;
 export type PackAtlas = z.infer<typeof PackAtlasSchema>;
+export type PackSize = z.infer<typeof PackSizeSchema>;
+export type PackOrigin = z.infer<typeof PackOriginSchema>;
 export type PackTileEntry = z.infer<typeof PackTileEntrySchema>;
 export type PackSpriteEntry = z.infer<typeof PackSpriteEntrySchema>;
 export type PackAnim = z.infer<typeof PackAnimSchema>;

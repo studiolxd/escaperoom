@@ -79,6 +79,7 @@ export type GameEndStats = SessionStats;
 /** Mensajes servidor → cliente (specs/11 §5–6, §8), ya tipados. */
 export type GameEvent =
   | { type: "dialog_show"; dialogId: string }
+  | { type: "image_show"; image: string; caption?: string }
   | { type: "object_state_changed"; objectId: string; state: string }
   | { type: "item_granted"; playerId: string; itemId: string }
   | {

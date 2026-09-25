@@ -54,6 +54,11 @@ describe("validador del editor — mapeo de hallazgos a ids", () => {
     expect(state.status).toBe("ready");
     expect(state.report!.ok).toBe(true);
     expect(state.issues.filter((issue) => issue.severity === "error")).toEqual([]);
+    // Las reglas de inspección repetibles (`once: false`) son solo de
+    // presentación (show_dialog/show_image): reinspeccionar una pista de
+    // conteo cuantas veces haga falta es el diseño buscado, no el "puede
+    // repetirse sin fin" que el heurístico de reglas repetibles vigila
+    // (acciones que mutan estado sin condición de corte).
     expect(state.ruleGraphIssues).toEqual([]);
     // Los 🟡 de puzzles sin pista apuntan a puzzles.
     expect(state.issues).toContainEqual(

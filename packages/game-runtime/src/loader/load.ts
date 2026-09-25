@@ -121,7 +121,7 @@ export function toRuntimeModel(
 
   const objects: RuntimeObject[] = [];
   const objectsById: Record<string, RuntimeObject> = {};
-  const inspections = buildInspectionIndex(roomPackage.rules);
+  const inspections = buildInspectionIndex(roomPackage.rules, locale);
   const actions = buildActionIndex(roomPackage.rules);
 
   for (const object of roomPackage.objects) {
@@ -315,6 +315,7 @@ interface DerivedInspection {
   dialogId?: string;
   panelPuzzleId?: string;
   conditioned?: boolean;
+  image?: { image: string; caption?: string };
 }
 
 function toRuntimeObject(object: WorldObject, inspection?: DerivedInspection): RuntimeObject {
@@ -347,9 +348,11 @@ function toRuntimeObject(object: WorldObject, inspection?: DerivedInspection): R
     ...(object.leadsTo ? { leadsTo: object.leadsTo } : {}),
     ...(object.distribution ? { distribution: object.distribution } : {}),
     ...(object.hidingSpot ? { hidingSpot: object.hidingSpot } : {}),
+    ...(object.footprint ? { footprint: object.footprint } : {}),
     ...(inspection?.dialogId ? { inspectDialogId: inspection.dialogId } : {}),
     ...(inspection?.panelPuzzleId ? { inspectPanelPuzzleId: inspection.panelPuzzleId } : {}),
     ...(inspection?.conditioned ? { inspectConditioned: true } : {}),
+    ...(inspection?.image ? { inspectImage: inspection.image } : {}),
   };
 }
 
@@ -360,12 +363,17 @@ function toRuntimeObject(object: WorldObject, inspection?: DerivedInspection): R
  * runtime puede mostrar la descripción del objeto sin ejecutar reglas, y el
  * motor de 1.4 decide cuándo aplican las acciones.
  */
-function buildInspectionIndex(rules: Rule[]): Record<string, DerivedInspection> {
+function buildInspectionIndex(rules: Rule[], locale: string): Record<string, DerivedInspection> {
   interface Choice {
     id: string;
     conditioned: boolean;
   }
-  const index: Record<string, { dialog?: Choice; panel?: Choice }> = {};
+  interface ImageChoice {
+    image: string;
+    caption?: string;
+    conditioned: boolean;
+  }
+  const index: Record<string, { dialog?: Choice; panel?: Choice; image?: ImageChoice }> = {};
 
   for (const rule of rules) {
     if (rule.trigger.type !== "on_interact") {
@@ -374,7 +382,8 @@ function buildInspectionIndex(rules: Rule[]): Record<string, DerivedInspection> 
     const { objectId } = rule.trigger;
     const dialogId = firstAction(rule, "show_dialog")?.dialogId;
     const panelPuzzleId = firstAction(rule, "open_panel_puzzle")?.puzzleId;
-    if (!dialogId && !panelPuzzleId) {
+    const imageAction = firstAction(rule, "show_image");
+    if (!dialogId && !panelPuzzleId && !imageAction) {
       continue;
     }
 
@@ -386,6 +395,13 @@ function buildInspectionIndex(rules: Rule[]): Record<string, DerivedInspection> 
     if (panelPuzzleId && shouldReplace(entry.panel, conditioned)) {
       entry.panel = { id: panelPuzzleId, conditioned };
     }
+    if (imageAction && shouldReplace(entry.image, conditioned)) {
+      entry.image = {
+        image: imageAction.image,
+        ...(imageAction.caption ? { caption: resolveLocalizedText(imageAction.caption, locale) } : {}),
+        conditioned,
+      };
+    }
   }
 
   const result: Record<string, DerivedInspection> = {};
@@ -393,7 +409,12 @@ function buildInspectionIndex(rules: Rule[]): Record<string, DerivedInspection> 
     result[objectId] = {
       ...(entry.dialog ? { dialogId: entry.dialog.id } : {}),
       ...(entry.panel ? { panelPuzzleId: entry.panel.id } : {}),
-      ...(entry.dialog?.conditioned || entry.panel?.conditioned ? { conditioned: true } : {}),
+      ...(entry.dialog?.conditioned || entry.panel?.conditioned || entry.image?.conditioned
+        ? { conditioned: true }
+        : {}),
+      ...(entry.image
+        ? { image: { image: entry.image.image, ...(entry.image.caption ? { caption: entry.image.caption } : {}) } }
+        : {}),
     };
   }
   return result;

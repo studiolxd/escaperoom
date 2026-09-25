@@ -359,8 +359,50 @@ describe("validador — huérfanos, reglas y referencias", () => {
     const report = validateRoomPackage(pkg);
     const cuts = checkOf(report, "rule_cuts");
     expect(cuts.status).toBe("warning");
+    // Las reglas de inspección repetibles del fixture base son solo de
+    // presentación (show_dialog/show_image): el heurístico no las cuenta
+    // (`analyzeRepeatableRules` test más abajo), así que solo aparece r-bucle.
     expect(cuts.issues.map((issue) => issue.ids)).toEqual([["r-bucle"]]);
     expect(renderValidationReport(report)).toContain("🟡 Reglas sin condición de corte: r-bucle");
+  });
+
+  it("una regla repetible sin condición de corte, pero solo de presentación, no avisa", () => {
+    const pkg = cloneFixture();
+    pkg.rules.push({
+      id: "r-eco",
+      priority: 0,
+      once: false,
+      trigger: { type: "on_interact", objectId: "trono" },
+      conditions: [],
+      actions: [
+        { type: "show_dialog", dialogId: "d-cuadro" },
+        { type: "show_image", image: "cuadro-rey" },
+        { type: "play_sound", soundId: "fx-eco" },
+      ],
+    });
+
+    const report = validateRoomPackage(pkg);
+    expect(checkOf(report, "rule_cuts")).toMatchObject({ status: "ok", passed: true, issues: [] });
+  });
+
+  it("una regla repetible que además muta estado (set_flag) sigue avisando", () => {
+    const pkg = cloneFixture();
+    pkg.rules.push({
+      id: "r-eco-con-flag",
+      priority: 0,
+      once: false,
+      trigger: { type: "on_interact", objectId: "trono" },
+      conditions: [],
+      actions: [
+        { type: "show_dialog", dialogId: "d-cuadro" },
+        { type: "set_flag", flag: "eco", value: true },
+      ],
+    });
+
+    const report = validateRoomPackage(pkg);
+    const cuts = checkOf(report, "rule_cuts");
+    expect(cuts.status).toBe("warning");
+    expect(cuts.issues.map((issue) => issue.ids)).toEqual([["r-eco-con-flag"]]);
   });
 
   it("avisa del doble uso conflictivo de un objeto-puente que también se gasta en una regla", () => {

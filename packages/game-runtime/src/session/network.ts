@@ -65,6 +65,11 @@ export function createNetworkGameClient(
   listen(GAME_PROTOCOL.dialogShow, (p) =>
     typeof p.dialogId === "string" ? { type: "dialog_show", dialogId: p.dialogId } : null,
   );
+  listen(GAME_PROTOCOL.imageShow, (p) =>
+    typeof p.image === "string"
+      ? { type: "image_show", image: p.image, ...(typeof p.caption === "string" ? { caption: p.caption } : {}) }
+      : null,
+  );
   listen(GAME_PROTOCOL.objectStateChanged, (p) => ({
     type: "object_state_changed",
     objectId: str(p.objectId),

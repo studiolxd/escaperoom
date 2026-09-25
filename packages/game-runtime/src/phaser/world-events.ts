@@ -37,4 +37,6 @@ export type WorldSceneEvent =
     }
   | { type: "open-panel"; objectId: string; puzzleId: string }
   | { type: "collect"; objectId: string; playerId: string; items: string[] }
-  | { type: "state"; objectId: string; state: string };
+  | { type: "state"; objectId: string; state: string }
+  /** Vista de inspección con imagen grande (`on_interact` + `show_image`, specs/26 §6.1). */
+  | { type: "show-image"; objectId: string; image: string; caption?: string };

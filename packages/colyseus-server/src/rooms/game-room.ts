@@ -3,6 +3,7 @@ import { Room, ServerError, type Client } from "@colyseus/core";
 import { z } from "zod";
 import { logger } from "@escaperoom/kit/logger";
 import type { EngineResult } from "@escaperoom/shared/engine";
+import { resolveLocalizedText } from "@escaperoom/shared/hints";
 import {
   readGameAccessTokenConfig,
   verifyGameAccessToken,
@@ -998,6 +999,19 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
         switch (effect.type) {
           case "show_dialog":
             this.broadcast(GAME_MESSAGES.dialogShow, { dialogId: effect.dialogId });
+            break;
+          case "show_image":
+            this.broadcast(GAME_MESSAGES.imageShow, {
+              image: effect.image,
+              ...(effect.caption
+                ? {
+                    caption: resolveLocalizedText(
+                      effect.caption,
+                      this.roomPackage.meta.defaultLanguage,
+                    ),
+                  }
+                : {}),
+            });
             break;
           case "set_object_state":
             this.broadcast(GAME_MESSAGES.objectStateChanged, {

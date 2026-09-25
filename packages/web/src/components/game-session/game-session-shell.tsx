@@ -39,6 +39,12 @@ import type {
   SplitCluePublicView,
 } from "@escaperoom/shared/templates";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ChatWindow } from "@/components/chat/chat-panel";
 import { ResultsScreen } from "@/components/game/results-screen";
 import { HintPanel } from "@/components/hints/hint-panel";
@@ -174,6 +180,7 @@ export function GameSessionShell({
   const isHost = snapshot.hostId !== "" && snapshot.hostId === snapshot.selfId;
 
   const [dialog, setDialog] = useState<{ id: string; text: string } | null>(null);
+  const [imagePanel, setImagePanel] = useState<{ image: string; caption?: string } | null>(null);
   const [panel, setPanel] = useState<string | null>(null);
   const [views, setViews] = useState<Record<string, RoomPuzzlePublicView>>({});
   const [inventoryOpen, setInventoryOpen] = useState(false);
@@ -326,6 +333,10 @@ export function GameSessionShell({
         case "dialog_show": {
           const known = model.dialogsById[event.dialogId];
           setDialog({ id: event.dialogId, text: known?.text ?? event.dialogId });
+          break;
+        }
+        case "image_show": {
+          setImagePanel({ image: event.image, ...(event.caption ? { caption: event.caption } : {}) });
           break;
         }
         case "object_state_changed":
@@ -975,6 +986,30 @@ export function GameSessionShell({
           <span className="mt-1 block text-[0.65rem] text-white/40">{tp("close")}</span>
         </Button>
       ) : null}
+
+      <Dialog open={imagePanel !== null} onOpenChange={(open) => !open && setImagePanel(null)}>
+        <DialogContent
+          showCloseButton
+          data-testid="game-image-panel"
+          className="flex w-[min(92vw,40rem)] max-w-none flex-col items-center gap-3 rounded-2xl border-amber-200/30 bg-slate-950/95 p-5 text-center text-white shadow-2xl"
+        >
+          <DialogTitle className="sr-only">{tp("inspectImage")}</DialogTitle>
+          <DialogDescription className="sr-only">
+            {imagePanel?.caption ?? tp("inspectImage")}
+          </DialogDescription>
+          {imagePanel && pack ? (
+            // eslint-disable-next-line @next/next/no-img-element -- imagen de inspección servida por el pack, fuera de next/image
+            <img
+              src={`${pack.baseUrl.replace(/\/$/, "")}/inspect/${imagePanel.image}.png`}
+              alt={imagePanel.caption ?? ""}
+              className="max-h-[70vh] w-auto max-w-full rounded-lg border border-white/10 object-contain"
+            />
+          ) : null}
+          {imagePanel?.caption ? (
+            <p className="text-sm text-white/80">{imagePanel.caption}</p>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       {inventoryOpen ? (
         <div
