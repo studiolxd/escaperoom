@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
+import { FieldError } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-type State = { kind: "idle" } | { kind: "sending" } | { kind: "sent" } | { kind: "error" };
+import { useEmailSignIn } from "@/components/auth/use-email-sign-in";
 
 export interface ConsentLoginProps {
   /** Ruta a la que vuelve Better Auth tras el login (el propio consentimiento). */
@@ -20,39 +19,13 @@ export interface ConsentLoginProps {
  */
 export function ConsentLogin({ callbackURL }: ConsentLoginProps) {
   const t = useTranslations("McpConsent.login");
-  const [state, setState] = useState<State>({ kind: "idle" });
-  const [email, setEmail] = useState("");
-
-  const signInWithGoogle = async () => {
-    setState({ kind: "sending" });
-    try {
-      const res = await fetch("/api/auth/sign-in/social", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: "google", callbackURL }),
-      });
-      const json = (await res.json().catch(() => null)) as { url?: string } | null;
-      if (!res.ok || !json?.url) throw new Error("sin url");
-      window.location.href = json.url;
-    } catch {
-      setState({ kind: "error" });
-    }
-  };
-
-  const sendMagicLink = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setState({ kind: "sending" });
-    try {
-      const res = await fetch("/api/auth/sign-in/magic-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, callbackURL }),
-      });
-      setState(res.ok ? { kind: "sent" } : { kind: "error" });
-    } catch {
-      setState({ kind: "error" });
-    }
-  };
+  const {
+    register,
+    onSubmit,
+    signInWithGoogle,
+    status,
+    formState: { errors },
+  } = useEmailSignIn({ callbackURL, emailInvalidMessage: t("emailInvalid") });
 
   return (
     <div className="space-y-4">
@@ -61,11 +34,11 @@ export function ConsentLogin({ callbackURL }: ConsentLoginProps) {
         type="button"
         variant="overlay"
         onClick={signInWithGoogle}
-        disabled={state.kind === "sending"}
+        disabled={status === "sending"}
       >
         {t("google")}
       </Button>
-      <form onSubmit={sendMagicLink} className="space-y-2">
+      <form noValidate onSubmit={onSubmit} className="space-y-2">
         <Label htmlFor="mcp-consent-email" className="text-sm">
           {t("emailLabel")}
         </Label>
@@ -73,22 +46,23 @@ export function ConsentLogin({ callbackURL }: ConsentLoginProps) {
           <Input
             id="mcp-consent-email"
             type="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? "mcp-consent-email-error" : undefined}
             className="h-auto min-w-0 flex-1 rounded-lg border-white/20 bg-white/10 px-3 py-1.5 text-sm text-white"
+            {...register("email")}
           />
-          <Button type="submit" disabled={state.kind === "sending"}>
+          <Button type="submit" disabled={status === "sending"}>
             {t("emailSubmit")}
           </Button>
         </div>
+        <FieldError id="mcp-consent-email-error" className="text-red-300" errors={[errors.email]} />
       </form>
-      {state.kind === "sent" && (
+      {status === "sent" && (
         <p role="status" className="text-sm text-emerald-300">
           {t("emailSent")}
         </p>
       )}
-      {state.kind === "error" && (
+      {status === "error" && (
         <p role="alert" className="text-sm text-red-300">
           {t("error")}
         </p>

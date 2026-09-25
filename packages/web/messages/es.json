@@ -837,7 +837,11 @@
     "created": "¡Gracias! Tu reseña se ha publicado.",
     "updated": "Tu reseña se ha actualizado.",
     "errorContent": "La reseña contiene lenguaje no permitido. Reformúlala para publicarla.",
-    "errorGeneric": "No se ha podido guardar la reseña. Inténtalo de nuevo."
+    "errorGeneric": "No se ha podido guardar la reseña. Inténtalo de nuevo.",
+    "errors": {
+      "ratingRequired": "Elige una valoración",
+      "textTooLong": "El comentario es demasiado largo"
+    }
   },
   "EditorPlaytest": {
     "editor": {
@@ -982,6 +986,9 @@
     "cta": "Entrar en la partida",
     "redeeming": "Canjeando…",
     "errors": {
+      "codeRequired": "La clave es obligatoria",
+      "codeTooLong": "La clave es demasiado larga",
+      "nameTooLong": "El nombre es demasiado largo",
       "ACCESS_KEY_INVALID": "Clave incorrecta.",
       "ACCESS_KEY_USED": "Esta clave ya se ha usado.",
       "ACCESS_KEY_EXPIRED": "Esta clave ya no es válida. Pide al organizador una nueva.",
@@ -1041,6 +1048,7 @@
     "login": {
       "intro": "Inicia sesión para continuar.",
       "google": "Continuar con Google",
+      "emailInvalid": "Introduce un email válido",
       "emailLabel": "O recibe un enlace de acceso por email",
       "emailSubmit": "Enviar enlace",
       "emailSent": "Te hemos enviado un enlace. Ábrelo en este navegador para continuar.",
@@ -1114,7 +1122,13 @@
     "pricingRangeOpen": "{min}+ jugadores:",
     "pricingRangeCapped": "{min}\u2013{max} jugadores:",
     "submitError": "No se ha podido crear el evento. Inténtalo de nuevo.",
-    "submit": "Crear evento"
+    "submit": "Crear evento",
+    "errors": {
+      "titleRequired": "El título es obligatorio",
+      "titleTooLong": "El título es demasiado largo",
+      "playersInvalid": "Introduce un número de jugadores válido",
+      "playersTooMany": "Demasiados jugadores"
+    }
   },
   "EventPanel": {
     "metaTitle": "Panel del evento",
@@ -1335,6 +1349,7 @@
     "loginRequired": {
       "intro": "Inicia sesión para empezar a crear.",
       "google": "Continuar con Google",
+      "emailInvalid": "Introduce un email válido",
       "emailLabel": "O con un enlace mágico por email",
       "emailSubmit": "Enviar enlace",
       "emailSent": "Te hemos enviado un enlace a tu email.",
@@ -1457,7 +1472,16 @@
     "submit": "Enviar mensaje",
     "success": "¡Gracias! Hemos recibido tu mensaje y te responderemos pronto.",
     "sending": "Enviando…",
-    "error": "No se ha podido enviar el mensaje. Inténtalo de nuevo."
+    "error": "No se ha podido enviar el mensaje. Inténtalo de nuevo.",
+    "errors": {
+      "nameRequired": "El nombre es obligatorio",
+      "nameTooLong": "El nombre es demasiado largo",
+      "emailRequired": "El email es obligatorio",
+      "emailTooLong": "El email es demasiado largo",
+      "emailInvalid": "Introduce un email válido",
+      "messageRequired": "El mensaje es obligatorio",
+      "messageTooLong": "El mensaje es demasiado largo"
+    }
   },
   "Checkout": {
     "kinds": {
@@ -1504,6 +1528,7 @@
       "title": "Crea tu cuenta",
       "subtitle": "Regístrate con Google o con un enlace mágico por email"
     },
+    "emailInvalid": "Introduce un email válido",
     "emailLabel": "Email",
     "emailPlaceholder": "tucorreo@ejemplo.com",
     "emailSubmit": "Enviar enlace mágico",

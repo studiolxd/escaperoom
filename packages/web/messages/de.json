@@ -787,7 +787,11 @@
     "created": "Danke! Deine Bewertung wurde veröffentlicht.",
     "updated": "Deine Bewertung wurde aktualisiert.",
     "errorContent": "Die Bewertung enthält unzulässige Sprache. Bitte formuliere sie um.",
-    "errorGeneric": "Die Bewertung konnte nicht gespeichert werden. Bitte versuche es erneut."
+    "errorGeneric": "Die Bewertung konnte nicht gespeichert werden. Bitte versuche es erneut.",
+    "errors": {
+      "ratingRequired": "Wähle eine Bewertung",
+      "textTooLong": "Der Kommentar ist zu lang"
+    }
   },
   "EditorPlaytest": {
     "editor": {
@@ -974,6 +978,9 @@
     "cta": "Dem Spiel beitreten",
     "redeeming": "Wird eingelöst…",
     "errors": {
+      "codeRequired": "Der Code ist erforderlich",
+      "codeTooLong": "Der Code ist zu lang",
+      "nameTooLong": "Der Name ist zu lang",
       "ACCESS_KEY_INVALID": "Diesen Schlüssel gibt es nicht. Prüfe, ob du ihn richtig eingegeben hast.",
       "ACCESS_KEY_USED": "Dieser Schlüssel wurde bereits verwendet.",
       "ACCESS_KEY_EXPIRED": "Dieser Schlüssel ist nicht mehr gültig. Bitte den Veranstalter um einen neuen.",
@@ -1033,6 +1040,7 @@
     "login": {
       "intro": "Melde dich an, um fortzufahren.",
       "google": "Weiter mit Google",
+      "emailInvalid": "Gib eine gültige E-Mail-Adresse ein",
       "emailLabel": "Oder erhalte einen Anmeldelink per E-Mail",
       "emailSubmit": "Link senden",
       "emailSent": "Wir haben dir einen Link geschickt. Öffne ihn in diesem Browser, um fortzufahren.",
@@ -1103,7 +1111,13 @@
     "pricingRangeOpen": "{min}+ Spieler:",
     "pricingRangeCapped": "{min}\u2013{max} Spieler:",
     "submitError": "Das Event konnte nicht erstellt werden. Bitte erneut versuchen.",
-    "submit": "Event erstellen"
+    "submit": "Event erstellen",
+    "errors": {
+      "titleRequired": "Der Titel ist erforderlich",
+      "titleTooLong": "Der Titel ist zu lang",
+      "playersInvalid": "Gib eine gültige Spieleranzahl ein",
+      "playersTooMany": "Zu viele Spieler"
+    }
   },
   "EventPanel": {
     "metaTitle": "Event-Übersicht",
@@ -1366,7 +1380,16 @@
     "submit": "Nachricht senden",
     "success": "Danke! Wir haben deine Nachricht erhalten und melden uns bald.",
     "sending": "Wird gesendet…",
-    "error": "Die Nachricht konnte nicht gesendet werden. Bitte versuche es erneut."
+    "error": "Die Nachricht konnte nicht gesendet werden. Bitte versuche es erneut.",
+    "errors": {
+      "nameRequired": "Der Name ist erforderlich",
+      "nameTooLong": "Der Name ist zu lang",
+      "emailRequired": "Die E-Mail ist erforderlich",
+      "emailTooLong": "Die E-Mail ist zu lang",
+      "emailInvalid": "Gib eine gültige E-Mail-Adresse ein",
+      "messageRequired": "Die Nachricht ist erforderlich",
+      "messageTooLong": "Die Nachricht ist zu lang"
+    }
   },
   "ErrorPage": {
     "title": "Es ist ein Fehler aufgetreten",

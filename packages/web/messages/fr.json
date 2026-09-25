@@ -787,7 +787,11 @@
     "created": "Merci ! Votre avis a été publié.",
     "updated": "Votre avis a été mis à jour.",
     "errorContent": "L'avis contient un langage non autorisé. Reformulez-le pour le publier.",
-    "errorGeneric": "Impossible d'enregistrer l'avis. Réessayez."
+    "errorGeneric": "Impossible d'enregistrer l'avis. Réessayez.",
+    "errors": {
+      "ratingRequired": "Choisissez une note",
+      "textTooLong": "Le commentaire est trop long"
+    }
   },
   "EditorPlaytest": {
     "editor": {
@@ -974,6 +978,9 @@
     "cta": "Rejoindre la partie",
     "redeeming": "Validation…",
     "errors": {
+      "codeRequired": "Le code est obligatoire",
+      "codeTooLong": "Le code est trop long",
+      "nameTooLong": "Le nom est trop long",
       "ACCESS_KEY_INVALID": "Cette clé n’existe pas. Vérifiez que vous l’avez bien saisie.",
       "ACCESS_KEY_USED": "Cette clé a déjà été utilisée.",
       "ACCESS_KEY_EXPIRED": "Cette clé n’est plus valide. Demandez-en une nouvelle à l’organisateur.",
@@ -1033,6 +1040,7 @@
     "login": {
       "intro": "Connectez-vous pour continuer.",
       "google": "Continuer avec Google",
+      "emailInvalid": "Saisissez un email valide",
       "emailLabel": "Ou recevez un lien de connexion par e-mail",
       "emailSubmit": "Envoyer le lien",
       "emailSent": "Nous vous avons envoyé un lien. Ouvrez-le dans ce navigateur pour continuer.",
@@ -1103,7 +1111,13 @@
     "pricingRangeOpen": "{min}+ joueurs\u00a0:",
     "pricingRangeCapped": "{min}\u2013{max} joueurs\u00a0:",
     "submitError": "Impossible de cr\u00e9er l'\u00e9v\u00e9nement. R\u00e9essayez.",
-    "submit": "Cr\u00e9er l'\u00e9v\u00e9nement"
+    "submit": "Cr\u00e9er l'\u00e9v\u00e9nement",
+    "errors": {
+      "titleRequired": "Le titre est obligatoire",
+      "titleTooLong": "Le titre est trop long",
+      "playersInvalid": "Saisissez un nombre de joueurs valide",
+      "playersTooMany": "Trop de joueurs"
+    }
   },
   "EventPanel": {
     "metaTitle": "Tableau de bord de l’événement",
@@ -1366,7 +1380,16 @@
     "submit": "Envoyer le message",
     "success": "Merci ! Nous avons bien reçu votre message et nous vous répondrons bientôt.",
     "sending": "Envoi…",
-    "error": "Impossible d'envoyer le message. Réessayez."
+    "error": "Impossible d'envoyer le message. Réessayez.",
+    "errors": {
+      "nameRequired": "Le nom est obligatoire",
+      "nameTooLong": "Le nom est trop long",
+      "emailRequired": "L'email est obligatoire",
+      "emailTooLong": "L'email est trop long",
+      "emailInvalid": "Saisissez un email valide",
+      "messageRequired": "Le message est obligatoire",
+      "messageTooLong": "Le message est trop long"
+    }
   },
   "ErrorPage": {
     "title": "Une erreur est survenue",
