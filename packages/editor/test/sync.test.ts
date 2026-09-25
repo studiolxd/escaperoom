@@ -361,11 +361,6 @@ describe("WebSocket de edición: restauración del historial", () => {
         await gate;
         return real.planRestoreAgainstDoc(...args);
       },
-      async planRestore(...args) {
-        gateOpen = true;
-        await gate;
-        return real.planRestore(...args);
-      },
     };
     const { url } = await startServer(store, { drafts });
     const a = connectClient(url);

@@ -88,6 +88,17 @@ model analyticsEvent {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// E-18: drift preexistente ya resuelto — hasta esta migración, `@@index
+/// ([createdAt], map: "ixAudioAssetPending")` describía como un índice
+/// normal lo que en 0011_audio_assets era en realidad un índice PARCIAL
+/// (`ON "createdAt" WHERE status = 'pending'`, no representable en Prisma):
+/// un `migrate dev` a ciegas podía proponer sustituirlo por uno completo,
+/// más grande y sin la condición. Además, `listModerationQueue`
+/// (audio-assets.ts) filtra por cualquiera de los tres `status` posibles
+/// (`pending`/`approved`/`rejected`, ver `AudioQueueQuery`), y el índice
+/// parcial solo cubría `pending`: las colas de `approved`/`rejected` hacían
+/// seq scan. Sustituido por `ixAudioAssetStatusCreatedAt`
+/// (`status`, `createdAt`), sí representable y que cubre los tres.
 model audioAsset {
   id                               String        @id @db.Uuid
   ownerId                          String
@@ -113,11 +124,17 @@ model audioAsset {
   user_audioAsset_reviewedByTouser user?         @relation("audioAsset_reviewedByTouser", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([ownerId, createdAt(sort: Desc)], map: "ixAudioAssetOwner")
-  @@index([createdAt], map: "ixAudioAssetPending")
+  @@index([status, createdAt], map: "ixAudioAssetStatusCreatedAt")
   @@index([organizationId], map: "ixAudioAssetOrganization")
   @@index([reviewedBy], map: "ixAudioAssetReviewedBy")
 }
 
+/// E-18: dos índices parciales creados a mano (no representables en Prisma)
+/// — `ixContentReportStatus` sobre `status` WHERE status = 'pending'
+/// (0010_moderation) e `ixContentReportRoom` sobre `roomId` WHERE `roomId`
+/// IS NOT NULL (0016_moderation_pipeline) — para la cola de moderación y las
+/// consultas por sala sin indexar filas que no las usan (reportes ya
+/// resueltos o sin `roomId`, p. ej. los que apuntan a `review`/`user`).
 model contentReport {
   id                                    String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   reporterId                            String?
@@ -159,6 +176,14 @@ model contentReport {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// E-18: dos índices únicos parciales creados a mano (no representables en
+/// Prisma) — `uxCreditAccountUser` sobre `userId` WHERE `userId` IS NOT NULL
+/// y `uxCreditAccountOrg` sobre `organizationId` WHERE `organizationId` IS
+/// NOT NULL (0004_credits) — garantizan como mucho una cuenta de crédito por
+/// usuario/organización sin bloquear las filas con el otro lado NULL. Además,
+/// `trgCreditAccountUpdatedAt` (trigger `setUpdatedAt`, 0004_credits) pone
+/// `updatedAt` en cada UPDATE: por eso el campo no lleva `@updatedAt` aquí
+/// (lo pondría Prisma en vez del trigger, que es quien manda en la BD).
 model creditAccount {
   id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId         String?
@@ -296,6 +321,9 @@ model member {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// E-18: índice parcial creado a mano (no representable en Prisma)
+/// `ixModerationAppealStatus` sobre `status` WHERE status = 'pending'
+/// (0010_moderation), para la cola de apelaciones pendientes.
 model moderationAppeal {
   id                                     String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   creatorId                              String
@@ -388,6 +416,14 @@ model progressEvent {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// E-18: dos índices únicos parciales creados a mano (no representables en
+/// Prisma) — `uxPurchaseStripePi` sobre `stripePaymentIntentId` WHERE no es
+/// NULL (0007_purchases: dedupe del webhook de Stripe, B-1) y
+/// `uxPurchaseOwnedRoom` sobre (`userId`, `roomVersionId`) WHERE
+/// `purchaseType` = 'room' AND status = 'succeeded'
+/// (20260925120000_event_payment_integrity: como mucho una compra `succeeded`
+/// de la misma versión de sala por usuario, B-16) — de los que dependen
+/// `user-data-rights-prisma-store.ts` y la dedupe de Stripe.
 model purchase {
   id                    String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId                String
@@ -424,6 +460,8 @@ model purchase {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// E-18: `trgReviewUpdatedAt` (trigger `setUpdatedAt`, 0009_reviews) pone
+/// `updatedAt` en cada UPDATE — por eso el campo no lleva `@updatedAt` aquí.
 model review {
   id                         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId                     String
@@ -444,6 +482,11 @@ model review {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// E-18: índice parcial creado a mano (no representable en Prisma)
+/// `ixRoomCatalog` sobre `status` WHERE status = 'published' AND `deletedAt`
+/// IS NULL (0005_rooms), para el listado del catálogo. `trgRoomUpdatedAt`
+/// (trigger `setUpdatedAt`, 0005_rooms) pone `updatedAt` en cada UPDATE — por
+/// eso el campo no lleva `@updatedAt` aquí.
 model room {
   id                                                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   authorId                                          String

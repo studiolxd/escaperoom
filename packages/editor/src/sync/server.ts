@@ -385,7 +385,7 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
     // await entre leerlo y aplicarlo más abajo), así que no queda ventana
     // para que una edición concurrente se aplique al doc entre que se calcula
     // el plan y se aplica, y se pierda o se aplique sobre una base obsoleta.
-    const update = await drafts.planRestore(actor, roomId, target);
+    const update = await drafts.planRestoreAgainstDoc(actor, roomId, target, room.doc);
     if (!update) return { changed: false };
     if (room.closed) {
       const result = await drafts.restoreDraft(actor, roomId, target);

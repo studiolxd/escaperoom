@@ -1,0 +1,19 @@
+-- E-18: `ixAudioAssetPending` (0011_audio_assets) es un índice PARCIAL
+-- (`ON "createdAt" WHERE status = 'pending'`) que `schema.prisma` venía
+-- describiendo como un `@@index([createdAt])` normal — drift preexistente
+-- entre el esquema y la BD real que un `migrate dev` a ciegas podía
+-- "corregir" sustituyéndolo por un índice completo sin la condición.
+--
+-- Además, `listModerationQueue` (audio-assets.ts, vía `AudioQueueQuery`)
+-- consulta la cola de moderación filtrando por cualquiera de los tres
+-- `status` (`pending`/`approved`/`rejected`), y el índice parcial solo
+-- servía a `pending`: las colas de `approved`/`rejected` hacían seq scan.
+--
+-- Se sustituye por un índice compuesto (`status`, `createdAt`) — sí
+-- representable en Prisma sin ambigüedad — que cubre los tres. El DROP del
+-- índice parcial va en la migración siguiente: `DROP INDEX CONCURRENTLY`
+-- no se reconoce en el mismo fichero que un `CREATE INDEX CONCURRENTLY`
+-- (el motor de Prisma solo detecta el segundo para eximirlo de la
+-- transacción; mezclar ambos en un fichero revienta con "DROP INDEX
+-- CONCURRENTLY cannot run inside a transaction block").
+CREATE INDEX CONCURRENTLY "ixAudioAssetStatusCreatedAt" ON "audioAsset"(status, "createdAt");
