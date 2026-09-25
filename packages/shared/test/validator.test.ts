@@ -127,8 +127,8 @@ describe("validador — Rey Aldric", () => {
     // Orden de la secuencia verificada de las notas de diseño (pasos 1–14).
     const order = [
       solve("p-llave-cuadro"), // 1. llave-bronce
-      gained("mechero"), // 2. armario
-      gained("antorcha"), // 3. mechero+vela
+      gained("yesquero"), // 2. armario
+      gained("antorcha"), // 3. yesquero+vela
       at((s) => s.rulesFired.includes("r-encender-brasero"), "brasero"), // 4. dígito 3
       solve("p-candado-arca"), // 5. "4732" → cáliz + busto de piedra
       solve("p-placas-estatuas"), // 6. placas (en solitario con el busto de piedra)
@@ -227,7 +227,7 @@ describe("validador — dead ends artificiales", () => {
     );
     // Lo que colgaba del armario queda huérfano.
     expect(checkOf(report, "orphans").issues.map((issue) => issue.ids[0])).toEqual(
-      expect.arrayContaining(["llave-bronce", "mechero", "vela", "antorcha"]),
+      expect.arrayContaining(["llave-bronce", "yesquero", "vela", "antorcha"]),
     );
     expect(renderValidationReport(report)).toMatch(/^❌ Dead ends/mu);
   });

@@ -280,10 +280,10 @@ async function playSession(endpoint: string, index: number, metrics: Metrics): P
     a.room.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
     await a.hasItems(["llave-bronce"]);
     a.room.send(GAME_MESSAGES.useItem, { itemId: "llave-bronce", objectId: "armario" });
-    await a.hasItems(["mechero", "vela"]);
+    await a.hasItems(["yesquero", "vela"]);
     await a.request(
       GAME_MESSAGES.combine,
-      { puzzleId: "p-combina", inputs: ["mechero", "vela"] },
+      { puzzleId: "p-combina", inputs: ["yesquero", "vela"] },
       GAME_MESSAGES.attemptResult,
     );
     a.room.send(GAME_MESSAGES.interact, { objectId: "brasero" });

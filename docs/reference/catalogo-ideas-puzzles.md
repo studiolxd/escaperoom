@@ -47,7 +47,7 @@ de ideas para la v2+.
 
 | Juego | Descripción | Estado |
 |---|---|---|
-| Combinar objetos | Vela + mechero = antorcha encendida | ✅ `combine_items` |
+| Combinar objetos | Vela + yesquero = antorcha encendida | ✅ `combine_items` |
 | Usar objeto en el sitio | Palanca en la escotilla, imán para sacar una llave | ✅ reglas `on_interact` |
 | Desmontar / inspeccionar | Examinar un objeto para encontrar un número dentro | ✅ `combine_items` (`consumeInputs:false`) |
 | Receta / ritual | Mezclar ingredientes en orden para crear un componente | ✅ `combine_items` |

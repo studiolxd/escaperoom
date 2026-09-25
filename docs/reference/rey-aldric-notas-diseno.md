@@ -26,7 +26,7 @@ Acompaña a `reference/roompackage-rey-aldric.v1.json` y a `specs/08-formato-roo
 ## Notas de diseño finas
 
 1. **Los dígitos del candado del arca (`4732`):** 4 torres (retrato de Aurelio), 7 dragones
-   (tapiz), 3 brasas (brasero, **solo visible al encenderlo** → la receta `mechero+vela→antorcha`
+   (tapiz), 3 brasas (brasero, **solo visible al encenderlo** → la receta `yesquero+vela→antorcha`
    es obligatoria), 2 estatuas. El orden lo dan los retratos de izquierda a derecha.
 
 2. **El sello final (`4538`):** requiere `p-canal-agua` resuelto (`requiresSolved`) **y** el altar
@@ -82,8 +82,8 @@ Acompaña a `reference/roompackage-rey-aldric.v1.json` y a `specs/08-formato-roo
 
 ```
 1. Inspeccionar cuadro-aurelio          → llave-bronce
-2. Abrir armario (llave-bronce)         → mechero + vela
-3. Combinar mechero+vela                → antorcha
+2. Abrir armario (llave-bronce)         → yesquero + vela
+3. Combinar yesquero+vela                → antorcha
 4. Encender brasero (antorcha)          → dígito 3 visible
 5. Resolver candado-arca "4732"         → cáliz + busto de piedra + pergamino
 6. [Solo: busto en placa-izq, se gasta] / [Grupo: placas simultáneas] → puerta-bodega

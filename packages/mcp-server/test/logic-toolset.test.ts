@@ -115,7 +115,7 @@ describe("toolset de lógica y consulta (4.3)", () => {
     });
     expect(graph.puzzles.find((puzzle) => puzzle.id === "p-combina")).toMatchObject({
       type: "combine_items",
-      recipes: ["mechero+vela→antorcha", "llave-plata→llave-oro"],
+      recipes: ["yesquero+vela→antorcha", "llave-plata→llave-oro"],
     });
     expect(graph.edges).toEqual(
       expect.arrayContaining([
@@ -274,7 +274,7 @@ describe("errores accionables (specs/10 §3)", () => {
 
     const item = await add({ trigger: { type: "on_item_collected", itemId: "copa" } });
     expect(item.text).toMatch(
-      /^❌ add_rule: No existe el item "copa" \(en trigger\.itemId\)\. Items disponibles: \[mechero, vela,/,
+      /^❌ add_rule: No existe el item "copa" \(en trigger\.itemId\)\. Items disponibles: \[yesquero, vela,/,
     );
 
     const dialog = await add({

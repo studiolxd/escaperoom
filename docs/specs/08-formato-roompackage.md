@@ -42,7 +42,7 @@ interface RoomPackage {
   };
 
   objects: WorldObject[];         // interactuables del escenario
-  items: ItemDef[];               // catálogo de objetos (llaves, cáliz, mechero…)
+  items: ItemDef[];               // catálogo de objetos (llaves, cáliz, yesquero…)
   puzzles: PuzzleDefinition[];    // las plantillas (MVP + v2)
   rules: Rule[];                  // lógica declarativa SI/ENTONCES
   dialogs: DialogDef[];           // textos localizados (i18n)

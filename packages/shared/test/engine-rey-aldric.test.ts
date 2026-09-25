@@ -46,7 +46,7 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
     expect(engine.state.flags.digito3).toBe(3);
     expect(engine.state.objectStates.brasero).toBe("lit");
     expect(engine.state.timers.cronometro?.running).toBe(true);
-    expect(engine.state.inventory.p1).toContain("mechero");
+    expect(engine.state.inventory.p1).toContain("yesquero");
     expect(engine.state.inventory.p1).toContain("vela");
     expect(engine.state.inventory.p1).not.toContain("llave-bronce");
     expect(engine.state.inventory.p1).not.toContain("antorcha");

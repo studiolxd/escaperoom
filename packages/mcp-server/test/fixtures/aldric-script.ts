@@ -137,7 +137,7 @@ export function aldricScript(pkg: RoomPackage): {
     rule("r-revelar-cuadro");
     rule("r-abrir-armario");
     // La mesa de combinar: de momento solo la receta cuyos ingredientes ya se
-    // obtienen (mechero + vela del armario). La llave de plata y la compuerta
+    // obtienen (yesquero + vela del armario). La llave de plata y la compuerta
     // de oro llegan en la Bodega y las Catacumbas.
     puzzleDraft("p-combina", (p) => {
       if (p.type !== "combine_items") throw new Error("p-combina debe ser combine_items");

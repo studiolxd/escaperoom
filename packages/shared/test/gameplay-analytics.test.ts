@@ -85,12 +85,12 @@ const CASES: Case[] = [
     name: "item_combined",
     input: {
       type: "item_combined",
-      inputs: ["mechero", "vela"],
+      inputs: ["yesquero", "vela"],
       output: "antorcha",
       success: true,
     },
     eventType: "item_combined",
-    payload: { inputs: ["mechero", "vela"], output: "antorcha", success: true },
+    payload: { inputs: ["yesquero", "vela"], output: "antorcha", success: true },
   },
   {
     name: "dialog_read",

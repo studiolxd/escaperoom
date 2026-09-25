@@ -21,7 +21,7 @@ import {
  * - fin de partida y stats (1.9).
  *
  * Guion: inspeccionar el cuadro → `llave-bronce` → abrir el armario →
- * `mechero`+`vela` → combinar → `antorcha` → encender el brasero → candado del
+ * `yesquero`+`vela` → combinar → `antorcha` → encender el brasero → candado del
  * arca (código `4732`) → `caliz-real` + `busto-piedra` → placas (resueltas
  * aquí con `solveWorldPuzzle`, sin pasar por el puente) → puerta a la Bodega.
  *
@@ -79,7 +79,7 @@ function playSala1(): ScriptResult {
 
   collectInteraction(session.interact("cuadro-aurelio", 0));
   collectInteraction(session.useItemOnObject("llave-bronce", "armario", 0));
-  const combined = session.combine("p-combina", ["mechero", "vela"], 0);
+  const combined = session.combine("p-combina", ["yesquero", "vela"], 0);
   if (combined.engine) collectEngine(combined.engine);
   collectInteraction(session.interact("brasero", 0));
   const lock = session.attemptCode("p-candado-arca", "4732", 0);
@@ -101,7 +101,7 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
     }
     // `p-combina` es compartido con la Bodega/Catacumbas (su 2ª receta,
     // `llave-plata → llave-oro`, no se juega en el Salón): aquí basta con que la
-    // receta del Salón (`mechero + vela → antorcha`) se haya aplicado.
+    // receta del Salón (`yesquero + vela → antorcha`) se haya aplicado.
     expect(session.combineItemsView("p-combina").appliedRecipeCount).toBeGreaterThanOrEqual(1);
 
     // — Ítems esperados: los consumibles se gastan; `solveWorldPuzzle` fuerza
@@ -109,7 +109,7 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
     // busto de piedra (su objeto-puente) no llega a gastarse aquí —
     expect(session.inventory()).toEqual(["caliz-real", "busto-piedra", "pergamino-bodega"]);
     expect(session.inventory()).not.toContain("llave-bronce");
-    expect(session.inventory()).not.toContain("mechero");
+    expect(session.inventory()).not.toContain("yesquero");
     expect(session.inventory()).not.toContain("vela");
     expect(session.inventory()).not.toContain("antorcha");
 
@@ -172,7 +172,7 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
     session.start(0);
     session.interact("cuadro-aurelio", 0);
     session.useItemOnObject("llave-bronce", "armario", 0);
-    session.combine("p-combina", ["mechero", "vela"], 0);
+    session.combine("p-combina", ["yesquero", "vela"], 0);
     session.interact("brasero", 0);
     session.attemptCode("p-candado-arca", "4732", 0);
     session.solveWorldPuzzle("p-placas-estatuas", 0);
@@ -188,7 +188,7 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
     session.start(0);
     session.interact("cuadro-aurelio", 0);
     session.useItemOnObject("llave-bronce", "armario", 0);
-    session.combine("p-combina", ["mechero", "vela"], 0);
+    session.combine("p-combina", ["yesquero", "vela"], 0);
     session.interact("brasero", 0);
 
     const wrong = session.attemptCode("p-candado-arca", "0000", 0);

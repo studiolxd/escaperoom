@@ -127,7 +127,7 @@
   ],
 
   "items": [
-    { "id": "mechero", "name": { "es": { "text": "Mechero de pedernal" } }, "icon": "icon-mechero" },
+    { "id": "yesquero", "name": { "es": { "text": "Yesquero" } }, "icon": "icon-yesquero" },
     { "id": "vela", "name": { "es": { "text": "Vela" } }, "icon": "icon-vela" },
     { "id": "antorcha", "name": { "es": { "text": "Antorcha encendida" } }, "icon": "icon-antorcha" },
     { "id": "llave-bronce", "name": { "es": { "text": "Llave de bronce" } }, "icon": "icon-llave-bronce" },
@@ -144,7 +144,7 @@
       "id": "p-combina", "type": "combine_items", "layer": "panel",
       "roomId": "salon-trono", "requiresSolved": [], "grantsItems": [], "unlocks": ["compuerta-oro"],
       "recipes": [
-        { "inputs": ["mechero", "vela"], "output": "antorcha", "consumeInputs": true },
+        { "inputs": ["yesquero", "vela"], "output": "antorcha", "consumeInputs": true },
         { "inputs": ["llave-plata"], "output": "llave-oro", "consumeInputs": false, "description": "Inspeccionar: una llave dentro de otra" }
       ]
     },
@@ -245,7 +245,7 @@
       "conditions": [ { "type": "item_in_inventory", "itemId": "llave-bronce", "consumed": true } ],
       "actions": [
         { "type": "set_object_state", "objectId": "armario", "state": "open" },
-        { "type": "grant_item", "itemId": "mechero", "to": "interactor" },
+        { "type": "grant_item", "itemId": "yesquero", "to": "interactor" },
         { "type": "grant_item", "itemId": "vela", "to": "interactor" }
       ] },
 

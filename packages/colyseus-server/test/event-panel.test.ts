@@ -287,11 +287,11 @@ describe("panel del organizador con 2 grupos jugando", () => {
     ana.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
     ana.send(GAME_MESSAGES.useItem, { itemId: "llave-bronce", objectId: "armario" });
     await until(ana, () =>
-      ["mechero", "vela"].every((item) =>
+      ["yesquero", "vela"].every((item) =>
         ana.state.inventories.get(ana.sessionId)?.items.includes(item),
       ),
     );
-    ana.send(GAME_MESSAGES.combine, { puzzleId: "p-combina", inputs: ["mechero", "vela"] });
+    ana.send(GAME_MESSAGES.combine, { puzzleId: "p-combina", inputs: ["yesquero", "vela"] });
     await until(ana, () =>
       Boolean(ana.state.inventories.get(ana.sessionId)?.items.includes("antorcha")),
     );
@@ -402,7 +402,7 @@ describe("modo observador", () => {
     await until(ana, () =>
       Boolean(ana.state.inventories.get(ana.sessionId)?.items.includes("vela")),
     );
-    ana.send(GAME_MESSAGES.combine, { puzzleId: "p-combina", inputs: ["mechero", "vela"] });
+    ana.send(GAME_MESSAGES.combine, { puzzleId: "p-combina", inputs: ["yesquero", "vela"] });
     await until(ana, () =>
       Boolean(ana.state.inventories.get(ana.sessionId)?.items.includes("antorcha")),
     );

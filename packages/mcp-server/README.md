@@ -369,7 +369,7 @@ Cómo construye el agente (lo que el validador incremental de 4.4 obliga a hacer
   relicario); el `code_lock` que lista sus `hints` y cada pista con su `puzzleId`. Se da de alta el
   puzzle sin la referencia y, cuando existe la otra entidad, se sustituye con `replace: true` (que
   conserva su posición).
-- `p-combina` entra primero con la receta cuyos ingredientes ya se obtienen (mechero + vela) y se
+- `p-combina` entra primero con la receta cuyos ingredientes ya se obtienen (yesquero + vela) y se
   completa en las Catacumbas, cuando ya hay llave de plata y compuerta de oro.
 
 Diferencias no semánticas que el test normaliza (y comprueba aparte):

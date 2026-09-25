@@ -271,8 +271,8 @@ const hasItem = (client: TestClient, item: string) =>
 async function reachArcaLock(client: TestClient): Promise<void> {
   client.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
   client.send(GAME_MESSAGES.useItem, { itemId: "llave-bronce", objectId: "armario" });
-  await until(client, () => hasItem(client, "mechero") && hasItem(client, "vela"));
-  client.send(GAME_MESSAGES.combine, { puzzleId: "p-combina", inputs: ["mechero", "vela"] });
+  await until(client, () => hasItem(client, "yesquero") && hasItem(client, "vela"));
+  client.send(GAME_MESSAGES.combine, { puzzleId: "p-combina", inputs: ["yesquero", "vela"] });
   await until(client, () => hasItem(client, "antorcha"));
   client.send(GAME_MESSAGES.interact, { objectId: "brasero" });
   await until(client, (state) => state.flags.get("digito3") === "3");

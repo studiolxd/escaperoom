@@ -17,7 +17,7 @@ Referencias: `specs/04-runtime-juego-y-mundo.md`, `specs/05-motor-de-reglas-y-es
 | 1.4 | **Motor de reglas v1** | `GameState`, flags, prioridad, transaccionalidad, `once`/`repeatable`, `delay`, timers, idempotencia y guías; vocabulario MVP | `05` | Las reglas del Rey Aldric del Salón disparan en orden y son idempotentes; test unitario del motor en verde |
 | 1.5 | **Plantilla `hidden_key`** | Escondite + reveal + otorgar item | `06` §2.1 | El cuadro de Aurelio entrega `llave-bronce` con animación `shake` |
 | 1.6 | **Plantilla `code_lock`** | `<CodeLockPuzzle>` + validación servidor + `maxAttempts`/`lockoutSec`; el código nunca viaja al cliente | `06` §2.2 | El candado `4732` abre; 5 fallos bloquean 30 s; inspeccionar el cliente no revela el código |
-| 1.7 | **Plantilla `combine_items`** | `<InventoryPanel>` drag & drop + recetas en servidor | `06` §2.4 | `mechero+vela→antorcha`; `llave-plata→llave-oro` (sin consumir) |
+| 1.7 | **Plantilla `combine_items`** | `<InventoryPanel>` drag & drop + recetas en servidor | `06` §2.4 | `yesquero+vela→antorcha`; `llave-plata→llave-oro` (sin consumir) |
 | 1.8 | **Sistema de pistas y diálogos** | `hints` con tiers y coste, `hint_request`, `dialog_show`, `LocalizedText` en `es` | `05` §3, `08` §2.3 | Pedir pista descuenta del contador y muestra el texto del tier correcto |
 | 1.9 | **Fin de partida** | Cronómetro (`start_timer`), `end_game` (victory/timeout), pantalla de resultados | `04` §6 | Un flujo de prueba termina en victoria/timeout y muestra stats |
 | 1.10 | **Rey Aldric Sala 1 vertical** | Construir la Sala 1 completa a mano en JSON (llave, candado, combinación, placas pendientes o incluidas) | `reference/roompackage-rey-aldric.v1.json` | Un test de integración recorre la Sala 1 de principio a fin |
