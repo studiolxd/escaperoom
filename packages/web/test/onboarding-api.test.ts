@@ -7,9 +7,14 @@ import {
   type Actor,
   type RoomDraftService,
 } from "@escaperoom/shared/services";
+import { __resetInMemoryRateLimitersForTests } from "@escaperoom/kit/rate-limit";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { RATE_LIMIT_POLICIES } from "../src/server/rate-limit";
 import { createOnboardingHandlers } from "../src/server/rest/onboarding";
+
+// Ver la nota igual en `test/rate-limit.test.ts` (entrada "Tests de rate
+// limit deterministas", `docs/DEUDA.md`).
+__resetInMemoryRateLimitersForTests();
 
 const quotaServices = vi.hoisted(() => ({ drafts: null as RoomDraftService | null }));
 vi.mock("@/server/services", () => ({ getRoomDraftService: () => quotaServices.drafts }));
