@@ -110,7 +110,7 @@ anterior deja de habilitar las claves con email hasta que un owner/admin acepte 
 | Cuenta tras cierre voluntario | Anonimización inmediata de campos identificativos; se conserva registro transaccional (compras) sin datos personales visibles | Obligación fiscal de conservar facturación (4–6 años típico en España, **confirmar**) |
 | `accessKey` con email de participante | 12 meses tras el evento (3 meses si `audience: educational`), luego anonimización (email → hash) — job implementado (`@escaperoom/worker`, `access-key-email-purge.ts`) | El organizador puede necesitar reconstruir asistencia meses después |
 | `eventRecording` | 90 días | Ya fijado en `specs/12-voz-y-webcam-livekit.md` §5 |
-| `analyticsEvent` | 24 meses en detalle; agregados anonimizados sin límite | Alinea con el particionado mensual; **falta el job de purga** |
+| `analyticsEvent` | 24 meses en detalle; agregados anonimizados sin límite | Alinea con el particionado mensual — job implementado (`@escaperoom/shared/analytics/partitions.ts`, `ANALYTICS_RETENTION_MONTHS`): purga por partición mensual completa, no por fila |
 | `contentReport` | Sin borrado automático | Histórico de moderación para detectar reincidencia de strikes |
 
 ### 3.4 Derechos de las personas interesadas

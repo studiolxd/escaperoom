@@ -6,15 +6,24 @@ import {
   createCreditsService,
   createInMemoryCreditAccountStore,
   type Actor,
+  type MembershipStore,
 } from "../src/services";
 
 const ana: Actor = { userId: "user-ana", organizationId: null, role: "member" };
 const orgMember: Actor = { userId: "user-carla", organizationId: "org-1", role: "member" };
 
-function setup() {
+function setup(members?: MembershipStore) {
   const store = createInMemoryCreditAccountStore();
-  const credits = createCreditsService({ store });
+  const credits = createCreditsService({ store, members });
   return { store, credits };
+}
+
+function membershipOf(roles: Record<string, string>): MembershipStore {
+  return {
+    async findMemberRole(organizationId, userId) {
+      return roles[`${organizationId}:${userId}`] ?? null;
+    },
+  };
 }
 
 describe("credits", () => {
@@ -82,6 +91,44 @@ describe("credits", () => {
     expect(accountId).toBe(org.id);
     expect(balanceAfter).toBe(0n);
     expect(personal.balanceCredits).toBe(100n);
+  });
+
+  it("B-18: un miembro expulsado no puede gastar créditos de la organización", async () => {
+    const members = membershipOf({}); // sin ningún rol: ya no es miembro
+    const { store, credits } = setup(members);
+    const org = await store.ensureAccountForActor(orgMember);
+    org.balanceCredits = 10n;
+
+    await expect(
+      credits.consume(orgMember, 3n, { referenceType: "audio_generation", referenceId: "d1" }),
+    ).rejects.toThrow(CreditError);
+    expect(org.balanceCredits).toBe(10n);
+  });
+
+  it("B-18: un miembro activo sí puede gastar créditos de la organización", async () => {
+    const members = membershipOf({ "org-1:user-carla": "member" });
+    const { store, credits } = setup(members);
+    const org = await store.ensureAccountForActor(orgMember);
+    org.balanceCredits = 10n;
+
+    const { balanceAfter } = await credits.consume(orgMember, 3n, {
+      referenceType: "audio_generation",
+      referenceId: "d1",
+    });
+    expect(balanceAfter).toBe(7n);
+  });
+
+  it("B-18: sin cuenta de organización no hace falta revalidar membresía", async () => {
+    const members = membershipOf({});
+    const { store, credits } = setup(members);
+    const account = await store.ensureAccountForActor(ana);
+    account.balanceCredits = 10n;
+
+    const { balanceAfter } = await credits.consume(ana, 3n, {
+      referenceType: "audio_generation",
+      referenceId: "d1",
+    });
+    expect(balanceAfter).toBe(7n);
   });
 
   it("refund suma créditos a la cuenta", async () => {
