@@ -100,16 +100,21 @@ export function classifyRoomPackageChange(
   }
 
   // Ya se comprobó que `puzzles`/`rules` no tienen ids añadidos, eliminados ni
-  // con contenido distinto: se excluyen aquí para que un simple reordenamiento
-  // (mismos ids, mismo contenido, otra posición) no cuente como cambio.
-  const { meta: prevMeta, puzzles: _prevPuzzles, rules: _prevRules, ...prevRest } = previous;
-  const { meta: candMeta, puzzles: _candPuzzles, rules: _candRules, ...candRest } = candidate;
-  const { id: _prevId, authorId: _prevAuthorId, version: _prevVersion, ...prevMetaRest } = prevMeta;
-  const { id: _candId, authorId: _candAuthorId, version: _candVersion, ...candMetaRest } = candMeta;
+  // con contenido distinto: se excluyen aquí (junto con `meta.id`/`authorId`/
+  // `version`, que fija el servidor al congelar) para que ni un simple
+  // reordenamiento (mismos ids, mismo contenido, otra posición) ni la
+  // identidad de la versión cuenten como cambio.
+  const comparableContent = ({ meta, map, objects, items, dialogs, hints }: RoomPackage) => ({
+    meta: { ...meta, id: undefined, authorId: undefined, version: undefined },
+    map,
+    objects,
+    items,
+    dialogs,
+    hints,
+  });
   if (
     changedRuleIds.length === 0 &&
-    deepEqual(prevMetaRest, candMetaRest) &&
-    deepEqual(prevRest, candRest)
+    deepEqual(comparableContent(previous), comparableContent(candidate))
   ) {
     return "none";
   }
