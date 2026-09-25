@@ -112,7 +112,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
   const locale = useLocale();
 
   const [session] = useState<RoomSession>(() =>
-    createRoomSession(roomPackage, { playerIds: [PLAYER_ID], timeLimitSec: 3600 }),
+    createRoomSession(roomPackage, { playerIds: [PLAYER_ID], timeLimitSec: 3600, now: Date.now() }),
   );
   const [startRoomId] = useState(() => roomPackage.map.rooms[0]?.id ?? "");
   const [roomId, setRoomId] = useState(startRoomId);
@@ -898,7 +898,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
         </div>
       ) : null}
 
-      {summary ? <ResultsScreen summary={summary} className="z-40" /> : null}
+      {summary ? <ResultsScreen summary={summary} /> : null}
 
       <div className="pointer-events-none absolute right-4 top-4 w-52 rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-white backdrop-blur">
         <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
