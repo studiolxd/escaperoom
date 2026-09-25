@@ -791,7 +791,12 @@ export class RoomSession {
   ): RoomMemoryFlipResult {
     const def = this.definition(puzzleId, "memory");
     if (this.ended) return { outcome: "unavailable", engine: null, revealedSymbol: null };
-    const flip = flipCard(this.templates.memory.get(puzzleId)!, def, cardId, playerId, now);
+    // La rotación de turno en `turnMode: "per_player"` necesita conocer a los
+    // jugadores reales de la partida (auditoría D-8): antes leía `def.players`,
+    // un campo que el esquema Zod elimina, así que nunca rotaba.
+    const flip = flipCard(this.templates.memory.get(puzzleId)!, def, cardId, playerId, now, {
+      players: this.players(),
+    });
     this.templates.memory.set(puzzleId, flip.state);
     this.syncRuntime(puzzleId, flip.state);
     const engine = flip.solved ? this.completePuzzle(puzzleId, def, now, playerId) : null;
