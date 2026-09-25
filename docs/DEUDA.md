@@ -195,13 +195,16 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `public/`, credenciales y quién lo ejecuta (script manual o paso de CI). Decidir
       también el almacenamiento definitivo de los binarios de la herramienta (`fuentes/`,
       `entregas/`, `referencias/`, hoy solo en local y con copia en `pipeline-assets`).
-- [ ] **404 de URLs que no existen.** Una URL sin ninguna página que la capture (p. ej.
-      `/es/una-ruta-que-no-existe`) no llega a `[locale]/not-found.tsx` ni a
-      `(public)/not-found.tsx`: al no haber `app/not-found.tsx` ni `app/layout.tsx` raíz
-      (el layout raíz efectivo es `[locale]/layout.tsx`), Next sirve su 404 por defecto,
-      en inglés y sin estilos. Añadir una ruta comodín (`app/[locale]/(public)/[...rest]/
-      page.tsx` que llame a `notFound()`) para que use el 404 con la shell pública, y
-      cubrir también las rutas sin prefijo de idioma. Encontrado en la PR #153.
+- [x] **404 de URLs que no existen.** Resuelto (auditoría 2026-09-24, B-27):
+      `app/[locale]/(public)/[...rest]/page.tsx` (comodín, llama a `notFound()`) captura
+      cualquier URL con locale válido que ninguna otra ruta capturó, y sale con la shell
+      pública (`(public)/not-found.tsx`). Las URLs sin prefijo de idioma que `proxy.ts` no
+      redirige (su matcher trata un segmento con punto como asset estático, p. ej.
+      `/v1.2-notas`) las cubre `app/global-not-found.tsx` (`experimental.globalNotFound`
+      en `next.config.ts`): al no haber `app/layout.tsx` raíz (el root efectivo es
+      `[locale]/layout.tsx`, un segmento dinámico), es la vía que documenta Next para ese
+      caso — bypassa todo el árbol de layouts, con su propio `<html>/<body>` y copia fija
+      en español (sin next-intl, no hay locale que resolver). Encontrado en la PR #153.
 - [ ] **Tests de rate limit deterministas.** Los tests de rate limit de `packages/web`
       (`rate-limit.test.ts`, `room-license-api.test.ts`, `onboarding-api.test.ts`,
       `moderation-api.test.ts`, `audio-generation-api.test.ts`…) usan ventanas de tiempo
