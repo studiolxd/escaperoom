@@ -21,13 +21,18 @@ const AVATAR_SIZE = { width: 64, height: 96 };
 /** Franja de profundidad del avatar dentro de su celda. */
 export const AVATAR_DEPTH_SUB = 40;
 
+/** Origen (pivote) por defecto: abajo-centro, para packs sin `avatarOrigin` (specs/26 §3.1 previo a A4). */
+const DEFAULT_AVATAR_ORIGIN: [number, number] = [0.5, 1];
+
 export interface AvatarControllerOptions {
   scene: Phaser.Scene;
   resolver: PackFrameResolver;
   manifest: PackManifest;
   collision: CollisionGrid;
   start: { x: number; y: number };
-  /** Tinte del jugador (4 colores = 4 jugadores en v1). */
+  /** Personaje jugable (`manifest.avatars[].id`, o el de reserva). */
+  characterId: string;
+  /** Color del jugador (círculo del chat): pinta el anillo bajo los pies, no el sprite (B5/A1). */
   tint?: number;
   /** Velocidad en celdas por segundo. */
   speed?: number;
@@ -41,7 +46,8 @@ export interface AvatarMove {
 
 /**
  * Avatar del runtime: sprite del atlas (o placeholder) con las animaciones
- * `idle`/`walk`/`interact` × 4 direcciones (specs/04 §2), tintado por jugador y
+ * `idle`/`walk`/`interact` × 4 direcciones de un personaje concreto (specs/04
+ * §2, A1/B4), con anillo de color de jugador bajo los pies (A1/B5) y
  * movimiento con colisión por celda. El servidor será autoritativo en fase 2;
  * aquí basta para la validación visual de 1.2.
  */
@@ -50,8 +56,10 @@ export class AvatarController {
 
   private readonly scene: Phaser.Scene;
   private readonly sprite: Phaser.GameObjects.Sprite;
+  private readonly ring: Phaser.GameObjects.Ellipse;
   private readonly collision: CollisionGrid;
   private readonly speed: number;
+  private readonly characterId: string;
   private cell: { x: number; y: number };
   private direction: AvatarDirection = "s";
   private currentAnim?: string;
@@ -62,20 +70,31 @@ export class AvatarController {
     this.scene = options.scene;
     this.collision = options.collision;
     this.speed = options.speed ?? 4;
+    this.characterId = options.characterId;
     this.cell = { x: options.start.x, y: options.start.y };
 
-    const first = options.resolver.resolve(avatarFrameName(this.direction, "idle", 1), AVATAR_SIZE);
-    const shadow = this.scene.add.ellipse(0, 0, 42, 16, 0x000000, 0.35);
-    this.sprite = this.scene.add.sprite(0, 0, first.key, first.frame).setOrigin(0.5, 1);
+    const first = options.resolver.resolve(
+      avatarFrameName(this.characterId, this.direction, "idle", 1),
+      AVATAR_SIZE,
+    );
+    // Sombra de contacto (A5/B5): capa del motor, no del sprite. El anillo de
+    // color del jugador se dibuja justo encima, más pequeño, para no ocultar
+    // la sombra y para reconocer quién es quién sin leer nombres (A1).
+    const shadow = this.scene.add.ellipse(0, 0, 42, 16, 0x000000, 0.32);
+    const ring = this.scene.add.ellipse(0, 0, 30, 11);
+    ring.setStrokeStyle(2, options.tint ?? 0xffffff, 0.9);
+    ring.setFillStyle(options.tint ?? 0xffffff, 0.12);
+    this.ring = ring;
+
+    const originY = options.manifest.avatarOrigin?.[1] ?? DEFAULT_AVATAR_ORIGIN[1];
+    const originX = options.manifest.avatarOrigin?.[0] ?? DEFAULT_AVATAR_ORIGIN[0];
+    this.sprite = this.scene.add.sprite(0, 0, first.key, first.frame).setOrigin(originX, originY);
     const scale = options.resolver.displayScaleFor(first, AVATAR_SIZE);
     this.sprite.setScale(scale.x, scale.y);
-    if (options.tint !== undefined) {
-      this.sprite.setTint(options.tint);
-    }
 
     this.registerAnimations(options.resolver, options.manifest);
-    this.container = this.scene.add.container(0, 0, [shadow, this.sprite]);
-    this.play(avatarAnimKey(this.direction, "idle"));
+    this.container = this.scene.add.container(0, 0, [shadow, ring, this.sprite]);
+    this.play(avatarAnimKey(this.characterId, this.direction, "idle"));
     this.syncPosition();
   }
 
@@ -105,11 +124,11 @@ export class AvatarController {
     }
 
     if (this.interacting) {
-      this.play(avatarAnimKey(this.direction, "interact"));
+      this.play(avatarAnimKey(this.characterId, this.direction, "interact"));
     } else if (this.moving) {
-      this.play(avatarAnimKey(this.direction, "walk"));
+      this.play(avatarAnimKey(this.characterId, this.direction, "walk"));
     } else {
-      this.play(avatarAnimKey(this.direction, "idle"));
+      this.play(avatarAnimKey(this.characterId, this.direction, "idle"));
     }
 
     this.syncPosition();
@@ -139,13 +158,14 @@ export class AvatarController {
     } else {
       this.moving = false;
     }
-    this.play(avatarAnimKey(this.direction, this.moving ? "walk" : "idle"));
+    this.play(avatarAnimKey(this.characterId, this.direction, this.moving ? "walk" : "idle"));
     this.syncPosition();
   }
 
-  /** Cambia el tinte (color del jugador asignado por el servidor). */
+  /** Cambia el color del anillo (color del jugador asignado por el servidor). */
   setTint(tint: number): void {
-    this.sprite.setTint(tint);
+    this.ring.setStrokeStyle(2, tint, 0.9);
+    this.ring.setFillStyle(tint, 0.12);
   }
 
   /** Dispara la animación de interacción una vez. */
@@ -154,7 +174,7 @@ export class AvatarController {
       return;
     }
     this.interacting = true;
-    this.play(avatarAnimKey(this.direction, "interact"));
+    this.play(avatarAnimKey(this.characterId, this.direction, "interact"));
   }
 
   destroy(): void {
@@ -192,13 +212,13 @@ export class AvatarController {
   private registerAnimations(resolver: PackFrameResolver, manifest: PackManifest): void {
     for (const direction of AVATAR_DIRECTIONS) {
       for (const action of AVATAR_ACTIONS) {
-        const key = avatarAnimKey(direction, action);
+        const key = avatarAnimKey(this.characterId, direction, action);
         if (this.scene.anims.exists(key)) {
           continue;
         }
 
         const declared = manifest.anims.find((anim) => anim.key === key);
-        const frames = declared?.frames ?? defaultFrameNames(direction, action);
+        const frames = declared?.frames ?? this.defaultFrameNames(direction, action);
         const frameRate = declared?.frameRate ?? AVATAR_ACTION_FRAME_RATE[action];
         const repeat = declared?.repeat ?? (action === "interact" ? 0 : -1);
 
@@ -218,10 +238,10 @@ export class AvatarController {
       this.interacting = false;
     });
   }
-}
 
-function defaultFrameNames(direction: AvatarDirection, action: AvatarAction): string[] {
-  return Array.from({ length: AVATAR_ACTION_FRAMES[action] }, (_, index) =>
-    avatarFrameName(direction, action, index + 1),
-  );
+  private defaultFrameNames(direction: AvatarDirection, action: AvatarAction): string[] {
+    return Array.from({ length: AVATAR_ACTION_FRAMES[action] }, (_, index) =>
+      avatarFrameName(this.characterId, direction, action, index + 1),
+    );
+  }
 }

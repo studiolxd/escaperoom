@@ -3,6 +3,7 @@ import type { RuntimeModel, RuntimeObject, RuntimeSubRoom } from "../loader";
 import {
   buildCollisionGrid,
   buildPlaceholderManifest,
+  PLACEHOLDER_CHARACTER_ID,
   resolveSpriteFrame,
   resolveTileFrame,
   type CollisionGrid,
@@ -82,6 +83,12 @@ export interface RoomSceneOptions {
   /** Id del jugador local, para el reparto de inventario (`distribution`). */
   localPlayerId?: string;
   /**
+   * Personaje jugable del avatar local (`manifest.avatars[].id`, o el de
+   * reserva). Por defecto el primero de `manifest.avatars`, o el personaje de
+   * placeholder si el pack no declara ninguno (A1/B4).
+   */
+  localCharacterId?: string;
+  /**
    * `play` (por defecto) o `edit` (specs/09 §1: el editor ES el runtime). En
    * edición no hay avatar, diálogos ni puertas: se pinta la rejilla, los
    * spawns y los ids, todos los objetos son seleccionables y el puntero se
@@ -104,6 +111,8 @@ export interface ScenePlayer {
   y: number;
   /** `#rrggbb`. */
   tint: string;
+  /** Personaje jugable (`manifest.avatars[].id`, o el de reserva). */
+  characterId: string;
   connected: boolean;
 }
 
@@ -209,6 +218,7 @@ export class RoomScene extends Phaser.Scene {
   /** Posición autoritativa pendiente de aplicar al avatar local (tras reconstruir la sala). */
   private pendingAvatarCell?: { x: number; y: number };
   private localTint?: number;
+  private localCharacterId: string;
   private players: ScenePlayer[] = [];
   private readonly remoteAvatars = new Map<string, RemoteAvatar>();
   /** Estados que llegaron (del servidor) antes de que Phaser creara la escena. */
@@ -228,6 +238,8 @@ export class RoomScene extends Phaser.Scene {
     this.localPlayerId = options.localPlayerId ?? "p0";
     this.emitAvatarMoves = options.emitAvatarMoves ?? false;
     this.manifest = options.pack?.manifest ?? buildPlaceholderManifest(options.model);
+    this.localCharacterId =
+      options.localCharacterId ?? this.manifest.avatars?.[0]?.id ?? PLACEHOLDER_CHARACTER_ID;
 
     const initialRoomId = options.initialRoomId ?? this.model.subrooms[0]?.id;
     if (!initialRoomId || !this.model.subroomsById[initialRoomId]) {
@@ -312,10 +324,23 @@ export class RoomScene extends Phaser.Scene {
     return this.avatar?.cellPosition;
   }
 
-  /** Tinte del avatar local (color asignado por el servidor). */
+  /** Color del anillo del avatar local (color asignado por el servidor). */
   setLocalTint(tint: number): void {
     this.localTint = tint;
     this.avatar?.setTint(tint);
+  }
+
+  /** Personaje del avatar local (asignado o confirmado por el servidor). */
+  setLocalCharacter(characterId: string): void {
+    if (this.localCharacterId === characterId) {
+      return;
+    }
+    this.localCharacterId = characterId;
+    if (this.built && !this.transitioning && this.avatarEnabled) {
+      const cell = this.avatar?.cellPosition;
+      this.avatar?.destroy();
+      this.avatar = this.createAvatarController(cell ?? { x: 0, y: 0 });
+    }
   }
 
   /**
@@ -355,6 +380,7 @@ export class RoomScene extends Phaser.Scene {
         manifest: this.manifest,
         collision: this.collision,
         start: { x: player.x, y: player.y },
+        characterId: player.characterId || PLACEHOLDER_CHARACTER_ID,
         tint: Phaser.Display.Color.HexStringToColor(player.tint).color,
       });
       const label = this.add
@@ -1157,15 +1183,20 @@ export class RoomScene extends Phaser.Scene {
     }
     const spawn = this.pendingAvatarCell ?? room.spawns[0] ?? { x: 0, y: 0 };
     this.pendingAvatarCell = undefined;
-    this.avatar = new AvatarController({
+    this.avatar = this.createAvatarController({ x: spawn.x, y: spawn.y });
+    this.lastEmittedMove = { roomId: room.id, x: spawn.x, y: spawn.y, at: this.time?.now ?? 0 };
+  }
+
+  private createAvatarController(start: { x: number; y: number }): AvatarController {
+    return new AvatarController({
       scene: this,
       resolver: this.resolver,
       manifest: this.manifest,
       collision: this.collision,
-      start: { x: spawn.x, y: spawn.y },
+      start,
+      characterId: this.localCharacterId,
       tint: this.localTint ?? playerColor(0),
     });
-    this.lastEmittedMove = { roomId: room.id, x: spawn.x, y: spawn.y, at: this.time?.now ?? 0 };
   }
 
   private setupInput(): void {
