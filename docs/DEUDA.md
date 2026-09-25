@@ -52,14 +52,45 @@ Tareas pendientes que no bloquean pero hay que resolver.
            (patrón fetch + redirect de `payouts-panel.tsx`).
         c. Si el viewer no ha iniciado sesión: el CTA de compra lleva primero a
            login/registro con retorno a la sala, sin lanzar el checkout.
-        d. Si `room.priceCents === 0` o el viewer ya tiene acceso: mantener
-           "Jugar la sala".
+        d. Si el viewer ya tiene acceso (compra `playable`): mantener "Jugar la
+           sala" (ver f). **No** tratar `priceCents === 0` como acceso libre:
+           hoy no existe atajo de Stripe para precio 0 o nulo
+           (`purchases.ts:192-194` rechaza `saleIndividual: false` o
+           `priceCents: null` con `SALE_INDIVIDUAL_DISABLED`).
         e. Reutilizar `checkout/confirmation` como destino tras el pago.
         f. **Jugar una sala comprada:** con acceso `playable`, el CTA "Jugar"
            crea la `GameRoom` con el `gameToken` del endpoint de acceso (hoy
            `/es/play` solo firma partidas de prueba `dev_test`); si la compra
            está "en curso", reconectar a esa partida; si está consumida, mostrar
            que ya se jugó (y, si aplica, ofrecer volver a comprar).
+        g. **`/redeem` solo para eventos:** el canje de clave de evento
+           (`/redeem`) queda reservado a quien llega con un enlace o invitación
+           de evento; nunca como destino genérico o de reserva del CTA de la
+           ficha. El único caso legítimo para enlazar `/redeem` desde la ficha es
+           que la sala tenga un **evento activo vinculado al viewer**.
+        h. **Sala solo para eventos** (`saleIndividual: false`, `saleEvents:
+           true`) — **decidido (2026-09-25):** etiqueta "Solo para eventos" y
+           botón "Organizar un evento con esta sala", que lleva al flujo de
+           crear evento con el precio por jugador visible. Cualquier usuario con
+           sesión puede organizar un evento con una sala con venta para eventos
+           (`events.ts createEvent`: solo exige `saleEvents` o ser el autor), así
+           que es un camino real también para particulares. Si una sala no
+           tuviera ningún modo de venta, no se muestra botón. Corregir specs/02
+           §3.1, que dice "elige una sala que ya posee", para que refleje el
+           código (cualquier sala con `saleEvents`).
+        i. **Salas gratis** (precio 0 con venta individual) — **decidido
+           (2026-09-25): se juegan sin cuenta.** Botón "Jugar gratis" que abre la
+           partida sin iniciar sesión (sin `purchase` ni Stripe: el servidor
+           emite el `gameToken` de una partida gratuita), con cuotas por IP
+           contra abuso; la cuenta es opcional al terminar para guardar el
+           resultado, reseñar o entrar en el ranking. Hoy no existe atajo de
+           Stripe para precio 0 (`purchases.ts:192-194`), así que hay que crear
+           este flujo. Actualizar specs/02 §2.2 (salas gratis) y specs/13 (acceso).
+        j. **Etiqueta "Gratis" engañosa:** `room-card.tsx:12` muestra "Gratis"
+           si `!room.priceCents`, es decir también con precio `null` (sala sin
+           venta individual) y con precio 0 que hoy no se puede jugar. Mostrar
+           "Gratis" solo con precio 0 y `saleIndividual: true`; con precio
+           `null`, la etiqueta "Solo para eventos" del punto h.
 - [ ] **Permitir valoraciones en medios puntos.**
       - **Estado actual:** `review.rating` es `Int @db.SmallInt`
         (`packages/shared/prisma/schema.prisma:431`), con `CHECK` en la base
@@ -122,12 +153,20 @@ Tareas pendientes que no bloquean pero hay que resolver.
       - **PATCH** → nada cambia dentro de `puzzles[]`; solo `objects`, `map`,
         `items`, `dialogs`, `hints`, `meta.assetsManifest` u otros campos de
         presentación/assets.
-      - **`rules[]`** (fuera de `puzzles[]`, puede tener lógica de desbloqueo
-        que referencia `puzzleId`/`objectId`/`itemId`): decidirlo y
-        documentarlo explícitamente. Recomendado: un cambio en `rules[]` que
-        referencie un `puzzleId` existente cuenta como cambio de ese puzzle
-        (MINOR), salvo que ya haya MAJOR. Si se deja fuera, anotarlo como
-        limitación conocida en el código y en la PR, no en silencio.
+      - **`rules[]` (decidido, entra en el diff):** comparar también `rules[]`
+        entre la versión anterior y la candidata, por `id` de regla igual que
+        `puzzles[]`.
+        - Si una regla se añade, elimina o modifica y referencia (en su
+          `trigger`, `conditions` o `actions`) un `puzzleId` que existe en ambas
+          versiones → cuenta como cambio de ese puzzle → **MINOR** (mismo
+          criterio grueso, sin sub-clasificar campos de la regla).
+        - Si la regla cambiada no referencia ningún `puzzleId` (solo
+          `objectId`/`itemId` sin relación con un puzzle) → no dispara MINOR por
+          sí sola; es un cambio de presentación/mundo → **PATCH** si no hay
+          ningún otro cambio en `puzzles[]`.
+        - Se evalúa después de la comprobación de MAJOR (añadir/quitar puzzles)
+          y se combina con el diff de `puzzles[]`: si ya hay MAJOR, no hace falta
+          mirar `rules[]`.
       - **Sin ningún cambio:** decidir si se permite publicar (como PATCH) o se
         devuelve un error explícito "nada que publicar", y documentarlo.
       - **Dónde:** función pura `classifyRoomPackageChange(previous: RoomPackage
@@ -140,16 +179,92 @@ Tareas pendientes que no bloquean pero hay que resolver.
         validación de la entrada.
       - **Tests unitarios:** añadir/quitar puzzle → MAJOR; modificar puzzle
         existente → MINOR; cambios solo fuera de `puzzles[]` → PATCH; primera
-        publicación → 1.0.0; sin cambios → lo que se decida.
+        publicación → 1.0.0; sin cambios → lo que se decida; y modificar una
+        regla que apunta a un puzzle existente sin tocar el objeto puzzle en sí
+        → MINOR (no PATCH).
       - **Documentación:** `docs/specs/13-api-rest.md` (quitar `semver` del
         contrato de `POST /api/rooms/:roomId/publish` y documentar la política
         automática); `docs/specs/08-formato-roompackage.md` (cómo se calcula el
         semver de `roomVersion` a partir del contenido); ADR nuevo en
         `docs/reference/registro-de-decisiones.md` (por qué se quita el
-        override manual, por qué "puzzle cambió sí/no" y no campo a campo, y la
-        limitación de `rules[]` si aplica). Revisar también el MCP (`publish`)
+        override manual, por qué "puzzle cambió sí/no" y no campo a campo, y cómo
+        se tratan los cambios de `rules[]`). Revisar también el MCP (`publish`)
         y el editor si exponen el semver manual.
       - **Fuera de alcance:** no tocar `meta.packageFormat` (es la versión del
         formato del contrato, ortogonal a la del contenido); no hay UI de
         rankings ni notificaciones a compradores que actualizar. Si se toca la
         pantalla de confirmación de publicación, solo shadcn/ui (ADR-019).
+- [ ] **Retirar la ruta de partida de prueba `/[locale]/play`.** Debe desaparecer
+      antes de pasar a producto; en realidad se puede quitar en cuanto esté
+      hecho el flujo de **salas gratis jugables sin cuenta** (punto i de la
+      entrada "CTA 'Jugar'…"), que la sustituye como forma de jugar una sala sin
+      compra. Hoy ya responde 404 en producción salvo con `ALLOW_DEV_SECRETS`
+      (PR #140: firma `gameToken` `dev_test`). Al retirarla, migrar lo que
+      depende de ella: el e2e de partida (`packages/e2e/tests/game.reyaldric.spec.ts`,
+      smoke de CI) y el de reconexión del bloque 4 deben usar el flujo de sala
+      gratis (o un endpoint de pruebas equivalente limitado a test); quitar el
+      tipo de token `dev_test` si ya no se usa; revisar enlaces internos y docs
+      que la mencionen.
+- [ ] **Formularios con server actions, React Hook Form y errores bajo cada
+      campo.** Revisar todos los formularios para que usen **server actions** +
+      **React Hook Form** (con el `Form`/`Field` de shadcn/ui y el resolver de
+      Zod) y muestren los errores **debajo de su campo**, nunca con la
+      validación nativa del navegador (quitar `required`, `type="email"`,
+      `minLength`/`maxLength`/`pattern` como mecanismo de validación y usar
+      `noValidate`).
+      - **Estado actual:** React Hook Form no está instalado; no hay ninguna
+        server action (`"use server"`); los formularios envían con `fetch` a
+        rutas REST y usan validación nativa. Existe `components/ui/field.tsx`.
+      - **Formularios (`<form>`):** `components/auth/auth-form.tsx`,
+        `catalog/review-form.tsx`, `contact/contact-form.tsx`,
+        `redeem/redeem-form.tsx`, `mcp-oauth/consent-login.tsx`,
+        `onboarding/onboarding-login.tsx`, `editor/room-languages-editor.tsx`,
+        `game-session/network-game.tsx` (nombre del jugador),
+        `app/[locale]/(play)/oauth/consent/page.tsx`. Los inputs de chat
+        (`chat/chat-panel.tsx`, `creator-chat/creator-chat.tsx`) y los filtros
+        del catálogo (`catalog/catalog-filters.tsx`) no son formularios clásicos:
+        decidir caso por caso (al menos, sin validación nativa).
+      - **Otras mutaciones con `fetch` desde componentes** a revisar si encajan
+        como server actions: `room-cover-upload`, `event-dashboard`,
+        `spectator-game`, `confirm-attendance`, `accept-terms-button`,
+        `moderation-queue`, `onboarding-wizard`, `payouts-panel`,
+        `confirm-publish`, `playtest-button`.
+      - **No perder al migrar:** las server actions deben llamar a los mismos
+        servicios de `@escaperoom/shared` y conservar el **rate limiting**
+        (`withRateLimit`), la comprobación de origen/CSRF, el contrato de
+        errores (A-22) y los mensajes traducidos (next-intl, 6 idiomas). Las
+        rutas REST **siguen existiendo** (las usan el MCP, la API pública de
+        specs/13 y los tests): las server actions son la vía de la UI, no un
+        sustituto de la API. Esquemas Zod compartidos entre cliente
+        (RHF) y servidor.
+      - **UI:** solo shadcn/ui (`pnpm --filter @escaperoom/web exec shadcn add
+        form` si hace falta), errores accesibles (`aria-invalid`,
+        `aria-describedby`) y foco al primer campo con error.
+      - **Referencia: mirar cómo está hecho en `/Users/suvi/Dev/slxd`** (solo
+        lectura) y seguir el mismo patrón:
+        - React Hook Form + `zodResolver`:
+          `apps/account/src/components/auth/SignInForm.tsx`, `SignUpForm.tsx`,
+          `ForgotPasswordForm.tsx`, `ResetPasswordForm.tsx`,
+          `InvitationSignUpForm.tsx`, y formularios en diálogo
+          `apps/account/src/components/admin/AdjustCreditsDialog.tsx`,
+          `GrantAddonDialog.tsx`, `GrantPlanDialog.tsx`.
+        - Server actions con tests: `apps/web/src/actions/contact.ts` y
+          `newsletter.ts` (+ `*.test.ts`),
+          `apps/lmsmcp/src/app/[locale]/mcp/login/actions.ts`, y el contacto de
+          `apps/corporate`.
+        - Nota de slxd (SPEC.md, 2026-08-24): `react-hook-form` debe ser
+          *external* si va en una librería de componentes compartida, porque
+          empaquetado duplica el contexto del formulario.
+- [ ] **Páginas de error con la shell pública y componentes shadcn.** Las
+      páginas de error actuales (`app/[locale]/error.tsx` y
+      `app/[locale]/not-found.tsx`, PR #120) cuelgan de `[locale]`, fuera del
+      grupo `(public)`, así que se muestran **sin** la cabecera y el pie públicos
+      (`PublicHeader`/`PublicFooter` de `app/[locale]/(public)/layout.tsx`).
+      Crear una página de error (404 y error genérico) que use la shell pública
+      —extraer la shell a un componente reutilizable si hace falta— y solo
+      componentes shadcn/ui (p. ej. `Empty`, `Button`), con los textos en los
+      6 idiomas. `global-error.tsx` (sustituye al documento entero cuando falla
+      el layout raíz) no puede usar la shell con garantías: mantenerlo mínimo
+      pero coherente visualmente. Revisar también los `notFound()` de rutas
+      privadas (editor, creador) para que no enseñen la shell pública si no
+      corresponde.

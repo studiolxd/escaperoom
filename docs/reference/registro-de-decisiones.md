@@ -871,3 +871,31 @@ esos emails" quede en el registro en vez de solo en el mensaje de commit de la m
 **Consecuencias:** ninguna sobre el código. Sirve de recordatorio: una migración que hace `DROP
 TABLE`/`DROP COLUMN` sobre datos de usuarios reales (no solo un cambio de esquema vacío) debería
 traer su línea en este registro en la misma PR, no después.
+
+---
+
+## ADR-034 — Índices parciales/CHECKs/triggers manuales: solo `migrate diff` + edición a mano, nunca `migrate dev` a ciegas (E-18, 2026-09-25)
+
+**Contexto:** varios índices únicos/parciales, `CHECK`s y triggers (`setUpdatedAt`) se crean a mano
+en SQL porque `schema.prisma` no los puede representar (dedupe de webhooks de Stripe, colas de
+moderación filtradas por `status`, purgas RGPD que solo indexan lo aún no purgado…). La auditoría de
+2026-09-24 (E-18) señaló que esto es drift estructural entre el esquema y la BD real, y que
+`ixAudioAssetPending` ya arrastraba el síntoma concreto: `schema.prisma` lo describía como un
+`@@index` normal cuando en la BD era parcial (`WHERE status = 'pending'`), además de no cubrir las
+colas de `approved`/`rejected` que sí consulta `listModerationQueue`.
+
+**Decisión:** política documentada en `docs/reference/migraciones-prisma.md` — nunca `prisma migrate
+dev` contra estas tablas sin revisar a mano el SQL que propondría (`prisma migrate diff` en su lugar,
+editar y pegar la migración); cada construcción manual lleva un comentario `///` junto al `model` en
+`schema.prisma` (nunca un `@@index` que la describa a medias); las que protegen dinero/RGPD llevan
+además un caso en el test de integración
+`packages/shared/test/schema-manual-constraints-prisma.integration.test.ts`, que consulta
+`pg_indexes`/`pg_constraint`/`pg_trigger` directamente. Se resuelve además el drift de
+`ixAudioAssetPending`: se sustituye por `ixAudioAssetStatusCreatedAt` (`status`, `createdAt`, sin
+`WHERE`), representable sin ambigüedad y que cubre los tres `status`.
+
+**Consecuencias:** cualquier `DROP INDEX`/`DROP TRIGGER`/`DROP CONSTRAINT` que un `migrate dev` mal
+revisado proponga sobre estos objetos se detecta en CI (test de integración, corre en el job
+`verify` desde E-14) en vez de en producción. Añadir una construcción manual nueva implica ahora dos
+pasos más además del SQL: el comentario `///` y, si protege algo con impacto real, su caso en el
+test.

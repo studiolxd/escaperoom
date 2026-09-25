@@ -139,26 +139,48 @@ encontramos una forma fiable de emular el rendimiento por núcleo del runner des
 sistemáticamente lento (colas con temporizador, reintentos con backoff), la solución de fondo es
 subir su `testTimeout` explícitamente en el propio test, no ajustar el entorno de quien lo corre.
 
-## Cuidado: ejecuciones repetidas pueden acumular cuota de rate-limit
+## `REDIS_PREFIX` por worktree (evita pisar rate-limit/colas/pub-sub de otro)
 
 `REDIS_URL` por defecto apunta al Redis **persistente** de
 `infra/docker-compose.dev.yml` (`:56380`, compartido por todos los
 worktrees) — a diferencia del Redis efímero que CI levanta desde cero en
-cada job. Los tests de rate-limit (`test/rate-limit.test.ts`,
-`test/audio-generation-api.test.ts`, `test/moderation-api.test.ts`,
-`test/onboarding-api.test.ts`…) escriben ahí sus contadores de cuota; si
-corres `pnpm verify:pr` varias veces seguidas en poco tiempo, esos contadores
-se acumulan entre ejecuciones y algunos de esos tests pueden empezar a fallar
-con 429/403 inesperados **sin que hayas tocado código relacionado** — lo
-comprobamos durante esta tarea: la primera ejecución del día solo falló por
-el timeout de `analytics-pipeline.integration.test.ts` (ver más abajo), y una
-ejecución posterior el mismo día encadenó 10 tests caídos, todos ellos de
-cuota/rate-limit. Si ves ese patrón, no es necesariamente un fallo real: dale
-un rato a que expiren las ventanas de cuota antes de asumir una regresión, o
-limpia manualmente las claves de rate-limit de ese Redis
-(`redis-cli -a redis_dev_only -p 56380 --no-auth-warning KEYS
-'escaperoom:*rate*'` para verlas). No implementamos una limpieza automática
-porque no sabemos si algún otro worktree la está usando a la vez.
+cada job. Todo lo que usa Redis (rate limiting, colas BullMQ, pub/sub de
+`editor-sync`) namespacea sus claves con `REDIS_PREFIX` (`kit/src/redis/
+index.ts`, `redisPrefix()`); **`pnpm dev:env` escribe un `REDIS_PREFIX`
+propio por worktree** (el mismo slug que su base de datos) en los `.env` de
+`web`/`kit`/`worker`/`colyseus-server` — ver `scripts/dev-env.sh`, arreglado
+en la auditoría 2026-09-25 (bloque CI/infra): antes todos los worktrees
+compartían el prefijo por defecto (`APP_NAME`), así que dos `pnpm dev`/
+workers/procesos `editor-sync` de worktrees distintos sí podían pisarse
+colas y pub/sub reales entre sí. Si ves keys `escaperoom:*` (el prefijo por
+defecto, sin slug) en ese Redis con `redis-cli -a redis_dev_only -p 56380
+--no-auth-warning KEYS '<tu REDIS_PREFIX>:*'`, comprueba que tu `.env`
+tiene el `REDIS_PREFIX` correcto (`grep REDIS_PREFIX packages/web/.env`) y
+que no lo copiaste a mano del worktree principal.
+
+**Esto NO es la causa de los tests de rate-limit de `packages/web` fallando
+bajo `pnpm verify:pr`** (lo investigamos a fondo tras confundirlo con esto en
+una versión anterior de esta nota): `test/onboarding-api.test.ts`,
+`test/room-license-api.test.ts`, `test/rate-limit.test.ts`… nunca cargan
+`packages/web/.env` ni reciben `REDIS_URL` en su proceso (confirmado
+instrumentando `kit/src/redis/index.ts`: `redisUrl()` devuelve `undefined`
+tanto en `vitest run` directo como bajo `pnpm turbo run test`), así que el
+rate limiting de estos tests siempre usa el store EN MEMORIA
+(`MemorySlidingWindowStore`/`MemoryRateLimitStore`), aislado por proceso —
+nada que ver con Redis compartido ni con otro worktree. Lo que sí
+reprodujimos de forma fiable es un `Error: Test timed out in 20000ms` en
+`test/sitemap.test.ts` (un `import()` dinámico sin relación alguna con
+rate-limit) al correr `pnpm turbo run test --filter=@escaperoom/web` con
+varias sesiones de agentes ocupadas en la misma máquina: es la misma clase
+de problema que ya describe "Timeouts de CI" más arriba (contención de CPU
+real, no un fallo del código), solo que aquí se manifiesta como 429/403 en
+vez de un timeout porque el propio suite de un fichero de test puede agotar
+su cuota EN MEMORIA si el orden/temporización de sus propios `it()` se ve
+afectado por esa contención. Si ves 429/403 inesperados en tests de
+rate-limit de `web` bajo `pnpm verify:pr` con la máquina ocupada, trátalo
+igual que un timeout: no es necesariamente una regresión, repite la prueba
+con menos carga concurrente (`--concurrency` más bajo, o cuando otras
+sesiones terminen) antes de asumir un fallo real.
 
 ## Resumen final
 

@@ -54,6 +54,20 @@ el flujo por defecto para cualquier tarea de código es:
      Copiar el `.env` del principal hace que todos los worktrees compartan
      la misma base y provoca líos de migraciones concurrentes (nos pasó con
      la tarea de `waitlist`).
+   - Redis (`:56380`) SÍ es una instancia compartida entre worktrees, a
+     diferencia de Postgres: `pnpm dev:env` también escribe (o actualiza,
+     sin tocar el resto del fichero) `REDIS_PREFIX=<mismo slug que la BD>`
+     en los `.env` de `web`/`kit`/`worker`/`colyseus-server` (auditoría
+     2026-09-25, bloque CI/infra), para que las colas BullMQ y el pub/sub de
+     `editor-sync` de un worktree no se pisen con los de otro (dos `pnpm
+     dev`/workers reales corriendo a la vez). Si el agente copia esos `.env`
+     a mano en vez de dejar que `dev-env.sh` los gestione, pierde este
+     aislamiento. **Ojo:** esto NO arregla tests de rate-limit de `web`
+     fallando con 429/403 bajo `pnpm verify:pr` — esos tests corren siempre
+     con el rate limiter en memoria (nunca llegan a tocar Redis en este
+     entorno de dev, verificado); si fallan así, es contención de CPU de la
+     máquina compartida con otras sesiones (ver "Timeouts de CI" en
+     `docs/reference/verify-pr.md`), no un problema de Redis.
    - En el nuevo worktree, correr: `pnpm dev:env` (requiere que
      `pnpm infra:up` ya esté levantado, normalmente ya lo está porque lo
      comparte con el principal) y luego `pnpm db:reset` para migrar y
