@@ -22,6 +22,7 @@ const payout = (over: Partial<PendingCreatorPayout> = {}): PendingCreatorPayout 
   currency: "EUR",
   paymentIntentId: "pi_1",
   roomVersionId: "version-1",
+  createdAt: new Date("2026-01-01T00:00:00Z"),
   ...over,
 });
 
@@ -90,5 +91,45 @@ describe("creator payouts (B-9)", () => {
     expect(result).toEqual({ attempted: 2, transferred: 1, skipped: 0, failed: 1 });
     expect(store.transferred.has("p-ok")).toBe(true);
     expect(store.transferred.has("p-fail")).toBe(false);
+  });
+
+  it("B-9 (revisión de PR #135): una compra pagable se procesa aunque haya más de 'limit' compras bloqueadas por delante", async () => {
+    // 5 compras "bloqueadas" (creador sin cuenta conectada), todas más
+    // antiguas que la pagable, y `limit: 3` — con el bug (orden por
+    // `createdAt` sin más), las 3 primeras del barrido serían siempre las
+    // mismas 3 bloqueadas: la pagable nunca entraría en la ventana.
+    const blocked = Array.from({ length: 5 }, (_, i) =>
+      payout({
+        purchaseId: `blocked-${i}`,
+        roomVersionId: `blocked-version-${i}`,
+        createdAt: new Date(2026, 0, 1 + i),
+      }),
+    );
+    const payable = payout({
+      purchaseId: "payable",
+      roomVersionId: "version-payable",
+      createdAt: new Date(2026, 0, 10),
+    });
+    const store = createInMemoryCreatorPayoutStore({
+      payouts: [...blocked, payable],
+      accounts: { "version-payable": "acct_payable" },
+    });
+    const connect = createFakeConnectGateway();
+    connect.accounts.set("acct_payable", "complete");
+    const payments = createFakePaymentGateway();
+
+    // Primer barrido: las 3 más antiguas (todas bloqueadas) agotan el `limit`.
+    const first = await processCreatorPayouts({ store, connect, payments }, { limit: 3 });
+    expect(first).toEqual({ attempted: 3, transferred: 0, skipped: 3, failed: 0 });
+    expect(store.transferred.size).toBe(0);
+
+    // Sin el `payoutAttemptAt`, un segundo barrido volvería a coger las
+    // mismas 3 (siguen siendo las más antiguas por `createdAt`) y la pagable
+    // seguiría sin intentarse jamás. Con `payoutAttemptAt`, esas 3 ya
+    // intentadas rotan al fondo: el segundo barrido coge las 2 bloqueadas
+    // restantes + la pagable, y esta SÍ se transfiere.
+    const second = await processCreatorPayouts({ store, connect, payments }, { limit: 3 });
+    expect(second.transferred).toBe(1);
+    expect(store.transferred.has("payable")).toBe(true);
   });
 });
