@@ -329,3 +329,12 @@ Tareas pendientes que no bloquean pero hay que resolver.
       en inglés y sin estilos. Añadir una ruta comodín (`app/[locale]/(public)/[...rest]/
       page.tsx` que llame a `notFound()`) para que use el 404 con la shell pública, y
       cubrir también las rutas sin prefijo de idioma. Encontrado en la PR #153.
+- [ ] **Tests de rate limit deterministas.** Los tests de rate limit de `packages/web`
+      (`rate-limit.test.ts`, `room-license-api.test.ts`, `onboarding-api.test.ts`,
+      `moderation-api.test.ts`, `audio-generation-api.test.ts`…) usan ventanas de tiempo
+      reales con el limitador en memoria y fallan con `429` inesperados cuando la máquina
+      va cargada (varios agentes a la vez, `turbo` lanzando lint+typecheck+test+build).
+      Como `pnpm verify:pr` aborta en el primer fallo, el smoke E2E ni llega a correr: lo
+      han sufrido casi todas las PRs de la auditoría (#146–#155). Hacerlos deterministas:
+      reloj inyectable en el limitador (o `vi.useFakeTimers`), identificadores únicos por
+      test (IP/usuario) y sin depender de la velocidad de la máquina.
