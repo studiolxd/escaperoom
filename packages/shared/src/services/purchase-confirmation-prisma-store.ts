@@ -1,6 +1,5 @@
 import { Prisma, type PrismaClient } from "../../generated/client";
 import type { PurchaseConfirmationEmailJob } from "../mail";
-import { quotePricing, type PricingSnapshot } from "./pricing-tiers";
 import type {
   PendingConfirmations,
   PendingConfirmationsWindow,
@@ -24,7 +23,6 @@ export function createPrismaPurchaseConfirmationStore(prisma: PrismaClient): Pur
           select: {
             title: true,
             config: true,
-            pricingSnapshot: true,
             playersPurchased: true,
             user: { select: { email: true, locale: true } },
           },
@@ -32,14 +30,21 @@ export function createPrismaPurchaseConfirmationStore(prisma: PrismaClient): Pur
         if (!event) return null;
         const config = event.config as { payment?: { status?: string } };
         if (config.payment?.status !== "paid") return null;
-        const quote = quotePricing(event.pricingSnapshot as PricingSnapshot, event.playersPurchased);
-        if (!quote) return null;
+        // B-8: el importe cobrado es el CONGELADO en la `purchase`
+        // `event_credits` `succeeded` de este evento (B-1), nunca el
+        // recalculado desde `pricingSnapshot`/`playersPurchased` en el
+        // momento del envío (que ya no tiene por qué coincidir).
+        const purchase = await prisma.purchase.findFirst({
+          where: { eventId: job.eventId, purchaseType: "event_credits", status: "succeeded" },
+          select: { amountCents: true, currency: true },
+        });
+        if (!purchase) return null;
         return {
           email: event.user.email,
           locale: event.user.locale,
           itemTitle: event.title,
-          amountCents: quote.totalCents,
-          currency: quote.currency,
+          amountCents: purchase.amountCents,
+          currency: purchase.currency,
           players: event.playersPurchased,
         };
       }

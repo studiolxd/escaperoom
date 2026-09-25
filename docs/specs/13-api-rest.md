@@ -149,7 +149,9 @@ Checkout con **Stripe Checkout** hospedado (no se gestionan tarjetas directament
 | POST | `/api/purchases/room-checkout` | usuario | `{ roomVersionId }` → valida `saleIndividual` y precio, crea `purchase` (`pending`) + Checkout Session con `metadata.purchaseId`. Devuelve `{ checkoutUrl }` |
 | GET | `/api/purchases/:id` | comprador o admin | Estado de una compra |
 
-El reparto 70/30 y el `stripeTransferId` se resuelven en el webhook (§7), no en la creación.
+El reparto 70/30 se calcula al liquidar el pago en el webhook (§7), no en la creación; el
+`stripeTransferId` lo resuelve un barrido periódico de `@escaperoom/worker` (B-9, auditoría
+2026-09-24), fuera del camino crítico del webhook.
 
 ## 6. Eventos y claves de acceso
 
@@ -161,7 +163,7 @@ El reparto 70/30 y el `stripeTransferId` se resuelven en el webhook (§7), no en
 | PATCH | `/api/events/:id` | organizador | Edita config mientras `status = draft` |
 | GET | `/api/events/:id` | organizador o admin | Detalle + resumen (nº sesiones, nº claves por estado) |
 | POST | `/api/events/:id/checkout` | organizador | Checkout por el total (si no es autoventa gratuita) |
-| POST | `/api/events/:id/activate` | servicio interno / webhook | `draft → active`; a partir de aquí se generan sesiones y claves |
+| POST | `/api/events/:id/activate` | organizador | `draft → active` con el pago saldado (autoventa o `payment.status = paid`; nunca si `refunded`); a partir de aquí se generan sesiones y claves. El webhook de Stripe (§7) SOLO marca `payment.status = paid`, nunca activa por sí mismo (auditoría 2026-09-24, B-2): el organizador (o un plan por defecto de la integración) llama a este endpoint explícitamente |
 
 ### 6.2 Sesiones, grupos y claves
 
@@ -241,9 +243,10 @@ menos pistas, menos tiempo); las sesiones sin empezar no tienen puesto. `spectat
 
 | Evento Stripe | Efecto |
 |---|---|
-| `checkout.session.completed` | Recupera `purchaseId` de `metadata`. Si `purchase_type = room`: `purchases.status = succeeded`, concede acceso, dispara `stripeTransferId` (70 % al creador vía Connect). Si `room_license`: crea el fork → `resulting_room_id`. Si `event_credits`: succeeded y llama a `activate` del evento |
-| `payment_intent.payment_failed` | `purchases.status = failed` |
-| `charge.refunded` | `purchases.status = refunded`; si era sala, revoca acceso; si era evento activo, **no** revoca claves ya canjeadas (jugado es jugado) pero bloquea nuevas activaciones |
+| `checkout.session.completed` / `checkout.session.async_payment_succeeded` | Solo si `payment_status = paid` (auditoría 2026-09-24, B-12: un método asíncrono como SEPA llega a `completed` con `payment_status: unpaid` y pasa a `paid` en el evento `async_payment_succeeded`). Recupera `purchaseId` de `metadata`. Si `purchase_type = room`: `purchases.status = succeeded` (la `Transfer` del 70 % al creador ya NO es síncrona aquí — B-9 — sino un barrido periódico de `@escaperoom/worker`, `creator-payouts.ts`, con reintentos). Si `room_license`: crea el fork → `resulting_room_id` (misma nota sobre la `Transfer`). Si `event_credits`: liquida por `purchaseId` comprobando que `session.id` y el importe cobrado coinciden con lo congelado al abrir el checkout (B-1/B-8) y marca `payment.status = paid` — **nunca activa el evento** (B-2): el organizador llama a `POST /api/events/:id/activate` |
+| `checkout.session.expired` | Solo `event_credits`: libera `payment.checkoutRef` para que el organizador pueda abrir un checkout nuevo (B-1) |
+| `payment_intent.payment_failed` / `checkout.session.async_payment_failed` | `room`/`room_license`: `purchases.status = failed`. `event_credits`: **sin efecto** (B-1) — Stripe Checkout deja reintentar con otra tarjeta en la misma Session, así que un fallo de cobro ya no libera el importe/checkout congelado (antes lo hacía, y eso es lo que permitía manipular `playersPlanned` y reintentar con el precio antiguo) |
+| `charge.refunded` | Reembolso **total**: `purchases.status = refunded`; si era sala, revoca acceso; si era evento, bloquea `activate`/la generación de más claves (jugado es jugado: no revoca claves ya canjeadas). Reembolso **parcial**: se registra (log) pero NO cambia el estado — el acceso/evento sigue vivo. Si ya se había transferido el reparto al creador (`room`/`room_license`), se revierte proporcionalmente al importe reembolsado con `PaymentGateway.reverseTransfer` (B-5) |
 | `account.updated` | Actualiza el estado de onboarding de Stripe Connect |
 
 **Idempotencia y seguridad:**
@@ -252,6 +255,9 @@ menos pistas, menos tiempo); las sesiones sin empezar no tienen puesto. `spectat
   `id` = `event.id` de Stripe; si ya existe, 200 sin reprocesar (Stripe reintenta y no garantiza
   entrega única).
 - Respuesta 200 rápida (<5 s); el trabajo pesado se delega a una cola Redis.
+- Cada `Transfer` (`PaymentGateway.createTransfer`) es idempotente por `purchaseId`
+  (`idempotencyKey` + comprobación de `transfers.list({transfer_group})` antes de crear, B-3): un
+  reintento del webhook o del barrido de payouts nunca duplica una transferencia.
 
 ## 8. Sesiones y progreso (lectura)
 

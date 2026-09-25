@@ -6,7 +6,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const handlers = () =>
-  createEventHandlers({ events: getEventService(), resolveActor: resolveActorFromRequest });
+  createEventHandlers({
+    events: getEventService(),
+    resolveActor: resolveActorFromRequest,
+    // Sin checkout en estos endpoints: nunca se invoca, pero el tipo lo exige.
+    buildUrls: () => ({ successUrl: "", cancelUrl: "" }),
+  });
 
 /** GET /api/events/:id — detalle + resumen (nº sesiones, claves por estado). Organizador o admin. */
 export function GET(request: Request, ctx: EventRouteContext) {

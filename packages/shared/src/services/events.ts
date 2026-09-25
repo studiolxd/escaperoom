@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logger } from "@escaperoom/kit/logger";
 import { LOCALES, type Locale } from "@escaperoom/config/locales";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
 import { isAnonymous, type Actor } from "./actor";
@@ -20,11 +21,16 @@ import {
  *
  * - Autoventa (`organizerId === room.authorId`): claves gratis, sin checkout y
  *   el evento es activable directamente.
- * - Evento ajeno: queda en `draft` con el pago pendiente. El checkout real es
- *   del ticket 5.1; aquí solo existe el puerto `PaymentGateway`.
+ * - Evento ajeno: queda en `draft` con el pago pendiente (ticket 5.1, Stripe
+ *   Checkout). El importe se congela en una `purchase` `event_credits`
+ *   `pending` al abrir el checkout (auditoría 2026-09-24, B-1/B-8): el webhook
+ *   liquida por esa `purchaseId` y comprueba que la Session y el importe
+ *   cobrado coinciden con lo congelado, nunca con el precio recalculado.
  *
  * El estado del pago y los flags de vídeo/grabación viven en `event.config`
- * (JSONB, specs/12 §4), así que no hace falta migración.
+ * (JSONB, specs/12 §4). `version` (auditoría 2026-09-24, B-11) da concurrencia
+ * optimista sobre esa escritura: un `PATCH` concurrente con `startCheckout` o
+ * con el webhook liquidando el pago ya no puede pisar la escritura del otro.
  */
 
 // ── Tipos de dominio ───────────────────────────────────────────────────────
@@ -52,9 +58,10 @@ export type ExpiryRule =
 
 /**
  * Estado del pago: `not_required` (autoventa), `pending` (evento ajeno aún sin
- * pagar) o `paid` (lo marca el webhook de 5.1 vía `markPaid`).
+ * pagar), `paid` (lo marca el webhook al liquidar la `purchase` congelada) o
+ * `refunded` (reembolso total del webhook, B-5: bloquea `activate`/`generateKeys`).
  */
-export type EventPaymentStatus = "not_required" | "pending" | "paid";
+export type EventPaymentStatus = "not_required" | "pending" | "paid" | "refunded";
 
 /** Contenido de `event.config` (JSONB). */
 export type EventConfig = {
@@ -71,8 +78,10 @@ export type EventConfig = {
   locale?: Locale;
   payment: {
     status: EventPaymentStatus;
-    /** Referencia opaca del checkout abierto en la pasarela (5.1). */
+    /** Referencia opaca del checkout abierto en la pasarela (5.1): el `id` de la Checkout Session. */
     checkoutRef: string | null;
+    /** `purchase` `event_credits` que congela el importe de ESTE checkout (B-1/B-8). */
+    purchaseId: string | null;
     paidAt: string | null;
   };
 };
@@ -94,10 +103,12 @@ export type EventRow = {
   pricingSnapshot: PricingSnapshot;
   playersPurchased: number;
   status: EventStatus;
+  /** Concurrencia optimista de `config` (B-11): cada escritura la exige y la incrementa. */
+  version: number;
   createdAt: Date;
 };
 
-export type NewEventRow = Omit<EventRow, "id" | "createdAt" | "roomId" | "status">;
+export type NewEventRow = Omit<EventRow, "id" | "createdAt" | "roomId" | "status" | "version">;
 
 /** Campos editables mientras el evento está en `draft`. */
 export type EventPatch = Partial<
@@ -132,6 +143,27 @@ export type EventSummary = {
 
 export type EventListCursor = { createdAt: Date; id: string };
 
+/** Estado de la `purchase` `event_credits` que congela un checkout de evento (B-1/B-8). */
+export type EventPurchaseStatus = "pending" | "succeeded" | "failed" | "refunded";
+
+export type EventPurchaseRef = {
+  id: string;
+  eventId: string;
+  amountCents: number;
+  currency: string;
+  status: EventPurchaseStatus;
+};
+
+export type NewEventPurchase = {
+  id: string;
+  eventId: string;
+  organizerId: string;
+  amountCents: number;
+  currency: string;
+  /** `id` de la Checkout Session recién abierta: satisface `chkPurchasePaidNeedsStripe`. */
+  checkoutRef: string;
+};
+
 /** Puerto de persistencia de eventos (ADR-022). */
 export interface EventStore extends AdminDirectory {
   /** Versión + sala, ignorando salas borradas (`deletedAt`). */
@@ -139,30 +171,52 @@ export interface EventStore extends AdminDirectory {
   insertEvent(event: NewEventRow): Promise<EventRow>;
   findEvent(id: string): Promise<EventRow | null>;
   /**
-   * Aplica `patch` solo si el evento sigue en `expectedStatus` (escritura
-   * condicional). `null` si ya no lo estaba o no existe.
+   * Aplica `patch` solo si el evento sigue en `expected.status` Y en
+   * `expected.version` (concurrencia optimista, B-11). `null` si cualquiera de
+   * las dos cambió (o el evento ya no existe): quien pierde la carrera relee y
+   * decide (reintentar o rechazar), nunca pisa a ciegas.
    */
-  updateEvent(id: string, expectedStatus: EventStatus, patch: EventPatch): Promise<EventRow | null>;
+  updateEvent(
+    id: string,
+    expected: { status: EventStatus; version: number },
+    patch: EventPatch,
+  ): Promise<EventRow | null>;
   /** Eventos del organizador, `createdAt DESC, id DESC`, estrictamente tras `after`. */
   listByOrganizer(
     organizerId: string,
     opts: { limit: number; after: EventListCursor | null },
   ): Promise<EventRow[]>;
   summarize(eventId: string): Promise<EventSummary>;
+
+  // ── Purchase `event_credits` (B-1/B-8): congela importe y liquida por id ──
+  insertEventPurchase(purchase: NewEventPurchase): Promise<void>;
+  findEventPurchase(purchaseId: string): Promise<EventPurchaseRef | null>;
+  /** `pending → succeeded` con la referencia de pago real; `false` si ya no estaba `pending`. */
+  settleEventPurchase(purchaseId: string, paymentRef: string): Promise<boolean>;
+  /** `pending → failed`: al expirar un checkout (reapertura) o cuando Stripe confirma su expiración. */
+  markEventPurchaseFailed(purchaseId: string): Promise<void>;
+  /** La `purchase` `succeeded` de este evento con esa referencia de pago (para `charge.refunded`, B-5). */
+  findEventPurchaseByPaymentRef(paymentRef: string): Promise<EventPurchaseRef | null>;
+  /** `succeeded → refunded`; `null` si no había compra `succeeded` con esa referencia. */
+  markEventPurchaseRefunded(purchaseId: string): Promise<boolean>;
 }
 
 /**
- * Pasarela de pago (Stripe Checkout en 5.1). Ni 5.4 ni 5.10 la implementan:
- * web la cablea a `null` y los tests usan `createFakePaymentGateway`.
+ * Pasarela de pago (Stripe Checkout, ticket 5.1). Ni 5.4 ni 5.10 la
+ * implementan directamente: web la cablea a `null` y los tests usan
+ * `createFakePaymentGateway`.
  */
 export interface PaymentGateway {
   createEventCheckout(input: {
+    purchaseId: string;
     eventId: string;
     organizerId: string;
     title: string;
     players: number;
     amountCents: number;
     currency: string;
+    successUrl: string;
+    cancelUrl: string;
   }): Promise<{ checkoutRef: string; url: string }>;
   /**
    * Licencia de sala entre creadores (5.10, `purchase_type: 'room_license'`).
@@ -177,6 +231,8 @@ export interface PaymentGateway {
     title: string;
     amountCents: number;
     currency: string;
+    successUrl: string;
+    cancelUrl: string;
   }): Promise<{ checkoutRef: string; url: string }>;
   /**
    * Venta individual de una sala a un jugador (ticket 5.1, `purchase_type:
@@ -197,10 +253,20 @@ export interface PaymentGateway {
     cancelUrl: string;
   }): Promise<{ checkoutRef: string; url: string }>;
   /**
+   * Expira una Checkout Session abierta (B-1): se usa antes de reabrir un
+   * checkout (`startCheckout` con `checkoutRef` ya presente) para que la
+   * Session vieja nunca pueda completarse con el importe/jugadores
+   * originales tras haberlos cambiado. Idempotente: expirar una Session ya
+   * expirada o completada no debe lanzar.
+   */
+  expireCheckout(checkoutRef: string): Promise<void>;
+  /**
    * Transferencia del reparto del creador tras el cobro ("separate charges
    * and transfers", specs/02 §2): NUNCA `application_fee_amount`, incompatible
    * con este modelo. `paymentIntentId` ata la transferencia al cargo original
    * (`source_transaction`) para que Stripe la financie con esos fondos.
+   * Idempotente por `purchaseId` (B-3): una segunda llamada con el mismo
+   * `purchaseId` nunca duplica la transferencia.
    */
   createTransfer(input: {
     purchaseId: string;
@@ -209,6 +275,13 @@ export interface PaymentGateway {
     destinationAccountId: string;
     paymentIntentId: string;
   }): Promise<{ transferId: string }>;
+  /**
+   * Reversión parcial/total de una `Transfer` ya hecha (B-5): cuando Stripe
+   * reembolsa el cargo original, el reparto ya entregado al creador se
+   * devuelve proporcionalmente para que la plataforma no cargue sola con el
+   * reembolso.
+   */
+  reverseTransfer(input: { transferId: string; amountCents: number }): Promise<void>;
 }
 
 // ── Errores ────────────────────────────────────────────────────────────────
@@ -343,6 +416,13 @@ export type EventDetail = EventView & { summary: EventSummary };
 
 export type EventPage = { items: EventView[]; nextCursor: string | null };
 
+/** Resultado de `markPaid` (B-1): nunca lanza — un desajuste se registra, no se activa. */
+export type MarkPaidResult =
+  | { outcome: "settled"; event: EventView }
+  | { outcome: "already_settled"; event: EventView }
+  | { outcome: "mismatch"; event: EventView }
+  | { outcome: "not_found" };
+
 /** Pago saldado: ya se puede activar. */
 function paymentSettled(config: EventConfig): boolean {
   return config.payment.status === "not_required" || config.payment.status === "paid";
@@ -415,9 +495,11 @@ export function createEventService(deps: {
   /** `null` hasta que 5.1 cablee Stripe: el checkout responde `PAYMENT_GATEWAY_UNAVAILABLE`. */
   payments: PaymentGateway | null;
   now?: () => Date;
+  newId?: () => string;
 }) {
   const { store } = deps;
   const now = deps.now ?? (() => new Date());
+  const newId = deps.newId ?? (() => crypto.randomUUID());
 
   function requireUser(actor: Actor): void {
     if (isAnonymous(actor)) throw new EventError("UNAUTHORIZED", "No hay sesión");
@@ -441,6 +523,10 @@ export function createEventService(deps: {
 
   function notEditable(): EventError {
     return new EventError("EVENT_NOT_EDITABLE", "El evento ya no está en borrador");
+  }
+
+  function expected(event: EventRow): { status: EventStatus; version: number } {
+    return { status: event.status, version: event.version };
   }
 
   return {
@@ -492,6 +578,7 @@ export function createEventService(deps: {
           payment: {
             status: selfSale ? "not_required" : "pending",
             checkoutRef: null,
+            purchaseId: null,
             paidAt: null,
           },
         },
@@ -528,7 +615,8 @@ export function createEventService(deps: {
     /**
      * `PATCH /api/events/:id` — edita la configuración mientras `status = draft`.
      * Cambiar `playersPlanned` recalcula el total con el snapshot DEL EVENTO
-     * (no con los tramos actuales) y solo se permite si no hay checkout abierto.
+     * (no con los tramos actuales) y solo se permite si no hay checkout abierto
+     * (el importe ya está congelado en la `purchase` de ese checkout, B-1).
      */
     async updateEvent(actor: Actor, id: string, input: unknown): Promise<EventView> {
       const event = await findOwnEvent(actor, id);
@@ -543,7 +631,11 @@ export function createEventService(deps: {
         ]);
       }
       if (data.playersPlanned !== undefined && data.playersPlanned !== event.playersPurchased) {
-        if (event.config.payment.status === "paid" || event.config.payment.checkoutRef !== null) {
+        if (
+          event.config.payment.status === "paid" ||
+          event.config.payment.status === "refunded" ||
+          event.config.payment.checkoutRef !== null
+        ) {
           throw new EventError(
             "EVENT_NOT_EDITABLE",
             "No se puede cambiar el nº de jugadores con un pago en curso o hecho",
@@ -573,18 +665,25 @@ export function createEventService(deps: {
           ...(data.locale ? { locale: data.locale } : {}),
         },
       };
-      const updated = await store.updateEvent(event.id, "draft", patch);
+      const updated = await store.updateEvent(event.id, expected(event), patch);
       if (!updated) throw notEditable();
       return toEventView(updated);
     },
 
     /**
      * `POST /api/events/:id/checkout` — abre el pago por el total en la
-     * pasarela. La autoventa no tiene checkout. El cobro real es de 5.1.
+     * pasarela y congela ese importe en una `purchase` `event_credits`
+     * `pending` (B-1/B-8): el webhook liquidará por su id, nunca recalculando
+     * desde `playersPurchased` en el momento del pago.
+     *
+     * Si ya había un checkout abierto (reintento, o el organizador lo cerró y
+     * vuelve a intentarlo) se expira esa Session vieja primero: nunca
+     * coexisten dos checkouts cobrables para el mismo evento (B-1).
      */
     async startCheckout(
       actor: Actor,
       id: string,
+      urls: { successUrl: string; cancelUrl: string },
     ): Promise<{ event: EventView; checkoutUrl: string }> {
       const event = await findOwnEvent(actor, id);
       if (event.status !== "draft") throw notEditable();
@@ -597,19 +696,41 @@ export function createEventService(deps: {
           "El pago de eventos todavía no está disponible",
         );
       }
+      if (event.config.payment.checkoutRef) {
+        await deps.payments.expireCheckout(event.config.payment.checkoutRef);
+        if (event.config.payment.purchaseId) {
+          await store.markEventPurchaseFailed(event.config.payment.purchaseId);
+        }
+      }
+
       const view = toEventView(event);
+      const purchaseId = newId();
       const checkout = await deps.payments.createEventCheckout({
+        purchaseId,
         eventId: event.id,
         organizerId: event.organizerId,
         title: event.title,
         players: event.playersPurchased,
         amountCents: view.pricing.amountDueCents,
         currency: view.pricing.currency,
+        successUrl: urls.successUrl,
+        cancelUrl: urls.cancelUrl,
       });
-      const updated = await store.updateEvent(event.id, "draft", {
+      // Primero el checkout (con el id de la compra ya fijado en su metadata) y
+      // luego la `purchase` con su referencia: el CHECK de `purchase` no admite
+      // una compra con importe y sin referencia de pago (mismo orden que 5.1/5.10).
+      await store.insertEventPurchase({
+        id: purchaseId,
+        eventId: event.id,
+        organizerId: event.organizerId,
+        amountCents: view.pricing.amountDueCents,
+        currency: view.pricing.currency,
+        checkoutRef: checkout.checkoutRef,
+      });
+      const updated = await store.updateEvent(event.id, expected(event), {
         config: {
           ...event.config,
-          payment: { ...event.config.payment, checkoutRef: checkout.checkoutRef },
+          payment: { ...event.config.payment, checkoutRef: checkout.checkoutRef, purchaseId },
         },
       });
       if (!updated) throw notEditable();
@@ -617,44 +738,131 @@ export function createEventService(deps: {
     },
 
     /**
-     * `checkout.session.completed` (`purchaseType: 'event_credits'`): marca el
-     * pago como hecho y, si el evento sigue en `draft`, lo activa en la misma
-     * escritura (specs/13 §7: "succeeded y llama a `activate` del evento").
-     * Interna, sin actor: la invoca el webhook de Stripe tras verificar la
-     * firma. Idempotente.
+     * `checkout.session.completed` (`purchaseType: 'event_credits'`): liquida
+     * el pago por `purchaseId` (B-1/B-8), comprobando que la Session y el
+     * importe cobrado coinciden con lo congelado al abrir el checkout. Si no
+     * cuadra, NO se activa nada: se registra como error para revisión manual
+     * (nunca se confía en `playersPurchased`/el precio recalculado en el
+     * momento del webhook). Interna, sin actor: la invoca el webhook de
+     * Stripe tras verificar la firma. Idempotente.
+     *
+     * A diferencia de la versión anterior, NO activa el evento (B-2): solo
+     * marca `payment.status = paid`. El organizador (o un plan por defecto)
+     * activa explícitamente con `POST /api/events/:id/activate`.
      */
-    async markPaid(id: string): Promise<EventView> {
-      const event = await findEvent(id);
-      if (event.config.payment.status !== "pending") return toEventView(event);
-      const updated = await store.updateEvent(event.id, event.status, {
+    async markPaid(input: {
+      purchaseId: string;
+      sessionId: string;
+      paymentIntentId: string;
+      amountTotalCents: number;
+    }): Promise<MarkPaidResult> {
+      const purchase = await store.findEventPurchase(input.purchaseId);
+      if (!purchase) {
+        logger.error(
+          { purchaseId: input.purchaseId },
+          "events.markPaid: purchase de evento no encontrada",
+        );
+        return { outcome: "not_found" };
+      }
+      if (purchase.status === "succeeded") {
+        // Replay del webhook: ya se liquidó, nada más que hacer.
+        return { outcome: "already_settled", event: toEventView(await findEvent(purchase.eventId)) };
+      }
+      if (purchase.status !== "pending") {
+        logger.error(
+          { purchaseId: input.purchaseId, status: purchase.status },
+          "events.markPaid: la compra ya no está pendiente de pago",
+        );
+        return { outcome: "mismatch", event: toEventView(await findEvent(purchase.eventId)) };
+      }
+
+      const event = await findEvent(purchase.eventId);
+      const mismatch =
+        event.config.payment.checkoutRef !== input.sessionId ||
+        purchase.amountCents !== input.amountTotalCents;
+      if (mismatch) {
+        logger.error(
+          {
+            purchaseId: input.purchaseId,
+            eventId: event.id,
+            expectedSession: event.config.payment.checkoutRef,
+            gotSession: input.sessionId,
+            expectedAmountCents: purchase.amountCents,
+            gotAmountCents: input.amountTotalCents,
+          },
+          "events.markPaid: la Session o el importe cobrado no coinciden con lo congelado; no se activa el pago",
+        );
+        return { outcome: "mismatch", event: toEventView(event) };
+      }
+
+      const settled = await store.settleEventPurchase(purchase.id, input.paymentIntentId);
+      if (!settled) {
+        // Carrera perdida (confirmación concurrente): quien ganó ya liquidó.
+        return { outcome: "already_settled", event: toEventView(await findEvent(event.id)) };
+      }
+      const updated = await store.updateEvent(event.id, expected(event), {
         config: {
           ...event.config,
           payment: { ...event.config.payment, status: "paid", paidAt: now().toISOString() },
         },
-        ...(event.status === "draft" ? { status: "active" as const } : {}),
       });
-      return toEventView(updated ?? (await findEvent(id)));
+      const finalView = toEventView(updated ?? (await findEvent(event.id)));
+      return { outcome: "settled", event: finalView };
     },
 
     /**
-     * `payment_intent.payment_failed` (`purchaseType: 'event_credits'`): libera
-     * el checkout abierto para que el organizador pueda reintentarlo. Interna,
-     * invocada por el webhook.
+     * `checkout.session.expired` (`purchaseType: 'event_credits'`): libera el
+     * checkout para que el organizador pueda abrir uno nuevo. A diferencia de
+     * la versión anterior (B-1), esto YA NO ocurre con `payment_intent.payment_failed`
+     * — Stripe Checkout deja reintentar con otra tarjeta en la MISMA Session
+     * (el cliente ni siquiera sale de la página), así que un fallo de cobro no
+     * implica que el importe congelado deje de proteger el precio. Solo esta
+     * expiración real (24 h sin completar, o `startCheckout` expirándola a
+     * propósito para reabrir) libera el hueco. Interna, invocada por el
+     * webhook. Idempotente y tolerante a Sessions ya sustituidas.
      */
-    async markCheckoutFailed(id: string): Promise<EventView> {
-      const event = await findEvent(id);
-      if (event.config.payment.status !== "pending" || event.config.payment.checkoutRef === null) {
-        return toEventView(event);
+    async markCheckoutExpired(input: { eventId: string; sessionId: string }): Promise<void> {
+      const event = await store.findEvent(input.eventId);
+      if (!event || event.config.payment.checkoutRef !== input.sessionId) {
+        // Ya se abrió un checkout nuevo (o el evento no existe): nada que liberar.
+        return;
       }
-      const updated = await store.updateEvent(event.id, event.status, {
-        config: { ...event.config, payment: { ...event.config.payment, checkoutRef: null } },
+      if (event.config.payment.purchaseId) {
+        await store.markEventPurchaseFailed(event.config.payment.purchaseId);
+      }
+      await store.updateEvent(event.id, expected(event), {
+        config: {
+          ...event.config,
+          payment: { ...event.config.payment, checkoutRef: null, purchaseId: null },
+        },
       });
-      return toEventView(updated ?? (await findEvent(id)));
+    },
+
+    /**
+     * `charge.refunded` (reembolso TOTAL, `purchaseType: 'event_credits'`,
+     * B-5): marca el pago como reembolsado, lo que bloquea `activate` (ya no
+     * `paymentSettled`) y la generación de más claves sobre un evento ya
+     * activo (`AccessKeyService.generateKeys`). Los eventos no tienen
+     * `Transfer` que revertir (specs/02 §1: el 100% es de la plataforma).
+     * Interna, invocada por el webhook. `null` si no había compra `succeeded`
+     * con esa referencia de pago (no es un evento, o ya estaba reembolsada).
+     */
+    async markRefunded(paymentIntentId: string): Promise<EventView | null> {
+      const purchase = await store.findEventPurchaseByPaymentRef(paymentIntentId);
+      if (!purchase || purchase.status !== "succeeded") return null;
+      const refunded = await store.markEventPurchaseRefunded(purchase.id);
+      if (!refunded) return null;
+      const event = await findEvent(purchase.eventId);
+      const updated = await store.updateEvent(event.id, expected(event), {
+        config: { ...event.config, payment: { ...event.config.payment, status: "refunded" } },
+      });
+      return toEventView(updated ?? (await findEvent(event.id)));
     },
 
     /**
      * `POST /api/events/:id/activate` — `draft → active` si el pago está
-     * saldado (autoventa o pagado). La generación de sesiones y claves es de 5.5.
+     * saldado (autoventa o pagado; NUNCA si está reembolsado, B-5). La
+     * generación de sesiones y claves es de 5.5.
      */
     async activate(actor: Actor, id: string): Promise<EventView> {
       const event = await findOwnEvent(actor, id);
@@ -662,7 +870,7 @@ export function createEventService(deps: {
       if (!paymentSettled(event.config)) {
         throw new EventError("PAYMENT_REQUIRED", "El evento está pendiente de pago");
       }
-      const updated = await store.updateEvent(event.id, "draft", { status: "active" });
+      const updated = await store.updateEvent(event.id, expected(event), { status: "active" });
       if (!updated) throw notEditable();
       return toEventView(updated);
     },
@@ -677,6 +885,7 @@ type EventCheckoutInput = Parameters<PaymentGateway["createEventCheckout"]>[0];
 type LicenseCheckoutInput = Parameters<PaymentGateway["createLicenseCheckout"]>[0];
 type RoomCheckoutInput = Parameters<PaymentGateway["createRoomCheckout"]>[0];
 type TransferInput = Parameters<PaymentGateway["createTransfer"]>[0];
+type ReverseTransferInput = Parameters<PaymentGateway["reverseTransfer"]>[0];
 
 /** Pasarela falsa: registra las llamadas y devuelve una URL/ref ficticia. Nunca toca Stripe. */
 export function createFakePaymentGateway(): PaymentGateway & {
@@ -684,16 +893,22 @@ export function createFakePaymentGateway(): PaymentGateway & {
   licenseCalls: LicenseCheckoutInput[];
   roomCalls: RoomCheckoutInput[];
   transferCalls: TransferInput[];
+  reversalCalls: ReverseTransferInput[];
+  expiredRefs: string[];
 } {
   const calls: EventCheckoutInput[] = [];
   const licenseCalls: LicenseCheckoutInput[] = [];
   const roomCalls: RoomCheckoutInput[] = [];
   const transferCalls: TransferInput[] = [];
+  const reversalCalls: ReverseTransferInput[] = [];
+  const expiredRefs: string[] = [];
   return {
     calls,
     licenseCalls,
     roomCalls,
     transferCalls,
+    reversalCalls,
+    expiredRefs,
     async createEventCheckout(input) {
       calls.push(input);
       const checkoutRef = `fake_cs_${calls.length}`;
@@ -709,9 +924,15 @@ export function createFakePaymentGateway(): PaymentGateway & {
       const checkoutRef = `fake_cs_room_${roomCalls.length}`;
       return { checkoutRef, url: `https://checkout.example.test/${checkoutRef}` };
     },
+    async expireCheckout(checkoutRef) {
+      expiredRefs.push(checkoutRef);
+    },
     async createTransfer(input) {
       transferCalls.push(input);
       return { transferId: `fake_tr_${transferCalls.length}` };
+    },
+    async reverseTransfer(input) {
+      reversalCalls.push(input);
     },
   };
 }
@@ -721,16 +942,18 @@ export function createInMemoryEventStore(opts: {
   adminIds?: Iterable<string>;
   roomVersions?: EventRoomVersionRef[];
   summaries?: Record<string, EventSummary>;
-}): EventStore & { rows: EventRow[] } {
+}): EventStore & { rows: EventRow[]; purchases: (EventPurchaseRef & { paymentRef: string | null })[] } {
   const admins = new Set(opts.adminIds ?? []);
   const versions = new Map((opts.roomVersions ?? []).map((v) => [v.roomVersionId, { ...v }]));
   const rows: EventRow[] = [];
+  const purchases: (EventPurchaseRef & { paymentRef: string | null })[] = [];
   const copy = (e: EventRow): EventRow => structuredClone(e);
   const newer = (a: EventListCursor, b: EventListCursor) =>
     b.createdAt.getTime() - a.createdAt.getTime() || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
 
   return {
     rows,
+    purchases,
     async isAdmin(userId) {
       return admins.has(userId);
     },
@@ -746,6 +969,7 @@ export function createInMemoryEventStore(opts: {
         id: crypto.randomUUID(),
         roomId: version.roomId,
         status: "draft",
+        version: 1,
         createdAt: new Date(),
       };
       rows.push(row);
@@ -755,12 +979,13 @@ export function createInMemoryEventStore(opts: {
       const row = rows.find((e) => e.id === id);
       return row ? copy(row) : null;
     },
-    async updateEvent(id, expectedStatus, patch) {
+    async updateEvent(id, expected, patch) {
       const row = rows.find((e) => e.id === id);
-      if (!row || row.status !== expectedStatus) return null;
+      if (!row || row.status !== expected.status || row.version !== expected.version) return null;
       for (const [k, v] of Object.entries(structuredClone(patch))) {
         if (v !== undefined) (row as Record<string, unknown>)[k] = v;
       }
+      row.version += 1;
       return copy(row);
     },
     async listByOrganizer(organizerId, { limit, after }) {
@@ -773,6 +998,43 @@ export function createInMemoryEventStore(opts: {
     },
     async summarize(eventId) {
       return structuredClone(opts.summaries?.[eventId] ?? { sessions: 0, accessKeysByStatus: {} });
+    },
+    async insertEventPurchase(purchase) {
+      purchases.push({
+        id: purchase.id,
+        eventId: purchase.eventId,
+        amountCents: purchase.amountCents,
+        currency: purchase.currency,
+        status: "pending",
+        paymentRef: purchase.checkoutRef,
+      });
+    },
+    async findEventPurchase(purchaseId) {
+      const row = purchases.find((p) => p.id === purchaseId);
+      if (!row) return null;
+      return { id: row.id, eventId: row.eventId, amountCents: row.amountCents, currency: row.currency, status: row.status };
+    },
+    async settleEventPurchase(purchaseId, paymentRef) {
+      const row = purchases.find((p) => p.id === purchaseId);
+      if (!row || row.status !== "pending") return false;
+      row.status = "succeeded";
+      row.paymentRef = paymentRef;
+      return true;
+    },
+    async markEventPurchaseFailed(purchaseId) {
+      const row = purchases.find((p) => p.id === purchaseId);
+      if (row && row.status === "pending") row.status = "failed";
+    },
+    async findEventPurchaseByPaymentRef(paymentRef) {
+      const row = purchases.find((p) => p.paymentRef === paymentRef);
+      if (!row) return null;
+      return { id: row.id, eventId: row.eventId, amountCents: row.amountCents, currency: row.currency, status: row.status };
+    },
+    async markEventPurchaseRefunded(purchaseId) {
+      const row = purchases.find((p) => p.id === purchaseId);
+      if (!row || row.status !== "succeeded") return false;
+      row.status = "refunded";
+      return true;
     },
   };
 }

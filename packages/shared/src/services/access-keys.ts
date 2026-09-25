@@ -557,6 +557,22 @@ export function createAccessKeyService(deps: {
     }
   }
 
+  /**
+   * B-5: un evento reembolsado (pago total devuelto tras `charge.refunded`)
+   * no debe poder generar más claves aunque ya estuviera `active` cuando se
+   * reembolsó — `EventService.activate` ya bloquea llegar a `active` desde
+   * `draft` con el pago reembolsado, pero no revierte un evento que ya lo
+   * estaba antes del reembolso.
+   */
+  function assertPaymentNotRefunded(event: EventRow): void {
+    if (event.config.payment.status === "refunded") {
+      throw new AccessKeyError(
+        "CONFLICT",
+        "El pago del evento ha sido reembolsado; no se pueden generar más claves",
+      );
+    }
+  }
+
   function assertNotExpired(event: EventRow): void {
     const deadline = keyDeadline(event);
     if (deadline && deadline.getTime() <= now().getTime()) {
@@ -764,6 +780,7 @@ export function createAccessKeyService(deps: {
       const data = parseOrThrow(GenerateAccessKeysInput, input);
       await requireDpaFor(actor, [data]);
       requireStatus(event, "active");
+      assertPaymentNotRefunded(event);
       assertNotExpired(event);
       const assignment = await resolveAssignment(event, data);
       return insert(event, buildRows(event, data, assignment));

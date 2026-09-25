@@ -10,6 +10,8 @@ import {
 export type EventHandlerDeps = {
   events: EventService;
   resolveActor: (request: Request) => Promise<Actor>;
+  /** URLs de retorno del Checkout, construidas por el adaptador (origen de la petición, B-21). */
+  buildUrls: (eventId: string) => { successUrl: string; cancelUrl: string };
 };
 
 /** Contexto de ruta dinámica de Next (App Router): `params` es asíncrono. */
@@ -132,7 +134,7 @@ export function createEventHandlers(deps: EventHandlerDeps) {
       return handle(async () => {
         const { id } = await ctx.params;
         const actor = await deps.resolveActor(request);
-        const { event, checkoutUrl } = await deps.events.startCheckout(actor, id);
+        const { event, checkoutUrl } = await deps.events.startCheckout(actor, id, deps.buildUrls(id));
         return Response.json({ event: eventJson(event), checkoutUrl }, { headers: NO_STORE });
       });
     },

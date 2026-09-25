@@ -263,6 +263,8 @@ describe("eventos — validación", () => {
   });
 });
 
+const urls = { successUrl: "https://app.test/success", cancelUrl: "https://app.test/cancel" };
+
 describe("eventos — autoventa y pago", () => {
   it("autoventa del autor: gratis, sin checkout y activable", async () => {
     const { events, payments } = setup();
@@ -271,7 +273,7 @@ describe("eventos — autoventa y pago", () => {
     expect(event.config.payment.status).toBe("not_required");
     expect(event.activatable).toBe(true);
 
-    await rejects(events.startCheckout(author, event.id), "CHECKOUT_NOT_REQUIRED");
+    await rejects(events.startCheckout(author, event.id, urls), "CHECKOUT_NOT_REQUIRED");
     expect(payments.calls).toHaveLength(0);
 
     const active = await events.activate(author, event.id);
@@ -280,47 +282,188 @@ describe("eventos — autoventa y pago", () => {
     await rejects(events.updateEvent(author, event.id, { title: "x" }), "EVENT_NOT_EDITABLE");
   });
 
-  it("evento ajeno: pendiente de pago, no activable hasta pagar", async () => {
-    const { events, payments } = setup();
+  it("evento ajeno: pendiente de pago, no activable hasta pagar; markPaid ya NO activa (B-2)", async () => {
+    const { events, payments, store } = setup();
     const event = await events.createEvent(organizer, baseInput());
     expect(event.status).toBe("draft");
-    expect(event.config.payment).toEqual({ status: "pending", checkoutRef: null, paidAt: null });
+    expect(event.config.payment).toEqual({
+      status: "pending",
+      checkoutRef: null,
+      purchaseId: null,
+      paidAt: null,
+    });
     expect(event.activatable).toBe(false);
     await rejects(events.activate(organizer, event.id), "PAYMENT_REQUIRED");
 
-    const { checkoutUrl, event: withCheckout } = await events.startCheckout(organizer, event.id);
+    const { checkoutUrl, event: withCheckout } = await events.startCheckout(organizer, event.id, urls);
     expect(checkoutUrl).toContain("fake_cs_1");
     expect(payments.calls).toEqual([
       {
+        purchaseId: withCheckout.config.payment.purchaseId,
         eventId: event.id,
         organizerId: organizer.userId,
         title: "Jornada 3ºB",
         players: 30,
         amountCents: 2700,
         currency: "EUR",
+        ...urls,
       },
     ]);
     expect(withCheckout.config.payment.checkoutRef).toBe("fake_cs_1");
+    const purchaseId = withCheckout.config.payment.purchaseId;
+    expect(purchaseId).not.toBeNull();
+    // B-1/B-8: la `purchase` `event_credits` congela el importe al abrir el checkout.
+    expect(store.purchases).toEqual([
+      { id: purchaseId, eventId: event.id, amountCents: 2700, currency: "EUR", status: "pending", paymentRef: "fake_cs_1" },
+    ]);
     // Con checkout abierto el nº de jugadores ya no cambia (el importe está en la pasarela).
     await rejects(
       events.updateEvent(organizer, event.id, { playersPlanned: 40 }),
       "EVENT_NOT_EDITABLE",
     );
 
-    // El webhook de Stripe (5.1) llama a `markPaid` al confirmar el pago, que
-    // activa el evento en la misma escritura (specs/13 §7): no hace falta un
-    // `activate` explícito del organizador.
-    const paid = await events.markPaid(event.id);
-    expect(paid.config.payment.status).toBe("paid");
-    expect(paid.status).toBe("active");
+    // El webhook de Stripe liquida por `purchaseId` (B-1/B-8) y YA NO activa
+    // el evento en la misma escritura (B-2): el organizador (o un plan por
+    // defecto) llama a `activate` explícitamente.
+    const result = await events.markPaid({
+      purchaseId: purchaseId!,
+      sessionId: "fake_cs_1",
+      paymentIntentId: "pi_1",
+      amountTotalCents: 2700,
+    });
+    expect(result.outcome).toBe("settled");
+    if (result.outcome !== "settled" && result.outcome !== "already_settled" && result.outcome !== "mismatch") {
+      throw new Error("se esperaba un evento");
+    }
+    expect(result.event.config.payment.status).toBe("paid");
+    expect(result.event.status).toBe("draft");
+    expect(result.event.activatable).toBe(true);
+
+    const active = await events.activate(organizer, event.id);
+    expect(active.status).toBe("active");
     await rejects(events.activate(organizer, event.id), "EVENT_NOT_EDITABLE");
+  });
+
+  it("markPaid es idempotente (replay del webhook)", async () => {
+    const { events } = setup();
+    const event = await events.createEvent(organizer, baseInput());
+    const { event: withCheckout } = await events.startCheckout(organizer, event.id, urls);
+    const purchaseId = withCheckout.config.payment.purchaseId!;
+    const input = { purchaseId, sessionId: "fake_cs_1", paymentIntentId: "pi_1", amountTotalCents: 2700 };
+    const first = await events.markPaid(input);
+    const second = await events.markPaid(input);
+    expect(first.outcome).toBe("settled");
+    expect(second.outcome).toBe("already_settled");
+  });
+
+  it("markPaid NO activa nada si la Session o el importe no coinciden con lo congelado (B-1)", async () => {
+    const { events } = setup();
+    const event = await events.createEvent(organizer, baseInput());
+    const { event: withCheckout } = await events.startCheckout(organizer, event.id, urls);
+    const purchaseId = withCheckout.config.payment.purchaseId!;
+
+    // Importe distinto del congelado (2700): el escenario de la auditoría —
+    // manipular `playersPlanned` no cambia el importe congelado en la
+    // `purchase`, así que aunque se intentara, el webhook lo detecta aquí.
+    const wrongAmount = await events.markPaid({
+      purchaseId,
+      sessionId: "fake_cs_1",
+      paymentIntentId: "pi_1",
+      amountTotalCents: 100,
+    });
+    expect(wrongAmount.outcome).toBe("mismatch");
+
+    // Session distinta de la abierta (`checkoutRef`).
+    const wrongSession = await events.markPaid({
+      purchaseId,
+      sessionId: "fake_cs_OTRA",
+      paymentIntentId: "pi_1",
+      amountTotalCents: 2700,
+    });
+    expect(wrongSession.outcome).toBe("mismatch");
+
+    const reread = await events.getEvent(organizer, event.id);
+    expect(reread.config.payment.status).toBe("pending");
+  });
+
+  it("escenario de la auditoría: checkout de 1 jugador → payment_failed → PATCH playersPlanned:100000 → reintento → NO se activa con 100000 asientos por el precio de 1", async () => {
+    const { events } = setup();
+    const event = await events.createEvent(organizer, baseInput({ playersPlanned: 1 }));
+    const { event: withCheckout, checkoutUrl } = await events.startCheckout(organizer, event.id, urls);
+    const purchaseId = withCheckout.config.payment.purchaseId!;
+    const amountCents = withCheckout.pricing.amountDueCents;
+    expect(checkoutUrl).toBeTruthy();
+
+    // `payment_intent.payment_failed`: en events.ts esto ya NO libera el
+    // checkout (B-1) — el webhook de la app simplemente no llama a ningún
+    // método aquí (ver stripe-webhook.ts `handlePaymentFailure`).
+
+    // El organizador intenta subir `playersPlanned` con el checkout todavía
+    // abierto: sigue bloqueado.
+    await rejects(
+      events.updateEvent(organizer, event.id, { playersPlanned: 100_000 }),
+      "EVENT_NOT_EDITABLE",
+    );
+
+    // Aunque el importe recalculado hubiera cambiado, el webhook liquida
+    // contra el importe CONGELADO en la `purchase`, no contra el actual.
+    const result = await events.markPaid({
+      purchaseId,
+      sessionId: "fake_cs_1",
+      paymentIntentId: "pi_1",
+      amountTotalCents: amountCents,
+    });
+    expect(result.outcome).toBe("settled");
+    if (result.outcome !== "settled") throw new Error("se esperaba settled");
+    expect(result.event.playersPurchased).toBe(1);
+    await events.activate(organizer, event.id);
+    const final = await events.getEvent(organizer, event.id);
+    expect(final.playersPurchased).toBe(1);
+  });
+
+  it("startCheckout con un checkout ya abierto lo expira y abre uno nuevo (B-1)", async () => {
+    const { events, payments, store } = setup();
+    const event = await events.createEvent(organizer, baseInput());
+    const first = await events.startCheckout(organizer, event.id, urls);
+    const firstPurchaseId = first.event.config.payment.purchaseId!;
+
+    const second = await events.startCheckout(organizer, event.id, urls);
+    expect(payments.expiredRefs).toEqual(["fake_cs_1"]);
+    expect(second.event.config.payment.checkoutRef).toBe("fake_cs_2");
+    expect(second.event.config.payment.checkoutRef).not.toBe(first.event.config.payment.checkoutRef);
+
+    const firstPurchase = store.purchases.find((p) => p.id === firstPurchaseId);
+    expect(firstPurchase?.status).toBe("failed");
+  });
+
+  it("checkout.session.expired libera el checkout (única vía, junto con reabrir, que lo libera)", async () => {
+    const { events } = setup();
+    const event = await events.createEvent(organizer, baseInput());
+    const { event: withCheckout } = await events.startCheckout(organizer, event.id, urls);
+    await events.markCheckoutExpired({ eventId: event.id, sessionId: "fake_cs_1" });
+    const reread = await events.getEvent(organizer, event.id);
+    expect(reread.config.payment.checkoutRef).toBeNull();
+    expect(reread.config.payment.purchaseId).toBeNull();
+    expect(withCheckout.config.payment.checkoutRef).toBe("fake_cs_1");
+  });
+
+  it("markRefunded (B-5) bloquea activate tras un reembolso total", async () => {
+    const { events } = setup();
+    const event = await events.createEvent(organizer, baseInput());
+    const { event: withCheckout } = await events.startCheckout(organizer, event.id, urls);
+    const purchaseId = withCheckout.config.payment.purchaseId!;
+    await events.markPaid({ purchaseId, sessionId: "fake_cs_1", paymentIntentId: "pi_1", amountTotalCents: 2700 });
+
+    const refunded = await events.markRefunded("pi_1");
+    expect(refunded?.config.payment.status).toBe("refunded");
+    await rejects(events.activate(organizer, event.id), "PAYMENT_REQUIRED");
   });
 
   it("sin pasarela cableada el checkout responde PAYMENT_GATEWAY_UNAVAILABLE", async () => {
     const { store, pricing } = setup();
     const events = createEventService({ store, pricing, payments: null });
     const event = await events.createEvent(organizer, baseInput());
-    await rejects(events.startCheckout(organizer, event.id), "PAYMENT_GATEWAY_UNAVAILABLE");
+    await rejects(events.startCheckout(organizer, event.id, urls), "PAYMENT_GATEWAY_UNAVAILABLE");
   });
 });
 
@@ -340,7 +483,7 @@ describe("eventos — permisos y lectura", () => {
     const event = await events.createEvent(organizer, baseInput());
     await rejects(events.getEvent(other, event.id), "FORBIDDEN");
     await rejects(events.updateEvent(other, event.id, { title: "x" }), "FORBIDDEN");
-    await rejects(events.startCheckout(other, event.id), "FORBIDDEN");
+    await rejects(events.startCheckout(other, event.id, urls), "FORBIDDEN");
     await rejects(events.activate(other, event.id), "FORBIDDEN");
 
     const asAdmin = await events.getEvent(admin, event.id);

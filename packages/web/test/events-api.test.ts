@@ -84,6 +84,10 @@ function setup(payments: PaymentGateway | null = createFakePaymentGateway()) {
   const handlers = createEventHandlers({
     events,
     resolveActor: async (req) => actors[req.headers.get("x-test-user") ?? ""] ?? ANONYMOUS_ACTOR,
+    buildUrls: (eventId) => ({
+      successUrl: `https://app.test/success?eventId=${eventId}`,
+      cancelUrl: `https://app.test/cancel?eventId=${eventId}`,
+    }),
   });
   const req = (
     path: string,

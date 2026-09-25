@@ -1,5 +1,5 @@
-import type { Prisma, PrismaClient } from "../../generated/client";
-import type { EventConfig, EventRow, EventStore, EventSummary, ExpiryRule } from "./events";
+import { Prisma, type PrismaClient } from "../../generated/client";
+import type { EventConfig, EventPurchaseRef, EventRow, EventStore, EventSummary, ExpiryRule } from "./events";
 import type { PricingSnapshot } from "./pricing-tiers";
 
 type DbEvent = Prisma.eventGetPayload<{ include: { roomVersion: { select: { roomId: true } } } }>;
@@ -18,12 +18,32 @@ function toRow(row: DbEvent): EventRow {
   };
 }
 
+function toEventPurchase(row: {
+  id: string;
+  eventId: string | null;
+  amountCents: number;
+  currency: string;
+  status: "pending" | "succeeded" | "failed" | "refunded";
+}): EventPurchaseRef {
+  return {
+    id: row.id,
+    // `chkPurchaseTarget` garantiza `eventId` en `event_credits`.
+    eventId: row.eventId ?? "",
+    amountCents: row.amountCents,
+    currency: row.currency,
+    status: row.status,
+  };
+}
+
 const json = (value: unknown) => value as Prisma.InputJsonValue;
 
 /**
  * Implementación Prisma del puerto de eventos sobre `event` (specs/14 §6). La
  * tabla existe desde `0006_events`: el estado del pago y los flags de vídeo y
- * grabación viajan en `config` (JSONB), así que no hace falta migración.
+ * grabación viajan en `config` (JSONB). `version` (B-11, migración
+ * `20260925120000_event_payment_integrity`) da concurrencia optimista sobre
+ * esa escritura. La `purchase` `event_credits` que congela el importe del
+ * checkout (B-1/B-8) reutiliza la tabla `purchase` de `0007_purchases`.
  */
 export function createPrismaEventStore(prisma: PrismaClient): EventStore {
   return {
@@ -80,14 +100,15 @@ export function createPrismaEventStore(prisma: PrismaClient): EventStore {
       const row = await prisma.event.findUnique({ where: { id }, include: withRoom });
       return row ? toRow(row) : null;
     },
-    async updateEvent(id, expectedStatus, patch) {
+    async updateEvent(id, expected, patch) {
       const { config, expiryRules, ...scalars } = patch;
       const { count } = await prisma.event.updateMany({
-        where: { id, status: expectedStatus },
+        where: { id, status: expected.status, version: expected.version },
         data: {
           ...scalars,
           ...(config === undefined ? {} : { config: json(config) }),
           ...(expiryRules === undefined ? {} : { expiryRules: json(expiryRules) }),
+          version: { increment: 1 },
         },
       });
       if (count === 0) return null;
@@ -122,6 +143,54 @@ export function createPrismaEventStore(prisma: PrismaClient): EventStore {
         sessions,
         accessKeysByStatus: Object.fromEntries(keys.map((k) => [k.status, k._count._all])),
       };
+    },
+    async insertEventPurchase(purchase) {
+      await prisma.purchase.create({
+        data: {
+          id: purchase.id,
+          userId: purchase.organizerId,
+          purchaseType: "event_credits",
+          eventId: purchase.eventId,
+          amountCents: purchase.amountCents,
+          currency: purchase.currency,
+          status: "pending",
+          stripePaymentIntentId: purchase.checkoutRef,
+        },
+      });
+    },
+    async findEventPurchase(purchaseId) {
+      const row = await prisma.purchase.findFirst({
+        where: { id: purchaseId, purchaseType: "event_credits" },
+        select: { id: true, eventId: true, amountCents: true, currency: true, status: true },
+      });
+      return row ? toEventPurchase(row) : null;
+    },
+    async settleEventPurchase(purchaseId, paymentRef) {
+      const { count } = await prisma.purchase.updateMany({
+        where: { id: purchaseId, purchaseType: "event_credits", status: "pending" },
+        data: { status: "succeeded", stripePaymentIntentId: paymentRef },
+      });
+      return count > 0;
+    },
+    async markEventPurchaseFailed(purchaseId) {
+      await prisma.purchase.updateMany({
+        where: { id: purchaseId, purchaseType: "event_credits", status: "pending" },
+        data: { status: "failed" },
+      });
+    },
+    async findEventPurchaseByPaymentRef(paymentRef) {
+      const row = await prisma.purchase.findFirst({
+        where: { purchaseType: "event_credits", stripePaymentIntentId: paymentRef },
+        select: { id: true, eventId: true, amountCents: true, currency: true, status: true },
+      });
+      return row ? toEventPurchase(row) : null;
+    },
+    async markEventPurchaseRefunded(purchaseId) {
+      const { count } = await prisma.purchase.updateMany({
+        where: { id: purchaseId, purchaseType: "event_credits", status: "succeeded" },
+        data: { status: "refunded" },
+      });
+      return count > 0;
     },
   };
 }

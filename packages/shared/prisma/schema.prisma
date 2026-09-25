@@ -187,6 +187,8 @@ model event {
   createdAt               DateTime      @default(now()) @db.Timestamptz(6)
   /// E-11: marca de verdad del email de confirmación de compra (event_credits); la pone el worker al entregarlo, no el webhook al encolarlo.
   confirmationSentAt      DateTime?     @db.Timestamptz(6)
+  /// B-11: concurrencia optimista de `config` (JSONB); cada `updateEvent` la exige junto con `status` y la incrementa, para que un PATCH concurrente con `startCheckout`/el webhook no pise un read-modify-write ajeno.
+  version                 Int           @default(1)
   accessKey               accessKey[]
   user                    user          @relation(fields: [organizerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   roomVersion             roomVersion   @relation(fields: [roomVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
