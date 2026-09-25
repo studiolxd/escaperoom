@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GridSchema, PositionSchema, RectSchema } from "./common";
+import { GridSchema, ID_PATTERN, PositionSchema, RectSchema } from "./common";
 import { MAX_CONTENT_ARRAY_ITEMS, MAX_CONTENT_STRING_LENGTH } from "./limits";
 
 /**
@@ -51,7 +51,7 @@ export const HiddenKeyDefinitionSchema = z.object({
     objectId: z.string().optional(),
     x: z.number().optional(),
     y: z.number().optional(),
-    sprite: z.string().optional(),
+    sprite: z.string().regex(ID_PATTERN).optional(),
   }),
   revealAnimation: z.enum(["slide", "fade", "shake"]),
   keyItemId: z.string().optional(),

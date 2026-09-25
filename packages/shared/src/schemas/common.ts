@@ -1,10 +1,18 @@
 import { z } from "zod";
+import { isLanguageCode } from "./localized-text";
 import { MAX_CONTENT_STRING_LENGTH, MAX_GRID_DIMENSION } from "./limits";
+
+/**
+ * Patrón de id compartido para slugs de assets del pack gráfico (`icon`,
+ * `sprite`, `tileset`…): el mismo que exige `build-pack.ts` (`NAME_PATTERN`) y
+ * `editor/room-doc/commands.ts` (`ID_PATTERN`) — auditoría D-23.
+ */
+export const ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 
 /** Coordenada de celda del grid (origen arriba-izquierda, `0,0`). */
 export const PositionSchema = z.object({
-  x: z.number(),
-  y: z.number(),
+  x: z.number().int(),
+  y: z.number().int(),
 });
 
 /**
@@ -30,7 +38,7 @@ export const RectSchema = z.object({
  * por idioma. El catálogo filtra por los idiomas de la sala.
  */
 export const LocalizedTextSchema = z.record(
-  z.string(),
+  z.string().refine(isLanguageCode, "Código de idioma inválido"),
   z.object({
     text: z.string().max(MAX_CONTENT_STRING_LENGTH),
     audioUrl: z.string().max(MAX_CONTENT_STRING_LENGTH).optional(),

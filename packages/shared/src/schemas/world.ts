@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { GridSchema, LocalizedTextSchema, PositionSchema } from "./common";
+import { GridSchema, ID_PATTERN, LocalizedTextSchema, PositionSchema } from "./common";
 import { MAX_CONTENT_ARRAY_ITEMS, MAX_RLE_ENTRIES } from "./limits";
 
 /**
@@ -14,7 +14,7 @@ export const TileLayerSchema = z.object({
 
 /** Decoración "bake-able" dentro de una `SubRoom` (specs/08 §2.1). */
 export const DecorationSchema = z.object({
-  sprite: z.string(),
+  sprite: z.string().regex(ID_PATTERN),
   x: z.number(),
   y: z.number(),
 });
@@ -56,7 +56,11 @@ export const SubRoomSchema = z.object({
 });
 
 export const MapSchema = z.object({
-  tileset: z.string(),
+  // `""` es el sentinel de "sin pack elegido todavía" (un draft recién creado
+  // por `writeRoomMeta`, antes de `setTileset`): solo se exige el patrón
+  // cuando SÍ hay un valor. `publish()`/el validador exigen uno real por
+  // separado (el pack resuelve el manifiesto de assets, D-13).
+  tileset: z.union([z.literal(""), z.string().regex(ID_PATTERN)]),
   rooms: z.array(SubRoomSchema).max(MAX_CONTENT_ARRAY_ITEMS),
 });
 
@@ -66,9 +70,9 @@ export const MapSchema = z.object({
  * animación de transición opcional (specs/04 §3.1).
  */
 export const SpriteStateSchema = z.union([
-  z.string(),
+  z.string().regex(ID_PATTERN),
   z.object({
-    sprite: z.string().optional(),
+    sprite: z.string().regex(ID_PATTERN).optional(),
     animation: z.string().optional(),
   }),
 ]);
@@ -79,7 +83,7 @@ export const WorldObjectSchema = z.object({
   roomId: z.string(),
   type: z.string(),
   position: PositionSchema,
-  sprite: z.string(),
+  sprite: z.string().regex(ID_PATTERN),
   states: z.record(z.string(), SpriteStateSchema),
   initialState: z.string(),
   inventory: z.array(z.string()).max(MAX_CONTENT_ARRAY_ITEMS).optional(),
@@ -94,7 +98,7 @@ export const WorldObjectSchema = z.object({
 export const ItemDefSchema = z.object({
   id: z.string(),
   name: LocalizedTextSchema,
-  icon: z.string(),
+  icon: z.string().regex(ID_PATTERN),
 });
 
 export type TileLayer = z.infer<typeof TileLayerSchema>;
