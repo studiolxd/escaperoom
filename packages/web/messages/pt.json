@@ -1345,6 +1345,18 @@
     "home": "Ir para o início",
     "browseCatalog": "Ver o catálogo"
   },
+  "PublicErrorPage": {
+    "title": "Ocorreu um erro",
+    "description": "Esta página não carregou. Podes tentar novamente ou voltar ao início.",
+    "retry": "Tentar novamente",
+    "home": "Ir para o início"
+  },
+  "PublicNotFound": {
+    "title": "Não encontrámos esta página",
+    "description": "O link pode estar quebrado ou a página já não existe.",
+    "home": "Ir para o início",
+    "browseCatalog": "Ver o catálogo"
+  },
   "ThemeToggle": {
     "label": "Tema",
     "light": "Claro",

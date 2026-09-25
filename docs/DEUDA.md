@@ -255,7 +255,7 @@ Tareas pendientes que no bloquean pero hay que resolver.
         - Nota de slxd (SPEC.md, 2026-08-24): `react-hook-form` debe ser
           *external* si va en una librería de componentes compartida, porque
           empaquetado duplica el contexto del formulario.
-- [ ] **Páginas de error con la shell pública y componentes shadcn.** Las
+- [x] **Páginas de error con la shell pública y componentes shadcn.** Las
       páginas de error actuales (`app/[locale]/error.tsx` y
       `app/[locale]/not-found.tsx`, PR #120) cuelgan de `[locale]`, fuera del
       grupo `(public)`, así que se muestran **sin** la cabecera y el pie públicos
@@ -268,6 +268,20 @@ Tareas pendientes que no bloquean pero hay que resolver.
       pero coherente visualmente. Revisar también los `notFound()` de rutas
       privadas (editor, creador) para que no enseñen la shell pública si no
       corresponde.
+      Resuelto: `app/[locale]/(public)/error.tsx` y
+      `app/[locale]/(public)/not-found.tsx` nuevos, en el mismo segmento que
+      `(public)/layout.tsx` — Next envuelve `error.tsx`/`not-found.tsx` con el
+      `layout.tsx` de su propio segmento (no lo sustituye, solo el de
+      segmentos por debajo), así que heredan la cabecera/pie públicos sin
+      necesidad de extraer un componente de shell aparte. Mismos componentes
+      shadcn (`Empty`, `Button`) que los genéricos de `[locale]`, con textos
+      propios (`PublicErrorPage`/`PublicNotFound`, 6 idiomas) para no acoplar
+      ambas versiones. Los genéricos de `[locale]/error.tsx` y
+      `[locale]/not-found.tsx` (sin shell) se mantienen como respaldo para el
+      resto de grupos (creador, jugar, auth): ninguno tiene `notFound()`
+      dentro de `(public)`, así que ya no enseñan la shell pública por error
+      — verificado (`editor/[roomId]`, `dev/rules-graph`, `dev/validation`,
+      `play`). `global-error.tsx` ya estaba mínimo y coherente (no tocado).
 - [ ] **Test inestable: muestreo de moderación.**
       `packages/shared/test/moderation-prisma.integration.test.ts` › "muestreo: la
       versión reciente entra una sola vez" falla de forma intermitente cuando
