@@ -37,68 +37,6 @@ Tareas pendientes que no bloquean pero hay que resolver.
         (o el máximo) por debajo de lo que exigen las pruebas ya colocadas, el
         editor debe avisar indicando qué pruebas quedan sin camino para ese
         número de jugadores.
-- [ ] **CTA "Jugar" no distingue salas de pago sin acceso** (frontend,
-      complemento de B-4 / ticket 5.1).
-      - **Dónde:** `packages/web/src/components/catalog/room-detail.tsx:181-183`.
-        El botón principal siempre dice `t("playCta")` ("Jugar la sala") y
-        enlaza a `/redeem`, sin mirar `room.priceCents` ni el acceso del usuario.
-      - **Estado del backend (tras la PR #140):** ya existen
-        `GET /api/rooms/:roomId/access` (`{owned, playable, gameToken?}`, con la
-        compra libre / en curso / consumida) y el gate de compra en Colyseus
-        (`GameRoom` exige `gameToken`; la partida se consume al terminar). El
-        checkout individual (`POST /api/purchases/room-checkout`, Stripe
-        Checkout, webhook, `checkout/confirmation`) también existe, pero ningún
-        componente del frontend lo invoca. Sin `STRIPE_SECRET_KEY` el servicio
-        de pagos es `null` (responde 501).
-      - **Lo que falta en el frontend:**
-        a. Pasar a `RoomDetailView` el estado de acceso del viewer a la sala
-           (análogo a `viewer: ReviewViewerState`), leído de
-           `GET /api/rooms/:roomId/access`.
-        b. Si `room.priceCents > 0` y el viewer no tiene acceso: CTA "Comprar"
-           (nueva clave `RoomDetail.buyCta` en los 6 idiomas) que llame a
-           `POST /api/purchases/room-checkout` y redirija a `checkoutUrl`
-           (patrón fetch + redirect de `payouts-panel.tsx`).
-        c. Si el viewer no ha iniciado sesión: el CTA de compra lleva primero a
-           login/registro con retorno a la sala, sin lanzar el checkout.
-        d. Si el viewer ya tiene acceso (compra `playable`): mantener "Jugar la
-           sala" (ver f). **No** tratar `priceCents === 0` como acceso libre:
-           hoy no existe atajo de Stripe para precio 0 o nulo
-           (`purchases.ts:192-194` rechaza `saleIndividual: false` o
-           `priceCents: null` con `SALE_INDIVIDUAL_DISABLED`).
-        e. Reutilizar `checkout/confirmation` como destino tras el pago.
-        f. **Jugar una sala comprada:** con acceso `playable`, el CTA "Jugar"
-           crea la `GameRoom` con el `gameToken` del endpoint de acceso (hoy
-           `/es/play` solo firma partidas de prueba `dev_test`); si la compra
-           está "en curso", reconectar a esa partida; si está consumida, mostrar
-           que ya se jugó (y, si aplica, ofrecer volver a comprar).
-        g. **`/redeem` solo para eventos:** el canje de clave de evento
-           (`/redeem`) queda reservado a quien llega con un enlace o invitación
-           de evento; nunca como destino genérico o de reserva del CTA de la
-           ficha. El único caso legítimo para enlazar `/redeem` desde la ficha es
-           que la sala tenga un **evento activo vinculado al viewer**.
-        h. **Sala solo para eventos** (`saleIndividual: false`, `saleEvents:
-           true`) — **decidido (2026-09-25):** etiqueta "Solo para eventos" y
-           botón "Organizar un evento con esta sala", que lleva al flujo de
-           crear evento con el precio por jugador visible. Cualquier usuario con
-           sesión puede organizar un evento con una sala con venta para eventos
-           (`events.ts createEvent`: solo exige `saleEvents` o ser el autor), así
-           que es un camino real también para particulares. Si una sala no
-           tuviera ningún modo de venta, no se muestra botón. Corregir specs/02
-           §3.1, que dice "elige una sala que ya posee", para que refleje el
-           código (cualquier sala con `saleEvents`).
-        i. **Salas gratis** (precio 0 con venta individual) — **decidido
-           (2026-09-25): se juegan sin cuenta.** Botón "Jugar gratis" que abre la
-           partida sin iniciar sesión (sin `purchase` ni Stripe: el servidor
-           emite el `gameToken` de una partida gratuita), con cuotas por IP
-           contra abuso; la cuenta es opcional al terminar para guardar el
-           resultado, reseñar o entrar en el ranking. Hoy no existe atajo de
-           Stripe para precio 0 (`purchases.ts:192-194`), así que hay que crear
-           este flujo. Actualizar specs/02 §2.2 (salas gratis) y specs/13 (acceso).
-        j. **Etiqueta "Gratis" engañosa:** `room-card.tsx:12` muestra "Gratis"
-           si `!room.priceCents`, es decir también con precio `null` (sala sin
-           venta individual) y con precio 0 que hoy no se puede jugar. Mostrar
-           "Gratis" solo con precio 0 y `saleIndividual: true`; con precio
-           `null`, la etiqueta "Solo para eventos" del punto h.
 - [ ] **Claves reales de analítica antes de desplegar en producción.** En
       desarrollo se activan Plausible y Google Analytics con valores de prueba
       (para ver el banner de consentimiento de cookies). Antes del primer
@@ -168,16 +106,18 @@ Tareas pendientes que no bloquean pero hay que resolver.
         rankings ni notificaciones a compradores que actualizar. Si se toca la
         pantalla de confirmación de publicación, solo shadcn/ui (ADR-019).
 - [ ] **Retirar la ruta de partida de prueba `/[locale]/play`.** Debe desaparecer
-      antes de pasar a producto; en realidad se puede quitar en cuanto esté
-      hecho el flujo de **salas gratis jugables sin cuenta** (punto i de la
-      entrada "CTA 'Jugar'…"), que la sustituye como forma de jugar una sala sin
-      compra. Hoy ya responde 404 en producción salvo con `ALLOW_DEV_SECRETS`
-      (PR #140: firma `gameToken` `dev_test`). Al retirarla, migrar lo que
-      depende de ella: el e2e de partida (`packages/e2e/tests/game.reyaldric.spec.ts`,
-      smoke de CI) y el de reconexión del bloque 4 deben usar el flujo de sala
-      gratis (o un endpoint de pruebas equivalente limitado a test); quitar el
-      tipo de token `dev_test` si ya no se usa; revisar enlaces internos y docs
-      que la mencionen.
+      antes de pasar a producto. El flujo de **salas gratis jugables sin
+      cuenta** que la sustituye como forma de jugar una sala sin compra ya
+      existe (`GET /api/rooms/:roomId/free-access` + `/play/room/:roomId`,
+      cerrado en la PR del CTA de la ficha de sala, 2026-09-25) — falta
+      migrar lo que aún depende de `/[locale]/play`. Hoy ya responde 404 en
+      producción salvo con `ALLOW_DEV_SECRETS` (PR #140: firma `gameToken`
+      `dev_test`). Al retirarla, migrar lo que depende de ella: el e2e de
+      partida (`packages/e2e/tests/game.reyaldric.spec.ts`, smoke de CI) y el
+      de reconexión del bloque 4 deben usar el flujo de sala gratis (o un
+      endpoint de pruebas equivalente limitado a test); quitar el tipo de
+      token `dev_test` si ya no se usa; revisar enlaces internos y docs que la
+      mencionen.
 - [ ] **Formularios con server actions, React Hook Form y errores bajo cada
       campo.** Revisar todos los formularios para que usen **server actions** +
       **React Hook Form** (con el `Form`/`Field` de shadcn/ui y el resolver de

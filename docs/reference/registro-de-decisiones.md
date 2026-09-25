@@ -905,3 +905,47 @@ revisado proponga sobre estos objetos se detecta en CI (test de integración, co
 `verify` desde E-14) en vez de en producción. Añadir una construcción manual nueva implica ahora dos
 pasos más además del SQL: el comentario `///` y, si protege algo con impacto real, su caso en el
 test.
+
+---
+
+## ADR-035 — Sala gratis: `gameToken` propio (`kind: "free"`), sin fila `purchase` (2026-09-25)
+
+**Contexto:** el punto i de "CTA Jugar no distingue salas de pago sin acceso" (`docs/DEUDA.md`)
+decidió que una sala realmente gratis (`priceCents: 0` + `saleIndividual: true`) se juegue **sin
+cuenta ni Stripe**. Toda la cadena existente (`GET /api/rooms/:roomId/access` →
+`gameToken` `kind: "purchase"` → `GameRoom.onCreate` → `GameAccessStore.claimPlaySession`) asume una
+fila `purchase` real: una compra da derecho a **una** partida, reclamada al crear la room y
+consumida al terminar (specs/02 §2.1). Una sala gratis no tiene ese límite: se puede jugar tantas
+veces como se quiera, así que no hay nada que "reclamar" ni "consumir".
+
+**Decisión:** un tercer tipo de claim en el `gameToken` (`game-access-token.ts`),
+`{ kind: "free"; roomId; roomVersionId }`, con su propio endpoint público y sin sesión
+(`GET /api/rooms/:roomId/free-access`, `free-room-access.ts`). `GameRoom.authorizeGameAccessCreate`
+carga el paquete publicado igual que para una compra (`runtime.loadRoomVersionPackage`), pero SIN
+llamar a `claimPlaySession`: no hay fila `purchase` de por medio. El único freno contra abuso es la
+cuota por IP al **firmar** el token (`withRateLimit("free-room-play")`, sin cuota por usuario a
+propósito — funciona sin cuenta); cada emisión corresponde 1:1 a una `GameRoom` nueva, así que esa
+misma cuota es el "límite de rooms por IP" que pide el punto i.
+
+**Consecuencias:** `GameRoom.onAuth`/`authorizeGameAccessCreate` tienen una tercera rama explícita
+(antes solo distinguían `dev_test` de "lo que quede, que es `purchase`" por descarte de tipos); un
+claim nuevo en el futuro tendrá que añadir su propia rama en vez de colar silenciosamente por el
+`else`. `onMilestone`/`onDispose` (que sí gestionan el ciclo de vida de una compra) no necesitan
+tocarse: sus guardas ya comprueban `kind === "purchase"` explícitamente, así que ignoran `"free"` sin
+cambios. Una sala gratis nunca aparece como "en curso"/"consumida" en ningún sitio — no hay estado
+que journal-ear más allá del propio token, de vida corta (15 min, igual que el resto de `gameToken`).
+
+**Alternativas descartadas:**
+
+- **Fila `purchase` sintética con `amountCents: 0`** (reusar `kind: "purchase"` sin tocar
+  Colyseus): descartada porque una sala gratis se puede jugar sin límite, y el modelo entero de
+  `purchase` (specs/14 §5, índice `uxPurchaseOwnedRoom`) asume una compra por usuario y versión —
+  forzar una fila por cada partida gratis (o reutilizar una sola indefinidamente) habría exigido
+  reglas especiales en casi todos los sitios que ya leen `purchase` (reembolsos, panel de compras,
+  `claimPlaySession`) solo para simular algo que en realidad no es una compra.
+- **Sin rate limit, confiando en que "gratis" no atrae abuso**: descartada — una sala gratis sin
+  cuenta ni cuota es un generador de `GameRoom` (proceso de Colyseus) gratis para cualquiera con un
+  script, precisamente el escenario que el punto i pide frenar explícitamente ("cuotas por IP...
+  contra abuso").
+
+---

@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
-import { ANONYMOUS_ACTOR, CatalogError } from "@escaperoom/shared/services";
+import { ANONYMOUS_ACTOR, CatalogError, isAnonymous } from "@escaperoom/shared/services";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { RoomGame } from "@/components/game-session/room-game";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
+import { roomPath } from "@/lib/catalog-seo";
 import { buildGameModel } from "@/lib/game-model";
+import { resolveActorFromHeaders } from "@/server/context";
 import { getCatalogService, getGameAccessStore } from "@/server/services";
 
 type Props = {
@@ -45,6 +48,14 @@ export default async function RoomGamePage({ params, searchParams }: Props) {
   const joinRoomId = typeof join === "string" && /^[\w-]{1,64}$/u.test(join) ? join : undefined;
   const t = await getTranslations("Game");
 
+  // Punto i, "CTA Jugar" (`docs/DEUDA.md`): solo llega anónimo un jugador de
+  // sala GRATIS (la comprada exige sesión antes de emitir el `gameToken`) —
+  // al terminar, se le ofrece iniciar sesión con retorno a la ficha.
+  const actor = await resolveActorFromHeaders(await headers());
+  const signInHref = isAnonymous(actor)
+    ? `/login?callbackURL=${encodeURIComponent(`/${locale}${roomPath(room.id)}`)}`
+    : undefined;
+
   return (
     <main className="relative min-h-dvh bg-slate-950 p-4">
       <RoomGame
@@ -53,6 +64,7 @@ export default async function RoomGamePage({ params, searchParams }: Props) {
         roomId={room.id}
         joinRoomId={joinRoomId}
         subtitle={t("page.subtitle")}
+        signInHref={signInHref}
       />
       <div className="absolute right-4 top-4 z-50">
         <LocaleSwitcher />

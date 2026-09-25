@@ -100,7 +100,7 @@ async function ReviewsList({
  * `access` ya trae el `gameToken` (B-4): esta ficha nunca decide acceso, solo
  * pinta el botón que corresponde al resultado de `GET /api/rooms/:roomId/access`.
  */
-function RoomPlayCta({
+export function RoomPlayCta({
   room,
   locale,
   isFree,

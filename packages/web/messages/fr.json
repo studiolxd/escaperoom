@@ -727,6 +727,7 @@
     "playersRange": "{min}–{max} joueurs",
     "minutes": "{minutes} min",
     "free": "Gratuit",
+    "eventsOnly": "Réservé aux événements",
     "byAuthor": "par {author}",
     "rating": "{avg} sur 5 ({count, plural, one {# avis} other {# avis}})",
     "ratingCount": "{count, plural, one {# avis} other {# avis}}",
@@ -750,7 +751,16 @@
     "reviewsHeading": "Avis",
     "noReviews": "Cette salle n'a pas encore d'avis.",
     "moreReviews": "Voir plus d'avis",
-    "stars": "{rating, number} étoiles sur 5"
+    "stars": "{rating, number} étoiles sur 5",
+    "buyCta": "Acheter",
+    "buyError": "Impossible de démarrer le paiement. Réessayez.",
+    "loginToBuyCta": "Connectez-vous pour acheter",
+    "resumeCta": "Reprendre la partie",
+    "alreadyPlayed": "Vous avez déjà joué à cette salle.",
+    "playFreeCta": "Jouer gratuitement",
+    "freeError": "Impossible de démarrer la partie gratuite. Réessayez.",
+    "organizeEventCta": "Organiser un événement avec cette salle",
+    "eventsOnlyBadge": "Réservé aux événements"
   },
   "Reviews": {
     "formHeading": "Votre avis",
@@ -856,6 +866,9 @@
     },
     "event": {
       "missingToken": "Le code d'accès de la session est manquant. Échangez à nouveau votre clé pour entrer."
+    },
+    "room": {
+      "missingToken": "Le code d'accès à la partie est manquant. Retournez à la fiche de la salle pour jouer."
     }
   },
   "Chat": {
@@ -893,6 +906,7 @@
     "items": "Objets récupérés",
     "exit": "Quitter",
     "review": "Laisser un avis",
+    "signIn": "Se connecter pour enregistrer le résultat",
     "result": {
       "victory": "Victoire !",
       "timeout": "Temps écoulé",
@@ -1064,6 +1078,18 @@
       "MODEL_ERROR": "Le modèle de langage a échoué. Réessayez.",
       "UNKNOWN": "Une erreur est survenue. Réessayez."
     }
+  },
+  "NewEvent": {
+    "heading": "Organiser un \u00e9v\u00e9nement avec cette salle",
+    "titleLabel": "Titre de l'\u00e9v\u00e9nement",
+    "playersLabel": "Joueurs pr\u00e9vus",
+    "pricingTitle": "Prix par joueur",
+    "pricingLoading": "Chargement des tarifs\u2026",
+    "pricingUnavailable": "Impossible de charger les tarifs.",
+    "pricingRangeOpen": "{min}+ joueurs\u00a0:",
+    "pricingRangeCapped": "{min}\u2013{max} joueurs\u00a0:",
+    "submitError": "Impossible de cr\u00e9er l'\u00e9v\u00e9nement. R\u00e9essayez.",
+    "submit": "Cr\u00e9er l'\u00e9v\u00e9nement"
   },
   "EventPanel": {
     "metaTitle": "Tableau de bord de l’événement",

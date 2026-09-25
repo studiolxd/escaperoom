@@ -36,6 +36,8 @@ export interface NetworkGameProps {
   exitHref?: string;
   /** Añade `?room=<id>` a la URL al crear la partida y ofrece el link de invitación. */
   invite?: boolean;
+  /** Sala gratis sin cuenta (punto i, "CTA Jugar"): CTA de login en `ResultsScreen`. */
+  signInHref?: string;
 }
 
 /**
@@ -52,6 +54,7 @@ export function NetworkGame({
   subtitle,
   exitHref,
   invite = false,
+  signInHref,
 }: NetworkGameProps) {
   const t = useTranslations("Game");
   const locale = useLocale();
@@ -179,6 +182,7 @@ export function NetworkGame({
       title={title}
       subtitle={subtitle}
       exitHref={exitHref}
+      signInHref={signInHref}
     >
       {connection.status === "expired" ? (
         <p

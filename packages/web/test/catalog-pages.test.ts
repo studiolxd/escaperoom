@@ -49,6 +49,10 @@ const state = vi.hoisted(() => ({
 vi.mock("@/server/services", () => ({
   getCatalogService: () => state.catalog,
   getReviewService: () => state.reviews,
+  // `RoomDetailPage` (F-4x) también resuelve el acceso a la sala; sin
+  // `GAME_ACCESS_TOKEN_SECRET` en este test, `null` es el mismo criterio que
+  // usa `getRoomAccessService()` real cuando falta el secreto.
+  getRoomAccessService: () => null,
 }));
 vi.mock("@/server/context", () => ({
   resolveActorFromHeaders: async () => state.actor,

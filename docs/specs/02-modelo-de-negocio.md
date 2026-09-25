@@ -64,6 +64,28 @@ job de limpieza.
 - El reparto 70/30 se liquida vía **Stripe Connect** (`stripeTransferId` del creador en el
   webhook, no en la creación del checkout).
 
+#### Salas gratis (decidido 2026-09-25, punto i de "CTA Jugar", `docs/DEUDA.md`)
+
+Una sala con `price_cents = 0` **y** `sale_individual = true` se juega **sin cuenta ni Stripe**:
+no hay atajo de Stripe para precio 0 (`purchases.ts` sigue rechazando cualquier checkout con
+`SALE_INDIVIDUAL_DISABLED` si `price_cents` es `null`, y con precio 0 el checkout tampoco tiene
+sentido). En su lugar:
+
+- `GET /api/rooms/:roomId/free-access` (público, sin sesión) emite un `gameToken` propio
+  (`kind: "free"`) si la sala cumple la condición anterior; en cualquier otro caso, `{ eligible:
+  false }`.
+- No hay `purchase` que reclamar ni consumir: a diferencia de la venta individual (§2.1), una sala
+  gratis se puede jugar tantas veces como se quiera. El único freno contra abuso es una cuota por
+  IP al **emitir** el token (`withRateLimit("free-room-play")`, `docs/reference/seguridad.md` §1);
+  cada emisión corresponde 1:1 a una `GameRoom` nueva, así que esa misma cuota limita también las
+  rooms creadas por IP.
+- La cuenta sigue siendo **opcional** al terminar la partida: se ofrece iniciar sesión para
+  guardar el resultado, dejar una reseña o entrar en el ranking (ninguno de los tres funciona sin
+  cuenta).
+- Precio `null` (sin venta individual) **no** es gratis, aunque el catálogo mostrase antes
+  "Gratis" en ese caso (punto j, corregido en `room-card.tsx`): esa sala es "solo para eventos"
+  (§3.1) o no tiene ningún modo de venta.
+
 ---
 
 ## 3. Eventos (B2B / B2Educación)
@@ -72,7 +94,12 @@ El pago no lo hace quien juega: **el organizador paga por adelantado y reparte a
 
 ### 3.1 Flujo del organizador
 
-1. Elige una sala **que ya posee** (la creó él o adquirió su copia; ver §5).
+1. Elige **cualquier sala con `sale_events: true`** (corregido 2026-09-25, punto h de "CTA
+   Jugar", `docs/DEUDA.md` — esta línea decía antes "una sala que ya posee", pero
+   `events.ts createEvent` solo exige `saleEvents` o ser el autor de la sala; cualquier
+   usuario con sesión puede organizar un evento con una sala de venta para eventos, la haya
+   creado o no. El botón "Organizar un evento con esta sala" de la ficha (punto h) es un
+   camino real también para particulares, no solo para creadores).
 2. Configura la jornada: título, nº de sesiones simultáneas (hasta 10), jugadores por sesión
    (1–N), modo de agrupación, si exige confirmación de invitación, reglas de caducidad de claves.
 3. Paga: nº de jugadores × tarifa según tramos vigentes (§3.2).

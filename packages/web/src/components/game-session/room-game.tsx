@@ -24,12 +24,15 @@ export function RoomGame({
   roomId,
   joinRoomId,
   subtitle,
+  signInHref,
 }: {
   model: RuntimeModel;
   pack?: RoomScenePack;
   roomId: string;
   joinRoomId?: string;
   subtitle?: string;
+  /** Sala gratis sin cuenta (punto i, "CTA Jugar"): CTA de login en `ResultsScreen`. */
+  signInHref?: string;
 }) {
   const t = useTranslations("Game");
   const [token, setToken] = useState<string | null | undefined>(undefined);
@@ -71,6 +74,7 @@ export function RoomGame({
       pack={pack}
       target={{ kind: "game", gameToken: token, ...(joinRoomId ? { roomId: joinRoomId } : {}) }}
       subtitle={subtitle}
+      signInHref={signInHref}
     />
   );
 }

@@ -134,6 +134,7 @@
     "puzzlesValue": "{solved}/{total}",
     "items": "Items collected",
     "review": "Leave a review",
+    "signIn": "Sign in to save your result",
     "exit": "Exit"
   },
   "Playtest": {
@@ -766,6 +767,7 @@
     "playersRange": "{min}–{max} players",
     "minutes": "{minutes} min",
     "free": "Free",
+    "eventsOnly": "Events only",
     "byAuthor": "by {author}",
     "rating": "{avg} out of 5 ({count, plural, one {# review} other {# reviews}})",
     "ratingCount": "{count, plural, one {# review} other {# reviews}}",
@@ -789,7 +791,16 @@
     "reviewsHeading": "Reviews",
     "noReviews": "This room has no reviews yet.",
     "moreReviews": "See more reviews",
-    "stars": "{rating, number} out of 5 stars"
+    "stars": "{rating, number} out of 5 stars",
+    "buyCta": "Buy",
+    "buyError": "Could not start the checkout. Please try again.",
+    "loginToBuyCta": "Sign in to buy",
+    "resumeCta": "Resume game",
+    "alreadyPlayed": "You've already played this room.",
+    "playFreeCta": "Play for free",
+    "freeError": "Could not start the free game. Please try again.",
+    "organizeEventCta": "Organize an event with this room",
+    "eventsOnlyBadge": "Events only"
   },
   "Reviews": {
     "formHeading": "Your review",
@@ -954,6 +965,9 @@
     },
     "event": {
       "missingToken": "The session access code is missing. Redeem your key again to join."
+    },
+    "room": {
+      "missingToken": "The game access code is missing. Go back to the room page to play."
     }
   },
   "Chat": {
@@ -1075,6 +1089,18 @@
       "MODEL_ERROR": "The language model failed. Please try again.",
       "UNKNOWN": "Something went wrong. Please try again."
     }
+  },
+  "NewEvent": {
+    "heading": "Organize an event with this room",
+    "titleLabel": "Event title",
+    "playersLabel": "Planned players",
+    "pricingTitle": "Price per player",
+    "pricingLoading": "Loading pricing tiers\u2026",
+    "pricingUnavailable": "Could not load the pricing tiers.",
+    "pricingRangeOpen": "{min}+ players:",
+    "pricingRangeCapped": "{min}\u2013{max} players:",
+    "submitError": "Could not create the event. Please try again.",
+    "submit": "Create event"
   },
   "EventPanel": {
     "metaTitle": "Event dashboard",

@@ -155,6 +155,8 @@ Checkout con **Stripe Checkout** hospedado (no se gestionan tarjetas directament
 |---|---|---|---|
 | POST | `/api/purchases/room-checkout` | usuario | `{ roomVersionId }` → valida `saleIndividual` y precio, crea `purchase` (`pending`) + Checkout Session con `metadata.purchaseId`. Devuelve `{ checkoutUrl }` |
 | GET | `/api/purchases/:id` | comprador o admin | Estado de una compra |
+| GET | `/api/rooms/:roomId/access` | usuario | `{ owned, playable, gameToken?, roomId? }` (B-4, auditoría 2026-09-24; punto f de "CTA Jugar", `docs/DEUDA.md`): libre y en curso son ambas `playable: true` (en curso además lleva `roomId`, para unirse a esa `GameRoom` en vez de crear otra); consumida es `playable: false` sin token. Sin sesión, o sin `roomId` con forma de UUID, responde como anónimo (nunca revela si una compra ajena existe). El botón de la ficha decide Jugar/Reanudar vs. Comprar a partir de esta misma ruta (specs/02 §2.1) |
+| GET | `/api/rooms/:roomId/free-access` | público, sin sesión | `{ eligible, gameToken?, roomVersionId? }` (punto i de "CTA Jugar", `docs/DEUDA.md`; specs/02 §2.2): sala realmente gratis (`priceCents: 0` + `saleIndividual: true`), sin `purchase` ni Stripe. Rate-limitada por IP (`free-room-play`, `docs/reference/seguridad.md` §1) — cada emisión corresponde a una `GameRoom` nueva |
 
 El reparto 70/30 se calcula al liquidar el pago en el webhook (§7), no en la creación; el
 `stripeTransferId` lo resuelve un barrido periódico de `@escaperoom/worker` (B-9, auditoría

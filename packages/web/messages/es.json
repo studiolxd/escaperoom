@@ -144,6 +144,7 @@
     "puzzlesValue": "{solved}/{total}",
     "items": "Objetos recogidos",
     "review": "Dejar reseña",
+    "signIn": "Iniciar sesión para guardar el resultado",
     "exit": "Salir"
   },
   "Playtest": {
@@ -776,6 +777,7 @@
     "playersRange": "{min}–{max} jugadores",
     "minutes": "{minutes} min",
     "free": "Gratis",
+    "eventsOnly": "Solo para eventos",
     "byAuthor": "por {author}",
     "rating": "{avg} de 5 ({count, plural, one {# reseña} other {# reseñas}})",
     "ratingCount": "{count, plural, one {# reseña} other {# reseñas}}",
@@ -799,7 +801,16 @@
     "reviewsHeading": "Reseñas",
     "noReviews": "Aún no hay reseñas de esta sala.",
     "moreReviews": "Ver más reseñas",
-    "stars": "{rating, number} de 5 estrellas"
+    "stars": "{rating, number} de 5 estrellas",
+    "buyCta": "Comprar",
+    "buyError": "No se ha podido iniciar la compra. Inténtalo de nuevo.",
+    "loginToBuyCta": "Inicia sesión para comprar",
+    "resumeCta": "Reanudar partida",
+    "alreadyPlayed": "Ya has jugado esta sala.",
+    "playFreeCta": "Jugar gratis",
+    "freeError": "No se ha podido iniciar la partida gratis. Inténtalo de nuevo.",
+    "organizeEventCta": "Organizar un evento con esta sala",
+    "eventsOnlyBadge": "Solo para eventos"
   },
   "Reviews": {
     "formHeading": "Tu reseña",
@@ -905,6 +916,9 @@
     },
     "event": {
       "missingToken": "Falta el código de acceso de la sesión. Vuelve a canjear tu clave para entrar."
+    },
+    "room": {
+      "missingToken": "Falta el código de acceso de la partida. Vuelve a la ficha de la sala para jugar."
     }
   },
   "TemplateConfig": {
@@ -1075,6 +1089,18 @@
       "MODEL_ERROR": "El modelo de lenguaje ha fallado. Inténtalo de nuevo.",
       "UNKNOWN": "Algo ha fallado. Inténtalo de nuevo."
     }
+  },
+  "NewEvent": {
+    "heading": "Organizar un evento con esta sala",
+    "titleLabel": "Título del evento",
+    "playersLabel": "Jugadores previstos",
+    "pricingTitle": "Precio por jugador",
+    "pricingLoading": "Cargando tramos de precio…",
+    "pricingUnavailable": "No se han podido cargar los tramos de precio.",
+    "pricingRangeOpen": "{min}+ jugadores:",
+    "pricingRangeCapped": "{min}\u2013{max} jugadores:",
+    "submitError": "No se ha podido crear el evento. Inténtalo de nuevo.",
+    "submit": "Crear evento"
   },
   "EventPanel": {
     "metaTitle": "Panel del evento",
