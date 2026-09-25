@@ -249,19 +249,21 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   /** Paneles abiertos por jugador: tras cada acción se les reenvía la vista. */
   protected readonly openPanels = new Map<string, Set<string>>();
   /**
-   * C-9: versión de cada puzzle, incrementada solo cuando su proyección
-   * pública (`GamePuzzleState`) cambia de verdad. Permite a
-   * `refreshOpenPanels` reenviar un panel abierto solo cuando hace falta, en
-   * vez de recalcular y mandar la vista de cada panel en cada tick (250 ms).
+   * C-9 (revisión de la PR #163: la versión derivada de `GamePuzzleState`
+   * —state/attempts/solvedBy— no bastaba, `puzzleView` depende de mucho más
+   * que eso: la ficha movida de un `sliding_puzzle`, la carta levantada de un
+   * `memory`, la rotación de un `pipes`, la ventana de simultaneidad de
+   * `simultaneous_plates`, la posición del jugador en `split_clue`… Nada de
+   * eso mueve `state`/`attempts` hasta resolver, así que un segundo jugador
+   * con el panel abierto dejaba de ver los cambios del primero). Por eso la
+   * condición de reenvío es el CONTENIDO real de la vista: se serializa
+   * `puzzleView(puzzleId, sessionId)` y se compara con la última
+   * serialización mandada a ESE cliente para ESE panel; solo se manda si
+   * difiere. Sigue eliminando lo que señalaba la auditoría (recalcular y
+   * mandar sin condición en cada tick de 250 ms) sin arriesgar una vista
+   * desactualizada por una fuente de cambio no cubierta.
    */
-  private readonly puzzleVersion = new Map<string, number>();
-  /**
-   * C-9: versión del inventario de cada jugador. Solo afecta a la vista de
-   * `combine_items` (la única que depende del inventario de quien la abre).
-   */
-  private readonly inventoryVersion = new Map<string, number>();
-  /** C-9: última versión de puzzle+inventario enviada a cada cliente, por panel abierto. */
-  private readonly sentPanelVersions = new Map<string, Map<string, string>>();
+  private readonly sentPanelViews = new Map<string, Map<string, string>>();
   /** C-9: última vez (reloj lógico) que se sincronizó `state.clock` a los clientes. */
   private lastClockSyncAt = -Infinity;
   /** C-9: último valor bruto (sin `JSON.stringify`) sincronizado de cada flag. */
@@ -810,9 +812,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     }
     this.openPanels.set(newId, new Set(this.openPanels.get(previousSessionId) ?? []));
     this.openPanels.delete(previousSessionId);
-    this.sentPanelVersions.set(newId, this.sentPanelVersions.get(previousSessionId) ?? new Map());
-    this.sentPanelVersions.delete(previousSessionId);
-    this.inventoryVersion.delete(previousSessionId);
+    this.sentPanelViews.set(newId, this.sentPanelViews.get(previousSessionId) ?? new Map());
+    this.sentPanelViews.delete(previousSessionId);
     this.chat.leave(previousSessionId);
     this.chat.join(newId);
     this.messageLimiter?.forget(previousSessionId);
@@ -829,8 +830,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.state.players.delete(sessionId);
     this.state.inventories.delete(sessionId);
     this.openPanels.delete(sessionId);
-    this.sentPanelVersions.delete(sessionId);
-    this.inventoryVersion.delete(sessionId);
+    this.sentPanelViews.delete(sessionId);
     this.chat.leave(sessionId);
     this.messageLimiter?.forget(sessionId);
     this.deniedActions.delete(sessionId);
@@ -1099,11 +1099,9 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       return;
     }
     this.openPanels.get(client.sessionId)?.add(puzzle.id);
-    client.send(GAME_MESSAGES.puzzleView, {
-      puzzleId: puzzle.id,
-      view: session.puzzleView(puzzle.id, client.sessionId),
-    });
-    this.markPanelSent(client.sessionId, puzzle.id, this.panelVersion(session, puzzle.id, client.sessionId));
+    const view = session.puzzleView(puzzle.id, client.sessionId);
+    client.send(GAME_MESSAGES.puzzleView, { puzzleId: puzzle.id, view });
+    this.markPanelSent(client.sessionId, puzzle.id, JSON.stringify(view));
   }
 
   private handleAttempt(client: Client, payload: z.infer<typeof attemptPayload>): void {
@@ -1418,7 +1416,6 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
         puzzle.state = runtime.state;
         puzzle.attempts = runtime.attempts;
         puzzle.solvedBy = solvedBy;
-        this.puzzleVersion.set(puzzleId, (this.puzzleVersion.get(puzzleId) ?? 0) + 1);
       }
     }
     for (const [playerId, items] of Object.entries(game.inventory)) {
@@ -1431,7 +1428,6 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       if (inventory.items.join("\u0000") !== items.join("\u0000")) {
         inventory.items.clear();
         inventory.items.push(...items);
-        this.inventoryVersion.set(playerId, (this.inventoryVersion.get(playerId) ?? 0) + 1);
       }
     }
     for (const [flag, value] of Object.entries(game.flags)) {
@@ -1450,10 +1446,17 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   /**
-   * C-9: la vista de un panel abierto solo se recalcula y reenvía si su
-   * versión (el puzzle, o —solo para `combine_items`— el inventario de quien
-   * lo tiene abierto) cambió desde el último envío a ESE cliente. Antes se
-   * mandaba (y recalculaba `puzzleView`) sin condición en cada tick de 250 ms.
+   * C-9 (revisión de la PR #163): la vista de un panel abierto solo se
+   * reenvía si su CONTENIDO cambió desde el último envío a ESE cliente —
+   * `puzzleView` depende de la plantilla completa (posición de fichas,
+   * cartas levantadas, rotación de tuberías, ventana de simultaneidad,
+   * posición del jugador en `split_clue`…), no solo de la proyección pública
+   * (`state`/`attempts`/`solvedBy`), así que comparar por esa proyección
+   * dejaba a un segundo jugador con el panel abierto sin ver los cambios del
+   * primero hasta que el puzzle cambiara de estado. Se sigue recalculando
+   * (y, si no cambió, sin mandar nada) en vez de mandar sin condición en cada
+   * tick de 250 ms; el coste de `puzzleView` es pequeño y solo se paga por
+   * los paneles realmente abiertos.
    */
   private refreshOpenPanels(): void {
     const session = this.session;
@@ -1462,32 +1465,22 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       const openPuzzles = this.openPanels.get(client.sessionId);
       if (!openPuzzles || openPuzzles.size === 0) continue;
       for (const puzzleId of openPuzzles) {
-        const version = this.panelVersion(session, puzzleId, client.sessionId);
-        if (this.sentPanelVersions.get(client.sessionId)?.get(puzzleId) === version) continue;
-        client.send(GAME_MESSAGES.puzzleView, {
-          puzzleId,
-          view: session.puzzleView(puzzleId, client.sessionId),
-        });
-        this.markPanelSent(client.sessionId, puzzleId, version);
+        const view = session.puzzleView(puzzleId, client.sessionId);
+        const serialized = JSON.stringify(view);
+        if (this.sentPanelViews.get(client.sessionId)?.get(puzzleId) === serialized) continue;
+        client.send(GAME_MESSAGES.puzzleView, { puzzleId, view });
+        this.markPanelSent(client.sessionId, puzzleId, serialized);
       }
     }
   }
 
-  /** Versión combinada (puzzle + inventario si aplica) de un panel para un jugador concreto. */
-  private panelVersion(session: RoomSession, puzzleId: string, sessionId: string): string {
-    const def = session.getPuzzleDefinition(puzzleId);
-    const puzzleVer = this.puzzleVersion.get(puzzleId) ?? 0;
-    const inventoryVer = def?.type === "combine_items" ? this.inventoryVersion.get(sessionId) ?? 0 : 0;
-    return `${puzzleVer}:${inventoryVer}`;
-  }
-
-  private markPanelSent(sessionId: string, puzzleId: string, version: string): void {
-    let sent = this.sentPanelVersions.get(sessionId);
+  private markPanelSent(sessionId: string, puzzleId: string, serializedView: string): void {
+    let sent = this.sentPanelViews.get(sessionId);
     if (!sent) {
       sent = new Map();
-      this.sentPanelVersions.set(sessionId, sent);
+      this.sentPanelViews.set(sessionId, sent);
     }
-    sent.set(puzzleId, version);
+    sent.set(puzzleId, serializedView);
   }
 
   private announceEnd(): void {
