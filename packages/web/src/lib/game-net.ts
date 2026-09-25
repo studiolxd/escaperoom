@@ -140,4 +140,23 @@ export function readJoinTokenFromHash(hash: string): string | null {
   return token && token.length <= 2048 ? token : null;
 }
 
+/**
+ * Link a `/play/room/:roomId` de una sala REAL (comprada o gratis, punto f/i
+ * de "CTA Jugar", `docs/DEUDA.md`): el `gameToken` viaja en el **fragmento**
+ * (`#gameToken=…`), igual que `eventPlayPath`, para que el navegador no lo
+ * mande al servidor web ni quede en sus logs. `joinRoomId` (query, no
+ * sensible) solo cuando hay una `GameRoom` "en curso" a la que unirse en vez
+ * de crear otra (`RoomAccessResult.roomId`).
+ */
+export function roomGamePlayPath(roomId: string, gameToken: string, joinRoomId?: string): string {
+  const query = joinRoomId ? `?join=${encodeURIComponent(joinRoomId)}` : "";
+  return `/play/room/${encodeURIComponent(roomId)}${query}#gameToken=${encodeURIComponent(gameToken)}`;
+}
+
+/** `gameToken` del fragmento de la URL (`#gameToken=…`), si lo hay. */
+export function readGameTokenFromHash(hash: string): string | null {
+  const token = new URLSearchParams(hash.replace(/^#/, "")).get("gameToken");
+  return token && token.length <= 2048 ? token : null;
+}
+
 export { Client };

@@ -3,14 +3,18 @@ import type {
   Review,
   ReviewListResult,
   ReviewViewerState,
+  RoomAccessResult,
 } from "@escaperoom/shared/services";
 import { Suspense } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { CATALOG_PATH, roomPath } from "@/lib/catalog-seo";
+import { roomGamePlayPath } from "@/lib/game-net";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BuyRoomButton } from "./buy-room-button";
+import { FreeRoomPlayButton } from "./free-room-play-button";
 import { languageName } from "./language-name";
 import { RatingSummary } from "./rating-summary";
 import { ReviewForm } from "./review-form";
@@ -89,6 +93,90 @@ async function ReviewsList({
   );
 }
 
+/**
+ * CTA principal de la ficha (entrada "CTA Jugar", `docs/DEUDA.md`, puntos
+ * b–j): decide entre Comprar / Jugar / Reanudar / Ya jugada / Jugar gratis /
+ * Organizar un evento / nada, según el modo de venta y el acceso del viewer.
+ * `access` ya trae el `gameToken` (B-4): esta ficha nunca decide acceso, solo
+ * pinta el botón que corresponde al resultado de `GET /api/rooms/:roomId/access`.
+ */
+function RoomPlayCta({
+  room,
+  locale,
+  isFree,
+  isPaid,
+  isEventsOnly,
+  access,
+  isAnonymous,
+  roomHref,
+}: {
+  room: CatalogRoom;
+  locale: string;
+  isFree: boolean;
+  isPaid: boolean;
+  isEventsOnly: boolean;
+  access: RoomAccessResult | null;
+  isAnonymous: boolean;
+  roomHref: string;
+}) {
+  const t = useTranslations("RoomDetail");
+
+  // Punto h: solo para eventos, con venta para eventos activa. Sin ningún
+  // modo de venta, no hay botón (cae al `return null` final).
+  if (isEventsOnly) {
+    return (
+      <Button asChild size="lg" className="w-fit">
+        <Link href={{ pathname: "/events/new", query: { roomVersionId: room.latestVersion.id } }}>
+          {t("organizeEventCta")}
+        </Link>
+      </Button>
+    );
+  }
+
+  // Punto i: sala gratis, sin cuenta, sin distinguir `isAnonymous`.
+  if (isFree) {
+    return <FreeRoomPlayButton roomId={room.id} />;
+  }
+
+  if (isPaid) {
+    // Punto c: sin sesión, el CTA lleva primero a login/registro (con
+    // retorno a esta sala), nunca lanza el checkout directamente.
+    if (isAnonymous) {
+      return (
+        <Button asChild size="lg" className="w-fit" variant="outline">
+          <Link href={`/login?callbackURL=${encodeURIComponent(roomHref)}`}>
+            {t("loginToBuyCta")}
+          </Link>
+        </Button>
+      );
+    }
+    // Punto f: acceso "libre" o "en curso" → Jugar/Reanudar con el
+    // `gameToken` ya emitido; "en curso" además une a la `GameRoom` viva
+    // (`access.roomId`) en vez de crear otra.
+    if (access?.owned && access.playable && access.gameToken) {
+      const gameHref = `/${locale}${roomGamePlayPath(room.id, access.gameToken, access.roomId)}`;
+      return (
+        <Button asChild size="lg" className="w-fit">
+          <a href={gameHref}>{t(access.roomId ? "resumeCta" : "playCta")}</a>
+        </Button>
+      );
+    }
+    // Punto f: compra consumida → ya se jugó, ofrecer volver a comprar.
+    if (access?.owned && !access.playable) {
+      return (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-muted-foreground">{t("alreadyPlayed")}</p>
+          <BuyRoomButton roomVersionId={room.latestVersion.id} />
+        </div>
+      );
+    }
+    return <BuyRoomButton roomVersionId={room.latestVersion.id} />;
+  }
+
+  // Ni venta individual ni para eventos: sin botón (punto h).
+  return null;
+}
+
 /** Detalle SSR de una sala del catálogo: ficha, reseñas y formulario de reseña. */
 export function RoomDetailView({
   room,
@@ -97,6 +185,8 @@ export function RoomDetailView({
   viewer,
   coverImageUrl,
   isAuthor,
+  access,
+  isAnonymous,
 }: {
   room: CatalogRoom;
   locale: string;
@@ -104,9 +194,23 @@ export function RoomDetailView({
   viewer: ReviewViewerState;
   coverImageUrl: string | null;
   isAuthor: boolean;
+  /** `GET /api/rooms/:roomId/access`; `null` sin sesión o servicio no disponible. */
+  access: RoomAccessResult | null;
+  isAnonymous: boolean;
 }) {
   const t = useTranslations("RoomDetail");
   const tc = useTranslations("Catalog");
+
+  // Punto i, "CTA Jugar" (`docs/DEUDA.md`): gratis SOLO con precio 0 y venta
+  // individual — precio `null` (sin venta individual) NO es gratis (punto j).
+  const isFree = room.priceCents === 0 && room.saleIndividual;
+  const isPaid = room.saleIndividual && !isFree;
+  // Punto h: "solo para eventos" es la venta para eventos SIN venta
+  // individual; una sala con ambas sigue mostrando el badge genérico de abajo.
+  const isEventsOnly = !room.saleIndividual && room.saleEvents;
+  // Absoluta (con locale): value de `callbackURL` para Better Auth, no un
+  // `href` de `next-intl/navigation` (ese SÍ añade el locale él solo).
+  const roomHref = `/${locale}${roomPath(room.id)}`;
 
   const facts: Array<[string, React.ReactNode]> = [
     [t("difficulty"), tc(`difficulty${room.difficulty}`)],
@@ -152,7 +256,11 @@ export function RoomDetailView({
             <span className="rounded-full bg-black/40 px-2 py-1 backdrop-blur">
               {t("version", { semver: room.latestVersion.semver })}
             </span>
-            {room.saleEvents ? (
+            {isEventsOnly ? (
+              <span className="rounded-full bg-black/40 px-2 py-1 backdrop-blur">
+                {t("eventsOnlyBadge")}
+              </span>
+            ) : room.saleEvents ? (
               <span className="rounded-full bg-black/40 px-2 py-1 backdrop-blur">
                 {t("saleEvents")}
               </span>
@@ -178,9 +286,16 @@ export function RoomDetailView({
         ))}
       </dl>
 
-      <Button asChild size="lg" className="w-fit">
-        <Link href="/redeem">{t("playCta")}</Link>
-      </Button>
+      <RoomPlayCta
+        room={room}
+        locale={locale}
+        isFree={isFree}
+        isPaid={isPaid}
+        isEventsOnly={isEventsOnly}
+        access={access}
+        isAnonymous={isAnonymous}
+        roomHref={roomHref}
+      />
 
       <section aria-labelledby="reviews-heading" className="flex flex-col gap-3">
         <h2 id="reviews-heading" className="text-xl font-semibold">

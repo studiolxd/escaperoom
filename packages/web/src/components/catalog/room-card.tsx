@@ -5,11 +5,22 @@ import { roomPath } from "@/lib/catalog-seo";
 import { languageName } from "./language-name";
 import { RatingSummary } from "./rating-summary";
 
-/** Precio individual formateado en el locale de la UI ("Gratis" si no hay precio). */
-export function RoomPrice({ room }: { room: Pick<CatalogRoom, "priceCents" | "currency"> }) {
+/**
+ * Precio individual formateado en el locale de la UI. "Gratis" SOLO con
+ * precio 0 y venta individual activa (punto j de la entrada "CTA Jugar",
+ * `docs/DEUDA.md`); con precio `null` (sin venta individual) la sala es
+ * "Solo para eventos" — antes esta etiqueta mostraba "Gratis" también en ese
+ * caso, aunque la sala no se pudiera jugar.
+ */
+export function RoomPrice({
+  room,
+}: {
+  room: Pick<CatalogRoom, "priceCents" | "currency" | "saleIndividual">;
+}) {
   const t = useTranslations("Catalog");
   const format = useFormatter();
-  if (!room.priceCents) return <>{t("free")}</>;
+  if (room.priceCents === 0 && room.saleIndividual) return <>{t("free")}</>;
+  if (room.priceCents === null) return <>{t("eventsOnly")}</>;
   return (
     <>{format.number(room.priceCents / 100, { style: "currency", currency: room.currency })}</>
   );

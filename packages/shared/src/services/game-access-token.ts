@@ -8,12 +8,18 @@ import { isDevFallbackAllowed } from "@escaperoom/env";
  * HMAC que `join-token.ts`, con su propia clave de firma (separación de
  * dominio) y audiencia.
  *
- * Dos tipos de claim:
+ * Tres tipos de claim:
  * - `purchase`: web lo firma tras comprobar en Postgres que el usuario tiene
  *   una `purchase` `room` `succeeded` de la sala (`GET /api/rooms/:roomId/access`,
  *   B-4). La `GameRoom` lo verifica sin tocar la base de datos y, al crear la
  *   room, reclama `purchase.playSessionStartedAt` (escritura condicional
  *   `IS NULL`: una compra = una partida) a través de `GameAccessStore`.
+ * - `free`: sala realmente gratis (precio 0 + venta individual), sin cuenta
+ *   ni Stripe (punto i de la entrada "CTA Jugar" de `docs/DEUDA.md`). Web lo
+ *   firma tras comprobar que la sala cumple esa condición
+ *   (`GET /api/rooms/:roomId/free-access`), sin exigir sesión. No hay
+ *   `purchase` que reclamar ni consumir: el abuso se frena con cuotas por IP
+ *   al FIRMAR el token (`withRateLimit`), no en la `GameRoom`.
  * - `dev_test`: partida de prueba sin compra, solo fuera de producción
  *   (`isDevFallbackAllowed`, comprobado también al verificar, no solo al
  *   firmar: un secreto filtrado no basta para colar una partida de prueba en
@@ -49,9 +55,10 @@ export function readGameAccessTokenConfig(
   return { secret, ttlSeconds: DEFAULT_GAME_ACCESS_TOKEN_TTL_SECONDS };
 }
 
-/** Claims de un `gameToken`: compra B2C (B-4) o partida de prueba sin persistencia. */
+/** Claims de un `gameToken`: compra B2C (B-4), sala gratis sin cuenta, o partida de prueba sin persistencia. */
 export type GameAccessClaims =
   | { kind: "purchase"; purchaseId: string; userId: string; roomVersionId: string }
+  | { kind: "free"; roomId: string; roomVersionId: string }
   | { kind: "dev_test"; label: string };
 
 type GameAccessTokenPayload = {
@@ -62,6 +69,7 @@ type GameAccessTokenPayload = {
   exp: number;
 } & (
   | { k: "purchase"; pid: string; uid: string; rvid: string }
+  | { k: "free"; rid: string; rvid: string }
   | { k: "dev_test"; lbl: string }
 );
 
@@ -84,17 +92,27 @@ function sign(secret: string, input: string): string {
 
 function toPayload(
   claims: GameAccessClaims,
-): { k: "purchase"; pid: string; uid: string; rvid: string } | { k: "dev_test"; lbl: string } {
+):
+  | { k: "purchase"; pid: string; uid: string; rvid: string }
+  | { k: "free"; rid: string; rvid: string }
+  | { k: "dev_test"; lbl: string } {
   if (claims.kind === "purchase") {
     return { k: "purchase", pid: claims.purchaseId, uid: claims.userId, rvid: claims.roomVersionId };
+  }
+  if (claims.kind === "free") {
+    return { k: "free", rid: claims.roomId, rvid: claims.roomVersionId };
   }
   return { k: "dev_test", lbl: claims.label };
 }
 
 function fromPayload(payload: GameAccessTokenPayload): GameAccessClaims {
-  return payload.k === "purchase"
-    ? { kind: "purchase", purchaseId: payload.pid, userId: payload.uid, roomVersionId: payload.rvid }
-    : { kind: "dev_test", label: payload.lbl };
+  if (payload.k === "purchase") {
+    return { kind: "purchase", purchaseId: payload.pid, userId: payload.uid, roomVersionId: payload.rvid };
+  }
+  if (payload.k === "free") {
+    return { kind: "free", roomId: payload.rid, roomVersionId: payload.rvid };
+  }
+  return { kind: "dev_test", label: payload.lbl };
 }
 
 /** Firma un `gameToken`; `now` y `expiresAt` en ms. */
@@ -151,6 +169,7 @@ function isPayload(value: unknown): value is GameAccessTokenPayload {
   if (c.iss !== ISSUER || c.aud !== GAME_ACCESS_TOKEN_AUDIENCE) return false;
   if (typeof c.iat !== "number" || typeof c.exp !== "number" || !Number.isFinite(c.exp)) return false;
   if (c.k === "purchase") return text(c.pid) && text(c.uid) && text(c.rvid);
+  if (c.k === "free") return text(c.rid) && text(c.rvid);
   if (c.k === "dev_test") return text(c.lbl);
   return false;
 }

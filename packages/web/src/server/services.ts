@@ -13,6 +13,8 @@ import {
   createMailTransportFromEnv,
 } from "@escaperoom/shared/mail";
 import { logger } from "@escaperoom/kit/logger";
+import { createPrismaGameAccessStore } from "@escaperoom/shared/game-access-prisma";
+import type { GameAccessStore } from "@escaperoom/shared/game-access";
 import { EVENT_ROOM_NAME } from "@/lib/colyseus";
 import {
   createAudioAssetService,
@@ -98,6 +100,8 @@ import {
   createRoomAccessService,
   createPrismaRoomAccessStore,
   type RoomAccessService,
+  createFreeRoomAccessService,
+  type FreeRoomAccessService,
   createCreatorConnectService,
   createPrismaCreatorConnectStore,
   type CreatorConnectService,
@@ -152,6 +156,8 @@ let userDataRights: UserDataRightsService | undefined;
 let stripeClient: Stripe | null | undefined;
 let purchases: PurchaseService | undefined;
 let roomAccess: RoomAccessService | null | undefined;
+let freeRoomAccess: FreeRoomAccessService | null | undefined;
+let gameAccessStore: GameAccessStore | undefined;
 let creatorConnect: CreatorConnectService | undefined;
 let webhookDedupe: WebhookEventDedupeStore | undefined;
 let purchaseConfirmations: PurchaseConfirmationQueue | undefined;
@@ -591,6 +597,34 @@ export function getRoomAccessService(): RoomAccessService | null {
     ? createRoomAccessService({ store: createPrismaRoomAccessStore(prisma), gameToken })
     : null;
   return roomAccess;
+}
+
+/**
+ * `GET /api/rooms/:roomId/free-access` (punto i de "CTA Jugar",
+ * `docs/DEUDA.md`): sin sesión, emite el `gameToken` `kind: "free"` para
+ * salas realmente gratis. Reusa `getCatalogService()` (mismo `getRoom` que el
+ * detalle público) en vez de un store propio. `null` si falta el secreto en
+ * producción (mismo criterio que `getRoomAccessService`).
+ */
+export function getFreeRoomAccessService(): FreeRoomAccessService | null {
+  if (freeRoomAccess !== undefined) return freeRoomAccess;
+  const gameToken = readGameAccessTokenConfig();
+  freeRoomAccess = gameToken
+    ? createFreeRoomAccessService({ catalog: getCatalogService(), gameToken })
+    : null;
+  return freeRoomAccess;
+}
+
+/**
+ * `loadRoomVersionPackage` (subpath sin barrel, sin Prisma en Colyseus,
+ * ADR-022): la usa Colyseus para autorizar partidas y también la página
+ * `/play/room/:roomId` para construir el modelo de cliente de una sala REAL
+ * (comprada o gratis) — nunca decide acceso, eso ya lo resuelve
+ * `getRoomAccessService`/`getFreeRoomAccessService`.
+ */
+export function getGameAccessStore(): GameAccessStore {
+  gameAccessStore ??= createPrismaGameAccessStore(prisma);
+  return gameAccessStore;
 }
 
 /**

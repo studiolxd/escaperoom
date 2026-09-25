@@ -66,6 +66,7 @@ export * from "./purchases";
 export * from "./purchases-prisma-store";
 export * from "./room-access";
 export * from "./room-access-prisma-store";
+export * from "./free-room-access";
 export * from "./purchase-confirmation";
 export * from "./purchase-confirmation-prisma-store";
 export * from "./creator-connect";

@@ -1,10 +1,12 @@
 import {
   ANONYMOUS_ACTOR,
   CatalogError,
+  isAnonymous,
   ReviewError,
   type CatalogRoom,
   type ReviewListResult,
   type ReviewService,
+  type RoomAccessResult,
 } from "@escaperoom/shared/services";
 import { storage } from "@escaperoom/kit/storage";
 import type { Metadata } from "next";
@@ -21,7 +23,7 @@ import {
   serializeJsonLd,
 } from "@/lib/catalog-seo";
 import { resolveActorFromHeaders } from "@/server/context";
-import { getCatalogService, getReviewService } from "@/server/services";
+import { getCatalogService, getReviewService, getRoomAccessService } from "@/server/services";
 
 type Props = {
   params: Promise<{ locale: string; roomId: string }>;
@@ -89,11 +91,15 @@ export default async function RoomDetailPage({ params, searchParams }: Props) {
   // result de Google); diferirlas dejaría el script sin esas reseñas o
   // obligaría a duplicar la consulta. El `Suspense` de `RoomDetailView`
   // sigue aislando el renderizado de la lista igualmente.
-  const [reviews, { actor, viewer }, coverImageUrl] = await Promise.all([
+  const roomAccessService = getRoomAccessService();
+  const [reviews, { actor, viewer, access }, coverImageUrl] = await Promise.all([
     listReviews(reviewService, roomId, reviewsCursor),
     resolveActorFromHeaders(headersList).then(async (resolvedActor) => ({
       actor: resolvedActor,
       viewer: await reviewService.getViewerState(resolvedActor, roomId),
+      access: roomAccessService
+        ? ((await roomAccessService.getAccess(resolvedActor, roomId)) as RoomAccessResult | null)
+        : null,
     })),
     room.coverImageKey ? storage.getSignedReadUrl(room.coverImageKey) : Promise.resolve(null),
   ]);
@@ -113,6 +119,8 @@ export default async function RoomDetailPage({ params, searchParams }: Props) {
         viewer={viewer}
         coverImageUrl={coverImageUrl}
         isAuthor={actor.userId === room.authorId}
+        access={access}
+        isAnonymous={isAnonymous(actor)}
       />
     </>
   );
