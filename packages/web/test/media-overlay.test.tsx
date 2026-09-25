@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render } from "@testing-library/react";
+import { act, cleanup, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
@@ -56,6 +56,55 @@ describe("MediaOverlay — no publica mic/cámara al conectar (F-3)", () => {
     const props = liveKitRoomProps.mock.calls.at(-1)![0] as { audio: unknown; video: unknown };
     expect(props.audio).toBe(false);
     expect(props.video).toBe(false);
+
+    useMediaStore.getState().reset();
+  });
+});
+
+describe("MediaOverlay — callbacks estables para LiveKitRoom", () => {
+  beforeEach(() => {
+    liveKitRoomProps.mockClear();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.resetModules();
+  });
+
+  /**
+   * `useLiveKitRoom` relanza `room.connect()` cuando cambia la identidad de
+   * `onError`. Si el overlay pasaba arrows inline, un SFU caído hacía alternar
+   * el estado entre "error" y "disconnected" y cada re-render volvía a
+   * conectar, en bucle, hasta colgar el navegador.
+   */
+  it("onConnected/onDisconnected/onError no cambian al re-renderizar por el estado", async () => {
+    const { useMediaStore } = await import("../src/store/media-store");
+    const { MediaOverlay } = await import("../src/components/game/media-overlay");
+
+    useMediaStore.getState().setPayload({
+      configured: true,
+      token: "fake.token.value",
+      url: "ws://localhost:7880",
+      room: "escape-room-1",
+      identity: "sess-1",
+      role: "player",
+      allowVideo: true,
+      canPublish: true,
+      canPublishVideo: true,
+    });
+
+    render(<MediaOverlay />);
+    type Callbacks = { onConnected: unknown; onDisconnected: unknown; onError: unknown };
+    const first = liveKitRoomProps.mock.calls.at(-1)![0] as Callbacks;
+
+    act(() => useMediaStore.getState().setError("could not establish signal connection"));
+    act(() => useMediaStore.getState().setStatus("disconnected"));
+
+    expect(liveKitRoomProps.mock.calls.length).toBeGreaterThan(1);
+    const last = liveKitRoomProps.mock.calls.at(-1)![0] as Callbacks;
+    expect(last.onError).toBe(first.onError);
+    expect(last.onConnected).toBe(first.onConnected);
+    expect(last.onDisconnected).toBe(first.onDisconnected);
 
     useMediaStore.getState().reset();
   });

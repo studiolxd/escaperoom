@@ -17,7 +17,13 @@ import { usePathname, useRouter } from "@/i18n/navigation";
  * `variant="select"`: `Select` de shadcn con el estilo por defecto (fondo
  * claro), para el header público (`PublicHeader`), que ya no va sobre overlay.
  */
-export function LocaleSwitcher({ variant = "overlay" }: { variant?: "overlay" | "select" }) {
+export function LocaleSwitcher({
+  variant = "overlay",
+  id,
+}: {
+  variant?: "overlay" | "select";
+  id?: string;
+}) {
   const t = useTranslations("LocaleSwitcher");
   const locale = useLocale();
   const router = useRouter();
@@ -36,7 +42,7 @@ export function LocaleSwitcher({ variant = "overlay" }: { variant?: "overlay" | 
   if (variant === "select") {
     return (
       <Select value={locale} onValueChange={(value) => onSelect(value as Locale)}>
-        <SelectTrigger aria-label={t("label")} disabled={isPending}>
+        <SelectTrigger id={id} aria-label={t("label")} disabled={isPending}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

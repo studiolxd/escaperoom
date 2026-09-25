@@ -65,6 +65,10 @@ function countingInner(rooms: CatalogRoom[]): PublishedRoomListing & { calls: ()
       calls += 1;
       return rooms.find((room) => room.id === roomId) ?? null;
     },
+    async countPublished() {
+      calls += 1;
+      return rooms.length;
+    },
   };
 }
 

@@ -186,7 +186,7 @@ export function CatalogFilters({
             <SelectItem value={ANY}>{t("anyPlayers")}</SelectItem>
             {PLAYER_OPTIONS.map((n) => (
               <SelectItem key={n} value={String(n)}>
-                {n}
+                {n === 1 ? t("playersSolo") : t("playersUpTo", { n })}
               </SelectItem>
             ))}
           </SelectContent>

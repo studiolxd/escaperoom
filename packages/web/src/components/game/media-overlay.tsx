@@ -24,6 +24,16 @@ const STATUS_DOT: Record<MediaStatus, string> = {
   unavailable: "bg-amber-400",
 };
 
+// Callbacks estables a propósito: `useLiveKitRoom` tiene `onError` en las
+// dependencias del efecto que llama a `room.connect()`. Con arrows inline, cada
+// re-render (p. ej. al pasar el estado a "error" o "disconnected") relanzaba
+// `connect()`; si el SFU no responde, el fallo alternaba esos dos estados y
+// entraba en un bucle de reconexiones que acababa colgando el navegador.
+const handleConnected = () => useMediaStore.getState().setStatus("connected");
+const handleDisconnected = () => useMediaStore.getState().setStatus("disconnected");
+const handleError = (mediaError: Error) =>
+  useMediaStore.getState().setError(mediaError.message || "No se pudo conectar a LiveKit");
+
 /**
  * Overlay de voz/webcam (specs/12). Lee el payload `media_token` que la room
  * volcó en el store:
@@ -44,8 +54,6 @@ export function MediaOverlay() {
   const payload = useMediaStore((state) => state.payload);
   const error = useMediaStore((state) => state.error);
   const attempt = useMediaStore((state) => state.attempt);
-  const setStatus = useMediaStore((state) => state.setStatus);
-  const setError = useMediaStore((state) => state.setError);
   const retry = useMediaStore((state) => state.retry);
 
   const connect = canConnectMedia(payload);
@@ -66,9 +74,9 @@ export function MediaOverlay() {
           connect
           audio={false}
           video={false}
-          onConnected={() => setStatus("connected")}
-          onDisconnected={() => setStatus("disconnected")}
-          onError={(mediaError) => setError(mediaError.message || "No se pudo conectar a LiveKit")}
+          onConnected={handleConnected}
+          onDisconnected={handleDisconnected}
+          onError={handleError}
         >
           <RoomAudioRenderer />
           <MediaTiles role={payload.role} canPublishVideo={payload.canPublishVideo} />

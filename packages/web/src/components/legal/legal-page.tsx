@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
-import type { LegalDocument, LegalHref, LegalText } from "@/content/legal/types";
-import { Card, CardContent } from "@/components/ui/card";
+import type { LegalDocument, LegalText } from "@/content/legal/types";
 import { Link } from "@/i18n/navigation";
 
 type LegalPageProps = {
@@ -8,8 +7,6 @@ type LegalPageProps = {
   document: LegalDocument;
   /** `true` si el locale actual no es `es`: el contenido solo existe en español. */
   onlyInSpanishNotice?: string;
-  nav: { href: LegalHref; label: string }[];
-  currentHref: LegalHref;
   /** Contenido interactivo adicional bajo el documento (p. ej. el enlace de preferencias de cookies). */
   children?: ReactNode;
 };
@@ -41,70 +38,51 @@ function RichText({ text }: { text: LegalText }) {
  * política de privacidad, anexo de encargo de tratamiento (DPA), aviso
  * legal y política de cookies. El contenido en sí (`document`)
  * vive siempre en español — specs/18 fija España como jurisdicción de
- * referencia. `onlyInSpanishNotice` avisa de esto en el resto de locales;
- * el resto de la página (título, navegación entre páginas legales) sí sigue
- * el idioma activo, como el resto de la app.
+ * referencia. `onlyInSpanishNotice` avisa de esto en el resto de locales; el
+ * título sí sigue el idioma activo, como el resto de la app.
+ *
+ * Mismo ancho (`max-w-6xl`) que home, catálogo y detalle de sala, sin card
+ * envolviendo el contenido. La navegación entre páginas legales no se repite
+ * aquí: ya la da el `PublicFooter` compartido del layout `(public)`.
  */
 export function LegalPage({
   title,
   document,
   onlyInSpanishNotice,
-  nav,
-  currentHref,
   children,
 }: LegalPageProps) {
   return (
-    <main className="min-h-dvh bg-background px-4 py-10 text-foreground">
-      <div className="mx-auto w-full max-w-2xl space-y-6">
-        <nav className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={
-                item.href === currentHref
-                  ? "font-medium text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+    <main className="mx-auto flex min-h-dvh max-w-6xl flex-col gap-6 bg-background px-4 py-8 text-foreground">
+      <header className="space-y-2">
+        <h1 className="text-lg font-semibold text-foreground">{title}</h1>
+        {onlyInSpanishNotice ? (
+          <p className="text-xs text-muted-foreground">{onlyInSpanishNotice}</p>
+        ) : null}
+      </header>
 
-        <header className="space-y-2">
-          <h1 className="text-lg font-semibold text-foreground">{title}</h1>
-          {onlyInSpanishNotice ? (
-            <p className="text-xs text-muted-foreground">{onlyInSpanishNotice}</p>
-          ) : null}
-        </header>
-
-        <Card>
-          <CardContent className="space-y-6 text-sm leading-relaxed text-foreground">
-            {document.sections.map((section) => (
-              <section key={section.heading} className="space-y-2">
-                <h2 className="text-sm font-semibold text-foreground">{section.heading}</h2>
-                {section.paragraphs.map((paragraph, i) => (
-                  <p key={i}>
-                    <RichText text={paragraph} />
-                  </p>
-                ))}
-                {section.list ? (
-                  <ul className="list-disc space-y-1 pl-5">
-                    {section.list.map((item, i) => (
-                      <li key={i}>
-                        <RichText text={item} />
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </section>
+      <div className="max-w-2xl space-y-6 text-sm leading-relaxed text-foreground">
+        {document.sections.map((section) => (
+          <section key={section.heading} className="space-y-2">
+            <h2 className="text-sm font-semibold text-foreground">{section.heading}</h2>
+            {section.paragraphs.map((paragraph, i) => (
+              <p key={i}>
+                <RichText text={paragraph} />
+              </p>
             ))}
-          </CardContent>
-        </Card>
-
-        {children}
+            {section.list ? (
+              <ul className="list-disc space-y-1 pl-5">
+                {section.list.map((item, i) => (
+                  <li key={i}>
+                    <RichText text={item} />
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        ))}
       </div>
+
+      {children}
     </main>
   );
 }

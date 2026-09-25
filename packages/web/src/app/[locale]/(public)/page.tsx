@@ -19,13 +19,13 @@ export default async function HomePage({ params }: Props) {
 
   return (
     <main className="bg-background">
-      <section className="mx-auto flex min-h-[70dvh] w-full max-w-3xl flex-col items-center justify-center px-4 py-20 text-center">
+      <section className="mx-auto flex min-h-[70dvh] w-full max-w-3xl flex-col items-start justify-center px-4 py-20 text-left">
         <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">{l("heroTitle")}</h1>
         <p className="mt-4 text-balance text-base text-muted-foreground sm:text-lg">
           {l("heroSubtitle")}
         </p>
 
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <div className="mt-8 flex flex-wrap items-center justify-start gap-3">
           <Button asChild size="lg">
             <Link href="/creator/onboarding">{l("ctaStartCreating")}</Link>
           </Button>

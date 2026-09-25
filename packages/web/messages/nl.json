@@ -704,6 +704,8 @@
     "anyDifficulty": "Alle moeilijkheden",
     "players": "Spelers",
     "anyPlayers": "Elk aantal",
+    "playersSolo": "Alleen spelen",
+    "playersUpTo": "Tot {n} spelers",
     "priceFree": "Gratis",
     "priceMax": "Maximumprijs",
     "priceUnlimited": "Geen limiet",
@@ -716,8 +718,9 @@
     "emptyDescription": "Probeer enkele filters te wijzigen of te verwijderen.",
     "emptyClearFilters": "Filters wissen",
     "invalidFilters": "Een filter is ongeldig; alle kamers worden getoond.",
-    "nextPage": "Meer kamers",
-    "firstPage": "Terug naar het begin",
+    "previousPage": "Vorige",
+    "nextPage": "Volgende",
+    "pageSize": "Kamers per pagina",
     "difficulty1": "Makkelijk",
     "difficulty2": "Gemiddeld",
     "difficulty3": "Moeilijk",
@@ -726,6 +729,7 @@
     "free": "Gratis",
     "byAuthor": "door {author}",
     "rating": "{avg} van 5 ({count, plural, one {# review} other {# reviews}})",
+    "ratingCount": "{count, plural, one {# review} other {# reviews}}",
     "noRatings": "Nog geen reviews"
   },
   "RoomDetail": {
@@ -940,7 +944,6 @@
     "intro": "Voer de sleutel van je kaart of uitnodiging in om mee te doen aan het spel van je groep.",
     "codeLabel": "Sleutel",
     "nameLabel": "Je naam (je groep ziet hem)",
-    "namePlaceholder": "bijv. Ana",
     "cta": "Meedoen aan het spel",
     "redeeming": "Bezig met inwisselen…",
     "errors": {
@@ -1341,5 +1344,11 @@
     "description": "De link is mogelijk verbroken of de pagina bestaat niet meer.",
     "home": "Naar de startpagina",
     "browseCatalog": "Bekijk de catalogus"
+  },
+  "ThemeToggle": {
+    "label": "Thema",
+    "light": "Licht",
+    "dark": "Donker",
+    "system": "Systeem"
   }
 }

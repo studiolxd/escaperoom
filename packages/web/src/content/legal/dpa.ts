@@ -2,32 +2,28 @@ import { languageVersionsSection } from "./language-versions";
 import { legalLink, type LegalDocument } from "./types";
 
 /**
- * Anexo de encargo de tratamiento (DPA) — BORRADOR TÉCNICO (ticket 6.2,
- * specs/18 §3.1).
+ * Anexo de encargo de tratamiento (DPA) (specs/18 §3.1).
  *
  * Es el anexo de los Términos de Servicio que regula el tratamiento que la
  * plataforma hace por cuenta de un organizador (art. 28.3 RGPD), no una
  * plantilla suelta: se acepta junto con los Términos, y además un organizador
  * B2B/Edu confirma expresamente su versión vigente antes de generar claves
  * individuales con email. Ese MECANISMO de aceptación (quién puede aceptar,
- * versión aceptada, puerta `DPA_REQUIRED`) ya está implementado desde el
- * ticket 5.11 en `packages/shared/src/services/organizations.ts` y no cambia
- * aquí — esta página solo aporta el contenido legal que ese flujo le muestra
- * al organizador antes de aceptar.
+ * versión aceptada, puerta `DPA_REQUIRED`) está implementado en
+ * `packages/shared/src/services/organizations.ts` — esta página solo aporta
+ * el contenido legal que ese flujo le muestra al organizador antes de
+ * aceptar.
  *
  * Estructura alineada con el anexo equivalente de slxd
  * (`slxd/packages/legal/content/es/dpa.mdx`), adaptada a lo que la plataforma
  * trata de verdad por cuenta del organizador.
  */
 export const dpaAnnex: LegalDocument = {
-  draftDate: "2026-09-23",
+  versionDate: "2026-09-23",
   sections: [
     {
-      heading: "0. Qué es este anexo",
+      heading: "1. Cuándo se aplica",
       paragraphs: [
-        "Esta página es un borrador técnico, no un texto legal vigente. Un abogado debe revisarlo " +
-          "antes de que sustituya al texto que hoy acepta el flujo de aceptación del anexo " +
-          "(`POST /api/organizations/:id/dpa/sign`).",
         [
           "Este anexo es el contrato de encargo de tratamiento que exige el artículo 28.3 del " +
             "Reglamento (UE) 2016/679 (RGPD) cuando la plataforma trata datos personales por cuenta " +
@@ -44,11 +40,6 @@ export const dpaAnnex: LegalDocument = {
           legalLink("Política de Privacidad", "/legal/privacy"),
           ".",
         ],
-      ],
-    },
-    {
-      heading: "1. Cuándo se aplica",
-      paragraphs: [
         "Cuando una organización activa un tipo de clave de acceso `individual` con email para " +
           "repartir invitaciones a sus participantes (por ejemplo, alumnado de un centro educativo o " +
           "empleados de una empresa), la plataforma trata esos emails por cuenta y bajo instrucciones " +

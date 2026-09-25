@@ -704,6 +704,8 @@
     "anyDifficulty": "Toutes les difficultés",
     "players": "Joueurs",
     "anyPlayers": "Nombre indifférent",
+    "playersSolo": "Jeu en solo",
+    "playersUpTo": "Jusqu'à {n} joueurs",
     "priceFree": "Gratuit",
     "priceMax": "Prix maximum",
     "priceUnlimited": "Sans limite",
@@ -716,8 +718,9 @@
     "emptyDescription": "Essayez de modifier ou de retirer certains filtres.",
     "emptyClearFilters": "Effacer les filtres",
     "invalidFilters": "Un filtre n'est pas valide ; toutes les salles sont affichées.",
-    "nextPage": "Plus de salles",
-    "firstPage": "Revenir au début",
+    "previousPage": "Précédent",
+    "nextPage": "Suivant",
+    "pageSize": "Salles par page",
     "difficulty1": "Facile",
     "difficulty2": "Moyenne",
     "difficulty3": "Difficile",
@@ -726,6 +729,7 @@
     "free": "Gratuit",
     "byAuthor": "par {author}",
     "rating": "{avg} sur 5 ({count, plural, one {# avis} other {# avis}})",
+    "ratingCount": "{count, plural, one {# avis} other {# avis}}",
     "noRatings": "Pas encore d'avis"
   },
   "RoomDetail": {
@@ -940,7 +944,6 @@
     "intro": "Saisissez la clé de votre carte ou de votre invitation pour rejoindre la partie de votre groupe.",
     "codeLabel": "Clé",
     "nameLabel": "Votre nom (votre groupe le verra)",
-    "namePlaceholder": "ex. Ana",
     "cta": "Rejoindre la partie",
     "redeeming": "Validation…",
     "errors": {
@@ -1341,5 +1344,11 @@
     "description": "Le lien est peut-être rompu ou la page n'existe plus.",
     "home": "Retour à l'accueil",
     "browseCatalog": "Voir le catalogue"
+  },
+  "ThemeToggle": {
+    "label": "Thème",
+    "light": "Clair",
+    "dark": "Sombre",
+    "system": "Système"
   }
 }

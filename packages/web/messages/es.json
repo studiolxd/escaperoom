@@ -753,6 +753,8 @@
     "anyDifficulty": "Cualquier dificultad",
     "players": "Jugadores",
     "anyPlayers": "Cualquier número",
+    "playersSolo": "Juego individual",
+    "playersUpTo": "Hasta {n} jugadores",
     "priceFree": "Gratis",
     "priceMax": "Precio máximo",
     "priceUnlimited": "Sin límite",
@@ -765,8 +767,9 @@
     "emptyDescription": "Prueba a cambiar o quitar algunos filtros.",
     "emptyClearFilters": "Borrar filtros",
     "invalidFilters": "Algún filtro no es válido; se muestran todas las salas.",
-    "nextPage": "Más salas",
-    "firstPage": "Volver al principio",
+    "previousPage": "Anterior",
+    "nextPage": "Siguiente",
+    "pageSize": "Salas por página",
     "difficulty1": "Fácil",
     "difficulty2": "Media",
     "difficulty3": "Difícil",
@@ -775,6 +778,7 @@
     "free": "Gratis",
     "byAuthor": "por {author}",
     "rating": "{avg} de 5 ({count, plural, one {# reseña} other {# reseñas}})",
+    "ratingCount": "{count, plural, one {# reseña} other {# reseñas}}",
     "noRatings": "Sin reseñas todavía"
   },
   "RoomDetail": {
@@ -947,12 +951,11 @@
     "title": "Canjea tu clave",
     "intro": "Introduce la clave de tu tarjeta o invitación para entrar en la partida de tu grupo.",
     "codeLabel": "Clave",
-    "nameLabel": "Tu nombre (lo verá tu grupo)",
-    "namePlaceholder": "p. ej. Ana",
+    "nameLabel": "Nombre",
     "cta": "Entrar en la partida",
     "redeeming": "Canjeando…",
     "errors": {
-      "ACCESS_KEY_INVALID": "Esta clave no existe. Revisa que la hayas escrito bien.",
+      "ACCESS_KEY_INVALID": "Clave incorrecta.",
       "ACCESS_KEY_USED": "Esta clave ya se ha usado.",
       "ACCESS_KEY_EXPIRED": "Esta clave ya no es válida. Pide al organizador una nueva.",
       "ACCESS_KEY_NOT_CONFIRMED": "Antes de jugar tienes que confirmar tu asistencia desde el email de invitación.",
@@ -1489,5 +1492,11 @@
     "description": "El enlace puede estar roto o la página ya no existe.",
     "home": "Ir al inicio",
     "browseCatalog": "Ver el catálogo"
+  },
+  "ThemeToggle": {
+    "label": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
   }
 }

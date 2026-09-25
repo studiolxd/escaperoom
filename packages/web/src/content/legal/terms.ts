@@ -2,12 +2,7 @@ import { languageVersionsSection } from "./language-versions";
 import { legalLink, type LegalDocument } from "./types";
 
 /**
- * Términos de Servicio — BORRADOR TÉCNICO (ticket 6.2, specs/18 §1–§2).
- *
- * No es un texto legal definitivo: recoge las decisiones de producto ya
- * tomadas que un abogado debe convertir en cláusulas exigibles. Donde
- * specs/18 no fija un detalle jurisdiccional concreto, este documento deja un
- * `[PENDIENTE ASESORÍA LEGAL: …]` en vez de inventarlo.
+ * Términos de Servicio (specs/18 §1–§2).
  *
  * Estructura contrastada con las condiciones de slxd
  * (`slxd/packages/legal/content/es/terms.mdx`, mismo titular): de ahí salen
@@ -16,19 +11,8 @@ import { legalLink, type LegalDocument } from "./types";
  * marketplace (sin suscripciones ni periodo de prueba).
  */
 export const termsOfService: LegalDocument = {
-  draftDate: "2026-09-23",
+  versionDate: "2026-09-23",
   sections: [
-    {
-      heading: "0. Qué es este documento",
-      paragraphs: [
-        "Esta página es un borrador técnico, no un texto legal vigente. Recoge las decisiones de " +
-          "producto que EscapeRoom Creator ya ha tomado para que un abogado especializado en " +
-          "protección de datos y contratación electrónica las convierta en Términos de Servicio " +
-          "exigibles antes de aceptar el primer pago real o el primer evento educativo real.",
-        "Mientras este aviso esté presente, ningún párrafo de esta página se puede invocar como " +
-          "contrato vinculante.",
-      ],
-    },
     {
       heading: "1. Quién presta el servicio y aceptación",
       paragraphs: [

@@ -137,6 +137,8 @@ export interface PublishedRoomListing {
   listPublished(filter: CatalogListFilter, page: CatalogPage): Promise<CatalogRoom[]>;
   /** Detalle de una sala `published` no borrada; `null` si no está en catálogo. */
   getPublished(roomId: string): Promise<CatalogRoom | null>;
+  /** Total de salas que cumplen el filtro (sin paginar), para calcular el nº de páginas. */
+  countPublished(filter: CatalogListFilter): Promise<number>;
 }
 
 export type CatalogErrorCode = "VALIDATION_ERROR" | "ROOM_NOT_FOUND";
@@ -199,8 +201,13 @@ export function toCatalogRoom(input: {
 
 /** Máximo de idiomas por petición: el filtro es una intersección, no un buscador. */
 export const MAX_LANGUAGE_FILTER = 10;
-export const CATALOG_DEFAULT_LIMIT = 20;
-export const CATALOG_MAX_LIMIT = 50;
+/**
+ * Múltiplo de 6 (mcm de 1/2/3, las columnas del grid del catálogo en
+ * móvil/tablet/escritorio): así la última página nunca deja una fila a
+ * medias sea cual sea el ancho de pantalla.
+ */
+export const CATALOG_DEFAULT_LIMIT = 12;
+export const CATALOG_MAX_LIMIT = 48;
 export const CATALOG_MAX_QUERY_LENGTH = 100;
 /** Tope del filtro de jugadores (muy por encima de `maxPlayersPerRoom`). */
 export const CATALOG_MAX_PLAYERS = 100;
@@ -297,6 +304,8 @@ export type CatalogListInput = {
   sort?: string | null;
   cursor?: string | null;
   limit?: string | number | null;
+  /** Página 1-indexada; si se pasa, tiene prioridad sobre `cursor`. */
+  page?: string | number | null;
 };
 
 /** Valida y normaliza la entrada del listado; lanza `CatalogError` si algo no cuadra. */
@@ -332,20 +341,43 @@ export function parseCatalogQuery(input: CatalogListInput = {}): {
       q: q.length > 0 ? q : null,
       sort: sort as CatalogSort,
     },
-    offset: decodeCatalogCursor(input.cursor),
+    offset: computeOffset(input),
     limit:
       parseIntParam("limit", input.limit, { min: 1, max: CATALOG_MAX_LIMIT }) ??
       CATALOG_DEFAULT_LIMIT,
   };
 }
 
-/** Respuesta paginada del listado (specs/13 §1). */
-export type CatalogListResult = { items: CatalogRoom[]; nextCursor: string | null };
+/** `page` (1-indexada) tiene prioridad sobre `cursor` si ambos llegan. */
+function computeOffset(input: CatalogListInput): number {
+  const limit =
+    parseIntParam("limit", input.limit, { min: 1, max: CATALOG_MAX_LIMIT }) ??
+    CATALOG_DEFAULT_LIMIT;
+  const page = parseIntParam("page", input.page, { min: 1 });
+  if (page !== null) return (page - 1) * limit;
+  return decodeCatalogCursor(input.cursor);
+}
+
+/**
+ * Respuesta paginada del listado (specs/13 §1). `nextCursor` se mantiene por
+ * compatibilidad (sitemap, MCP, que recorren el catálogo entero por cursor);
+ * `page`/`pageSize`/`totalCount`/`totalPages` son para el paginador real de
+ * la UI (números de página, no "cargar más").
+ */
+export type CatalogListResult = {
+  items: CatalogRoom[];
+  nextCursor: string | null;
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+};
 
 /** Sin listado inyectado, el catálogo publicado es vacío (p. ej. el MCP de solo destacada). */
 const EMPTY_LISTING: PublishedRoomListing = {
   listPublished: async () => [],
   getPublished: async () => null,
+  countPublished: async () => 0,
 };
 
 /**
@@ -372,11 +404,18 @@ export function createCatalogService(deps: {
     async listRooms(_actor: Actor, input: CatalogListInput = {}): Promise<CatalogListResult> {
       const { filter, offset, limit } = parseCatalogQuery(input);
       // Se pide una fila de más para saber si hay página siguiente sin contar.
-      const rows = await listing.listPublished(filter, { offset, limit: limit + 1 });
+      const [rows, totalCount] = await Promise.all([
+        listing.listPublished(filter, { offset, limit: limit + 1 }),
+        listing.countPublished(filter),
+      ]);
       const items = rows.slice(0, limit);
       return {
         items,
         nextCursor: rows.length > limit ? encodeCatalogCursor(offset + limit) : null,
+        page: Math.floor(offset / limit) + 1,
+        pageSize: limit,
+        totalCount,
+        totalPages: Math.max(1, Math.ceil(totalCount / limit)),
       };
     },
 

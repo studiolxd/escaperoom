@@ -704,6 +704,8 @@
     "anyDifficulty": "Alle Schwierigkeiten",
     "players": "Spieler",
     "anyPlayers": "Beliebige Anzahl",
+    "playersSolo": "Einzelspiel",
+    "playersUpTo": "Bis zu {n} Spieler",
     "priceFree": "Kostenlos",
     "priceMax": "Höchstpreis",
     "priceUnlimited": "Kein Limit",
@@ -716,8 +718,9 @@
     "emptyDescription": "Versuche, einige Filter zu ändern oder zu entfernen.",
     "emptyClearFilters": "Filter zurücksetzen",
     "invalidFilters": "Ein Filter ist ungültig; es werden alle Räume angezeigt.",
-    "nextPage": "Weitere Räume",
-    "firstPage": "Zurück zum Anfang",
+    "previousPage": "Zurück",
+    "nextPage": "Weiter",
+    "pageSize": "Räume pro Seite",
     "difficulty1": "Leicht",
     "difficulty2": "Mittel",
     "difficulty3": "Schwer",
@@ -726,6 +729,7 @@
     "free": "Kostenlos",
     "byAuthor": "von {author}",
     "rating": "{avg} von 5 ({count, plural, one {# Bewertung} other {# Bewertungen}})",
+    "ratingCount": "{count, plural, one {# Bewertung} other {# Bewertungen}}",
     "noRatings": "Noch keine Bewertungen"
   },
   "RoomDetail": {
@@ -940,7 +944,6 @@
     "intro": "Gib den Schlüssel von deiner Karte oder Einladung ein, um dem Spiel deiner Gruppe beizutreten.",
     "codeLabel": "Schlüssel",
     "nameLabel": "Dein Name (deine Gruppe sieht ihn)",
-    "namePlaceholder": "z. B. Ana",
     "cta": "Dem Spiel beitreten",
     "redeeming": "Wird eingelöst…",
     "errors": {
@@ -1341,5 +1344,11 @@
     "description": "Der Link ist möglicherweise fehlerhaft oder die Seite existiert nicht mehr.",
     "home": "Zur Startseite",
     "browseCatalog": "Katalog ansehen"
+  },
+  "ThemeToggle": {
+    "label": "Design",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "system": "System"
   }
 }

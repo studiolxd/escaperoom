@@ -743,6 +743,8 @@
     "anyDifficulty": "Any difficulty",
     "players": "Players",
     "anyPlayers": "Any number",
+    "playersSolo": "Solo play",
+    "playersUpTo": "Up to {n} players",
     "priceFree": "Free",
     "priceMax": "Maximum price",
     "priceUnlimited": "No limit",
@@ -755,8 +757,9 @@
     "emptyDescription": "Try changing or removing some filters.",
     "emptyClearFilters": "Clear filters",
     "invalidFilters": "Some filter is not valid; showing all rooms.",
-    "nextPage": "More rooms",
-    "firstPage": "Back to the start",
+    "previousPage": "Previous",
+    "nextPage": "Next",
+    "pageSize": "Rooms per page",
     "difficulty1": "Easy",
     "difficulty2": "Medium",
     "difficulty3": "Hard",
@@ -765,6 +768,7 @@
     "free": "Free",
     "byAuthor": "by {author}",
     "rating": "{avg} out of 5 ({count, plural, one {# review} other {# reviews}})",
+    "ratingCount": "{count, plural, one {# review} other {# reviews}}",
     "noRatings": "No reviews yet"
   },
   "RoomDetail": {
@@ -877,7 +881,6 @@
     "intro": "Enter the key from your card or invitation to join your group's game.",
     "codeLabel": "Key",
     "nameLabel": "Your name (your group will see it)",
-    "namePlaceholder": "e.g. Ana",
     "cta": "Join the game",
     "redeeming": "Redeeming…",
     "errors": {
@@ -1453,5 +1456,11 @@
     "description": "The link may be broken or the page no longer exists.",
     "home": "Go home",
     "browseCatalog": "Browse the catalog"
+  },
+  "ThemeToggle": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
   }
 }
