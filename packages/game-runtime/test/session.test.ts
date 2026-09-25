@@ -108,6 +108,7 @@ describe("toGameSnapshot", () => {
           y: 12,
           roomId: "salon-trono",
           tint: "#38bdf8",
+          characterId: "caballero-m",
           connected: true,
         },
         b: {
@@ -117,6 +118,7 @@ describe("toGameSnapshot", () => {
           y: 12,
           roomId: "salon-trono",
           tint: "#f472b6",
+          characterId: "maniqui",
           connected: true,
         },
       }),
