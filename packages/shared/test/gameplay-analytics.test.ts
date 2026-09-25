@@ -148,6 +148,12 @@ describe("emitGameplayEvents (punto de emisión)", () => {
         enqueued.push(payload);
         return `job-${enqueued.length}`;
       },
+      async enqueueBulk(items) {
+        return items.map(({ payload }) => {
+          enqueued.push(payload);
+          return `job-${enqueued.length}`;
+        });
+      },
       getQueue: () => null,
     };
     return { queue, enqueued };

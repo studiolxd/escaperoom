@@ -108,6 +108,12 @@ function setup(opts: { dpaVersion?: string } = {}) {
         jobs.push(job);
         return `job-${jobs.length}`;
       },
+      async enqueueBulk(items) {
+        return items.map((job) => {
+          jobs.push(job);
+          return `job-${jobs.length}`;
+        });
+      },
     },
     confirmation: { secret: "secreto-de-test-de-al-menos-32-caracteres", ttlSeconds: 3600 },
     now,
