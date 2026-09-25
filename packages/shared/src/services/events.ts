@@ -510,7 +510,7 @@ export function createEventService(deps: {
   store: EventStore;
   /** Solo se usa `snapshotAt` de 3.12: los tramos no se reimplementan aquí. */
   pricing: Pick<PricingTierService, "snapshotAt">;
-  /** `null` hasta que 5.1 cablee Stripe: el checkout responde `PAYMENT_GATEWAY_UNAVAILABLE`. */
+  /** `null` sin `STRIPE_SECRET_KEY` configurada: el checkout responde `PAYMENT_GATEWAY_UNAVAILABLE`. */
   payments: PaymentGateway | null;
   now?: () => Date;
   newId?: () => string;
