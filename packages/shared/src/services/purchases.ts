@@ -135,7 +135,7 @@ export type RoomCheckoutResult = { purchase: RoomPurchaseRow; checkoutUrl: strin
 
 export function createPurchaseService(deps: {
   store: PurchaseStore;
-  /** `null` hasta que 5.1 cablee Stripe: el checkout responde `PAYMENT_GATEWAY_UNAVAILABLE`. */
+  /** `null` sin `STRIPE_SECRET_KEY` configurada: el checkout responde `PAYMENT_GATEWAY_UNAVAILABLE`. */
   payments: PaymentGateway | null;
   newId?: () => string;
 }) {

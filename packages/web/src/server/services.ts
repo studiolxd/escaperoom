@@ -268,7 +268,10 @@ export function getAudioAssetService(): AudioAssetService {
 
 /** Ledger de créditos de plataforma (ticket 4.9, specs/14 §4) sobre Postgres. */
 export function getCreditsService(): CreditsService {
-  credits ??= createCreditsService({ store: createPrismaCreditAccountStore(prisma) });
+  credits ??= createCreditsService({
+    store: createPrismaCreditAccountStore(prisma),
+    members: createPrismaOrganizationStore(prisma),
+  });
   return credits;
 }
 

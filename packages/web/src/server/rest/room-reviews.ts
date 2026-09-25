@@ -4,6 +4,7 @@ import {
   type ReviewErrorCode,
   type ReviewService,
 } from "@escaperoom/shared/services";
+import { errorResponse, handleDomainErrors, NO_STORE, readJson } from "./_http";
 import type { CatalogRoomRouteContext } from "./rooms-list";
 
 /** Dependencias inyectables de los handlers de reseñas (testeables sin base de datos). */
@@ -13,27 +14,14 @@ export type RoomReviewsHandlerDeps = {
 };
 
 const STATUS_BY_CODE: Record<ReviewErrorCode, number> = {
-  UNAUTHENTICATED: 401,
+  UNAUTHORIZED: 401,
   REVIEW_NOT_ALLOWED: 403,
   ROOM_NOT_FOUND: 404,
-  VALIDATION_ERROR: 400,
+  VALIDATION_ERROR: 422,
   CONTENT_REJECTED: 422,
 };
 
-function errorResponse(code: string, message: string, status: number) {
-  return Response.json({ error: { code, message } }, { status });
-}
-
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (error instanceof ReviewError) {
-      return errorResponse(error.code, error.message, STATUS_BY_CODE[error.code]);
-    }
-    throw error;
-  }
-}
+const handle = handleDomainErrors(ReviewError, STATUS_BY_CODE);
 
 /**
  * Handlers REST de reseñas (specs/13 §3). Adaptadores finos sobre
@@ -64,18 +52,16 @@ export function createRoomReviewsHandlers(deps: RoomReviewsHandlerDeps) {
       return handle(async () => {
         const { roomId } = await ctx.params;
         const actor = await deps.resolveActor(request);
-        let body: unknown;
-        try {
-          body = await request.json();
-        } catch {
-          return errorResponse("VALIDATION_ERROR", "El cuerpo no es JSON válido", 400);
-        }
+        const body = await readJson(request);
         if (typeof body !== "object" || body === null || Array.isArray(body)) {
-          return errorResponse("VALIDATION_ERROR", "Se esperaba un objeto { rating, text? }", 400);
+          return errorResponse("VALIDATION_ERROR", "Se esperaba un objeto { rating, text? }", 422);
         }
         const { rating, text } = body as { rating?: unknown; text?: unknown };
         const result = await deps.reviews.upsertReview(actor, roomId, { rating, text });
-        return Response.json(result, { status: result.created ? 201 : 200 });
+        return Response.json(result, {
+          status: result.created ? 201 : 200,
+          headers: NO_STORE,
+        });
       });
     },
   };

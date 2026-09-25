@@ -32,12 +32,10 @@ vi.mock("@/server/context", () => ({
 const API_DIR = fileURLToPath(new URL("../src/app/api", import.meta.url));
 const EXCLUDED_TOP_LEVEL = new Set(["auth", "trpc", "health", "stripe", "mcp"]);
 /**
- * Rutas sin migrar todavía a `server/rest/_http.ts` (A-22): catálogo
- * (`rooms-list.ts`, `featured-room.ts`) y reseñas (`room-reviews.ts`), en uso
- * por otra sesión en paralelo — ver la PR. Se comprueba solo `no-store`; el
- * código de "JSON roto" sigue siendo el suyo hasta que se migren.
+ * Catálogo (`rooms-list.ts`, `featured-room.ts`) y reseñas (`room-reviews.ts`)
+ * ya migraron a `server/rest/_http.ts` (A-22, auditoría 2026-09-24).
  */
-const NOT_YET_MIGRATED = ["/rooms/route.ts", "/rooms/featured/route.ts", "/reviews/route.ts"];
+const NOT_YET_MIGRATED: string[] = [];
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
 const DUMMY_ID = "00000000-0000-4000-8000-00000000000a";
 

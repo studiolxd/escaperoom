@@ -4,7 +4,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../trpc";
 
 const TRPC_CODE: Record<ReviewErrorCode, TRPCError["code"]> = {
-  UNAUTHENTICATED: "UNAUTHORIZED",
+  UNAUTHORIZED: "UNAUTHORIZED",
   REVIEW_NOT_ALLOWED: "FORBIDDEN",
   ROOM_NOT_FOUND: "NOT_FOUND",
   VALIDATION_ERROR: "BAD_REQUEST",

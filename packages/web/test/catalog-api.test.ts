@@ -250,12 +250,12 @@ describe("/api/rooms/:roomId/reviews", () => {
     ).toBe(404);
   });
 
-  it("400 con cuerpo o valoración no válidos; 422 con lenguaje no permitido", async () => {
+  it("400 con JSON roto; 422 con cuerpo/valoración no válidos o lenguaje no permitido", async () => {
     const t = setup();
     t.as(member("ana"));
     expect((await t.reviewHandlers.postReview(post("{no json"), ctx("b"))).status).toBe(400);
-    expect((await t.reviewHandlers.postReview(post([1]), ctx("b"))).status).toBe(400);
-    expect((await t.reviewHandlers.postReview(post({ rating: 6 }), ctx("b"))).status).toBe(400);
+    expect((await t.reviewHandlers.postReview(post([1]), ctx("b"))).status).toBe(422);
+    expect((await t.reviewHandlers.postReview(post({ rating: 6 }), ctx("b"))).status).toBe(422);
     const rejected = await json(
       await t.reviewHandlers.postReview(post({ rating: 1, text: "Qué gilipollas" }), ctx("b")),
     );
