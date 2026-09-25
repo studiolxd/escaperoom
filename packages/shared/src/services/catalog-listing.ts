@@ -8,6 +8,7 @@ import {
   type CatalogSort,
   type PublishedRoomListing,
 } from "./catalog";
+import { isUuid } from "./common";
 
 /** Estados de `room` (enum `roomStatus`); solo `published` aparece en el catálogo. */
 export type CatalogRoomStatus = "draft" | "published" | "unlisted" | "archived" | "removed";
@@ -148,8 +149,6 @@ type CatalogRow = {
   ratingCount: number;
 };
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /** Escapa `%`, `_` y `\` para usar el texto como literal dentro de `ILIKE`. */
 export function escapeLikePattern(text: string): string {
   return text.replace(/[\\%_]/g, (char) => `\\${char}`);
@@ -268,7 +267,7 @@ export function createPrismaPublishedRoomListing(prisma: PrismaClient): Publishe
       return rows.flatMap((row) => toRoom(row) ?? []);
     },
     async getPublished(roomId) {
-      if (!UUID_RE.test(roomId)) return null;
+      if (!isUuid(roomId)) return null;
       const rows = await prisma.$queryRaw<CatalogRow[]>`${catalogSelect(roomId)}`;
       const row = rows[0];
       return row ? toRoom(row) : null;
