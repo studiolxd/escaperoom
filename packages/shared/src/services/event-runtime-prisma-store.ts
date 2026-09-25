@@ -33,13 +33,19 @@ export function createPrismaEventRuntimeStore(
     async loadEventPackage(eventId): Promise<EventPackage | null> {
       const event = await prisma.event.findUnique({
         where: { id: eventId },
-        select: { status: true, roomVersionId: true, roomVersion: { select: { package: true } } },
+        select: {
+          status: true,
+          roomVersionId: true,
+          config: true,
+          roomVersion: { select: { package: true } },
+        },
       });
       if (!event || event.status !== "active") return null;
       return {
         eventId,
         roomVersionId: event.roomVersionId,
         roomPackage: parseRoomPackage(event.roomVersion.package),
+        allowVideo: (event.config as unknown as { allowVideo?: boolean }).allowVideo === true,
       };
     },
 
