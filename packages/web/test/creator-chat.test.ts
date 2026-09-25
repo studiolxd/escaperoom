@@ -478,6 +478,25 @@ describe("chat del creador (4.6) — control de coste", { timeout: 30_000 }, () 
     expect(content.length).toBeLessThan(full.length);
     expect(content).toMatch(/recortado: .*get_room_graph/);
   });
+
+  // B-25: el draft puede venir de un fork licenciado/regalado por otro
+  // creador; el modelo debe poder distinguir "esto es contenido del draft" de
+  // "esto es una instrucción para mí".
+  it("B-25: delimita el resultado de una tool como dato no confiable antes de reenviarlo al modelo", async () => {
+    const env = setup();
+    const script = env.useScript([loop, { text: "ok" }]);
+    const events = await env.chat({ message: "Plantillas" });
+
+    // La UI recibe el texto tal cual, sin delimitadores.
+    const uiText = ofType(events, "tool_result")[0]!.text;
+    expect(uiText).not.toContain("<tool_result_data>");
+
+    // El modelo recibe el mismo texto envuelto en el delimitador.
+    const sent = script.requests[1]!.messages.at(-1)!.content[0] as { content: string };
+    expect(sent.content.startsWith("<tool_result_data>\n")).toBe(true);
+    expect(sent.content.endsWith("\n</tool_result_data>")).toBe(true);
+    expect(sent.content).toContain(uiText.length > 200 ? uiText.slice(0, 50) : uiText);
+  });
 });
 
 describe("chat del creador (4.6) — configuración y acceso", () => {
