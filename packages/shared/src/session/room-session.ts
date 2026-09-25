@@ -316,6 +316,19 @@ export class RoomSession {
 
   // — Lectura del estado del mundo ————————————————————————————————
 
+  /**
+   * C-19: índice O(1) por id, para el camino caliente de `GameRoom` (evita
+   * `roomPackage.puzzles.find`/`objects.find` en cada acción o tick).
+   */
+  getPuzzleDefinition(puzzleId: string): PuzzleDefinition | undefined {
+    return this.puzzlesById.get(puzzleId);
+  }
+
+  /** C-19: índice O(1) por id de los objetos del mundo. */
+  getObjectDefinition(objectId: string): WorldObject | undefined {
+    return this.objectsById.get(objectId);
+  }
+
   /** Copia serializable del estado del motor. */
   snapshot(): GameState {
     return this.engine.snapshot();

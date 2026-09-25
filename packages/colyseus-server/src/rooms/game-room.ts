@@ -248,6 +248,24 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   private ended = false;
   /** Paneles abiertos por jugador: tras cada acción se les reenvía la vista. */
   protected readonly openPanels = new Map<string, Set<string>>();
+  /**
+   * C-9: versión de cada puzzle, incrementada solo cuando su proyección
+   * pública (`GamePuzzleState`) cambia de verdad. Permite a
+   * `refreshOpenPanels` reenviar un panel abierto solo cuando hace falta, en
+   * vez de recalcular y mandar la vista de cada panel en cada tick (250 ms).
+   */
+  private readonly puzzleVersion = new Map<string, number>();
+  /**
+   * C-9: versión del inventario de cada jugador. Solo afecta a la vista de
+   * `combine_items` (la única que depende del inventario de quien la abre).
+   */
+  private readonly inventoryVersion = new Map<string, number>();
+  /** C-9: última versión de puzzle+inventario enviada a cada cliente, por panel abierto. */
+  private readonly sentPanelVersions = new Map<string, Map<string, string>>();
+  /** C-9: última vez (reloj lógico) que se sincronizó `state.clock` a los clientes. */
+  private lastClockSyncAt = -Infinity;
+  /** C-9: último valor bruto (sin `JSON.stringify`) sincronizado de cada flag. */
+  private readonly flagMirror = new Map<string, string | number | boolean>();
   /** Chat de la partida (specs/11 §4.4): en cualquier fase, también en el lobby. */
   protected readonly chat = new RoomChat();
   /** Rate limit por mensaje y jugador (specs/11 §9); `undefined` = apagado. */
@@ -792,6 +810,9 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     }
     this.openPanels.set(newId, new Set(this.openPanels.get(previousSessionId) ?? []));
     this.openPanels.delete(previousSessionId);
+    this.sentPanelVersions.set(newId, this.sentPanelVersions.get(previousSessionId) ?? new Map());
+    this.sentPanelVersions.delete(previousSessionId);
+    this.inventoryVersion.delete(previousSessionId);
     this.chat.leave(previousSessionId);
     this.chat.join(newId);
     this.messageLimiter?.forget(previousSessionId);
@@ -808,6 +829,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.state.players.delete(sessionId);
     this.state.inventories.delete(sessionId);
     this.openPanels.delete(sessionId);
+    this.sentPanelVersions.delete(sessionId);
+    this.inventoryVersion.delete(sessionId);
     this.chat.leave(sessionId);
     this.messageLimiter?.forget(sessionId);
     this.deniedActions.delete(sessionId);
@@ -940,7 +963,12 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       return;
     }
 
-    const grid = this.roomPackage.map.rooms.find((room) => room.id === current.roomId)!.grid;
+    const roomDef = this.roomPackage.map.rooms.find((room) => room.id === current.roomId);
+    if (!roomDef) {
+      this.fail(client, GAME_ERRORS.invalidState, "Habitación actual inválida.");
+      return;
+    }
+    const grid = roomDef.grid;
     const result = validateMove(current, payload, {
       maxDistance: GAME_MAX_STEP,
       bounds: { minX: 0, minY: 0, maxX: grid.cols - 1, maxY: grid.rows - 1 },
@@ -986,7 +1014,11 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       this.fail(client, GAME_ERRORS.roomLocked, "La puerta está cerrada o demasiado lejos.");
       return;
     }
-    const target = this.roomPackage.map.rooms.find((room) => room.id === targetRoomId)!;
+    const target = this.roomPackage.map.rooms.find((room) => room.id === targetRoomId);
+    if (!target) {
+      this.fail(client, GAME_ERRORS.invalidState, "Habitación destino inválida.");
+      return;
+    }
     const index = [...this.state.players.values()].filter((p) => p.roomId === targetRoomId).length;
     const spawn = target.spawnPoints[index % Math.max(1, target.spawnPoints.length)] ?? {
       x: 0,
@@ -1071,6 +1103,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       puzzleId: puzzle.id,
       view: session.puzzleView(puzzle.id, client.sessionId),
     });
+    this.markPanelSent(client.sessionId, puzzle.id, this.panelVersion(session, puzzle.id, client.sessionId));
   }
 
   private handleAttempt(client: Client, payload: z.infer<typeof attemptPayload>): void {
@@ -1250,7 +1283,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
 
   private handleTick(): void {
     if (!this.session || this.state.phase === "lobby") return;
-    this.publish(this.session.tick(this.logicalNow()));
+    this.publish(this.session.tick(this.logicalNow()), { fromTick: true });
   }
 
   // — Sincronización ——————————————————————————————————————————————
@@ -1268,8 +1301,13 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     return this.session;
   }
 
-  /** Difunde los efectos del motor y refleja el estado en el room state. */
-  private publish(result: EngineResult | null | undefined): void {
+  /**
+   * Difunde los efectos del motor y refleja el estado en el room state.
+   * `fromTick` (C-9): el tick de simulación (250 ms) nunca fuerza
+   * `state.clock` a todos los clientes — se sincroniza como mucho 1 vez por
+   * segundo salvo que la llamada venga de un mensaje real (reacción inmediata).
+   */
+  private publish(result: EngineResult | null | undefined, opts: { fromTick?: boolean } = {}): void {
     if (result) {
       for (const effect of result.effects) {
         switch (effect.type) {
@@ -1315,7 +1353,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       }
       for (const event of result.events) {
         if (event.type !== "on_puzzle_solved") continue;
-        const def = this.roomPackage.puzzles.find((puzzle) => puzzle.id === event.puzzleId);
+        const def = this.session?.getPuzzleDefinition(event.puzzleId);
         this.broadcast(GAME_MESSAGES.puzzleSolved, {
           puzzleId: event.puzzleId,
           solvedBy: event.playerId ?? null,
@@ -1330,23 +1368,32 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
         });
       }
     }
-    this.syncState();
+    this.syncState({ forceClock: !opts.fromTick });
     this.refreshOpenPanels();
     this.announceEnd();
   }
 
   /** Hito de puerta abierta: solo objetos que llevan a otra habitación. */
   private doorOpened(objectId: string): void {
-    const door = this.roomPackage.objects.find((object) => object.id === objectId);
+    const door = this.session?.getObjectDefinition(objectId);
     if (!door?.leadsTo) return;
     this.onMilestone({ kind: "door_opened", objectId, actorId: null, ...this.milestoneClock() });
   }
 
-  private syncState(): void {
+  /**
+   * `forceClock` (C-9): fuera de una llamada desde un mensaje, `state.clock`
+   * solo se sincroniza como mucho 1 vez por segundo — evita un patch de
+   * Colyseus a todos los clientes en cada tick de 250 ms solo por el reloj.
+   */
+  private syncState(opts: { forceClock?: boolean } = {}): void {
     const session = this.session;
     if (!session) return;
     const game = session.state;
-    this.state.clock = this.logicalNow();
+    const now = this.logicalNow();
+    if (opts.forceClock || now - this.lastClockSyncAt >= 1000) {
+      this.state.clock = now;
+      this.lastClockSyncAt = now;
+    }
     this.state.phase = game.phase;
     this.state.result = game.result ?? "";
     this.state.startedAt = game.flags.game_started ? game.startedAt : 0;
@@ -1366,9 +1413,13 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
         puzzle = new GamePuzzleState();
         this.state.puzzles.set(puzzleId, puzzle);
       }
-      puzzle.state = runtime.state;
-      puzzle.attempts = runtime.attempts;
-      puzzle.solvedBy = runtime.solvedBy ?? "";
+      const solvedBy = runtime.solvedBy ?? "";
+      if (puzzle.state !== runtime.state || puzzle.attempts !== runtime.attempts || puzzle.solvedBy !== solvedBy) {
+        puzzle.state = runtime.state;
+        puzzle.attempts = runtime.attempts;
+        puzzle.solvedBy = solvedBy;
+        this.puzzleVersion.set(puzzleId, (this.puzzleVersion.get(puzzleId) ?? 0) + 1);
+      }
     }
     for (const [playerId, items] of Object.entries(game.inventory)) {
       if (!this.state.players.has(playerId)) continue;
@@ -1380,12 +1431,14 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       if (inventory.items.join("\u0000") !== items.join("\u0000")) {
         inventory.items.clear();
         inventory.items.push(...items);
+        this.inventoryVersion.set(playerId, (this.inventoryVersion.get(playerId) ?? 0) + 1);
       }
     }
     for (const [flag, value] of Object.entries(game.flags)) {
       if (flag === "time_remaining") continue; // cambia cada tick; el cliente usa `endsAt`.
-      const encoded = JSON.stringify(value);
-      if (this.state.flags.get(flag) !== encoded) this.state.flags.set(flag, encoded);
+      if (this.flagMirror.get(flag) === value) continue; // evita `JSON.stringify` si no cambió.
+      this.flagMirror.set(flag, value);
+      this.state.flags.set(flag, JSON.stringify(value));
     }
     this.state.players.forEach((player, playerId) => {
       const position = session.playerPosition(playerId);
@@ -1396,17 +1449,45 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     });
   }
 
+  /**
+   * C-9: la vista de un panel abierto solo se recalcula y reenvía si su
+   * versión (el puzzle, o —solo para `combine_items`— el inventario de quien
+   * lo tiene abierto) cambió desde el último envío a ESE cliente. Antes se
+   * mandaba (y recalculaba `puzzleView`) sin condición en cada tick de 250 ms.
+   */
   private refreshOpenPanels(): void {
     const session = this.session;
     if (!session) return;
     for (const client of this.clients) {
-      for (const puzzleId of this.openPanels.get(client.sessionId) ?? []) {
+      const openPuzzles = this.openPanels.get(client.sessionId);
+      if (!openPuzzles || openPuzzles.size === 0) continue;
+      for (const puzzleId of openPuzzles) {
+        const version = this.panelVersion(session, puzzleId, client.sessionId);
+        if (this.sentPanelVersions.get(client.sessionId)?.get(puzzleId) === version) continue;
         client.send(GAME_MESSAGES.puzzleView, {
           puzzleId,
           view: session.puzzleView(puzzleId, client.sessionId),
         });
+        this.markPanelSent(client.sessionId, puzzleId, version);
       }
     }
+  }
+
+  /** Versión combinada (puzzle + inventario si aplica) de un panel para un jugador concreto. */
+  private panelVersion(session: RoomSession, puzzleId: string, sessionId: string): string {
+    const def = session.getPuzzleDefinition(puzzleId);
+    const puzzleVer = this.puzzleVersion.get(puzzleId) ?? 0;
+    const inventoryVer = def?.type === "combine_items" ? this.inventoryVersion.get(sessionId) ?? 0 : 0;
+    return `${puzzleVer}:${inventoryVer}`;
+  }
+
+  private markPanelSent(sessionId: string, puzzleId: string, version: string): void {
+    let sent = this.sentPanelVersions.get(sessionId);
+    if (!sent) {
+      sent = new Map();
+      this.sentPanelVersions.set(sessionId, sent);
+    }
+    sent.set(puzzleId, version);
   }
 
   private announceEnd(): void {
@@ -1460,7 +1541,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     session: RoomSession,
     puzzleId: string,
   ): PuzzleDefinition | undefined {
-    const puzzle = this.roomPackage.puzzles.find((candidate) => candidate.id === puzzleId);
+    const puzzle = session.getPuzzleDefinition(puzzleId);
     if (!puzzle) {
       this.fail(client, GAME_ERRORS.notAvailable, "Ese puzzle no existe.");
       return undefined;

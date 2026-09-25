@@ -8,6 +8,7 @@ import {
   GAME_ERRORS,
   GAME_MESSAGES,
   GAME_ROOM_NAME,
+  GAME_TICK_MS,
 } from "../src/constants";
 import { MEDIA_TOKEN_MESSAGE, MEDIA_TOKEN_REQUEST_MESSAGE } from "../src/media/index";
 import { GameRoom } from "../src/rooms/game-room";
@@ -251,6 +252,39 @@ describe("GameRoom — Rey Aldric sobre Colyseus", () => {
     });
     expect(await early).toMatchObject({ ok: false, error: "not_available" });
     expect(room.state.objects.get("reja-escalera")).toBe("closed");
+  });
+
+  it("C-9: un panel abierto no se reenvía en cada tick si no cambió", async () => {
+    const { room, a, b } = await startGame();
+    await solvePlates(room, a, b);
+    await enterBodega(room, a);
+    await enterBodega(room, b);
+
+    const opened = a.waitForMessage(GAME_MESSAGES.puzzleView);
+    a.send(GAME_MESSAGES.puzzleOpen, { puzzleId: "p-copas-memoria" });
+    await opened;
+
+    let resent = 0;
+    const off = a.onMessage(GAME_MESSAGES.puzzleView, () => {
+      resent += 1;
+    });
+    // Deja pasar varios ticks (250 ms) sin tocar el puzzle: no debe reenviarse.
+    await new Promise((resolve) => setTimeout(resolve, GAME_TICK_MS * 6));
+    off();
+    expect(resent).toBe(0);
+  });
+
+  it("C-9: `state.clock` no se sincroniza en cada tick de simulación (como mucho 1 vez/s)", async () => {
+    const { a } = await startGame();
+    const clockPatches: number[] = [];
+    a.onStateChange((state) => {
+      clockPatches.push(state.clock);
+    });
+    await new Promise((resolve) => setTimeout(resolve, GAME_TICK_MS * 8)); // 2 s de ticks
+    // Con 8 ticks de 250 ms (2 s) y una sincronización como mucho por segundo,
+    // el reloj no debería avanzar más de un par de veces (frente a 8 antes).
+    const distinctClocks = new Set(clockPatches).size;
+    expect(distinctClocks).toBeLessThanOrEqual(3);
   });
 
   it("chat de la partida (specs/11 §4.4): desde el lobby, con autor y rate limit", async () => {
