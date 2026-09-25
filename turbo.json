@@ -12,7 +12,26 @@
       "dependsOn": ["^build"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      // Los *.integration.test.ts (E-14) sólo corren si estas variables
+      // están presentes y su resultado depende de contra qué Postgres/Redis
+      // apunten — declaradas aquí para que entren en el hash de caché de
+      // turbo. Sin esto, `pnpm verify:pr` con caché compartida entre
+      // worktrees (cada uno con su propia base) podría reutilizar el
+      // resultado en verde de otro worktree con datos distintos.
+      "env": [
+        "DATABASE_URL",
+        "DIRECT_URL",
+        "REDIS_URL",
+        "REDIS_PREFIX",
+        "QUEUES_ENABLED",
+        "STORAGE_PROVIDER",
+        "STORAGE_BUCKET",
+        "STORAGE_REGION",
+        "STORAGE_ENDPOINT",
+        "STORAGE_ACCESS_KEY_ID",
+        "STORAGE_SECRET_ACCESS_KEY"
+      ]
     },
     "dev": {
       "cache": false,

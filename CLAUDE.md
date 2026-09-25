@@ -17,8 +17,8 @@
 > propia tarea, el tool `Agent`/subagentes internos de Claude Code sí está
 > permitido; `orca worktree create` no.
 >
-> El resto del archivo (UI con shadcn/ui) sí aplica a cualquiera, coordinadora
-> o agente delegado.
+> El resto del archivo (UI con shadcn/ui, `pnpm verify:pr`) sí aplica a
+> cualquiera, coordinadora o agente delegado.
 
 ## Lanzar agentes: siempre vía Orca (solo la sesión coordinadora)
 
@@ -109,3 +109,17 @@ cualquier agente que toque UI.
 Excepción ya acordada: elementos puramente decorativos/estructurales sin
 semántica de control (`div`, `span`, `img`, SVG de iconos/glifos) no necesitan
 shadcn — la regla es sobre controles interactivos y de formulario.
+
+## Antes de push/PR: `pnpm verify:pr` en verde
+
+Antes de hacer push o abrir una PR, corre `pnpm verify:pr` en tu worktree
+(diseño completo en `docs/reference/verify-pr.md`). Reproduce en local los
+jobs `verify` y `e2e-smoke` de `.github/workflows/ci.yml` sin esperar a
+GitHub, con detección de lo afectado, caché y un lock compartidos entre
+worktrees (no satura el Mac del usuario mientras hay varios agentes
+trabajando a la vez). Opciones principales: `--all` (fuerza todo el
+monorepo), `--e2e`/`--no-e2e` (fuerza u omite el smoke E2E), `--concurrency=N`
+y `--cpu-throttle` (heurístico para tests sensibles al paralelismo, sin
+fiabilidad completa frente a los timeouts reales de CI — ver el aviso en el
+propio script). Requiere el worktree ya preparado (`pnpm infra:up`,
+`pnpm dev:env`, `pnpm db:migrate && pnpm db:seed`).
