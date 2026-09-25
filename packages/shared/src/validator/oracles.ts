@@ -73,7 +73,9 @@ function templateReason(puzzle: PuzzleDefinition): string {
     case "hidden_key":
       return "el escondite no entrega ningún objeto (grantsItems y keyItemId vacíos)";
     case "code_lock":
-      return `el código «${puzzle.code}» no es coherente con length=${puzzle.length}`;
+      // No se incluye el código en el informe (auditoría D-14): solo su
+      // longitud, que basta para diagnosticar la incoherencia.
+      return `el código (${puzzle.code.length} caracteres) no es coherente con length=${puzzle.length}`;
     case "simultaneous_plates":
       return "las placas no son coherentes (sin placas, duplicadas o windowMs inválido)";
     case "combine_items":
