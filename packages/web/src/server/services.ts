@@ -362,7 +362,9 @@ export function getOrganizationService(): OrganizationService {
  * datos (`GET /api/me/data-export`) y cierre de cuenta (`DELETE /api/me`).
  */
 export function getUserDataRightsService(): UserDataRightsService {
-  userDataRights ??= createUserDataRightsService({ store: createPrismaUserDataRightsStore(prisma) });
+  userDataRights ??= createUserDataRightsService({
+    store: createPrismaUserDataRightsStore(prisma, { deleteStorageObject: (key) => storage.deleteObject(key) }),
+  });
   return userDataRights;
 }
 

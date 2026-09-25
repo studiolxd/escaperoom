@@ -1,8 +1,11 @@
 import type { PrismaClient } from "../../generated/client";
 import {
+  IP_HASH_DOMAIN,
   IP_UA_HASH_RETENTION_DAYS,
   IP_UA_ROW_RETENTION_YEARS,
   PURGED_VALUE_PREFIX,
+  UA_HASH_DOMAIN,
+  derivePurgeHashKey,
   hashCutoff,
   rowDeletionCutoff,
   type IpUaPurgeStore,
@@ -21,17 +24,22 @@ export function createPrismaTermsAcceptanceIpUaPurgeStore(prisma: PrismaClient):
   return {
     async purgeIpUa(now, secret) {
       const cutoff = hashCutoff(now, IP_UA_HASH_RETENTION_DAYS);
+      // Clave derivada por dominio en Node (nunca `APP_SECRET` crudo en SQL);
+      // `hmac(col, key, 'sha256')` en Postgres reproduce exactamente
+      // `hashPurgedValue` de `ip-ua-purge.ts` (misma clave, mismo HMAC).
+      const ipKey = derivePurgeHashKey(secret, IP_HASH_DOMAIN);
+      const uaKey = derivePurgeHashKey(secret, UA_HASH_DOMAIN);
       return prisma.$executeRaw`
         UPDATE "termsAcceptance"
         SET
           "ipAddress" = CASE
             WHEN "ipAddress" IS NOT NULL AND "ipAddress" NOT LIKE ${PURGED_LIKE}
-            THEN ${PURGED_VALUE_PREFIX} || encode(hmac("ipAddress", ${secret}, 'sha256'), 'hex')
+            THEN ${PURGED_VALUE_PREFIX} || encode(hmac(convert_to("ipAddress", 'UTF8'), ${ipKey}, 'sha256'), 'hex')
             ELSE "ipAddress"
           END,
           "userAgent" = CASE
             WHEN "userAgent" IS NOT NULL AND "userAgent" NOT LIKE ${PURGED_LIKE}
-            THEN ${PURGED_VALUE_PREFIX} || encode(hmac("userAgent", ${secret}, 'sha256'), 'hex')
+            THEN ${PURGED_VALUE_PREFIX} || encode(hmac(convert_to("userAgent", 'UTF8'), ${uaKey}, 'sha256'), 'hex')
             ELSE "userAgent"
           END
         WHERE "acceptedAt" <= ${cutoff}

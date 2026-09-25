@@ -1,5 +1,5 @@
 import pino from "pino";
-import { CENSOR, SENSITIVE_KEYS, writeToConsole, type LogObj } from "./shared";
+import { scrub, writeToConsole, type LogObj } from "./shared";
 
 // Entrada de SERVIDOR (Node y edge). El `exports` del paquete desvía el
 // navegador a `./client.ts`: un bundle de cliente no puede empaquetar pino.
@@ -18,9 +18,13 @@ const pinoLogger = isEdge
   ? null
   : pino({
       level: process.env.LOG_LEVEL || (isDev ? "debug" : "info"),
-      redact: {
-        paths: SENSITIVE_KEYS.flatMap((k) => [k, `*.${k}`]),
-        censor: CENSOR,
+      // `scrub` (no el `redact` de paths de pino, que no cubre profundidad ni
+      // arrays arbitrarios — E-10) recorre TODO el objeto de log, a cualquier
+      // nivel y dentro de listas, antes de serializar.
+      formatters: {
+        log(obj) {
+          return scrub(obj) as Record<string, unknown>;
+        },
       },
       ...(isDev && {
         transport: { target: "pino-pretty", options: { colorize: true } },
