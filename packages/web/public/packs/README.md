@@ -8,17 +8,27 @@ el `map.tileset` del `RoomPackage` (p. ej. `medieval-v1`).
 
 ```
 public/packs/<packId>/
-  pack.config.json          # opcional: collides, version, proyección…
+  pack.config.json          # opcional: collides, avatars, avatarOrigin, version, proyección…
   tiles/    tile-1.png, tile-2.png, tile-3.png, tile-10.png, …   # tiles del mapa
   sprites/  cuadro-rey.png, arca-cerrada.png, columna.png, …     # objetos, estados y decoración
   icons/    icon-llave-bronce.png, …                             # iconos de inventario
-  avatar/   avatar-n-idle-1.png, avatar-n-walk-1.png, …          # atlas de avatar
+  avatar/
+    caballero-m/  avatar-caballero-m-n-idle-1.png, …             # un personaje por carpeta (80 frames)
+    maniqui/      avatar-maniqui-n-idle-1.svg, …                 # personaje de reserva (no seleccionable)
   fx/       fx-spark-1.png, …                                    # brillo reutilizable
 ```
 
 El **nombre del archivo debe ser exactamente el frame** del `RoomPackage`
 (`specs/26` §3.3): `WorldObject.sprite`, cada estado, `Decoration.sprite`,
-`ItemDef.icon`, `tile-<id>` y los frames `avatar-<dir>-<acción>-<n>`.
+`ItemDef.icon`, `tile-<id>` y los frames de avatar
+`avatar-<characterId>-<dir>-<acción>-<n>`. `avatar/` acepta tanto subcarpetas
+por personaje (`avatar/<characterId>/…`, la forma recomendada: un personaje
+por carpeta con sus 80 frames ya prefijados) como ficheros sueltos
+directamente en `avatar/` (compatibilidad con packs de un único avatar). Los
+personajes **seleccionables** en el lobby se declaran en
+`pack.config.json → avatars` (id, `label` localizado y `portrait` opcional);
+un personaje presente en `avatar/` pero no listado ahí (como el maniquí de
+reserva) sigue empaquetándose y animándose, pero no aparece como opción.
 
 ### Fuentes admitidas
 
@@ -55,8 +65,11 @@ pnpm pack:build --pack <ruta> --room <json> # otra carpeta / otro RoomPackage
    `atlas-avatar`, `atlas-fx`) con su JSON en formato Phaser (`trim: false`,
    `rotation: false`, padding).
 3. Construye `manifest.json` (`specs/26` §6) y lo valida con el esquema Zod y
-   contra el `RoomPackage`: exige un frame por sprite/icono y una entrada
-   `tiles` con `collides` explícito por cada `tileId` no nulo.
+   contra el `RoomPackage`: exige un frame por sprite/icono, una entrada
+   `tiles` con `collides` explícito por cada `tileId` no nulo, y **80 frames**
+   por cada personaje declarado en `pack.config.json → avatars` (error si la
+   entrega es parcial; aviso, no bloqueante, si el personaje aún no tiene
+   ningún frame).
 
 `pack.config.json` es opcional; sirve para declarar `collides` por `tileId`
 (obligatorio para que la colisión sea correcta), la versión del pack, la
