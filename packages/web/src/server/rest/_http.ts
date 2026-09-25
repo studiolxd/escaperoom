@@ -68,25 +68,37 @@ type DomainError = { code: string; message: string };
  * Los campos extra del error (`issues`, `resultingRoomId`, `details`, …) se
  * incluyen tal cual si el objeto los trae — cada dominio decide cuáles.
  */
+function defaultExtra(raw: DomainError & Record<string, unknown>): Record<string, unknown> {
+  const extra: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (key === "code" || key === "message" || key === "name" || key === "stack") continue;
+    if (value === undefined || value === null) continue;
+    if (Array.isArray(value) && value.length === 0) continue;
+    extra[key] = value;
+  }
+  return extra;
+}
+
 export function handleDomainErrors<E extends DomainError>(
   ErrorClass: new (...args: never[]) => E,
   statusByCode: Record<string, number>,
+  /**
+   * Campos extra del error, tal cual van en `{ error: { code, message, ... } }`.
+   * Por defecto, cada propiedad propia del error salvo `code`/`message`/
+   * `name`/`stack` (y descartando `null`/`undefined`/arrays vacíos). Algunos
+   * dominios (p. ej. `RoomPublishError.details`) necesitan un objeto anidado
+   * SPREADEADO en vez de anidado bajo su propio nombre — para esos, pasa un
+   * `toExtra` propio.
+   */
+  toExtra: (err: E) => Record<string, unknown> = defaultExtra,
 ) {
   return async function handle(fn: () => Promise<Response>): Promise<Response> {
     try {
       return await fn();
     } catch (err) {
       if (err instanceof ErrorClass) {
-        const raw = err as unknown as DomainError & Record<string, unknown>;
-        const extra: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(raw)) {
-          if (key === "code" || key === "message" || key === "name" || key === "stack") continue;
-          if (value === undefined || value === null) continue;
-          if (Array.isArray(value) && value.length === 0) continue;
-          extra[key] = value;
-        }
-        const status = statusByCode[raw.code] ?? 500;
-        return errorResponse(raw.code, raw.message, status, extra);
+        const status = statusByCode[err.code] ?? 500;
+        return errorResponse(err.code, err.message, status, toExtra(err));
       }
       if (err instanceof BadJsonError) return errorResponse("INVALID_JSON", err.message, 400);
       throw err;

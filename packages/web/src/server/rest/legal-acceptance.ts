@@ -1,5 +1,6 @@
 import { clientIpFromHeaders } from "@escaperoom/kit/rate-limit/http";
 import { isAnonymous, type Actor, type TermsAcceptanceService } from "@escaperoom/shared/services";
+import { errorResponse, NO_STORE } from "./_http";
 
 /** Dependencias inyectables de los handlers de reaceptación de términos (testeables sin Postgres). */
 export type LegalAcceptanceHandlerDeps = {
@@ -7,13 +8,8 @@ export type LegalAcceptanceHandlerDeps = {
   resolveActor: (request: Request) => Promise<Actor>;
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
 function unauthorized(): Response {
-  return Response.json(
-    { error: { code: "UNAUTHORIZED", message: "No hay sesión" } },
-    { status: 401, headers: NO_STORE },
-  );
+  return errorResponse("UNAUTHORIZED", "No hay sesión", 401);
 }
 
 /**
