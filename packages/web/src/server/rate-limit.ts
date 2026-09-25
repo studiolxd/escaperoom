@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   slidingRateLimiter,
   type RateLimitResult,
@@ -112,6 +113,16 @@ export const RATE_LIMIT_POLICIES = {
   "onboarding-room-create": {
     ip: { limit: 5, windowSeconds: 3600 },
     user: { limit: 5, windowSeconds: 3600 },
+  },
+  /**
+   * `POST /api/rooms/:roomId/gift-copy` (B-10): cuota del REMITENTE (quién
+   * regala). Ver `consumeGiftCopyRecipientLimit` para el límite por
+   * DESTINATARIO (a quién se le regala, protege su cuenta de un aluvión de
+   * copias no pedidas de cualquier remitente).
+   */
+  "gift-copy": {
+    ip: { limit: 30, windowSeconds: 3600 },
+    user: { limit: 10, windowSeconds: 3600 },
   },
   /**
    * `POST /api/audio/generate/preview` (B-7): la preview no cobra créditos ni
@@ -256,4 +267,27 @@ export function withRateLimit<Rest extends unknown[]>(
     }
     return response;
   };
+}
+
+/**
+ * Límite de `gift-copy` por DESTINATARIO (B-10): cuenta por el email al que
+ * se intenta regalar, exista o no cuenta con ese email — así el momento en
+ * que se agota la cuota no filtra si el destinatario existe (la respuesta al
+ * remitente ya es indistinguible, `postGiftCopy`). Protege a una cuenta
+ * concreta de que cualquier combinación de remitentes la llene de copias no
+ * pedidas.
+ */
+const GIFT_COPY_RECIPIENT_LIMIT = { limit: 5, windowSeconds: 24 * 60 * 60 } as const;
+
+export async function consumeGiftCopyRecipientLimit(
+  recipientEmail: string,
+  store: SlidingWindowStore = slidingRateLimiter,
+): Promise<RateLimitResult> {
+  if (process.env.RATE_LIMIT_ENABLED?.trim().toLowerCase() === "false") return ALLOWED;
+  const hash = createHash("sha256").update(recipientEmail.trim().toLowerCase()).digest("hex");
+  return store.hit(
+    `gift-copy-recipient:${hash}`,
+    GIFT_COPY_RECIPIENT_LIMIT.limit,
+    GIFT_COPY_RECIPIENT_LIMIT.windowSeconds,
+  );
 }
