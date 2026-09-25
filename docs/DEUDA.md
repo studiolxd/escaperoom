@@ -268,3 +268,13 @@ Tareas pendientes que no bloquean pero hay que resolver.
       pero coherente visualmente. Revisar también los `notFound()` de rutas
       privadas (editor, creador) para que no enseñen la shell pública si no
       corresponde.
+- [ ] **Test inestable: muestreo de moderación.**
+      `packages/shared/test/moderation-prisma.integration.test.ts` › "muestreo: la
+      versión reciente entra una sola vez" falla de forma intermitente cuando
+      la suite de `shared` corre en paralelo: `sampleRecentlyPublished({rate:1})`
+      no filtra por las salas del propio test y recoge `roomVersion` creadas por
+      otros ficheros de integración (y su limpieza choca por FK con esos otros
+      tests). Pasa siempre en aislamiento. Aislarlo: que el test solo cuente sus
+      propias salas (filtro por ids o por un autor/etiqueta propios) o que el
+      muestreo acepte un filtro inyectable en tests. Lo han señalado varias PRs
+      de la auditoría (#134, #135, #136, #141, #150).
