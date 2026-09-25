@@ -21,7 +21,12 @@ let configured: EventRuntimeStore | null | undefined;
 /** Runtime de desarrollo: el fixture para cualquier evento y ninguna escritura. */
 export const FIXTURE_EVENT_RUNTIME: EventRuntimeStore = {
   async loadEventPackage(eventId) {
-    return { eventId, roomVersionId: "fixture", roomPackage: loadReyAldricRoomPackage() };
+    return {
+      eventId,
+      roomVersionId: "fixture",
+      roomPackage: loadReyAldricRoomPackage(),
+      allowVideo: false,
+    };
   },
   async recordMilestone() {},
 };

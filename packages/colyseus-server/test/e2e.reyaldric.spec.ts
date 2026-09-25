@@ -13,6 +13,7 @@ import { loadReyAldricRoomPackage } from "../src/game/room-packages";
 import { GameRoom } from "../src/rooms/game-room";
 import type { GameRoomState } from "../src/schema/game-state";
 import { getFreePort } from "./helpers/free-port";
+import { devTestGameToken } from "./helpers/game-token";
 
 /**
  * E2E de protocolo del Rey Aldric (ticket 2.12, specs/22 §3.1 capa 1): dos
@@ -113,7 +114,7 @@ interface Point {
 }
 
 async function joinPlayer(room: GameRoom, name: string): Promise<Player> {
-  const client = (await colyseus.connectTo(room, { name })) as TestClient;
+  const client = (await colyseus.connectTo(room, { gameToken: devTestGameToken(), name })) as TestClient;
   const player: Player = { name, client, messages: [], states: [] };
   client.onMessage("*", (type, payload) => {
     player.messages.push({ type: String(type), payload });
@@ -409,7 +410,7 @@ function findLeaks(player: Player): string[] {
 
 describe("E2E de protocolo — Rey Aldric con 2 clientes de Colyseus", () => {
   it("la ruta crítica de 14 pasos termina en victoria sin filtrar soluciones", async () => {
-    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {});
+    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, { gameToken: devTestGameToken() });
     const a = await joinPlayer(room, "Ana");
     const b = await joinPlayer(room, "Bruno");
 

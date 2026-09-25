@@ -1,7 +1,14 @@
 import { randomInt } from "node:crypto";
-import { Room, type Client } from "@colyseus/core";
+import { Room, ServerError, type Client } from "@colyseus/core";
 import { z } from "zod";
+import { logger } from "@escaperoom/kit/logger";
 import type { EngineResult } from "@escaperoom/shared/engine";
+import {
+  readGameAccessTokenConfig,
+  verifyGameAccessToken,
+  type GameAccessClaims,
+  type GameAccessTokenError,
+} from "@escaperoom/shared/game-access-token";
 import type { PuzzleDefinition, RoomPackage } from "@escaperoom/shared/schemas";
 import { LIVE_PHASES, type LivePhase } from "@escaperoom/shared/event-progress";
 import {
@@ -25,10 +32,15 @@ import {
   MAX_PLAYERS,
 } from "../constants.js";
 import { RoomChat } from "../chat.js";
+import { devTestGameTokenAllowed, getGameAccessRuntime } from "../game/access-runtime.js";
 import { loadAvatarCharacterIds } from "../game/avatar-pack.js";
 import { resolveRoomPackage } from "../game/room-packages.js";
 import { isCharacterAvailable, pickPlayerCharacter } from "../characters.js";
-import { MEDIA_TOKEN_REQUEST_MESSAGE, sendMediaTokenToClient } from "../media/index.js";
+import {
+  MEDIA_TOKEN_REQUEST_MESSAGE,
+  sendMediaTokenToClient,
+  type MediaRole,
+} from "../media/index.js";
 import {
   MESSAGE_RATE_LIMITED_ERROR,
   MessageRateLimiter,
@@ -47,7 +59,56 @@ import { pickPlayerTint } from "../tints.js";
 /** Opciones de creación: el cliente solo elige **qué** paquete (por id), nunca lo envía. */
 export interface GameRoomOptions {
   packageId?: string;
+  /**
+   * Token firmado por web (C-4/B-4): acredita una compra B2C o, fuera de
+   * producción, una partida de prueba. Exigido para crear o unirse a una
+   * `GameRoom` "desnuda" (no `EventRoom`/`PlaytestRoom`, que tienen su propio
+   * `joinToken`/token de playtest).
+   */
+  gameToken?: string;
 }
+
+/** Rechazo de `create`/`join` sin `gameToken` válido (código HTTP-like, como `ServerError`). */
+export const GAME_ACCESS_FORBIDDEN_CODE = 403;
+
+/** Motivos de rechazo que ve el cliente (specs/11 §7: nunca un stack trace). */
+export const GAME_ACCESS_ERRORS = {
+  missing: "GAME_TOKEN_REQUIRED",
+  invalid: "GAME_TOKEN_INVALID",
+  expired: "GAME_TOKEN_EXPIRED",
+  devTestForbidden: "GAME_TOKEN_DEV_TEST_FORBIDDEN",
+  /** La compra no existe, no tiene la versión, o Postgres no está configurado. */
+  unavailable: "GAME_UNAVAILABLE",
+  /** `purchase.playSessionStartedAt` ya estaba fijado: la partida ya se jugó. */
+  playSessionUsed: "PLAY_SESSION_ALREADY_USED",
+} as const;
+
+const GAME_ACCESS_ERROR_BY_TOKEN_ERROR: Record<GameAccessTokenError, string> = {
+  MALFORMED: GAME_ACCESS_ERRORS.invalid,
+  BAD_SIGNATURE: GAME_ACCESS_ERRORS.invalid,
+  EXPIRED: GAME_ACCESS_ERRORS.expired,
+};
+
+/**
+ * C-8: ventana en la que se cuentan los rechazos de un observador. Un
+ * observador real, en una sesión larga, puede acumular decenas de intentos
+ * rechazados con calma (specs/19 §2: puede pedir pistas por error, intentar
+ * un candado…) — eso nunca debe desconectarlo. Lo que hay que cortar es la
+ * ráfaga: muchos rechazos EN POCO TIEMPO, que es indistinguible de
+ * `client.send` a velocidad de línea.
+ */
+const OBSERVER_DENIAL_WINDOW_MS = 10_000;
+/**
+ * C-8: tantos rechazos dentro de la ventana cortan la conexión. Por debajo
+ * del cubo `total` del rate limiter (30/s, `message-rate-limit.ts`): una
+ * ráfaga real lo alcanza en menos de un segundo, mientras que un observador
+ * que prueba unas pocas acciones a lo largo de la partida (la ventana se
+ * reinicia si pasan más de `OBSERVER_DENIAL_WINDOW_MS` entre rechazos) no se
+ * acerca ni de lejos.
+ */
+const OBSERVER_DENIAL_KICK_LIMIT = 25;
+/** Código de cierre del WebSocket al expulsar a un observador que inunda mensajes. */
+const OBSERVER_KICK_CLOSE_CODE = 4403;
 
 /** Opciones de join. */
 export interface GameJoinOptions {
@@ -153,6 +214,8 @@ const ATTEMPT_ERRORS: Record<string, string> = {
  */
 export class GameRoom extends Room<{ state: GameRoomState }> {
   override maxClients = MAX_PLAYERS;
+  /** C-8: Colyseus corta al cliente que supere esto, aunque ignore el rate limit de la app. */
+  override maxMessagesPerSecond = 60;
 
   private roomPackage!: RoomPackage;
   private session?: RoomSession;
@@ -165,8 +228,17 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   private readonly chat = new RoomChat();
   /** Rate limit por mensaje y jugador (specs/11 §9); `undefined` = apagado. */
   private messageLimiter?: MessageRateLimiter;
+  /** Rechazos de un observador dentro de la ventana (C-8): tras el tope, se le corta. */
+  private readonly deniedActions = new Map<string, { count: number; windowStart: number }>();
+  /** Claims del `gameToken` que autorizó crear esta room (C-4/B-4); ausente en Playtest/Event. */
+  protected gameAccess?: GameAccessClaims;
+  /** Paquete resuelto por una compra B2C (B-4): pisa `resolveRoomPackage(options.packageId)`. */
+  private purchasedRoomPackage?: RoomPackage;
 
-  override onCreate(options: GameRoomOptions = {}): void {
+  override async onCreate(options: GameRoomOptions = {}): Promise<void> {
+    if (this.requiresGameAccessToken()) {
+      await this.authorizeGameAccessCreate(options);
+    }
     const roomPackage = this.loadRoomPackage(options);
     this.roomPackage = roomPackage;
     this.maxClients = Math.min(MAX_PLAYERS, roomPackage.meta.players.max);
@@ -182,19 +254,18 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     const limits = this.messageRateLimits();
     this.messageLimiter = limits ? new MessageRateLimiter(limits) : undefined;
 
-    // Toda intención pasa por `canAct`: la `EventRoom` (5.9) admite observadores
-    // de solo lectura cuyas acciones se rechazan antes de llegar al motor.
-    // Después, el rate limit por jugador (specs/11 §9, ticket 6.3): un mensaje
-    // por encima de su cuota se descarta sin llegar al handler y el emisor
-    // recibe UN `error RATE_LIMITED` por tipo y ventana. El observador se
-    // rechaza ANTES del rate limit, así que no registra nada en el limitador
-    // (las cuotas son por `sessionId`: nunca comparte la de un jugador).
+    // Rate limit por jugador PRIMERO (specs/11 §9, ticket 6.3; C-8): un
+    // observador que inunda también gasta su cuota (30 msg/s), así que nunca
+    // desborda la room a velocidad de línea aunque `canAct` lo vaya a
+    // rechazar después. Un mensaje por encima de su cuota se descarta sin
+    // llegar al handler y el emisor recibe UN `error RATE_LIMITED` por tipo y
+    // ventana. Después, `canAct`: la `EventRoom` (5.9) admite observadores de
+    // solo lectura cuyas acciones se rechazan antes de llegar al motor — pero
+    // solo se les responde `PERMISSION_DENIED` las primeras veces; tras el
+    // tope (`OBSERVER_DENIAL_KICK_LIMIT`) se les corta la conexión en vez de
+    // seguir respondiendo a cada mensaje (C-8).
     const on = (type: string, handler: (client: Client, payload: unknown) => void) =>
       this.onMessage(type, (client, payload: unknown) => {
-        if (!this.canAct(client)) {
-          this.fail(client, GAME_ERRORS.permissionDenied, "Un observador no puede actuar.");
-          return;
-        }
         const decision = this.messageLimiter?.check(client.sessionId, type, payload);
         if (decision && !decision.ok) {
           if (decision.notify) {
@@ -205,6 +276,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
               messageType: type,
             });
           }
+          return;
+        }
+        if (!this.canAct(client)) {
+          this.notePermissionDenied(client);
           return;
         }
         handler(client, payload);
@@ -255,8 +330,19 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     });
     // Medios (specs/11 §8, ticket 2.2): token LiveKit de la room derivada de
     // `this.roomId`; sin claves llega `configured: false` y se juega sin medios.
+    // `role`/`name` los decide el servidor (C-3): el cliente solo puede REBAJAR
+    // `allowVideo` a `false`, nunca subirlo por encima de la política.
     on(MEDIA_TOKEN_REQUEST_MESSAGE, (client, payload) => {
-      void sendMediaTokenToClient(client, this.roomId, payload);
+      sendMediaTokenToClient(client, this.roomId, payload, {
+        role: this.mediaRoleFor(client),
+        name: this.mediaNameFor(client),
+        allowVideo: this.mediaAllowVideoPolicy(),
+      }).catch((err: unknown) => {
+        logger.warn(
+          { err, roomId: this.roomId, sessionId: client.sessionId },
+          "media: fallo al enviar el token al cliente",
+        );
+      });
     });
 
     this.setTimestep(() => this.handleTick(), GAME_TICK_MS);
@@ -272,14 +358,99 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
 
   /**
    * Resuelve el paquete de la partida en servidor (el cliente solo elige el id).
-   * La `PlaytestRoom` (3.8) lo sobrescribe para leer el borrador congelado.
+   * `this.purchasedRoomPackage` (B-4) pisa `packageId`: una compra siempre
+   * juega la versión exacta comprada, nunca lo que pida el cliente.
+   * `PlaytestRoom`/`EventRoom` sobrescriben este método entero (borrador
+   * congelado / paquete del evento) y nunca llaman a `super`.
    */
   protected loadRoomPackage(options: GameRoomOptions): RoomPackage {
+    if (this.purchasedRoomPackage) return this.purchasedRoomPackage;
     const roomPackage = resolveRoomPackage(options.packageId);
     if (!roomPackage) {
       throw new Error(`Paquete de sala desconocido: «${options.packageId ?? ""}».`);
     }
     return roomPackage;
+  }
+
+  /**
+   * ¿Esta clase exige un `gameToken` para crearse (C-4)? `true` en la
+   * `GameRoom` desnuda; `EventRoom`/`PlaytestRoom` tienen su propio token
+   * (`joinToken`/token de playtest) y lo desactivan.
+   */
+  protected requiresGameAccessToken(): boolean {
+    return true;
+  }
+
+  /**
+   * Verifica el `gameToken` de creación (C-4/B-4) y, si acredita una compra,
+   * reclama su única partida (`GameAccessStore.claimPlaySession`, escritura
+   * condicional `IS NULL`: specs/02, "una compra = una partida"). Rechaza con
+   * `ServerError` (nunca un stack trace, specs/11 §7) si el token falta, es
+   * inválido, es una partida de prueba fuera de un entorno que la permita, o
+   * la compra ya se jugó. Deja `this.gameAccess`/`this.purchasedRoomPackage`
+   * listos para `onAuth`/`loadRoomPackage`.
+   */
+  private async authorizeGameAccessCreate(options: GameRoomOptions): Promise<void> {
+    const config = readGameAccessTokenConfig();
+    if (!config) {
+      throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.missing);
+    }
+    const verified = verifyGameAccessToken(config.secret, options.gameToken);
+    if (!verified.ok) {
+      throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERROR_BY_TOKEN_ERROR[verified.error]);
+    }
+    this.gameAccess = verified.claims;
+    if (verified.claims.kind === "dev_test") {
+      if (!devTestGameTokenAllowed()) {
+        throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.devTestForbidden);
+      }
+      return;
+    }
+    const runtime = getGameAccessRuntime();
+    const roomPackage = runtime
+      ? await runtime.loadRoomVersionPackage(verified.claims.roomVersionId).catch(() => null)
+      : null;
+    if (!runtime || !roomPackage) {
+      throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.unavailable);
+    }
+    const claimed = await runtime
+      .claimPlaySession(verified.claims.purchaseId, this.roomId)
+      .catch(() => false);
+    if (!claimed) {
+      throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.playSessionUsed);
+    }
+    this.purchasedRoomPackage = roomPackage;
+  }
+
+  /**
+   * `onAuth` de cada cliente que se une (creador incluido, `create()` lo
+   * llama tras `onCreate`; y cualquiera que entre por `joinById`, C-4): exige
+   * el mismo `gameToken` que autorizó la room y, si es de compra, que sea
+   * **la misma compra** (evita que el token de compra de otra sala/usuario
+   * cuele en esta partida). `EventRoom`/`PlaytestRoom` sobrescriben `onAuth`
+   * entero y nunca llaman a `super`.
+   */
+  override onAuth(_client: Client, options: GameRoomOptions = {}): unknown {
+    if (!this.requiresGameAccessToken()) return true;
+    const config = readGameAccessTokenConfig();
+    if (!config) throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.missing);
+    const verified = verifyGameAccessToken(config.secret, options.gameToken);
+    if (!verified.ok) {
+      throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERROR_BY_TOKEN_ERROR[verified.error]);
+    }
+    if (verified.claims.kind === "dev_test") {
+      if (!devTestGameTokenAllowed()) {
+        throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.devTestForbidden);
+      }
+      if (this.gameAccess?.kind !== "dev_test") {
+        throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.invalid);
+      }
+      return true;
+    }
+    if (this.gameAccess?.kind !== "purchase" || this.gameAccess.purchaseId !== verified.claims.purchaseId) {
+      throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.invalid);
+    }
+    return true;
   }
 
   /**
@@ -289,6 +460,26 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- punto de extensión
   protected canAct(client: Client): boolean {
     return true;
+  }
+
+  /** Rol de medios (specs/12) del cliente; la `EventRoom` distingue observadores. */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- punto de extensión
+  protected mediaRoleFor(client: Client): MediaRole {
+    return "player";
+  }
+
+  /** Nombre servidor-autoritativo (C-3) para el token de medios del cliente. */
+  protected mediaNameFor(client: Client): string | undefined {
+    return this.state.players.get(client.sessionId)?.name;
+  }
+
+  /**
+   * Política de vídeo del servidor (C-3, specs/12 §4): `undefined` deja que
+   * `resolveMediaToken` use `LIVEKIT_ALLOW_VIDEO`; la `EventRoom` la fija con
+   * `events.config.allowVideo` (default `false`).
+   */
+  protected mediaAllowVideoPolicy(): boolean | undefined {
+    return undefined;
   }
 
   /**
@@ -387,6 +578,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.openPanels.delete(client.sessionId);
     this.chat.leave(client.sessionId);
     this.messageLimiter?.forget(client.sessionId);
+    this.deniedActions.delete(client.sessionId);
   }
 
   // — Handlers ————————————————————————————————————————————————————
@@ -963,6 +1155,29 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
 
   private fail(client: Client, code: string, message: string): void {
     client.send(ERROR_MESSAGE, { code, message });
+  }
+
+  /**
+   * Un cliente sin permiso (observador) que sigue enviando mensajes (C-8): se
+   * le sigue avisando `PERMISSION_DENIED` (ya cuenta contra su cuota del rate
+   * limiter, que corta el ruido a velocidad de línea), pero si se acumulan
+   * `OBSERVER_DENIAL_KICK_LIMIT` rechazos en `OBSERVER_DENIAL_WINDOW_MS`
+   * (una ráfaga, no un observador que prueba unas pocas cosas a lo largo de
+   * la partida) se le corta la conexión.
+   */
+  private notePermissionDenied(client: Client): void {
+    this.fail(client, GAME_ERRORS.permissionDenied, "Un observador no puede actuar.");
+    const now = Date.now();
+    const state = this.deniedActions.get(client.sessionId);
+    if (!state || now - state.windowStart > OBSERVER_DENIAL_WINDOW_MS) {
+      this.deniedActions.set(client.sessionId, { count: 1, windowStart: now });
+      return;
+    }
+    state.count += 1;
+    if (state.count >= OBSERVER_DENIAL_KICK_LIMIT) {
+      this.deniedActions.delete(client.sessionId);
+      client.leave(OBSERVER_KICK_CLOSE_CODE);
+    }
   }
 }
 

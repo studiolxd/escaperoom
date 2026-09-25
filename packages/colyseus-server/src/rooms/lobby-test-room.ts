@@ -1,5 +1,6 @@
 import { Room, type Client } from "@colyseus/core";
 import { z } from "zod";
+import { logger } from "@escaperoom/kit/logger";
 import { RoomChat } from "../chat.js";
 import {
   CHAT_MESSAGE,
@@ -48,6 +49,8 @@ const SPAWN_POINTS = [
  */
 export class LobbyTestRoom extends Room<{ state: LobbyState }> {
   override maxClients = MAX_PLAYERS;
+  /** C-8: mismo tope que `GameRoom`, aunque esta room ya solo existe fuera de producción. */
+  override maxMessagesPerSecond = 60;
 
   /** Chat de la room (rate limit, filtro y ventana móvil). */
   private readonly chat = new RoomChat();
@@ -60,7 +63,16 @@ export class LobbyTestRoom extends Room<{ state: LobbyState }> {
     });
 
     this.onMessage(MEDIA_TOKEN_REQUEST_MESSAGE, (client, payload) => {
-      void sendMediaTokenToClient(client, this.roomId, payload);
+      const player = this.state.players.get(client.sessionId);
+      sendMediaTokenToClient(client, this.roomId, payload, {
+        role: "player",
+        name: player?.name,
+      }).catch((err: unknown) => {
+        logger.warn(
+          { err, roomId: this.roomId, sessionId: client.sessionId },
+          "media: fallo al enviar el token al cliente",
+        );
+      });
     });
 
     this.onMessage(CHAT_MESSAGE, (client, payload) => {

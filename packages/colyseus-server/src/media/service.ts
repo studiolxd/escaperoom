@@ -88,22 +88,37 @@ export interface MediaTokenClient {
 }
 
 /**
- * Punto de entrada reutilizable por cualquier room: normaliza las opciones de
- * join, resuelve el token y lo envía al cliente. La `GameRoom` (2.1+) solo tiene
- * que llamar a `sendMediaTokenToClient(client, this.roomId, options)`.
+ * Política de medios que decide el servidor (C-3): `role`/`name` siempre
+ * vienen de aquí, nunca del payload del cliente (suplantación: nombre ajeno
+ * u observador que se declara jugador). `allowVideo` es un TECHO, no un
+ * valor: el cliente solo puede rebajarlo a `false` (contexto educativo, un
+ * jugador que no quiere cámara); `undefined` deja que `resolveMediaToken` use
+ * `LIVEKIT_ALLOW_VIDEO`.
+ */
+export interface ServerMediaPolicy {
+  role: MediaRole;
+  name?: string;
+  allowVideo?: boolean;
+}
+
+/**
+ * Punto de entrada reutilizable por cualquier room: resuelve el token con la
+ * política del servidor y lo envía al cliente. El payload del cliente
+ * (`options`) solo puede rebajar `allowVideo`; el resto se ignora.
  */
 export async function sendMediaTokenToClient(
   client: MediaTokenClient,
   gameRoomId: string,
   options: unknown,
+  server: ServerMediaPolicy,
 ): Promise<MediaTokenPayload> {
-  const { role, allowVideo, name } = parseMediaJoinOptions(options);
+  const { allowVideo: requestedAllowVideo } = parseMediaJoinOptions(options);
   const payload = await resolveMediaToken({
     identity: client.sessionId,
     gameRoomId,
-    role,
-    allowVideo,
-    name,
+    role: server.role,
+    name: server.name,
+    allowVideo: requestedAllowVideo === false ? false : server.allowVideo,
   });
   client.send(MEDIA_TOKEN_MESSAGE, payload);
   return payload;

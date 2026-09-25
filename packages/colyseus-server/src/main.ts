@@ -7,6 +7,7 @@ import {
   LOBBY_ROOM_NAME,
   PLAYTEST_ROOM_NAME,
 } from "./constants.js";
+import { configureGameAccessRuntime } from "./game/access-runtime.js";
 import { configureEventRuntime } from "./events/runtime.js";
 import { resolvePort, startGameServer } from "./server.js";
 
@@ -44,19 +45,44 @@ async function configureEvents(): Promise<string> {
 }
 
 /**
+ * Runtime de compras en Colyseus (B-4): con `DATABASE_URL`, `GameRoom` juega la
+ * versión exacta comprada y reclama la única partida de cada `purchase`. Sin
+ * ella, un `gameToken` de compra siempre se rechaza (la partida de prueba sin
+ * compra no depende de este runtime).
+ */
+async function configureGameAccess(): Promise<string> {
+  if (!process.env.DATABASE_URL) {
+    return "desactivadas (sin DATABASE_URL)";
+  }
+  const [{ prisma }, { createPrismaGameAccessStore }] = await Promise.all([
+    import("@escaperoom/shared/db"),
+    import("@escaperoom/shared/game-access-prisma"),
+  ]);
+  configureGameAccessRuntime(createPrismaGameAccessStore(prisma));
+  return "Postgres";
+}
+
+/**
  * Punto de entrada de desarrollo: `pnpm --filter @escaperoom/colyseus-server dev`.
  * Arranca el servidor autoritativo con la room `lobby_test` en el puerto 2567
  * (o `COLYSEUS_PORT`/`PORT`).
  */
 loadLocalEnv();
 // E-4: en producción, sin estas variables el proceso no debe arrancar.
-requireInProduction(process.env, ["DATABASE_URL", "JOIN_TOKEN_SECRET", "PLAYTEST_SECRET"]);
+requireInProduction(process.env, [
+  "DATABASE_URL",
+  "JOIN_TOKEN_SECRET",
+  "GAME_ACCESS_TOKEN_SECRET",
+  "PLAYTEST_SECRET",
+]);
 console.info(`[env] NODE_ENV=${process.env.NODE_ENV ?? "development"} validado`);
 // Sentry (ticket 6.4): sin SENTRY_DSN queda deshabilitado, sin romper nada.
 initNodeSentry({ dsn: process.env.SENTRY_DSN });
 const events = await configureEvents();
+const gameAccess = await configureGameAccess();
 const port = resolvePort();
 await startGameServer(port);
 console.log(
-  `[colyseus] rooms «${LOBBY_ROOM_NAME}», «${GAME_ROOM_NAME}», «${PLAYTEST_ROOM_NAME}» y «${EVENT_ROOM_NAME}» (eventos: ${events}) escuchando en ws://localhost:${port}`,
+  `[colyseus] rooms «${LOBBY_ROOM_NAME}», «${GAME_ROOM_NAME}», «${PLAYTEST_ROOM_NAME}» y «${EVENT_ROOM_NAME}» ` +
+    `(eventos: ${events}, compras: ${gameAccess}) escuchando en ws://localhost:${port}`,
 );

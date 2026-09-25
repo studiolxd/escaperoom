@@ -433,6 +433,28 @@ describe("modo observador", () => {
     expect([...spectator.state.players.keys()]).toEqual([ana.sessionId]);
   });
 
+  it("C-8: un observador que inunda de mensajes rechazados se desconecta, no solo se ignora", async () => {
+    const { redeem, panel, event, sessions, codes } = await eventWithPanel();
+    const ana = await joinGuest(redeem, codes[0]!, "Ana");
+    await start(ana);
+
+    const ticket = await panel.issueSpectatorTicket(organizer, event.id, sessions[0]!.id);
+    const spectator = (await colyseus.sdk.join<GameRoomState>(EVENT_ROOM_NAME, {
+      sessionId: ticket.sessionId,
+      spectatorToken: ticket.spectatorToken,
+    })) as TestClient;
+    await spectator.waitForInitialState();
+
+    const closed = new Promise<number>((resolve) => spectator.onLeave((code) => resolve(code)));
+    // CHAT_MESSAGE no tiene cuota propia (solo cuenta contra el cubo `total`,
+    // 30/s): en una ráfaga, hasta 30 llegan a `canAct` y cuentan como
+    // rechazos de observador — de sobra para superar el tope de C-8.
+    for (let i = 0; i < 40; i += 1) {
+      spectator.send(CHAT_MESSAGE, { text: `hola ${i}` });
+    }
+    expect(await closed).toBeGreaterThan(0);
+  });
+
   it("rechaza observar sin room, con token de otra sesión, manipulado o con un joinToken", async () => {
     const { redeem, event, sessions, codes } = await eventWithPanel();
     const tokenFor = (sessionId: string, eventId = event.id, secret = DEV_JOIN_TOKEN_SECRET) => {
