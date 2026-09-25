@@ -136,64 +136,6 @@ Tareas pendientes que no bloquean pero hay que resolver.
       PR #117); revisar también que los textos legales (`privacy.ts`,
       `cookies.ts`) describen la configuración real (dominio, retención de GA,
       transferencias internacionales de Google).
-- [ ] **Versión (semver) automática al publicar según el cambio del
-      `RoomPackage`.** Hoy `nextSemver(existing, requested?)`
-      (`packages/shared/src/services/room-publish.ts`) acepta un semver pedido
-      por el autor o, si no se pide, sube el parche. Cambiarlo por una
-      clasificación automática comparando el paquete candidato con el de la
-      última `roomVersion` publicada:
-      - **Primera publicación** → siempre `1.0.0`.
-      - **MAJOR** → cambia el conjunto de `puzzles[]`: se añade o se elimina
-        algún puzzle (comparando por `id`, no por posición; reordenar sin
-        añadir ni quitar no es MAJOR salvo que se decida lo contrario).
-      - **MINOR** → mismo conjunto de ids de `puzzles[]`, pero algún puzzle
-        existente cambia cualquier campo (tipo/plantilla, solución, pistas,
-        capa, posición…). Sin granularidad por campo: cualquier modificación
-        de un puzzle con el mismo id es MINOR.
-      - **PATCH** → nada cambia dentro de `puzzles[]`; solo `objects`, `map`,
-        `items`, `dialogs`, `hints`, `meta.assetsManifest` u otros campos de
-        presentación/assets.
-      - **`rules[]` (decidido, entra en el diff):** comparar también `rules[]`
-        entre la versión anterior y la candidata, por `id` de regla igual que
-        `puzzles[]`.
-        - Si una regla se añade, elimina o modifica y referencia (en su
-          `trigger`, `conditions` o `actions`) un `puzzleId` que existe en ambas
-          versiones → cuenta como cambio de ese puzzle → **MINOR** (mismo
-          criterio grueso, sin sub-clasificar campos de la regla).
-        - Si la regla cambiada no referencia ningún `puzzleId` (solo
-          `objectId`/`itemId` sin relación con un puzzle) → no dispara MINOR por
-          sí sola; es un cambio de presentación/mundo → **PATCH** si no hay
-          ningún otro cambio en `puzzles[]`.
-        - Se evalúa después de la comprobación de MAJOR (añadir/quitar puzzles)
-          y se combina con el diff de `puzzles[]`: si ya hay MAJOR, no hace falta
-          mirar `rules[]`.
-      - **Sin ningún cambio:** decidir si se permite publicar (como PATCH) o se
-        devuelve un error explícito "nada que publicar", y documentarlo.
-      - **Dónde:** función pura `classifyRoomPackageChange(previous: RoomPackage
-        | null, candidate: RoomPackage): 'major' | 'minor' | 'patch'` en un
-        módulo nuevo `packages/shared/src/services/room-version-diff.ts` (o
-        junto a `nextSemver`). `nextSemver` deja de aceptar el semver pedido por
-        el autor y recibe el resultado de la clasificación: MAJOR/MINOR ponen a
-        cero los componentes inferiores (2.3.4 + MAJOR → 3.0.0; + MINOR →
-        2.4.0; + PATCH → 2.3.5). Quitar `semver` de `PublishInput` y de la
-        validación de la entrada.
-      - **Tests unitarios:** añadir/quitar puzzle → MAJOR; modificar puzzle
-        existente → MINOR; cambios solo fuera de `puzzles[]` → PATCH; primera
-        publicación → 1.0.0; sin cambios → lo que se decida; y modificar una
-        regla que apunta a un puzzle existente sin tocar el objeto puzzle en sí
-        → MINOR (no PATCH).
-      - **Documentación:** `docs/specs/13-api-rest.md` (quitar `semver` del
-        contrato de `POST /api/rooms/:roomId/publish` y documentar la política
-        automática); `docs/specs/08-formato-roompackage.md` (cómo se calcula el
-        semver de `roomVersion` a partir del contenido); ADR nuevo en
-        `docs/reference/registro-de-decisiones.md` (por qué se quita el
-        override manual, por qué "puzzle cambió sí/no" y no campo a campo, y cómo
-        se tratan los cambios de `rules[]`). Revisar también el MCP (`publish`)
-        y el editor si exponen el semver manual.
-      - **Fuera de alcance:** no tocar `meta.packageFormat` (es la versión del
-        formato del contrato, ortogonal a la del contenido); no hay UI de
-        rankings ni notificaciones a compradores que actualizar. Si se toca la
-        pantalla de confirmación de publicación, solo shadcn/ui (ADR-019).
 - [ ] **Retirar la ruta de partida de prueba `/[locale]/play`.** Debe desaparecer
       antes de pasar a producto; en realidad se puede quitar en cuanto esté
       hecho el flujo de **salas gratis jugables sin cuenta** (punto i de la
@@ -268,13 +210,3 @@ Tareas pendientes que no bloquean pero hay que resolver.
       pero coherente visualmente. Revisar también los `notFound()` de rutas
       privadas (editor, creador) para que no enseñen la shell pública si no
       corresponde.
-- [ ] **Test inestable: muestreo de moderación.**
-      `packages/shared/test/moderation-prisma.integration.test.ts` › "muestreo: la
-      versión reciente entra una sola vez" falla de forma intermitente cuando
-      la suite de `shared` corre en paralelo: `sampleRecentlyPublished({rate:1})`
-      no filtra por las salas del propio test y recoge `roomVersion` creadas por
-      otros ficheros de integración (y su limpieza choca por FK con esos otros
-      tests). Pasa siempre en aislamiento. Aislarlo: que el test solo cuente sus
-      propias salas (filtro por ids o por un autor/etiqueta propios) o que el
-      muestreo acepte un filtro inyectable en tests. Lo han señalado varias PRs
-      de la auditoría (#134, #135, #136, #141, #150).

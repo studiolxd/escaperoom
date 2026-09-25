@@ -250,10 +250,19 @@ export interface ModerationStore extends ModerationTx {
   countPendingByTarget(
     targets: readonly { targetType: ReportTargetType; targetId: string }[],
   ): Promise<Map<string, number>>;
-  /** Versiones publicadas desde `since` que aún no tienen un reporte de muestreo. */
+  /**
+   * Versiones publicadas desde `since` que aún no tienen un reporte de
+   * muestreo. `roomIds` (opcional, docs/DEUDA.md "test inestable: muestreo de
+   * moderación") acota la consulta a esas salas — sin él es global. Lo usa
+   * `sampleRecentlyPublished`; en producción nunca se pasa, así que el
+   * comportamiento del job no cambia. Los tests de integración lo pasan para
+   * no depender del estado de otras salas creadas por otros ficheros en el
+   * mismo Postgres compartido.
+   */
   listUnsampledVersions(
     since: Date,
     limit: number,
+    roomIds?: readonly string[],
   ): Promise<Array<{ roomId: string; versionId: string; authorId: string; publishedAt: Date }>>;
   transaction<T>(fn: (tx: ModerationTx) => Promise<T>): Promise<T>;
 }
@@ -978,12 +987,12 @@ export function createModerationService(deps: {
      * `sampling` de severidad baja. Sin actor: lo lanza el job del worker.
      */
     async sampleRecentlyPublished(
-      opts: { rate?: number; windowDays?: number; limit?: number } = {},
+      opts: { rate?: number; windowDays?: number; limit?: number; roomIds?: readonly string[] } = {},
     ): Promise<SamplingResult> {
       const rate = Math.min(1, Math.max(0, opts.rate ?? 1));
       const at = now();
       const since = new Date(at.getTime() - (opts.windowDays ?? 7) * DAY_MS);
-      const versions = await store.listUnsampledVersions(since, opts.limit ?? 500);
+      const versions = await store.listUnsampledVersions(since, opts.limit ?? 500, opts.roomIds);
       let enqueued = 0;
       for (const v of versions) {
         if (rate < 1 && random() >= rate) continue;
@@ -1367,12 +1376,18 @@ export function createInMemoryModerationStore(
       }
       return counts;
     },
-    async listUnsampledVersions(since, limit) {
+    async listUnsampledVersions(since, limit, roomIds) {
       const sampled = new Set(
         [...reports.values()].filter((r) => r.source === "sampling").map((r) => r.roomVersionId),
       );
+      const wantedRooms = roomIds ? new Set(roomIds) : null;
       return versions
-        .filter((v) => v.publishedAt >= since && !sampled.has(v.versionId))
+        .filter(
+          (v) =>
+            v.publishedAt >= since &&
+            !sampled.has(v.versionId) &&
+            (!wantedRooms || wantedRooms.has(v.roomId)),
+        )
         .slice(0, limit)
         .map((v) => ({ ...v }));
     },
