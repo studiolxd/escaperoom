@@ -14,6 +14,24 @@ import type { RoomPackage } from "@escaperoom/shared/schemas";
 /** Playtests vivos por autor: al crear uno más se descarta el más antiguo. */
 export const MAX_PLAYTESTS_PER_AUTHOR = 5;
 
+/**
+ * Tope global de playtests vivos en el proceso (C-16): sin él, muchos autores
+ * distintos (cada uno bajo su propio tope de `MAX_PLAYTESTS_PER_AUTHOR`)
+ * podían crecer el registro sin límite y agotar la memoria del proceso.
+ */
+export const MAX_PLAYTESTS_TOTAL = 500;
+
+/** Cadencia del barrido periódico de caducados (C-16), independiente de que se registren nuevos. */
+const DEFAULT_SWEEP_INTERVAL_MS = 60_000;
+
+/** El registro ya alcanzó `MAX_PLAYTESTS_TOTAL`: la ruta interna responde 429. */
+export class PlaytestLimitError extends Error {
+  constructor() {
+    super("Límite global de playtests activos alcanzado");
+    this.name = "PlaytestLimitError";
+  }
+}
+
 export interface PlaytestEntry {
   playtestId: string;
   /** Usuario que lo creó (el autor del borrador). */
@@ -40,12 +58,27 @@ interface StoredPlaytest extends PlaytestEntry {
 
 export class PlaytestRegistry {
   private readonly entries = new Map<string, StoredPlaytest>();
+  /** Ids vivos por autor, en orden de alta (el primero es el más antiguo) — evita el `O(n)` de recorrer todo el registro en cada alta (C-16). */
+  private readonly byAuthor = new Map<string, Set<string>>();
+  private readonly maxTotal: number;
+  private readonly sweepTimer: ReturnType<typeof setInterval> | null;
 
-  constructor(private readonly now: () => number = Date.now) {}
+  constructor(
+    private readonly now: () => number = Date.now,
+    opts: { maxTotal?: number; sweepIntervalMs?: number } = {},
+  ) {
+    this.maxTotal = opts.maxTotal ?? MAX_PLAYTESTS_TOTAL;
+    const sweepIntervalMs = opts.sweepIntervalMs ?? DEFAULT_SWEEP_INTERVAL_MS;
+    this.sweepTimer = sweepIntervalMs > 0 ? setInterval(() => this.sweep(), sweepIntervalMs) : null;
+    this.sweepTimer?.unref();
+  }
 
   /** Congela el paquete y da de alta el playtest. */
   register(input: RegisterPlaytestInput): PlaytestEntry {
-    this.sweep();
+    if (this.entries.size >= this.maxTotal) {
+      this.sweep();
+      if (this.entries.size >= this.maxTotal) throw new PlaytestLimitError();
+    }
     const createdAt = this.now();
     const stored: StoredPlaytest = {
       playtestId: randomUUID(),
@@ -55,12 +88,17 @@ export class PlaytestRegistry {
       expiresAt: createdAt + input.ttlSeconds * 1000,
       snapshot: JSON.stringify(input.roomPackage),
     };
-    const own = [...this.entries.values()]
-      .filter((entry) => entry.authorId === input.authorId)
-      .sort((a, b) => a.createdAt - b.createdAt);
-    for (const old of own.slice(0, Math.max(0, own.length - MAX_PLAYTESTS_PER_AUTHOR + 1))) {
-      this.entries.delete(old.playtestId);
+    let own = this.byAuthor.get(input.authorId);
+    if (!own) {
+      own = new Set();
+      this.byAuthor.set(input.authorId, own);
     }
+    while (own.size >= MAX_PLAYTESTS_PER_AUTHOR) {
+      const oldestId = own.values().next().value as string;
+      own.delete(oldestId);
+      this.entries.delete(oldestId);
+    }
+    own.add(stored.playtestId);
     this.entries.set(stored.playtestId, stored);
     return toEntry(stored);
   }
@@ -79,14 +117,14 @@ export class PlaytestRegistry {
 
   /** Da de baja un playtest (p. ej. si no se pudo levantar su room). */
   delete(playtestId: string): void {
-    this.entries.delete(playtestId);
+    this.removeEntry(playtestId);
   }
 
-  /** Olvida los playtests caducados. */
+  /** Olvida los playtests caducados (llamado periódicamente, además de al registrar cerca del tope). */
   sweep(): void {
     const now = this.now();
     for (const [id, entry] of this.entries) {
-      if (entry.expiresAt <= now) this.entries.delete(id);
+      if (entry.expiresAt <= now) this.removeEntry(id);
     }
   }
 
@@ -97,13 +135,26 @@ export class PlaytestRegistry {
 
   clear(): void {
     this.entries.clear();
+    this.byAuthor.clear();
+  }
+
+  /** Detiene el barrido periódico (tests que no quieren temporizadores vivos). */
+  dispose(): void {
+    if (this.sweepTimer) clearInterval(this.sweepTimer);
+  }
+
+  private removeEntry(playtestId: string): void {
+    const stored = this.entries.get(playtestId);
+    if (!stored) return;
+    this.entries.delete(playtestId);
+    this.byAuthor.get(stored.authorId)?.delete(playtestId);
   }
 
   private live(playtestId: string): StoredPlaytest | undefined {
     const stored = this.entries.get(playtestId);
     if (!stored) return undefined;
     if (stored.expiresAt <= this.now()) {
-      this.entries.delete(playtestId);
+      this.removeEntry(playtestId);
       return undefined;
     }
     return stored;
