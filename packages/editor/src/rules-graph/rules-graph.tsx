@@ -33,6 +33,7 @@ import {
   type ReactNode,
 } from "react";
 import type * as Y from "yjs";
+import { resolveUiKit, type EditorUiKit } from "../ui-kit";
 import {
   applyIssues,
   LAYOUT,
@@ -101,6 +102,8 @@ export type RulesGraphProps = {
   focusRuleId?: string;
   /** Clic en un nodo de una regla (el inspector la muestra). */
   onSelectRule?: (ruleId: string) => void;
+  /** Controles interactivos del host (auditoría F-6); por defecto, elemento nativo. */
+  components?: Partial<EditorUiKit>;
 };
 
 type AnyNode = RuleGraphNode | DraftNode;
@@ -109,6 +112,7 @@ type GraphContextValue = {
   doc: Y.Doc;
   t: Labeler;
   readOnly: boolean;
+  kit: EditorUiKit;
   run: (fn: () => void) => void;
   updateDraft: (id: string, payload: DraftPayload) => void;
   deleteDraft: (id: string) => void;
@@ -194,19 +198,13 @@ function FieldInput(props: {
   onCommit: (value: unknown) => void;
 }) {
   const { field, value, onCommit } = props;
-  const { t, readOnly } = useGraph();
+  const { t, readOnly, kit } = useGraph();
   const shown = displayValue(field, value);
   const [text, setText] = useState(shown);
   // Un cambio externo (otro colaborador, el MCP) actualiza el input.
   useEffect(() => setText(shown), [shown]);
 
   const label = t.field(field.key);
-  const common = {
-    "aria-label": label,
-    disabled: readOnly,
-    className: "nodrag",
-    style: inputStyle,
-  };
 
   if (field.kind === "boolean" || field.kind === "enum") {
     const options =
@@ -217,21 +215,18 @@ function FieldInput(props: {
           ]
         : (field.options ?? []).map((option) => ({ value: option, label: option }));
     return (
-      <select
-        {...common}
+      <kit.Select
+        aria-label={label}
+        disabled={readOnly}
+        className="nodrag"
+        style={inputStyle}
         value={shown}
-        onChange={(event) => {
-          const raw = event.target.value;
-          onCommit(field.kind === "boolean" ? (raw === "" ? undefined : raw === "true") : raw);
-        }}
-      >
-        {field.optional ? <option value="">{t.ui("unset")}</option> : null}
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+        placeholder={field.optional ? t.ui("unset") : undefined}
+        options={options}
+        onValueChange={(raw) =>
+          onCommit(field.kind === "boolean" ? (raw === "" ? undefined : raw === "true") : raw)
+        }
+      />
     );
   }
 
@@ -242,8 +237,11 @@ function FieldInput(props: {
     else onCommit(parsed);
   };
   return (
-    <input
-      {...common}
+    <kit.Input
+      aria-label={label}
+      disabled={readOnly}
+      className="nodrag"
+      style={inputStyle}
       type="text"
       inputMode={field.kind === "number" || field.kind === "int" ? "decimal" : undefined}
       value={text}
@@ -294,22 +292,17 @@ function TypeSelect(props: {
   label: (type: string) => string;
   onChange: (type: string) => void;
 }) {
-  const { readOnly } = useGraph();
+  const { readOnly, kit } = useGraph();
   return (
-    <select
+    <kit.Select
       className="nodrag"
       aria-label="type"
       disabled={readOnly}
       style={{ ...inputStyle, fontWeight: 600 }}
       value={props.value}
-      onChange={(event) => props.onChange(event.target.value)}
-    >
-      {props.types.map((type) => (
-        <option key={type} value={type}>
-          {props.label(type)}
-        </option>
-      ))}
-    </select>
+      options={props.types.map((type) => ({ value: type, label: props.label(type) }))}
+      onValueChange={props.onChange}
+    />
   );
 }
 
@@ -325,7 +318,7 @@ function NodeCard(props: {
   onDelete?: () => void;
   children: ReactNode;
 }) {
-  const { t, readOnly } = useGraph();
+  const { t, readOnly, kit } = useGraph();
   const color = props.severity ? SEVERITY_COLOR[props.severity] : KIND_COLOR[props.kind];
   return (
     <div
@@ -359,7 +352,7 @@ function NodeCard(props: {
           {props.title}
         </span>
         {props.onDelete && !readOnly ? (
-          <button
+          <kit.Button
             type="button"
             className="nodrag"
             aria-label={t.ui("delete")}
@@ -375,7 +368,7 @@ function NodeCard(props: {
             }}
           >
             ×
-          </button>
+          </kit.Button>
         ) : null}
       </div>
       {props.children}
@@ -599,6 +592,7 @@ const toolbarButton: CSSProperties = {
 function RulesGraphCanvas(props: RulesGraphProps) {
   const { doc, issues, readOnly = false, onError, focusRuleId, onSelectRule } = props;
   const t = useMemo(() => createLabeler(props.labels), [props.labels]);
+  const kit = useMemo(() => resolveUiKit(props.components), [props.components]);
   const rules = useYjsRules(doc);
   const graph = useMemo(() => rulesToGraph(rules), [rules]);
   const ruleNodes = useMemo(() => applyIssues(graph.nodes, issues ?? []), [graph.nodes, issues]);
@@ -644,6 +638,7 @@ function RulesGraphCanvas(props: RulesGraphProps) {
       doc,
       t,
       readOnly,
+      kit,
       run,
       updateDraft: (id, payload) =>
         setDrafts((current) =>
@@ -653,7 +648,7 @@ function RulesGraphCanvas(props: RulesGraphProps) {
         ),
       deleteDraft: (id) => setDrafts((current) => current.filter((node) => node.id !== id)),
     }),
-    [doc, t, readOnly, run],
+    [doc, t, readOnly, kit, run],
   );
 
   const nodes = useMemo<AnyNode[]>(
@@ -825,10 +820,10 @@ function RulesGraphCanvas(props: RulesGraphProps) {
               <span style={{ fontSize: 12, color: "#6b7280" }}>{t.ui("readOnly")}</span>
             ) : (
               <div style={{ display: "flex", gap: 6 }}>
-                <button type="button" style={toolbarButton} onClick={newRule}>
+                <kit.Button type="button" style={toolbarButton} onClick={newRule}>
                   {t.ui("newRule")}
-                </button>
-                <button
+                </kit.Button>
+                <kit.Button
                   type="button"
                   style={toolbarButton}
                   onClick={() =>
@@ -838,8 +833,8 @@ function RulesGraphCanvas(props: RulesGraphProps) {
                   }
                 >
                   {t.ui("newCondition")}
-                </button>
-                <button
+                </kit.Button>
+                <kit.Button
                   type="button"
                   style={toolbarButton}
                   onClick={() =>
@@ -847,7 +842,7 @@ function RulesGraphCanvas(props: RulesGraphProps) {
                   }
                 >
                   {t.ui("newAction")}
-                </button>
+                </kit.Button>
               </div>
             )}
           </Panel>

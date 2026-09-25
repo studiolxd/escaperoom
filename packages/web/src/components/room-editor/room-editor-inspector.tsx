@@ -16,6 +16,7 @@ import { LocalizedAudioField, type AudioUploadSummary } from "@/components/edito
 import { LocalizedTextField } from "@/components/editor/localized-text-field";
 import { PuzzleConfigurator } from "@/components/template-config/puzzle-configurator";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
+import { EDITOR_UI_KIT } from "./editor-ui-kit";
 
 /** Variables CSS del inspector sobre el fondo oscuro del editor. */
 const INSPECTOR_STYLE = {
@@ -117,6 +118,7 @@ export function RoomEditorInspector({
         onDelete={onDelete}
         renderLocalizedText={renderLocalizedText}
         renderPuzzleConfigurator={renderPuzzleConfigurator}
+        components={EDITOR_UI_KIT}
         style={INSPECTOR_STYLE}
       />
     </div>

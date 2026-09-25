@@ -8,6 +8,7 @@ export type EditorMode = (typeof EDITOR_MODE)[keyof typeof EDITOR_MODE];
 
 export * from "./sync/protocol";
 export * from "./sync/provider";
+export * from "./ui-kit";
 export * from "./i18n-fields";
 export * from "./rules-graph";
 export * from "./audio-fields";

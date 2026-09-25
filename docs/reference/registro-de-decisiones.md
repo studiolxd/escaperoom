@@ -362,6 +362,19 @@ comparten entre editar, previsualizar y jugar (`specs/03` §3). Se descarta `@st
 contraste suficiente en reposo, no solo en `:hover`. Nace del pulido del demo de 0.4 (el botón de
 bajar la llama quedaba invisible hasta el hover). Aplica a HUD, paneles de puzzle y editor.
 
+**Convención (2026-09-25, auditoría F-6):** `packages/editor` no depende de `packages/web` (ni de
+shadcn/ui), así que sus componentes (`Inspector`, `RulesGraph`, `ValidationPanel`,
+`SchemaForm`/`schema-form-view`) pintan con `EditorUiKit` (`packages/editor/src/ui-kit.tsx`): un
+`Button`/`Input`/`Textarea`/`Select`/`Checkbox` mínimo con elemento nativo por defecto (lo usan los
+tests de `packages/editor` sin `web`), sustituible por el host vía la prop `components` (o
+`uiKit` en `SchemaFormContext`). `packages/web` inyecta ahí sus shadcn
+(`packages/web/src/components/room-editor/editor-ui-kit.tsx`) en los tres puntos de montaje del
+editor real (`room-editor-inspector.tsx`, `room-editor-shell.tsx`, `puzzle-configurator.tsx`). Se
+descartó mover esos componentes de UI a `packages/web`: habría roto la frontera de paquetes
+(`packages/editor` es un paquete de dominio reusable, sin Next.js ni Tailwind) y estos componentes
+(inspector genérico, grafo de reglas con React Flow, panel de validación) están profundamente
+acoplados a la lógica y los tipos del editor, no son solo presentación.
+
 **Alternativas descartadas:** copiar el DS de SLXD (arrastra tokens y BEM de suite); MUI/Chakra.
 
 ---
