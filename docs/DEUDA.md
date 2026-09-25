@@ -52,14 +52,30 @@ Tareas pendientes que no bloquean pero hay que resolver.
            (patrón fetch + redirect de `payouts-panel.tsx`).
         c. Si el viewer no ha iniciado sesión: el CTA de compra lleva primero a
            login/registro con retorno a la sala, sin lanzar el checkout.
-        d. Si `room.priceCents === 0` o el viewer ya tiene acceso: mantener
-           "Jugar la sala".
+        d. Si el viewer ya tiene acceso (compra `playable`): mantener "Jugar la
+           sala" (ver f). **No** tratar `priceCents === 0` como acceso libre:
+           hoy no existe atajo de Stripe para precio 0 o nulo
+           (`purchases.ts:192-194` rechaza `saleIndividual: false` o
+           `priceCents: null` con `SALE_INDIVIDUAL_DISABLED`).
         e. Reutilizar `checkout/confirmation` como destino tras el pago.
         f. **Jugar una sala comprada:** con acceso `playable`, el CTA "Jugar"
            crea la `GameRoom` con el `gameToken` del endpoint de acceso (hoy
            `/es/play` solo firma partidas de prueba `dev_test`); si la compra
            está "en curso", reconectar a esa partida; si está consumida, mostrar
            que ya se jugó (y, si aplica, ofrecer volver a comprar).
+        g. **`/redeem` solo para eventos:** el canje de clave de evento
+           (`/redeem`) queda reservado a quien llega con un enlace o invitación
+           de evento; nunca como destino genérico o de reserva del CTA de la
+           ficha. El único caso legítimo para enlazar `/redeem` desde la ficha es
+           que la sala tenga un **evento activo vinculado al viewer**.
+        h. **Sala sin venta individual y sin evento:** si `saleIndividual:
+           false` o `priceCents: null` y el viewer no tiene ningún evento activo
+           asociado, hoy no hay ningún camino de acceso real. No enlazar a
+           `/redeem` por defecto: decidir y documentar qué se muestra (CTA
+           deshabilitado con explicación, u ocultarlo). Si resulta que debería
+           existir el caso de producto "sala realmente gratis, jugable sin
+           clave ni compra", dejarlo como **pregunta abierta en la PR**, sin
+           improvisar una solución.
 - [ ] **Permitir valoraciones en medios puntos.**
       - **Estado actual:** `review.rating` es `Int @db.SmallInt`
         (`packages/shared/prisma/schema.prisma:431`), con `CHECK` en la base
