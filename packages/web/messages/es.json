@@ -1013,7 +1013,8 @@
       "error": "No se ha podido iniciar sesión. Inténtalo de nuevo."
     },
     "errors": {
-      "invalid": "La solicitud de autorización no es válida. Vuelve a conectar el asistente desde su aplicación."
+      "invalid": "La solicitud de autorización no es válida. Vuelve a conectar el asistente desde su aplicación.",
+      "continueToClient": "Volver a la aplicación que te ha traído aquí"
     }
   },
   "CreatorChat": {
@@ -1060,6 +1061,8 @@
       "INVALID_REQUEST": "El mensaje no es válido (¿vacío o demasiado largo?).",
       "CONVERSATION_NOT_FOUND": "La conversación ha caducado. Empieza una nueva.",
       "BUSY": "Espera a que el asistente termine de responder.",
+      "TOO_MANY_CONVERSATIONS": "Tienes demasiadas conversaciones abiertas. Cierra alguna antes de empezar otra.",
+      "DAILY_BUDGET_EXCEEDED": "Has agotado el presupuesto diario del chat. Vuelve a intentarlo mañana.",
       "MCP_UNAVAILABLE": "Las herramientas del creador no responden. Inténtalo de nuevo en un momento.",
       "MODEL_AUTH": "El modelo de lenguaje rechazó la credencial configurada. Avisa al equipo.",
       "MODEL_RATE_LIMITED": "El modelo de lenguaje está saturado. Espera un momento y vuelve a intentarlo.",

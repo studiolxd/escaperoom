@@ -30,10 +30,20 @@ function setup() {
     moderation: createModerationService({ store, now: () => clock }),
     resolveActor: async (req) => ACTORS[req.headers.get("x-test-user") ?? ""] ?? ANONYMOUS_ACTOR,
   });
-  const req = (method: string, path: string, user?: string, body?: unknown) =>
+  const req = (
+    method: string,
+    path: string,
+    user?: string,
+    body?: unknown,
+    extraHeaders: Record<string, string> = {},
+  ) =>
     new Request(`http://localhost${path}`, {
       method,
-      headers: { "content-type": "application/json", ...(user ? { "x-test-user": user } : {}) },
+      headers: {
+        "content-type": "application/json",
+        ...(user ? { "x-test-user": user } : {}),
+        ...extraHeaders,
+      },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   const params = <T extends Record<string, string>>(p: T) => ({ params: Promise.resolve(p) });
@@ -43,7 +53,7 @@ function setup() {
 type ErrorJson = { error: { code: string } };
 
 describe("POST /api/rooms/:roomId/report", () => {
-  it("un reporte crítico responde 201 y la sala queda despublicada", async () => {
+  it("un reporte crítico responde 201, entra en cola con prioridad máxima y no toca la sala (A-3)", async () => {
     const { handlers, req, params, store } = setup();
     const res = await handlers.postRoomReport(
       req("POST", `/api/rooms/${ROOM}/report`, "jugadora", {
@@ -57,7 +67,9 @@ describe("POST /api/rooms/:roomId/report", () => {
     expect(json).toMatchObject({ severity: "critical", status: "pending", targetType: "room" });
     // Quien reporta no ve datos internos (dueño, acción, SLA).
     expect(json).not.toHaveProperty("targetUserId");
-    expect(store.rooms.get(ROOM)?.status).toBe("removed");
+    // Revisado 2026-09-25 (ADR-013, A-3): sin revisión de un moderador, la sala
+    // sigue publicada.
+    expect(store.rooms.get(ROOM)?.status).toBe("published");
   });
 
   it("sin motivo → 422 REPORT_REASON_REQUIRED; sin sesión → 401; JSON roto → 400", async () => {
@@ -98,6 +110,54 @@ describe("POST /api/rooms/:roomId/report", () => {
     );
     expect(res.status).toBe(201);
     expect(await res.json()).toMatchObject({ targetType: "review", severity: "normal" });
+  });
+});
+
+describe("cuota reforzada de reportes críticos (A-3, report-write-critical)", () => {
+  it("agota la cuota específica de categorías críticas antes que la general", async () => {
+    const { handlers, req } = setup();
+    const ip = "203.0.113.42";
+    // La cuota se gasta en cada llamada aunque el reporte sea duplicado del
+    // mismo reportante sobre la misma sala (200, no 201, a partir del 2º).
+    for (let i = 0; i < 5; i += 1) {
+      const res = await handlers.postReport(
+        req("POST", "/api/reports", "jugadora", {
+          targetType: "room",
+          targetId: ROOM,
+          category: "minor_safety",
+          reason: `Motivo ${i}`,
+        }, { "cf-connecting-ip": ip }),
+      );
+      expect([200, 201]).toContain(res.status);
+    }
+    const blocked = await handlers.postReport(
+      req("POST", "/api/reports", "jugadora", {
+        targetType: "room",
+        targetId: ROOM,
+        category: "minor_safety",
+        reason: "Uno más",
+      }, { "cf-connecting-ip": ip }),
+    );
+    expect(blocked.status).toBe(429);
+    expect((await blocked.json()).error.code).toBe("RATE_LIMITED");
+  });
+
+  it("una categoría no crítica no gasta la cuota reforzada", async () => {
+    const { handlers, req } = setup();
+    const ip = "203.0.113.43";
+    // El mismo reportante repitiendo sobre la misma sala devuelve el reporte
+    // ya pendiente (200, no 201); lo que importa aquí es que nunca da 429.
+    for (let i = 0; i < 8; i += 1) {
+      const res = await handlers.postReport(
+        req("POST", "/api/reports", "jugadora", {
+          targetType: "room",
+          targetId: ROOM,
+          category: "spam",
+          reason: `Motivo ${i}`,
+        }, { "cf-connecting-ip": ip }),
+      );
+      expect([200, 201]).toContain(res.status);
+    }
   });
 });
 

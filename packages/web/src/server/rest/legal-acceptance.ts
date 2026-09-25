@@ -1,3 +1,4 @@
+import { clientIpFromHeaders } from "@escaperoom/kit/rate-limit/http";
 import { isAnonymous, type Actor, type TermsAcceptanceService } from "@escaperoom/shared/services";
 
 /** Dependencias inyectables de los handlers de reaceptación de términos (testeables sin Postgres). */
@@ -15,10 +16,15 @@ function unauthorized(): Response {
   );
 }
 
+/**
+ * `clientIpFromHeaders` (A-7): la primera entrada de `x-forwarded-for` la
+ * escribe el cliente, así que confiar en ella deja que cualquiera declare la
+ * IP que quiera en `termsAcceptance.ipAddress` (evidencia legal).
+ */
 function requestMeta(headers: Headers): { ipAddress: string | null; userAgent: string | null } {
-  const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const ip = clientIpFromHeaders(headers);
   return {
-    ipAddress: forwarded || headers.get("x-real-ip") || null,
+    ipAddress: ip === "unknown" ? null : ip,
     userAgent: headers.get("user-agent") || null,
   };
 }

@@ -5,9 +5,21 @@ import {
   createInMemoryRoomDraftStore,
   createRoomDraftService,
   type Actor,
+  type RoomDraftService,
 } from "@escaperoom/shared/services";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { RATE_LIMIT_POLICIES } from "../src/server/rate-limit";
 import { createOnboardingHandlers } from "../src/server/rest/onboarding";
+
+const quotaServices = vi.hoisted(() => ({ drafts: null as RoomDraftService | null }));
+vi.mock("@/server/services", () => ({ getRoomDraftService: () => quotaServices.drafts }));
+vi.mock("@/server/context", () => ({
+  resolveActorFromRequest: async () => ({
+    userId: "autora",
+    organizationId: null,
+    role: "member",
+  }),
+}));
 
 const author: Actor = { userId: "autora", organizationId: null, role: "member" };
 
@@ -67,5 +79,48 @@ describe("POST /api/onboarding/rooms (ticket 6.7, specs/20 §2 §3)", () => {
     const { post } = setup();
     const res = await post({ template: "otra-cosa" }, "autora");
     expect(res.status).toBe(400);
+  });
+
+  it("rechaza un título vacío con 400 (validación Zod, A-9)", async () => {
+    const { post } = setup();
+    const res = await post({ template: "blank", title: "   " }, "autora");
+    expect(res.status).toBe(400);
+  });
+
+  it("las respuestas, incluidas las de error, llevan Cache-Control: no-store", async () => {
+    const { post } = setup();
+    const ok = await post({ template: "blank" }, "autora");
+    expect(ok.headers.get("cache-control")).toBe("no-store");
+    const err = await post({ template: "otra-cosa" }, "autora");
+    expect(err.headers.get("cache-control")).toBe("no-store");
+  });
+});
+
+// A-9: sin cuota, cada llamada persistía un doc Yjs completo sin límite.
+describe("POST /api/onboarding/rooms — cuota (route module real)", () => {
+  let POST: (request: Request) => Promise<Response>;
+
+  beforeAll(async () => {
+    quotaServices.drafts = createRoomDraftService({ store: createInMemoryRoomDraftStore([]) });
+    ({ POST } = await import("../src/app/api/onboarding/rooms/route"));
+  });
+
+  function req(ip: string): Request {
+    return new Request("http://localhost/api/onboarding/rooms", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": ip },
+      body: JSON.stringify({ template: "blank" }),
+    });
+  }
+
+  it(`agota la cuota "onboarding-room-create" y responde 429`, async () => {
+    const ip = "203.0.113.99";
+    const { limit } = RATE_LIMIT_POLICIES["onboarding-room-create"].ip;
+    for (let i = 0; i < limit; i += 1) {
+      expect((await POST(req(ip))).status).toBe(201);
+    }
+    const blocked = await POST(req(ip));
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("retry-after")).toBeTruthy();
   });
 });

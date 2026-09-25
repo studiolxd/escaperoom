@@ -15,6 +15,14 @@ export type CreatorChatLimits = {
   maxOutputTokens: number;
   /** Caracteres del resultado de una tool que se reenvían al modelo. */
   toolResultMaxChars: number;
+  /**
+   * Conversaciones activas por usuario (B-6): los topes de arriba son POR
+   * CONVERSACIÓN, y cada `POST` sin `conversationId` crea otra — sin este
+   * tope, una sola cuenta multiplica su presupuesto sin límite.
+   */
+  maxActiveConversationsPerUser: number;
+  /** Tokens (entrada + salida) por usuario y día natural (UTC), en Redis (B-6). */
+  dailyTokenBudget: number;
 };
 
 export const DEFAULT_CREATOR_CHAT_LIMITS: CreatorChatLimits = {
@@ -22,6 +30,8 @@ export const DEFAULT_CREATOR_CHAT_LIMITS: CreatorChatLimits = {
   maxTokens: 1_500_000,
   maxOutputTokens: 16_000,
   toolResultMaxChars: 12_000,
+  maxActiveConversationsPerUser: 5,
+  dailyTokenBudget: 3_000_000,
 };
 
 export type CreatorChatConfig =
@@ -71,6 +81,8 @@ function isProviderId(value: string): value is CreatorChatProviderId {
  * | `CREATOR_CHAT_MAX_TOKENS` | Tokens por conversación (1 500 000). |
  * | `CREATOR_CHAT_MAX_OUTPUT_TOKENS` | Tokens de salida por respuesta (16 000). |
  * | `CREATOR_CHAT_TOOL_RESULT_MAX_CHARS` | Caracteres de un resultado de tool para el modelo (12 000). |
+ * | `CREATOR_CHAT_MAX_ACTIVE_CONVERSATIONS` | Conversaciones activas por usuario (5, B-6). |
+ * | `CREATOR_CHAT_DAILY_TOKEN_BUDGET` | Tokens por usuario y día natural, en Redis (3 000 000, B-6). |
  *
  * Un valor no numérico o ≤ 0 se ignora y rige el de por defecto. Sin la
  * clave del proveedor elegido (o de Anthropic si `CREATOR_CHAT_PROVIDER` no
@@ -96,6 +108,11 @@ export function readCreatorChatConfig(
       maxTokens: positiveInt(env.CREATOR_CHAT_MAX_TOKENS, d.maxTokens),
       maxOutputTokens: positiveInt(env.CREATOR_CHAT_MAX_OUTPUT_TOKENS, d.maxOutputTokens),
       toolResultMaxChars: positiveInt(env.CREATOR_CHAT_TOOL_RESULT_MAX_CHARS, d.toolResultMaxChars),
+      maxActiveConversationsPerUser: positiveInt(
+        env.CREATOR_CHAT_MAX_ACTIVE_CONVERSATIONS,
+        d.maxActiveConversationsPerUser,
+      ),
+      dailyTokenBudget: positiveInt(env.CREATOR_CHAT_DAILY_TOKEN_BUDGET, d.dailyTokenBudget),
     },
   };
 }

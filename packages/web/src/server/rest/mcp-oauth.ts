@@ -1,5 +1,5 @@
 import { DEFAULT_LOCALE, LOCALES } from "@escaperoom/config/locales";
-import type { OAuthProvider, RateLimiter } from "@escaperoom/mcp-server";
+import type { OAuthProvider } from "@escaperoom/mcp-server";
 import { isAnonymous, type Actor } from "@escaperoom/shared/services";
 
 /**
@@ -9,13 +9,25 @@ import { isAnonymous, type Actor } from "@escaperoom/shared/services";
  * `@escaperoom/mcp-server` (`createOAuthProvider`); aquí solo el cableado HTTP
  * de Next, testeable sin Postgres.
  */
+
+/**
+ * Decisión de la cuota de registro dinámico (A-4/D-4): async porque, a
+ * diferencia del limitador de tools del MCP (en memoria, por proceso, ver
+ * `getMcpToolRateLimiter`), este endpoint es público y sin sesión — su cuota
+ * vive en Redis (`@escaperoom/kit/rate-limit`, política `mcp-register`) para
+ * no multiplicarse por réplica.
+ */
+export type McpRegisterRateLimiter = (
+  request: Request,
+) => Promise<{ ok: true } | { ok: false; retryAfterSeconds: number }>;
+
 export type McpOAuthHandlerDeps = {
   /** Proveedor OAuth para el origen de la petición. */
   provider: (request: Request) => OAuthProvider;
   /** Actor de la sesión de Better Auth (anónimo si no hay sesión). */
   resolveActor: (request: Request) => Promise<Actor>;
   /** Límite de registros dinámicos por IP (anti-spam del endpoint abierto). */
-  registerLimiter?: RateLimiter;
+  registerLimiter?: McpRegisterRateLimiter;
 };
 
 /** Ruta (sin locale) de la pantalla de consentimiento. */
@@ -59,14 +71,6 @@ function isSameOrigin(request: Request, allowed: string[]): boolean {
   return request.headers.get("sec-fetch-site") === "same-origin";
 }
 
-function clientIp(request: Request): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "desconocida"
-  );
-}
-
 export function createMcpOAuthHandlers(deps: McpOAuthHandlerDeps) {
   return {
     /** `GET /.well-known/oauth-authorization-server` (RFC 8414). */
@@ -88,7 +92,7 @@ export function createMcpOAuthHandlers(deps: McpOAuthHandlerDeps) {
 
     /** `POST /api/mcp/oauth/register` — registro dinámico (RFC 7591). */
     async register(request: Request): Promise<Response> {
-      const decision = deps.registerLimiter?.consume(`register:${clientIp(request)}`);
+      const decision = await deps.registerLimiter?.(request);
       if (decision && !decision.ok) {
         return withCors(
           Response.json(
@@ -115,14 +119,20 @@ export function createMcpOAuthHandlers(deps: McpOAuthHandlerDeps) {
 
     /**
      * `GET /api/mcp/oauth/authorize` — el cliente MCP abre aquí el navegador.
-     * Un error que se puede devolver al cliente vuelve por su `redirect_uri`;
-     * lo demás (incluidos cliente o `redirect_uri` inválidos, que se muestran
-     * al usuario sin redirigir) va a la pantalla de consentimiento.
+     *
+     * A-13: el registro dinámico (A-4) es abierto, así que cualquiera puede
+     * registrar un cliente con el `redirect_uri` `https://` que quiera. Un
+     * 302 automático a ese `redirect_uri` en cuanto `parseAuthorizationRequest`
+     * detecta un error "seguro de devolver" (RFC 6749 §4.1.2.1) convertía este
+     * endpoint, con el dominio de confianza de la app, en un redirector
+     * abierto hacia cualquier página de phishing con solo enlazar una URL con
+     * el parámetro adecuado. Por eso todo error, tenga o no `redirectTo`, va
+     * SIEMPRE a la pantalla de consentimiento, que muestra el error y, si hay
+     * un cliente al que volver, un enlace explícito que el usuario elige
+     * pulsar — nunca una redirección automática.
      */
     async authorize(request: Request): Promise<Response> {
       const params = new URL(request.url).searchParams;
-      const parsed = await deps.provider(request).parseAuthorizationRequest(params);
-      if (!parsed.ok && parsed.redirectTo) return Response.redirect(parsed.redirectTo, 302);
       return Response.redirect(consentUrl(request, params), 302);
     },
 

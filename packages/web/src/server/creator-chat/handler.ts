@@ -10,6 +10,7 @@ import {
 } from "@/lib/creator-chat-protocol";
 import type { CreatorChatConfig } from "./config";
 import type { ChatConversationStore } from "./conversation-store";
+import type { CreatorChatDailyBudget } from "./daily-budget";
 import type { CreatorToolClient } from "./mcp-tools";
 import { runCreatorChatTurn } from "./orchestrator";
 import type { ChatModelProvider } from "./provider";
@@ -26,6 +27,8 @@ export type CreatorChatHandlerDeps = {
   /** Cliente del MCP con la identidad de la petición (la sesión del creador). */
   createToolClient: (request: Request) => CreatorToolClient;
   store: ChatConversationStore;
+  /** Presupuesto diario de tokens por usuario (B-6). */
+  dailyBudget: CreatorChatDailyBudget;
 };
 
 const RequestSchema = z.object({
@@ -41,6 +44,8 @@ const STATUS: Partial<Record<CreatorChatErrorCode, number>> = {
   INVALID_REQUEST: 400,
   CONVERSATION_NOT_FOUND: 404,
   BUSY: 409,
+  TOO_MANY_CONVERSATIONS: 409,
+  DAILY_BUDGET_EXCEEDED: 429,
   NOT_CONFIGURED: 503,
 };
 
@@ -59,8 +64,12 @@ function errorResponse(code: CreatorChatErrorCode, message: string): Response {
 export function createCreatorChatHandlers(deps: CreatorChatHandlerDeps) {
   return {
     async postMessage(request: Request): Promise<Response> {
+      // B-25: `Sec-Fetch-Site` ausente (peticiones sin ese header, no solo
+      // valores distintos de "same-origin") también se rechazaba antes — la
+      // gastan tokens del modelo a cuenta de la plataforma, así que hace
+      // falta la señal, no solo la ausencia de una contraria.
       const site = request.headers.get("sec-fetch-site");
-      if (site && site !== "same-origin") {
+      if (site !== "same-origin") {
         return errorResponse("CROSS_SITE", "El chat solo se acepta desde la propia web");
       }
       const config = deps.config();
@@ -80,6 +89,17 @@ export function createCreatorChatHandlers(deps: CreatorChatHandlerDeps) {
       }
       const body = parsed.data;
 
+      // B-6: presupuesto diario de tokens por usuario, persistido (Redis) —
+      // los topes de `config.limits` son por conversación, y sin
+      // `conversationId` cada POST abre otra.
+      const consumedToday = await deps.dailyBudget.consumed(actor.userId);
+      if (consumedToday >= config.limits.dailyTokenBudget) {
+        return errorResponse(
+          "DAILY_BUDGET_EXCEEDED",
+          "Has agotado el presupuesto diario de tokens del chat",
+        );
+      }
+
       let conversation;
       if (body.conversationId) {
         conversation = deps.store.get(body.conversationId, actor.userId);
@@ -90,6 +110,15 @@ export function createCreatorChatHandlers(deps: CreatorChatHandlerDeps) {
           return errorResponse("BUSY", "El asistente aún está respondiendo al mensaje anterior");
         }
       } else {
+        // B-6: tope de conversaciones activas por usuario — cada una tiene su
+        // propio presupuesto de turnos/tokens, así que sin este tope una sola
+        // cuenta lo multiplica sin límite abriendo conversaciones nuevas.
+        if (deps.store.countActive(actor.userId) >= config.limits.maxActiveConversationsPerUser) {
+          return errorResponse(
+            "TOO_MANY_CONVERSATIONS",
+            "Tienes demasiadas conversaciones abiertas",
+          );
+        }
         const locale = body.locale ?? DEFAULT_LOCALE;
         const roomId = body.roomId ?? null;
         conversation = deps.store.create({
@@ -101,6 +130,7 @@ export function createCreatorChatHandlers(deps: CreatorChatHandlerDeps) {
       }
       conversation.busy = true;
       const active = conversation;
+      const tokensBeforeTurn = active.tokens;
 
       const provider = deps.createProvider(config);
       const tools = deps.createToolClient(request);
@@ -135,6 +165,9 @@ export function createCreatorChatHandlers(deps: CreatorChatHandlerDeps) {
           } finally {
             active.busy = false;
             deps.store.touch(active);
+            await deps.dailyBudget
+              .add(actor.userId, active.tokens - tokensBeforeTurn)
+              .catch(() => {});
             await tools.close().catch(() => {});
             if (open) {
               open = false;

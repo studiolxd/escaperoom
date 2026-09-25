@@ -44,7 +44,17 @@ const DEFAULTS = {
   refreshTokenTtlSeconds: 30 * 24 * 60 * 60,
   authorizationCodeTtlSeconds: 5 * 60,
   clientTtlSeconds: 365 * 24 * 60 * 60,
+  /**
+   * A-4/D-4: un cliente recién registrado por DCR (abierto, sin cuenta) solo
+   * vive 1 h — el tiempo de completar un primer `authorize` — en vez de los
+   * 365 días de un cliente ya en uso. `approve()` extiende el TTL a
+   * `clientTtlSeconds` en cuanto un humano lo autoriza de verdad.
+   */
+  clientPendingTtlSeconds: 60 * 60,
 };
+
+/** Longitud máxima de `client_name`/URIs del registro dinámico (A-4/D-4). */
+const MAX_CLIENT_METADATA_STRING_LENGTH = 120;
 
 const TOKEN_AUTH_METHODS = ["none", "client_secret_post", "client_secret_basic"] as const;
 type TokenAuthMethod = (typeof TOKEN_AUTH_METHODS)[number];
@@ -89,7 +99,13 @@ type GrantRecord = {
   /** Familia de tokens de una autorización: se revoca entera. */
   grantId: string;
 };
-type CodeRecord = GrantRecord & { redirectUri: string; codeChallenge: string; expiresAt: number };
+type CodeRecord = GrantRecord & {
+  redirectUri: string;
+  /** A-14: si `redirect_uri` vino explícita en `authorize`, repetirla al canjear es obligatorio. */
+  redirectUriExplicit: boolean;
+  codeChallenge: string;
+  expiresAt: number;
+};
 type TokenRecord = GrantRecord & { expiresAt: number };
 
 /** Petición de autorización ya validada: lo que muestra el consentimiento. */
@@ -98,6 +114,8 @@ export type AuthorizationRequest = {
   clientName: string;
   clientUri?: string;
   redirectUri: string;
+  /** A-14: `true` si el cliente envió `redirect_uri` explícita en `authorize`. */
+  redirectUriExplicit: boolean;
   state?: string;
   codeChallenge: string;
   scope: string;
@@ -255,6 +273,8 @@ const keys = {
   code: (code: string) => `code:${sha256(code)}`,
   access: (token: string) => `access:${sha256(token)}`,
   refresh: (token: string) => `refresh:${sha256(token)}`,
+  /** A-6: marca de un refresh ya canjeado, para detectar su reutilización tras rotarlo. */
+  usedRefresh: (token: string) => `used-refresh:${sha256(token)}`,
   revokedGrant: (grantId: string) => `revoked-grant:${grantId}`,
 };
 
@@ -270,6 +290,7 @@ export function createOAuthProvider(config: OAuthProviderConfig) {
     refresh: config.refreshTokenTtlSeconds ?? DEFAULTS.refreshTokenTtlSeconds,
     code: config.authorizationCodeTtlSeconds ?? DEFAULTS.authorizationCodeTtlSeconds,
     client: config.clientTtlSeconds ?? DEFAULTS.clientTtlSeconds,
+    clientPending: DEFAULTS.clientPendingTtlSeconds,
   };
   const endpoint = (path: string) => new URL(path, issuer).href;
   const expiresIn = (seconds: number) => new Date(now().getTime() + seconds * 1000);
@@ -422,7 +443,28 @@ export function createOAuthProvider(config: OAuthProviderConfig) {
         );
       }
       const metadata = parsed.data;
+      // A-4/D-4: el SDK no acota la longitud de `client_name`/URIs; sin tope,
+      // un registro abierto puede meter cualquier cadena arbitraria (incluida
+      // en la pantalla de consentimiento).
+      if ((metadata.client_name?.length ?? 0) > MAX_CLIENT_METADATA_STRING_LENGTH) {
+        return oauthError(
+          "invalid_client_metadata",
+          `client_name no puede superar ${MAX_CLIENT_METADATA_STRING_LENGTH} caracteres`,
+        );
+      }
+      if ((metadata.client_uri?.length ?? 0) > MAX_CLIENT_METADATA_STRING_LENGTH) {
+        return oauthError(
+          "invalid_client_metadata",
+          `client_uri no puede superar ${MAX_CLIENT_METADATA_STRING_LENGTH} caracteres`,
+        );
+      }
       for (const uri of metadata.redirect_uris) {
+        if (uri.length > MAX_CLIENT_METADATA_STRING_LENGTH) {
+          return oauthError(
+            "invalid_redirect_uri",
+            `redirect_uri no puede superar ${MAX_CLIENT_METADATA_STRING_LENGTH} caracteres`,
+          );
+        }
         const problem = redirectUriProblem(uri);
         if (problem) return oauthError("invalid_redirect_uri", problem);
       }
@@ -462,7 +504,10 @@ export function createOAuthProvider(config: OAuthProviderConfig) {
         client_id_issued_at: issuedAt,
         ...(secret ? { client_secret_hash: sha256(secret) } : {}),
       };
-      await store.put(keys.client(clientId), record, expiresIn(ttl.client));
+      // A-4/D-4: TTL corto hasta el primer `authorize` aprobado por un humano
+      // (`approve()` lo extiende a `ttl.client`) — un registro abierto sin
+      // cuenta detrás no debe poder dejar filas vivas un año sin usarse nunca.
+      await store.put(keys.client(clientId), record, expiresIn(ttl.clientPending));
       const publicInfo: Partial<OAuthClientRecord> = { ...record };
       delete publicInfo.client_secret_hash;
       return json(
@@ -501,6 +546,10 @@ export function createOAuthProvider(config: OAuthProviderConfig) {
       } else if (client.redirect_uris.length === 1) {
         redirectUri = client.redirect_uris[0];
       }
+      // A-14: solo cuenta como "explícita" si vino en la query Y se validó
+      // contra el cliente — no el valor por defecto cuando el cliente solo
+      // tiene una `redirect_uri` registrada.
+      const redirectUriExplicit = Boolean(requestedRedirect) && redirectUri === requestedRedirect;
       if (!redirectUri) {
         return {
           ok: false,
@@ -541,6 +590,7 @@ export function createOAuthProvider(config: OAuthProviderConfig) {
           clientName: client.client_name ?? clientId,
           ...(client.client_uri ? { clientUri: client.client_uri } : {}),
           redirectUri,
+          redirectUriExplicit,
           ...(state ? { state } : {}),
           codeChallenge,
           // Único scope posible; los que pida el cliente de más se ignoran.
@@ -552,6 +602,12 @@ export function createOAuthProvider(config: OAuthProviderConfig) {
 
     /** El creador acepta: emite el código y devuelve la redirección al cliente. */
     async approve(request: AuthorizationRequest, actor: Actor): Promise<URL> {
+      // A-4/D-4: un humano acaba de autorizar este cliente de verdad — deja de
+      // tener el TTL corto del registro pendiente (`ttl.clientPending`) y pasa
+      // al TTL normal de un cliente en uso.
+      const client = await store.get<OAuthClientRecord>(keys.client(request.clientId));
+      if (client) await store.put(keys.client(request.clientId), client, expiresIn(ttl.client));
+
       const code = randomToken("mcpac_");
       const record: CodeRecord = {
         userId: actor.userId,
@@ -561,6 +617,7 @@ export function createOAuthProvider(config: OAuthProviderConfig) {
         resource: request.resource,
         grantId: randomUUID(),
         redirectUri: request.redirectUri,
+        redirectUriExplicit: request.redirectUriExplicit,
         codeChallenge: request.codeChallenge,
         expiresAt: expiresIn(ttl.code).getTime(),
       };
@@ -616,6 +673,15 @@ export function createOAuthProvider(config: OAuthProviderConfig) {
           return oauthError("invalid_grant", "El código no pertenece a este cliente");
         }
         const redirectUri = form.get("redirect_uri");
+        // A-14 (OAuth 2.1 §4.1.3): si vino explícita en `authorize`, repetirla
+        // aquí es obligatorio, no opcional — PKCE mitiga la sustitución del
+        // código, pero la RFC la exige igualmente.
+        if (record.redirectUriExplicit && !redirectUri) {
+          return oauthError(
+            "invalid_request",
+            "Falta redirect_uri: se envió explícita al autorizar y hay que repetirla al canjear el código",
+          );
+        }
         if (redirectUri && redirectUri !== record.redirectUri) {
           return oauthError("invalid_grant", "redirect_uri no coincide con la de la autorización");
         }
@@ -634,6 +700,12 @@ export function createOAuthProvider(config: OAuthProviderConfig) {
         // Rotación (OAuth 2.1 §4.3.1): el refresh usado deja de valer.
         const record = await store.take<TokenRecord>(keys.refresh(refreshToken));
         if (!record || record.expiresAt <= now().getTime()) {
+          // A-6: si el refresh ya se había canjeado antes (queda la marca de
+          // `usedRefresh` con su `grantId` hasta que caduque), esto es
+          // reutilización de un token robado/duplicado — se revoca la familia
+          // entera, no solo se rechaza esta llamada.
+          const reused = await store.get<{ grantId: string }>(keys.usedRefresh(refreshToken));
+          if (reused) await revokeGrant(reused.grantId);
           return oauthError("invalid_grant", "Refresh token inválido, caducado o ya usado");
         }
         if (record.clientId !== client.client_id) {
@@ -642,6 +714,11 @@ export function createOAuthProvider(config: OAuthProviderConfig) {
         if (await isRevoked(record.grantId)) {
           return oauthError("invalid_grant", "La autorización ha sido revocada");
         }
+        await store.put(
+          keys.usedRefresh(refreshToken),
+          { grantId: record.grantId },
+          new Date(record.expiresAt),
+        );
         return issueTokens(grantOf(record));
       }
 

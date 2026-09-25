@@ -98,6 +98,10 @@ export const tokensSchema = z.object({
   // desarrollo hay uno fijo.
   PUBLISH_CONFIRM_SECRET: z.string().optional(),
   PUBLISH_CONFIRM_TTL_SECONDS: z.coerce.number().int().positive().optional(),
+  // Cabecera `x-analytics-server-secret` de `POST /api/analytics/collect`
+  // (A-2): sin ella, el endpoint solo acepta los tipos emitibles desde el
+  // navegador (`onboarding_step`). Obligatorio en producción.
+  ANALYTICS_SERVER_SECRET: z.string().min(16).optional(),
 });
 
 export const creatorChatSchema = z.object({
@@ -110,6 +114,11 @@ export const creatorChatSchema = z.object({
   CREATOR_CHAT_MAX_TOKENS: z.coerce.number().int().positive().optional(),
   CREATOR_CHAT_MAX_OUTPUT_TOKENS: z.coerce.number().int().positive().optional(),
   CREATOR_CHAT_TOOL_RESULT_MAX_CHARS: z.coerce.number().int().positive().optional(),
+  // Tope de conversaciones activas por usuario y presupuesto diario de
+  // tokens (B-6): sin ellos, cada POST sin conversationId abre otra
+  // conversación con su propio tope de coste.
+  CREATOR_CHAT_MAX_ACTIVE_CONVERSATIONS: z.coerce.number().int().positive().optional(),
+  CREATOR_CHAT_DAILY_TOKEN_BUDGET: z.coerce.number().int().positive().optional(),
   // Solo si el MCP (/mcp/creator) vive en otro proceso; por defecto el chat
   // le entrega las peticiones HTTP en el mismo proceso.
   CREATOR_CHAT_MCP_URL: z.string().optional(),

@@ -1,5 +1,7 @@
+import { tooManyRequestsResponse } from "@escaperoom/kit/rate-limit/http";
 import {
   ModerationError,
+  REPORT_CATEGORY_SEVERITY,
   type Actor,
   type AppealRow,
   type ContentReportRow,
@@ -7,6 +9,7 @@ import {
   type ModerationService,
   type QueueItem,
 } from "@escaperoom/shared/services";
+import { consumeRateLimit } from "@/server/rate-limit";
 
 /** Dependencias inyectables de los handlers de moderación (testeables sin Postgres). */
 export type ModerationHandlerDeps = {
@@ -153,6 +156,22 @@ export function createModerationHandlers(deps: ModerationHandlerDeps) {
   const { moderation } = deps;
 
   async function createReport(request: Request, body: unknown): Promise<Response> {
+    // A-3/ADR-013 (revisado 2026-09-25): la categoría no dispara ya ninguna
+    // acción automática, pero sigue entrando con prioridad máxima en la cola;
+    // esta cuota extra (se suma a `report-write`) acota el spam de reportes
+    // "críticos" falsos, ya que revisarlos primero cuesta más que uno normal.
+    const category =
+      body && typeof body === "object" && !Array.isArray(body)
+        ? (body as { category?: unknown }).category
+        : undefined;
+    if (
+      typeof category === "string" &&
+      REPORT_CATEGORY_SEVERITY[category as keyof typeof REPORT_CATEGORY_SEVERITY] === "critical"
+    ) {
+      const quota = await consumeRateLimit("report-write-critical", request);
+      if (!quota.ok) return tooManyRequestsResponse(quota.retryAfter);
+    }
+
     const actor = await deps.resolveActor(request);
     const { report, created } = await moderation.report(actor, body);
     return Response.json(reporterJson(report), {

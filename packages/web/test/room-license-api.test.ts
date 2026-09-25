@@ -14,9 +14,18 @@ import {
   type LicenseRoomRef,
   type PaymentGateway,
 } from "@escaperoom/shared/services";
-import { describe, expect, it } from "vitest";
+import { MemorySlidingWindowStore } from "@escaperoom/kit/rate-limit";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import * as Y from "yjs";
+import { consumeGiftCopyRecipientLimit, RATE_LIMIT_POLICIES } from "../src/server/rate-limit";
 import { createRoomLicenseHandlers } from "../src/server/rest/room-license";
+import type { RoomLicenseService } from "@escaperoom/shared/services";
+
+const quotaServices = vi.hoisted(() => ({ licenses: null as RoomLicenseService | null }));
+vi.mock("@/server/services", () => ({ getRoomLicenseService: () => quotaServices.licenses }));
+vi.mock("@/server/context", () => ({
+  resolveActorFromRequest: async () => ({ userId: "autora", organizationId: null, role: "member" }),
+}));
 
 const author: Actor = { userId: "autora", organizationId: null, role: "member" };
 const creator: Actor = { userId: "creadora", organizationId: null, role: "member" };
@@ -146,41 +155,48 @@ async function errorCode(res: Response, status: number): Promise<string> {
   return ((await res.json()) as ErrorJson).error.code;
 }
 
+/** Sala del fork del receptor creada por un gift-copy sobre ORIGIN (B-10: la respuesta ya no la trae). */
+function findFork(store: ReturnType<typeof createInMemoryRoomLicenseStore>, recipientId: string) {
+  for (const [id, room] of store.rooms) {
+    if (room.forkedFromRoomId === ORIGIN && room.authorId === recipientId) {
+      return { id, room };
+    }
+  }
+  return null;
+}
+
 describe("POST /api/rooms/:roomId/gift-copy", () => {
-  it("201: draft propio del receptor, equivalente al paquete publicado y con linaje", async () => {
+  it("202 genérico: draft propio del receptor, equivalente al paquete publicado y con linaje (B-10)", async () => {
     const t = setup();
     const res = await t.gift({ recipientEmail: "creadora@example.test" }, "autora");
-    expect(res.status).toBe(201);
-    const { room, purchase } = (await res.json()) as ForkJson;
+    expect(res.status).toBe(202);
+    // B-10: la respuesta nunca revela si el destinatario existía ni los datos del fork.
+    expect(await res.json()).toEqual({
+      message: "Si existe una cuenta con ese email, verá la copia al iniciar sesión.",
+    });
+
+    const found = findFork(t.store, creator.userId);
+    expect(found).not.toBeNull();
+    const { id: roomId, room } = found!;
     expect(room).toMatchObject({
       title: "La Maldición del Rey Aldric",
       status: "draft",
       forkedFromRoomId: ORIGIN,
       forkedFromVersionId: VERSION,
+      authorId: creator.userId,
+      licensable: false,
     });
-    expect(purchase).toMatchObject({
-      status: "succeeded",
-      amountCents: 0,
-      roomVersionId: VERSION,
-      resultingRoomId: room.id,
-    });
+    const purchase = t.store.purchases.find((p) => p.resultingRoomId === roomId);
+    expect(purchase).toMatchObject({ status: "succeeded", amountCents: 0, roomVersionId: VERSION });
 
     // `roomDocToPackage` del fork = el paquete publicado (salvo meta.id/authorId del fork).
-    const forkPkg = await t.draftPackage(creator, room.id);
+    const forkPkg = await t.draftPackage(creator, roomId);
     expect(forkPkg).toEqual({
       ...published,
-      meta: { ...published.meta, id: room.id, authorId: creator.userId },
+      meta: { ...published.meta, id: roomId, authorId: creator.userId },
     });
     // El asset publicado del original se referencia tal cual (no se copia).
     expect(forkPkg.dialogs[0]!.text.es!.audioUrl).toBe(PUBLISHED_AUDIO);
-    // La sala del fork es del receptor, con el linaje guardado.
-    expect(t.store.rooms.get(room.id)).toMatchObject({
-      authorId: creator.userId,
-      status: "draft",
-      licensable: false,
-      forkedFromRoomId: ORIGIN,
-      forkedFromVersionId: VERSION,
-    });
   });
 
   it("editar el fork no cambia el original ni su versión publicada, y viceversa", async () => {
@@ -191,13 +207,13 @@ describe("POST /api/rooms/:roomId/gift-copy", () => {
       ORIGIN,
       Y.encodeStateAsUpdate(roomPackageToDoc(published)),
     );
-    const res = await t.gift({ recipientEmail: "creadora@example.test" }, "autora");
-    const { room } = (await res.json()) as ForkJson;
+    await t.gift({ recipientEmail: "creadora@example.test" }, "autora");
+    const { id: roomId } = findFork(t.store, creator.userId)!;
 
-    await t.edit(creator, room.id, (doc) => doc.getMap("meta").set("title", "Mi versión"));
+    await t.edit(creator, roomId, (doc) => doc.getMap("meta").set("title", "Mi versión"));
     await t.edit(author, ORIGIN, (doc) => doc.getMap("meta").set("difficulty", 3));
 
-    const fork = await t.draftPackage(creator, room.id);
+    const fork = await t.draftPackage(creator, roomId);
     const origin = await t.draftPackage(author, ORIGIN);
     expect(fork.meta).toMatchObject({ title: "Mi versión", difficulty: published.meta.difficulty });
     expect(origin.meta).toMatchObject({ title: published.meta.title, difficulty: 3 });
@@ -212,29 +228,79 @@ describe("POST /api/rooms/:roomId/gift-copy", () => {
     expect(t.store.purchases).toEqual([]);
   });
 
-  it("errores de entrada: JSON roto 400, email no válido 422, desconocido 404, repetido 409", async () => {
+  it("errores de entrada: JSON roto 400, email no válido 422, propio email 422, repetido 409", async () => {
     const t = setup();
     expect(await errorCode(await t.gift(undefined, "autora", "{"), 400)).toBe("BAD_REQUEST");
     expect(await errorCode(await t.gift({ recipientEmail: "x" }, "autora"), 422)).toBe(
       "VALIDATION_ERROR",
     );
     expect(
-      await errorCode(await t.gift({ recipientEmail: "nadie@example.test" }, "autora"), 404),
-    ).toBe("RECIPIENT_NOT_FOUND");
-    expect(
       await errorCode(await t.gift({ recipientEmail: "autora@example.test" }, "autora"), 422),
     ).toBe("INVALID_RECIPIENT");
 
-    const first = (await (
-      await t.gift({ recipientEmail: "otra@example.test" }, "autora")
-    ).json()) as ForkJson;
+    await t.gift({ recipientEmail: "otra@example.test" }, "autora");
+    const { id: firstRoomId } = findFork(t.store, other.userId)!;
     const again = await t.gift({ recipientEmail: "otra@example.test" }, "autora");
     expect(again.status).toBe(409);
     const json = (await again.json()) as ErrorJson;
     expect(json.error).toMatchObject({
       code: "LICENSE_ALREADY_OWNED",
-      resultingRoomId: first.room.id,
+      resultingRoomId: firstRoomId,
     });
+  });
+
+  // B-10: un destinatario sin cuenta responde EXACTAMENTE igual que uno que sí
+  // la tiene — antes 404 RECIPIENT_NOT_FOUND vs 201 dejaba adivinar qué
+  // emails están registrados.
+  it("B-10: un destinatario sin cuenta responde 202 con el mismo mensaje genérico, sin crear nada", async () => {
+    const t = setup();
+    const withAccount = await t.gift({ recipientEmail: "creadora@example.test" }, "autora");
+    const withoutAccount = await t.gift({ recipientEmail: "nadie@example.test" }, "autora");
+
+    const GENERIC = { message: "Si existe una cuenta con ese email, verá la copia al iniciar sesión." };
+    expect(withoutAccount.status).toBe(withAccount.status);
+    expect(await withAccount.json()).toEqual(GENERIC);
+    expect(await withoutAccount.json()).toEqual(GENERIC);
+    expect(findFork(t.store, "nadie@example.test")).toBeNull();
+    expect(t.store.purchases).toHaveLength(1); // solo la del destinatario real
+  });
+
+  // B-10: cuota por destinatario, sea cual sea el remitente (protege la
+  // cuenta objetivo de que la llenen de copias no pedidas).
+  it("B-10: agota la cuota del destinatario tras varios regalos, exista o no la cuenta", async () => {
+    const t = setup();
+    const email = "cuota-test@example.test"; // único en este archivo: aísla el limitador compartido
+    let blocked = 0;
+    for (let i = 0; i < 6; i += 1) {
+      const res = await t.gift({ recipientEmail: email }, "autora");
+      if (res.status === 429) blocked += 1;
+    }
+    expect(blocked).toBeGreaterThan(0);
+  });
+});
+
+describe("consumeGiftCopyRecipientLimit (B-10)", () => {
+  it("normaliza mayúsculas/espacios: mismo email, misma cuota", async () => {
+    const store = new MemorySlidingWindowStore();
+    const first = await consumeGiftCopyRecipientLimit("Persona@Example.test", store);
+    const second = await consumeGiftCopyRecipientLimit("  persona@example.test  ", store);
+    expect(first.ok).toBe(true);
+    expect(second.remaining).toBe((first.remaining ?? 1) - 1);
+  });
+
+  it("no guarda el email en claro en la clave del store", async () => {
+    const seenKeys: string[] = [];
+    const store = new MemorySlidingWindowStore();
+    const spyingStore = {
+      hit: (key: string, limit: number, windowSeconds: number) => {
+        seenKeys.push(key);
+        return store.hit(key, limit, windowSeconds);
+      },
+      peek: (key: string, limit: number, windowSeconds: number) => store.peek(key, limit, windowSeconds),
+    };
+    await consumeGiftCopyRecipientLimit("nadie-en-particular@example.test", spyingStore);
+    expect(seenKeys).toHaveLength(1);
+    expect(seenKeys[0]).not.toContain("nadie-en-particular");
   });
 });
 
@@ -305,5 +371,59 @@ describe("POST /api/rooms/:roomId/license-checkout", () => {
       "PAYMENT_GATEWAY_UNAVAILABLE",
     );
     expect(noGateway.store.purchases).toEqual([]);
+  });
+});
+
+// B-10: cuota "gift-copy" por remitente, cableada de verdad en el route.ts.
+describe("POST /api/rooms/:roomId/gift-copy — cuota por remitente (route module real)", () => {
+  let POST: (request: Request, ctx: { params: Promise<{ roomId: string }> }) => Promise<Response>;
+
+  beforeAll(async () => {
+    const drafts = createInMemoryRoomDraftStore([{ id: ORIGIN, authorId: author.userId }]);
+    const store = createInMemoryRoomLicenseStore({
+      users: [
+        { id: author.userId, email: "autora@example.test" },
+        { id: creator.userId, email: "creadora@example.test" },
+      ],
+      rooms: [
+        {
+          id: ORIGIN,
+          authorId: author.userId,
+          title: "La Maldición del Rey Aldric",
+          status: "published",
+          licensable: true,
+          licensePriceCents: 1200,
+          currency: "EUR",
+        },
+      ],
+      versions: [{ id: VERSION, roomId: ORIGIN, semver: "1.0.0", package: published }],
+      drafts,
+    });
+    quotaServices.licenses = createRoomLicenseService({
+      store,
+      buildDoc: (pkg) => roomPackageToDoc(pkg),
+      payments: createFakePaymentGateway(),
+    });
+    ({ POST } = await import("../src/app/api/rooms/[roomId]/gift-copy/route"));
+  });
+
+  function req(ip: string): Request {
+    return new Request(`http://localhost/api/rooms/${ORIGIN}/gift-copy`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": ip },
+      body: JSON.stringify({ recipientEmail: "creadora@example.test" }),
+    });
+  }
+
+  it(`agota alguna cuota (remitente o destinatario) y responde 429`, async () => {
+    const ip = "203.0.113.88";
+    const ctx = { params: Promise.resolve({ roomId: ORIGIN }) };
+    const { limit } = RATE_LIMIT_POLICIES["gift-copy"].ip;
+    let blocked = false;
+    for (let i = 0; i < limit + 5 && !blocked; i += 1) {
+      const res = await POST(req(ip), ctx);
+      if (res.status === 429) blocked = true;
+    }
+    expect(blocked).toBe(true);
   });
 });

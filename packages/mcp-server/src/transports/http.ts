@@ -21,6 +21,16 @@ export type CreatorHttpOptions = {
   resourceMetadataUrl?: string | ((request: Request) => string);
   /** Límite de llamadas a tools por token (4.7). Sin él, no se limita. */
   rateLimiter?: RateLimiter;
+  /**
+   * Protección DNS rebinding del SDK del MCP (A-20/D-6): sin ella, un DNS que
+   * resuelve primero a una IP externa (pasa el `fetch()` del navegador) y
+   * luego a `localhost`/una IP interna puede hacer que una página de otro
+   * origen le hable al servidor MCP como si fuera su propio backend. Solo
+   * tiene sentido con `allowedHosts`/`allowedOrigins`.
+   */
+  enableDnsRebindingProtection?: boolean;
+  allowedHosts?: string[];
+  allowedOrigins?: string[];
 };
 
 type JsonRpcMessage = { jsonrpc?: string; id?: string | number | null; method?: string };
@@ -96,6 +106,11 @@ export async function handleCreatorMcpRequest(
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
+    ...(options.enableDnsRebindingProtection !== undefined
+      ? { enableDnsRebindingProtection: options.enableDnsRebindingProtection }
+      : {}),
+    ...(options.allowedHosts ? { allowedHosts: options.allowedHosts } : {}),
+    ...(options.allowedOrigins ? { allowedOrigins: options.allowedOrigins } : {}),
   });
   await server.connect(transport);
   return transport.handleRequest(request);
@@ -150,6 +165,9 @@ export async function startHttpServer(
   const host = options.host ?? "127.0.0.1";
   const path = options.path ?? MCP_ENDPOINT;
   let origin = "";
+  // A-20/D-6: por defecto, solo el propio host:puerto de este servidor (se
+  // conoce tras `listen()`, más abajo); `options.allowedHosts` lo sobreescribe.
+  let defaultAllowedHosts: string[] = [];
   const server = createServer((req, res) => {
     void (async () => {
       try {
@@ -163,7 +181,14 @@ export async function startHttpServer(
           res.end();
           return;
         }
-        await writeWebResponse(await handleCreatorMcpRequest(request, options), res);
+        await writeWebResponse(
+          await handleCreatorMcpRequest(request, {
+            ...options,
+            enableDnsRebindingProtection: options.enableDnsRebindingProtection ?? true,
+            allowedHosts: options.allowedHosts ?? defaultAllowedHosts,
+          }),
+          res,
+        );
       } catch (error) {
         if (!res.headersSent) res.statusCode = 500;
         res.end(error instanceof Error ? error.message : String(error));
@@ -176,6 +201,7 @@ export async function startHttpServer(
   });
   const { port } = server.address() as AddressInfo;
   origin = `http://${host}:${port}`;
+  defaultAllowedHosts = [`${host}:${port}`];
   return {
     url: new URL(path, origin),
     close: () =>
