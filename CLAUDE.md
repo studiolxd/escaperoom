@@ -66,13 +66,15 @@ el flujo por defecto para cualquier tarea de código es:
      también carga ese `REDIS_PREFIX` para los tests de esos cinco paquetes
      (`test.env`; en CI, sin `.env` de worktree, es un no-op) — antes de la
      auditoría 2026-09-25 (puertos por worktree) no llegaba a los tests de
-     `web`, que seguían compartiendo prefijo entre worktrees. **Ojo:** esto NO
-     arregla tests de rate-limit de `web` fallando con 429/403 bajo
-     `pnpm verify:pr` — esos tests corren siempre con el rate limiter en
-     memoria (nunca llegan a tocar Redis en este entorno de dev, verificado);
-     si fallan así, es contención de CPU de la máquina compartida con otras
-     sesiones (ver "Timeouts de CI" en `docs/reference/verify-pr.md`), no un
-     problema de Redis.
+     `web`, que seguían compartiendo prefijo entre worktrees. **Ojo (#161):**
+     los 429/403 intermitentes de los tests de rate-limit de `web` bajo
+     `pnpm verify:pr` venían de que `scripts/verify-pr.sh` exportaba el
+     `REDIS_PREFIX=escaperoom` genérico, con lo que esos tests usaban el Redis
+     real y persistente compartido y heredaban cuota de tiradas anteriores.
+     Ahora el script lee el prefijo del worktree de `packages/shared/.env`
+     (lo deja `pnpm dev:env`). Si vuelven a aparecer, comprobar primero que
+     el worktree pasó por `pnpm dev:env`; si aun así fallan, es contención de
+     CPU (ver "Timeouts de CI" en `docs/reference/verify-pr.md`).
    - En el nuevo worktree, correr: `pnpm dev:env` (requiere que
      `pnpm infra:up` ya esté levantado, normalmente ya lo está porque lo
      comparte con el principal) y luego `pnpm db:reset` para migrar y
