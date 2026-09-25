@@ -133,6 +133,22 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
   const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [draggingItem, setDraggingItem] = useState<string | null>(null);
 
+  /**
+   * F-35: el listener global de teclado se registra una sola vez (más abajo)
+   * y lee el estado más reciente desde estos refs, en vez de re-registrarse
+   * en cada cambio de `dialog`/`pickerFor`/`selected`/`inventoryOpen`/`panel`.
+   */
+  const dialogRef = useRef(dialog);
+  dialogRef.current = dialog;
+  const panelRef = useRef(panel);
+  panelRef.current = panel;
+  const inventoryOpenRef = useRef(inventoryOpen);
+  inventoryOpenRef.current = inventoryOpen;
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const pickerForRef = useRef(pickerFor);
+  pickerForRef.current = pickerFor;
+
   const handleRef = useRef<RoomPlaytestHandle | null>(null);
   const now = useCallback(() => Date.now(), []);
   const rerender = useCallback(() => setVersion((value) => value + 1), []);
@@ -231,24 +247,27 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
 
   // ESC cierra el diálogo (y, en cascada, el inventario y los menús); I abre o
   // cierra el inventario (specs/04 §8-UI).
+  // F-35: registrado una sola vez (deps vacías); lee el estado más reciente
+  // desde los refs — antes se re-registraba en cada cambio de
+  // `dialog`/`pickerFor`/`selected`/`inventoryOpen`/`panel`/`introOpen`.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        if (dialog) {
+        if (dialogRef.current) {
           setDialog(null);
-        } else if (pickerFor) {
+        } else if (pickerForRef.current) {
           setPickerFor(null);
-        } else if (selected) {
+        } else if (selectedRef.current) {
           setSelected(null);
-        } else if (inventoryOpen) {
+        } else if (inventoryOpenRef.current) {
           setInventoryOpen(false);
-        } else if (panel) {
+        } else if (panelRef.current) {
           setPanel(null);
         }
         return;
       }
       if (event.key === "i" || event.key === "I") {
-        if (introOpen || panel !== null) return;
+        if (isIntroOpen(dialogRef.current) || panelRef.current !== null) return;
         setSelected(null);
         setPickerFor(null);
         setInventoryOpen((open) => !open);
@@ -256,7 +275,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [dialog, pickerFor, selected, inventoryOpen, panel, introOpen]);
+  }, []);
 
   const puzzleById = useCallback(
     (puzzleId: string): PuzzleDefinition | undefined =>

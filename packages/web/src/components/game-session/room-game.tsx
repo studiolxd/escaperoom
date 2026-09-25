@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
@@ -58,6 +58,14 @@ export function RoomGame({
     }
   }, [roomId]);
 
+  // F-36: objeto estable por `(token, joinRoomId)` — sin memoizar, un objeto
+  // nuevo en cada render de `RoomGame` reprocesaba el `gameToken`
+  // (`JSON.stringify` en `use-game-connection.ts`) aunque no cambiara nada.
+  const target = useMemo(
+    () => ({ kind: "game" as const, gameToken: token ?? "", ...(joinRoomId ? { roomId: joinRoomId } : {}) }),
+    [token, joinRoomId],
+  );
+
   if (token === undefined) {
     return <p className="p-4 text-sm text-white/70">{t("status.connecting")}</p>;
   }
@@ -69,12 +77,6 @@ export function RoomGame({
     );
   }
   return (
-    <NetworkGame
-      model={model}
-      pack={pack}
-      target={{ kind: "game", gameToken: token, ...(joinRoomId ? { roomId: joinRoomId } : {}) }}
-      subtitle={subtitle}
-      signInHref={signInHref}
-    />
+    <NetworkGame model={model} pack={pack} target={target} subtitle={subtitle} signInHref={signInHref} />
   );
 }
