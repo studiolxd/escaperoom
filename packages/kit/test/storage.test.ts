@@ -44,7 +44,7 @@ describe("createStorage", () => {
     expect(storage.endpoint).toBeUndefined();
   });
 
-  it("uses path-style addressing when a custom endpoint is set (MinIO/S3-compatible)", async () => {
+  it("uses path-style addressing when a custom endpoint is set (SeaweedFS/S3-compatible)", async () => {
     const storage = createStorage(baseEnv);
     await storage.getSignedReadUrl("uploads/u1/x.png");
     expect(s3.options).toHaveLength(1);
@@ -70,11 +70,8 @@ describe("createStorage", () => {
     expect(s3.options[0]!.forcePathStyle).toBe(true);
   });
 
-  it("signs upload and read URLs when a bucket is configured", async () => {
+  it("signs read URLs when a bucket is configured", async () => {
     const storage = createStorage(baseEnv);
-    await expect(
-      storage.getUploadUrl({ key: "uploads/u1/x.png", contentType: "image/png" }),
-    ).resolves.toBe("https://signed.example/object");
     await expect(storage.getSignedReadUrl("uploads/u1/x.png")).resolves.toBe(
       "https://signed.example/object",
     );
@@ -83,9 +80,6 @@ describe("createStorage", () => {
   it("throws when STORAGE_BUCKET is missing (no bucket, no signed URL)", async () => {
     const storage = createStorage({ ...baseEnv, STORAGE_BUCKET: undefined });
     await expect(storage.getSignedReadUrl("k")).rejects.toThrow(/STORAGE_BUCKET/);
-    await expect(storage.getUploadUrl({ key: "k", contentType: "image/png" })).rejects.toThrow(
-      /STORAGE_BUCKET/,
-    );
   });
 
   it("resolves a stored image to the fallback when there is no key", async () => {

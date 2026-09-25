@@ -1,8 +1,8 @@
 # Infra local
 
 Dependencias de desarrollo en Docker (adaptado de SLXD, ADR-017). Las apps
-corren en el host con `pnpm dev`; esto solo levanta Postgres, Redis, MinIO,
-LiveKit y coturn.
+corren en el host con `pnpm dev`; esto solo levanta Postgres, Redis,
+SeaweedFS, LiveKit y coturn.
 
 ```bash
 pnpm infra:up      # docker compose up -d
@@ -51,16 +51,16 @@ pnpm dev:env && pnpm db:reset
 
 ## Puertos (no estándar, para no chocar con otras suites)
 
-| Servicio            | Host                    | Contenedor  |
-| ------------------- | ----------------------- | ----------- |
-| Postgres            | 55433                   | 5432        |
-| PgBouncer (app)     | 56433                   | 5432        |
-| Redis               | 56380                   | 6379        |
-| MinIO API / consola | 9002 / 59002            | 9000 / 9001 |
-| LiveKit (ws)        | 7880                    | 7880        |
-| LiveKit RTC         | 7881 (tcp) / 7882 (udp) | idem        |
-| coturn              | 3478 (tcp/udp) / 5349   | idem        |
-| Uptime Kuma         | 59003                   | 3001        |
+| Servicio                | Host                    | Contenedor  |
+| ------------------------ | ----------------------- | ----------- |
+| Postgres                | 55433                   | 5432        |
+| PgBouncer (app)         | 56433                   | 5432        |
+| Redis                   | 56380                   | 6379        |
+| SeaweedFS API S3 / UI filer | 9002 / 59002         | 8333 / 8888 |
+| LiveKit (ws)            | 7880                    | 7880        |
+| LiveKit RTC             | 7881 (tcp) / 7882 (udp) | idem        |
+| coturn                  | 3478 (tcp/udp) / 5349   | idem        |
+| Uptime Kuma             | 59003                   | 3001        |
 
 ## URLs
 
@@ -68,7 +68,11 @@ pnpm dev:env && pnpm db:reset
 - PgBouncer (opcional, paridad de pooling): `postgresql://postgres:postgres@localhost:56433/escaperoom`
 - Redis: `redis://:redis_dev_only@localhost:56380` (con `requirepass`, ver
   `REDIS_PASSWORD` en `docker-compose.dev.yml`; E-13)
-- MinIO: `http://localhost:9002` (usuario/clave `minioadmin`)
+- SeaweedFS (S3): `http://localhost:9002` (usuario/clave `minioadmin`, fijas en
+  `infra/seaweedfs/s3.json`) — mismo endpoint, credenciales y bucket
+  (`escaperoom-assets`) que tenía MinIO, así que ningún `.env` existente
+  necesita cambios (ADR-030). UI del filer (navegar los objetos subidos, sin
+  login propio): `http://localhost:59002`.
 
 Todos los puertos de la tabla anterior están publicados en `127.0.0.1` (E-13):
 solo son alcanzables desde el propio host, nunca desde fuera de la máquina.
@@ -77,6 +81,29 @@ solo son alcanzables desde el propio host, nunca desde fuera de la máquina.
 > paridad de pooling, pero tras un `migrate reset` hay que reiniciarlo
 > (`docker compose -f infra/docker-compose.dev.yml restart pgbouncer`) porque
 > sus planes cacheados referencian los ENUMs viejos.
+
+## Migración: MinIO → SeaweedFS (2026-09-25, ADR-030)
+
+MinIO dejó de estar disponible para desarrollo (imagen borrada de Docker Hub y
+quay.io el 2026-09-11, repo archivado desde 2026-02): el servicio `minio` +
+`minio-init` del compose se sustituyó por `seaweedfs` + `seaweedfs-init`.
+
+- **Nada que reconfigurar**: mismo endpoint (`http://localhost:9002`), mismas
+  credenciales de dev (`minioadmin`/`minioadmin`) y mismo bucket
+  (`escaperoom-assets`). Los `.env` de cada paquete (`STORAGE_*`) siguen
+  funcionando sin tocarlos.
+- **Los datos no se migran**: el volumen `minio-data` (si lo tenías) se retiró
+  del compose pero **no se ha borrado** — sigue en Docker si quieres rescatar
+  algo a mano (`docker volume ls | grep minio-data`); SeaweedFS arranca con un
+  volumen (`seaweedfs-data`) vacío. Son datos de desarrollo (assets de prueba),
+  no hace falta conservarlos.
+- **`pnpm infra:up`** crea el contenedor nuevo la primera vez; si ya tenías la
+  infra levantada, `docker compose -f infra/docker-compose.dev.yml up -d`
+  basta (no hace falta `--force-recreate`, el contenedor `minio` simplemente
+  deja de declararse).
+- **UI**: SeaweedFS no tiene una consola tipo MinIO; el filer sirve un
+  navegador de ficheros de solo lectura (sin login) en
+  `http://localhost:59002` — mismo puerto que ocupaba la consola de MinIO.
 
 ## Migración: Redis con contraseña (E-13)
 

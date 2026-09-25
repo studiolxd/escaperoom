@@ -17,21 +17,21 @@ import { readStorageEnv, type KitStorageEnv } from "../env";
 //
 // El bucket PRIVADO es el supuesto: las lecturas se sirven con URLs firmadas de
 // vida corta.
-
-export type GetUploadUrlOptions = {
-  key: string;
-  contentType: string;
-  /** Upload URL TTL in seconds (default: 300 = 5 minutes) */
-  expiresIn?: number;
-};
+//
+// R2 (producción) no admite presigned POST (formularios / POST policy, con
+// `content-length-range` u otras condiciones): solo firma GET/HEAD/PUT/DELETE
+// (https://developers.cloudflare.com/r2/api/s3/presigned-urls/). Por eso este
+// módulo no expone un helper de subida directa desde el navegador vía POST
+// policy — si hace falta subida directa, usar un PUT presignado (con
+// `Content-Length` verificado en el propio objeto tras subir, ya que el PUT
+// presignado no admite condiciones de tamaño) y NO añadir `createPresignedPost`
+// ni equivalentes: fallaría en producción contra R2.
 
 export type Storage = {
   provider: KitStorageEnv["STORAGE_PROVIDER"];
   bucket: string | undefined;
   region: string;
   endpoint: string | undefined;
-  /** Presigned PUT URL for direct browser-to-storage uploads. */
-  getUploadUrl(opts: GetUploadUrlOptions): Promise<string>;
   /** Short-lived presigned GET URL for a private object. */
   getSignedReadUrl(key: string, opts?: { expiresIn?: number }): Promise<string>;
   /** Batch version, keyed by the input key. */
@@ -73,7 +73,7 @@ export function createStorage(env: KitStorageEnv): Storage {
               secretAccessKey: env.STORAGE_SECRET_ACCESS_KEY,
             }
           : undefined,
-      // Path-style whenever there is a custom endpoint (MinIO, R2 or any
+      // Path-style whenever there is a custom endpoint (SeaweedFS, R2 or any
       // S3-compatible), where virtual-hosted style can't resolve the bucket.
       // Without an endpoint (AWS S3) it stays off, which is the default.
       forcePathStyle: Boolean(env.STORAGE_ENDPOINT) || env.STORAGE_PROVIDER === "r2",
@@ -87,15 +87,6 @@ export function createStorage(env: KitStorageEnv): Storage {
   function requireBucket(): string {
     if (!bucket) throw new Error("STORAGE_BUCKET is not set");
     return bucket;
-  }
-
-  async function getUploadUrl(opts: GetUploadUrlOptions): Promise<string> {
-    const command = new PutObjectCommand({
-      Bucket: requireBucket(),
-      Key: opts.key,
-      ContentType: opts.contentType,
-    });
-    return getSignedUrl(getClient(), command, { expiresIn: opts.expiresIn ?? 300 });
   }
 
   async function getSignedReadUrl(key: string, opts: { expiresIn?: number } = {}): Promise<string> {
@@ -194,7 +185,6 @@ export function createStorage(env: KitStorageEnv): Storage {
     bucket,
     region: env.STORAGE_REGION,
     endpoint: env.STORAGE_ENDPOINT || undefined,
-    getUploadUrl,
     getSignedReadUrl,
     getSignedReadUrls,
     putObject,

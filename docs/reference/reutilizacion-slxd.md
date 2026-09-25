@@ -52,7 +52,9 @@ Reglas:
 
 ## 3. Poda y añadidos del compose local
 
-- **Se conserva**: Postgres, Redis, MinIO (+ init de buckets), PgBouncer.
+- **Se conserva**: Postgres, Redis, MinIO (+ init de buckets), PgBouncer. MinIO
+  se sustituyó por SeaweedFS en 2026-09-25 (ADR-030); el resto de esta tabla
+  describe el estado en que se importó de SLXD, no el actual.
 - **Se poda**: ClickHouse, Gatus/`gatus-proxy`.
 - **Se añade**: **LiveKit** self-hosted y **coturn** (specs/12), que SLXD no tiene.
 

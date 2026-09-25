@@ -668,3 +668,43 @@ fija por proceso; se descartó por complejidad sin beneficio claro al volumen ac
 con "mejor esfuerzo, la fuente de verdad ya está en Postgres". Deduplicar solo por idempotencia de
 Yjs sin filtrar por `originId` — funciona (aplicar dos veces el mismo update Yjs es un no-op), pero
 depende de un detalle interno de Yjs en vez de una invariante explícita del protocolo de sync.
+
+---
+
+## ADR-030 — Storage S3 de desarrollo: SeaweedFS en vez de MinIO (2026-09-25)
+
+**Contexto:** MinIO Inc. dejó de publicar imágenes de contenedor listas para usar: `minio/minio` y
+`minio/mc` pasaron a "solo fuente" el 2026-10-15 según su propio aviso, el repo se archivó en
+2026-02, y el 2026-09-11 borraron ambas imágenes de Docker Hub (`quay.io/minio/minio` también
+devuelve 401). `infra/docker-compose.dev.yml` no puede levantar `minio`/`minio-init` en ninguna
+máquina nueva desde entonces. En producción se usa **Cloudflare R2** (API S3) vía
+`packages/kit/src/storage` — eso no cambia.
+
+**Decisión:** en desarrollo local y en CI, sustituir MinIO por **SeaweedFS**
+(`chrislusf/seaweedfs`, servidor S3 embebido, imagen fijada por tag+digest) manteniendo el mismo
+contrato que veían los desarrolladores: mismo endpoint (`http://localhost:9002`), mismas
+credenciales de dev (`minioadmin`/`minioadmin`, fijas en `infra/seaweedfs/s3.json`, versionado) y
+mismo bucket (`escaperoom-assets`). Ningún `.env` existente necesita tocarse. R2 real queda
+reservado a **staging** (y producción), nunca a dev local: así se prueba de verdad la superficie S3
+de R2 antes de desplegar. El job `verify` de CI arranca SeaweedFS con `docker run` (no como
+`services:` de GitHub Actions: ese bloque no admite pasar el `CMD` que necesita `weed server -s3`) y
+corre ahí los `*.integration.test.ts` de storage que antes se saltaban siempre (E-14).
+
+**R2 no admite presigned POST** (formularios con `content-length-range` u otras condiciones): solo
+firma GET/HEAD/PUT/DELETE. Se aprovechó el cambio para borrar `getUploadUrl` de
+`packages/kit/src/storage/index.ts` (E-17 de la auditoría de 2026-09-24: sin consumidores) y dejar
+un comentario explícito en el módulo para que nadie vuelva a añadir un presigned POST — funcionaría
+contra SeaweedFS/MinIO en dev y fallaría en cuanto tocara R2 en staging/producción. Se revisó el
+resto del código en busca de otras operaciones que R2 no soporta (ACLs por objeto, `CopyObject`
+entre otras): no hay ningún uso.
+
+**Consecuencias:** cualquier worktree nuevo puede volver a levantar `pnpm infra:up` sin depender de
+que Docker Hub siga sirviendo MinIO. El volumen `minio-data` se retiró del compose sin borrarlo (son
+datos de dev, no se migran); SeaweedFS arranca con su propio volumen (`seaweedfs-data`). La consola
+web de MinIO no tiene equivalente exacto: el filer de SeaweedFS sirve un navegador de ficheros de
+solo lectura en el mismo puerto (`59002`).
+
+**Alternativas descartadas:** `localstack` (mucho más pesado, emula todo AWS cuando solo hace falta
+S3); apuntar dev directamente a un bucket R2 real de staging (comparte datos entre desarrolladores,
+sin aislamiento por worktree, y arriesga cuota/factura de un servicio real por un entorno local);
+`garage` (S3-compatible más nuevo, con menos recorrido probado que SeaweedFS en este stack).
