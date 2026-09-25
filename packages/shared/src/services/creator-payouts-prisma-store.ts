@@ -10,14 +10,13 @@ import type { CreatorPayoutStore, PendingCreatorPayout } from "./creator-payouts
 export function createPrismaCreatorPayoutStore(prisma: PrismaClient): CreatorPayoutStore {
   return {
     async findPendingPayouts(limit): Promise<PendingCreatorPayout[]> {
-      // `payoutAttemptAt` primero (NULLS FIRST expresado como dos `orderBy`:
-      // Prisma no soporta `NULLS FIRST` directamente, pero ordenar por una
-      // columna nullable ascendente ya pone los `NULL` primero en Postgres —
-      // así que basta con `orderBy: [{ payoutAttemptAt: "asc" }, ...]`)
-      // evita que una compra bloqueada (creador sin onboarding) acapare
-      // `limit` para siempre: rota al fondo de la cola en cuanto se intenta,
-      // así que las compras nunca intentadas (o intentadas hace más tiempo)
-      // siempre entran antes (revisión de PR #135).
+      // `payoutAttemptAt` primero, con los `NULL` (nunca intentado) delante:
+      // en Postgres, `ORDER BY col ASC` pone los `NULL` al FINAL por defecto
+      // (`NULLS LAST` es el comportamiento implícito de `ASC`), así que un
+      // `orderBy: [{ payoutAttemptAt: "asc" }, ...]` a secas deja las compras
+      // NUNCA intentadas detrás de las ya intentadas y bloqueadas — la misma
+      // inanición que esto pretende arreglar (revisión de PR #135, segunda
+      // vuelta). Hay que pedir `nulls: "first"` explícitamente.
       const rows = await prisma.purchase.findMany({
         where: {
           purchaseType: { in: ["room", "room_license"] },
@@ -27,7 +26,7 @@ export function createPrismaCreatorPayoutStore(prisma: PrismaClient): CreatorPay
           roomVersionId: { not: null },
           stripePaymentIntentId: { not: null },
         },
-        orderBy: [{ payoutAttemptAt: "asc" }, { createdAt: "asc" }],
+        orderBy: [{ payoutAttemptAt: { sort: "asc", nulls: "first" } }, { createdAt: "asc" }],
         take: limit,
         select: {
           id: true,
