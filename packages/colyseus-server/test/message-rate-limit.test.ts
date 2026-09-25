@@ -65,6 +65,23 @@ describe("MessageRateLimiter", () => {
     expect(limiter.check("a", CHAT_MESSAGE, {})).toMatchObject({ ok: false, bucket: "*" });
   });
 
+  it("C-14: si el cubo por tipo rechaza, el total no se consume", () => {
+    const c = clock();
+    const limits = {
+      ...GAME_MESSAGE_RATE_LIMITS,
+      total: { max: 100, windowMs: 1_000 },
+    };
+    const limiter = new MessageRateLimiter(limits, c.now);
+    // Agota `interact` (4/s) sin acercarse al total (100/s).
+    for (let i = 0; i < 4; i += 1) expect(limiter.check("a", GAME_MESSAGES.interact, {}).ok).toBe(true);
+    for (let i = 0; i < 50; i += 1) {
+      expect(limiter.check("a", GAME_MESSAGES.interact, {})).toMatchObject({ ok: false, bucket: "interact" });
+    }
+    // El total solo descontó los 4 `interact` aceptados, no los 50 rechazados.
+    for (let i = 0; i < 96; i += 1) expect(limiter.check("a", CHAT_MESSAGE, {}).ok).toBe(true);
+    expect(limiter.check("a", CHAT_MESSAGE, {})).toMatchObject({ ok: false, bucket: "*" });
+  });
+
   it("puzzleIds inventados no hacen crecer el estado sin fin", () => {
     const c = clock();
     const limiter = new MessageRateLimiter(GAME_MESSAGE_RATE_LIMITS, c.now);

@@ -207,7 +207,9 @@ describe("joinToken", () => {
     expect(readJoinTokenConfig({ NODE_ENV: "production" })).toBeNull();
     expect(readJoinTokenConfig({ NODE_ENV: "production", JOIN_TOKEN_SECRET: "x" })).toEqual({
       secret: "x",
-      ttlSeconds: 900,
+      // C-1/C-2: por defecto sube al tope configurable (el mismo token sirve
+      // para reconectar durante toda la partida, specs/11 §8).
+      ttlSeconds: 7200,
     });
     expect(readJoinTokenConfig({ NODE_ENV: "development" })?.secret).toBe(DEV_JOIN_TOKEN_SECRET);
     expect(readJoinTokenConfig({ NODE_ENV: "test" })?.secret).toBe(DEV_JOIN_TOKEN_SECRET);

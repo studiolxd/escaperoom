@@ -73,6 +73,31 @@ export const GAME_MAX_STEP = 3;
 export const GAME_DOOR_REACH = 2;
 
 /**
+ * C-2 (auditoría 2026-09-24, ajuste de producto): mientras la partida está en
+ * el lobby (aún sin empezar), un desconectado libera su plaza a los 60 s —no
+ * hay nada que perder y así no queda un cupo fantasma bloqueado.
+ */
+export const LOBBY_RECONNECT_GRACE_SEC = 60;
+
+/**
+ * C-2: en juego (`playing`), la plaza —posición, inventario, `characterId`—
+ * se reserva hasta que la partida termina, no solo 60 s: quien vuelve
+ * recupera exactamente su jugador. El papel de **anfitrión**, en cambio, se
+ * reasigna a los `HOST_REASSIGN_GRACE_SEC` para no bloquear al resto del
+ * grupo; si el anfitrión original vuelve más tarde (antes del fin), recupera
+ * el puesto y el provisional lo pierde.
+ */
+export const HOST_REASSIGN_GRACE_SEC = 60;
+
+/**
+ * Fin de partida y cierre (specs/11 §8.1): tras `game_ended` ya no se admite
+ * ninguna reconexión (los tokens de plaza/reconexión dejan de servir para
+ * esta room) y la room se mantiene este margen para que todos vean la
+ * pantalla de resultados antes de desconectar a todos y destruirse.
+ */
+export const RESULTS_ROOM_LIFETIME_SEC = 5 * 60;
+
+/**
  * Mensajes de la `GameRoom` (specs/11 §4–6). Cliente → servidor: comandos; el
  * servidor responde al emisor (`attempt_result`, `puzzle_view`,
  * `split_fragments`, `hint_delivered`, `error`) o difunde a todos

@@ -194,12 +194,3 @@ function clearExpiredLockout(state: CodeLockState, now: number): CodeLockState {
 function normalizeCode(value: string): string {
   return value.trim();
 }
-
-/**
- * Alias sin prefijo de `toCodeLockPublicView`/`isCodeLockSolvable` (D-20).
- * `packages/shared/src/session/room-session.ts` (bloque 4, en curso en
- * paralelo) todavía importa los nombres antiguos; se retiran cuando ese
- * bloque haga el rename en su propia PR.
- */
-export const toPublicView = toCodeLockPublicView;
-export const isSolvableGiven = isCodeLockSolvable;

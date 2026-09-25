@@ -17,11 +17,16 @@ export function createPrismaGameAccessStore(prisma: PrismaClient): GameAccessSto
     },
 
     async claimPlaySession(purchaseId, colyseusRoomId): Promise<boolean> {
+      // Remate de #140: un `gameToken` sigue vigente (no caduca hasta 15 min
+      // tras emitirse) aunque la compra se reembolse justo después. Sin este
+      // filtro, esa compra reembolsada todavía podía reclamar y arrancar una
+      // partida con la misma `purchaseId`.
       const updated = await prisma.$executeRaw`
         UPDATE "purchase"
            SET "playSessionStartedAt" = now(),
                "playSessionColyseusId" = ${colyseusRoomId}
          WHERE id = ${purchaseId}::uuid
+           AND status = 'succeeded'
            AND "playSessionEndedAt" IS NULL
            AND (
              "playSessionStartedAt" IS NULL

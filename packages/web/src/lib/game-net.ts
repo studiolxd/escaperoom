@@ -25,7 +25,22 @@ import {
  */
 
 export type GameJoinTarget =
-  | { kind: "game"; roomId?: string; packageId?: string; gameToken?: string }
+  | {
+      kind: "game";
+      roomId?: string;
+      packageId?: string;
+      gameToken?: string;
+      /**
+       * Identidad de plaza estable por navegador (C-2, ajuste 2026-09-25): un
+       * id aleatorio guardado en `localStorage` (`lib/game-reconnect.ts`), no
+       * ligado a ninguna cuenta. La `GameRoom` desnuda no tiene `playerId`
+       * (a diferencia de `EventRoom`, con el del `joinToken`), así que sin
+       * esto recargar o cerrar y reabrir la pestaña entraba como jugador
+       * NUEVO mientras la plaza antigua quedaba reservada vacía hasta el fin
+       * de la partida. Nunca se expone a otros clientes de la room.
+       */
+      seatKey?: string;
+    }
   | { kind: "playtest"; playtestId: string; token: string }
   | { kind: "event"; sessionId: string; joinToken: string }
   | { kind: "spectate"; sessionId: string; spectatorToken: string };
@@ -67,6 +82,7 @@ export function joinOptions(
     ...base,
     ...(target.gameToken ? { gameToken: target.gameToken } : {}),
     ...(target.roomId || !target.packageId ? {} : { packageId: target.packageId }),
+    ...(target.seatKey ? { seatKey: target.seatKey } : {}),
   };
 }
 

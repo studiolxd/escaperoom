@@ -145,6 +145,36 @@ describe("GameRoom — Rey Aldric sobre Colyseus", () => {
     await expect.poll(() => b.state.players.get(a.sessionId)?.roomId).toBe("bodega");
   });
 
+  it("C-6: cruzar en sentido inverso también exige estar cerca de la puerta declarada", async () => {
+    const { room, a, b } = await startGame();
+    await solvePlates(room, a, b);
+    await enterBodega(room, a);
+
+    // La puerta ("puerta-bodega") solo está declarada en el lado del salón;
+    // cruzar en el sentido inverso (bodega → salón) también exige estar
+    // cerca de esa posición, no solo tener la puerta abierta.
+    const rejectedBack = a.waitForMessage(ERROR_MESSAGE);
+    a.send(GAME_MESSAGES.move, { x: 0, y: 0, roomId: "salon-trono" });
+    expect((await rejectedBack).code).toBe(GAME_ERRORS.roomLocked);
+    // Deja pasar la ventana del rate limit (10 `move`/s) antes de la ráfaga
+    // del `walk`: no es lo que prueba este test.
+    await new Promise((resolve) => setTimeout(resolve, 1050));
+    await walk(room, a, { x: 10, y: 11 });
+    a.send(GAME_MESSAGES.move, { x: 0, y: 0, roomId: "salon-trono" });
+    await expect.poll(() => room.state.players.get(a.sessionId)?.roomId).toBe("salon-trono");
+  });
+
+  it("C-7: hint_request de un puzzle locked de otra fase se rechaza sin dar pistas", async () => {
+    const { room, a, b } = await startGame();
+    await solvePlates(room, a, b);
+    await enterBodega(room, a);
+    await expect.poll(() => room.state.puzzles.get("p-reja-mirillas")?.state).toBe("locked");
+
+    const rejected = a.waitForMessage(ERROR_MESSAGE);
+    a.send(GAME_MESSAGES.hintRequest, { puzzleId: "p-reja-mirillas" });
+    expect((await rejected).code).toBe(GAME_ERRORS.notAvailable);
+  });
+
   it("el inventario y los candados se validan en el servidor sin filtrar el código", async () => {
     const { room, a, b } = await startGame();
 

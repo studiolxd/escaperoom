@@ -219,8 +219,10 @@ solo cuentan en `groupingMode: free` (el asistente elige); sin `sessionId` en `f
 422 `SESSION_REQUIRED` con `sessions: [{ id, name, capacity, available }]` elegibles. Respuesta
 `{ eventId, sessionId, groupId, colyseusEndpoint, roomName: "event", joinToken, expiresAt, player }`.
 El invitado sin cuenta recibe una identidad efímera `guest:<uuid>` que solo vive en el `joinToken`
-(JWT HS256, `JOIN_TOKEN_SECRET` compartido con Colyseus, 15 min por defecto). La room `event` de
-Colyseus rechaza el `join` sin token válido, caducado o de otra sesión (`JOIN_TOKEN_*`).
+(JWT HS256, `JOIN_TOKEN_SECRET` compartido con Colyseus, 2 h por defecto — specs/11 §8: el mismo
+token sirve para el `join` inicial y para volver a la MISMA plaza durante toda la partida; ajustable
+con `JOIN_TOKEN_TTL_SECONDS`). La room `event` de Colyseus rechaza el `join` sin token válido,
+caducado o de otra sesión (`JOIN_TOKEN_*`).
 
 **Panel del organizador (ticket 5.9).** Solo el organizador del evento (401 sin sesión, 403 otro
 usuario, 404 evento inexistente). El dashboard cruza Postgres (sesiones con su ocupación, claves por

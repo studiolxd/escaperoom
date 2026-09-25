@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { invitePath, sanitizePlayerName, type GameJoinTarget } from "@/lib/game-net";
+import { readGameReconnect } from "@/lib/game-reconnect";
 import { ConnectionBadge } from "./connection-badge";
 import { GameSessionShell } from "./game-session-shell";
 import { useGameConnection } from "./use-game-connection";
@@ -61,12 +62,23 @@ export function NetworkGame({
 
   useEffect(() => {
     setOrigin(window.location.origin);
+    let stored = "";
     try {
-      setDraftName(window.localStorage.getItem(NAME_STORAGE_KEY) ?? "");
+      stored = window.localStorage.getItem(NAME_STORAGE_KEY) ?? "";
     } catch {
       // Sin almacenamiento (modo privado): se pide el nombre cada vez.
     }
-  }, []);
+    setDraftName(stored);
+    // C-2 (ajuste 2026-09-25, revisión de la coordinadora sobre la PR #146):
+    // recargar la página o cerrar y reabrir la pestaña a mitad de partida no
+    // debe volver a pedir el nombre si ya hay una reconexión guardada para
+    // esta room — si no, nunca se llega a `useGameConnection`, que es quien
+    // intenta `client.reconnect()`/el `seatKey`, y el jugador entra como
+    // nuevo mientras su plaza antigua queda reservada vacía hasta el fin.
+    if (target.kind === "game" && target.roomId && readGameReconnect(target.roomId)) {
+      setName(sanitizePlayerName(stored) ?? "");
+    }
+  }, [target]);
 
   const onJoined = useCallback(
     (roomId: string) => {

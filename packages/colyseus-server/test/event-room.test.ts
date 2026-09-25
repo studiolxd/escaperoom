@@ -219,6 +219,69 @@ describe("room de evento con joinToken", () => {
     ).toContain(JOIN_TOKEN_ERRORS.invalid);
   });
 
+  it("C-1: dos pestañas con el mismo joinToken → un único jugador que hereda plaza e inventario", async () => {
+    const sessionId = "40000000-0000-4000-8000-000000000001";
+    const token = tokenFor(sessionId);
+
+    const tabA = await joinEvent({ sessionId, joinToken: token });
+    await tabA.waitForInitialState();
+    const firstSessionId = tabA.sessionId;
+    const closed = new Promise<number>((resolve) => tabA.onLeave(resolve));
+
+    // La MISMA pestaña con el MISMO token vuelve a entrar (segunda pestaña, o
+    // recarga): el servidor la trata como reconexión, no como un jugador más.
+    const tabB = await colyseus.sdk.joinById(tabA.roomId, { sessionId, joinToken: token });
+    await tabB.waitForInitialState();
+
+    // La pestaña anterior se expulsa sin gracia (ya se migró su estado).
+    await closed;
+    const room = colyseus.getRoomById<EventRoom>(tabA.roomId);
+    expect(room.state.players.has(firstSessionId)).toBe(false);
+    expect(room.state.players.size).toBe(1);
+    expect(room.state.players.get(tabB.sessionId)?.name).toBe("Eva");
+    expect(room.state.hostId).toBe(tabB.sessionId);
+  });
+
+  it("C-1+C-15: el cupo no cuenta una plaza ya ocupada; con el cupo lleno solo entra quien ya tenía plaza", async () => {
+    const { event, sessions } = await eventWithKeys();
+    const sessionId = sessions[0]!.id;
+    const tokenForPlayer = (playerId: string) =>
+      signJoinToken(
+        DEV_JOIN_TOKEN_SECRET,
+        { playerId, displayName: playerId, eventId: event.id, sessionId, groupId: null },
+        { now: Date.now(), expiresAt: Date.now() + 60_000 },
+      );
+
+    const clients = [];
+    for (let i = 0; i < 4; i += 1) {
+      // El paquete de Rey Aldric admite 4 jugadores (meta.players.max).
+      clients.push(await joinEvent({ sessionId, joinToken: tokenForPlayer(`guest:${i}`) }));
+    }
+    await Promise.all(clients.map((c) => c.waitForInitialState()));
+    const room = colyseus.getRoomById<EventRoom>(clients[0]!.roomId);
+    await expect.poll(() => room.state.players.size).toBe(4);
+
+    // Lleno: un jugador nuevo (identidad nunca vista) no entra.
+    expect(
+      await joinError(
+        colyseus.sdk.joinById(clients[0]!.roomId, {
+          sessionId,
+          joinToken: tokenForPlayer("guest:nuevo"),
+        }),
+      ),
+    ).toContain(JOIN_TOKEN_ERRORS.sessionFull);
+
+    // La MISMA identidad reentra (pestaña reabierta) pese al cupo lleno.
+    const firstSessionId = clients[0]!.sessionId;
+    const rejoin = await colyseus.sdk.joinById(clients[0]!.roomId, {
+      sessionId,
+      joinToken: tokenForPlayer("guest:0"),
+    });
+    await rejoin.waitForInitialState();
+    expect(room.state.players.size).toBe(4);
+    expect(room.state.players.has(firstSessionId)).toBe(false);
+  });
+
   it("la GameRoom del fixture sigue entrando sin joinToken (con gameToken de prueba, C-4)", async () => {
     const client = await colyseus.sdk.joinOrCreate<GameRoomState>(GAME_ROOM_NAME, {
       gameToken: devTestGameToken(),
