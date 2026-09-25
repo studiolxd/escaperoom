@@ -799,13 +799,13 @@
     "reviewsHeading": "Reseñas",
     "noReviews": "Aún no hay reseñas de esta sala.",
     "moreReviews": "Ver más reseñas",
-    "stars": "{rating} de 5 estrellas"
+    "stars": "{rating, number} de 5 estrellas"
   },
   "Reviews": {
     "formHeading": "Tu reseña",
     "editHeading": "Edita tu reseña",
     "ratingLabel": "Valoración",
-    "star": "{n, plural, one {# estrella} other {# estrellas}}",
+    "ratingOption": "{n, number} de 5 estrellas",
     "textLabel": "Comentario (opcional)",
     "submit": "Publicar reseña",
     "update": "Guardar cambios",

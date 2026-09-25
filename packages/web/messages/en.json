@@ -789,13 +789,13 @@
     "reviewsHeading": "Reviews",
     "noReviews": "This room has no reviews yet.",
     "moreReviews": "See more reviews",
-    "stars": "{rating} out of 5 stars"
+    "stars": "{rating, number} out of 5 stars"
   },
   "Reviews": {
     "formHeading": "Your review",
     "editHeading": "Edit your review",
     "ratingLabel": "Rating",
-    "star": "{n, plural, one {# star} other {# stars}}",
+    "ratingOption": "{n, number} out of 5 stars",
     "textLabel": "Comment (optional)",
     "submit": "Post review",
     "update": "Save changes",

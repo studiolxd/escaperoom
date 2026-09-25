@@ -750,13 +750,13 @@
     "reviewsHeading": "Avis",
     "noReviews": "Cette salle n'a pas encore d'avis.",
     "moreReviews": "Voir plus d'avis",
-    "stars": "{rating} étoiles sur 5"
+    "stars": "{rating, number} étoiles sur 5"
   },
   "Reviews": {
     "formHeading": "Votre avis",
     "editHeading": "Modifier votre avis",
     "ratingLabel": "Note",
-    "star": "{n, plural, one {# étoile} other {# étoiles}}",
+    "ratingOption": "{n, number} étoiles sur 5",
     "textLabel": "Commentaire (facultatif)",
     "submit": "Publier l'avis",
     "update": "Enregistrer",

@@ -31,13 +31,17 @@ describe("ReviewForm (F-7: radios de valoración con shadcn/ui)", () => {
     refresh.mockClear();
   });
 
-  it("pinta la valoración como un RadioGroup accesible de shadcn/ui (F-7), no radios sueltos", () => {
-    render(<ReviewForm roomId="sala-1" initial={{ canReview: true, reason: "ok", review: null }} />);
+  it("pinta la valoración como un RadioGroup accesible de shadcn/ui (F-7), con medios puntos (9 zonas)", () => {
+    render(
+      <ReviewForm roomId="sala-1" initial={{ canReview: true, reason: "ok", review: null }} />,
+    );
     expect(screen.getByRole("radiogroup")).toBeInTheDocument();
-    expect(screen.getAllByRole("radio")).toHaveLength(5);
+    // 1 estrella entera (mínimo, sin medio punto) + 4 estrellas partidas en dos
+    // = 9 valores válidos: {1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5}.
+    expect(screen.getAllByRole("radio")).toHaveLength(9);
   });
 
-  it("permite elegir una valoración por teclado y la envía en el POST", async () => {
+  it("permite elegir un medio punto por teclado y lo envía en el POST", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
       .mockResolvedValue(new Response(null, { status: 201 }));
@@ -47,10 +51,11 @@ describe("ReviewForm (F-7: radios de valoración con shadcn/ui)", () => {
     );
 
     const radios = screen.getAllByRole("radio");
-    const fourthStar = radios[3];
-    if (!fourthStar) throw new Error("se esperaban 5 radios");
-    await user.click(fourthStar);
-    expect(fourthStar).toHaveAttribute("aria-checked", "true");
+    // Orden de las zonas: 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5 — el índice 6 es 4.
+    const fourStars = radios[6];
+    if (!fourStars) throw new Error("se esperaban 9 radios");
+    await user.click(fourStars);
+    expect(fourStars).toHaveAttribute("aria-checked", "true");
 
     await user.click(screen.getByRole("button", { name: /submit/ }));
 
@@ -59,6 +64,30 @@ describe("ReviewForm (F-7: radios de valoración con shadcn/ui)", () => {
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({ rating: 4, text: "" }),
+      }),
+    );
+  });
+
+  it("también permite elegir un medio punto exacto (p. ej. 3.5)", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(null, { status: 201 }));
+    const user = userEvent.setup();
+    render(
+      <ReviewForm roomId="sala-1" initial={{ canReview: true, reason: "ok", review: null }} />,
+    );
+
+    const radios = screen.getAllByRole("radio");
+    const threeAndHalf = radios[5];
+    if (!threeAndHalf) throw new Error("se esperaban 9 radios");
+    await user.click(threeAndHalf);
+    await user.click(screen.getByRole("button", { name: /submit/ }));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/rooms/sala-1/reviews",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ rating: 3.5, text: "" }),
       }),
     );
   });
