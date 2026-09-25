@@ -4,6 +4,7 @@
  * sus dependencias se inyectan, de modo que se testean sin infraestructura.
  */
 export * from "./actor";
+export * from "./common";
 export * from "./catalog";
 export * from "./catalog-listing";
 export * from "./reviews";

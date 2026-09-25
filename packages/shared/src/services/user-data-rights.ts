@@ -1,4 +1,5 @@
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
+import { requireUser } from "./common";
 
 /**
  * Derechos RGPD/LOPDGDD del usuario sobre sus propios datos (ticket 6.2,
@@ -257,7 +258,7 @@ export function createUserDataRightsService(deps: {
   const now = deps.now ?? (() => new Date());
 
   async function requireProfile(actor: Actor): Promise<UserProfileRow> {
-    if (isAnonymous(actor)) throw new UserDataRightsError("UNAUTHORIZED", "No hay sesión");
+    requireUser(actor, UserDataRightsError);
     const profile = await store.findProfile(actor.userId);
     if (!profile) throw new UserDataRightsError("NOT_FOUND", "Usuario no encontrado");
     return profile;

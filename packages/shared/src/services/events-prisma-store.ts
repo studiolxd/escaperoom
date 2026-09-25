@@ -1,4 +1,5 @@
 import { Prisma, type PrismaClient } from "../../generated/client";
+import { createPrismaAdminDirectory } from "./admin-prisma-store";
 import type { EventConfig, EventPurchaseRef, EventRow, EventStore, EventSummary, ExpiryRule } from "./events";
 import type { PricingSnapshot } from "./pricing-tiers";
 
@@ -47,13 +48,7 @@ const json = (value: unknown) => value as Prisma.InputJsonValue;
  */
 export function createPrismaEventStore(prisma: PrismaClient): EventStore {
   return {
-    async isAdmin(userId) {
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { isAdmin: true },
-      });
-      return user?.isAdmin === true;
-    },
+    ...createPrismaAdminDirectory(prisma),
     async findRoomVersion(roomVersionId) {
       const row = await prisma.roomVersion.findFirst({
         where: { id: roomVersionId, room_roomVersion_roomIdToroom: { deletedAt: null } },

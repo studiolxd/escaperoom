@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { AdminError, parseOrThrow, requireAdmin, type AdminDirectory } from "./admin";
 import type { Actor } from "./actor";
+import { UUID_RE } from "./common";
 
 /**
  * Tramos de precio editables (`pricingTier`, specs/02 §3.2, specs/14 §8,
@@ -66,7 +67,6 @@ export type PricingQuote = {
   currency: string;
 };
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const players = z.number().int().min(1).max(100_000);
 const priceCents = z.number().int().min(0).max(1_000_000);

@@ -10,7 +10,8 @@ import {
   type AudioLibraryTrack,
 } from "../audio";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
+import { requireUser } from "./common";
 
 /**
  * Audio del creador (ticket 3.11, specs/15 §1 y §4, specs/17 §1): biblioteca
@@ -240,7 +241,7 @@ function parseOrThrow<S extends z.ZodType>(schema: S, input: unknown): z.output<
 }
 
 function requireSession(actor: Actor): void {
-  if (isAnonymous(actor)) throw new AudioError("UNAUTHORIZED", "No hay sesión");
+  requireUser(actor, AudioError);
 }
 
 function formatMb(bytes: number): string {

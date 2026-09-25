@@ -1,5 +1,5 @@
 import type { Actor } from "./actor";
-import { isAnonymous } from "./actor";
+import { requireUser } from "./common";
 
 /**
  * Ledger de créditos de plataforma (ticket 4.9, specs/14 §4, specs/15 §2). El
@@ -72,7 +72,7 @@ export class InsufficientCreditsError extends CreditError {
 }
 
 function requireSession(actor: Actor): void {
-  if (isAnonymous(actor)) throw new CreditError("UNAUTHORIZED", "No hay sesión");
+  requireUser(actor, CreditError);
 }
 
 export function createCreditsService(deps: { store: CreditAccountStore }) {
