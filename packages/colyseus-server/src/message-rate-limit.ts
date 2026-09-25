@@ -2,6 +2,7 @@ import {
   CHAT_RATE_LIMIT_EMPTY,
   checkChatRateLimit,
   type ChatRateLimitConfig,
+  type ChatRateLimitResult,
   type ChatRateLimitState,
 } from "@escaperoom/shared/chat";
 import { GAME_MESSAGES } from "./constants.js";
@@ -108,7 +109,15 @@ export class MessageRateLimiter {
     private readonly now: () => number = Date.now,
   ) {}
 
-  /** Registra un mensaje de `sessionId` y decide si se procesa. */
+  /**
+   * Registra un mensaje de `sessionId` y decide si se procesa.
+   *
+   * C-14: el cubo por tipo se evalúa PRIMERO (`peek`, sin tocar el estado); si
+   * rechaza, el cubo `total` ni se mira, así que un tipo que rechaza no le come
+   * cuota del total al resto de mensajes del jugador. Solo si el tipo pasa (o
+   * no tiene límite propio) se mira el `total`; si también pasa, se confirman
+   * (`commit`) los dos cubos a la vez.
+   */
   check(sessionId: string, type: string, payload: unknown): MessageRateDecision {
     const now = this.now();
     let client = this.clients.get(sessionId);
@@ -118,22 +127,24 @@ export class MessageRateLimiter {
     }
 
     const limit = this.limits.perType[type];
-    const rejected =
-      this.hit(client.buckets, TOTAL_BUCKET, this.limits.total, now) ??
-      (limit
-        ? this.hit(
-            client.buckets,
-            this.limits.perPuzzle.has(type) ? `${type}:${puzzleIdOf(payload)}` : type,
-            limit,
-            now,
-          )
-        : undefined);
-    if (!rejected) return { ok: true };
+    const typeKey = limit
+      ? this.limits.perPuzzle.has(type)
+        ? `${type}:${puzzleIdOf(payload)}`
+        : type
+      : undefined;
 
-    // Un aviso por tipo de mensaje y ventana: al que inunda no se le inunda de errores.
-    const notify = now >= (client.mutedUntil.get(type) ?? 0);
-    if (notify) client.mutedUntil.set(type, now + rejected.retryAfterMs);
-    return { ok: false, ...rejected, notify };
+    const typePeek = typeKey && limit ? this.peek(client.buckets, typeKey, limit, now) : undefined;
+    if (typePeek && !typePeek.ok) {
+      return this.reject(client, type, typeKey!, typePeek.retryAfterMs, now);
+    }
+    const totalPeek = this.peek(client.buckets, TOTAL_BUCKET, this.limits.total, now);
+    if (!totalPeek.ok) {
+      return this.reject(client, type, TOTAL_BUCKET, totalPeek.retryAfterMs, now);
+    }
+
+    this.commit(client.buckets, TOTAL_BUCKET, totalPeek, this.limits.total.windowMs);
+    if (typeKey && typePeek && limit) this.commit(client.buckets, typeKey, typePeek, limit.windowMs);
+    return { ok: true };
   }
 
   /** Olvida al jugador (al salir de la room). */
@@ -141,19 +152,39 @@ export class MessageRateLimiter {
     this.clients.delete(sessionId);
   }
 
-  /** Registra el mensaje en el cubo `key`; devuelve el rechazo, o `undefined` si cabe. */
-  private hit(
+  private reject(
+    client: ClientLimits,
+    type: string,
+    bucket: string,
+    retryAfterMs: number,
+    now: number,
+  ): MessageRateDecision {
+    // Un aviso por tipo de mensaje y ventana: al que inunda no se le inunda de errores.
+    const notify = now >= (client.mutedUntil.get(type) ?? 0);
+    if (notify) client.mutedUntil.set(type, now + retryAfterMs);
+    return { ok: false, bucket, retryAfterMs, notify };
+  }
+
+  /** Calcula si el mensaje cabría en el cubo `key`, sin confirmar el estado nuevo. */
+  private peek(
     buckets: Map<string, Bucket>,
     key: string,
     limit: MessageRateLimit,
     now: number,
-  ): { bucket: string; retryAfterMs: number } | undefined {
+  ): ChatRateLimitResult {
     if (!buckets.has(key) && buckets.size >= MAX_BUCKETS_PER_CLIENT) this.prune(buckets, now);
     const bucket = buckets.get(key) ?? { state: CHAT_RATE_LIMIT_EMPTY, windowMs: limit.windowMs };
-    const result = checkChatRateLimit(bucket.state, now, limit);
-    bucket.state = result.state;
-    buckets.set(key, bucket);
-    return result.ok ? undefined : { bucket: key, retryAfterMs: result.retryAfterMs };
+    return checkChatRateLimit(bucket.state, now, limit);
+  }
+
+  /** Confirma el estado calculado por `peek` en el cubo `key`. */
+  private commit(
+    buckets: Map<string, Bucket>,
+    key: string,
+    result: ChatRateLimitResult,
+    windowMs: number,
+  ): void {
+    buckets.set(key, { state: result.state, windowMs });
   }
 
   private prune(buckets: Map<string, Bucket>, now: number): void {
