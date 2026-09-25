@@ -21,6 +21,10 @@ jobs:
     # E-14: Postgres y Redis efímeros para que los *.integration.test.ts (los
     # stores de purga de PII y el DDL de particiones, entre otros) corran
     # también en CI en vez de saltarse (`describe.skipIf(!process.env.X)`).
+    # SeaweedFS (storage S3 local, 2026-09-25) va como `docker run` en un paso
+    # propio en vez de aquí: `services:` no admite pasar el CMD que necesita
+    # (`server -s3 -s3.config=...`), solo arranca la imagen con su
+    # ENTRYPOINT/CMD por defecto.
     services:
       postgres:
         image: postgres:17-alpine
@@ -51,6 +55,12 @@ jobs:
       REDIS_URL: redis://localhost:6379
       REDIS_PREFIX: escaperoom
       QUEUES_ENABLED: "true"
+      STORAGE_PROVIDER: s3
+      STORAGE_BUCKET: escaperoom-assets
+      STORAGE_REGION: us-east-1
+      STORAGE_ENDPOINT: http://localhost:9002
+      STORAGE_ACCESS_KEY_ID: minioadmin
+      STORAGE_SECRET_ACCESS_KEY: minioadmin
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
@@ -58,6 +68,27 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      # SeaweedFS: mismas claves fijas de dev que infra/docker-compose.dev.yml
+      # (infra/seaweedfs/s3.json), mismo endpoint que declaran las variables
+      # STORAGE_* de arriba. Bucket idempotente: si el `head-bucket` falla
+      # (siempre, en un runner efímero) crea el bucket con `s3 mb`.
+      - name: Arrancar SeaweedFS (S3 local para tests de integración)
+        run: |
+          set -e
+          docker run -d --name seaweedfs \
+            -p 9002:8333 \
+            -v "$PWD/infra/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro" \
+            chrislusf/seaweedfs:latest@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882 \
+            server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json -ip=0.0.0.0
+          timeout 30 sh -c 'until curl -sf http://localhost:9002/status >/dev/null; do sleep 1; done'
+          docker run --rm --network host \
+            -e AWS_ACCESS_KEY_ID=minioadmin -e AWS_SECRET_ACCESS_KEY=minioadmin -e AWS_DEFAULT_REGION=us-east-1 \
+            amazon/aws-cli:2.37.2@sha256:e38214027df83cb6631adcf980a092a98d1d29788789bff2a0f424e87e3da8ed \
+            s3api head-bucket --bucket escaperoom-assets --endpoint-url http://localhost:9002 2>/dev/null \
+          || docker run --rm --network host \
+            -e AWS_ACCESS_KEY_ID=minioadmin -e AWS_SECRET_ACCESS_KEY=minioadmin -e AWS_DEFAULT_REGION=us-east-1 \
+            amazon/aws-cli:2.37.2@sha256:e38214027df83cb6631adcf980a092a98d1d29788789bff2a0f424e87e3da8ed \
+            s3 mb s3://escaperoom-assets --endpoint-url http://localhost:9002
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @escaperoom/shared db:migrate
       - run: pnpm turbo run lint typecheck test build
