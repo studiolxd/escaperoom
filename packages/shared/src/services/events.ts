@@ -49,6 +49,11 @@ export type EventAudience = (typeof EVENT_AUDIENCES)[number];
 export const MAX_SIMULTANEOUS_SESSIONS = 10;
 /** Tope de cordura de jugadores por evento (el mismo que admiten los tramos). */
 export const MAX_EVENT_PLAYERS = 100_000;
+/**
+ * `gameSession.capacity` es `smallint` (auditoría 2026-09-24, B-17): el máximo
+ * de jugadores que puede aceptar una sola sesión repartida por `defaultSessions`.
+ */
+export const MAX_SESSION_CAPACITY = 32_767;
 export const MAX_EVENT_TITLE_LENGTH = 200;
 
 /** Reglas de caducidad de claves, combinables (specs/02 §4.3). */
@@ -354,6 +359,16 @@ const RECORDING_EDUCATIONAL = {
   path: ["recordingEnabled"],
 };
 
+/** `playersPlanned` debe caber en las sesiones que `defaultSessions` repartirá (B-17). */
+function fitsSessionCapacity(playersPlanned: number, maxSimultaneousSessions: number): boolean {
+  return playersPlanned <= maxSimultaneousSessions * MAX_SESSION_CAPACITY;
+}
+
+const PLAYERS_EXCEED_CAPACITY = {
+  message: `Con este número de sesiones, cada una superaría los ${MAX_SESSION_CAPACITY} jugadores permitidos`,
+  path: ["playersPlanned"],
+};
+
 /** Cuerpo de `POST /api/events` (specs/13 §6.1). */
 export const CreateEventInput = z
   .object({
@@ -372,7 +387,11 @@ export const CreateEventInput = z
     locale: z.enum(LOCALES).optional(),
   })
   .strict()
-  .refine((e) => !(e.recordingEnabled && e.audience === "educational"), RECORDING_EDUCATIONAL);
+  .refine((e) => !(e.recordingEnabled && e.audience === "educational"), RECORDING_EDUCATIONAL)
+  .refine(
+    (e) => fitsSessionCapacity(e.playersPlanned, e.maxSimultaneousSessions),
+    PLAYERS_EXCEED_CAPACITY,
+  );
 
 /** Cuerpo de `PATCH /api/events/:id`: cualquier subconjunto de la configuración. */
 export const UpdateEventInput = z
@@ -623,6 +642,17 @@ export function createEventService(deps: {
       if (recordingEnabled && audience === "educational") {
         throw new EventError("VALIDATION_ERROR", "Datos no válidos", [
           { path: "recordingEnabled", message: RECORDING_EDUCATIONAL.message },
+        ]);
+      }
+      if (
+        (data.playersPlanned !== undefined || data.maxSimultaneousSessions !== undefined) &&
+        !fitsSessionCapacity(
+          data.playersPlanned ?? event.playersPurchased,
+          data.maxSimultaneousSessions ?? event.maxSimultaneousSessions,
+        )
+      ) {
+        throw new EventError("VALIDATION_ERROR", "Datos no válidos", [
+          { path: "playersPlanned", message: PLAYERS_EXCEED_CAPACITY.message },
         ]);
       }
       if (data.playersPlanned !== undefined && data.playersPlanned !== event.playersPurchased) {
