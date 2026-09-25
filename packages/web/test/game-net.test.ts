@@ -184,6 +184,10 @@ describe("protocolo espejo del runtime = constantes del servidor", () => {
     expect(
       joinOptions({ kind: "game", packageId: "room-rey-aldric", gameToken: "g.t.k" }),
     ).toEqual({ packageId: "room-rey-aldric", gameToken: "g.t.k" });
+    // C-2 (ajuste 2026-09-25): el `seatKey` viaja igual que el `gameToken`.
+    expect(
+      joinOptions({ kind: "game", roomId: "abc", gameToken: "g.t.k", seatKey: "seat-a" }),
+    ).toEqual({ gameToken: "g.t.k", seatKey: "seat-a" });
     expect(joinOptions({ kind: "playtest", playtestId: "pt", token: "t~s" }, "")).toEqual({
       playtestId: "pt",
       token: "t~s",

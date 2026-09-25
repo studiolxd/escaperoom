@@ -15,6 +15,12 @@ import {
   type GameJoinTarget,
   type GameRoomHandle,
 } from "@/lib/game-net";
+import {
+  clearGameReconnect,
+  createSeatKey,
+  readGameReconnect,
+  writeGameReconnect,
+} from "@/lib/game-reconnect";
 import { parseMediaTokenPayload, type MediaRole } from "@/lib/media";
 import { useMediaStore } from "@/store/media-store";
 
@@ -29,6 +35,14 @@ export interface GameConnection {
   error: string | null;
   /** Vuelve a unirse (a la misma room si ya se había entrado en una). */
   retry: () => void;
+  /**
+   * Salida EXPLÍCITA y consentida (C-2, ajuste 2026-09-25): solo esto debe
+   * liberar la plaza durante la partida. Navegar dentro de la app, recargar
+   * o cerrar la pestaña NO llama a esto — el `useEffect` los trata como una
+   * caída de red (`leave(false)`), que conserva la plaza hasta el fin de la
+   * partida (specs/11 §8.1).
+   */
+  leaveGame: () => void;
 }
 
 export interface UseGameConnectionOptions {
@@ -75,6 +89,8 @@ export function useGameConnection({
   const joinedRoomRef = useRef<string | null>(null);
   const onJoinedRef = useRef(onJoined);
   onJoinedRef.current = onJoined;
+  /** Room activa; la usa `leaveGame` (salida explícita, fuera del efecto). */
+  const roomRef = useRef<GameRoomHandle | null>(null);
 
   const targetKey = JSON.stringify(target);
 
@@ -84,6 +100,15 @@ export function useGameConnection({
     let room: GameRoomHandle | null = null;
     let networkClient: NetworkGameClient | null = null;
     const parsedTarget = JSON.parse(targetKey) as GameJoinTarget;
+    // C-2 (ajuste 2026-09-25): `roomId` ya conocido (link de invitación, o una
+    // room propia creada antes en esta misma carga) es la clave de la
+    // reconexión persistida — la `GameRoom` desnuda no tiene `playerId`
+    // estable como `EventRoom`, así que sin esto recargar o cerrar y reabrir
+    // la pestaña entraba siempre como jugador nuevo.
+    const knownRoomId =
+      parsedTarget.kind === "game" ? parsedTarget.roomId ?? joinedRoomRef.current : undefined;
+    const stored = knownRoomId ? readGameReconnect(knownRoomId) : null;
+    const seatKey = parsedTarget.kind === "game" ? stored?.seatKey ?? createSeatKey() : undefined;
     const joinTarget: GameJoinTarget =
       parsedTarget.kind === "game" && joinedRoomRef.current
         ? { kind: "game", roomId: joinedRoomRef.current, gameToken: parsedTarget.gameToken }
@@ -93,51 +118,94 @@ export function useGameConnection({
     setError(null);
     useMediaStore.getState().reset();
 
-    joinGameRoom(new Client(url), joinTarget, name, characterId)
-      .then((joined) => {
-        if (disposed) {
-          void joined.leave();
-          return;
+    const colyseusClient = new Client(url);
+
+    const persistReconnect = (joined: GameRoomHandle) => {
+      if (parsedTarget.kind === "game" && seatKey) {
+        writeGameReconnect(joined.roomId, { seatKey, reconnectionToken: joined.reconnectionToken });
+      }
+    };
+
+    const afterJoined = (joined: GameRoomHandle) => {
+      if (disposed) {
+        void joined.leave(false);
+        return;
+      }
+      room = joined;
+      roomRef.current = joined;
+      joined.reconnection.maxRetries = AUTO_RECONNECT_RETRIES;
+      joinedRoomRef.current = joined.roomId;
+      persistReconnect(joined);
+      networkClient = createNetworkGameClient(joined);
+      // Observador (5.9): cliente de solo lectura y sin voz/webcam.
+      const spectating = parsedTarget.kind === "spectate";
+      networkClient.onEvent((event) => {
+        if (event.type === "media_token" && !disposed) {
+          useMediaStore.getState().setPayload(parseMediaTokenPayload(event.payload));
         }
-        room = joined;
-        joined.reconnection.maxRetries = AUTO_RECONNECT_RETRIES;
-        joinedRoomRef.current = joined.roomId;
-        networkClient = createNetworkGameClient(joined);
-        // Observador (5.9): cliente de solo lectura y sin voz/webcam.
-        const spectating = parsedTarget.kind === "spectate";
-        networkClient.onEvent((event) => {
-          if (event.type === "media_token" && !disposed) {
-            useMediaStore.getState().setPayload(parseMediaTokenPayload(event.payload));
-          }
-        });
-        if (!spectating) networkClient.requestMediaToken(role);
-        joined.onDrop(() => {
-          if (!disposed) setStatus("reconnecting");
-        });
-        joined.onReconnect(() => {
-          if (!disposed) setStatus("connected");
-        });
-        joined.onLeave((code) => {
-          if (disposed) return;
-          useMediaStore.getState().reset();
-          setStatus(isExpiredClose(code) ? "expired" : "disconnected");
-          if (!isConsentedClose(code) && !isExpiredClose(code)) setError(`close ${code}`);
-        });
-        setRoomId(joined.roomId);
-        setClient(spectating ? createReadOnlyGameClient(networkClient) : networkClient);
-        setStatus("connected");
-        onJoinedRef.current?.(joined.roomId);
-      })
-      .catch((reason: unknown) => {
+      });
+      if (!spectating) networkClient.requestMediaToken(role);
+      joined.onDrop(() => {
+        if (!disposed) setStatus("reconnecting");
+      });
+      joined.onReconnect(() => {
+        if (!disposed) {
+          setStatus("connected");
+          persistReconnect(joined); // el SDK renueva el token en cada reconexión.
+        }
+      });
+      joined.onLeave((code) => {
+        if (disposed) return;
+        useMediaStore.getState().reset();
+        setStatus(isExpiredClose(code) ? "expired" : "disconnected");
+        if (!isConsentedClose(code) && !isExpiredClose(code)) setError(`close ${code}`);
+        // Salida definitiva (consentida o gracia agotada/fin de partida): ya
+        // no hay nada que reconectar con esta room.
+        clearGameReconnect(joined.roomId);
+      });
+      setRoomId(joined.roomId);
+      setClient(spectating ? createReadOnlyGameClient(networkClient) : networkClient);
+      setStatus("connected");
+      onJoinedRef.current?.(joined.roomId);
+    };
+
+    /** Token de reconexión nativo de Colyseus (recupera la MISMA `sessionId`). */
+    const tryNativeReconnect = async (): Promise<GameRoomHandle | null> => {
+      if (!stored?.reconnectionToken) return null;
+      try {
+        return (await colyseusClient.reconnect(stored.reconnectionToken)) as GameRoomHandle;
+      } catch {
+        // Caducado, rechazado o de otra room: el `seatKey` es el respaldo.
+        if (knownRoomId) clearGameReconnect(knownRoomId);
+        return null;
+      }
+    };
+
+    void (async () => {
+      try {
+        const reconnected = await tryNativeReconnect();
+        const sendTarget: GameJoinTarget =
+          joinTarget.kind === "game" && seatKey ? { ...joinTarget, seatKey } : joinTarget;
+        const joined =
+          reconnected ?? (await joinGameRoom(colyseusClient, sendTarget, name, characterId));
+        afterJoined(joined);
+      } catch (reason: unknown) {
         if (disposed) return;
         setStatus("error");
         setError(reason instanceof Error ? reason.message : String(reason));
-      });
+      }
+    })();
 
     return () => {
       disposed = true;
       networkClient?.dispose();
-      void room?.leave(true);
+      // C-2 (ajuste 2026-09-25): NO consentida. Desmontar este efecto —
+      // navegar dentro de la app, o el `useEffect` reejecutándose por un
+      // cambio de opciones— no es un "salir de la partida" explícito; debe
+      // tratarse como una caída de red (conserva la plaza hasta el fin de la
+      // partida), no como un abandono que libera la plaza al instante.
+      void room?.leave(false);
+      roomRef.current = null;
       setClient(null);
       useMediaStore.getState().reset();
     };
@@ -145,5 +213,11 @@ export function useGameConnection({
 
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
-  return { status, client, roomId, error, retry };
+  const leaveGame = useCallback(() => {
+    const room = roomRef.current;
+    if (room) clearGameReconnect(room.roomId);
+    void room?.leave(true);
+  }, []);
+
+  return { status, client, roomId, error, retry, leaveGame };
 }

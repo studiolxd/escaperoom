@@ -127,6 +127,18 @@ export interface GameJoinOptions {
   name?: string;
   /** Personaje elegido en el lobby (A1); si falta o está ocupado, el servidor asigna uno. */
   characterId?: string;
+  /**
+   * Identidad de plaza estable por navegador (C-2, ajuste 2026-09-25): la
+   * `GameRoom` desnuda no tiene un `playerId` como `EventRoom` (el del
+   * `joinToken`) — varias personas legítimamente comparten el mismo
+   * `gameToken` de compra —, así que la reconexión por recarga o por cerrar y
+   * reabrir la pestaña, cuando el token de reconexión nativo de Colyseus se
+   * pierde o caduca, se resuelve con este id aleatorio que guarda el propio
+   * navegador (`localStorage`, nunca ligado a una cuenta). Mismo mecanismo
+   * que `EventRoom.activeSeatByPlayerId`/`adoptSeat`, con `seatKey` como
+   * identidad en vez de `playerId`.
+   */
+  seatKey?: string;
 }
 
 /** Tiempo y pistas de la partida en el instante de un hito. */
@@ -257,6 +269,15 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
    * partida, recupera el puesto y esto se limpia; `null` si nadie espera.
    */
   protected originalHostId: string | null = null;
+  /**
+   * C-2 (ajuste 2026-09-25): `seatKey` del navegador → `sessionId` activo con
+   * esa plaza (misma persona, pestaña recargada/reabierta sin el token de
+   * reconexión nativo de Colyseus). Análogo al `activeSeatByPlayerId` de
+   * `EventRoom`, pero para la `GameRoom` desnuda (sin `playerId`).
+   */
+  private readonly activeSeatByKey = new Map<string, string>();
+  /** Inverso de `activeSeatByKey`, para poder limpiarlo al purgar una plaza. */
+  private readonly seatKeyBySession = new Map<string, string>();
   /** Claims del `gameToken` que autorizó crear esta room (C-4/B-4); ausente en Playtest/Event. */
   protected gameAccess?: GameAccessClaims;
   /** Paquete resuelto por una compra B2C (B-4): pisa `resolveRoomPackage(options.packageId)`. */
@@ -599,6 +620,21 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   override onJoin(client: Client, options: GameJoinOptions = {}): void {
+    // C-2 (ajuste 2026-09-25): `seatKey` reconoce a quien ya tenía plaza en
+    // esta room —recarga o pestaña reabierta sin el token de reconexión
+    // nativo de Colyseus— y le devuelve exactamente su jugador en vez de
+    // sumarle uno nuevo mientras la vieja plaza queda vacía hasta el fin.
+    const seatKey = options.seatKey;
+    const previousSessionId = seatKey ? this.activeSeatByKey.get(seatKey) : undefined;
+    if (seatKey) this.activeSeatByKey.set(seatKey, client.sessionId);
+    if (previousSessionId !== undefined && previousSessionId !== client.sessionId) {
+      this.seatKeyBySession.set(client.sessionId, seatKey!);
+      this.adoptSeat(previousSessionId, client, options.name ?? "");
+      this.seatKeyBySession.delete(previousSessionId);
+      return;
+    }
+    if (seatKey) this.seatKeyBySession.set(client.sessionId, seatKey);
+
     const session = this.ensureSession(client.sessionId);
     const moved = session.spawnPlayer(client.sessionId, this.logicalNow());
     const position = session.playerPosition(client.sessionId)!;
@@ -754,6 +790,11 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.deniedActions.delete(sessionId);
     if (this.originalHostId === sessionId) this.originalHostId = null;
     if (this.state.hostId === sessionId) this.reassignHostNow();
+    const seatKey = this.seatKeyBySession.get(sessionId);
+    if (seatKey && this.activeSeatByKey.get(seatKey) === sessionId) {
+      this.activeSeatByKey.delete(seatKey);
+    }
+    this.seatKeyBySession.delete(sessionId);
   }
 
   /**

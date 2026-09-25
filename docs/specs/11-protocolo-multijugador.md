@@ -274,6 +274,25 @@ Cliente                          Servidor (GameRoom)                Externo
     acortarlo con `JOIN_TOKEN_TTL_SECONDS`. Un token robado solo sirve para ocupar/heredar la MISMA
     plaza (`playerId`), nunca otra: no da más control que el que ya tenía esa plaza.
   - LiveKit reconecta con su propio token (independiente del de Colyseus).
+  - **`GameRoom` desnuda — mecanismo del CLIENTE web** (ajuste 2026-09-25, revisión de la
+    coordinadora sobre la PR #146): a diferencia de `EventRoom`, la `GameRoom` no tiene un
+    `playerId` estable (varias personas pueden compartir legítimamente el mismo `gameToken` de
+    compra), así que el servidor por sí solo no basta — sin cooperación del cliente, recargar la
+    página o cerrar y reabrir la pestaña pierde el `reconnectionToken` de Colyseus en memoria y
+    entra como jugador NUEVO mientras la plaza antigua queda reservada vacía hasta el fin. La web
+    (`packages/web/src/lib/game-reconnect.ts`, `use-game-connection.ts`) guarda en **`localStorage`**
+    (sobrevive a cerrar la pestaña; `sessionStorage` no) por `roomId`:
+    1. el `reconnectionToken` de Colyseus, que se reintenta primero (`client.reconnect()`, antes de
+       cualquier `join`/`create`) — recupera la MISMA `sessionId`, sin pasar por `onJoin`;
+    2. un `seatKey` aleatorio del navegador (nunca ligado a una cuenta), que la `GameRoom` reconoce
+       en `onJoin` igual que `EventRoom` reconoce el `playerId`: si el `reconnectionToken` caducó,
+       se perdió o el servidor lo rechaza, la nueva conexión con el mismo `seatKey` hereda la plaza
+       (posición, inventario, `characterId`) y expulsa el socket anterior sin gracia.
+    La página solo pide el nombre de nuevo cuando NO hay ninguna reconexión guardada para la
+    `roomId` conocida (link de invitación con `?room=`); si la hay, entra directamente. El cierre
+    del efecto de conexión (`useEffect` de `useGameConnection`) usa `leave(false)` —NO consentido—
+    para no liberar la plaza por navegar dentro de la app o por un re-render: solo una salida
+    EXPLÍCITA (`leaveGame()`, para cuando exista un botón dedicado) usa `leave(true)`.
 
 ### 8.1 Fin de partida y cierre
 

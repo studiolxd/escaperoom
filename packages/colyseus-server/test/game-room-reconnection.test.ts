@@ -118,6 +118,47 @@ describe("GameRoom — reconexión con gracia (C-2)", () => {
     expect([...(room.state.inventories.get(beforeSessionId)?.items ?? [])]).toEqual(["llave-bronce"]);
   });
 
+  it("sin el token de reconexión, el mismo seatKey recupera la plaza (recarga/pestaña reabierta)", async () => {
+    const room = await createFastRoom();
+    const a = await join(room, { name: "Ana", seatKey: "seat-a" });
+    const b = await join(room, { name: "Bruno" });
+    a.send(GAME_MESSAGES.startGame, {});
+    await expect.poll(() => b.state.phase).toBe("playing");
+
+    const granted = b.waitForMessage(GAME_MESSAGES.itemGranted);
+    a.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    await granted;
+    const beforeCharacter = room.state.players.get(a.sessionId)!.characterId;
+    const beforeSessionId = a.sessionId;
+
+    // El cliente perdió el `reconnectionToken` nativo (pestaña cerrada y
+    // reabierta: el SDK no lo persiste solo); vuelve con el mismo `seatKey`.
+    await a.leave(false);
+    await expect.poll(() => room.state.players.get(beforeSessionId)?.connected).toBe(false);
+
+    const reopened = await colyseus.sdk.joinById(room.roomId, {
+      gameToken: devTestGameToken(),
+      name: "Ana",
+      seatKey: "seat-a",
+    });
+    expect(reopened.sessionId).not.toBe(beforeSessionId);
+    await expect.poll(() => room.state.players.has(beforeSessionId)).toBe(false);
+    const player = room.state.players.get(reopened.sessionId)!;
+    expect(player.characterId).toBe(beforeCharacter);
+    expect([...(room.state.inventories.get(reopened.sessionId)?.items ?? [])]).toEqual([
+      "llave-bronce",
+    ]);
+    expect(room.state.players.size).toBe(2); // no sumó una plaza más.
+  });
+
+  it("un seatKey distinto SÍ es un jugador nuevo (no hereda ninguna plaza)", async () => {
+    const room = await createFastRoom();
+    await join(room, { name: "Ana", seatKey: "seat-a" });
+    const c = await join(room, { name: "Carla", seatKey: "seat-c" });
+    await expect.poll(() => room.state.players.size).toBe(2);
+    expect(room.state.players.get(c.sessionId)?.name).toBe("Carla");
+  });
+
   it("en el lobby: el desconectado libera su plaza tras la gracia y ya no puede reconectar", async () => {
     const room = await createFastRoom();
     const a = await join(room, { name: "Ana" });
