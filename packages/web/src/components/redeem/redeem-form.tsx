@@ -1,13 +1,17 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { redeemAccessKey } from "@/actions/redeem";
 import { Button } from "@/components/ui/button";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { eventPlayPath } from "@/lib/game-net";
 
-/** Códigos de error de `POST /api/access-keys/redeem` con mensaje propio. */
+/** Códigos de error de `redeemAccessKey` con mensaje propio. */
 const KNOWN_ERRORS = new Set([
   "ACCESS_KEY_INVALID",
   "ACCESS_KEY_USED",
@@ -19,7 +23,15 @@ const KNOWN_ERRORS = new Set([
   "REDEEM_UNAVAILABLE",
 ]);
 
-type State = { kind: "idle" } | { kind: "redeeming" } | { kind: "error"; code: string };
+function useRedeemSchema() {
+  const t = useTranslations("Redeem.errors");
+  return z.object({
+    code: z.string().trim().min(1, t("codeRequired")).max(64, t("codeTooLong")),
+    name: z.string().trim().max(32, t("nameTooLong")).optional(),
+  });
+}
+
+type RedeemFormValues = z.infer<ReturnType<typeof useRedeemSchema>>;
 
 export interface RedeemFormProps {
   /** Clave que trae el QR (`?code=`); el asistente también puede teclearla. */
@@ -27,75 +39,73 @@ export interface RedeemFormProps {
 }
 
 /**
- * Formulario de canje: clave + nombre visible → `POST /api/access-keys/redeem`
- * → la partida de la sesión asignada (`/play?session=…#joinToken=…`). El
- * `joinToken` viaja en el fragmento para que no llegue a logs ni a `Referer`.
+ * Formulario de canje: clave + nombre visible → server action
+ * `redeemAccessKey` (mismo `RedeemService` que la ruta REST) →
+ * `/play?session=…#joinToken=…`. El `joinToken` viaja en el fragmento para
+ * que no llegue a logs ni a `Referer`.
  */
 export function RedeemForm({ initialCode }: RedeemFormProps) {
   const t = useTranslations("Redeem");
+  const schema = useRedeemSchema();
   const locale = useLocale();
-  const [code, setCode] = useState(initialCode);
-  const [name, setName] = useState("");
-  const [state, setState] = useState<State>({ kind: "idle" });
+  const [serverErrorCode, setServerErrorCode] = useState<string | null>(null);
 
-  const redeem = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setState({ kind: "redeeming" });
-    try {
-      const res = await fetch("/api/access-keys/redeem", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: code.trim(),
-          ...(name.trim() ? { displayName: name.trim() } : {}),
-        }),
-      });
-      const json = (await res.json().catch(() => null)) as {
-        sessionId?: string;
-        joinToken?: string;
-        error?: { code?: string };
-      } | null;
-      if (!res.ok || !json?.sessionId || !json.joinToken) {
-        setState({ kind: "error", code: json?.error?.code ?? "UNKNOWN" });
-        return;
-      }
-      window.location.assign(`/${locale}${eventPlayPath(json.sessionId, json.joinToken)}`);
-    } catch {
-      setState({ kind: "error", code: "UNKNOWN" });
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RedeemFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { code: initialCode, name: "" },
+  });
+
+  const onSubmit = handleSubmit(async (values) => {
+    setServerErrorCode(null);
+    const result = await redeemAccessKey({
+      code: values.code,
+      ...(values.name?.trim() ? { displayName: values.name.trim() } : {}),
+    });
+    if (!result.ok) {
+      setServerErrorCode(result.error.code);
+      return;
     }
-  };
+    window.location.assign(
+      `/${locale}${eventPlayPath(result.data.sessionId, result.data.joinToken)}`,
+    );
+  });
 
   return (
-    <form className="space-y-4" onSubmit={(event) => void redeem(event)}>
-      <div className="space-y-1.5">
-        <Label htmlFor="redeem-code">{t("codeLabel")}</Label>
+    <form noValidate className="space-y-4" onSubmit={onSubmit}>
+      <Field data-invalid={!!errors.code}>
+        <FieldLabel htmlFor="redeem-code">{t("codeLabel")}</FieldLabel>
         <Input
           id="redeem-code"
-          value={code}
-          onChange={(event) => setCode(event.target.value)}
-          required
-          maxLength={64}
           autoComplete="off"
           spellCheck={false}
           className="font-mono uppercase tracking-widest"
+          aria-invalid={!!errors.code}
+          aria-describedby={errors.code ? "redeem-code-error" : undefined}
+          {...register("code")}
         />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="redeem-name">{t("nameLabel")}</Label>
+        <FieldError id="redeem-code-error" errors={[errors.code]} />
+      </Field>
+      <Field data-invalid={!!errors.name}>
+        <FieldLabel htmlFor="redeem-name">{t("nameLabel")}</FieldLabel>
         <Input
           id="redeem-name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          maxLength={32}
+          aria-invalid={!!errors.name}
+          aria-describedby={errors.name ? "redeem-name-error" : undefined}
+          {...register("name")}
         />
-      </div>
-      {state.kind === "error" ? (
+        <FieldError id="redeem-name-error" errors={[errors.name]} />
+      </Field>
+      {serverErrorCode ? (
         <p role="alert" className="text-sm text-destructive">
-          {KNOWN_ERRORS.has(state.code) ? t(`errors.${state.code}`) : t("errors.UNKNOWN")}
+          {KNOWN_ERRORS.has(serverErrorCode) ? t(`errors.${serverErrorCode}`) : t("errors.UNKNOWN")}
         </p>
       ) : null}
-      <Button type="submit" className="w-full" disabled={state.kind === "redeeming"}>
-        {state.kind === "redeeming" ? t("redeeming") : t("cta")}
+      <Button type="submit" className="w-full" disabled={isSubmitting}>
+        {isSubmitting ? t("redeeming") : t("cta")}
       </Button>
     </form>
   );
