@@ -2,8 +2,10 @@ import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import type { Duplex } from "node:stream";
 import {
+  DEFAULT_MAX_UPDATE_BYTES,
   RoomDraftError,
   buildDraftDoc,
+  isValidYjsUpdate,
   type Actor,
   type RestoreTarget,
   type RoomDraftErrorCode,
@@ -60,10 +62,42 @@ export type EditorSyncServerOptions = {
   drafts: RoomDraftService;
   /** Deriva el actor de la petición HTTP de upgrade (cookies / Authorization). */
   resolveActor: (request: IncomingMessage) => Promise<Actor>;
-  /** Si se indica, se rechaza (403) todo `Origin` presente que no esté en la lista. */
+  /** Si se indica, se rechaza (403) todo `Origin` que no esté en la lista. */
   allowedOrigins?: readonly string[];
-  /** Tamaño máximo de un mensaje WebSocket (por defecto, el máximo de un update + margen). */
+  /**
+   * Si es `true`, SIN `allowedOrigins` se falla cerrado (C-10): solo se acepta
+   * un `Origin` ausente (cliente sin cookie, p. ej. Bearer) o igual al `Host`
+   * de la petición, en vez de aceptar cualquiera. Actívese en producción — un
+   * despliegue real sin `EDITOR_SYNC_ALLOWED_ORIGINS`/`NEXT_PUBLIC_APP_URL`
+   * debe negarse a aceptar orígenes arbitrarios en vez de degradar en
+   * silencio. Con `allowedOrigins` configurado, este flag no hace nada.
+   */
+  strictOriginWithoutAllowlist?: boolean;
+  /**
+   * Tamaño máximo de un mensaje WebSocket (por defecto, `maxUpdateBytes`: un
+   * mensaje más grande no podría contener un update válido de todos modos, y
+   * mantenerlo igual evita la ventana de C-12 en la que un mensaje cabía en
+   * `maxPayload` pero superaba `maxUpdateBytes`).
+   */
   maxMessageBytes?: number;
+  /**
+   * Tamaño máximo de un único update Yjs (C-12): se valida ANTES de
+   * aplicarlo al doc vivo, así que un update que lo supere nunca llega a
+   * mutar el estado compartido ni a difundirse — solo se cierra ese socket.
+   * Por defecto, el mismo límite que `RoomDraftService.appendUpdate`
+   * (`DEFAULT_MAX_UPDATE_BYTES`); si se pasa un valor distinto al del
+   * servicio de persistencia, un update podría pasar aquí y fallar igualmente
+   * al persistir — mantenerlos iguales.
+   */
+  maxUpdateBytes?: number;
+  /** Tope de bytes del doc (tras compactar) que un socket puede seguir aumentando (C-11). */
+  maxDocBytes?: number;
+  /** Conexiones simultáneas por `userId` en la misma sala (C-11): protege de un mismo usuario agotando memoria con muchas pestañas/scripts. */
+  maxConnectionsPerUser?: number;
+  /** Mensajes por segundo que admite un socket antes de cerrarlo (C-11). */
+  maxMessagesPerSecond?: number;
+  /** `syncStep1` (fuerza `encodeStateAsUpdate` del doc entero) por minuto que admite un socket (C-11). */
+  maxSyncStep1PerMinute?: number;
   /** Intervalo de ping para detectar conexiones muertas (0 lo desactiva). */
   pingIntervalMs?: number;
   logger?: Pick<Console, "warn" | "error">;
@@ -79,13 +113,22 @@ export type EditorSyncServerOptions = {
 /** Origen de una transacción aplicada porque llegó de OTRO proceso por Redis: nunca se repersiste ni se republica. */
 const REMOTE_ORIGIN = Symbol("remote-draft-update");
 
-const DEFAULT_MAX_MESSAGE_BYTES = 1024 * 1024 + 1024;
 const DEFAULT_PING_INTERVAL_MS = 30_000;
+/** Doc de una sala de tamaño normal ronda cientos de KB; 20 MB da margen sin dejar crecer sin tope (C-11). */
+const DEFAULT_MAX_DOC_BYTES = 20 * 1024 * 1024;
+/** Un mismo usuario editando desde varias pestañas/dispositivos no suele pasar de un puñado (C-11). */
+const DEFAULT_MAX_CONNECTIONS_PER_USER = 8;
+const DEFAULT_MAX_MESSAGES_PER_SECOND = 50;
+const DEFAULT_MAX_SYNC_STEP1_PER_MINUTE = 20;
 
 /** Códigos de cierre propios (rango 4000–4999 reservado a aplicaciones). */
 export const CLOSE_PERSISTENCE_FAILED = 4500;
 export const CLOSE_SERVER_SHUTDOWN = 1001;
 const CLOSE_INVALID_DATA = 1007;
+/** Update sintácticamente inválido o que supera `maxUpdateBytes` (C-12): se cierra solo ese socket. */
+const CLOSE_UPDATE_REJECTED = 1009;
+/** Límite de conexiones, mensajes/s, `syncStep1`/min o bytes del doc superado (C-11). */
+const CLOSE_POLICY_VIOLATION = 1008;
 
 const STATUS_BY_CODE: Record<RoomDraftErrorCode, number> = {
   UNAUTHORIZED: 401,
@@ -102,9 +145,39 @@ const STATUS_TEXT: Record<number, string> = {
   404: "Not Found",
   413: "Payload Too Large",
   422: "Unprocessable Entity",
+  429: "Too Many Requests",
   500: "Internal Server Error",
   503: "Service Unavailable",
 };
+
+/**
+ * Cubo de tokens simple para limitar la cadencia de un socket (C-11): se
+ * recarga de forma continua (no por ventanas fijas), así que un socket que
+ * lleva un rato callado no acumula una ráfaga desproporcionada.
+ */
+class TokenBucket {
+  private tokens: number;
+  private lastRefillMs: number;
+
+  constructor(
+    private readonly capacity: number,
+    private readonly refillPerMs: number,
+  ) {
+    this.tokens = capacity;
+    this.lastRefillMs = Date.now();
+  }
+
+  tryTake(now = Date.now()): boolean {
+    const elapsedMs = now - this.lastRefillMs;
+    if (elapsedMs > 0) {
+      this.tokens = Math.min(this.capacity, this.tokens + elapsedMs * this.refillPerMs);
+      this.lastRefillMs = now;
+    }
+    if (this.tokens < 1) return false;
+    this.tokens -= 1;
+    return true;
+  }
+}
 
 /** Origen de una transacción sobre el doc vivo: quién la hizo (para persistir con su autoría). */
 type ActorOrigin = { actor: Actor };
@@ -114,6 +187,9 @@ type Connection = ActorOrigin & {
   /** `clientID`s de awareness controlados por esta conexión. */
   awarenessIds: Set<number>;
   alive: boolean;
+  /** C-11: cadencia de mensajes y de `syncStep1` de ESTA conexión. */
+  messageBucket: TokenBucket;
+  syncStep1Bucket: TokenBucket;
 };
 
 type SyncRoom = {
@@ -126,6 +202,15 @@ type SyncRoom = {
   /** Cadena de persistencia: los updates se escriben en el orden en que se integraron. */
   persisting: Promise<void>;
   closed: boolean;
+  /**
+   * Tamaño aproximado del doc (C-11): bytes del último snapshot compactado
+   * conocido + bytes de los updates aplicados desde entonces. Es una cota
+   * superior barata (no reencode el doc en cada mensaje, que es justo lo que
+   * evita C-9/C-11): tras compactar se recalibra al tamaño real del
+   * snapshot, así que no crece sin límite aunque la estimación se desvíe un
+   * poco entre compactaciones.
+   */
+  docBytes: number;
 };
 
 export type EditorSyncServer = {
@@ -157,9 +242,18 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
   const { drafts, resolveActor } = options;
   const logger = options.logger ?? console;
   const pingIntervalMs = options.pingIntervalMs ?? DEFAULT_PING_INTERVAL_MS;
+  const maxUpdateBytes = options.maxUpdateBytes ?? DEFAULT_MAX_UPDATE_BYTES;
+  const maxDocBytes = options.maxDocBytes ?? DEFAULT_MAX_DOC_BYTES;
+  const maxConnectionsPerUser = options.maxConnectionsPerUser ?? DEFAULT_MAX_CONNECTIONS_PER_USER;
+  const maxMessagesPerSecond = options.maxMessagesPerSecond ?? DEFAULT_MAX_MESSAGES_PER_SECOND;
+  const maxSyncStep1PerMinute = options.maxSyncStep1PerMinute ?? DEFAULT_MAX_SYNC_STEP1_PER_MINUTE;
   const wss = new WebSocketServer({
     noServer: true,
-    maxPayload: options.maxMessageBytes ?? DEFAULT_MAX_MESSAGE_BYTES,
+    // C-12: nunca por encima de `maxUpdateBytes` — así un mensaje que cupiera
+    // en `maxPayload` pero superase el límite de update ya ni siquiera llega
+    // a `message` (lo cierra `ws`); la comprobación explícita de más abajo
+    // sigue ahí como defensa en profundidad y para dar un código propio.
+    maxPayload: options.maxMessageBytes ?? maxUpdateBytes,
   });
   const rooms = new Map<string, SyncRoom>();
   const loading = new Map<string, Promise<SyncRoom>>();
@@ -293,6 +387,8 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
       pending: 0,
       persisting: Promise.resolve(),
       closed: false,
+      // Coste único al cargar la sala (no en el camino caliente de cada mensaje).
+      docBytes: Y.encodeStateAsUpdate(doc).byteLength,
     };
 
     doc.on("update", (update: Uint8Array, origin: unknown) => {
@@ -302,10 +398,14 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
       broadcast(room, encoding.toUint8Array(encoder), origin);
       if (!isActorOrigin(origin)) return;
       const { actor } = origin;
+      room.docBytes += update.byteLength;
       room.persisting = room.persisting
         .then(async () => {
           if (room.closed) return;
-          await drafts.appendUpdate(actor, roomId, update);
+          const result = await drafts.appendUpdate(actor, roomId, update);
+          // Recalibra al tamaño real del snapshot recién compactado (C-11):
+          // corrige la desviación de la estimación incremental de arriba.
+          if (result.snapshot) room.docBytes = result.snapshot.byteSize;
         })
         .catch((err: unknown) => failRoom(room, err));
     });
@@ -403,9 +503,42 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
     const type = decoding.readVarUint(decoder);
     switch (type) {
       case MESSAGE_SYNC: {
-        encoding.writeVarUint(encoder, MESSAGE_SYNC);
-        syncProtocol.readSyncMessage(decoder, encoder, room.doc, conn);
-        if (encoding.length(encoder) > 1) send(conn, encoding.toUint8Array(encoder));
+        const syncType = decoding.readVarUint(decoder);
+        if (syncType === syncProtocol.messageYjsSyncStep1) {
+          // C-11: `syncStep1` fuerza `encodeStateAsUpdate` del doc entero en
+          // la respuesta — más caro que un update normal, así que tiene su
+          // propio cubo (más estrecho) además del genérico de mensajes/s.
+          if (!conn.syncStep1Bucket.tryTake()) {
+            conn.socket.close(CLOSE_POLICY_VIOLATION, "too many syncStep1");
+            return;
+          }
+          encoding.writeVarUint(encoder, MESSAGE_SYNC);
+          syncProtocol.writeSyncStep2(encoder, room.doc, decoding.readVarUint8Array(decoder));
+          if (encoding.length(encoder) > 1) send(conn, encoding.toUint8Array(encoder));
+          return;
+        }
+        if (syncType === syncProtocol.messageYjsSyncStep2 || syncType === syncProtocol.messageYjsUpdate) {
+          // C-12: se valida tamaño y forma ANTES de tocar el doc vivo — con el
+          // orden anterior (aplicar y validar al persistir) un update entre
+          // `maxUpdateBytes` y `maxPayload` se integraba y difundía, y solo
+          // fallaba al guardar, lo que expulsaba a TODOS los editores
+          // (`failRoom`) por un mensaje reproducible en bucle al reconectar.
+          const update = decoding.readVarUint8Array(decoder);
+          if (update.byteLength > maxUpdateBytes || !isValidYjsUpdate(update)) {
+            conn.socket.close(CLOSE_UPDATE_REJECTED, "invalid or oversized update");
+            return;
+          }
+          // C-11: tope de bytes del doc (tras compactar) que un socket puede
+          // seguir empujando — se comprueba antes de aplicar, así un doc que
+          // ya está en el límite rechaza el update en vez de crecer sin fin.
+          if (room.docBytes + update.byteLength > maxDocBytes) {
+            conn.socket.close(CLOSE_POLICY_VIOLATION, "doc size limit reached");
+            return;
+          }
+          Y.applyUpdate(room.doc, update, conn);
+          return;
+        }
+        // Subtipo de sync desconocido: se ignora (paridad con el `default` de abajo).
         return;
       }
       case MESSAGE_AWARENESS: {
@@ -463,7 +596,14 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
   }
 
   function setupConnection(room: SyncRoom, socket: WebSocket, actor: Actor): void {
-    const conn: Connection = { socket, actor, awarenessIds: new Set(), alive: true };
+    const conn: Connection = {
+      socket,
+      actor,
+      awarenessIds: new Set(),
+      alive: true,
+      messageBucket: new TokenBucket(maxMessagesPerSecond, maxMessagesPerSecond / 1000),
+      syncStep1Bucket: new TokenBucket(maxSyncStep1PerMinute, maxSyncStep1PerMinute / 60_000),
+    };
     room.connections.set(socket, conn);
     socket.binaryType = "nodebuffer";
 
@@ -472,6 +612,11 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
     });
     socket.on("message", (raw: RawData) => {
       if (room.closed) return;
+      // C-11: cadencia genérica de mensajes/s, antes de decodificar nada.
+      if (!conn.messageBucket.tryTake()) {
+        socket.close(CLOSE_POLICY_VIOLATION, "too many messages");
+        return;
+      }
       try {
         handleMessage(room, conn, toUint8Array(raw));
       } catch (err) {
@@ -504,6 +649,34 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
     }
   }
 
+  /**
+   * C-10: antes, sin `allowedOrigins` configurado se aceptaba cualquier
+   * `Origin` (o su ausencia), así que un despliegue que arrancara sin
+   * `EDITOR_SYNC_ALLOWED_ORIGINS`/`NEXT_PUBLIC_APP_URL` quedaba abierto a
+   * cross-site WebSocket hijacking (la identidad viaja por cookie,
+   * `SameSite=Lax` la envía igual en upgrades GET de otro sitio). Con lista
+   * configurada se mantiene el comportamiento histórico: un `Origin` ausente
+   * se acepta (clientes no-navegador — MCP, scripts — con cookie/Authorization
+   * pero sin ese header) y uno presente debe pertenecer a la lista. Sin
+   * lista, falla cerrado si `strictOriginWithoutAllowlist` lo pide: con
+   * cookie, `Origin` pasa a ser obligatorio (un navegador real SIEMPRE lo
+   * envía en un upgrade con cookie, así que su ausencia aquí solo puede venir
+   * de un cliente no-navegador reproduciéndola fuera de uno); sin cookie,
+   * solo se acepta el mismo `Host` que el propio servidor.
+   */
+  function isOriginAllowed(request: IncomingMessage): boolean {
+    const origin = request.headers.origin;
+    if (options.allowedOrigins) return !origin || options.allowedOrigins.includes(origin);
+    if (!options.strictOriginWithoutAllowlist) return true;
+    if (request.headers.cookie && !origin) return false;
+    if (!origin) return true;
+    try {
+      return new URL(origin).host === request.headers.host;
+    } catch {
+      return false;
+    }
+  }
+
   function rejectUpgrade(socket: Duplex, status: number): void {
     if (!socket.writable) {
       socket.destroy();
@@ -525,10 +698,7 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
     } catch {
       return rejectUpgrade(socket, 400);
     }
-    const origin = request.headers.origin;
-    if (options.allowedOrigins && origin && !options.allowedOrigins.includes(origin)) {
-      return rejectUpgrade(socket, 403);
-    }
+    if (!isOriginAllowed(request)) return rejectUpgrade(socket, 403);
 
     let room: SyncRoom;
     let actor: Actor;
@@ -544,6 +714,15 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
       return rejectUpgrade(socket, 500);
     }
     if (room.closed || shuttingDown) return rejectUpgrade(socket, 503);
+
+    // C-11: cap de conexiones por usuario en la sala — un mismo usuario ya
+    // autorizado (solo el autor del borrador llega hasta aquí) no puede
+    // agotar memoria del proceso abriendo sockets sin límite.
+    let connectionsForActor = 0;
+    for (const conn of room.connections.values()) {
+      if (conn.actor.userId === actor.userId) connectionsForActor++;
+    }
+    if (connectionsForActor >= maxConnectionsPerUser) return rejectUpgrade(socket, 429);
 
     room.pending++;
     wss.handleUpgrade(request, socket, head, (ws) => {
@@ -592,6 +771,19 @@ export function createEditorSyncServer(options: EditorSyncServerOptions): Editor
       if (!room || room.closed) {
         await drafts.appendUpdate(actor, roomId, update);
         return;
+      }
+      // C-12: misma validación que el mensaje WS — sin sala viva ya la hacía
+      // `drafts.appendUpdate`, pero aplicar directo al doc vivo se la saltaba
+      // y dejaba el mismo bucle de `failRoom` para un caller (MCP/REST) que
+      // reintente el mismo update tras la desconexión de todos los editores.
+      if (update.byteLength > maxUpdateBytes) {
+        throw new RoomDraftError(
+          "PAYLOAD_TOO_LARGE",
+          `El update supera el máximo de ${maxUpdateBytes} bytes`,
+        );
+      }
+      if (!isValidYjsUpdate(update)) {
+        throw new RoomDraftError("INVALID_UPDATE", "El update no es un update Yjs válido");
       }
       const origin: ActorOrigin = { actor };
       Y.applyUpdate(room.doc, update, origin);

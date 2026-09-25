@@ -10,9 +10,21 @@ import {
 import * as encoding from "lib0/encoding";
 import { afterEach, describe, expect, it } from "vitest";
 import { WebSocket as WsWebSocket } from "ws";
+import * as syncProtocol from "y-protocols/sync";
 import * as Y from "yjs";
-import { EditorSyncProvider, EditorSyncRestoreError, MESSAGE_AWARENESS, SYNC_PATH_PREFIX } from "../src";
-import { CLOSE_PERSISTENCE_FAILED, createEditorSyncServer } from "../src/sync/server";
+import {
+  EditorSyncProvider,
+  EditorSyncRestoreError,
+  MESSAGE_AWARENESS,
+  MESSAGE_QUERY_AWARENESS,
+  MESSAGE_SYNC,
+  SYNC_PATH_PREFIX,
+} from "../src";
+import {
+  CLOSE_PERSISTENCE_FAILED,
+  createEditorSyncServer,
+  type EditorSyncServerOptions,
+} from "../src/sync/server";
 
 const ROOM_ID = "11111111-1111-4111-8111-111111111111";
 const MISSING_ROOM_ID = "99999999-9999-4999-8999-999999999999";
@@ -29,16 +41,19 @@ afterEach(async () => {
 /** Servidor de sincronización sobre un store en memoria; el actor viaja en `x-test-user`. */
 async function startServer(
   store: RoomDraftStore,
-  opts: { drafts?: RoomDraftService; allowedOrigins?: string[] } = {},
+  opts: { drafts?: RoomDraftService } & Partial<
+    Omit<EditorSyncServerOptions, "drafts" | "resolveActor" | "logger">
+  > = {},
 ) {
-  const drafts = opts.drafts ?? createRoomDraftService({ store, snapshotEvery: 1000 });
+  const { drafts: draftsOverride, ...serverOpts } = opts;
+  const drafts = draftsOverride ?? createRoomDraftService({ store, snapshotEvery: 1000 });
   const server = createEditorSyncServer({
     drafts,
     resolveActor: async (req) =>
       ACTORS[String(req.headers["x-test-user"] ?? "")] ?? ANONYMOUS_ACTOR,
-    allowedOrigins: opts.allowedOrigins,
     pingIntervalMs: 0,
     logger: silent,
+    ...serverOpts,
   });
   const { port } = await server.listen(0, "127.0.0.1");
   let closed = false;
@@ -431,6 +446,54 @@ describe("WebSocket de edición: auth en el handshake", () => {
     ).toBe(101);
   });
 
+  it("C-10: sin lista, con strictOriginWithoutAllowlist falla cerrado salvo mismo Host; con cookie exige Origin", async () => {
+    const store = newStore();
+    const { url } = await startServer(store, { strictOriginWithoutAllowlist: true });
+    const room = `${url}/rooms/${ROOM_ID}`;
+    const port = new URL(url).port;
+
+    // Sin Origin ni cookie (cliente no-navegador, p. ej. Bearer): se acepta.
+    expect(await handshakeStatus(room, { "x-test-user": "autora" })).toBe(101);
+    // Origin presente mientras no haya lista: solo se acepta si coincide con el Host.
+    expect(
+      await handshakeStatus(room, { "x-test-user": "autora", origin: "http://otro-host.test" }),
+    ).toBe(403);
+    expect(
+      await handshakeStatus(room, {
+        "x-test-user": "autora",
+        origin: `http://127.0.0.1:${port}`,
+      }),
+    ).toBe(101);
+    // Con cookie (identidad de sesión), el Origin es obligatorio aunque no haya lista.
+    expect(
+      await handshakeStatus(room, { "x-test-user": "autora", cookie: "session=cualquiera" }),
+    ).toBe(403);
+  });
+
+  it("C-10: sin strictOriginWithoutAllowlist ni lista, mantiene el comportamiento permisivo (dev)", async () => {
+    const store = newStore();
+    const { url } = await startServer(store);
+    const room = `${url}/rooms/${ROOM_ID}`;
+    expect(
+      await handshakeStatus(room, { "x-test-user": "autora", origin: "https://cualquiera.test" }),
+    ).toBe(101);
+  });
+
+  it("C-11: tope de conexiones por usuario en la sala responde 429", async () => {
+    const store = newStore();
+    const { url } = await startServer(store, { maxConnectionsPerUser: 2 });
+    const room = `${url}/rooms/${ROOM_ID}`;
+    const sockets = [new WsWebSocket(room, { headers: { "x-test-user": "autora" } })];
+    await new Promise<void>((resolve) => sockets[0]!.once("open", () => resolve()));
+    sockets.push(new WsWebSocket(room, { headers: { "x-test-user": "autora" } }));
+    await new Promise<void>((resolve) => sockets[1]!.once("open", () => resolve()));
+    cleanups.push(() => sockets.forEach((s) => s.close()));
+
+    expect(await handshakeStatus(room, { "x-test-user": "autora" })).toBe(429);
+    // Otro usuario no comparte el cupo.
+    expect(await handshakeStatus(room, { "x-test-user": "otro" })).toBe(403); // FORBIDDEN: no es su sala
+  });
+
   it("un proveedor sin permiso nunca sincroniza ni carga la sala", async () => {
     const store = newStore();
     const { url, server } = await startServer(store);
@@ -472,5 +535,122 @@ describe("applyUpdate (updates de fuera de la sesión: MCP, 4.2)", () => {
     await expect(server.applyUpdate(intruder, ROOM_ID, remoteUpdate("x"))).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+  });
+
+  it("C-12: con sesión viva, rechaza un update inválido o demasiado grande sin tirar la sala", async () => {
+    const store = newStore();
+    const { server, url } = await startServer(store, { maxUpdateBytes: 200 });
+    const a = connectClient(url);
+    await a.whenSynced();
+
+    const bigDoc = new Y.Doc();
+    bigDoc.getText("notas").insert(0, "z".repeat(1000));
+    const bigUpdate = Y.encodeStateAsUpdate(bigDoc);
+    expect(bigUpdate.byteLength).toBeGreaterThan(200);
+
+    await expect(server.applyUpdate(author, ROOM_ID, bigUpdate)).rejects.toMatchObject({
+      code: "PAYLOAD_TOO_LARGE",
+    });
+    await expect(
+      server.applyUpdate(author, ROOM_ID, new Uint8Array([1, 2, 3])),
+    ).rejects.toMatchObject({ code: "INVALID_UPDATE" });
+    expect(server.loadedRooms()).toEqual([ROOM_ID]);
+    expect(a.doc.getText("notas").toString()).toBe("");
+  });
+});
+
+describe("WebSocket de edición: límites de tamaño y cadencia (C-11/C-12)", () => {
+  it("C-12: un update entre maxUpdateBytes y maxMessageBytes se rechaza sin tirar la sala ni difundirse", async () => {
+    const store = newStore();
+    const { url, drafts } = await startServer(store, {
+      maxUpdateBytes: 200,
+      maxMessageBytes: 10_000,
+    });
+    const a = connectClient(url);
+    await a.whenSynced();
+
+    const raw = new WsWebSocket(`${url}${SYNC_PATH_PREFIX}${encodeURIComponent(ROOM_ID)}`, {
+      headers: { "x-test-user": "autora" },
+    });
+    cleanups.push(() => raw.close());
+    await new Promise<void>((resolve) => raw.once("open", () => resolve()));
+    const closes: number[] = [];
+    raw.on("close", (code) => closes.push(code));
+
+    const bigDoc = new Y.Doc();
+    bigDoc.getText("notas").insert(0, "x".repeat(2000));
+    const bigUpdate = Y.encodeStateAsUpdate(bigDoc);
+    expect(bigUpdate.byteLength).toBeGreaterThan(200);
+    expect(bigUpdate.byteLength).toBeLessThan(10_000);
+
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, MESSAGE_SYNC);
+    syncProtocol.writeUpdate(encoder, bigUpdate);
+    raw.send(encoding.toUint8Array(encoder));
+
+    await waitFor(() => closes.length > 0);
+    expect(closes[0]).toBe(1009);
+
+    // Ni se difundió a A ni se persistió; la sala sigue viva.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(a.doc.getText("notas").toString()).toBe("");
+    a.doc.getText("notas").insert(0, "sigue vivo");
+    await waitFor(async () => (await persistedState(drafts)).notas === "sigue vivo");
+  });
+
+  it("C-11: al alcanzar el tope de bytes del doc, cierra solo ese socket sin persistir el update", async () => {
+    const store = newStore();
+    const { url, drafts } = await startServer(store, { maxDocBytes: 300 });
+    const a = connectClient(url);
+    await a.whenSynced();
+    const closes: number[] = [];
+    a.on("connection-close", ({ code }) => closes.push(code));
+
+    a.doc.getText("notas").insert(0, "y".repeat(2000));
+    await waitFor(() => closes.length > 0);
+    expect(closes[0]).toBe(1008);
+    expect((await persistedState(drafts)).notas).toBe("");
+  });
+
+  it("C-11: la cadencia de mensajes/s cierra el socket que la supera", async () => {
+    const store = newStore();
+    const { url } = await startServer(store, { maxMessagesPerSecond: 3 });
+    const room = `${url}${SYNC_PATH_PREFIX}${encodeURIComponent(ROOM_ID)}`;
+    const raw = new WsWebSocket(room, { headers: { "x-test-user": "autora" } });
+    cleanups.push(() => raw.close());
+    await new Promise<void>((resolve) => raw.once("open", () => resolve()));
+    const closes: number[] = [];
+    raw.on("close", (code) => closes.push(code));
+
+    const queryEncoder = encoding.createEncoder();
+    encoding.writeVarUint(queryEncoder, MESSAGE_QUERY_AWARENESS);
+    const frame = encoding.toUint8Array(queryEncoder);
+    for (let i = 0; i < 10; i++) raw.send(frame);
+
+    await waitFor(() => closes.length > 0);
+    expect(closes[0]).toBe(1008);
+  });
+
+  it("C-11: la cadencia de syncStep1/min cierra el socket que la supera", async () => {
+    const store = newStore();
+    const { url } = await startServer(store, { maxSyncStep1PerMinute: 2 });
+    const room = `${url}${SYNC_PATH_PREFIX}${encodeURIComponent(ROOM_ID)}`;
+    const raw = new WsWebSocket(room, { headers: { "x-test-user": "autora" } });
+    cleanups.push(() => raw.close());
+    await new Promise<void>((resolve) => raw.once("open", () => resolve()));
+    const closes: number[] = [];
+    raw.on("close", (code) => closes.push(code));
+
+    const doc = new Y.Doc();
+    const frame = () => {
+      const encoder = encoding.createEncoder();
+      encoding.writeVarUint(encoder, MESSAGE_SYNC);
+      syncProtocol.writeSyncStep1(encoder, doc);
+      return encoding.toUint8Array(encoder);
+    };
+    for (let i = 0; i < 5; i++) raw.send(frame());
+
+    await waitFor(() => closes.length > 0);
+    expect(closes[0]).toBe(1008);
   });
 });
