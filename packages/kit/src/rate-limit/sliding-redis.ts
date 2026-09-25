@@ -2,7 +2,12 @@ import { randomUUID } from "node:crypto";
 import type Redis from "ioredis";
 import { logger } from "../logger";
 import type { RateLimitResult } from "./memory";
-import { retryAfterSeconds, type Clock, type SlidingWindowStore } from "./sliding";
+import {
+  MemorySlidingWindowStore,
+  retryAfterSeconds,
+  type Clock,
+  type SlidingWindowStore,
+} from "./sliding";
 
 /**
  * Ventana DESLIZANTE sobre Redis (ticket 6.3): un sorted set por clave cuyos
@@ -16,15 +21,26 @@ import { retryAfterSeconds, type Clock, type SlidingWindowStore } from "./slidin
  * de más un rechazado ajeno: el error es hacia el lado seguro (rechazar), nunca
  * dejar pasar de más.
  *
- * Falla ABIERTO, como el store de ventana fija: una caída de Redis no puede
- * tumbar el canje ni las reseñas.
+ * Repliegue a memoria (E-22, auditoría): una caída de Redis ya NO deja pasar
+ * todo — eso convertía cualquier corte de Redis en una ventana libre para la
+ * fuerza bruta de `redeem` (el objetivo más sensible de este limitador). En
+ * su lugar cae a un `MemorySlidingWindowStore` propio de este proceso: sigue
+ * limitando (por proceso, no coordinado entre réplicas, igual que cuando no
+ * hay `REDIS_URL` en absoluto), en vez de "permitir". Se avisa con
+ * `logger.error` solo la PRIMERA vez que Redis falla (no en cada petición
+ * mientras dure el corte, para no inundar los logs).
  */
 export class RedisSlidingWindowStore implements SlidingWindowStore {
+  private readonly fallback: MemorySlidingWindowStore;
+  private warnedFallback = false;
+
   constructor(
     private readonly redis: Redis,
     private readonly prefix: string,
     private readonly now: Clock = Date.now,
-  ) {}
+  ) {
+    this.fallback = new MemorySlidingWindowStore(now);
+  }
 
   async hit(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
     const redisKey = `${this.prefix}:rls:${key}`;
@@ -59,11 +75,8 @@ export class RedisSlidingWindowStore implements SlidingWindowStore {
         resetSeconds: retryAfterSeconds(oldest, windowMs, nowMs),
       };
     } catch (err) {
-      logger.error(
-        { err: err instanceof Error ? err : new Error(String(err)), key },
-        "rate-limit: redis unavailable, failing open",
-      );
-      return { ok: true, retryAfter: 0 };
+      this.warnFallbackOnce(err, key);
+      return this.fallback.hit(key, limit, windowSeconds);
     }
   }
   async peek(key: string, limit: number, windowSeconds: number): Promise<RateLimitResult> {
@@ -89,11 +102,17 @@ export class RedisSlidingWindowStore implements SlidingWindowStore {
       }
       return { ok: true, retryAfter: 0, remaining: limit - count };
     } catch (err) {
-      logger.error(
-        { err: err instanceof Error ? err : new Error(String(err)), key },
-        "rate-limit: redis unavailable, failing open",
-      );
-      return { ok: true, retryAfter: 0 };
+      this.warnFallbackOnce(err, key);
+      return this.fallback.peek(key, limit, windowSeconds);
     }
+  }
+
+  private warnFallbackOnce(err: unknown, key: string): void {
+    if (this.warnedFallback) return;
+    this.warnedFallback = true;
+    logger.error(
+      { err: err instanceof Error ? err : new Error(String(err)), key },
+      "rate-limit: redis unavailable, falling back to an in-memory per-process limiter",
+    );
   }
 }

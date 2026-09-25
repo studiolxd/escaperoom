@@ -1,6 +1,29 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { matchMaker } from "@colyseus/core";
 import { boot, type ColyseusTestServer } from "@colyseus/testing";
+// `matchMaker` de `@colyseus/core` es un namespace de módulo ESM (inmutable,
+// no se puede `vi.spyOn`/reasignar sus métodos): para forzar en un único test
+// que `matchMaker.createRoom` falle (C-16, sin filtrar el error real al
+// llamador) se envuelve con `vi.mock` + `importOriginal`, delegando siempre a
+// la implementación real salvo cuando `forcedCreateRoomError` está puesta.
+let forcedCreateRoomError: Error | null = null;
+vi.mock("@colyseus/core", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@colyseus/core")>();
+  return {
+    ...actual,
+    matchMaker: {
+      ...actual.matchMaker,
+      createRoom: (...args: Parameters<typeof actual.matchMaker.createRoom>) => {
+        if (forcedCreateRoomError) {
+          const err = forcedCreateRoomError;
+          forcedCreateRoomError = null;
+          return Promise.reject(err);
+        }
+        return actual.matchMaker.createRoom(...args);
+      },
+    },
+  };
+});
 import defineConfig from "@colyseus/tools";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import {
@@ -15,6 +38,7 @@ import { DEV_PLAYTEST_SECRET, readPlaytestConfig } from "../src/playtest/config"
 import { createPlaytestRouter, type PlaytestCreatedResponse } from "../src/playtest/http";
 import {
   MAX_PLAYTESTS_PER_AUTHOR,
+  PlaytestLimitError,
   PlaytestRegistry,
   playtestRegistry,
 } from "../src/playtest/registry";
@@ -186,6 +210,31 @@ describe("registro de playtests", () => {
     expect(registry.get(ids[0]!)).toBeUndefined();
     expect(ids.slice(1).every((id) => registry.get(id))).toBe(true);
     expect(registry.size).toBe(MAX_PLAYTESTS_PER_AUTHOR + 1);
+    registry.dispose();
+  });
+
+  it("C-16: un tope global rechaza el alta aunque cada autor esté bajo su propio límite", () => {
+    let now = 0;
+    const registry = new PlaytestRegistry(() => now, { maxTotal: 3, sweepIntervalMs: 0 });
+    const input = { roomPackage: draftPackage(), draftRoomId: "s", ttlSeconds: 60 };
+    registry.register({ ...input, authorId: "a" });
+    registry.register({ ...input, authorId: "b" });
+    registry.register({ ...input, authorId: "c" });
+    expect(() => registry.register({ ...input, authorId: "d" })).toThrow(PlaytestLimitError);
+    expect(registry.size).toBe(3);
+
+    // Al caducar los anteriores, el barrido del propio alta libera hueco.
+    now = 60_001;
+    expect(registry.register({ ...input, authorId: "d" }).authorId).toBe("d");
+    expect(registry.size).toBe(1);
+  });
+
+  it("C-16: el barrido corre en un temporizador propio, sin que nadie registre ni consulte", async () => {
+    const registry = new PlaytestRegistry(Date.now, { sweepIntervalMs: 10 });
+    const sweepSpy = vi.spyOn(registry, "sweep");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    registry.dispose();
+    expect(sweepSpy.mock.calls.length).toBeGreaterThan(0);
   });
 });
 
@@ -211,6 +260,42 @@ describe("GET /internal/playtests/:playtestId/package", () => {
 });
 
 describe("POST /internal/playtests", () => {
+  it("C-16: no filtra el mensaje interno si el motor no puede levantar la room", async () => {
+    forcedCreateRoomError = new Error("boom-detalle-interno-de-postgres");
+    const res = await createPlaytest({
+      roomPackage: draftPackage(),
+      authorId: "autora",
+      draftRoomId: "sala-1",
+    });
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(body).toEqual({
+      error: {
+        code: "PLAYTEST_UNPLAYABLE",
+        message: "No se pudo levantar la partida con este borrador.",
+      },
+    });
+    expect(JSON.stringify(body)).not.toContain("boom-detalle-interno-de-postgres");
+  });
+
+  it("C-16: el tope global de playtests activos responde 429", async () => {
+    for (let i = 0; i < 500; i++) {
+      playtestRegistry.register({
+        roomPackage: draftPackage(),
+        authorId: `relleno-${i}`,
+        draftRoomId: "s",
+        ttlSeconds: 3600,
+      });
+    }
+    const res = await createPlaytest({
+      roomPackage: draftPackage(),
+      authorId: "autora",
+      draftRoomId: "sala-1",
+    });
+    expect(res.status).toBe(429);
+    expect(await res.json()).toMatchObject({ error: { code: "PLAYTEST_LIMIT" } });
+  });
+
   it("exige el secreto compartido y un RoomPackage válido", async () => {
     const body = { roomPackage: draftPackage(), authorId: "autora", draftRoomId: "sala-1" };
     expect((await createPlaytest(body, null)).status).toBe(401);

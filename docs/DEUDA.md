@@ -17,26 +17,37 @@ Tareas pendientes que no bloquean pero hay que resolver.
       esta ruta. Sin contenido de autor real que proteger, el token firmado
       propuesto en la redacción original de esta entrada no aportaba nada
       sobre `isDevFallbackAllowed()`.
-- [ ] **Mínimo y máximo de jugadores por sala, coherentes con sus pruebas.**
-      - **Configuración:** la sala declara mínimo y máximo de jugadores
-        (`meta.players { min, max }` ya existe en el formato, techo 8); comprobar
-        que el editor permite fijar ambos de forma clara.
-      - **Filtro del catálogo:** hoy es un único selector "N jugadores" (salas
-        con `min ≤ N ≤ max`, opciones 1–6 aunque el techo es 8). Cambiarlo para
-        filtrar por mínimo y máximo de jugadores y ajustar las opciones al techo
-        real.
-      - **Aviso al poner una prueba:** si una prueba necesita varios jugadores
-        (p. ej. placas simultáneas con 2 o más placas, pista dividida entre
-        varios puntos de vista) y la sala admite menos jugadores de los que
-        exige esa prueba (marcada para 1 jugador y la prueba es de 2; prueba de
-        3 o más y la sala baja de ese número), el editor debe avisar en el
-        momento de colocarla, para que el creador añada un camino alternativo
-        (objeto-puente u otra forma de resolverla). Hoy el validador solo cubre
-        el caso de 1 jugador (`solo_bridge_missing`) y solo al validar.
-      - **Aviso al revés:** si en la configuración de la sala se baja el mínimo
-        (o el máximo) por debajo de lo que exigen las pruebas ya colocadas, el
-        editor debe avisar indicando qué pruebas quedan sin camino para ese
-        número de jugadores.
+- [x] **Mínimo y máximo de jugadores por sala, coherentes con sus pruebas.**
+      Resuelto (PR de "mínimo y máximo de jugadores"):
+      - **Configuración:** el editor tiene un botón "Jugadores" en la cabecera
+        (`RoomPlayersDialog`) que abre un diálogo shadcn (`Dialog` + `Input`)
+        para fijar `meta.players.min/max` (1–8, `MAX_PLAYERS_PER_ROOM_CEILING`),
+        con validación de rango y de `min ≤ max` antes de escribir
+        (`setRoomPlayers`, `packages/editor/src/room-doc/commands.ts`).
+      - **Filtro del catálogo:** dos selectores "de X a Y" (1–8) en vez del
+        único "N jugadores" (1–6). `CatalogListFilter` pasa a
+        `playersMin`/`playersMax` con semántica de solape de rangos; SQL
+        (`catalog-listing.ts`), parseo (`catalog.ts`) y caché
+        (`CATALOG_CACHE_VERSION` a `v3`) actualizados. Compatibilidad con
+        `?players=N` (equivale a `minPlayers=N&maxPlayers=N`) en REST, tRPC y
+        la página del catálogo.
+      - **Aviso al colocar una prueba:** `cooperativeRequirement` generaliza
+        el requisito de una mecánica cooperativa a un número N de jugadores
+        (antes solo el mensaje); `checkCooperativeBridges` (antes
+        `checkSoloBridges`, limitado a 1 jugador) avisa para cualquier tamaño
+        de grupo que la sala admite por debajo de N. El validador en vivo del
+        editor (debounce de `RoomValidator`) ya recalcula esto en cada cambio
+        del doc, así que el aviso aparece al colocar la prueba sin cableado
+        adicional en el inspector.
+      - **Aviso al revés:** por el mismo motivo, bajar `players.min`/`max` por
+        debajo de lo que exige una prueba ya colocada dispara el mismo aviso
+        generalizado en la siguiente pasada del validador (sin lógica nueva:
+        `checkCooperativeBridges` ya recibe todo `playerCounts` derivado del
+        rango vigente, no solo `1`).
+      Tests: `packages/shared/test/solo-mode.test.ts` (N genérico),
+      `packages/shared/test/catalog-filters.test.ts` (rango + compatibilidad),
+      `packages/editor/test/room-doc-players.test.ts` (aviso al revés) y
+      `packages/web/test/components/room-players-dialog.test.tsx` (UI).
 - [ ] **Claves reales de analítica antes de desplegar en producción.** En
       desarrollo se activan Plausible y Google Analytics con valores de prueba
       (para ver el banner de consentimiento de cookies). Antes del primer
@@ -60,7 +71,7 @@ Tareas pendientes que no bloquean pero hay que resolver.
       endpoint de pruebas equivalente limitado a test); quitar el tipo de
       token `dev_test` si ya no se usa; revisar enlaces internos y docs que la
       mencionen.
-- [ ] **Formularios con server actions, React Hook Form y errores bajo cada
+- [x] **Formularios con server actions, React Hook Form y errores bajo cada
       campo.** Revisar todos los formularios para que usen **server actions** +
       **React Hook Form** (con el `Form`/`Field` de shadcn/ui y el resolver de
       Zod) y muestren los errores **debajo de su campo**, nunca con la
@@ -110,6 +121,39 @@ Tareas pendientes que no bloquean pero hay que resolver.
         - Nota de slxd (SPEC.md, 2026-08-24): `react-hook-form` debe ser
           *external* si va en una librería de componentes compartida, porque
           empaquetado duplica el contexto del formulario.
+      Resuelto: `react-hook-form` + `@hookform/resolvers` instalados en
+      `packages/web`; el `form` de shadcn del registro actual es un stub
+      vacío (sustituido por el patrón `Field`/`Controller` de RHF, que ya
+      documentaba `components/ui/field.tsx`), así que los formularios usan
+      `Field`/`FieldLabel`/`FieldError` + `register`/`Controller`,
+      `noValidate` y `aria-invalid`/`aria-describedby`. Contrato de error de
+      las Server Actions (`server/actions/action-result.ts`): mismo
+      `{ code, message, issues? }` que A-22, con `consumeActionRateLimit`
+      (reconstruye IP/sesión desde `headers()` para reutilizar
+      `RATE_LIMIT_POLICIES`/`consumeRateLimit` sin `Request`). Migrados a
+      server actions que llaman a los mismos servicios de
+      `@escaperoom/shared` (rutas REST intactas): `contact-form.tsx`
+      (`sendContactMessage`, cuota `contact-write`), `redeem-form.tsx`
+      (`redeemAccessKey`, cuota `redeem`), `catalog/review-form.tsx`
+      (`upsertRoomReview`, cuota `review-write`; no toca
+      `server/rest/room-reviews.ts`, migrado aparte al contrato A-22) y
+      `events/new-event-form.tsx` (`createMinimalEvent`; sin cuota, igual que
+      la ruta REST que sustituye). `auth-form.tsx`, `mcp-oauth/consent-login.tsx`
+      y `onboarding/onboarding-login.tsx` (Google + enlace mágico de Better
+      Auth, no un servicio propio) comparten el hook `useEmailSignIn` con
+      RHF; Better Auth ya gestiona su propio rate limiting/CSRF.
+      `editor/room-languages-editor.tsx` no tiene servidor al que llamar
+      (opera sobre el doc Yjs local): solo `noValidate`/`aria-invalid`/
+      `aria-describedby`, sin RHF. `app/[locale]/(play)/oauth/consent/page.tsx`
+      no aplica: el `<form>` de la decisión son campos ocultos + botones que
+      se envían de forma nativa a propósito (flujo de redirección OAuth); no
+      hay entrada de usuario que validar. Pendiente:
+      `game-session/network-game.tsx` (excluido, zona del bloque 10 en
+      paralelo) y las "otras mutaciones con `fetch`" (`room-cover-upload`,
+      `event-dashboard`, `spectator-game`, `confirm-attendance`,
+      `accept-terms-button`, `moderation-queue`, `onboarding-wizard`,
+      `payouts-panel`, `confirm-publish`, `playtest-button`): quedan fuera de
+      esta PR por alcance, sin cambios de comportamiento que perder.
 - [x] **Páginas de error con la shell pública y componentes shadcn.** Las
       páginas de error actuales (`app/[locale]/error.tsx` y
       `app/[locale]/not-found.tsx`, PR #120) cuelgan de `[locale]`, fuera del
@@ -195,19 +239,38 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `public/`, credenciales y quién lo ejecuta (script manual o paso de CI). Decidir
       también el almacenamiento definitivo de los binarios de la herramienta (`fuentes/`,
       `entregas/`, `referencias/`, hoy solo en local y con copia en `pipeline-assets`).
-- [ ] **404 de URLs que no existen.** Una URL sin ninguna página que la capture (p. ej.
-      `/es/una-ruta-que-no-existe`) no llega a `[locale]/not-found.tsx` ni a
-      `(public)/not-found.tsx`: al no haber `app/not-found.tsx` ni `app/layout.tsx` raíz
-      (el layout raíz efectivo es `[locale]/layout.tsx`), Next sirve su 404 por defecto,
-      en inglés y sin estilos. Añadir una ruta comodín (`app/[locale]/(public)/[...rest]/
-      page.tsx` que llame a `notFound()`) para que use el 404 con la shell pública, y
-      cubrir también las rutas sin prefijo de idioma. Encontrado en la PR #153.
-- [ ] **Tests de rate limit deterministas.** Los tests de rate limit de `packages/web`
-      (`rate-limit.test.ts`, `room-license-api.test.ts`, `onboarding-api.test.ts`,
-      `moderation-api.test.ts`, `audio-generation-api.test.ts`…) usan ventanas de tiempo
-      reales con el limitador en memoria y fallan con `429` inesperados cuando la máquina
-      va cargada (varios agentes a la vez, `turbo` lanzando lint+typecheck+test+build).
-      Como `pnpm verify:pr` aborta en el primer fallo, el smoke E2E ni llega a correr: lo
-      han sufrido casi todas las PRs de la auditoría (#146–#155). Hacerlos deterministas:
-      reloj inyectable en el limitador (o `vi.useFakeTimers`), identificadores únicos por
-      test (IP/usuario) y sin depender de la velocidad de la máquina.
+- [x] **404 de URLs que no existen.** Resuelto (auditoría 2026-09-24, B-27):
+      `app/[locale]/(public)/[...rest]/page.tsx` (comodín, llama a `notFound()`) captura
+      cualquier URL con locale válido que ninguna otra ruta capturó, y sale con la shell
+      pública (`(public)/not-found.tsx`). Las URLs sin prefijo de idioma que `proxy.ts` no
+      redirige (su matcher trata un segmento con punto como asset estático, p. ej.
+      `/v1.2-notas`) las cubre `app/global-not-found.tsx` (`experimental.globalNotFound`
+      en `next.config.ts`): al no haber `app/layout.tsx` raíz (el root efectivo es
+      `[locale]/layout.tsx`, un segmento dinámico), es la vía que documenta Next para ese
+      caso — bypassa todo el árbol de layouts, con su propio `<html>/<body>` y copia fija
+      en español (sin next-intl, no hay locale que resolver). Encontrado en la PR #153.
+- [x] **Tests de rate limit deterministas.** Causa real (reproducida en verde/rojo alternando
+      `pnpm verify:pr` varias veces seguidas, no la CPU): `scripts/verify-pr.sh` exportaba
+      `REDIS_PREFIX=escaperoom` — el genérico, sin el sufijo por worktree — para TODA la
+      tubería de `turbo`, incluido `packages/web:test`. Eso hacía que los tests de rate-limit
+      de `web` (`rate-limit.test.ts`, `room-license-api.test.ts`, `onboarding-api.test.ts`,
+      `moderation-api.test.ts`, `audio-generation-api.test.ts`), pensados para correr
+      aislados con el store EN MEMORIA por proceso (ver "`REDIS_PREFIX` por worktree" de
+      `docs/reference/verify-pr.md`), hablaran en realidad con el Redis real y PERSISTENTE de
+      `infra/docker-compose.dev.yml`: las claves de cuota (`escaperoom:rls:*`, confirmado con
+      `redis-cli KEYS`) sobrevivían de una tirada de `pnpm verify:pr` a la siguiente — y entre
+      worktrees distintos, si ninguno tenía `REDIS_PREFIX` ya puesto en su shell — así que el
+      429/403 dependía de qué había quedado sin expirar de la ejecución anterior, no de qué
+      test corría. Arreglado: `scripts/verify-pr.sh` ahora lee el `REDIS_PREFIX` propio del
+      worktree de `packages/shared/.env` (el que ya deja `pnpm dev:env`) antes de caer al
+      genérico. Verificado con `pnpm verify:pr --all --no-e2e` en verde 3 veces seguidas tras
+      limpiar las claves contaminadas por el diagnóstico.
+      De paso, dos mejoras menores de determinismo que sí eran reales (aunque no la causa del
+      429): `packages/kit/test/rate-limit.test.ts` tenía una espera real
+      (`setTimeout(…, 1100)`), sustituida por un reloj inyectado — `MemoryRateLimitStore`
+      ahora acepta un `Clock` opcional, como ya tenía `MemorySlidingWindowStore`; y se añadió
+      `__resetInMemoryRateLimitersForTests()` (`packages/kit/src/rate-limit/index.ts`),
+      llamado al principio de cada fichero de test que ejercita una ruta real limitada, como
+      defensa adicional para que ningún test dependa del estado que deje otro. También E-22
+      (auditoría): `RedisSlidingWindowStore` ya no falla abierto si Redis cae, cae a un
+      `MemorySlidingWindowStore` por proceso (`docs/reference/seguridad.md` §1).

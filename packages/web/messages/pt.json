@@ -437,6 +437,17 @@
       "validate": "Validar",
       "playtest": "Jogar"
     },
+    "players": {
+      "button": "Jogadores",
+      "title": "Jogadores da sala",
+      "description": "Número mínimo e máximo de jogadores que esta sala admite (até {ceiling}).",
+      "min": "Mínimo",
+      "max": "Máximo",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "errorRange": "O mínimo e o máximo devem estar entre 1 e {ceiling}",
+      "errorOrder": "O mínimo não pode ser maior do que o máximo"
+    },
     "tools": {
       "label": "Ferramentas",
       "select": "Selecionar",
@@ -703,9 +714,11 @@
     "difficulty": "Dificuldade",
     "anyDifficulty": "Qualquer dificuldade",
     "players": "Jogadores",
-    "anyPlayers": "Qualquer número",
-    "playersSolo": "Jogo individual",
-    "playersUpTo": "Até {n} jogadores",
+    "anyPlayers": "Qualquer",
+    "playersFrom": "De",
+    "playersToLabel": "a",
+    "playersFromOption": "De {n}",
+    "playersToOption": "a {n}",
     "priceFree": "Grátis",
     "priceMax": "Preço máximo",
     "priceUnlimited": "Sem limite",
@@ -774,7 +787,11 @@
     "created": "Obrigado! A tua avaliação foi publicada.",
     "updated": "A tua avaliação foi atualizada.",
     "errorContent": "A avaliação contém linguagem não permitida. Reformula-a para a publicar.",
-    "errorGeneric": "Não foi possível guardar a avaliação. Tenta novamente."
+    "errorGeneric": "Não foi possível guardar a avaliação. Tenta novamente.",
+    "errors": {
+      "ratingRequired": "Escolhe uma avaliação",
+      "textTooLong": "O comentário é demasiado longo"
+    }
   },
   "EditorPlaytest": {
     "editor": {
@@ -961,6 +978,9 @@
     "cta": "Entrar no jogo",
     "redeeming": "A resgatar…",
     "errors": {
+      "codeRequired": "O código é obrigatório",
+      "codeTooLong": "O código é demasiado longo",
+      "nameTooLong": "O nome é demasiado longo",
       "ACCESS_KEY_INVALID": "Esta chave não existe. Verifica se a escreveste bem.",
       "ACCESS_KEY_USED": "Esta chave já foi usada.",
       "ACCESS_KEY_EXPIRED": "Esta chave já não é válida. Pede uma nova ao organizador.",
@@ -1020,6 +1040,7 @@
     "login": {
       "intro": "Inicia sessão para continuar.",
       "google": "Continuar com o Google",
+      "emailInvalid": "Introduz um email válido",
       "emailLabel": "Ou recebe um link de acesso por email",
       "emailSubmit": "Enviar link",
       "emailSent": "Enviámos-te um link. Abre-o neste navegador para continuar.",
@@ -1090,7 +1111,13 @@
     "pricingRangeOpen": "{min}+ jogadores:",
     "pricingRangeCapped": "{min}\u2013{max} jogadores:",
     "submitError": "N\u00e3o foi poss\u00edvel criar o evento. Tenta novamente.",
-    "submit": "Criar evento"
+    "submit": "Criar evento",
+    "errors": {
+      "titleRequired": "O título é obrigatório",
+      "titleTooLong": "O título é demasiado longo",
+      "playersInvalid": "Introduz um número de jogadores válido",
+      "playersTooMany": "Demasiados jogadores"
+    }
   },
   "EventPanel": {
     "metaTitle": "Painel do evento",
@@ -1353,7 +1380,16 @@
     "submit": "Enviar mensagem",
     "success": "Obrigado! Recebemos a tua mensagem e responderemos em breve.",
     "sending": "A enviar…",
-    "error": "Não foi possível enviar a mensagem. Tenta novamente."
+    "error": "Não foi possível enviar a mensagem. Tenta novamente.",
+    "errors": {
+      "nameRequired": "O nome é obrigatório",
+      "nameTooLong": "O nome é demasiado longo",
+      "emailRequired": "O email é obrigatório",
+      "emailTooLong": "O email é demasiado longo",
+      "emailInvalid": "Introduz um email válido",
+      "messageRequired": "A mensagem é obrigatória",
+      "messageTooLong": "A mensagem é demasiado longa"
+    }
   },
   "ErrorPage": {
     "title": "Ocorreu um erro",

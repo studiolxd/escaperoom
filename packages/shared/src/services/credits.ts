@@ -33,6 +33,15 @@ export type ApplyMovementInput = {
   createdBy: string | null;
 };
 
+/**
+ * Puerto mínimo para revalidar membresía (B-18, auditoría 2026-09-24): lo
+ * satisface el mismo `OrganizationStore` que usa `dpaGate`. Estructural para
+ * no acoplar este servicio al de organizaciones.
+ */
+export interface MembershipStore {
+  findMemberRole(organizationId: string, userId: string): Promise<string | null>;
+}
+
 /** Puerto de persistencia del ledger (ADR-022). */
 export interface CreditAccountStore {
   /** La cuenta del actor (organización activa, o personal si no hay una). La crea con saldo 0 si no existe. */
@@ -75,8 +84,12 @@ function requireSession(actor: Actor): void {
   requireUser(actor, CreditError);
 }
 
-export function createCreditsService(deps: { store: CreditAccountStore }) {
-  const { store } = deps;
+export function createCreditsService(deps: {
+  store: CreditAccountStore;
+  /** Opcional por retrocompatibilidad con tests; en producción siempre se pasa. */
+  members?: MembershipStore;
+}) {
+  const { store, members } = deps;
 
   return {
     /** Saldo de la cuenta del actor (la crea con saldo 0 si es la primera vez que se consulta). */
@@ -97,6 +110,12 @@ export function createCreditsService(deps: { store: CreditAccountStore }) {
      * Consume créditos de la cuenta del actor. Atómico: si el saldo no llega,
      * no se escribe ni el movimiento ni el nuevo saldo (el `CHECK` aborta la
      * transacción entera) y se lanza `InsufficientCreditsError`.
+     *
+     * Si el actor gasta como organización, revalida que siga siendo miembro
+     * (B-18, auditoría 2026-09-24): `actor.organizationId` viene de
+     * `activeOrganizationId` en la sesión, que no se limpia al expulsar a
+     * alguien — sin esto, un miembro expulsado seguiría gastando créditos de
+     * la organización mientras dure su sesión (como ya revalida `dpaGate`).
      */
     async consume(
       actor: Actor,
@@ -106,6 +125,15 @@ export function createCreditsService(deps: { store: CreditAccountStore }) {
       requireSession(actor);
       if (amountCredits <= 0n) {
         throw new CreditError("INSUFFICIENT_CREDITS", "El importe a consumir debe ser positivo");
+      }
+      if (actor.organizationId && members) {
+        const role = await members.findMemberRole(actor.organizationId, actor.userId);
+        if (role === null) {
+          throw new CreditError(
+            "UNAUTHORIZED",
+            "Ya no eres miembro de la organización activa: no se pueden gastar sus créditos",
+          );
+        }
       }
       const account = await store.ensureAccountForActor(actor);
       if (account.balanceCredits < amountCredits) {

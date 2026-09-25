@@ -158,29 +158,36 @@ defecto, sin slug) en ese Redis con `redis-cli -a redis_dev_only -p 56380
 tiene el `REDIS_PREFIX` correcto (`grep REDIS_PREFIX packages/web/.env`) y
 que no lo copiaste a mano del worktree principal.
 
-**Esto NO es la causa de los tests de rate-limit de `packages/web` fallando
-bajo `pnpm verify:pr`** (lo investigamos a fondo tras confundirlo con esto en
-una versión anterior de esta nota): `test/onboarding-api.test.ts`,
-`test/room-license-api.test.ts`, `test/rate-limit.test.ts`… nunca cargan
-`packages/web/.env` ni reciben `REDIS_URL` en su proceso (confirmado
-instrumentando `kit/src/redis/index.ts`: `redisUrl()` devuelve `undefined`
-tanto en `vitest run` directo como bajo `pnpm turbo run test`), así que el
-rate limiting de estos tests siempre usa el store EN MEMORIA
-(`MemorySlidingWindowStore`/`MemoryRateLimitStore`), aislado por proceso —
-nada que ver con Redis compartido ni con otro worktree. Lo que sí
-reprodujimos de forma fiable es un `Error: Test timed out in 20000ms` en
-`test/sitemap.test.ts` (un `import()` dinámico sin relación alguna con
-rate-limit) al correr `pnpm turbo run test --filter=@escaperoom/web` con
-varias sesiones de agentes ocupadas en la misma máquina: es la misma clase
-de problema que ya describe "Timeouts de CI" más arriba (contención de CPU
-real, no un fallo del código), solo que aquí se manifiesta como 429/403 en
-vez de un timeout porque el propio suite de un fichero de test puede agotar
-su cuota EN MEMORIA si el orden/temporización de sus propios `it()` se ve
-afectado por esa contención. Si ves 429/403 inesperados en tests de
-rate-limit de `web` bajo `pnpm verify:pr` con la máquina ocupada, trátalo
-igual que un timeout: no es necesariamente una regresión, repite la prueba
-con menos carga concurrente (`--concurrency` más bajo, o cuando otras
-sesiones terminen) antes de asumir un fallo real.
+**Actualización (entrada "Tests de rate limit deterministas" de `docs/DEUDA.md`, resuelta): SÍ
+era esto**, aunque de una forma distinta a la que descartaba una versión anterior de esta nota.
+`vitest run` directo (o `pnpm turbo run test` invocado a mano, sin pasar por este script)
+efectivamente nunca carga `packages/web/.env` ni recibe `REDIS_URL` — eso seguía confirmado — pero
+**`scripts/verify-pr.sh` (este script) exporta `REDIS_URL`/`REDIS_PREFIX` él mismo** para toda la
+tubería de `turbo` (líneas de aquí abajo, para que los `*.integration.test.ts` del E-14 tengan
+Redis disponible), y hasta ahora ese `REDIS_PREFIX` por defecto era el genérico `escaperoom`, NO
+el propio del worktree. Bajo `pnpm verify:pr` (a diferencia de `vitest run` o `turbo run test`
+sueltos), los tests de rate-limit de `web` SÍ hablaban con el Redis real y PERSISTENTE de
+`infra/docker-compose.dev.yml`, perdiendo el aislamiento en memoria que su propio diseño da por
+hecho: las claves de cuota (`escaperoom:rls:*`, confirmado con `redis-cli … KEYS 'escaperoom:rls:*'`)
+sobrevivían de una tirada de `pnpm verify:pr` a la siguiente — y entre worktrees distintos, si
+ninguno tenía `REDIS_PREFIX` ya puesto en su shell — así que el 429/403 dependía de qué había
+quedado sin expirar de una ejecución anterior (algunas cuotas con ventana de hasta 1h, la de
+`gift-copy-recipient` de 24h), no de la carga de la máquina en ese momento ni de un fallo del
+algoritmo del limitador (reproducido: `pnpm verify:pr --all --no-e2e` fallaba de forma consistente
+con las claves contaminadas, y en verde 3 veces seguidas tras limpiarlas). Arreglado: este script
+ahora lee el `REDIS_PREFIX` del worktree desde `packages/shared/.env` (el que ya deja
+`pnpm dev:env`) antes de caer al genérico — ver el bloque "Entorno local" más abajo en el propio
+script. Si ves 429/403 en tests de rate-limit bajo `pnpm verify:pr`, comprueba primero que tu
+`REDIS_PREFIX` no sea el genérico (`grep REDIS_PREFIX packages/shared/.env`) antes de asumir
+contención de CPU (que sigue siendo real para OTROS tests, ver "Timeouts de CI" más arriba —
+`test/sitemap.test.ts` sí es un timeout genuino de CPU, sin relación con rate-limit).
+
+De forma independiente (defensa en profundidad, no la causa de lo anterior): el limitador en
+memoria (`MemoryRateLimitStore`/`MemorySlidingWindowStore`, `packages/kit/src/rate-limit/`) acepta
+ahora un reloj inyectable de punta a punta (ningún test depende ya de un `setTimeout`/espera real),
+y `__resetInMemoryRateLimitersForTests()` (`packages/kit/src/rate-limit/index.ts`) se llama al
+principio de cada fichero de test que ejercita una ruta real limitada, para que ninguno dependa del
+estado que deje otro si alguna vez vuelven a compartir store.
 
 ## Resumen final
 

@@ -18,12 +18,7 @@
 
 import { logger } from "../logger";
 import { getRedis, redisPrefix } from "../redis";
-import {
-  createRateLimiter,
-  MemoryRateLimitStore,
-  type RateLimitResult,
-  type RateLimitStore,
-} from "./memory";
+import { MemoryRateLimitStore, type RateLimitResult, type RateLimitStore } from "./memory";
 import { RedisRateLimitStore } from "./redis-store";
 import { MemorySlidingWindowStore, type SlidingWindowStore } from "./sliding";
 import { RedisSlidingWindowStore } from "./sliding-redis";
@@ -61,8 +56,17 @@ function defaultSlidingStore(): SlidingWindowStore {
   return new MemorySlidingWindowStore();
 }
 
-/** Process-wide default limiter — Redis when REDIS_URL is set, else memory. */
-export const rateLimiter = createRateLimiter(defaultStore());
+/**
+ * Process-wide default limiter — Redis when REDIS_URL is set, else memory.
+ * Lazy like `slidingRateLimiter` below (same reason: no store, no Redis
+ * connection, until the first call — and `__resetInMemoryRateLimitersForTests`
+ * can drop it to force a fresh one).
+ */
+let plainStore: RateLimitStore | undefined;
+export const rateLimiter = {
+  check: (key: string, limit: number, windowSeconds: number) =>
+    (plainStore ??= defaultStore()).hit(key, limit, windowSeconds),
+};
 
 /**
  * Process-wide sliding-window limiter — Redis when REDIS_URL is set, else
@@ -76,6 +80,24 @@ export const slidingRateLimiter: SlidingWindowStore = {
   peek: (key, limit, windowSeconds) =>
     (slidingStore ??= defaultSlidingStore()).peek(key, limit, windowSeconds),
 };
+
+/**
+ * SOLO PARA TESTS: fuerza a `rateLimiter`/`slidingRateLimiter` a construir un
+ * store nuevo en su próximo uso (en memoria, sin `REDIS_URL`; ver
+ * `docs/reference/verify-pr.md` sobre cuándo SÍ hay `REDIS_URL` en los tests
+ * de `web` — la causa real de "Tests de rate limit deterministas",
+ * `docs/DEUDA.md`, era `REDIS_PREFIX` en `scripts/verify-pr.sh`, ya
+ * arreglada). Defensa adicional, no la causa de aquel bug: si dos ficheros de
+ * test llegaran a compartir el mismo singleton EN MEMORIA de este módulo
+ * (p. ej. por cómo Vitest asigne workers), esto garantiza que cada fichero
+ * empiece con cuota limpia. Llamar al principio (nivel de módulo, antes de
+ * cualquier `it()`) de cualquier fichero de test que ejercite una ruta real
+ * limitada.
+ */
+export function __resetInMemoryRateLimitersForTests(): void {
+  plainStore = undefined;
+  slidingStore = undefined;
+}
 
 /**
  * Rate-limit guard for REST route handlers (uploads, signed-URL reads), which

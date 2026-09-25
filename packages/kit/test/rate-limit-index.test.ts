@@ -5,7 +5,13 @@ vi.mock("../src/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-import { checkRouteRateLimit } from "../src/rate-limit/index";
+import { __resetInMemoryRateLimitersForTests, checkRouteRateLimit } from "../src/rate-limit/index";
+
+// Ver la nota igual en `packages/web/test/rate-limit.test.ts` (entrada "Tests
+// de rate limit deterministas", `docs/DEUDA.md`): defensa adicional, no la
+// causa real del 429 (esa era `REDIS_PREFIX` en `scripts/verify-pr.sh`, ya
+// arreglada).
+__resetInMemoryRateLimitersForTests();
 
 describe("checkRouteRateLimit", () => {
   it("is a no-op when disabled", async () => {

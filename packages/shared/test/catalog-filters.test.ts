@@ -144,10 +144,26 @@ describe("catalogService.listRooms — filtros combinables", () => {
     expect(await list({ language: ["en", "fr"], difficulty: 3 })).toEqual(["mansion", "lab"]);
   });
 
-  it("idioma + nº de jugadores (min ≤ n ≤ max)", async () => {
+  it("idioma + nº de jugadores, compatibilidad con `?players=N` (min ≤ n ≤ max)", async () => {
     expect(await list({ language: "en", players: "3" })).toEqual(["mansion", "nocturno", "lab"]);
     expect(await list({ players: 6 })).toEqual(["castillo"]);
     expect(await list({ players: 7 })).toEqual([]);
+  });
+
+  it("rango de jugadores `de X a Y` (solape de [minPlayers,maxPlayers] con [min,max] de la sala)", async () => {
+    // [6,8] solo solapa con el rango [2,6] de "castillo".
+    expect(await list({ minPlayers: 6, maxPlayers: 8 })).toEqual(["castillo"]);
+    // Solo mínimo: cualquier sala cuyo máximo llegue a 5 o más.
+    expect(await list({ minPlayers: 5 })).toEqual(["lab", "castillo"]);
+    // Solo máximo: cualquier sala cuyo mínimo sea 2 o menos.
+    expect(await list({ maxPlayers: 2 })).toEqual(["mansion", "nocturno", "castillo", "cripta"]);
+    // minPlayers/maxPlayers tiene prioridad sobre el `players` antiguo si llegan los dos.
+    expect(await list({ players: "6", minPlayers: 1, maxPlayers: 2 })).toEqual([
+      "mansion",
+      "nocturno",
+      "castillo",
+      "cripta",
+    ]);
   });
 
   it("rango de precio (sin precio cuenta como gratis) + idioma", async () => {
@@ -237,7 +253,10 @@ describe("catalogService.listRooms — filtros combinables", () => {
       { minPrice: "10", maxPrice: "5" },
       { maxPrice: "1.5" },
       { players: "0" },
-      { players: "101" },
+      { players: "9" },
+      { minPlayers: "0" },
+      { maxPlayers: "9" },
+      { minPlayers: "5", maxPlayers: "2" },
       { sort: "popular" },
       { cursor: "no-es-un-cursor" },
       { limit: "49" },
@@ -248,7 +267,7 @@ describe("catalogService.listRooms — filtros combinables", () => {
       expect(() => parseCatalogQuery(input), JSON.stringify(input)).toThrow(CatalogError);
     }
     expect(parseCatalogQuery({ q: "  ", sort: "" })).toMatchObject({
-      filter: { q: null, sort: "recent", difficulties: [], players: null },
+      filter: { q: null, sort: "recent", difficulties: [], playersMin: null, playersMax: null },
       offset: 0,
       limit: 12,
     });

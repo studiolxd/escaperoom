@@ -136,6 +136,7 @@ export function RoomLanguagesEditor({ doc }: { doc: Y.Doc }) {
       )}
 
       <form
+        noValidate
         className="flex items-center gap-1"
         onSubmit={(event) => {
           event.preventDefault();
@@ -154,13 +155,15 @@ export function RoomLanguagesEditor({ doc }: { doc: Y.Doc }) {
           onChange={(event) => setDraft(event.target.value)}
           placeholder={t("addPlaceholder")}
           className="h-7 w-24 px-2 text-sm"
+          aria-invalid={!!error}
+          aria-describedby={error ? "room-language-add-error" : undefined}
         />
         <Button size="sm" type="submit">
           {t("add")}
         </Button>
       </form>
       {error && (
-        <p role="alert" className="text-xs text-destructive">
+        <p id="room-language-add-error" role="alert" className="text-xs text-destructive">
           {error}
         </p>
       )}

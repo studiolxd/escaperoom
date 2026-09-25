@@ -16,7 +16,8 @@ export type CatalogFilterValues = {
   q?: string;
   language?: string;
   difficulty?: string;
-  players?: string;
+  minPlayers?: string;
+  maxPlayers?: string;
   maxPrice?: string;
   sort?: string;
 };
@@ -34,7 +35,8 @@ const SORT_LABEL: Record<(typeof CATALOG_SORTS)[number], string> = {
   price_desc: "sortPriceDesc",
 };
 
-const PLAYER_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
+/** = `MAX_PLAYERS_PER_ROOM_CEILING` (el techo real de una sala, specs/22). */
+const PLAYER_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
 /** Escalones fijos del slider de precio máximo, en euros; el último es "sin límite". */
 export const PRICE_STEPS_EUROS = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
@@ -93,6 +95,27 @@ export function CatalogFilters({
   function onFieldChange(key: keyof CatalogFilterValues, value: string) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     navigate({ ...values, q: q || undefined, [key]: value || undefined });
+  }
+
+  /**
+   * Rango "de X a Y" de jugadores: si el nuevo mínimo supera el máximo (o
+   * viceversa), arrastra el otro extremo para que el rango nunca quede
+   * invertido en la URL.
+   */
+  function onPlayersChange(key: "minPlayers" | "maxPlayers", value: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const next: CatalogFilterValues = { ...values, q: q || undefined };
+    const v = value === ANY ? undefined : value;
+    next[key] = v;
+    if (v !== undefined) {
+      if (key === "minPlayers" && next.maxPlayers !== undefined && Number(v) > Number(next.maxPlayers)) {
+        next.maxPlayers = v;
+      }
+      if (key === "maxPlayers" && next.minPlayers !== undefined && Number(v) < Number(next.minPlayers)) {
+        next.minPlayers = v;
+      }
+    }
+    navigate(next);
   }
 
   // Debounce solo el texto libre; el resto de campos navegan al cambiar. Si
@@ -173,24 +196,42 @@ export function CatalogFilters({
         </Select>
       </div>
 
-      <div className="flex flex-col gap-1 text-sm">
-        <Label htmlFor={`${id}-players`}>{t("players")}</Label>
-        <Select
-          value={values.players || ANY}
-          onValueChange={(value) => onFieldChange("players", value === ANY ? "" : value)}
-        >
-          <SelectTrigger id={`${id}-players`} className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ANY}>{t("anyPlayers")}</SelectItem>
-            {PLAYER_OPTIONS.map((n) => (
-              <SelectItem key={n} value={String(n)}>
-                {n === 1 ? t("playersSolo") : t("playersUpTo", { n })}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-col gap-1 text-sm sm:col-span-2">
+        <Label id={`${id}-players-label`}>{t("players")}</Label>
+        <div className="grid grid-cols-2 items-center gap-2" role="group" aria-labelledby={`${id}-players-label`}>
+          <Select
+            value={values.minPlayers || ANY}
+            onValueChange={(value) => onPlayersChange("minPlayers", value)}
+          >
+            <SelectTrigger id={`${id}-players-min`} className="w-full" aria-label={t("playersFrom")}>
+              <SelectValue placeholder={t("playersFrom")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ANY}>{t("anyPlayers")}</SelectItem>
+              {PLAYER_OPTIONS.map((n) => (
+                <SelectItem key={n} value={String(n)}>
+                  {t("playersFromOption", { n })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={values.maxPlayers || ANY}
+            onValueChange={(value) => onPlayersChange("maxPlayers", value)}
+          >
+            <SelectTrigger id={`${id}-players-max`} className="w-full" aria-label={t("playersToLabel")}>
+              <SelectValue placeholder={t("playersToLabel")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ANY}>{t("anyPlayers")}</SelectItem>
+              {PLAYER_OPTIONS.map((n) => (
+                <SelectItem key={n} value={String(n)}>
+                  {t("playersToOption", { n })}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex flex-col gap-1 text-sm">

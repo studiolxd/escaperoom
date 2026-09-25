@@ -599,7 +599,7 @@ describe("modo solitario — toda plantilla cooperativa del catálogo", () => {
     const solvability = checkOf(report, "solvability");
     expect(solvability.status).toBe("error");
     expect(solvability.summary).toBe(
-      "Solvabilidad: la sala admite 1 jugador, pero p-coop no declara(n) objeto-puente",
+      "Solvabilidad: la sala admite algún grupo por debajo de lo que exige la prueba, pero p-coop no declara(n) objeto-puente",
     );
     expect(soloIssues(report)).toHaveLength(1);
   });
@@ -643,5 +643,33 @@ describe("modo solitario — toda plantilla cooperativa del catálogo", () => {
     expect(report.ok).toBe(true);
     expect(soloIssues(report)).toEqual([]);
     expect(solvesSolo(puzzle, false)).toBe(true);
+  });
+
+  it("el aviso se generaliza a N: 3 placas y players.min = 2 sin puente es un error", () => {
+    const puzzle = withoutBridge(COOPERATIVE_PUZZLES.simultaneous_plates!());
+    if (puzzle.type !== "simultaneous_plates") throw new Error("tipo inesperado");
+    puzzle.plates = [
+      { objectId: "coop-a", x: 1, y: 5 },
+      { objectId: "coop-b", x: 8, y: 5 },
+      { objectId: "coop-c", x: 4, y: 5 },
+    ];
+    const pkg = soloPackage(puzzle, { min: 2, max: 3 });
+    pkg.objects.push(worldObject("coop-c", 4) as RoomPackage["objects"][number]);
+
+    const report = validateRoomPackage(pkg);
+    expect(report.ok).toBe(false);
+    expect(soloIssues(report)).toEqual([
+      {
+        code: "solo_bridge_missing",
+        message: expect.stringContaining("exige pisar 3 placas a la vez") as unknown as string,
+        ids: ["p-coop"],
+        playerCounts: [2],
+      },
+    ]);
+
+    // Con players.min = 3 el grupo mínimo ya cubre las 3 placas: sin aviso.
+    const pkgGroup = soloPackage(puzzle, { min: 3, max: 4 });
+    pkgGroup.objects.push(worldObject("coop-c", 4) as RoomPackage["objects"][number]);
+    expect(validateRoomPackage(pkgGroup).ok).toBe(true);
   });
 });

@@ -437,6 +437,17 @@
       "validate": "Valideren",
       "playtest": "Spelen"
     },
+    "players": {
+      "button": "Spelers",
+      "title": "Spelers van de kamer",
+      "description": "Minimum en maximum aantal spelers dat deze kamer toestaat (tot {ceiling}).",
+      "min": "Minimum",
+      "max": "Maximum",
+      "save": "Opslaan",
+      "cancel": "Annuleren",
+      "errorRange": "Minimum en maximum moeten tussen 1 en {ceiling} liggen",
+      "errorOrder": "Het minimum mag niet groter zijn dan het maximum"
+    },
     "tools": {
       "label": "Gereedschap",
       "select": "Selecteren",
@@ -703,9 +714,11 @@
     "difficulty": "Moeilijkheid",
     "anyDifficulty": "Alle moeilijkheden",
     "players": "Spelers",
-    "anyPlayers": "Elk aantal",
-    "playersSolo": "Alleen spelen",
-    "playersUpTo": "Tot {n} spelers",
+    "anyPlayers": "Alle",
+    "playersFrom": "Van",
+    "playersToLabel": "tot",
+    "playersFromOption": "Van {n}",
+    "playersToOption": "tot {n}",
     "priceFree": "Gratis",
     "priceMax": "Maximumprijs",
     "priceUnlimited": "Geen limiet",
@@ -774,7 +787,11 @@
     "created": "Bedankt! Je review is geplaatst.",
     "updated": "Je review is bijgewerkt.",
     "errorContent": "De review bevat taal die niet is toegestaan. Herformuleer hem.",
-    "errorGeneric": "De review kon niet worden opgeslagen. Probeer het opnieuw."
+    "errorGeneric": "De review kon niet worden opgeslagen. Probeer het opnieuw.",
+    "errors": {
+      "ratingRequired": "Kies een beoordeling",
+      "textTooLong": "Reactie is te lang"
+    }
   },
   "EditorPlaytest": {
     "editor": {
@@ -961,6 +978,9 @@
     "cta": "Meedoen aan het spel",
     "redeeming": "Bezig met inwisselen…",
     "errors": {
+      "codeRequired": "Code is verplicht",
+      "codeTooLong": "Code is te lang",
+      "nameTooLong": "Naam is te lang",
       "ACCESS_KEY_INVALID": "Deze sleutel bestaat niet. Controleer of je hem goed hebt ingevoerd.",
       "ACCESS_KEY_USED": "Deze sleutel is al gebruikt.",
       "ACCESS_KEY_EXPIRED": "Deze sleutel is niet meer geldig. Vraag de organisator om een nieuwe.",
@@ -1020,6 +1040,7 @@
     "login": {
       "intro": "Log in om verder te gaan.",
       "google": "Doorgaan met Google",
+      "emailInvalid": "Voer een geldig e-mailadres in",
       "emailLabel": "Of ontvang een inloglink per e-mail",
       "emailSubmit": "Link versturen",
       "emailSent": "We hebben je een link gestuurd. Open hem in deze browser om verder te gaan.",
@@ -1090,7 +1111,13 @@
     "pricingRangeOpen": "{min}+ spelers:",
     "pricingRangeCapped": "{min}\u2013{max} spelers:",
     "submitError": "Kon het evenement niet aanmaken. Probeer het opnieuw.",
-    "submit": "Evenement aanmaken"
+    "submit": "Evenement aanmaken",
+    "errors": {
+      "titleRequired": "Titel is verplicht",
+      "titleTooLong": "Titel is te lang",
+      "playersInvalid": "Voer een geldig aantal spelers in",
+      "playersTooMany": "Te veel spelers"
+    }
   },
   "EventPanel": {
     "metaTitle": "Evenementoverzicht",
@@ -1353,7 +1380,16 @@
     "submit": "Bericht versturen",
     "success": "Bedankt! We hebben je bericht ontvangen en reageren snel.",
     "sending": "Verzenden…",
-    "error": "Het bericht kon niet worden verzonden. Probeer het opnieuw."
+    "error": "Het bericht kon niet worden verzonden. Probeer het opnieuw.",
+    "errors": {
+      "nameRequired": "Naam is verplicht",
+      "nameTooLong": "Naam is te lang",
+      "emailRequired": "E-mail is verplicht",
+      "emailTooLong": "E-mail is te lang",
+      "emailInvalid": "Voer een geldig e-mailadres in",
+      "messageRequired": "Bericht is verplicht",
+      "messageTooLong": "Bericht is te lang"
+    }
   },
   "ErrorPage": {
     "title": "Er is iets misgegaan",

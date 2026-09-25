@@ -3,7 +3,14 @@ import { z } from "zod";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
 import { type Actor } from "./actor";
 import { UUID_RE, requireUser } from "./common";
-import type { EventRow, EventService, EventStatus, EventStore, EventView } from "./events";
+import {
+  MAX_SESSION_CAPACITY,
+  type EventRow,
+  type EventService,
+  type EventStatus,
+  type EventStore,
+  type EventView,
+} from "./events";
 import type { DpaGate } from "./organizations";
 
 /**
@@ -494,8 +501,9 @@ export function defaultSessions(
   event: Pick<EventRow, "maxSimultaneousSessions" | "playersPurchased">,
 ): Array<{ name: string; capacity: number }> {
   const n = event.maxSimultaneousSessions;
-  // `gameSession.capacity` es smallint.
-  const capacity = Math.min(Math.ceil(event.playersPurchased / n), 32_767);
+  // `events.ts` (B-17) ya valida en creación/edición que esto no haga falta,
+  // pero se mantiene como defensa en profundidad.
+  const capacity = Math.min(Math.ceil(event.playersPurchased / n), MAX_SESSION_CAPACITY);
   return Array.from({ length: n }, (_, i) => ({ name: `Sesión ${i + 1}`, capacity }));
 }
 

@@ -442,6 +442,19 @@ export function writeRoomMeta(doc: Y.Doc, input: RoomMetaInput): void {
   });
 }
 
+/**
+ * Cambia el rango de jugadores de la sala (ajustes del editor, ticket
+ * "mínimo y máximo de jugadores"). El validador reacciona al cambio en la
+ * siguiente pasada (debounce de `RoomValidator`): si algún puzzle cooperativo
+ * ya colocado exige más jugadores de los que el nuevo rango admite, el aviso
+ * `solo_bridge_missing` generalizado aparece solo con el nuevo `players`.
+ */
+export function setRoomPlayers(doc: Y.Doc, players: { min: number; max: number }): void {
+  doc.transact(() => {
+    doc.getMap<unknown>(ROOM_DOC_KEYS.meta).set("players", { ...players });
+  });
+}
+
 export type InitRoomDocInput = {
   id: string;
   title: string;

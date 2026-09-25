@@ -7,10 +7,6 @@
  * Fijado en specs/13 §1: `VALIDATION_ERROR` = 422 en todas las rutas, JSON
  * roto = `INVALID_JSON` 400, no autenticado = `UNAUTHORIZED` 401, `no-store`
  * en toda respuesta privada o de error.
- *
- * Los adaptadores de catálogo (`rooms-list.ts`, `featured-room.ts`) y de
- * reseñas (`room-reviews.ts`) siguen sin migrar (en uso por otra sesión en
- * paralelo — ver la PR de A-22).
  */
 
 export const NO_STORE = { "Cache-Control": "no-store" };

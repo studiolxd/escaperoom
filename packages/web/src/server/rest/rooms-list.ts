@@ -5,6 +5,7 @@ import {
   type CatalogListInput,
   type CatalogService,
 } from "@escaperoom/shared/services";
+import { handleDomainErrors } from "./_http";
 
 /** Dependencias inyectables de los handlers REST del catálogo (testeables sin base de datos). */
 export type RoomsListHandlerDeps = {
@@ -25,24 +26,14 @@ const STATUS_BY_CODE: Record<CatalogErrorCode, number> = {
  */
 const PUBLIC_CACHE = "public, s-maxage=60, stale-while-revalidate=300";
 
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (error) {
-    if (error instanceof CatalogError) {
-      return Response.json(
-        { error: { code: error.code, message: error.message } },
-        { status: STATUS_BY_CODE[error.code] },
-      );
-    }
-    throw error;
-  }
-}
+const handle = handleDomainErrors(CatalogError, STATUS_BY_CODE);
 
 /**
  * Query string → entrada del servicio. `language` y `difficulty` se aceptan
  * repetidos (`?language=es&language=en`) o separados por comas; el resto son
  * valores únicos. La validación vive en el servicio (`parseCatalogQuery`).
+ * `players` es el parámetro antiguo (compatibilidad con enlaces `?players=N`);
+ * `minPlayers`/`maxPlayers` es el rango "de X a Y" actual.
  */
 export function catalogInputFromSearchParams(params: URLSearchParams): CatalogListInput {
   return {
@@ -50,6 +41,8 @@ export function catalogInputFromSearchParams(params: URLSearchParams): CatalogLi
     difficulty: params.getAll("difficulty"),
     minPrice: params.get("minPrice"),
     maxPrice: params.get("maxPrice"),
+    minPlayers: params.get("minPlayers"),
+    maxPlayers: params.get("maxPlayers"),
     players: params.get("players"),
     q: params.get("q"),
     sort: params.get("sort"),
@@ -61,8 +54,9 @@ export function catalogInputFromSearchParams(params: URLSearchParams): CatalogLi
 
 /**
  * Handler REST `GET /api/rooms` (specs/13 §3). Adaptador fino: filtros
- * combinables (`language`, `difficulty`, `minPrice`, `maxPrice`, `players`,
- * `q`), `sort` y paginación por cursor `{ items, nextCursor }` (specs/13 §1).
+ * combinables (`language`, `difficulty`, `minPrice`, `maxPrice`,
+ * `minPlayers`/`maxPlayers` — o el antiguo `players` —, `q`), `sort` y
+ * paginación por cursor `{ items, nextCursor }` (specs/13 §1).
  */
 export function createRoomsListHandler(deps: RoomsListHandlerDeps) {
   return async function GET(request: Request): Promise<Response> {

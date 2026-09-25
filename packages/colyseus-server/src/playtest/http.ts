@@ -1,10 +1,11 @@
 import express, { type Router } from "express";
 import { matchMaker } from "@colyseus/core";
+import { logger } from "@escaperoom/kit/logger";
 import { safeParseRoomPackage } from "@escaperoom/shared/schemas";
 import { z } from "zod";
 import { PLAYTEST_INTERNAL_PATH, PLAYTEST_ROOM_NAME } from "../constants.js";
 import { readPlaytestConfig } from "./config.js";
-import { playtestRegistry } from "./registry.js";
+import { PlaytestLimitError, playtestRegistry } from "./registry.js";
 import { isInternalSecret, signPlaytestToken } from "./token.js";
 
 /** Tope del cuerpo: un RoomPackage grande cabe de sobra (el fixture ronda 40 KB). */
@@ -66,12 +67,21 @@ export function createPlaytestRouter(): Router {
       return;
     }
 
-    const entry = playtestRegistry.register({
-      roomPackage: parsed.data,
-      authorId: body.data.authorId,
-      draftRoomId: body.data.draftRoomId,
-      ttlSeconds: config.ttlSeconds,
-    });
+    let entry;
+    try {
+      entry = playtestRegistry.register({
+        roomPackage: parsed.data,
+        authorId: body.data.authorId,
+        draftRoomId: body.data.draftRoomId,
+        ttlSeconds: config.ttlSeconds,
+      });
+    } catch (err) {
+      if (err instanceof PlaytestLimitError) {
+        fail(res, 429, "PLAYTEST_LIMIT", "Demasiados playtests activos, inténtalo más tarde.");
+        return;
+      }
+      throw err;
+    }
     const token = signPlaytestToken(config.secret, entry);
     try {
       const room = await matchMaker.createRoom(PLAYTEST_ROOM_NAME, {
@@ -87,14 +97,12 @@ export function createPlaytestRouter(): Router {
       res.status(201).json(response);
     } catch (err) {
       playtestRegistry.delete(entry.playtestId);
-      // p. ej. el motor no puede montar la sesión con este borrador.
-      fail(
-        res,
-        422,
-        "PLAYTEST_UNPLAYABLE",
-        "No se pudo levantar la partida con este borrador.",
-        err instanceof Error ? err.message : undefined,
-      );
+      // C-16: el motor puede fallar por muchas razones internas (assets,
+      // estado del proceso…) que no son de la incumbencia de quien llama a la
+      // ruta interna — se registra en el log del servidor, nunca en la
+      // respuesta HTTP.
+      logger.error({ err, playtestId: entry.playtestId }, "[playtest] no se pudo levantar la room");
+      fail(res, 422, "PLAYTEST_UNPLAYABLE", "No se pudo levantar la partida con este borrador.");
     }
   });
 
