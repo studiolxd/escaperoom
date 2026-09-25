@@ -9,6 +9,7 @@ import {
   type RoomLicenseService,
 } from "@escaperoom/shared/services";
 import { consumeGiftCopyRecipientLimit } from "@/server/rate-limit";
+import { handleDomainErrors, NO_STORE, readJson } from "./_http";
 
 /** Dependencias inyectables de los handlers de licencias (testeables sin Postgres ni Stripe). */
 export type RoomLicenseHandlerDeps = {
@@ -35,42 +36,8 @@ const STATUS_BY_CODE: Record<RoomLicenseErrorCode, number> = {
   PAYMENT_GATEWAY_UNAVAILABLE: 501,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number, extra = {}): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status, headers: NO_STORE });
-}
-
-/** Cuerpo JSON en una clase aparte para distinguir 400 (JSON roto) de 422 (datos). */
-class BadJsonError extends Error {}
-
-/** Cuerpo JSON; vacío = `{}` (el de `license-checkout` es opcional). */
-async function readJson(request: Request): Promise<unknown> {
-  const text = await request.text();
-  if (!text.trim()) return {};
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    throw new BadJsonError("El cuerpo no es JSON válido");
-  }
-}
-
 /** Traduce errores de dominio a la forma de error REST (specs/13 §1). */
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof RoomLicenseError) {
-      const extra = {
-        ...(err.issues.length > 0 ? { issues: err.issues } : {}),
-        ...(err.resultingRoomId ? { resultingRoomId: err.resultingRoomId } : {}),
-      };
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code], extra);
-    }
-    if (err instanceof BadJsonError) return errorResponse("BAD_REQUEST", err.message, 400);
-    throw err;
-  }
-}
+const handle = handleDomainErrors(RoomLicenseError, STATUS_BY_CODE);
 
 function purchaseJson(p: LicensePurchaseRow) {
   return {
@@ -120,7 +87,7 @@ export function createRoomLicenseHandlers(deps: RoomLicenseHandlerDeps) {
         const result = await deps.licenses.startLicenseCheckout(
           actor,
           roomId,
-          await readJson(request),
+          await readJson(request, { allowEmpty: true }),
           deps.buildUrls(roomId),
         );
         if (result.status === "pending") {
@@ -148,7 +115,7 @@ export function createRoomLicenseHandlers(deps: RoomLicenseHandlerDeps) {
         const { roomId } = await ctx.params;
         const actor = await deps.resolveActor(request);
         deps.licenses.authorize(actor);
-        const body = await readJson(request);
+        const body = await readJson(request, { allowEmpty: true });
 
         const parsedEmail = GiftCopyInput.pick({ recipientEmail: true }).safeParse(body);
         if (parsedEmail.success) {

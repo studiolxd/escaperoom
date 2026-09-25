@@ -78,6 +78,12 @@ import {
   createPrismaRoomLicenseStore,
   createRoomLicenseService,
   type RoomLicenseService,
+  createPrismaRoomCoverStore,
+  createRoomCoverService,
+  type RoomCoverService,
+  createPrismaMeStore,
+  createMeService,
+  type MeService,
   type CatalogService,
   type PlatformSettingsService,
   type PricingTierService,
@@ -135,6 +141,8 @@ let reviews: ReviewService | undefined;
 let accessKeys: AccessKeyService | undefined;
 let redeem: RedeemService | null | undefined;
 let roomLicenses: RoomLicenseService | undefined;
+let roomCover: RoomCoverService | undefined;
+let me: MeService | undefined;
 let invitations: InvitationService | undefined;
 let accessKeyCards: AccessKeyCardsService | undefined;
 let organizations: OrganizationService | undefined;
@@ -423,6 +431,21 @@ export function getRedeemService(): RedeemService | null {
  * 501 `PAYMENT_GATEWAY_UNAVAILABLE`; el regalo y la licencia gratuita no lo
  * necesitan.
  */
+/** Perfil de `/api/me` (A-24): select acotado en vez de `include` completo. */
+export function getMeService(): MeService {
+  me ??= createMeService({ store: createPrismaMeStore(prisma) });
+  return me;
+}
+
+/** Portada de sala (A-12): mismo adaptador de storage que el audio del creador. */
+export function getRoomCoverService(): RoomCoverService {
+  roomCover ??= createRoomCoverService({
+    store: createPrismaRoomCoverStore(prisma),
+    blobs: audioBlobs,
+  });
+  return roomCover;
+}
+
 export function getRoomLicenseService(): RoomLicenseService {
   if (!roomLicenses) {
     const stripe = getStripeClient();

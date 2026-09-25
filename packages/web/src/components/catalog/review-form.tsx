@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 
 type Status = "idle" | "saving" | "created" | "updated" | "errorContent" | "errorGeneric";
@@ -57,18 +58,20 @@ export function ReviewForm({ roomId, initial }: { roomId: string; initial: Revie
       <h3 className="font-semibold">{hasReview ? t("editHeading") : t("formHeading")}</h3>
       <fieldset className="flex flex-col gap-1">
         <legend className="text-sm">{t("ratingLabel")}</legend>
-        <div className="flex gap-1" role="radiogroup">
+        <RadioGroup
+          name="rating"
+          value={rating > 0 ? String(rating) : ""}
+          onValueChange={(value) => setRating(Number(value))}
+          className="flex w-fit flex-row gap-1"
+          required
+        >
           {[1, 2, 3, 4, 5].map((n) => (
-            <Label key={n} className="cursor-pointer text-2xl leading-none font-normal">
-              <input
-                type="radio"
-                name="rating"
-                value={n}
-                checked={rating === n}
-                onChange={() => setRating(n)}
-                className="sr-only"
-                required
-              />
+            <Label
+              key={n}
+              htmlFor={`review-rating-${n}`}
+              className="cursor-pointer text-2xl leading-none font-normal"
+            >
+              <RadioGroupItem id={`review-rating-${n}`} value={String(n)} className="sr-only" />
               <span
                 aria-hidden="true"
                 className={n <= rating ? "text-amber-500" : "text-muted-foreground/40"}
@@ -78,7 +81,7 @@ export function ReviewForm({ roomId, initial }: { roomId: string; initial: Revie
               <span className="sr-only">{t("star", { n })}</span>
             </Label>
           ))}
-        </div>
+        </RadioGroup>
       </fieldset>
       <Label className="flex flex-col items-start gap-1 text-sm">
         {t("textLabel")}

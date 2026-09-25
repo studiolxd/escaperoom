@@ -7,6 +7,10 @@ import type { LegalDocument } from "./types";
  * Cookies reales en uso, verificadas por grep en `packages/web/src`: sesión
  * de Better Auth (`better-auth.session_token`, sin configuración de nombre
  * propia en `src/lib/auth.ts`) y `NEXT_LOCALE` de next-intl (`src/i18n/`).
+ * Plausible y Google Analytics están activos (docs/DEUDA.md «Claves reales de
+ * analítica antes de desplegar en producción»): Plausible no usa cookies;
+ * Google Analytics (`_ga`/`_ga_*`) solo se carga tras aceptar la categoría
+ * "analítica" del banner de consentimiento (`components/consent/`).
  *
  * `localStorage`/`sessionStorage` (sección 6) también verificados por grep:
  * la guía de cookies de la AEPD los trata como "tecnologías similares".
@@ -18,9 +22,9 @@ export const cookiesPolicy: LegalDocument = {
       heading: "1. Resumen",
       paragraphs: [
         "La plataforma usa cookies estrictamente necesarias para funcionar (tu sesión de cuenta y tu " +
-          "idioma preferido) y cookies de analítica de producto: Plausible y Google Analytics.",
-        "Plausible no deja cookies en tu navegador. Google Analytics sí, y requiere tu consentimiento " +
-          "previo antes de cargarse.",
+          "idioma preferido) y, además, analítica de producto (véase la sección 3): Plausible, que no " +
+          "deja ninguna cookie en tu navegador, y Google Analytics, que sí, y que solo se carga tras tu " +
+          "consentimiento previo. No hay ninguna cookie de marketing ni de preferencias activa.",
       ],
     },
     {
@@ -30,9 +34,10 @@ export const cookiesPolicy: LegalDocument = {
           "plataforma y exentas de consentimiento. Hoy son tu sesión de autenticación y tu idioma " +
           "preferido.",
         "Analítica: nos ayuda a entender cómo se usa la plataforma (visitas agregadas, fuentes de " +
-          "tráfico) para poder mejorarla. Usamos Plausible y Google Analytics (véase la sección 3). " +
-          "Esta categoría no requiere banner de consentimiento por Plausible, que no usa cookies; " +
-          "Google Analytics, al usarlas, sí lo requiere.",
+          "tráfico) para poder mejorarla. Activo: Plausible y Google Analytics (véase la sección 3). " +
+          "Plausible no usa cookies y no requiere consentimiento; Google Analytics sí las usa, así que " +
+          "esta categoría solo aparece en el banner y en el panel de preferencias por él, y no se " +
+          "carga hasta que la aceptas.",
         "Marketing: mediría la publicidad con píxeles de terceros. Hoy no hay ninguna activa en la " +
           "plataforma.",
         "Preferencias: recordaría personalización opcional, no esencial. Hoy no hay ninguna activa " +
@@ -40,16 +45,17 @@ export const cookiesPolicy: LegalDocument = {
       ],
     },
     {
-      heading: "3. Analíticas de producto",
+      heading: "3. Analítica de producto",
       paragraphs: [
         "La plataforma usa dos herramientas de analítica de producto:",
       ],
       list: [
-        "Plausible: mide tráfico agregado sin usar cookies y sin identificar a nadie " +
-          "individualmente. Al no usar cookies, no exige banner de consentimiento.",
+        "Plausible: mide tráfico agregado sin usar cookies y sin identificar a nadie individualmente. " +
+          "Al no usar cookies, no exige banner de consentimiento y se carga siempre.",
         "Google Analytics: usa las cookies `_ga` y `_ga_*` para distinguir usuarios y mantener el " +
-          "estado de la sesión de medición de forma agregada. Al usar cookies, solo se carga cuando " +
-          "das tu consentimiento explícito a la categoría de analítica.",
+          "estado de la sesión de medición de forma agregada. Al usar cookies, no se carga hasta que " +
+          "das tu consentimiento explícito a la categoría de analítica, y deja de cargarse y borra esas " +
+          "cookies si lo retiras.",
       ],
     },
     {
@@ -69,9 +75,10 @@ export const cookiesPolicy: LegalDocument = {
       paragraphs: [
         "Las cookies necesarias no se pueden desactivar sin romper el funcionamiento de la " +
           "plataforma (no podrías mantener sesión iniciada ni conservar tu idioma). Google Analytics " +
-          "solo se carga si das tu consentimiento explícito, y puedes retirarlo en cualquier momento.",
-        "Puedes revisar o cambiar tus preferencias en cualquier momento desde «Preferencias de " +
-          "cookies», en el pie de la plataforma.",
+          "(véase la sección 3) solo se carga si das tu consentimiento explícito, y puedes retirarlo en " +
+          "cualquier momento.",
+        "Puedes revisar o cambiar tu decisión en cualquier momento desde «Preferencias de cookies», " +
+          "debajo y en el pie de la plataforma.",
         "También puedes bloquear cookies desde los ajustes de tu navegador, aunque las cookies " +
           "necesarias no se pueden desactivar sin romper el funcionamiento de la plataforma.",
         "Más información sobre cookies en la guía de la Agencia Española de Protección de Datos: " +

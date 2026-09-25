@@ -1,4 +1,5 @@
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
+import { requireUser } from "./common";
 
 /**
  * Onboarding de Stripe Connect para creadores (ticket 5.1, specs/02 §2,
@@ -66,17 +67,13 @@ export class CreatorConnectError extends Error {
   }
 }
 
-function requireUser(actor: Actor): void {
-  if (isAnonymous(actor)) throw new CreatorConnectError("UNAUTHORIZED", "No hay sesión");
-}
-
 export function createCreatorConnectService(deps: {
   store: CreatorConnectStore;
   /** `null` sin `STRIPE_SECRET_KEY`. */
   connect: ConnectGateway | null;
 }) {
   async function requireExistingUser(actor: Actor): Promise<CreatorConnectUserRef> {
-    requireUser(actor);
+    requireUser(actor, CreatorConnectError);
     const user = await deps.store.findUser(actor.userId);
     if (!user) throw new CreatorConnectError("NOT_FOUND", "Usuario no encontrado");
     return user;
@@ -84,7 +81,7 @@ export function createCreatorConnectService(deps: {
 
   return {
     authorize(actor: Actor): void {
-      requireUser(actor);
+      requireUser(actor, CreatorConnectError);
     },
 
     /**

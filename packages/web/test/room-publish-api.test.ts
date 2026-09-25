@@ -155,10 +155,14 @@ describe("REST de publicación (specs/13 §4)", () => {
     expect((await api.getVersions()).status).toBe(200);
   });
 
-  it("entrada inválida → 400; semver repetido → 409", async () => {
+  it("JSON roto → 400 INVALID_JSON; datos inválidos → 422 VALIDATION_ERROR (A-22); semver repetido → 409", async () => {
     const api = setup();
-    expect((await api.postPublish("{no-json", "autora")).status).toBe(400);
-    expect((await api.postPublish({ semver: 3 }, "autora")).status).toBe(400);
+    const badJson = await api.postPublish("{no-json", "autora");
+    expect(badJson.status).toBe(400);
+    expect(((await badJson.json()) as ErrorJson).error.code).toBe("INVALID_JSON");
+    const badBody = await api.postPublish({ semver: 3 }, "autora");
+    expect(badBody.status).toBe(422);
+    expect(((await badBody.json()) as ErrorJson).error.code).toBe("VALIDATION_ERROR");
     expect((await api.postPublish({ semver: "2.0.0" }, "autora")).status).toBe(201);
     const conflict = await api.postPublish({ semver: "2.0.0" }, "autora");
     expect(conflict.status).toBe(409);

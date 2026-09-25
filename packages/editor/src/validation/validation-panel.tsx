@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { resolveUiKit, type EditorUiKit } from "../ui-kit";
 import type { RoomValidationState } from "./controller";
 import type { FindingSeverity, ValidationFinding, ValidationTarget } from "./findings";
 import { createValidationLabeler, type ValidationPanelLabelsInput } from "./labels";
@@ -14,6 +15,8 @@ export type ValidationPanelProps = {
   labels?: ValidationPanelLabelsInput;
   /** Clic en un elemento señalado (seleccionarlo en el lienzo o el grafo). */
   onSelectTarget?: (target: ValidationTarget) => void;
+  /** Controles interactivos del host (auditoría F-6); por defecto, elemento nativo. */
+  components?: Partial<EditorUiKit>;
   className?: string;
 };
 
@@ -45,9 +48,10 @@ type Labeler = ReturnType<typeof createValidationLabeler>;
 function FindingItem(props: {
   finding: ValidationFinding;
   t: Labeler;
+  kit: EditorUiKit;
   onSelectTarget?: (target: ValidationTarget) => void;
 }) {
-  const { finding, t, onSelectTarget } = props;
+  const { finding, t, kit, onSelectTarget } = props;
   return (
     <li
       data-severity={finding.severity}
@@ -68,7 +72,7 @@ function FindingItem(props: {
           {finding.targets.map((target) => {
             const text = `${t.kind(target.kind)}: ${target.id}`;
             return onSelectTarget ? (
-              <button
+              <kit.Button
                 key={target.id}
                 type="button"
                 data-target-id={target.id}
@@ -77,7 +81,7 @@ function FindingItem(props: {
                 onClick={() => onSelectTarget(target)}
               >
                 {text}
-              </button>
+              </kit.Button>
             ) : (
               <span
                 key={target.id}
@@ -104,9 +108,11 @@ export function ValidationPanel({
   state,
   labels,
   onSelectTarget,
+  components,
   className,
 }: ValidationPanelProps) {
   const t = createValidationLabeler(labels);
+  const kit = resolveUiKit(components);
   const { report, findings } = state;
   const errors = findings.filter((finding) => finding.severity === "error");
   const warnings = findings.filter((finding) => finding.severity === "warning");
@@ -161,6 +167,7 @@ export function ValidationPanel({
                     key={finding.key}
                     finding={finding}
                     t={t}
+                    kit={kit}
                     {...(onSelectTarget ? { onSelectTarget } : {})}
                   />
                 ))}
@@ -178,6 +185,7 @@ export function ValidationPanel({
                     key={finding.key}
                     finding={finding}
                     t={t}
+                    kit={kit}
                     {...(onSelectTarget ? { onSelectTarget } : {})}
                   />
                 ))}

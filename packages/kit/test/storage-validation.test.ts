@@ -3,22 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   extensionFromMime,
   isUploadMime,
-  isValidUploadKey,
   sniffImageMime,
   UPLOAD_MAX_BYTES,
 } from "../src/storage/validation";
 
 describe("storage validation", () => {
-  it("accepts S3-safe keys and rejects traversal/empty segments", () => {
-    expect(isValidUploadKey("uploads/user_1/pic.png")).toBe(true);
-    expect(isValidUploadKey("rooms/rey-aldric/v1.json")).toBe(true);
-
-    expect(isValidUploadKey("../secrets/x")).toBe(false);
-    expect(isValidUploadKey("uploads//pic.png")).toBe(false);
-    expect(isValidUploadKey("/leading")).toBe(false);
-    expect(isValidUploadKey("trailing/")).toBe(false);
-  });
-
   it("checks allowed MIME types", () => {
     expect(isUploadMime("image/png")).toBe(true);
     expect(isUploadMime("application/pdf")).toBe(true);

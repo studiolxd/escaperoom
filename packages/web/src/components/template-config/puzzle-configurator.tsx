@@ -7,6 +7,7 @@ import {
   SchemaForm,
   createInspectorLabeler,
   idOptions,
+  resolveUiKit,
   useRoomPackage,
   type InspectorLabelsInput,
   type SchemaFormContext,
@@ -22,6 +23,7 @@ import { resolveIconFrame } from "@escaperoom/game-runtime";
 import type { PuzzleDefinition, RoomPackage } from "@escaperoom/shared/schemas";
 import { ItemIcon } from "@/components/puzzles/item-icon";
 import type { InventoryItemView } from "@/components/puzzles/inventory-panel";
+import { EDITOR_UI_KIT } from "@/components/room-editor/editor-ui-kit";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
 import { PuzzlePreview } from "./template-preview";
 
@@ -77,6 +79,7 @@ export function PuzzleConfigurator({
     idOptions: (ref) => idOptions(pkg, ref, puzzle),
     kinds: [],
     renderers: {},
+    uiKit: resolveUiKit(EDITOR_UI_KIT),
     readOnly,
   };
 

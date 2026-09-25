@@ -7,10 +7,11 @@ import {
   type RoomDraftService,
   type RoomDraftStore,
 } from "@escaperoom/shared/services";
+import * as encoding from "lib0/encoding";
 import { afterEach, describe, expect, it } from "vitest";
 import { WebSocket as WsWebSocket } from "ws";
 import * as Y from "yjs";
-import { EditorSyncProvider, EditorSyncRestoreError } from "../src";
+import { EditorSyncProvider, EditorSyncRestoreError, MESSAGE_AWARENESS, SYNC_PATH_PREFIX } from "../src";
 import { CLOSE_PERSISTENCE_FAILED, createEditorSyncServer } from "../src/sync/server";
 
 const ROOM_ID = "11111111-1111-4111-8111-111111111111";
@@ -179,6 +180,40 @@ describe("WebSocket de edición: coedición y autosave", () => {
     await waitFor(() => !b.awareness.getStates().has(a.doc.clientID));
     expect(await store.countUpdatesAfter(ROOM_ID, 0n)).toBe(0);
   });
+
+  it("C-21: una conexión no puede suplantar la awareness (clientID) de otra", async () => {
+    const store = newStore();
+    const { url } = await startServer(store);
+    const a = connectClient(url);
+    const b = connectClient(url);
+    await Promise.all([a.whenSynced(), b.whenSynced()]);
+
+    b.awareness.setLocalStateField("user", { name: "Bruno" });
+    await waitFor(() => a.awareness.getStates().get(b.doc.clientID)?.user?.name === "Bruno");
+
+    // Conexión ajena (misma autora, otra pestaña — el modelo de datos aún no
+    // tiene coeditores) que intenta suplantar el `clientID` de B con un
+    // mensaje de awareness crudo, saltándose el cliente `y-protocols`.
+    const raw = new WsWebSocket(`${url}${SYNC_PATH_PREFIX}${encodeURIComponent(ROOM_ID)}`, {
+      headers: { "x-test-user": "autora" },
+    });
+    cleanups.push(() => raw.close());
+    await new Promise<void>((resolve) => raw.once("open", () => resolve()));
+
+    const inner = encoding.createEncoder();
+    encoding.writeVarUint(inner, 1);
+    encoding.writeVarUint(inner, b.doc.clientID);
+    encoding.writeVarUint(inner, 999999); // clock alto: ganaría si se aplicara
+    encoding.writeVarString(inner, JSON.stringify({ user: { name: "Suplantado" } }));
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, MESSAGE_AWARENESS);
+    encoding.writeVarUint8Array(encoder, encoding.toUint8Array(inner));
+    raw.send(encoding.toUint8Array(encoder));
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    expect(a.awareness.getStates().get(b.doc.clientID)?.user).toEqual({ name: "Bruno" });
+    expect(b.awareness.getStates().get(b.doc.clientID)?.user).toEqual({ name: "Bruno" });
+  });
 });
 
 describe("WebSocket de edición: persistencia", () => {
@@ -306,6 +341,55 @@ describe("WebSocket de edición: restauración del historial", () => {
     await expect(server.restore(intruder, ROOM_ID, { updateId: 1n })).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
+  });
+
+  it("C-21: una edición concurrente durante la restauración no se pierde ni corrompe el doc", async () => {
+    const store = newStore();
+    const real = createRoomDraftService({ store, snapshotEvery: 1000 });
+    let gateOpen = false;
+    let releaseGate: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      releaseGate = resolve;
+    });
+    // Simula la ventana que antes ocupaba el viaje a BD para leer el estado
+    // "actual": retrasa la resolución del plan hasta después de que la
+    // edición concurrente de abajo ya haya llegado al doc vivo del servidor.
+    const drafts: RoomDraftService = {
+      ...real,
+      async planRestoreAgainstDoc(...args) {
+        gateOpen = true;
+        await gate;
+        return real.planRestoreAgainstDoc(...args);
+      },
+    };
+    const { url } = await startServer(store, { drafts });
+    const a = connectClient(url);
+    const b = connectClient(url);
+    await Promise.all([a.whenSynced(), b.whenSynced()]);
+
+    a.doc.getMap("meta").set("title", "v1");
+    await waitFor(() => same(stateOf(a.doc), stateOf(b.doc)) && stateOf(a.doc).meta.title === "v1");
+
+    // Restaura al doc vacío inicial (updateId 0) mientras el plan está retenido.
+    const restorePromise = a.restore({ updateId: "0" });
+    await waitFor(() => gateOpen);
+    // Edición concurrente de B, aplicada al doc vivo del servidor MIENTRAS el
+    // plan sigue pendiente (todavía no se ha leído el estado "actual").
+    b.doc.getMap("objects").set("concurrente", new Y.Map());
+    await waitFor(() => a.doc.getMap("objects").has("concurrente"));
+    releaseGate!();
+
+    // Con el bug (el plan se calculaba sobre una foto de BD tomada ANTES de
+    // esta edición) el update de restauración no sabría nada de
+    // "concurrente" y lo dejaría huérfano tras "restaurar" — resultado
+    // inconsistente entre lo que la restauración dice haber hecho y el doc
+    // real. Con el fix, el plan lee `room.doc` (que ya incluye la edición
+    // concurrente) en el mismo tick en que se calcula, así que el diff SÍ la
+    // deshace junto con el resto y el doc queda realmente vacío en ambos
+    // clientes.
+    await expect(restorePromise).resolves.toEqual({ changed: true });
+    await waitFor(() => same(stateOf(a.doc), stateOf(b.doc)) && stateOf(a.doc).meta.title === undefined);
+    expect(stateOf(a.doc)).toEqual({ meta: {}, tiles: [], objects: {}, notas: "" });
   });
 });
 

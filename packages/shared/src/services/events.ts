@@ -2,8 +2,9 @@ import { z } from "zod";
 import { logger } from "@escaperoom/kit/logger";
 import { LOCALES, type Locale } from "@escaperoom/config/locales";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
 import type { AdminDirectory } from "./admin";
+import { UUID_RE, requireUser } from "./common";
 import {
   quotePricing,
   type PricingQuote,
@@ -321,8 +322,6 @@ function parseOrThrow<S extends z.ZodType>(schema: S, input: unknown): z.output<
 
 // ── Esquemas de entrada ────────────────────────────────────────────────────
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export const ExpiryRuleSchema = z.discriminatedUnion("type", [
   z
     .object({
@@ -501,10 +500,6 @@ export function createEventService(deps: {
   const now = deps.now ?? (() => new Date());
   const newId = deps.newId ?? (() => crypto.randomUUID());
 
-  function requireUser(actor: Actor): void {
-    if (isAnonymous(actor)) throw new EventError("UNAUTHORIZED", "No hay sesión");
-  }
-
   async function findEvent(id: string): Promise<EventRow> {
     const event = UUID_RE.test(id) ? await store.findEvent(id) : null;
     if (!event) throw new EventError("NOT_FOUND", "Evento no encontrado");
@@ -513,7 +508,7 @@ export function createEventService(deps: {
 
   /** Solo el organizador (escrituras). */
   async function findOwnEvent(actor: Actor, id: string): Promise<EventRow> {
-    requireUser(actor);
+    requireUser(actor, EventError);
     const event = await findEvent(id);
     if (event.organizerId !== actor.userId) {
       throw new EventError("FORBIDDEN", "Solo el organizador puede gestionar este evento");
@@ -532,7 +527,7 @@ export function createEventService(deps: {
   return {
     /** Solo el guard de sesión (los adaptadores lo usan antes de leer el cuerpo). */
     authorize(actor: Actor): void {
-      requireUser(actor);
+      requireUser(actor, EventError);
     },
 
     /**
@@ -541,7 +536,7 @@ export function createEventService(deps: {
      * evento queda en `draft` con el pago pendiente.
      */
     async createEvent(actor: Actor, input: unknown): Promise<EventView> {
-      requireUser(actor);
+      requireUser(actor, EventError);
       const data = parseOrThrow(CreateEventInput, input);
       const version = await store.findRoomVersion(data.roomVersionId);
       if (!version || !EVENT_ROOM_STATUSES.has(version.roomStatus)) {
@@ -588,7 +583,7 @@ export function createEventService(deps: {
 
     /** `GET /api/events/:id` — organizador o admin de plataforma; incluye el resumen. */
     async getEvent(actor: Actor, id: string): Promise<EventDetail> {
-      requireUser(actor);
+      requireUser(actor, EventError);
       const event = await findEvent(id);
       if (event.organizerId !== actor.userId && !(await store.isAdmin(actor.userId))) {
         throw new EventError("FORBIDDEN", "Solo el organizador puede ver este evento");
@@ -598,7 +593,7 @@ export function createEventService(deps: {
 
     /** `GET /api/me/events` — eventos propios como organizador, paginados por cursor. */
     async listMyEvents(actor: Actor, query: unknown = {}): Promise<EventPage> {
-      requireUser(actor);
+      requireUser(actor, EventError);
       const { cursor, limit } = parseOrThrow(ListEventsQuery, query);
       const rows = await store.listByOrganizer(actor.userId, {
         limit: limit + 1,

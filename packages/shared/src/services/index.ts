@@ -4,6 +4,11 @@
  * sus dependencias se inyectan, de modo que se testean sin infraestructura.
  */
 export * from "./actor";
+export * from "./common";
+export * from "./me";
+export * from "./me-prisma-store";
+export * from "./room-cover";
+export * from "./room-cover-prisma-store";
 export * from "./catalog";
 export * from "./catalog-listing";
 export * from "./reviews";

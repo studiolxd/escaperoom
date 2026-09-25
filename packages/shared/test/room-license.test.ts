@@ -13,7 +13,7 @@ import {
   createRoomDraftService,
   createRoomLicenseService,
   RoomLicenseError,
-  splitLicenseAmount,
+  splitPlatformFee,
   type Actor,
   type LicenseRoomRef,
   type PaymentGateway,
@@ -128,11 +128,11 @@ async function forkPackage(
   }
 }
 
-describe("splitLicenseAmount", () => {
+describe("splitPlatformFee (licencias, §9.1: fusionado con purchases.splitRoomAmount)", () => {
   it("70 % creador / 30 % plataforma, sin perder céntimos", () => {
-    expect(splitLicenseAmount(1500)).toEqual({ platformFeeCents: 450, creatorShareCents: 1050 });
-    expect(splitLicenseAmount(99)).toEqual({ platformFeeCents: 30, creatorShareCents: 69 });
-    expect(splitLicenseAmount(0)).toEqual({ platformFeeCents: 0, creatorShareCents: 0 });
+    expect(splitPlatformFee(1500)).toEqual({ platformFeeCents: 450, creatorShareCents: 1050 });
+    expect(splitPlatformFee(99)).toEqual({ platformFeeCents: 30, creatorShareCents: 69 });
+    expect(splitPlatformFee(0)).toEqual({ platformFeeCents: 0, creatorShareCents: 0 });
   });
 });
 

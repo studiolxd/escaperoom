@@ -4,6 +4,7 @@ import {
   type UserDataRightsErrorCode,
   type UserDataRightsService,
 } from "@escaperoom/shared/services";
+import { handleDomainErrors, NO_STORE } from "./_http";
 
 /** Dependencias inyectables de los handlers de derechos RGPD (testeables sin Postgres). */
 export type UserDataRightsHandlerDeps = {
@@ -17,22 +18,7 @@ const STATUS_BY_CODE: Record<UserDataRightsErrorCode, number> = {
   SOLE_ORG_OWNER: 409,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number): Response {
-  return Response.json({ error: { code, message } }, { status, headers: NO_STORE });
-}
-
-async function handle(fn: () => Promise<Response>): Promise<Response> {
-  try {
-    return await fn();
-  } catch (err) {
-    if (err instanceof UserDataRightsError) {
-      return errorResponse(err.code, err.message, STATUS_BY_CODE[err.code]);
-    }
-    throw err;
-  }
-}
+const handle = handleDomainErrors(UserDataRightsError, STATUS_BY_CODE);
 
 /** Handlers REST de los derechos RGPD sobre la cuenta propia (specs/18 §3.4). */
 export function createUserDataRightsHandlers(deps: UserDataRightsHandlerDeps) {

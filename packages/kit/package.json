@@ -10,7 +10,6 @@
       "default": "./src/logger/index.ts"
     },
     "./redis": "./src/redis/index.ts",
-    "./redis/lock": "./src/redis/lock.ts",
     "./rate-limit": "./src/rate-limit/index.ts",
     "./rate-limit/memory": "./src/rate-limit/memory.ts",
     "./rate-limit/sliding": "./src/rate-limit/sliding.ts",
@@ -34,8 +33,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1136.0",
-    "@aws-sdk/s3-request-presigner": "3.1136.0",
+    "@aws-sdk/client-s3": "3.1137.0",
+    "@aws-sdk/s3-request-presigner": "3.1137.0",
     "@escaperoom/env": "workspace:*",
     "bullmq": "^6.3.8",
     "ioredis": "^6.0.0",

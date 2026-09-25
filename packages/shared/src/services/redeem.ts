@@ -13,6 +13,7 @@ import {
   type SessionSeats,
 } from "./access-keys";
 import { isAnonymous, type Actor } from "./actor";
+import { UUID_RE } from "./common";
 import type { EventRow } from "./events";
 import { signJoinToken } from "./join-token";
 
@@ -46,7 +47,6 @@ export const DEFAULT_GUEST_NAME = "Invitado";
 /** Longitud máxima del nombre visible (la misma que acepta la `GameRoom`). */
 export const MAX_DISPLAY_NAME_LENGTH = 32;
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const uuid = z.string().regex(UUID_RE, "UUID no válido");
 
 /** Cuerpo de `POST /api/access-keys/redeem`. */

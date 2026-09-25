@@ -10,6 +10,7 @@ import {
   type RedeemResult,
   type RedeemService,
 } from "@escaperoom/shared/services";
+import { BadJsonError, errorResponse, NO_STORE, queryOf, readJson } from "./_http";
 import { eventJson, type EventRouteContext } from "./events";
 
 /** Dependencias inyectables de los handlers de claves (testeables sin Postgres). */
@@ -60,25 +61,6 @@ const EVENT_STATUS_BY_CODE: Partial<Record<string, number>> = {
   PAYMENT_REQUIRED: 409,
 };
 
-const NO_STORE = { "Cache-Control": "no-store" };
-
-function errorResponse(code: string, message: string, status: number, extra = {}): Response {
-  return Response.json({ error: { code, message, ...extra } }, { status, headers: NO_STORE });
-}
-
-class BadJsonError extends Error {}
-
-/** Cuerpo JSON; `allowEmpty` admite un POST sin cuerpo (activar sin plan). */
-async function readJson(request: Request, allowEmpty = false): Promise<unknown> {
-  const text = await request.text();
-  if (allowEmpty && text.trim() === "") return {};
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    throw new BadJsonError("El cuerpo no es JSON válido");
-  }
-}
-
 /** Traduce errores de dominio a la forma de error REST (specs/13 §1). */
 async function handle(fn: () => Promise<Response>): Promise<Response> {
   try {
@@ -92,7 +74,7 @@ async function handle(fn: () => Promise<Response>): Promise<Response> {
       const extra = err.issues.length > 0 ? { issues: err.issues } : {};
       return errorResponse(err.code, err.message, EVENT_STATUS_BY_CODE[err.code] ?? 422, extra);
     }
-    if (err instanceof BadJsonError) return errorResponse("BAD_REQUEST", err.message, 400);
+    if (err instanceof BadJsonError) return errorResponse("INVALID_JSON", err.message, 400);
     throw err;
   }
 }
@@ -140,7 +122,7 @@ export function createAccessKeyHandlers(deps: AccessKeyHandlerDeps) {
         const { id } = await ctx.params;
         const actor = await deps.resolveActor(request);
         deps.accessKeys.authorize(actor);
-        const body = await readJson(request, true);
+        const body = await readJson(request, { allowEmpty: true });
         const result = deps.invitations
           ? await deps.invitations.activateAndInvite(actor, id, body)
           : { ...(await deps.accessKeys.activateEvent(actor, id, body)), emails: undefined };
@@ -182,13 +164,7 @@ export function createAccessKeyHandlers(deps: AccessKeyHandlerDeps) {
       return handle(async () => {
         const { id } = await ctx.params;
         const actor = await deps.resolveActor(request);
-        const params = new URL(request.url).searchParams;
-        const query = Object.fromEntries(
-          (["cursor", "limit", "status"] as const).flatMap((k) => {
-            const v = params.get(k);
-            return v === null ? [] : [[k, v]];
-          }),
-        );
+        const query = queryOf(request, ["cursor", "limit", "status"]);
         const page = await deps.accessKeys.listKeys(actor, id, query);
         return Response.json(
           { items: page.items.map(accessKeyJson), nextCursor: page.nextCursor, seats: page.seats },

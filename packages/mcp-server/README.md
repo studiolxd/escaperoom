@@ -22,7 +22,6 @@ sobre un draft reciben `roomId` (el mismo `:roomId` de `/api/rooms/:roomId/draft
 | E — Consulta | `get_room` | **implementada** (draft de 3.2) |
 | E — Consulta | `get_template_catalog` | **implementada** (4.2), pública |
 | E — Consulta | `get_puzzle`, `get_rules_for` | **implementadas** (4.3), vistas filtradas |
-| — | `get_featured_room` | ejemplo de 0.10 (paridad tRPC/REST/MCP), pública |
 
 Con 4.5 todo el toolset está implementado; una tool sin `run` respondería con `isError: true`, el
 texto `❌ <tool>: no implementado todavía (ticket 4.x)…` y `structuredContent.error.code =
@@ -220,8 +219,9 @@ HTTP se entrega al handler de la ruta en el mismo proceso; con `CREATOR_CHAT_MCP
   para tests sin red.
 - Topes por conversación (`CREATOR_CHAT_MAX_TURNS`, `CREATOR_CHAT_MAX_TOKENS`) y por respuesta
   (`CREATOR_CHAT_MAX_OUTPUT_TOKENS`); los resultados de tool se recortan para el modelo
-  (`CREATOR_CHAT_TOOL_RESULT_MAX_CHARS`) remitiendo a las vistas filtradas. `get_featured_room` no
-  se ofrece al modelo.
+  (`CREATOR_CHAT_TOOL_RESULT_MAX_CHARS`) remitiendo a las vistas filtradas. La tool de ejemplo del
+  ticket 0.10 (`get_featured_room`) se retiró del toolset de producción (D-28, auditoría de
+  2026-09-24): no servía para crear salas.
 - `publish` sigue sin publicar: la UI muestra el enlace de confirmación de 4.5 como botón.
 
 ## Identidad y auth (ticket 4.7)
@@ -241,7 +241,12 @@ HTTP se entrega al handler de la ruta en el mismo proceso; con `CREATOR_CHAT_MCP
 - **HTTP (`/mcp/creator` en `packages/web`):** OAuth 2.1 según la especificación de autorización
   de MCP (`src/oauth`, equivalente de `@slxd/mcp-auth` con librerías estándar), o la cookie de
   sesión de Better Auth para el chat web integrado. Con `Authorization: Bearer` solo vale el access
-  token OAuth.
+  token OAuth (A-24) — un token de **sesión** obtenido del plugin `bearer` de Better Auth (el que
+  usan otras superficies con `Authorization: Bearer <token-de-sesión>`) NO sirve aquí: en cuanto la
+  petición trae `Authorization`, `/mcp/creator` la valida SOLO como token OAuth
+  (`authenticateOAuthBearer`) y responde 401 `error="invalid_token"`, aunque el token de sesión sea
+  válido para el resto de la web. Para el chat web integrado, no mandes `Authorization`: la cookie
+  de sesión basta.
 
 ### OAuth 2.1 para clientes MCP remotos
 

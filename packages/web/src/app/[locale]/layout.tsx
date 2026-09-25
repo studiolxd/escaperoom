@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { routing } from "@/i18n/routing";
 import { ConsentProvider } from "@/components/consent/consent-provider";
 import { CookieBanner, CookiePreferencesDialog } from "@/components/consent/cookie-consent-ui";
+import { PlausibleScript } from "@/components/analytics/plausible-script";
+import { GoogleAnalyticsScript } from "@/components/analytics/google-analytics-script";
 import { NONCE_HEADER } from "@/lib/security-headers";
 import { DEFAULT_THEME, isTheme, THEME_COOKIE_NAME, THEME_INIT_SCRIPT } from "@/lib/theme";
 import "../globals.css";
@@ -59,7 +61,9 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages();
   const themeCookie = (await cookies()).get(THEME_COOKIE_NAME)?.value;
   const theme = isTheme(themeCookie) ? themeCookie : DEFAULT_THEME;
+  // Un único nonce por petición para el script de tema y los de analítica.
   const nonce = (await headers()).get(NONCE_HEADER) ?? "";
+  const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
   return (
     <html
@@ -76,6 +80,10 @@ export default async function LocaleLayout({ children, params }: Props) {
             {children}
             <CookieBanner />
             <CookiePreferencesDialog />
+            <PlausibleScript nonce={nonce} />
+            {gaMeasurementId ? (
+              <GoogleAnalyticsScript measurementId={gaMeasurementId} nonce={nonce} />
+            ) : null}
           </ConsentProvider>
         </NextIntlClientProvider>
       </body>

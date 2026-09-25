@@ -15,7 +15,7 @@ import {
   toHiddenKeyPublicView,
   toMemoryPublicView,
   toPipesPuzzlePublicView,
-  toPublicView,
+  toCodeLockPublicView,
   toSimultaneousPlatesPublicView,
   toSlidingPuzzlePublicView,
   toSplitCluePublicView,
@@ -68,7 +68,7 @@ export function TemplatePreviewPanel({
     case "code_lock":
       return (
         <CodeLockPanel
-          view={toPublicView(preview.state, preview.def)}
+          view={toCodeLockPublicView(preview.state, preview.def)}
           onAttempt={(code) => onAction({ type: "attempt_code", code })}
           feedback={preview.feedback}
         />

@@ -22,7 +22,8 @@ import {
   type AccessKeyStore,
   type ActivationResult,
 } from "./access-keys";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
+import { UUID_RE, requireUser } from "./common";
 import type { EventRow } from "./events";
 
 /**
@@ -125,7 +126,6 @@ const AWAITING_CONFIRMATION: readonly AccessKeyStatus[] = [
 const CONFIRMED_OR_BEYOND: readonly AccessKeyStatus[] = ["confirmed", "active", "used"];
 
 const MAX_WRITE_ATTEMPTS = 5;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isExpired(key: AccessKeyRow, now: Date): boolean {
   return (
@@ -270,12 +270,8 @@ export function createInvitationService(deps: {
   const { store } = deps;
   const now = deps.now ?? (() => new Date());
 
-  function requireUser(actor: Actor): void {
-    if (isAnonymous(actor)) throw new AccessKeyError("UNAUTHORIZED", "No hay sesión");
-  }
-
   async function findOwnEvent(actor: Actor, eventId: string): Promise<EventRow> {
-    requireUser(actor);
+    requireUser(actor, AccessKeyError);
     const event = UUID_RE.test(eventId) ? await store.findEvent(eventId) : null;
     if (!event) throw new AccessKeyError("NOT_FOUND", "Evento no encontrado");
     if (event.organizerId !== actor.userId) {
@@ -300,7 +296,7 @@ export function createInvitationService(deps: {
 
   return {
     authorize(actor: Actor): void {
-      requireUser(actor);
+      requireUser(actor, AccessKeyError);
     },
 
     /**
@@ -339,7 +335,7 @@ export function createInvitationService(deps: {
       actor: Actor,
       rawCode: string,
     ): Promise<{ code: string; kind: InvitationEmailKind; queued: boolean }> {
-      requireUser(actor);
+      requireUser(actor, AccessKeyError);
       const code = normalizeAccessKeyCode(rawCode);
       const key = code ? await store.findKey(code) : null;
       if (!key) throw new AccessKeyError("NOT_FOUND", "Clave no encontrada");

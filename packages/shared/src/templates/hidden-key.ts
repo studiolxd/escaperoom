@@ -1,4 +1,5 @@
 import type { HiddenKeyDefinition, PuzzleState } from "../schemas";
+import { guardPlayable, initialPuzzleState } from "./base";
 
 /**
  * Plantilla `hidden_key` (specs/06 §2.1). El escondite pasa de `locked` a
@@ -57,7 +58,7 @@ export function hiddenKeyGrantedItem(def: HiddenKeyDefinition): string | null {
 
 /** Un escondite con `requiresSolved` pendiente arranca `locked`; si no, `available`. */
 export function createHiddenKeyState(def: HiddenKeyDefinition): HiddenKeyState {
-  return { state: def.requiresSolved.length > 0 ? "locked" : "available" };
+  return { state: initialPuzzleState(def.requiresSolved) };
 }
 
 /** `true` si el escondite ya fue revelado (aunque el estado aún no se sincronice). */
@@ -78,7 +79,7 @@ export function revealHiddenKey(
   if (isHiddenKeyRevealed(state)) {
     return { outcome: "already_revealed", state, grantedItemId: null };
   }
-  if (state.state === "locked" || state.state === "failed") {
+  if (guardPlayable(state.state) !== null) {
     return { outcome: "unavailable", state, grantedItemId: null };
   }
 

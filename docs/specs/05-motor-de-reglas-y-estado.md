@@ -55,8 +55,10 @@ interface PuzzleRuntime {
 ### 2.2 Idempotencia y guardas
 
 - Cada regla lleva `id` y, al disparar, registra `firedAt` + contador. Por defecto **dispara una
-  sola vez** por partida (`once: true` por defecto; `repeatable: true` para reglas tipo contador).
-- El validador advierte de reglas `repeatable` **sin condición de corte** (bucle de regalos
+  sola vez** por partida (`once: true` por defecto; `once: false` para reglas tipo contador,
+  informalmente "repetibles" en el resto de esta spec y en el validador — no hay un campo
+  `repeatable` en el esquema, D-28).
+- El validador advierte de reglas `once: false` **sin condición de corte** (bucle de regalos
   infinitos: "al recoger la llave, dar la llave").
 
 ### 2.3 Delays y timers

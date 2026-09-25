@@ -1,3 +1,5 @@
+import { assertNever } from "../exhaustive";
+import { OPEN_OBJECT_STATE, RESERVED_FLAGS } from "../engine/constants";
 import type {
   PuzzleDefinition,
   Recipe,
@@ -59,6 +61,14 @@ export class RoomIndex {
   readonly puzzles = new Map<string, PuzzleDefinition>();
   readonly itemIds: Set<string>;
   readonly rules: Rule[];
+  /**
+   * Reglas agrupadas por `trigger.type`, en el mismo orden que aplicaría el
+   * motor real (prioridad desc., luego declaración) (D-19): `dispatchEvent`
+   * se llama por cada evento del BFS (hasta `MAX_STATES` nodos ×
+   * profundidad), y antes recorría y reordenaba **todas** las reglas de la
+   * sala en cada llamada solo para filtrar por tipo de trigger.
+   */
+  readonly rulesByTrigger: Map<RuleTrigger["type"], Rule[]>;
   /** Puertas: objetos con `leadsTo`. */
   readonly doors: WorldObject[];
   /** Puertas que alguna regla o puzzle abre explícitamente. */
@@ -77,6 +87,16 @@ export class RoomIndex {
     for (const puzzle of pkg.puzzles) this.puzzles.set(puzzle.id, puzzle);
     this.itemIds = new Set(pkg.items.map((item) => item.id));
     this.rules = pkg.rules;
+    this.rulesByTrigger = new Map();
+    const ordered = pkg.rules
+      .map((rule, order) => ({ rule, order }))
+      .sort((a, b) => b.rule.priority - a.rule.priority || a.order - b.order)
+      .map(({ rule }) => rule);
+    for (const rule of ordered) {
+      const group = this.rulesByTrigger.get(rule.trigger.type);
+      if (group) group.push(rule);
+      else this.rulesByTrigger.set(rule.trigger.type, [rule]);
+    }
     this.doors = pkg.objects.filter((object) => object.leadsTo !== undefined);
 
     for (const puzzle of pkg.puzzles) {
@@ -105,7 +125,7 @@ export class RoomIndex {
           this.addSource(action.itemId, { kind: "rule", id: rule.id, repeatable: !rule.once });
         }
         if (action.type === "unlock_door") this.explicitlyOpenedDoors.add(action.objectId);
-        if (action.type === "set_object_state" && action.state === "open") {
+        if (action.type === "set_object_state" && action.state === OPEN_OBJECT_STATE) {
           this.explicitlyOpenedDoors.add(action.objectId);
         }
       }
@@ -271,8 +291,8 @@ export class ExactState implements ModelState {
     for (const object of index.pkg.objects) {
       state.objectStates.set(object.id, object.initialState);
     }
-    state.flags.set("game_started", true);
-    state.flags.set("game_ended", false);
+    state.flags.set(RESERVED_FLAGS.GAME_STARTED, true);
+    state.flags.set(RESERVED_FLAGS.GAME_ENDED, false);
     return state;
   }
 
@@ -410,8 +430,8 @@ export class RelaxedState implements ModelState {
     for (const object of index.pkg.objects) {
       state.objectStates.set(object.id, new Set([object.initialState]));
     }
-    state.flags.set("game_started", new Set([true]));
-    state.flags.set("game_ended", new Set([false]));
+    state.flags.set(RESERVED_FLAGS.GAME_STARTED, new Set([true]));
+    state.flags.set(RESERVED_FLAGS.GAME_ENDED, new Set([false]));
     return state;
   }
 
@@ -631,8 +651,21 @@ function applyActions(
           state.lost = true;
         }
         break;
-      default:
+      // Solo narrativa/presentación (ver `NARRATIVE_ACTIONS`): el modelo
+      // abstracto no simula temporizadores en pausa ni encadenamientos
+      // retardados, así que no alteran el estado.
+      case "show_dialog":
+      case "show_image":
+      case "play_sound":
+      case "spawn_effect":
+      case "open_panel_puzzle":
+      case "reveal_number":
+      case "pause_timer":
+      case "stop_timer":
+      case "delay":
         break;
+      default:
+        assertNever(action, "validator/model.ts applyActions");
     }
   }
 }
@@ -653,11 +686,10 @@ export function dispatchEvent(
   while (queue.length > 0 && depth < MAX_CHAIN_DEPTH * 8) {
     depth++;
     const current = queue.shift()!;
-    const matching = index.rules
-      .map((rule, order) => ({ rule, order }))
-      .filter(({ rule }) => triggerMatches(rule.trigger, current))
-      .sort((a, b) => b.rule.priority - a.rule.priority || a.order - b.order);
-    for (const { rule } of matching) {
+    const matching = (index.rulesByTrigger.get(current.type) ?? []).filter((rule) =>
+      triggerMatches(rule.trigger, current),
+    );
+    for (const rule of matching) {
       if (state.terminal) return;
       if (rule.once && state.hasFired(rule.id)) continue;
       if (!rule.conditions.every((condition) => conditionHolds(index, state, condition))) {
@@ -714,7 +746,7 @@ export function objectAccessible(index: RoomIndex, state: ModelState, objectId: 
  */
 export function doorPassable(index: RoomIndex, state: ModelState, door: WorldObject): boolean {
   if (door.lockedBy !== undefined) return state.isSolved(door.lockedBy);
-  if (state.isUnlocked(door.id) || state.objectStateIs(door.id, "open")) return true;
+  if (state.isUnlocked(door.id) || state.objectStateIs(door.id, OPEN_OBJECT_STATE)) return true;
   return !index.explicitlyOpenedDoors.has(door.id);
 }
 

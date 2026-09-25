@@ -110,9 +110,7 @@ export const privacyPolicy: LegalDocument = {
     },
     {
       heading: "4. Cuánto tiempo conservamos los datos",
-      paragraphs: [
-        "Los plazos de conservación son:",
-      ],
+      paragraphs: ["Los plazos de conservación son:"],
       list: [
         "Cuenta cerrada por el usuario: los campos identificativos se anonimizan de inmediato; se " +
           "conserva un registro transaccional de las compras, sin datos personales visibles, por " +
@@ -214,13 +212,16 @@ export const privacyPolicy: LegalDocument = {
         "Magnific — generación y edición de assets visuales (imágenes) con IA, prevista para el " +
           "editor; todavía no activa. Mientras no se active, este proveedor no interviene.",
         [
-          "Plausible — analítica de producto agregada, sin cookies (véase la ",
+          "Plausible — analítica de producto agregada, sin cookies ni identificación individual. " +
+            "Empresa y servidores en la Unión Europea; no supone una transferencia internacional " +
+            "(véase la ",
           legalLink("Política de Cookies", "/legal/cookies"),
           ").",
         ],
         [
           "Google Analytics — analítica de producto; usa cookies (`_ga`/`_ga_*`) y solo se carga con " +
-            "tu consentimiento previo (véase la ",
+            "tu consentimiento previo. Sede en Estados Unidos; la transferencia se ampara en las " +
+            "Cláusulas Contractuales Tipo aprobadas por la Comisión Europea (véase la ",
           legalLink("Política de Cookies", "/legal/cookies"),
           ").",
         ],

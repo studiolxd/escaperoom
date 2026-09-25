@@ -75,16 +75,17 @@ describe("POST /api/onboarding/rooms (ticket 6.7, specs/20 §2 §3)", () => {
     expect(draft.updates.length).toBeGreaterThan(0);
   });
 
-  it("rechaza una plantilla desconocida con 400", async () => {
+  it("rechaza una plantilla desconocida con 422 VALIDATION_ERROR (A-22: fijado en specs/13 §1)", async () => {
     const { post } = setup();
     const res = await post({ template: "otra-cosa" }, "autora");
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
+    expect((await res.json()).error.code).toBe("VALIDATION_ERROR");
   });
 
-  it("rechaza un título vacío con 400 (validación Zod, A-9)", async () => {
+  it("rechaza un título vacío con 422 (validación Zod, A-9/A-22)", async () => {
     const { post } = setup();
     const res = await post({ template: "blank", title: "   " }, "autora");
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(422);
   });
 
   it("las respuestas, incluidas las de error, llevan Cache-Control: no-store", async () => {

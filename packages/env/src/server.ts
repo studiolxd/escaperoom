@@ -149,3 +149,12 @@ export const stripeSchema = z.object({
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 });
+
+export const analyticsSchema = z.object({
+  // Escape explícito para desplegar en producción a propósito sin analítica
+  // (docs/DEUDA.md «Claves reales de analítica antes de desplegar en
+  // producción»): sin él, `validateEnvOnBoot` falla si faltan las claves de
+  // Plausible/Google Analytics (`analyticsClientSchema`, client.ts) o siguen
+  // siendo los valores de desarrollo de `.env.example`.
+  ANALYTICS_DISABLED: bool(false),
+});

@@ -274,4 +274,24 @@ describe("<ValidationPanel> y <RulesGraph> con los hallazgos", () => {
     expect(html).toContain("Sin ruta de solución");
     expect(html).not.toContain('data-section="route"');
   });
+
+  it("usa el `Button` del host vía `components` para los chips señalados (auditoría F-6)", () => {
+    const base = structuredClone(reyAldric);
+    base.puzzles.find((puzzle) => puzzle.id === "p-llave-cuadro")!.grantsItems = [];
+    const { doc, serialize } = setup(base);
+    const state = track(createRoomValidator({ doc, serialize })).getState();
+
+    const html = renderToStaticMarkup(
+      <ValidationPanel
+        state={state}
+        labels={labels}
+        onSelectTarget={() => {}}
+        components={{
+          Button: (props) => <button {...props} data-host-kit="custom" type="button" />,
+        }}
+      />,
+    );
+    expect(html).toContain('data-host-kit="custom"');
+    expect(html).toContain('data-target-id="r-abrir-armario"');
+  });
 });

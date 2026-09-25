@@ -1,9 +1,11 @@
 import type { CodeLockDefinition, PuzzleState } from "../schemas";
+import { constantTimeEqual, guardPlayable, initialPuzzleState, publicBase } from "./base";
 
 /**
  * Plantilla `code_lock` (specs/06 §2.2). Toda la validación vive aquí, en
  * `shared`: el servidor compara el código contra la definición y el cliente
- * solo recibe una proyección pública (`toPublicView`) que jamás incluye `code`.
+ * solo recibe una proyección pública (`toCodeLockPublicView`) que jamás
+ * incluye `code`.
  *
  * La lógica es pura: `attemptCode` no muta `state`, devuelve un estado nuevo.
  * Así el host (Colyseus/React) puede decidir cuándo y cómo persistirlo, y los
@@ -74,7 +76,7 @@ function remainingAttemptsOf(state: CodeLockState, def: CodeLockDefinition): num
 /** Un candado con `requiresSolved` pendiente arranca `locked`; si no, `available`. */
 export function createCodeLockState(def: CodeLockDefinition): CodeLockState {
   return {
-    state: def.requiresSolved.length > 0 ? "locked" : "available",
+    state: initialPuzzleState(def.requiresSolved),
     attempts: 0,
     lockedUntil: null,
   };
@@ -102,17 +104,15 @@ export function attemptCode(
     lockedUntil: current.lockedUntil,
   };
 
-  if (current.state === "solved") {
-    return { outcome: "already_solved", state: current, ...base };
-  }
-  if (current.state === "locked" || current.state === "failed") {
-    return { outcome: "unavailable", state: current, ...base };
+  const guard = guardPlayable(current.state);
+  if (guard !== null) {
+    return { outcome: guard, state: current, ...base };
   }
   if (current.lockedUntil !== null) {
     return { outcome: "locked_out", state: current, ...base };
   }
 
-  if (normalizeCode(input) === normalizeCode(def.code)) {
+  if (constantTimeEqual(normalizeCode(input), normalizeCode(def.code))) {
     const next: CodeLockState = {
       ...current,
       state: "solved",
@@ -146,22 +146,25 @@ export function attemptCode(
   };
 }
 
-/** Proyección pública: no incluye `code`, pistas ni ningún secreto. */
-export function toPublicView(state: CodeLockState, def: CodeLockDefinition): CodeLockPublicView {
+/**
+ * Proyección pública: no incluye `code` ni la solución. `hints` sí viaja,
+ * pero son ids de `HintDef` (specs/06), no el texto de la pista — el cliente
+ * los resuelve aparte contra el catálogo de pistas de la sala.
+ */
+export function toCodeLockPublicView(
+  state: CodeLockState,
+  def: CodeLockDefinition,
+): CodeLockPublicView {
   const maxAttempts = maxAttemptsOf(def);
   return {
-    id: def.id,
-    type: "code_lock",
+    ...publicBase(def.id, "code_lock", state.state, state.solvedAt, state.solvedBy),
     length: def.length,
-    state: state.state,
     attempts: state.attempts,
     maxAttempts,
     remainingAttempts: Math.max(0, maxAttempts - state.attempts),
     lockoutSec: lockoutSecOf(def),
     lockedUntil: state.lockedUntil,
     hints: [...(def.hints ?? [])],
-    solvedAt: state.solvedAt ?? null,
-    solvedBy: state.solvedBy ?? null,
   };
 }
 
@@ -169,7 +172,7 @@ export function toPublicView(state: CodeLockState, def: CodeLockDefinition): Cod
  * Comprobación simple para el validador futuro: la definición es coherente
  * (código numérico de la longitud declarada) y el estado aún puede resolverse.
  */
-export function isSolvableGiven(state: CodeLockState, def: CodeLockDefinition): boolean {
+export function isCodeLockSolvable(state: CodeLockState, def: CodeLockDefinition): boolean {
   if (state.state === "solved") return true;
   if (state.state === "failed" && state.lockedUntil === null) return false;
   return isCoherentCodeLockDefinition(def);
@@ -191,3 +194,12 @@ function clearExpiredLockout(state: CodeLockState, now: number): CodeLockState {
 function normalizeCode(value: string): string {
   return value.trim();
 }
+
+/**
+ * Alias sin prefijo de `toCodeLockPublicView`/`isCodeLockSolvable` (D-20).
+ * `packages/shared/src/session/room-session.ts` (bloque 4, en curso en
+ * paralelo) todavía importa los nombres antiguos; se retiran cuando ese
+ * bloque haga el rename en su propia PR.
+ */
+export const toPublicView = toCodeLockPublicView;
+export const isSolvableGiven = isCodeLockSolvable;

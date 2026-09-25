@@ -1,4 +1,5 @@
-import { ANONYMOUS_ACTOR, actorFromSession, type Actor } from "@escaperoom/shared/services";
+import { logger } from "@escaperoom/kit/logger";
+import { actorFromSession, ANONYMOUS_ACTOR, type Actor } from "@escaperoom/shared/services";
 import { auth } from "@/lib/auth";
 import { consumeRateLimit, userIdOf } from "./rate-limit";
 import { getCatalogService, getReviewService } from "./services";
@@ -6,21 +7,41 @@ import type { Context } from "./trpc";
 
 /**
  * Deriva el `actor` de las cabeceras (cookie de sesión de Better Auth). Sin
- * sesión (o si la consulta falla) devuelve el actor invitado/anónimo, de modo
- * que el catálogo público sigue funcionando. Lo usan también las páginas SSR.
+ * sesión, `auth.api.getSession` devuelve `null` (no lanza): el actor
+ * invitado/anónimo es la respuesta correcta y esperada. Un fallo de
+ * infraestructura (Postgres caído, `BETTER_AUTH_SECRET` mal) SÍ lanza — antes
+ * (A-11) se atrapaba igual que "sin sesión" y toda petición volvía anónima
+ * (401) en silencio, sin traza. Ahora se registra y se propaga: la ruta
+ * responde 500 (o, si es pública y tolera trabajar sin actor, decide su
+ * propio `catch`) en vez de mentir sobre la sesión.
  */
 export async function resolveActorFromHeaders(headers: Headers): Promise<Actor> {
+  let session;
   try {
-    const session = await auth.api.getSession({ headers });
-    return actorFromSession(session);
-  } catch {
-    return ANONYMOUS_ACTOR;
+    session = await auth.api.getSession({ headers });
+  } catch (err) {
+    logger.error({ err }, "context: fallo resolviendo la sesión (no se trata como anónimo)");
+    throw err;
   }
+  return actorFromSession(session);
 }
 
-/** `actor` de una petición REST/tRPC (ver `resolveActorFromHeaders`). */
+/**
+ * `actor` de una petición REST/tRPC (ver `resolveActorFromHeaders`), con
+ * caché por `Request` (A-10): `withRateLimit` resuelve el actor para la cuota
+ * por usuario y el handler lo vuelve a resolver para autorizar — con la
+ * misma instancia de `Request` en ambos, esto evita la segunda consulta a
+ * Better Auth/Postgres. El `WeakMap` no retiene nada más allá de la vida de
+ * la petición (sin referencia a la `Request`, la entrada es recolectable).
+ */
+const actorByRequest = new WeakMap<Request, Promise<Actor>>();
+
 export function resolveActorFromRequest(request: Request): Promise<Actor> {
-  return resolveActorFromHeaders(request.headers);
+  const cached = actorByRequest.get(request);
+  if (cached) return cached;
+  const promise = resolveActorFromHeaders(request.headers);
+  actorByRequest.set(request, promise);
+  return promise;
 }
 
 /**

@@ -1,4 +1,5 @@
 import type { PipesPuzzleDefinition, PuzzleState } from "../schemas";
+import { guardPlayable, initialPuzzleState, publicBase } from "./base";
 import { createSlidingRng } from "./sliding-puzzle";
 
 /**
@@ -354,7 +355,7 @@ export function createPipesState(def: PipesPuzzleDefinition, rng?: PipesRng): Pi
   }));
 
   const state: PipesPuzzleState = {
-    state: def.requiresSolved.length > 0 ? "locked" : "available",
+    state: initialPuzzleState(def.requiresSolved),
     cells,
     solution: board.solution,
     openGates: [],
@@ -377,9 +378,8 @@ export function rotatePipe(
   turns = 1,
   playerId?: string,
 ): PipesRotateResult {
-  if (state.state === "solved") return { outcome: "already_solved", state };
-  if (state.state === "locked" || state.state === "failed")
-    return { outcome: "unavailable", state };
+  const guard = guardPlayable(state.state);
+  if (guard !== null) return { outcome: guard, state };
   if (!Number.isInteger(turns) || turns < 1 || turns > 3) {
     return { outcome: "invalid_rotation", state };
   }
@@ -411,9 +411,8 @@ export function openPipesGate(
   now: number,
   playerId?: string,
 ): PipesGateResult {
-  if (state.state === "solved") return { outcome: "already_solved", state };
-  if (state.state === "locked" || state.state === "failed")
-    return { outcome: "unavailable", state };
+  const guard = guardPlayable(state.state);
+  if (guard !== null) return { outcome: guard, state };
 
   const blocked = pipesBlockedCell(def, index);
   if (!blocked?.opensWithItem) return { outcome: "not_a_gate", state };
@@ -435,9 +434,7 @@ export function toPipesPuzzlePublicView(
   const flow = computePipesFlow(state, def);
   const end = pipesIndex(def.grid, def.endCell.x, def.endCell.y);
   return {
-    id: def.id,
-    type: "pipes",
-    state: state.state,
+    ...publicBase(def.id, "pipes", state.state, state.solvedAt, state.solvedBy),
     grid: { cols: def.grid.cols, rows: def.grid.rows },
     startCell: { x: def.startCell.x, y: def.startCell.y },
     endCell: { x: def.endCell.x, y: def.endCell.y },
@@ -458,8 +455,6 @@ export function toPipesPuzzlePublicView(
     flow,
     connected: flow.some((cell) => cell.index === end),
     rotationCount: state.rotationCount,
-    solvedAt: state.solvedAt ?? null,
-    solvedBy: state.solvedBy ?? null,
   };
 }
 

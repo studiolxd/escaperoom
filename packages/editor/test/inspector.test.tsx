@@ -12,6 +12,7 @@ import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { z } from "zod";
 import {
+  DEFAULT_UI_KIT,
   EditToolController,
   Inspector,
   InspectorError,
@@ -215,6 +216,7 @@ describe("generador de formularios desde los esquemas Zod", () => {
           idOptions: () => [],
           kinds,
           renderers: { color: ColorRenderer },
+          uiKit: DEFAULT_UI_KIT,
           readOnly: false,
         },
       }),
@@ -258,6 +260,35 @@ describe("inspector sobre el Rey Aldric", () => {
     expect(inspected?.rules[0]).toMatchObject({ trigger: true, conditions: [], actions: [] });
     expect(inspected?.rules[1]).toMatchObject({ trigger: true, conditions: [], actions: [] });
     expect(inspected?.rules[2]).toMatchObject({ trigger: false, actions: [0] });
+  });
+
+  it("usa los controles del host vía `components` en vez de los nativos (auditoría F-6)", () => {
+    const doc = aldricDoc();
+    const target: InspectorTarget = { kind: "object", id: "cuadro-aurelio" };
+    const html = render(target, doc, {
+      components: {
+        Button: (props: Record<string, unknown>) =>
+          createElement("button", { ...props, "data-host-kit": "button", type: "button" }),
+        Checkbox: (props: {
+          checked: boolean;
+          id?: string;
+          disabled?: boolean;
+          "aria-label"?: string;
+        }) =>
+          createElement("input", {
+            type: "checkbox",
+            "data-host-kit": "checkbox",
+            id: props.id,
+            checked: props.checked,
+            disabled: props.disabled,
+            readOnly: true,
+          }),
+      },
+    });
+    expect(html).toContain('data-host-kit="button"');
+    expect(html).toContain('data-host-kit="checkbox"');
+    // Con el kit del host, el `<Inspector>` no pinta ya sus propios `<button>` nativos.
+    expect(html).not.toMatch(/<button(?![^>]*data-host-kit)/);
   });
 
   it("editar propiedades cambia el doc y roomDocToPackage lo refleja", () => {

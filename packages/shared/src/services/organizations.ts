@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
+import { requireUser } from "./common";
 
 /**
  * DPA de organizaciones (ticket 5.11, specs/18 §3.1, specs/13 §2).
@@ -126,7 +127,7 @@ export function createOrganizationService(deps: {
     actor: Actor,
     organizationId: string,
   ): Promise<{ org: OrganizationDpaRow; role: string }> {
-    if (isAnonymous(actor)) throw new OrganizationError("UNAUTHORIZED", "No hay sesión");
+    requireUser(actor, OrganizationError);
     const org = await store.findOrganization(organizationId);
     const role = org ? await store.findMemberRole(org.id, actor.userId) : null;
     // Sin distinguir "no existe" de "no eres miembro": no se revela qué organizaciones hay.

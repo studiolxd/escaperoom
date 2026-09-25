@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
-import { isAnonymous, type Actor } from "./actor";
+import { type Actor } from "./actor";
+import { requireUser } from "./common";
 
 /**
  * Piezas comunes de los servicios de administración de plataforma (specs/13
@@ -32,7 +33,7 @@ export interface AdminDirectory {
 
 /** Sin sesión → `UNAUTHORIZED`; con sesión pero sin `isAdmin` → `FORBIDDEN`. */
 export async function requireAdmin(actor: Actor, directory: AdminDirectory): Promise<void> {
-  if (isAnonymous(actor)) throw new AdminError("UNAUTHORIZED", "No hay sesión");
+  requireUser(actor, AdminError);
   if (!(await directory.isAdmin(actor.userId))) {
     throw new AdminError("FORBIDDEN", "Solo administradores de plataforma");
   }

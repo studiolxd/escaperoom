@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { logger } from "@escaperoom/kit/logger";
 import { AdminError, parseOrThrow, requireAdmin, type AdminDirectory } from "./admin";
 import type { Actor } from "./actor";
+import { UUID_RE } from "./common";
 
 /**
  * Tramos de precio editables (`pricingTier`, specs/02 §3.2, specs/14 §8,
@@ -66,7 +68,6 @@ export type PricingQuote = {
   currency: string;
 };
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const players = z.number().int().min(1).max(100_000);
 const priceCents = z.number().int().min(0).max(1_000_000);
@@ -286,7 +287,12 @@ export function createPricingTierService(deps: { store: PricingTierStore; now?: 
               { path: "activeUntil", message: "Debe ser ≥ activeFrom del tramo" },
             ]);
           }
-          return { closed: await tx.closeTier(tier.id, data.activeUntil), created: null };
+          const closed = await tx.closeTier(tier.id, data.activeUntil);
+          logger.info(
+            { actor: actor.userId, route: "PATCH /api/admin/pricing-tiers/:id", target: tier.id },
+            "pricing-tiers: tramo retirado (activeUntil fijado sin sucesor)",
+          );
+          return { closed, created: null };
         }
 
         const effectiveFrom = data.effectiveFrom ?? (tier.activeFrom > at ? tier.activeFrom : at);
@@ -313,6 +319,15 @@ export function createPricingTierService(deps: { store: PricingTierStore; now?: 
         assertNoOverlap({ ...successor, activeUntil: null }, others);
         const closed = await tx.closeTier(tier.id, effectiveFrom);
         const created = await tx.insertTier(successor);
+        logger.info(
+          {
+            actor: actor.userId,
+            route: "PATCH /api/admin/pricing-tiers/:id",
+            target: tier.id,
+            successor: created.id,
+          },
+          "pricing-tiers: tramo cerrado y reemplazado por su sucesor",
+        );
         return { closed, created };
       });
     },

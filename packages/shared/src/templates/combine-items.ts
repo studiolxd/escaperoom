@@ -1,4 +1,5 @@
 import type { CombineItemsDefinition, PuzzleState, Recipe } from "../schemas";
+import { guardPlayable, initialPuzzleState, publicBase } from "./base";
 
 /**
  * Plantilla `combine_items` (specs/06 §2.4). Toda la validación de recetas vive
@@ -90,7 +91,7 @@ export function createCombineItemsState(
   inventory: string[] = [],
 ): CombineItemsState {
   return {
-    state: def.requiresSolved.length > 0 ? "locked" : "available",
+    state: initialPuzzleState(def.requiresSolved),
     inventory: [...inventory],
     appliedRecipes: [],
   };
@@ -145,7 +146,7 @@ export function applyCombination(
   const { matchedRecipe, output, consumeInputs } = evaluation;
   const base = { matchedRecipe, output, consumeInputs };
 
-  if (state.state === "locked" || state.state === "failed") {
+  if (guardPlayable(state.state) === "unavailable") {
     return { outcome: "unavailable", state, ...base };
   }
   if (matchedRecipe === null) {
@@ -186,22 +187,18 @@ export function applyCombination(
 /**
  * Proyección pública: inventario y estado, sin recetas ni solución.
  *
- * Se prefija con `CombineItems` para no colisionar con `toPublicView` de
- * `code-lock` al reexportar las plantillas con `export *`.
+ * Se prefija con `CombineItems` (como el resto de plantillas) para no
+ * colisionar al reexportar las plantillas con `export *`.
  */
 export function toCombineItemsPublicView(
   state: CombineItemsState,
   def: CombineItemsDefinition,
 ): CombineItemsPublicView {
   return {
-    id: def.id,
-    type: "combine_items",
-    state: state.state,
+    ...publicBase(def.id, "combine_items", state.state, state.solvedAt, state.solvedBy),
     inventory: [...state.inventory],
     recipeCount: def.recipes.length,
     appliedRecipeCount: state.appliedRecipes.length,
-    solvedAt: state.solvedAt ?? null,
-    solvedBy: state.solvedBy ?? null,
   };
 }
 

@@ -4,8 +4,8 @@ import {
   CODE_LOCK_DEFAULT_MAX_ATTEMPTS,
   attemptCode,
   createCodeLockState,
-  isSolvableGiven,
-  toPublicView,
+  isCodeLockSolvable,
+  toCodeLockPublicView,
   type CodeLockState,
 } from "../src/templates";
 import { CodeLockDefinitionSchema, type CodeLockDefinition } from "../src/schemas";
@@ -107,7 +107,7 @@ describe("code_lock · validación", () => {
 
   it("usa maxAttempts/lockoutSec por defecto si faltan (5 y 30)", () => {
     const def = makeDef({ maxAttempts: undefined, lockoutSec: undefined });
-    const view = toPublicView(createCodeLockState(def), def);
+    const view = toCodeLockPublicView(createCodeLockState(def), def);
     expect(view.maxAttempts).toBe(CODE_LOCK_DEFAULT_MAX_ATTEMPTS);
     expect(view.lockoutSec).toBe(CODE_LOCK_DEFAULT_LOCKOUT_SEC);
   });
@@ -154,7 +154,7 @@ describe("code_lock · proyección pública", () => {
   it("el estado público serializado NO contiene el código", () => {
     const def = makeDef();
     const state = attemptCode(createCodeLockState(def), def, "0000", 1_000).state;
-    const view = toPublicView(state, def);
+    const view = toCodeLockPublicView(state, def);
 
     expect(view).not.toHaveProperty("code");
     expect(JSON.stringify(view)).not.toContain(def.code);
@@ -168,7 +168,7 @@ describe("code_lock · proyección pública", () => {
   it("la vista pública expone bloqueo e intentos para el panel", () => {
     const def = makeDef({ maxAttempts: 1, lockoutSec: 10 });
     const result = attemptCode(createCodeLockState(def), def, "0000", 1_000);
-    const view = toPublicView(result.state, def);
+    const view = toCodeLockPublicView(result.state, def);
 
     expect(view.state).toBe("available");
     expect(view.lockedUntil).toBe(11_000);
@@ -180,7 +180,7 @@ describe("code_lock · proyección pública", () => {
   it("no filtra el código ni con un estado resuelto", () => {
     const def = makeDef();
     const solved = attemptCode(createCodeLockState(def), def, "4732", 1_000).state;
-    const view = toPublicView(solved, def);
+    const view = toCodeLockPublicView(solved, def);
     expect(JSON.stringify(view)).not.toContain(def.code);
     expect(view.solvedAt).toBe(1_000);
   });
@@ -189,17 +189,17 @@ describe("code_lock · proyección pública", () => {
 describe("code_lock · solvencia (validador futuro)", () => {
   it("una definición coherente y no fallida es resoluble", () => {
     const def = makeDef();
-    expect(isSolvableGiven(createCodeLockState(def), def)).toBe(true);
+    expect(isCodeLockSolvable(createCodeLockState(def), def)).toBe(true);
   });
 
   it("un fallo definitivo no es resoluble", () => {
     const def = makeDef({ maxAttempts: 1, lockoutSec: 0 });
     const failed: CodeLockState = attemptCode(createCodeLockState(def), def, "0000", 1_000).state;
-    expect(isSolvableGiven(failed, def)).toBe(false);
+    expect(isCodeLockSolvable(failed, def)).toBe(false);
   });
 
   it("un código de longitud incorrecta no es resoluble", () => {
     const def = makeDef({ length: 5, code: "4732" });
-    expect(isSolvableGiven(createCodeLockState(def), def)).toBe(false);
+    expect(isCodeLockSolvable(createCodeLockState(def), def)).toBe(false);
   });
 });

@@ -31,11 +31,6 @@ export function createStripeClient(secretKey: string): Stripe {
   return new Stripe(secretKey, { appInfo: { name: "escaperoom" } });
 }
 
-function toAmount(cents: number): number {
-  // Stripe usa la unidad menor de la moneda (céntimos para EUR); `room.priceCents`
-  // ya está en esa unidad (specs/02).
-  return cents;
-}
 
 /** Pasarela de Checkout + Transfers (specs/02 §2, specs/13 §5-7). */
 export function createStripePaymentGateway(stripe: Stripe): PaymentGateway {
@@ -47,7 +42,7 @@ export function createStripePaymentGateway(stripe: Stripe): PaymentGateway {
           {
             price_data: {
               currency: input.currency.toLowerCase(),
-              unit_amount: toAmount(input.amountCents),
+              unit_amount: input.amountCents,
               product_data: { name: `${input.title} — evento (${input.players} jugadores)` },
             },
             quantity: 1,
@@ -76,7 +71,7 @@ export function createStripePaymentGateway(stripe: Stripe): PaymentGateway {
           {
             price_data: {
               currency: input.currency.toLowerCase(),
-              unit_amount: toAmount(input.amountCents),
+              unit_amount: input.amountCents,
               product_data: { name: `Licencia: ${input.title}` },
             },
             quantity: 1,
@@ -96,7 +91,7 @@ export function createStripePaymentGateway(stripe: Stripe): PaymentGateway {
           {
             price_data: {
               currency: input.currency.toLowerCase(),
-              unit_amount: toAmount(input.amountCents),
+              unit_amount: input.amountCents,
               product_data: { name: input.title },
             },
             quantity: 1,
@@ -136,7 +131,7 @@ export function createStripePaymentGateway(stripe: Stripe): PaymentGateway {
 
       const transfer = await stripe.transfers.create(
         {
-          amount: toAmount(input.amountCents),
+          amount: input.amountCents,
           currency: input.currency.toLowerCase(),
           destination: input.destinationAccountId,
           // Financia la transferencia con el cargo original (specs/02 §2): la
@@ -151,7 +146,7 @@ export function createStripePaymentGateway(stripe: Stripe): PaymentGateway {
     async reverseTransfer(input) {
       await stripe.transfers.createReversal(
         input.transferId,
-        { amount: toAmount(input.amountCents) },
+        { amount: input.amountCents },
         { idempotencyKey: `reversal_${input.transferId}_${input.amountCents}` },
       );
     },

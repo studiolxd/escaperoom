@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
+import { z } from "zod";
 import { loadRoomPackage, toRuntimeModel, type RuntimeModel } from "../src/loader";
 import {
   buildAtlasJson,
@@ -16,11 +17,14 @@ import {
   DEFAULT_PACK_PROJECTION,
   defaultAvatarAnims,
   formatPackIssues,
+  PackAnimSchema,
+  PackAvatarSchema,
+  PackOriginSchema,
+  PackProjectionSchema,
+  PackSizeSchema,
   validateAtlasFrames,
   validatePackAgainstModel,
   validatePackManifest,
-  type PackAnim,
-  type PackAvatar,
   type PackManifest,
   type PackValidationIssue,
 } from "../src/pack";
@@ -55,34 +59,44 @@ type Kind = (typeof KINDS)[number];
 const DEFAULT_ROOM = "docs/reference/roompackage-rey-aldric.v1.json";
 const NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
 
-interface PackConfig {
-  id?: string;
-  version?: string;
-  packageFormat?: string;
-  projection?: { tileWidth: number; tileHeight: number; scale: number };
+/**
+ * Esquema de `pack.config.json` (D-28: antes se leía con `JSON.parse(...) as
+ * PackConfig`, sin validar). Reutiliza los mismos esquemas Zod del
+ * manifiesto (`../src/pack/manifest.ts`) para que un `pack.config.json` mal
+ * formado falle aquí, con un mensaje claro, en vez de producir un manifiesto
+ * inválido que solo se detecta más tarde (o en el runtime).
+ */
+const PackConfigSchema = z.object({
+  id: z.string().min(1).optional(),
+  version: z.string().min(1).optional(),
+  packageFormat: z.string().min(1).optional(),
+  projection: PackProjectionSchema.optional(),
   /** tileId → ¿colisiona? El manifiesto lo declara explícitamente. */
-  collides?: Record<string, boolean>;
+  collides: z.record(z.string(), z.boolean()).optional(),
   /** Ancho máximo de cada atlas. */
-  atlasMaxWidth?: number;
-  padding?: number;
+  atlasMaxWidth: z.number().int().positive().optional(),
+  padding: z.number().int().nonnegative().optional(),
   /** Animaciones explícitas que sustituyen a las derivadas de los nombres. */
-  anims?: PackAnim[];
+  anims: z.array(PackAnimSchema).optional(),
   /** Personajes jugables seleccionables (A1/B4, specs/26 §6): pasan a `manifest.avatars`. */
-  avatars?: PackAvatar[];
+  avatars: z.array(PackAvatarSchema).optional(),
   /** Punto de apoyo del avatar como fracción `[x, y]` del frame (A4, specs/26 §3.1). */
-  avatarOrigin?: [number, number];
+  avatarOrigin: PackOriginSchema.optional(),
   /**
    * Lienzo lógico por frame a 1× (specs/26 §2/§3.1): cada sprite tiene el
    * suyo (p. ej. arca 102×92, muro 64×136), no uno canónico. Sustituye la
    * comprobación de proporción canónica para el frame declarado.
    */
-  sizes?: Record<string, [number, number]>;
+  sizes: z.record(z.string(), PackSizeSchema).optional(),
   /**
    * Fracción `[ox, oy]` del frame que cae en `tileAnchor(x, y)` por frame
    * (specs/26 §3.1). Sin entrada, el runtime usa `[0.5, 1]`.
    */
-  origins?: Record<string, [number, number]>;
-}
+  origins: z.record(z.string(), PackOriginSchema).optional(),
+});
+
+type PackConfig = z.infer<typeof PackConfigSchema>;
+type PackAnim = NonNullable<PackConfig["anims"]>[number];
 
 interface CliOptions {
   packDir: string;
@@ -140,7 +154,12 @@ async function readConfig(packDir: string): Promise<PackConfig> {
   if (!existsSync(configPath)) {
     return {};
   }
-  return JSON.parse(await readFile(configPath, "utf8")) as PackConfig;
+  const raw: unknown = JSON.parse(await readFile(configPath, "utf8"));
+  const parsed = PackConfigSchema.safeParse(raw);
+  if (!parsed.success) {
+    throw new Error(`pack.config.json inválido: ${z.prettifyError(parsed.error)}`);
+  }
+  return parsed.data;
 }
 
 function isImageEntry(name: string): boolean {
@@ -156,8 +175,6 @@ async function readImagesInDir(
   sizes: Record<string, [number, number]> | undefined,
 ): Promise<{ frames: AtlasFrameInput[]; issues: PackValidationIssue[] }> {
   const entries = (await readdir(dir)).filter(isImageEntry).sort();
-  const frames: AtlasFrameInput[] = [];
-  const issues: PackValidationIssue[] = [];
 
   // Un frame no puede tener dos fuentes (svg y png) en la misma carpeta: gana el
   // SVG (vectorial) y se avisa de que el PNG se ignora.
@@ -165,45 +182,72 @@ async function readImagesInDir(
     entries.filter((e) => e.toLowerCase().endsWith(".svg")).map((e) => basename(e, ".svg")),
   );
 
-  for (const entry of entries) {
-    const isSvg = entry.toLowerCase().endsWith(".svg");
-    const frame = basename(entry, isSvg ? ".svg" : ".png");
+  // D-28: las lecturas/rasterizaciones de cada frame son independientes entre
+  // sí (cada una es su propio fichero); antes se esperaban una a una
+  // (secuencial), así que un pack con muchos sprites/avatares tardaba la
+  // suma de todas en vez del máximo. `Promise.all` conserva el orden de
+  // `entries` (determinismo del atlas) aunque las promesas resuelvan en
+  // otro orden.
+  const results = await Promise.all(
+    entries.map(
+      async (
+        entry,
+      ): Promise<{ frame: AtlasFrameInput | null; issues: PackValidationIssue[] }> => {
+        const isSvg = entry.toLowerCase().endsWith(".svg");
+        const frame = basename(entry, isSvg ? ".svg" : ".png");
 
-    if (!isSvg && svgFrames.has(frame)) {
-      issues.push({
-        path: `${label}/${entry}`,
-        message: `hay un SVG y un PNG para el mismo frame "${frame}"; se usa el SVG y se ignora el PNG.`,
-        severity: "warning",
-      });
-      continue;
-    }
+        if (!isSvg && svgFrames.has(frame)) {
+          return {
+            frame: null,
+            issues: [
+              {
+                path: `${label}/${entry}`,
+                message: `hay un SVG y un PNG para el mismo frame "${frame}"; se usa el SVG y se ignora el PNG.`,
+                severity: "warning",
+              },
+            ],
+          };
+        }
 
-    let decoded;
-    if (isSvg) {
-      const svg = await readFile(join(dir, entry), "utf8");
-      const aspectIssue = checkSvgAspect(svg, frame, sizes);
-      if (aspectIssue) {
-        issues.push({ path: `${label}/${entry}`, message: aspectIssue, severity: "warning" });
-      }
-      decoded = await rasterizeSvg(svg, frame, sizes);
-    } else {
-      const normalized = await normalizePng(await readFile(join(dir, entry)), frame, sizes);
-      if (normalized.error) {
-        // Un PNG con proporción incorrecta NO se genera (no se reencuadra).
-        issues.push({ path: `${label}/${entry}`, message: normalized.error, severity: "error" });
-        continue;
-      }
-      if (normalized.warning) {
-        // Menor que el lienzo: aviso en modo normal; error con --strict.
-        issues.push({
-          path: `${label}/${entry}`,
-          message: normalized.warning,
-          severity: options.strict ? "error" : "warning",
-        });
-      }
-      decoded = normalized.image;
-    }
-    frames.push({ frame, width: decoded.width, height: decoded.height, rgba: decoded.rgba });
+        const issues: PackValidationIssue[] = [];
+        let decoded;
+        if (isSvg) {
+          const svg = await readFile(join(dir, entry), "utf8");
+          const aspectIssue = checkSvgAspect(svg, frame, sizes);
+          if (aspectIssue) {
+            issues.push({ path: `${label}/${entry}`, message: aspectIssue, severity: "warning" });
+          }
+          decoded = await rasterizeSvg(svg, frame, sizes);
+        } else {
+          const normalized = await normalizePng(await readFile(join(dir, entry)), frame, sizes);
+          if (normalized.error) {
+            // Un PNG con proporción incorrecta NO se genera (no se reencuadra).
+            issues.push({ path: `${label}/${entry}`, message: normalized.error, severity: "error" });
+            return { frame: null, issues };
+          }
+          if (normalized.warning) {
+            // Menor que el lienzo: aviso en modo normal; error con --strict.
+            issues.push({
+              path: `${label}/${entry}`,
+              message: normalized.warning,
+              severity: options.strict ? "error" : "warning",
+            });
+          }
+          decoded = normalized.image;
+        }
+        return {
+          frame: { frame, width: decoded.width, height: decoded.height, rgba: decoded.rgba },
+          issues,
+        };
+      },
+    ),
+  );
+
+  const frames: AtlasFrameInput[] = [];
+  const issues: PackValidationIssue[] = [];
+  for (const result of results) {
+    issues.push(...result.issues);
+    if (result.frame) frames.push(result.frame);
   }
 
   return { frames, issues };
@@ -369,7 +413,6 @@ const AVATAR_FRAMES_PER_CHARACTER =
   Object.values(AVATAR_ACTION_FRAMES).reduce((total, count) => total + count, 0) * 4;
 
 function checkNames(
-  packDir: string,
   framesByKind: Record<Kind, string[]>,
   config: PackConfig,
 ): PackValidationIssue[] {
@@ -406,9 +449,6 @@ function checkNames(
         severity: "error",
       });
     }
-  }
-  if (packDir.length === 0) {
-    issues.push({ path: "pack", message: "carpeta de pack vacía.", severity: "error" });
   }
   return issues;
 }
@@ -450,7 +490,7 @@ async function main(): Promise<void> {
     }
   }
 
-  issues.push(...checkNames(options.packDir, framesByKind, config));
+  issues.push(...checkNames(framesByKind, config));
 
   const manifest = buildManifest(config, packId, atlases, framesByKind, issues);
   const structural = validatePackManifest(manifest);

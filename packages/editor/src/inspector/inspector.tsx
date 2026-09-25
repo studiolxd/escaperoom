@@ -12,6 +12,7 @@ import {
 import { RoomDocError } from "../room-doc/commands";
 import { useRoomPackage } from "../room-doc/use-room-package";
 import { RulesDocError } from "../rules-graph/yjs-rules";
+import { resolveUiKit, type EditorUiKit } from "../ui-kit";
 import {
   describeTarget,
   idOptions,
@@ -72,6 +73,8 @@ export type InspectorProps = {
   /** Tipos de campo registrados en el generador y sus renderers. */
   fieldKinds?: readonly FieldKindDefinition[];
   renderers?: Readonly<Record<string, FieldRenderer>>;
+  /** Controles interactivos del host (auditoría F-6); por defecto, elemento nativo. */
+  components?: Partial<EditorUiKit>;
   readOnly?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -119,9 +122,10 @@ export function Inspector(props: InspectorProps) {
   const { doc, target, onSelect } = props;
   const t = useMemo(() => createInspectorLabeler(props.labels), [props.labels]);
   const pkg = useRoomPackage(doc);
+  const kit = useMemo(() => resolveUiKit(props.components), [props.components]);
   const [renamed, setRenamed] = useState<{ id: string; notice: string } | null>(null);
 
-  if (!target) return <ElementBrowser pkg={pkg} t={t} onSelect={onSelect} {...props} />;
+  if (!target) return <ElementBrowser pkg={pkg} t={t} kit={kit} onSelect={onSelect} {...props} />;
   const element = inspectElement(pkg, target);
   return (
     <section
@@ -138,6 +142,7 @@ export function Inspector(props: InspectorProps) {
           pkg={pkg}
           element={element}
           t={t}
+          kit={kit}
           renameNotice={renamed?.id === target.id ? renamed.notice : null}
           onRenamed={(next, notice) => {
             setRenamed({ id: next.id, notice });
@@ -149,9 +154,9 @@ export function Inspector(props: InspectorProps) {
           <p style={mutedStyle}>{t.ui("missing")}</p>
           {onSelect ? (
             <div>
-              <button type="button" style={smallButtonStyle} onClick={() => onSelect(null)}>
+              <kit.Button type="button" style={smallButtonStyle} onClick={() => onSelect(null)}>
                 {t.ui("close")}
-              </button>
+              </kit.Button>
             </div>
           ) : null}
         </>
@@ -164,16 +169,17 @@ function ElementBrowser(
   props: InspectorProps & {
     pkg: RoomPackage;
     t: InspectorLabeler;
+    kit: EditorUiKit;
   },
 ) {
-  const { pkg, t, onSelect } = props;
+  const { pkg, t, kit, onSelect } = props;
   const group = (kind: "puzzle" | "rule", ids: string[]) => (
     <div style={sectionStyle}>
       <h3 style={headingStyle}>{t.ui(kind === "puzzle" ? "puzzles" : "rules")}</h3>
       <ul style={{ ...listStyle, flexDirection: "row", flexWrap: "wrap" }}>
         {ids.map((id) => (
           <li key={id}>
-            <button
+            <kit.Button
               type="button"
               style={chipStyle}
               data-select-kind={kind}
@@ -182,7 +188,7 @@ function ElementBrowser(
               onClick={() => onSelect?.({ kind, id })}
             >
               {id}
-            </button>
+            </kit.Button>
           </li>
         ))}
       </ul>
@@ -215,6 +221,7 @@ function RenameForm({
   doc,
   target,
   t,
+  kit,
   readOnly,
   notice,
   onRenamed,
@@ -222,6 +229,7 @@ function RenameForm({
   doc: Y.Doc;
   target: InspectorTarget;
   t: InspectorLabeler;
+  kit: EditorUiKit;
   readOnly: boolean;
   /** Aviso del último renombrado (vive fuera: renombrar remonta el cuerpo). */
   notice: string | null;
@@ -236,6 +244,7 @@ function RenameForm({
         mono
         disabled={readOnly}
         aria-label={t.ui("rename")}
+        Input={kit.Input}
         onCommit={(next) => {
           const newId = next.trim();
           if (!newId || newId === target.id) return;
@@ -276,11 +285,13 @@ function touchSummary(touch: RuleTouch, t: InspectorLabeler): string {
 function RulesTouching({
   rules,
   t,
+  kit,
   onSelect,
   onOpenRule,
 }: {
   rules: RuleTouch[];
   t: InspectorLabeler;
+  kit: EditorUiKit;
   onSelect?: (target: InspectorTarget) => void;
   onOpenRule?: (ruleId: string) => void;
 }) {
@@ -297,24 +308,24 @@ function RulesTouching({
               data-rule={touch.ruleId}
               style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}
             >
-              <button
+              <kit.Button
                 type="button"
                 style={chipStyle}
                 disabled={!onSelect}
                 onClick={() => onSelect?.({ kind: "rule", id: touch.ruleId })}
               >
                 {touch.ruleId}
-              </button>
+              </kit.Button>
               <span style={{ fontSize: 11, opacity: 0.7 }}>{touchSummary(touch, t)}</span>
               {onOpenRule ? (
-                <button
+                <kit.Button
                   type="button"
                   style={{ ...smallButtonStyle, marginLeft: "auto" }}
                   data-open-rule={touch.ruleId}
                   onClick={() => onOpenRule(touch.ruleId)}
                 >
                   {t.ui("openInGraph")}
-                </button>
+                </kit.Button>
               ) : null}
             </li>
           ))}
@@ -325,7 +336,12 @@ function RulesTouching({
 }
 
 /** Campo mínimo por idioma (si el host no monta el de 3.10). */
-function LocalizedTextFallback({ text, languages, label }: LinkedTextSlotProps) {
+function LocalizedTextFallback({
+  text,
+  languages,
+  label,
+  kit,
+}: LinkedTextSlotProps & { kit: EditorUiKit }) {
   return (
     <div style={sectionStyle} data-localized-fallback="">
       <span style={{ fontSize: 11, opacity: 0.75 }}>{label}</span>
@@ -334,6 +350,7 @@ function LocalizedTextFallback({ text, languages, label }: LinkedTextSlotProps) 
           <code style={{ fontSize: 11, width: 24 }}>{locale}</code>
           <CommitInput
             value={getLocalizedValue(text, locale)}
+            Input={kit.Input}
             aria-label={`${label} (${locale})`}
             onCommit={(next) => setLocalizedValue(text, locale, next)}
           />
@@ -348,12 +365,14 @@ function LinkedTexts({
   pkg,
   texts,
   t,
+  kit,
   render,
 }: {
   doc: Y.Doc;
   pkg: RoomPackage;
   texts: LinkedText[];
   t: InspectorLabeler;
+  kit: EditorUiKit;
   render?: (props: LinkedTextSlotProps) => ReactNode;
 }) {
   if (texts.length === 0) return null;
@@ -375,7 +394,7 @@ function LinkedTexts({
         };
         return (
           <div key={`${linked.collection}:${linked.id}`} data-linked-text={linked.id}>
-            {render ? render(slot) : <LocalizedTextFallback {...slot} />}
+            {render ? render(slot) : <LocalizedTextFallback {...slot} kit={kit} />}
           </div>
         );
       })}
@@ -389,11 +408,12 @@ function InspectorBody(
     pkg: RoomPackage;
     element: InspectedElement;
     t: InspectorLabeler;
+    kit: EditorUiKit;
     renameNotice: string | null;
     onRenamed: (target: InspectorTarget, notice: string) => void;
   },
 ) {
-  const { doc, target, pkg, element, t, onSelect, onOpenRule, onDelete } = props;
+  const { doc, target, pkg, element, t, kit, onSelect, onOpenRule, onDelete } = props;
   const readOnly = props.readOnly ?? false;
   const [error, setError] = useState<ErrorState>(null);
   const puzzleType =
@@ -408,6 +428,7 @@ function InspectorBody(
     idOptions: (ref) => idOptions(pkg, ref, element.value),
     kinds,
     renderers: props.renderers ?? {},
+    uiKit: kit,
     readOnly,
   };
 
@@ -425,13 +446,13 @@ function InspectorBody(
       <header style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <h2 style={{ fontSize: 14, fontWeight: 600, margin: 0 }}>{t.kind(target.kind)}</h2>
         {onSelect ? (
-          <button
+          <kit.Button
             type="button"
             style={{ ...smallButtonStyle, marginLeft: "auto" }}
             onClick={() => onSelect(null)}
           >
             {t.ui("close")}
-          </button>
+          </kit.Button>
         ) : null}
       </header>
 
@@ -439,6 +460,7 @@ function InspectorBody(
         doc={doc}
         target={target}
         t={t}
+        kit={kit}
         readOnly={readOnly}
         notice={props.renameNotice}
         onRenamed={props.onRenamed}
@@ -472,14 +494,14 @@ function InspectorBody(
           <p style={mutedStyle}>{t.ui("graphHint")}</p>
           {onOpenRule ? (
             <div>
-              <button
+              <kit.Button
                 type="button"
                 style={smallButtonStyle}
                 data-open-rule={target.id}
                 onClick={() => onOpenRule(target.id)}
               >
                 {t.ui("openInGraph")}
-              </button>
+              </kit.Button>
             </div>
           ) : null}
         </div>
@@ -487,6 +509,7 @@ function InspectorBody(
         <RulesTouching
           rules={element.rules}
           t={t}
+          kit={kit}
           onSelect={onSelect ?? undefined}
           onOpenRule={onOpenRule}
         />
@@ -498,7 +521,7 @@ function InspectorBody(
           <ul style={{ ...listStyle, flexDirection: "row", flexWrap: "wrap" }}>
             {element.referencedBy.map((ref) => (
               <li key={`${ref.kind}:${ref.id}`}>
-                <button
+                <kit.Button
                   type="button"
                   style={chipStyle}
                   data-reference={ref.id}
@@ -506,7 +529,7 @@ function InspectorBody(
                   onClick={() => onSelect?.(ref)}
                 >
                   {t.kind(ref.kind)}: {ref.id}
-                </button>
+                </kit.Button>
               </li>
             ))}
           </ul>
@@ -518,18 +541,20 @@ function InspectorBody(
         pkg={pkg}
         texts={element.texts}
         t={t}
+        kit={kit}
         render={props.renderLocalizedText}
       />
 
       {onDelete && !readOnly ? (
         <div>
-          <button
+          <kit.Button
             type="button"
+            variant="destructive"
             style={{ ...smallButtonStyle, borderColor: "#dc2626", color: "#f87171" }}
             onClick={() => onDelete(target)}
           >
             {t.ui("delete")}
-          </button>
+          </kit.Button>
         </div>
       ) : null}
     </>
