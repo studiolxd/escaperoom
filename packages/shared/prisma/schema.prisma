@@ -187,6 +187,8 @@ model event {
   createdAt               DateTime      @default(now()) @db.Timestamptz(6)
   /// E-11: marca de verdad del email de confirmación de compra (event_credits); la pone el worker al entregarlo, no el webhook al encolarlo.
   confirmationSentAt      DateTime?     @db.Timestamptz(6)
+  /// B-11: concurrencia optimista de `config` (JSONB); cada `updateEvent` la exige junto con `status` y la incrementa, para que un PATCH concurrente con `startCheckout`/el webhook no pise un read-modify-write ajeno.
+  version                 Int           @default(1)
   accessKey               accessKey[]
   user                    user          @relation(fields: [organizerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   roomVersion             roomVersion   @relation(fields: [roomVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -371,6 +373,8 @@ model purchase {
   creatorShareCents     Int?
   stripePaymentIntentId String?
   stripeTransferId      String?
+  /// B-9: instante del último intento del barrido de payouts (`creator-payouts.ts`); `NULL` si nunca se ha intentado. Ordena la cola para que una compra bloqueada (creador sin onboarding) no acapare `limit` para siempre.
+  payoutAttemptAt       DateTime?      @db.Timestamptz(6)
   status                purchaseStatus @default(pending)
   playSessionStartedAt  DateTime?      @db.Timestamptz(6)
   playSessionColyseusId String?

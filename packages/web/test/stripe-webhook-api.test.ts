@@ -28,27 +28,41 @@ vi.mock("@escaperoom/kit/logger", () => ({ logger: loggerMock }));
 import { createStripeWebhookHandlers } from "../src/server/rest/stripe-webhook";
 
 const buyer: Actor = { userId: "compradora", organizationId: null, role: "member" };
+const organizer: Actor = { userId: "otro-organizador", organizationId: null, role: "member" };
 const ROOM = "20000000-0000-4000-8000-000000000001";
 const VERSION = "10000000-0000-4000-8000-000000000001";
 const LICENSE_ROOM = "20000000-0000-4000-8000-000000000002";
 const LICENSE_VERSION = "10000000-0000-4000-8000-000000000002";
 const EVENT_ROOM_VERSION = "10000000-0000-4000-8000-000000000003";
+const CHECKOUT_URLS = { successUrl: "https://app.test/success", cancelUrl: "https://app.test/cancel" };
 
 /** Construye eventos de Stripe mínimos, tal y como los necesita `dispatch`. */
 function checkoutCompleted(
   id: string,
   metadata: Record<string, string>,
   paymentIntentId: string,
+  opts: { sessionId?: string; amountTotal?: number; paymentStatus?: string } = {},
 ): Stripe.Event {
   return {
     id,
     type: "checkout.session.completed",
     data: {
       object: {
+        id: opts.sessionId ?? "cs_test",
         metadata,
         payment_intent: paymentIntentId,
+        payment_status: opts.paymentStatus ?? "paid",
+        amount_total: opts.amountTotal ?? 0,
       },
     },
+  } as unknown as Stripe.Event;
+}
+
+function checkoutExpired(id: string, metadata: Record<string, string>, sessionId: string): Stripe.Event {
+  return {
+    id,
+    type: "checkout.session.expired",
+    data: { object: { id: sessionId, metadata } },
   } as unknown as Stripe.Event;
 }
 
@@ -60,11 +74,21 @@ function paymentFailed(id: string, metadata: Record<string, string>): Stripe.Eve
   } as unknown as Stripe.Event;
 }
 
-function chargeRefunded(id: string, paymentIntentId: string): Stripe.Event {
+function chargeRefunded(
+  id: string,
+  paymentIntentId: string,
+  opts: { amount?: number; amountRefunded?: number } = {},
+): Stripe.Event {
   return {
     id,
     type: "charge.refunded",
-    data: { object: { payment_intent: paymentIntentId } },
+    data: {
+      object: {
+        payment_intent: paymentIntentId,
+        amount: opts.amount ?? 299,
+        amount_refunded: opts.amountRefunded ?? opts.amount ?? 299,
+      },
+    },
   } as unknown as Stripe.Event;
 }
 
@@ -106,7 +130,6 @@ function setup(payments: PaymentGateway = createFakePaymentGateway()) {
         package: { meta: { id: LICENSE_ROOM, authorId: "autora-origen", title: "Sala licenciable" } } as never,
       },
     ],
-    connectedAccounts: { "autora-origen": "acct_origen" },
     drafts,
   });
   const roomLicenses = createRoomLicenseService({
@@ -188,6 +211,29 @@ function setup(payments: PaymentGateway = createFakePaymentGateway()) {
   };
 }
 
+/** Abre un checkout de evento real (B-1/B-8: congela `purchaseId`/importe) y devuelve sus datos. */
+async function openEventCheckout(
+  events: ReturnType<typeof setup>["events"],
+  title = "Jornada escolar",
+) {
+  const event = await events.createEvent(organizer, {
+    roomVersionId: EVENT_ROOM_VERSION,
+    title,
+    maxSimultaneousSessions: 1,
+    groupingMode: "free",
+    requireConfirmation: false,
+    expiryRules: [],
+    playersPlanned: 10,
+  });
+  const { event: withCheckout } = await events.startCheckout(organizer, event.id, CHECKOUT_URLS);
+  return {
+    eventId: event.id,
+    purchaseId: withCheckout.config.payment.purchaseId!,
+    sessionId: withCheckout.config.payment.checkoutRef!,
+    amountTotal: withCheckout.pricing.amountDueCents,
+  };
+}
+
 describe("POST /api/stripe/webhook", () => {
   it("400 sin cabecera Stripe-Signature", async () => {
     const s = setup();
@@ -250,7 +296,7 @@ describe("POST /api/stripe/webhook", () => {
     );
   });
 
-  it("checkout.session.completed (room) liquida la compra, transfiere el reparto y encola el email de confirmación", async () => {
+  it("checkout.session.completed (room) liquida la compra y encola el email de confirmación, SIN transferir (B-9: la Transfer es del worker)", async () => {
     const { store, post, confirmationJobs } = setup();
     const purchase = await store.insertPendingPurchase({
       id: "30000000-0000-4000-8000-000000000001",
@@ -265,7 +311,48 @@ describe("POST /api/stripe/webhook", () => {
     const settled = await store.findPurchase(purchase.id);
     expect(settled?.status).toBe("succeeded");
     expect(settled?.platformFeeCents).toBe(90);
+    expect(settled?.transferRef).toBeNull();
     expect(confirmationJobs).toEqual([{ kind: "room", purchaseId: purchase.id }]);
+  });
+
+  it("checkout.session.completed sin payment_status: paid no liquida nada (B-12, p. ej. SEPA pendiente)", async () => {
+    const { store, post, confirmationJobs } = setup();
+    const purchase = await store.insertPendingPurchase({
+      id: "30000000-0000-4000-8000-000000000010",
+      userId: buyer.userId,
+      roomVersionId: VERSION,
+      amountCents: 299,
+      currency: "EUR",
+      paymentRef: "cs_test_10",
+    });
+    const res = await post(
+      checkoutCompleted(
+        "evt_10",
+        { purchaseType: "room", purchaseId: purchase.id },
+        "pi_10",
+        { paymentStatus: "unpaid" },
+      ),
+    );
+    expect(res.status).toBe(200);
+    expect((await store.findPurchase(purchase.id))?.status).toBe("pending");
+    expect(confirmationJobs).toEqual([]);
+  });
+
+  it("checkout.session.async_payment_succeeded liquida como completed (B-12)", async () => {
+    const { store, post } = setup();
+    const purchase = await store.insertPendingPurchase({
+      id: "30000000-0000-4000-8000-000000000011",
+      userId: buyer.userId,
+      roomVersionId: VERSION,
+      amountCents: 299,
+      currency: "EUR",
+      paymentRef: "cs_test_11",
+    });
+    const event = checkoutCompleted("evt_11", { purchaseType: "room", purchaseId: purchase.id }, "pi_11");
+    event.type = "checkout.session.async_payment_succeeded";
+    const res = await post(event);
+    expect(res.status).toBe(200);
+    expect((await store.findPurchase(purchase.id))?.status).toBe("succeeded");
   });
 
   it("es idempotente: un evt.id repetido no reprocesa", async () => {
@@ -302,7 +389,7 @@ describe("POST /api/stripe/webhook", () => {
     expect((await store.findPurchase(purchase.id))?.status).toBe("failed");
   });
 
-  it("charge.refunded (room) marca la compra como refunded", async () => {
+  it("charge.refunded (room) marca la compra como refunded si el reembolso es total", async () => {
     const { store, post } = setup();
     const purchase = await store.insertPendingPurchase({
       id: "30000000-0000-4000-8000-000000000004",
@@ -313,12 +400,28 @@ describe("POST /api/stripe/webhook", () => {
       paymentRef: "cs_test_4",
     });
     await post(checkoutCompleted("evt_4a", { purchaseType: "room", purchaseId: purchase.id }, "pi_4"));
-    const res = await post(chargeRefunded("evt_4b", "pi_4"));
+    const res = await post(chargeRefunded("evt_4b", "pi_4", { amount: 299, amountRefunded: 299 }));
     expect(res.status).toBe(200);
     expect((await store.findPurchase(purchase.id))?.status).toBe("refunded");
   });
 
-  it("checkout.session.completed (room_license) crea el fork, transfiere el 70% al creador de origen y encola el email de confirmación", async () => {
+  it("charge.refunded (room) parcial NO marca refunded (B-5)", async () => {
+    const { store, post } = setup();
+    const purchase = await store.insertPendingPurchase({
+      id: "30000000-0000-4000-8000-000000000012",
+      userId: buyer.userId,
+      roomVersionId: VERSION,
+      amountCents: 299,
+      currency: "EUR",
+      paymentRef: "cs_test_12",
+    });
+    await post(checkoutCompleted("evt_12a", { purchaseType: "room", purchaseId: purchase.id }, "pi_12"));
+    const res = await post(chargeRefunded("evt_12b", "pi_12", { amount: 299, amountRefunded: 100 }));
+    expect(res.status).toBe(200);
+    expect((await store.findPurchase(purchase.id))?.status).toBe("succeeded");
+  });
+
+  it("checkout.session.completed (room_license) crea el fork y encola el email de confirmación, SIN transferir (B-9)", async () => {
     const { licenseStore, post, confirmationJobs } = setup();
     const purchase = await licenseStore.insertPendingPurchase({
       id: "30000000-0000-4000-8000-000000000005",
@@ -337,7 +440,7 @@ describe("POST /api/stripe/webhook", () => {
     const settled = await licenseStore.findPurchase(purchase.id);
     expect(settled?.status).toBe("succeeded");
     expect(settled?.resultingRoomId).toBeTruthy();
-    expect(settled?.transferRef).toBe("fake_tr_1");
+    expect(settled?.transferRef).toBeNull();
     expect(confirmationJobs).toEqual([{ kind: "room_license", purchaseId: purchase.id }]);
   });
 
@@ -360,51 +463,73 @@ describe("POST /api/stripe/webhook", () => {
     expect((await licenseStore.findPurchase(purchase.id))?.status).toBe("failed");
   });
 
-  it("checkout.session.completed (event_credits) marca el evento como pagado, lo activa y encola el email de confirmación", async () => {
+  it("checkout.session.completed (event_credits) marca el pago como pagado, SIN activar (B-2), y encola el email", async () => {
     const { eventStore, events, post, confirmationJobs } = setup();
-    const event = await events.createEvent(
-      { userId: "otro-organizador", organizationId: null, role: "member" },
-      {
-        roomVersionId: EVENT_ROOM_VERSION,
-        title: "Jornada escolar",
-        maxSimultaneousSessions: 1,
-        groupingMode: "free",
-        requireConfirmation: false,
-        expiryRules: [],
-        playersPlanned: 10,
-      },
-    );
-    expect(event.status).toBe("draft");
+    const { eventId, purchaseId, sessionId, amountTotal } = await openEventCheckout(events);
     const res = await post(
-      checkoutCompleted("evt_7", { purchaseType: "event_credits", eventId: event.id }, "pi_7"),
+      checkoutCompleted(
+        "evt_7",
+        { purchaseType: "event_credits", purchaseId, eventId },
+        "pi_7",
+        { sessionId, amountTotal },
+      ),
     );
     expect(res.status).toBe(200);
-    const settled = await eventStore.findEvent(event.id);
-    expect(settled?.status).toBe("active");
+    const settled = await eventStore.findEvent(eventId);
+    // B-2: el webhook YA NO activa el evento, solo marca el pago.
+    expect(settled?.status).toBe("draft");
     expect(settled?.config.payment.status).toBe("paid");
-    expect(confirmationJobs).toEqual([{ kind: "event_credits", eventId: event.id }]);
+    expect(confirmationJobs).toEqual([{ kind: "event_credits", eventId }]);
   });
 
-  it("payment_intent.payment_failed (event_credits) libera el checkout para reintentar", async () => {
-    const { eventStore, events, post } = setup();
-    const event = await events.createEvent(
-      { userId: "otro-organizador", organizationId: null, role: "member" },
-      {
-        roomVersionId: EVENT_ROOM_VERSION,
-        title: "Jornada escolar 2",
-        maxSimultaneousSessions: 1,
-        groupingMode: "free",
-        requireConfirmation: false,
-        expiryRules: [],
-        playersPlanned: 10,
-      },
-    );
-    await events.startCheckout({ userId: "otro-organizador", organizationId: null, role: "member" }, event.id);
+  it("checkout.session.completed (event_credits) con importe distinto del congelado NO activa nada (B-1)", async () => {
+    const { eventStore, events, post, confirmationJobs } = setup();
+    const { eventId, purchaseId, sessionId } = await openEventCheckout(events);
     const res = await post(
-      paymentFailed("evt_8", { purchaseType: "event_credits", eventId: event.id }),
+      checkoutCompleted(
+        "evt_7b",
+        { purchaseType: "event_credits", purchaseId, eventId },
+        "pi_7b",
+        { sessionId, amountTotal: 1 },
+      ),
     );
     expect(res.status).toBe(200);
-    const settled = await eventStore.findEvent(event.id);
+    const settled = await eventStore.findEvent(eventId);
+    expect(settled?.config.payment.status).toBe("pending");
+    expect(confirmationJobs).toEqual([]);
+  });
+
+  it("payment_intent.payment_failed (event_credits) YA NO libera el checkout (B-1)", async () => {
+    const { eventStore, events, post } = setup();
+    const { eventId, sessionId } = await openEventCheckout(events, "Jornada escolar 2");
+    const res = await post(paymentFailed("evt_8", { purchaseType: "event_credits", eventId }));
+    expect(res.status).toBe(200);
+    const settled = await eventStore.findEvent(eventId);
+    expect(settled?.config.payment.checkoutRef).toBe(sessionId);
+  });
+
+  it("checkout.session.expired (event_credits) libera el checkout para reintentar", async () => {
+    const { eventStore, events, post } = setup();
+    const { eventId, sessionId } = await openEventCheckout(events, "Jornada escolar 3");
+    const res = await post(checkoutExpired("evt_13", { purchaseType: "event_credits", eventId }, sessionId));
+    expect(res.status).toBe(200);
+    const settled = await eventStore.findEvent(eventId);
     expect(settled?.config.payment.checkoutRef).toBeNull();
+  });
+
+  it("charge.refunded (event_credits) tras pagar bloquea activate (B-5)", async () => {
+    const { events, post } = setup();
+    const { eventId, purchaseId, sessionId, amountTotal } = await openEventCheckout(events, "Jornada escolar 4");
+    await post(
+      checkoutCompleted(
+        "evt_14a",
+        { purchaseType: "event_credits", purchaseId, eventId },
+        "pi_14",
+        { sessionId, amountTotal },
+      ),
+    );
+    const res = await post(chargeRefunded("evt_14b", "pi_14", { amount: amountTotal, amountRefunded: amountTotal }));
+    expect(res.status).toBe(200);
+    await expect(events.activate(organizer, eventId)).rejects.toMatchObject({ code: "PAYMENT_REQUIRED" });
   });
 });

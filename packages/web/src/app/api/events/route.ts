@@ -14,5 +14,7 @@ export function POST(request: Request) {
   return createEventHandlers({
     events: getEventService(),
     resolveActor: resolveActorFromRequest,
+    // Sin checkout en este endpoint: nunca se invoca, pero el tipo lo exige.
+    buildUrls: () => ({ successUrl: "", cancelUrl: "" }),
   }).createEvent(request);
 }

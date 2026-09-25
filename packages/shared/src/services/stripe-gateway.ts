@@ -53,14 +53,19 @@ export function createStripePaymentGateway(stripe: Stripe): PaymentGateway {
             quantity: 1,
           },
         ],
-        metadata: { purchaseType: "event_credits", eventId: input.eventId, organizerId: input.organizerId },
-        // `eventId` también en el PaymentIntent: `payment_intent.payment_failed`
-        // solo trae el PaymentIntent, no la Session que lo originó.
-        payment_intent_data: {
-          metadata: { purchaseType: "event_credits", eventId: input.eventId },
+        // `purchaseId` (B-1/B-8: el webhook liquida por esta `purchaseId`, no
+        // recalculando desde `eventId`) en la Session Y en el PaymentIntent.
+        metadata: {
+          purchaseType: "event_credits",
+          purchaseId: input.purchaseId,
+          eventId: input.eventId,
+          organizerId: input.organizerId,
         },
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/es/checkout/confirmation?type=event_credits&status=success&eventId=${input.eventId}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/es/checkout/confirmation?type=event_credits&status=cancelled&eventId=${input.eventId}`,
+        payment_intent_data: {
+          metadata: { purchaseType: "event_credits", purchaseId: input.purchaseId, eventId: input.eventId },
+        },
+        success_url: input.successUrl,
+        cancel_url: input.cancelUrl,
       });
       return { checkoutRef: session.id, url: session.url ?? "" };
     },
@@ -79,10 +84,8 @@ export function createStripePaymentGateway(stripe: Stripe): PaymentGateway {
         ],
         metadata: { purchaseType: "room_license", purchaseId: input.purchaseId },
         payment_intent_data: { metadata: { purchaseType: "room_license", purchaseId: input.purchaseId } },
-        // Igual que el resto de checkouts (specs/13 §5): la confirmación se
-        // sirve en `es` (`DEFAULT_LOCALE`), la pasarela no conoce el idioma.
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/es/checkout/confirmation?type=room_license&status=success&roomId=${input.roomId}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/es/checkout/confirmation?type=room_license&status=cancelled&roomId=${input.roomId}`,
+        success_url: input.successUrl,
+        cancel_url: input.cancelUrl,
       });
       return { checkoutRef: session.id, url: session.url ?? "" };
     },
@@ -108,17 +111,49 @@ export function createStripePaymentGateway(stripe: Stripe): PaymentGateway {
       });
       return { checkoutRef: session.id, url: session.url ?? "" };
     },
+    async expireCheckout(checkoutRef) {
+      try {
+        await stripe.checkout.sessions.expire(checkoutRef);
+      } catch (err) {
+        // Ya expirada, completada o cancelada: nada que hacer. Cualquier otro
+        // error (red, credenciales) sí debe propagarse.
+        const code = (err as { code?: string }).code;
+        if (code !== "checkout_session_expired" && code !== "resource_missing") throw err;
+      }
+    },
     async createTransfer(input) {
-      const transfer = await stripe.transfers.create({
-        amount: toAmount(input.amountCents),
-        currency: input.currency.toLowerCase(),
-        destination: input.destinationAccountId,
-        // Financia la transferencia con el cargo original (specs/02 §2): la
-        // plataforma nunca adelanta de su propio balance.
-        source_transaction: await chargeIdForPaymentIntent(stripe, input.paymentIntentId),
-        transfer_group: `purchase_${input.purchaseId}`,
-      });
+      // B-3: idempotencia real, en dos capas. `idempotencyKey` cubre un
+      // reintento de RED del propio SDK/proceso (mismo cuerpo, mismo request);
+      // el `transfers.list({transfer_group})` previo cubre un reintento a más
+      // largo plazo (el proceso murió entre `createTransfer` y persistir
+      // `stripeTransferId`, o el webhook reprocesó el mismo evento) donde la
+      // llamada anterior SÍ llegó a Stripe pero esta ejecución no tiene forma
+      // de saberlo por sí sola.
+      const transferGroup = `purchase_${input.purchaseId}`;
+      const existing = await stripe.transfers.list({ transfer_group: transferGroup, limit: 1 });
+      const previous = existing.data[0];
+      if (previous) return { transferId: previous.id };
+
+      const transfer = await stripe.transfers.create(
+        {
+          amount: toAmount(input.amountCents),
+          currency: input.currency.toLowerCase(),
+          destination: input.destinationAccountId,
+          // Financia la transferencia con el cargo original (specs/02 §2): la
+          // plataforma nunca adelanta de su propio balance.
+          source_transaction: await chargeIdForPaymentIntent(stripe, input.paymentIntentId),
+          transfer_group: transferGroup,
+        },
+        { idempotencyKey: `transfer_${input.purchaseId}` },
+      );
       return { transferId: transfer.id };
+    },
+    async reverseTransfer(input) {
+      await stripe.transfers.createReversal(
+        input.transferId,
+        { amount: toAmount(input.amountCents) },
+        { idempotencyKey: `reversal_${input.transferId}_${input.amountCents}` },
+      );
     },
   };
 }
@@ -168,6 +203,16 @@ export function createStripeConnectGateway(stripe: Stripe): ConnectGateway {
     async createDashboardLink(accountId) {
       const link = await stripe.accounts.createLoginLink(accountId);
       return { url: link.url };
+    },
+    async deleteAccount(accountId) {
+      // B-22: cuenta huérfana descartada tras perder la carrera de
+      // `saveAccountId` (dos `POST /api/me/stripe-connect` concurrentes). Sin
+      // onboarding completo, Stripe siempre permite borrarla; si ya no existe
+      // (doble limpieza) no hay nada que hacer.
+      await stripe.accounts.del(accountId).catch((err: unknown) => {
+        const code = (err as { code?: string }).code;
+        if (code !== "resource_missing") throw err;
+      });
     },
   };
 }

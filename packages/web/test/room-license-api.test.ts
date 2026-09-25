@@ -106,6 +106,10 @@ function setup(
   const handlers = createRoomLicenseHandlers({
     licenses,
     resolveActor: async (req) => actors[req.headers.get("x-test-user") ?? ""] ?? ANONYMOUS_ACTOR,
+    buildUrls: (roomId) => ({
+      successUrl: `https://app.test/success?roomId=${roomId}`,
+      cancelUrl: `https://app.test/cancel?roomId=${roomId}`,
+    }),
   });
   const req = (path: string, init: { user?: string; body?: unknown; raw?: string } = {}) =>
     new Request(`http://localhost/api/rooms/${ORIGIN}/${path}`, {

@@ -18,5 +18,7 @@ export const POST = withRateLimit(
     createRoomLicenseHandlers({
       licenses: getRoomLicenseService(),
       resolveActor: resolveActorFromRequest,
+      // Sin checkout en este endpoint: nunca se invoca, pero el tipo lo exige.
+      buildUrls: () => ({ successUrl: "", cancelUrl: "" }),
     }).postGiftCopy(request, ctx),
 );

@@ -64,6 +64,91 @@ async function enqueueConfirmation(
 }
 
 /**
+ * `checkout.session.completed`/`checkout.session.async_payment_succeeded`
+ * (B-12: solo se liquida con `payment_status === "paid"` — un método de pago
+ * asíncrono como SEPA llega a `completed` con `payment_status: "unpaid"` y
+ * solo pasa a `paid` en el evento `async_payment_succeeded` posterior).
+ */
+async function settleCheckoutSession(deps: StripeWebhookHandlerDeps, session: Stripe.Checkout.Session): Promise<void> {
+  if (session.payment_status !== "paid") return;
+  const { purchases, roomLicenses, events, confirmations } = deps;
+  const paymentIntentId =
+    typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+
+  switch (session.metadata?.purchaseType) {
+    case "room": {
+      const purchaseId = purchaseIdFromMetadata(session.metadata);
+      if (!purchaseId || !paymentIntentId) return;
+      await purchases.confirmRoomCheckout({ purchaseId, paymentIntentId });
+      // Contrato por escrito + renuncia al desistimiento en soporte duradero
+      // (specs/18 §3-4, art. 27 LSSI, art. 103.m LGDCU): un email propio, el
+      // recibo de Stripe no basta.
+      await enqueueConfirmation(confirmations, { kind: "room", purchaseId });
+      return;
+    }
+    case "room_license": {
+      const purchaseId = purchaseIdFromMetadata(session.metadata);
+      if (!purchaseId || !paymentIntentId) return;
+      await roomLicenses.confirmLicensePayment(purchaseId, { paymentRef: paymentIntentId });
+      await enqueueConfirmation(confirmations, { kind: "room_license", purchaseId });
+      return;
+    }
+    case "event_credits": {
+      // B-1/B-8: el webhook liquida por `purchaseId` (la `purchase`
+      // `event_credits` `pending` congelada al abrir el checkout), nunca
+      // recalculando desde `eventId`/`playersPurchased` en este instante.
+      const purchaseId = purchaseIdFromMetadata(session.metadata);
+      const eventId = eventIdFromMetadata(session.metadata);
+      if (!purchaseId || !eventId || !paymentIntentId) return;
+      const result = await events.markPaid({
+        purchaseId,
+        sessionId: session.id,
+        paymentIntentId,
+        amountTotalCents: session.amount_total ?? 0,
+      });
+      // Solo se encola el email la vez que de verdad se liquida: en un replay
+      // (`already_settled`) o un desajuste (`mismatch`, ya registrado por
+      // `events.markPaid`) no hay nada nuevo que confirmar.
+      if (result.outcome === "settled") {
+        await enqueueConfirmation(confirmations, { kind: "event_credits", eventId });
+      }
+      return;
+    }
+    default:
+      return;
+  }
+}
+
+/** `payment_intent.payment_failed`/`checkout.session.async_payment_failed`: `pending → failed` (room/room_license). */
+async function handlePaymentFailure(
+  deps: StripeWebhookHandlerDeps,
+  metadata: Stripe.Metadata | null | undefined,
+): Promise<void> {
+  switch (metadata?.purchaseType) {
+    case "room": {
+      const purchaseId = purchaseIdFromMetadata(metadata);
+      if (purchaseId) await deps.purchases.markCheckoutFailed(purchaseId);
+      return;
+    }
+    case "room_license": {
+      const purchaseId = purchaseIdFromMetadata(metadata);
+      if (purchaseId) await deps.roomLicenses.markCheckoutFailed(purchaseId);
+      return;
+    }
+    case "event_credits":
+      // B-1: a diferencia de `room`/`room_license`, un fallo de cobro de
+      // evento NO libera el checkout — Stripe Checkout deja reintentar con
+      // otra tarjeta en la MISMA Session (el cliente ni sale de la página),
+      // así que el importe congelado sigue protegiendo el precio. Solo
+      // `checkout.session.expired` (o `startCheckout` reabriendo a propósito)
+      // libera el hueco. Ver `EventService.markCheckoutExpired`.
+      return;
+    default:
+      return;
+  }
+}
+
+/**
  * Procesa un evento ya verificado. Cubre los tres `purchaseType`
  * (`room`, `room_license`, `event_credits`); sin pasarela cableada
  * (`getPurchaseService`/`getEventService`/`getRoomLicenseService` con
@@ -71,76 +156,44 @@ async function enqueueConfirmation(
  * recibe un pago real de ellos.
  */
 async function dispatch(deps: StripeWebhookHandlerDeps, event: Stripe.Event): Promise<void> {
-  const { purchases, roomLicenses, events, confirmations } = deps;
   switch (event.type) {
-    case "checkout.session.completed": {
+    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded":
+      await settleCheckoutSession(deps, event.data.object);
+      return;
+    case "checkout.session.async_payment_failed":
+      await handlePaymentFailure(deps, event.data.object.metadata);
+      return;
+    case "checkout.session.expired": {
+      // B-1/B-12: única vía que libera el checkout de un evento (24 h sin
+      // completar, o expirado a propósito por `startCheckout` al reabrir).
       const session = event.data.object;
-      const paymentIntentId =
-        typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
-      switch (session.metadata?.purchaseType) {
-        case "room": {
-          const purchaseId = purchaseIdFromMetadata(session.metadata);
-          if (!purchaseId || !paymentIntentId) return;
-          await purchases.confirmRoomCheckout({ purchaseId, paymentIntentId });
-          // Contrato por escrito + renuncia al desistimiento en soporte duradero
-          // (specs/18 §3-4, art. 27 LSSI, art. 103.m LGDCU): un email propio, el
-          // recibo de Stripe no basta.
-          await enqueueConfirmation(confirmations, { kind: "room", purchaseId });
-          return;
-        }
-        case "room_license": {
-          const purchaseId = purchaseIdFromMetadata(session.metadata);
-          if (!purchaseId || !paymentIntentId) return;
-          await roomLicenses.confirmLicensePayment(purchaseId, { paymentRef: paymentIntentId });
-          await enqueueConfirmation(confirmations, { kind: "room_license", purchaseId });
-          return;
-        }
-        case "event_credits": {
-          const eventId = eventIdFromMetadata(session.metadata);
-          if (!eventId) return;
-          await events.markPaid(eventId);
-          await enqueueConfirmation(confirmations, { kind: "event_credits", eventId });
-          return;
-        }
-        default:
-          return;
-      }
+      if (session.metadata?.purchaseType !== "event_credits") return;
+      const eventId = eventIdFromMetadata(session.metadata);
+      if (!eventId) return;
+      await deps.events.markCheckoutExpired({ eventId, sessionId: session.id });
+      return;
     }
-    case "payment_intent.payment_failed": {
-      const intent = event.data.object;
-      switch (intent.metadata?.purchaseType) {
-        case "room": {
-          const purchaseId = purchaseIdFromMetadata(intent.metadata);
-          if (!purchaseId) return;
-          await purchases.markCheckoutFailed(purchaseId);
-          return;
-        }
-        case "room_license": {
-          const purchaseId = purchaseIdFromMetadata(intent.metadata);
-          if (!purchaseId) return;
-          await roomLicenses.markCheckoutFailed(purchaseId);
-          return;
-        }
-        case "event_credits": {
-          const eventId = eventIdFromMetadata(intent.metadata);
-          if (!eventId) return;
-          await events.markCheckoutFailed(eventId);
-          return;
-        }
-        default:
-          return;
-      }
-    }
+    case "payment_intent.payment_failed":
+      await handlePaymentFailure(deps, event.data.object.metadata);
+      return;
     case "charge.refunded": {
       const charge = event.data.object;
       const paymentIntentId =
         typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
       if (!paymentIntentId) return;
-      // Solo cubre `purchase_type: 'room'` (revoca acceso). Para `room_license`
-      // y `event_credits` el reembolso queda registrado en Stripe pero no
-      // revoca el fork ni bloquea el evento todavía (pendiente de una
-      // iteración posterior, specs/13 §7).
-      await purchases.markRefunded(paymentIntentId);
+      const refund = {
+        paymentIntentId,
+        amountRefundedCents: charge.amount_refunded,
+        chargeAmountCents: charge.amount,
+      };
+      // Se prueba cada tipo de compra por su `paymentIntentId` (único en
+      // Stripe): más simple y más fiable que fiarse de que Stripe copie la
+      // metadata del PaymentIntent al Charge (B-5, reembolsos parciales
+      // registrados sin revocar acceso; total revierte la Transfer si la hubo).
+      if (await deps.purchases.markRefunded(refund)) return;
+      if (await deps.roomLicenses.markRefunded(refund)) return;
+      await deps.events.markRefunded(paymentIntentId);
       return;
     }
     case "account.updated":

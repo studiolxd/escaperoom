@@ -124,25 +124,6 @@ export function createPrismaRoomLicenseStore(prisma: PrismaClient): RoomLicenseS
       });
       return row ? toPurchase(row) : null;
     },
-    async findCreatorAccountForVersion(roomVersionId) {
-      const version = await prisma.roomVersion.findUnique({
-        where: { id: roomVersionId },
-        select: {
-          room_roomVersion_roomIdToroom: {
-            select: { authorId: true, user: { select: { stripeAccountId: true } } },
-          },
-        },
-      });
-      if (!version) return null;
-      const room = version.room_roomVersion_roomIdToroom;
-      return { authorId: room.authorId, stripeAccountId: room.user.stripeAccountId };
-    },
-    async attachTransfer(purchaseId, transferRef) {
-      const row = await prisma.purchase
-        .update({ where: { id: purchaseId }, data: { stripeTransferId: transferRef } })
-        .catch(() => null);
-      return row ? toPurchase(row) : null;
-    },
     async markFailed(purchaseId) {
       const { count } = await prisma.purchase.updateMany({
         where: { id: purchaseId, purchaseType: "room_license", status: "pending" },
@@ -150,6 +131,23 @@ export function createPrismaRoomLicenseStore(prisma: PrismaClient): RoomLicenseS
       });
       if (count === 0) return null;
       const row = await prisma.purchase.findUniqueOrThrow({ where: { id: purchaseId } });
+      return toPurchase(row);
+    },
+    async findPurchaseByPaymentRef(paymentRef) {
+      const row = await prisma.purchase.findFirst({
+        where: { purchaseType: "room_license", stripePaymentIntentId: paymentRef },
+      });
+      return row ? toPurchase(row) : null;
+    },
+    async markRefundedByPaymentRef(paymentRef) {
+      const { count } = await prisma.purchase.updateMany({
+        where: { purchaseType: "room_license", status: "succeeded", stripePaymentIntentId: paymentRef },
+        data: { status: "refunded" },
+      });
+      if (count === 0) return null;
+      const row = await prisma.purchase.findFirstOrThrow({
+        where: { purchaseType: "room_license", stripePaymentIntentId: paymentRef },
+      });
       return toPurchase(row);
     },
     async insertPendingPurchase({ paymentRef, ...purchase }) {

@@ -68,19 +68,6 @@ export function createPrismaPurchaseStore(prisma: PrismaClient): PurchaseStore {
       });
       return row ? toPurchase(row) : null;
     },
-    async findCreatorAccountForVersion(roomVersionId) {
-      const version = await prisma.roomVersion.findUnique({
-        where: { id: roomVersionId },
-        select: {
-          room_roomVersion_roomIdToroom: {
-            select: { authorId: true, user: { select: { stripeAccountId: true } } },
-          },
-        },
-      });
-      if (!version) return null;
-      const room = version.room_roomVersion_roomIdToroom;
-      return { authorId: room.authorId, stripeAccountId: room.user.stripeAccountId };
-    },
     async insertPendingPurchase({ paymentRef, ...purchase }) {
       const row = await prisma.purchase.create({
         data: {
@@ -105,18 +92,14 @@ export function createPrismaPurchaseStore(prisma: PrismaClient): PurchaseStore {
         });
         if (count === 0) return null;
       } catch (err) {
-        // Confirmación duplicada concurrente contra `uxPurchaseStripePi`.
+        // Confirmación duplicada concurrente contra `uxPurchaseStripePi`, o
+        // (B-16) dos checkouts de la misma sala por el mismo usuario
+        // liquidándose a la vez contra `uxPurchaseOwnedRoom`.
         if (isUniqueViolation(err)) return null;
         throw err;
       }
       const row = await prisma.purchase.findUniqueOrThrow({ where: { id: purchaseId } });
       return toPurchase(row);
-    },
-    async attachTransfer(purchaseId, transferRef) {
-      const row = await prisma.purchase
-        .update({ where: { id: purchaseId }, data: { stripeTransferId: transferRef } })
-        .catch(() => null);
-      return row ? toPurchase(row) : null;
     },
     async markFailed(purchaseId) {
       const { count } = await prisma.purchase.updateMany({

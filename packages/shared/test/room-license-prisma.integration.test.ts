@@ -140,7 +140,10 @@ describe.skipIf(!process.env.DATABASE_URL)("licencias sobre Postgres (integraci�
   it("license-checkout: pendiente sin fork; confirmaciones concurrentes → un único fork", async () => {
     const { licenses } = services();
     const before = await prisma.room.count({ where: { forkedFromRoomId: originId } });
-    const result = await licenses.startLicenseCheckout(actor(userIds.compradora), originId);
+    const result = await licenses.startLicenseCheckout(actor(userIds.compradora), originId, {}, {
+      successUrl: "https://app.test/success",
+      cancelUrl: "https://app.test/cancel",
+    });
     if (result.status !== "pending") throw new Error("se esperaba pending");
     expect(await prisma.room.count({ where: { forkedFromRoomId: originId } })).toBe(before);
 

@@ -20,9 +20,11 @@ export function POST(request: Request) {
     // igual que el resto de la superficie REST de compras, la confirmación se
     // sirve siempre en `es` (`DEFAULT_LOCALE`); el selector de idioma de la
     // propia página permite cambiarlo.
-    buildUrls: () => ({
-      successUrl: `${origin}/es/checkout/confirmation?type=room&status=success`,
-      cancelUrl: `${origin}/es/checkout/confirmation?type=room&status=cancelled`,
+    // B-21: `roomId` (para que la confirmación pueda enlazar la sala) y
+    // `purchaseId` (para que pueda consultar el estado real de la compra).
+    buildUrls: ({ purchaseId, roomId }) => ({
+      successUrl: `${origin}/es/checkout/confirmation?type=room&status=success&roomId=${roomId}&purchaseId=${purchaseId}`,
+      cancelUrl: `${origin}/es/checkout/confirmation?type=room&status=cancelled&roomId=${roomId}`,
     }),
   }).postRoomCheckout(request);
 }

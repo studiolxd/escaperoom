@@ -14,6 +14,8 @@ import { consumeGiftCopyRecipientLimit } from "@/server/rate-limit";
 export type RoomLicenseHandlerDeps = {
   licenses: RoomLicenseService;
   resolveActor: (request: Request) => Promise<Actor>;
+  /** URLs de retorno del Checkout, construidas por el adaptador (origen de la petición, B-21). */
+  buildUrls: (roomId: string) => { successUrl: string; cancelUrl: string };
 };
 
 export type RoomRouteContext = { params: Promise<{ roomId: string }> };
@@ -119,6 +121,7 @@ export function createRoomLicenseHandlers(deps: RoomLicenseHandlerDeps) {
           actor,
           roomId,
           await readJson(request),
+          deps.buildUrls(roomId),
         );
         if (result.status === "pending") {
           return Response.json(

@@ -25,6 +25,8 @@ const VERSION_1 = "22222222-2222-4222-8222-222222222221";
 const VERSION_2 = "22222222-2222-4222-8222-222222222222";
 const PRIVATE_ROOM = "11111111-1111-4111-8111-111111111112";
 
+const CHECKOUT_URLS = { successUrl: "https://app.test/success", cancelUrl: "https://app.test/cancel" };
+
 const author: Actor = { userId: "autora", organizationId: null, role: "member" };
 const buyer: Actor = { userId: "compradora", organizationId: null, role: "member" };
 const other: Actor = { userId: "otra", organizationId: null, role: "member" };
@@ -235,7 +237,7 @@ describe("license-checkout", () => {
   it("con precio: compra pendiente + checkout en la pasarela, SIN fork hasta confirmar el pago", async () => {
     const payments = createFakePaymentGateway();
     const t = setup({}, payments);
-    const result = await t.licenses.startLicenseCheckout(buyer, ORIGIN);
+    const result = await t.licenses.startLicenseCheckout(buyer, ORIGIN, {}, CHECKOUT_URLS);
     expect(result.status).toBe("pending");
     if (result.status !== "pending") return;
     expect(result.checkoutUrl).toMatch(/^https:\/\/checkout\.example\.test\//);
@@ -257,6 +259,7 @@ describe("license-checkout", () => {
         title: "La Maldición del Rey Aldric",
         amountCents: 1500,
         currency: "EUR",
+        ...CHECKOUT_URLS,
       },
     ]);
     // Sin pago confirmado no hay fork.
@@ -293,7 +296,7 @@ describe("license-checkout", () => {
 
   it("confirmaciones concurrentes crean un único fork", async () => {
     const t = setup();
-    const result = await t.licenses.startLicenseCheckout(buyer, ORIGIN);
+    const result = await t.licenses.startLicenseCheckout(buyer, ORIGIN, {}, CHECKOUT_URLS);
     if (result.status !== "pending") throw new Error("se esperaba pending");
     const [a, b] = await Promise.all([
       t.licenses.confirmLicensePayment(result.purchase.id, { paymentRef: "pi_1" }),
@@ -354,7 +357,7 @@ describe("license-checkout", () => {
     expect(
       await codeOf(t.licenses.confirmLicensePayment(crypto.randomUUID(), { paymentRef: "pi" })),
     ).toBe("NOT_FOUND");
-    const result = await t.licenses.startLicenseCheckout(buyer, ORIGIN);
+    const result = await t.licenses.startLicenseCheckout(buyer, ORIGIN, {}, CHECKOUT_URLS);
     if (result.status !== "pending") throw new Error("se esperaba pending");
     t.store.purchases[0]!.status = "failed";
     expect(

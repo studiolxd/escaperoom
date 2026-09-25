@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logger } from "@escaperoom/kit/logger";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
 import { isAnonymous, type Actor } from "./actor";
 import type { PaymentGateway } from "./events";
@@ -54,9 +55,6 @@ export type RoomPurchaseRow = {
 
 export type NewRoomPurchase = { userId: string; roomVersionId: string; amountCents: number; currency: string };
 
-/** Cuenta conectada del creador de una versión, para el destino de la `Transfer`. */
-export type PurchaseCreatorAccount = { authorId: string; stripeAccountId: string | null };
-
 /** Puerto de persistencia (ADR-022). */
 export interface PurchaseStore {
   findVersion(versionId: string): Promise<PurchaseVersionRef | null>;
@@ -65,7 +63,6 @@ export interface PurchaseStore {
   findPurchaseByPaymentRef(paymentRef: string): Promise<RoomPurchaseRow | null>;
   /** Compra `succeeded` de este usuario para esa versión (evita comprar dos veces). */
   findOwnedPurchase(userId: string, roomVersionId: string): Promise<RoomPurchaseRow | null>;
-  findCreatorAccountForVersion(roomVersionId: string): Promise<PurchaseCreatorAccount | null>;
   /**
    * Compra `pending` con el id ya fijado y la referencia del checkout abierto
    * (`chkPurchasePaidNeedsStripe` exige referencia si `amountCents > 0`).
@@ -78,8 +75,6 @@ export interface PurchaseStore {
     purchaseId: string,
     payment: { paymentRef: string; platformFeeCents: number; creatorShareCents: number },
   ): Promise<RoomPurchaseRow | null>;
-  /** Adjunta la `Transfer` ya creada; `null` si la compra ya no existe. */
-  attachTransfer(purchaseId: string, transferRef: string): Promise<RoomPurchaseRow | null>;
   /** Escritura condicional `pending → failed`; `null` si ya no estaba `pending`. */
   markFailed(purchaseId: string): Promise<RoomPurchaseRow | null>;
   /** Escritura condicional `succeeded → refunded`; `null` si no había compra `succeeded` con esa referencia. */
@@ -97,6 +92,7 @@ export type PurchaseErrorCode =
   | "VALIDATION_ERROR"
   | "ROOM_VERSION_UNAVAILABLE"
   | "SALE_INDIVIDUAL_DISABLED"
+  | "PURCHASE_OWN_ROOM"
   | "ALREADY_OWNED"
   | "PURCHASE_NOT_PENDING"
   | "PAYMENT_GATEWAY_UNAVAILABLE";
@@ -173,7 +169,17 @@ export function createPurchaseService(deps: {
     async startRoomCheckout(
       actor: Actor,
       input: unknown,
-      urls: { successUrl: string; cancelUrl: string },
+      /**
+       * B-21: la URL de retorno lleva `roomId` (para que
+       * `checkout/confirmation` pueda enlazar la sala) y `purchaseId`. Ninguno
+       * de los dos se conoce en el adaptador REST antes de resolver la sala,
+       * así que el adaptador solo aporta el origen — el servicio construye la
+       * URL final una vez los conoce.
+       */
+      buildUrls: (ctx: { purchaseId: string; roomId: string }) => {
+        successUrl: string;
+        cancelUrl: string;
+      },
     ): Promise<RoomCheckoutResult> {
       requireUser(actor);
       const data = parseOrThrow(RoomCheckoutInput, input);
@@ -185,6 +191,11 @@ export function createPurchaseService(deps: {
       }
       if (!room.saleIndividual || room.priceCents === null) {
         throw new PurchaseError("SALE_INDIVIDUAL_DISABLED", "Esta sala no está a la venta individual");
+      }
+      // B-16: el autor no puede comprarse su propia sala (las licencias ya
+      // tenían este guard, `LICENSE_OWN_ROOM`; la venta individual no).
+      if (room.authorId === actor.userId) {
+        throw new PurchaseError("PURCHASE_OWN_ROOM", "No puede comprar su propia sala");
       }
       const owned = await store.findOwnedPurchase(actor.userId, version.id);
       if (owned) throw new PurchaseError("ALREADY_OWNED", "Ya ha comprado esta sala");
@@ -207,7 +218,7 @@ export function createPurchaseService(deps: {
         title: room.title,
         amountCents: room.priceCents,
         currency: room.currency,
-        ...urls,
+        ...buildUrls({ purchaseId, roomId: room.id }),
       });
       const purchase = await store.insertPendingPurchase({
         id: purchaseId,
@@ -233,10 +244,17 @@ export function createPurchaseService(deps: {
 
     /**
      * Pago confirmado (`checkout.session.completed`, `purchase_type: 'room'`):
-     * liquida la compra (reparto 70/30 resuelto aquí, specs/13 §5) y transfiere
-     * el reparto al creador si ya completó el onboarding de Connect.
-     * Interna, sin actor — la invoca el webhook de Stripe tras verificar la
-     * firma. Idempotente: una segunda confirmación no repite la transferencia.
+     * liquida la compra (reparto 70/30 resuelto aquí, specs/13 §5). Interna,
+     * sin actor — la invoca el webhook de Stripe tras verificar la firma.
+     * Idempotente.
+     *
+     * La `Transfer` del reparto al creador YA NO se intenta aquí (B-9,
+     * auditoría 2026-09-24): dependía de que la cuenta Connect del creador
+     * tuviera el onboarding completo, y un `createTransfer` que lanzaba dejaba
+     * este método reventando dentro del webhook de Stripe (que lo reintenta
+     * durante días) sin que la compra, ya `succeeded`, volviera a intentarse.
+     * `@escaperoom/worker` la resuelve por su cuenta con reintentos
+     * (`creator-payouts.ts`), fuera del camino crítico del webhook.
      */
     async confirmRoomCheckout(input: {
       purchaseId: string;
@@ -246,47 +264,25 @@ export function createPurchaseService(deps: {
         ? await store.findPurchase(input.purchaseId)
         : null;
       if (!purchase) throw new PurchaseError("NOT_FOUND", "Compra no encontrada");
-
-      let settled = purchase;
-      if (purchase.status === "pending") {
-        const { platformFeeCents, creatorShareCents } = splitRoomAmount(purchase.amountCents);
-        const result = await store.settlePurchase(purchase.id, {
-          paymentRef: input.paymentIntentId,
-          platformFeeCents,
-          creatorShareCents,
-        });
-        if (result) {
-          settled = result;
-        } else {
-          // Confirmación concurrente: otra ganó la escritura condicional.
-          const current = await store.findPurchase(purchase.id);
-          if (!current || current.status !== "succeeded") {
-            throw new PurchaseError("PURCHASE_NOT_PENDING", "La compra no está pendiente de pago");
-          }
-          settled = current;
-        }
-      } else if (purchase.status !== "succeeded") {
+      if (purchase.status === "succeeded") return purchase;
+      if (purchase.status !== "pending") {
         throw new PurchaseError("PURCHASE_NOT_PENDING", "La compra no está pendiente de pago");
       }
 
-      // Reparto ya transferido (replay del webhook): nada más que hacer.
-      if (settled.transferRef || !deps.payments) return settled;
-
-      const creator = await store.findCreatorAccountForVersion(settled.roomVersionId);
-      // Sin cuenta conectada (el creador no ha hecho el onboarding todavía): la
-      // compra queda `succeeded` sin transferir; el reparto pendiente se
-      // resuelve en una iteración posterior (reintento manual/job).
-      if (!creator?.stripeAccountId || (settled.creatorShareCents ?? 0) <= 0) return settled;
-
-      const transfer = await deps.payments.createTransfer({
-        purchaseId: settled.id,
-        amountCents: settled.creatorShareCents ?? 0,
-        currency: settled.currency,
-        destinationAccountId: creator.stripeAccountId,
-        paymentIntentId: input.paymentIntentId,
+      const { platformFeeCents, creatorShareCents } = splitRoomAmount(purchase.amountCents);
+      const result = await store.settlePurchase(purchase.id, {
+        paymentRef: input.paymentIntentId,
+        platformFeeCents,
+        creatorShareCents,
       });
-      const withTransfer = await store.attachTransfer(settled.id, transfer.transferId);
-      return withTransfer ?? settled;
+      if (result) return result;
+
+      // Confirmación concurrente: otra ganó la escritura condicional.
+      const current = await store.findPurchase(purchase.id);
+      if (!current || current.status !== "succeeded") {
+        throw new PurchaseError("PURCHASE_NOT_PENDING", "La compra no está pendiente de pago");
+      }
+      return current;
     },
 
     /** `payment_intent.payment_failed`: `pending → failed`. Interna, invocada por el webhook. */
@@ -294,9 +290,50 @@ export function createPurchaseService(deps: {
       return store.markFailed(purchaseId);
     },
 
-    /** `charge.refunded`: `succeeded → refunded`. Interna, invocada por el webhook. */
-    async markRefunded(paymentIntentId: string): Promise<RoomPurchaseRow | null> {
-      return store.markRefundedByPaymentRef(paymentIntentId);
+    /**
+     * `charge.refunded`: `succeeded → refunded` SOLO si el reembolso es total
+     * (B-5); uno parcial se registra (log) pero no revoca el acceso. Si ya se
+     * había transferido el reparto al creador, se revierte proporcionalmente
+     * al importe reembolsado — total o parcial — para que la plataforma no
+     * cargue sola con el reembolso. Interna, invocada por el webhook.
+     */
+    async markRefunded(input: {
+      paymentIntentId: string;
+      amountRefundedCents: number;
+      chargeAmountCents: number;
+    }): Promise<RoomPurchaseRow | null> {
+      const purchase = await store.findPurchaseByPaymentRef(input.paymentIntentId);
+      if (!purchase || purchase.status !== "succeeded") return null;
+
+      const isFull = input.amountRefundedCents >= input.chargeAmountCents && input.chargeAmountCents > 0;
+      if (
+        deps.payments &&
+        purchase.transferRef &&
+        (purchase.creatorShareCents ?? 0) > 0 &&
+        input.chargeAmountCents > 0
+      ) {
+        const proportionalCents = Math.round(
+          (purchase.creatorShareCents ?? 0) * (input.amountRefundedCents / input.chargeAmountCents),
+        );
+        if (proportionalCents > 0) {
+          await deps.payments.reverseTransfer({
+            transferId: purchase.transferRef,
+            amountCents: proportionalCents,
+          });
+        }
+      }
+      if (!isFull) {
+        logger.warn(
+          {
+            purchaseId: purchase.id,
+            amountRefundedCents: input.amountRefundedCents,
+            chargeAmountCents: input.chargeAmountCents,
+          },
+          "purchases: reembolso parcial registrado; la compra sigue succeeded y el acceso no se revoca",
+        );
+        return purchase;
+      }
+      return store.markRefundedByPaymentRef(input.paymentIntentId);
     },
   };
 }
@@ -309,13 +346,10 @@ export function createInMemoryPurchaseStore(opts: {
   rooms?: PurchaseRoomRef[];
   versions?: PurchaseVersionRef[];
   adminIds?: Iterable<string>;
-  /** `user.stripeAccountId` de cada autor, por `authorId` (por defecto, sin cuenta). */
-  connectedAccounts?: Record<string, string>;
 }): PurchaseStore & { rows: RoomPurchaseRow[] } {
   const rooms = new Map((opts.rooms ?? []).map((r) => [r.id, { ...r }]));
   const versions = new Map((opts.versions ?? []).map((v) => [v.id, { ...v }]));
   const admins = new Set(opts.adminIds ?? []);
-  const connectedAccounts = new Map(Object.entries(opts.connectedAccounts ?? {}));
   const rows: RoomPurchaseRow[] = [];
   let clock = Date.UTC(2026, 0, 1);
   const copy = <T>(v: T): T => structuredClone(v);
@@ -344,13 +378,6 @@ export function createInMemoryPurchaseStore(opts: {
       );
       return found ? copy(found) : null;
     },
-    async findCreatorAccountForVersion(roomVersionId) {
-      const version = versions.get(roomVersionId);
-      if (!version) return null;
-      const room = rooms.get(version.roomId);
-      if (!room) return null;
-      return { authorId: room.authorId, stripeAccountId: connectedAccounts.get(room.authorId) ?? null };
-    },
     async insertPendingPurchase(purchase) {
       if (purchase.amountCents > 0 && !purchase.paymentRef) {
         throw new Error("CHECK chkPurchasePaidNeedsStripe violado");
@@ -374,12 +401,6 @@ export function createInMemoryPurchaseStore(opts: {
       row.paymentRef = payment.paymentRef;
       row.platformFeeCents = payment.platformFeeCents;
       row.creatorShareCents = payment.creatorShareCents;
-      return copy(row);
-    },
-    async attachTransfer(purchaseId, transferRef) {
-      const row = rows.find((p) => p.id === purchaseId);
-      if (!row) return null;
-      row.transferRef = transferRef;
       return copy(row);
     },
     async markFailed(purchaseId) {

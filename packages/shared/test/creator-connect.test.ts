@@ -70,4 +70,36 @@ describe("creator-connect", () => {
     const service = createCreatorConnectService({ store, connect: createFakeConnectGateway() });
     await expect(service.startOnboarding(creator, urls)).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
+
+  it("B-22: dos onboardings concurrentes no dejan una cuenta Stripe huérfana", async () => {
+    const store = createInMemoryCreatorConnectStore([
+      { id: creator.userId, email: "creadora@example.test" },
+    ]);
+    const connect = createFakeConnectGateway();
+    const service = createCreatorConnectService({ store, connect });
+
+    // Simula la carrera: entre `createExpressAccount` y `saveAccountId`, otra
+    // petición concurrente ya ganó y guardó SU cuenta.
+    const originalSave = store.saveAccountId.bind(store);
+    let firstCall = true;
+    store.saveAccountId = async (userId, accountId) => {
+      if (firstCall) {
+        firstCall = false;
+        // La petición concurrente ganadora también pasó por `createExpressAccount`.
+        connect.accounts.set("fake_acct_winner", "pending");
+        await originalSave(userId, "fake_acct_winner");
+        return false;
+      }
+      return originalSave(userId, accountId);
+    };
+
+    const { url } = await service.startOnboarding(creator, urls);
+    const row = await store.findUser(creator.userId);
+    // La cuenta ganadora es la que queda en `user.stripeAccountId`...
+    expect(row?.stripeAccountId).toBe("fake_acct_winner");
+    expect(url).toContain("fake_acct_winner");
+    // ...y la que se creó de más (y perdió la carrera) se descarta en Stripe.
+    expect(connect.accounts.has("fake_acct_1")).toBe(false);
+    expect(connect.accounts.has("fake_acct_winner")).toBe(true);
+  });
 });
