@@ -79,7 +79,11 @@ export function createPrismaUserDataRightsStore(
       ] = await Promise.all([
         prisma.member.findMany({
           where: { userId },
-          select: { organizationId: true, role: true, organization: { select: { name: true, slug: true } } },
+          select: {
+            organizationId: true,
+            role: true,
+            organization: { select: { name: true, slug: true } },
+          },
         }),
         prisma.creditAccount.findFirst({ where: { userId }, select: { balanceCredits: true } }),
         prisma.room.findMany({
@@ -158,7 +162,9 @@ export function createPrismaUserDataRightsStore(
         eventsOrganized: events,
         reviews: reviews.map((r) => ({
           roomId: r.roomId,
-          rating: r.rating,
+          // Escala doblada en BD (2–10): se expone en la escala de 1–5 con
+          // medios puntos que ve el usuario.
+          rating: r.rating / 2,
           text: r.text,
           createdAt: r.createdAt,
           updatedAt: r.updatedAt,
@@ -182,7 +188,12 @@ export function createPrismaUserDataRightsStore(
         select: { organizationId: true, role: true },
       });
       const ownedOrgIds = memberships
-        .filter((m) => m.role.split(",").map((r) => r.trim()).includes("owner"))
+        .filter((m) =>
+          m.role
+            .split(",")
+            .map((r) => r.trim())
+            .includes("owner"),
+        )
         .map((m) => m.organizationId);
       if (ownedOrgIds.length > 0) {
         const counts = await prisma.member.groupBy({
@@ -270,7 +281,10 @@ export function createPrismaUserDataRightsStore(
         prisma.member.deleteMany({ where: { userId } }),
         prisma.invitation.deleteMany({ where: { email: user.email } }),
         prisma.verification.deleteMany({
-          where: { identifier: { startsWith: MCP_OAUTH_IDENTIFIER_PREFIX }, id: { in: mcpOauthRows.map((r) => r.id) } },
+          where: {
+            identifier: { startsWith: MCP_OAUTH_IDENTIFIER_PREFIX },
+            id: { in: mcpOauthRows.map((r) => r.id) },
+          },
         }),
         // Magic links vigentes emitidos a su email (`identifier` es el token,
         // `value` es `{email, name}`, ver el plugin `magic-link` de Better
