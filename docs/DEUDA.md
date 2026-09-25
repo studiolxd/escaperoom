@@ -17,26 +17,37 @@ Tareas pendientes que no bloquean pero hay que resolver.
       esta ruta. Sin contenido de autor real que proteger, el token firmado
       propuesto en la redacción original de esta entrada no aportaba nada
       sobre `isDevFallbackAllowed()`.
-- [ ] **Mínimo y máximo de jugadores por sala, coherentes con sus pruebas.**
-      - **Configuración:** la sala declara mínimo y máximo de jugadores
-        (`meta.players { min, max }` ya existe en el formato, techo 8); comprobar
-        que el editor permite fijar ambos de forma clara.
-      - **Filtro del catálogo:** hoy es un único selector "N jugadores" (salas
-        con `min ≤ N ≤ max`, opciones 1–6 aunque el techo es 8). Cambiarlo para
-        filtrar por mínimo y máximo de jugadores y ajustar las opciones al techo
-        real.
-      - **Aviso al poner una prueba:** si una prueba necesita varios jugadores
-        (p. ej. placas simultáneas con 2 o más placas, pista dividida entre
-        varios puntos de vista) y la sala admite menos jugadores de los que
-        exige esa prueba (marcada para 1 jugador y la prueba es de 2; prueba de
-        3 o más y la sala baja de ese número), el editor debe avisar en el
-        momento de colocarla, para que el creador añada un camino alternativo
-        (objeto-puente u otra forma de resolverla). Hoy el validador solo cubre
-        el caso de 1 jugador (`solo_bridge_missing`) y solo al validar.
-      - **Aviso al revés:** si en la configuración de la sala se baja el mínimo
-        (o el máximo) por debajo de lo que exigen las pruebas ya colocadas, el
-        editor debe avisar indicando qué pruebas quedan sin camino para ese
-        número de jugadores.
+- [x] **Mínimo y máximo de jugadores por sala, coherentes con sus pruebas.**
+      Resuelto (PR de "mínimo y máximo de jugadores"):
+      - **Configuración:** el editor tiene un botón "Jugadores" en la cabecera
+        (`RoomPlayersDialog`) que abre un diálogo shadcn (`Dialog` + `Input`)
+        para fijar `meta.players.min/max` (1–8, `MAX_PLAYERS_PER_ROOM_CEILING`),
+        con validación de rango y de `min ≤ max` antes de escribir
+        (`setRoomPlayers`, `packages/editor/src/room-doc/commands.ts`).
+      - **Filtro del catálogo:** dos selectores "de X a Y" (1–8) en vez del
+        único "N jugadores" (1–6). `CatalogListFilter` pasa a
+        `playersMin`/`playersMax` con semántica de solape de rangos; SQL
+        (`catalog-listing.ts`), parseo (`catalog.ts`) y caché
+        (`CATALOG_CACHE_VERSION` a `v3`) actualizados. Compatibilidad con
+        `?players=N` (equivale a `minPlayers=N&maxPlayers=N`) en REST, tRPC y
+        la página del catálogo.
+      - **Aviso al colocar una prueba:** `cooperativeRequirement` generaliza
+        el requisito de una mecánica cooperativa a un número N de jugadores
+        (antes solo el mensaje); `checkCooperativeBridges` (antes
+        `checkSoloBridges`, limitado a 1 jugador) avisa para cualquier tamaño
+        de grupo que la sala admite por debajo de N. El validador en vivo del
+        editor (debounce de `RoomValidator`) ya recalcula esto en cada cambio
+        del doc, así que el aviso aparece al colocar la prueba sin cableado
+        adicional en el inspector.
+      - **Aviso al revés:** por el mismo motivo, bajar `players.min`/`max` por
+        debajo de lo que exige una prueba ya colocada dispara el mismo aviso
+        generalizado en la siguiente pasada del validador (sin lógica nueva:
+        `checkCooperativeBridges` ya recibe todo `playerCounts` derivado del
+        rango vigente, no solo `1`).
+      Tests: `packages/shared/test/solo-mode.test.ts` (N genérico),
+      `packages/shared/test/catalog-filters.test.ts` (rango + compatibilidad),
+      `packages/editor/test/room-doc-players.test.ts` (aviso al revés) y
+      `packages/web/test/components/room-players-dialog.test.tsx` (UI).
 - [ ] **Claves reales de analítica antes de desplegar en producción.** En
       desarrollo se activan Plausible y Google Analytics con valores de prueba
       (para ver el banner de consentimiento de cookies). Antes del primer

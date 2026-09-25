@@ -474,40 +474,67 @@ export function analyzeDoubleUse(index: RoomIndex): DoubleUseItem[] {
 // Modo solitario (objetos-puente)
 // ---------------------------------------------------------------------------
 
+/** Nº de jugadores que exige una mecánica cooperativa y cómo describirlo. */
+export interface CooperativeRequirement {
+  /** Jugadores simultáneos que exige la mecánica (p. ej. nº de placas). */
+  count: number;
+  /** Descripción de la exigencia para el mensaje del aviso. */
+  description: string;
+}
+
 /**
- * Qué exige más de un jugador en una mecánica cooperativa, o `null` si el
+ * Qué exige de jugadores simultáneos una mecánica cooperativa, o `null` si el
  * puzzle no es cooperativo. Coherente con los oráculos: unas placas con una
  * sola placa las pisa un jugador; una pista dividida siempre pide el puente en
- * solitario (`isSplitClueSolvableForGroup`).
+ * solitario (`isSplitClueSolvableForGroup`), como mínimo entre 2 puntos de
+ * vista aunque el autor solo haya declarado uno.
  */
-export function cooperativeRequirement(puzzle: PuzzleDefinition): string | null {
+export function cooperativeRequirement(puzzle: PuzzleDefinition): CooperativeRequirement | null {
   switch (puzzle.type) {
     case "simultaneous_plates":
-      return puzzle.plates.length >= 2 ? `pisar ${puzzle.plates.length} placas a la vez` : null;
-    case "split_clue":
-      return `ver la pista repartida entre ${puzzle.viewpoints.length} punto(s) de vista`;
+      return puzzle.plates.length >= 2
+        ? { count: puzzle.plates.length, description: `pisar ${puzzle.plates.length} placas a la vez` }
+        : null;
+    case "split_clue": {
+      const count = Math.max(2, puzzle.viewpoints.length);
+      return { count, description: `ver la pista repartida entre ${count} punto(s) de vista` };
+    }
     default:
       return null;
   }
 }
 
+/** "1 jugador" / "2, 3 jugadores". */
+function formatPlayerCounts(counts: readonly number[]): string {
+  const label = counts.length === 1 && counts[0] === 1 ? "1 jugador" : `${counts.join(", ")} jugadores`;
+  return label;
+}
+
 /**
- * Mecánicas cooperativas sin `soloBridgeItemId` en una sala que se evalúa con
- * 1 jugador (`players.min = 1`). Es un error independiente de la búsqueda: el
- * puzzle no se puede resolver en solitario aunque la victoria llegue por otro
- * camino o el puzzle aún no sea alcanzable.
+ * Mecánicas cooperativas sin `soloBridgeItemId` en una sala que admite algún
+ * tamaño de grupo por debajo de lo que exigen (p. ej. `players.min = 1` con
+ * una prueba que exige 2, o `players.min = 2` con una prueba que exige 3). Es
+ * un error independiente de la búsqueda: el puzzle no se puede resolver con
+ * ese número de jugadores aunque la victoria llegue por otro camino o el
+ * puzzle aún no sea alcanzable. Generaliza el antiguo aviso de "modo
+ * solitario" (limitado a 1 jugador) a cualquier N.
  */
-export function checkSoloBridges(pkg: RoomPackage): ValidationIssue[] {
+export function checkCooperativeBridges(
+  pkg: RoomPackage,
+  playerCounts: readonly number[],
+): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   for (const puzzle of pkg.puzzles) {
     const requirement = cooperativeRequirement(puzzle);
     if (requirement === null) continue;
     if ("soloBridgeItemId" in puzzle && puzzle.soloBridgeItemId !== undefined) continue;
+    const affected = playerCounts.filter((n) => n < requirement.count);
+    if (affected.length === 0) continue;
     issues.push({
       code: "solo_bridge_missing",
-      message: `«${puzzle.id}» (${puzzle.type}) es cooperativo: exige ${requirement} y no declara soloBridgeItemId, así que no se puede resolver con 1 jugador. Añade un objeto-puente (soloBridgeItemId) o sube players.min a 2`,
+      message: `«${puzzle.id}» (${puzzle.type}) es cooperativo: exige ${requirement.description} y no declara soloBridgeItemId, así que no se puede resolver con ${formatPlayerCounts(affected)}. Añade un objeto-puente (soloBridgeItemId) o sube players.min a ${requirement.count}`,
       ids: [puzzle.id],
-      playerCounts: [1],
+      playerCounts: affected,
     });
   }
   return issues;

@@ -15,6 +15,8 @@ const listRoomsInput = z
       .optional(),
     minPrice: intLike,
     maxPrice: intLike,
+    minPlayers: intLike,
+    maxPlayers: intLike,
     players: intLike,
     q: z.string().nullish(),
     sort: z.string().nullish(),
