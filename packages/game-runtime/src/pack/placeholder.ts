@@ -1,5 +1,5 @@
 import type { RuntimeModel } from "../loader";
-import { defaultAvatarAnims } from "./avatar";
+import { defaultAvatarAnims, PLACEHOLDER_CHARACTER_ID } from "./avatar";
 import { collectRequiredFrames } from "./frames";
 import {
   DEFAULT_PACK_PROJECTION,
@@ -61,7 +61,7 @@ export function buildPlaceholderManifest(
     atlases: [],
     tiles,
     sprites,
-    anims: options.anims ?? defaultAvatarAnims(),
+    anims: options.anims ?? defaultAvatarAnims([PLACEHOLDER_CHARACTER_ID]),
     ui: { icons },
     fx: { spark: "fx-spark" },
     keys: [],

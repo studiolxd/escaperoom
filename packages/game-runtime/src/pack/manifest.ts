@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LocalizedTextSchema } from "@escaperoom/shared/schemas";
 
 /**
  * Esquema Zod del manifiesto de pack gráfico (`specs/26-pack-grafico-v1.md` §6).
@@ -54,6 +55,18 @@ export const PackAnimSchema = z.object({
   repeat: z.number().int(),
 });
 
+/**
+ * Personaje jugable seleccionable (specs/26 §4.4, specs/19): `id` es el
+ * segmento usado en los nombres de frame (`avatar-<id>-<dir>-<acción>-<n>`).
+ * `portrait` es opcional: sin él, el lobby usa el primer frame `s-idle` como
+ * retrato.
+ */
+export const PackAvatarSchema = z.object({
+  id: z.string().min(1),
+  label: LocalizedTextSchema,
+  portrait: z.string().min(1).optional(),
+});
+
 const PackUiSchema = z.object({
   icons: z.record(z.string(), z.string().min(1)),
 });
@@ -75,6 +88,17 @@ export const PackManifestSchema = z
     ui: PackUiSchema,
     fx: PackFxSchema,
     keys: z.array(z.string().min(1)),
+    /**
+     * Personajes jugables seleccionables (A1/B4). Opcional por compatibilidad
+     * con packs antiguos (1 avatar tintable, sin lista).
+     */
+    avatars: z.array(PackAvatarSchema).optional(),
+    /**
+     * Punto de apoyo del avatar como fracción `[x, y]` del frame, `y` desde
+     * arriba (specs/26 §3.1, A4). Por defecto `[0.5, 1]` (abajo-centro, como
+     * antes de A4) cuando el pack no lo declara.
+     */
+    avatarOrigin: z.tuple([z.number(), z.number()]).optional(),
   })
   .superRefine((manifest, ctx) => {
     const atlasKeys = new Set<string>();
@@ -124,6 +148,18 @@ export const PackManifestSchema = z
         });
       }
     }
+
+    const avatarIds = new Set<string>();
+    (manifest.avatars ?? []).forEach((avatar, index) => {
+      if (avatarIds.has(avatar.id)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["avatars", index, "id"],
+          message: `personaje duplicado: el id "${avatar.id}" aparece más de una vez.`,
+        });
+      }
+      avatarIds.add(avatar.id);
+    });
   });
 
 export type PackProjection = z.infer<typeof PackProjectionSchema>;
@@ -131,6 +167,7 @@ export type PackAtlas = z.infer<typeof PackAtlasSchema>;
 export type PackTileEntry = z.infer<typeof PackTileEntrySchema>;
 export type PackSpriteEntry = z.infer<typeof PackSpriteEntrySchema>;
 export type PackAnim = z.infer<typeof PackAnimSchema>;
+export type PackAvatar = z.infer<typeof PackAvatarSchema>;
 export type PackManifest = z.infer<typeof PackManifestSchema>;
 
 /**

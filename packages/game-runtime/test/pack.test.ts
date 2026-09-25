@@ -103,6 +103,32 @@ describe("PackManifestSchema (specs/26 §6)", () => {
     const result = validatePack(manifest, loadModel());
     expect(result.issues.some((issue) => issue.severity === "warning")).toBe(true);
   });
+
+  it("acepta avatars y avatarOrigin (A1/A4/B1)", () => {
+    const manifest = {
+      ...validManifest(),
+      avatars: [{ id: "caballero-m", label: { es: { text: "Caballero" } } }],
+      avatarOrigin: [0.5, 0.886] as [number, number],
+    };
+    const result = PackManifestSchema.safeParse(manifest);
+    expect(result.success).toBe(true);
+  });
+
+  it("sin avatars ni avatarOrigin (packs antiguos) sigue siendo válido", () => {
+    expect(PackManifestSchema.safeParse(validManifest()).success).toBe(true);
+  });
+
+  it("rechaza personajes duplicados en avatars", () => {
+    const manifest = {
+      ...validManifest(),
+      avatars: [
+        { id: "caballero-m", label: { es: { text: "Caballero" } } },
+        { id: "caballero-m", label: { es: { text: "Otro" } } },
+      ],
+    };
+    const result = PackManifestSchema.safeParse(manifest);
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("resolución de frames por nombre (specs/26 §3.3)", () => {
@@ -186,18 +212,42 @@ describe("placeholder", () => {
   it("declara las animaciones mínimas del avatar (idle/walk/interact ×4)", () => {
     const manifest = buildPlaceholderManifest(loadModel());
     expect(manifest.anims).toHaveLength(12);
-    expect(manifest.anims.map((anim) => anim.key)).toContain("avatar-n-walk");
-    expect(defaultAvatarAnims().find((anim) => anim.key === "avatar-s-idle")?.frames).toEqual([
-      "avatar-s-idle-1",
-      "avatar-s-idle-2",
+    expect(manifest.anims.map((anim) => anim.key)).toContain("avatar-avatar-n-walk");
+    expect(
+      defaultAvatarAnims(["avatar"]).find((anim) => anim.key === "avatar-avatar-s-idle")?.frames,
+    ).toEqual([
+      "avatar-avatar-s-idle-1",
+      "avatar-avatar-s-idle-2",
+      "avatar-avatar-s-idle-3",
+      "avatar-avatar-s-idle-4",
+      "avatar-avatar-s-idle-5",
+      "avatar-avatar-s-idle-6",
+      "avatar-avatar-s-idle-7",
+      "avatar-avatar-s-idle-8",
     ]);
   });
 
-  it("proyecta el delta de rejilla a las 4 direcciones", () => {
+  it("defaultAvatarAnims genera animaciones para varios personajes", () => {
+    const anims = defaultAvatarAnims(["caballero-m", "maniqui"]);
+    expect(anims).toHaveLength(24);
+    expect(anims.map((anim) => anim.key)).toContain("avatar-caballero-m-e-interact");
+    expect(anims.map((anim) => anim.key)).toContain("avatar-maniqui-w-idle");
+  });
+
+  it("proyecta el delta de rejilla a las 4 direcciones (paso diagonal)", () => {
     expect(directionFromGridDelta(-1, -1)).toBe("n");
     expect(directionFromGridDelta(1, 1)).toBe("s");
     expect(directionFromGridDelta(1, -1)).toBe("e");
     expect(directionFromGridDelta(-1, 1)).toBe("w");
+  });
+
+  it("proyecta el delta de rejilla a las 4 direcciones (paso de un solo eje, B2)", () => {
+    // Antes de B2, un paso de un solo eje (WASD) siempre daba "e"/"w", nunca
+    // "n"/"s": este es el caso que reproducía el fallo.
+    expect(directionFromGridDelta(1, 0)).toBe("e");
+    expect(directionFromGridDelta(-1, 0)).toBe("w");
+    expect(directionFromGridDelta(0, 1)).toBe("s");
+    expect(directionFromGridDelta(0, -1)).toBe("n");
   });
 });
 

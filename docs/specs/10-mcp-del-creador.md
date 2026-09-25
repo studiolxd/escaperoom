@@ -120,7 +120,7 @@ Agente:   ✅ create_room(meta) — draft creado: #room_812
           ✅ set_map — castillo 40×30, tileset medieval, 3 subrooms
           ✅ add_object × 12 — trono, 4 retratos, armario, 2 estatuas,
              brasero, arca, puerta-bodega…
-          ✅ define_item × 6 — llave-bronce, mechero, vela, antorcha,
+          ✅ define_item × 6 — llave-bronce, yesquero, vela, antorcha,
              cáliz-real, llave-oro
           ✅ add_puzzle × 8 — (hidden_key, code_lock×2, simultaneous_plates,
              sliding_puzzle, memory, split_clue, pipes)
@@ -130,7 +130,7 @@ Agente:   ✅ create_room(meta) — draft creado: #room_812
 
 Agente:   ⚠️ validate() — 2 avisos:
           1. Ninguna pista referencia el 3er dígito del sello final
-          2. La receta "mechero+vela→antorcha" no se otorga a ninguna regla
+          2. La receta "yesquero+vela→antorcha" no se otorga a ninguna regla
 
 Usuario:  Añade una pista en el brasero y deja que la receta se descubra
           por prueba y error

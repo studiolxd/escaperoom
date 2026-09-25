@@ -12,6 +12,7 @@ import { encodePng } from "../src/pack/png";
 import { checkSvgAspect, rasterizeSvg } from "../src/pack/svg";
 import { normalizePng } from "../src/pack/image";
 import {
+  AVATAR_ACTION_FRAMES,
   DEFAULT_PACK_PROJECTION,
   defaultAvatarAnims,
   formatPackIssues,
@@ -19,6 +20,7 @@ import {
   validatePackAgainstModel,
   validatePackManifest,
   type PackAnim,
+  type PackAvatar,
   type PackManifest,
   type PackValidationIssue,
 } from "../src/pack";
@@ -65,6 +67,10 @@ interface PackConfig {
   padding?: number;
   /** Animaciones explícitas que sustituyen a las derivadas de los nombres. */
   anims?: PackAnim[];
+  /** Personajes jugables seleccionables (A1/B4, specs/26 §6): pasan a `manifest.avatars`. */
+  avatars?: PackAvatar[];
+  /** Punto de apoyo del avatar como fracción `[x, y]` del frame (A4, specs/26 §3.1). */
+  avatarOrigin?: [number, number];
 }
 
 interface CliOptions {
@@ -131,16 +137,12 @@ function isImageEntry(name: string): boolean {
   return lower.endsWith(".png") || lower.endsWith(".svg");
 }
 
-async function readKindFrames(
-  packDir: string,
-  kind: Kind,
+/** Lee todos los PNG/SVG de una carpeta plana (sin bajar a subcarpetas). */
+async function readImagesInDir(
+  dir: string,
+  label: string,
   options: CliOptions,
 ): Promise<{ frames: AtlasFrameInput[]; issues: PackValidationIssue[] }> {
-  const dir = join(packDir, kind);
-  if (!existsSync(dir)) {
-    return { frames: [], issues: [] };
-  }
-
   const entries = (await readdir(dir)).filter(isImageEntry).sort();
   const frames: AtlasFrameInput[] = [];
   const issues: PackValidationIssue[] = [];
@@ -157,7 +159,7 @@ async function readKindFrames(
 
     if (!isSvg && svgFrames.has(frame)) {
       issues.push({
-        path: `${kind}/${entry}`,
+        path: `${label}/${entry}`,
         message: `hay un SVG y un PNG para el mismo frame "${frame}"; se usa el SVG y se ignora el PNG.`,
         severity: "warning",
       });
@@ -169,20 +171,20 @@ async function readKindFrames(
       const svg = await readFile(join(dir, entry), "utf8");
       const aspectIssue = checkSvgAspect(svg, frame);
       if (aspectIssue) {
-        issues.push({ path: `${kind}/${entry}`, message: aspectIssue, severity: "warning" });
+        issues.push({ path: `${label}/${entry}`, message: aspectIssue, severity: "warning" });
       }
       decoded = await rasterizeSvg(svg, frame);
     } else {
       const normalized = await normalizePng(await readFile(join(dir, entry)), frame);
       if (normalized.error) {
         // Un PNG con proporción incorrecta NO se genera (no se reencuadra).
-        issues.push({ path: `${kind}/${entry}`, message: normalized.error, severity: "error" });
+        issues.push({ path: `${label}/${entry}`, message: normalized.error, severity: "error" });
         continue;
       }
       if (normalized.warning) {
         // Menor que el lienzo: aviso en modo normal; error con --strict.
         issues.push({
-          path: `${kind}/${entry}`,
+          path: `${label}/${entry}`,
           message: normalized.warning,
           severity: options.strict ? "error" : "warning",
         });
@@ -195,15 +197,60 @@ async function readKindFrames(
   return { frames, issues };
 }
 
+async function readKindFrames(
+  packDir: string,
+  kind: Kind,
+  options: CliOptions,
+): Promise<{ frames: AtlasFrameInput[]; issues: PackValidationIssue[] }> {
+  const dir = join(packDir, kind);
+  if (!existsSync(dir)) {
+    return { frames: [], issues: [] };
+  }
+
+  const direct = await readImagesInDir(dir, kind, options);
+  if (kind !== "avatar") {
+    return direct;
+  }
+
+  // `avatar/` acepta además subcarpetas `avatar/<characterId>/…` (B4, B6): un
+  // personaje por carpeta, con sus frames ya prefijados
+  // (`avatar-<characterId>-<dir>-<acción>-<n>`), igual que en la entrega del
+  // pipeline de assets. Los ficheros sueltos directamente en `avatar/` (el
+  // maniquí de reserva, en packs antiguos) se siguen aceptando.
+  const entries = await readdir(dir, { withFileTypes: true });
+  const frames = [...direct.frames];
+  const issues = [...direct.issues];
+  for (const entry of entries.filter((e) => e.isDirectory()).sort((a, b) => a.name.localeCompare(b.name))) {
+    const nested = await readImagesInDir(join(dir, entry.name), `${kind}/${entry.name}`, options);
+    frames.push(...nested.frames);
+    issues.push(...nested.issues);
+  }
+  return { frames, issues };
+}
+
 function frameIndex(frame: string): number {
   const match = frame.match(/-(\d+)$/);
   return match ? Number(match[1]) : 0;
 }
 
-/** Deriva las animaciones del avatar de los nombres de frame presentes. */
+const AVATAR_FRAME_PATTERN = /^avatar-(.+)-(?:n|e|s|w)-(?:idle|walk|interact)-\d+$/;
+
+/** Personajes presentes en `avatar/` a partir de los nombres de frame (B4). */
+function charactersFromAvatarFrames(frames: readonly string[]): string[] {
+  const ids = new Set<string>();
+  for (const frame of frames) {
+    const match = frame.match(AVATAR_FRAME_PATTERN);
+    if (match?.[1]) {
+      ids.add(match[1]);
+    }
+  }
+  return [...ids].sort();
+}
+
+/** Deriva las animaciones del avatar de los nombres de frame presentes (todo personaje, incluido el de reserva). */
 function deriveAvatarAnims(frames: string[], overrides: PackAnim[]): PackAnim[] {
   const anims: PackAnim[] = [];
-  for (const base of defaultAvatarAnims()) {
+  for (const base of defaultAvatarAnims(charactersFromAvatarFrames(frames))) {
     const override = overrides.find((anim) => anim.key === base.key);
     if (override) {
       anims.push(override);
@@ -285,10 +332,20 @@ function buildManifest(
     ui: { icons },
     fx: { spark: fxSpark },
     keys: atlases.map(({ key }) => key),
+    ...(config.avatars ? { avatars: config.avatars } : {}),
+    ...(config.avatarOrigin ? { avatarOrigin: config.avatarOrigin } : {}),
   };
 }
 
-function checkNames(packDir: string, framesByKind: Record<Kind, string[]>): PackValidationIssue[] {
+/** Frames por personaje (idle + walk + interact) × 4 direcciones (A2/B3). */
+const AVATAR_FRAMES_PER_CHARACTER =
+  Object.values(AVATAR_ACTION_FRAMES).reduce((total, count) => total + count, 0) * 4;
+
+function checkNames(
+  packDir: string,
+  framesByKind: Record<Kind, string[]>,
+  config: PackConfig,
+): PackValidationIssue[] {
   const issues: PackValidationIssue[] = [];
   for (const kind of KINDS) {
     for (const frame of framesByKind[kind]) {
@@ -301,12 +358,27 @@ function checkNames(packDir: string, framesByKind: Record<Kind, string[]>): Pack
       }
     }
   }
-  if (framesByKind.avatar.length > 0 && framesByKind.avatar.length < 28) {
-    issues.push({
-      path: "avatar",
-      message: `el atlas de avatar tiene ${framesByKind.avatar.length} frames; el mínimo de v1 es 28 (idle/walk/interact ×4 direcciones).`,
-      severity: "warning",
-    });
+  // Cada personaje de manifest.avatars necesita sus 80 frames (idle 8 + walk 8
+  // + interact 4, ×4 direcciones; A2/B4). 0 frames = aún no entregado (aviso,
+  // como el resto del pack incompleto); cualquier otro número = entrega
+  // parcial, un error real.
+  for (const avatar of config.avatars ?? []) {
+    const count = framesByKind.avatar.filter((frame) =>
+      frame.startsWith(`avatar-${avatar.id}-`),
+    ).length;
+    if (count === 0) {
+      issues.push({
+        path: `avatar/${avatar.id}`,
+        message: `falta el personaje "${avatar.id}": no hay frames "avatar-${avatar.id}-*" en el pack.`,
+        severity: "warning",
+      });
+    } else if (count !== AVATAR_FRAMES_PER_CHARACTER) {
+      issues.push({
+        path: `avatar/${avatar.id}`,
+        message: `el personaje "${avatar.id}" tiene ${count} frames; se esperan ${AVATAR_FRAMES_PER_CHARACTER} (idle 8 + andar 8 + interactuar 4, ×4 direcciones).`,
+        severity: "error",
+      });
+    }
   }
   if (packDir.length === 0) {
     issues.push({ path: "pack", message: "carpeta de pack vacía.", severity: "error" });
@@ -346,7 +418,7 @@ async function main(): Promise<void> {
     }
   }
 
-  issues.push(...checkNames(options.packDir, framesByKind));
+  issues.push(...checkNames(options.packDir, framesByKind, config));
 
   const manifest = buildManifest(config, packId, atlases, framesByKind, issues);
   const structural = validatePackManifest(manifest);

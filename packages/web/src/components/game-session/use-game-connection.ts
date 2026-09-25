@@ -34,6 +34,8 @@ export interface GameConnection {
 export interface UseGameConnectionOptions {
   target: GameJoinTarget;
   name?: string;
+  /** Personaje elegido en la pantalla de unión (A1); el servidor lo valida. */
+  characterId?: string;
   /** `false` mientras el jugador aún no ha pulsado «Entrar». */
   enabled?: boolean;
   role?: MediaRole;
@@ -58,6 +60,7 @@ const AUTO_RECONNECT_RETRIES = 3;
 export function useGameConnection({
   target,
   name,
+  characterId,
   enabled = true,
   role = "player",
   url = COLYSEUS_URL,
@@ -90,7 +93,7 @@ export function useGameConnection({
     setError(null);
     useMediaStore.getState().reset();
 
-    joinGameRoom(new Client(url), joinTarget, name)
+    joinGameRoom(new Client(url), joinTarget, name, characterId)
       .then((joined) => {
         if (disposed) {
           void joined.leave();
@@ -138,7 +141,7 @@ export function useGameConnection({
       setClient(null);
       useMediaStore.getState().reset();
     };
-  }, [enabled, targetKey, name, role, url, attempt]);
+  }, [enabled, targetKey, name, characterId, role, url, attempt]);
 
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 

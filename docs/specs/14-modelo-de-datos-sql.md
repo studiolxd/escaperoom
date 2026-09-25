@@ -402,6 +402,17 @@ ALTER TABLE "accessKey" ADD COLUMN "sentAt" timestamptz;  -- último envío corr
 - No se guarda el cuerpo del email ni un historial de envíos; la cola (Redis) solo lleva el código y
   el tipo de email, nunca la dirección (minimización, `specs/18` §3).
 
+### 6.3 Personaje elegido (A1) — no persistido
+
+El `characterId` que elige cada jugador (`specs/11` §3, `26-pack-grafico-v1.md` §4.4) **no tiene
+tabla propia**: no hay un modelo "participante de sesión" por jugador de Colyseus (`gameSession` es
+la sesión agregada; `group`/`accessKey` son por invitación, no por `sessionId` de Colyseus en vivo)
+donde encaje de forma natural, y no se crea uno solo para esto. Vive en `GameRoomState.players[].
+characterId` (Colyseus, en memoria) mientras dura la partida; al reiniciar la room o terminar la
+partida se pierde, igual que la posición o el tinte del jugador. Si en el futuro se persiste el
+progreso por jugador (más allá de `progressEvent`, que es analítica agregada), este es el sitio
+natural para añadir `characterId` también.
+
 ## 7. Compras y pagos
 
 ```sql

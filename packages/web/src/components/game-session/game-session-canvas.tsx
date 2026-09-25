@@ -17,6 +17,7 @@ export interface GameSessionCanvasHandle {
   setObjectState(objectId: string, state: string): void;
   setPlayers(players: readonly ScenePlayer[]): void;
   setLocalTint(tint: string): void;
+  setLocalCharacter(characterId: string): void;
 }
 
 /**
@@ -71,6 +72,7 @@ export default function GameSessionCanvas({
       setObjectState: (objectId, state) => runtime.setObjectState(objectId, state),
       setPlayers: (players) => runtime.setPlayers(players),
       setLocalTint: (tint) => runtime.setLocalTint(tint),
+      setLocalCharacter: (characterId) => runtime.setLocalCharacter(characterId),
     });
 
     return () => {

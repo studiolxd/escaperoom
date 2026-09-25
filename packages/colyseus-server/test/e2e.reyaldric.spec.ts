@@ -422,14 +422,14 @@ describe("E2E de protocolo — Rey Aldric con 2 clientes de Colyseus", () => {
     // 1. Inspeccionar el cuadro → llave-bronce
     a.client.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
     await hasItems(a, ["llave-bronce"]);
-    // 2. Abrir el armario con la llave → mechero + vela
+    // 2. Abrir el armario con la llave → yesquero + vela
     a.client.send(GAME_MESSAGES.useItem, { itemId: "llave-bronce", objectId: "armario" });
-    await hasItems(a, ["mechero", "vela"]);
-    // 3. Combinar mechero + vela → antorcha
+    await hasItems(a, ["yesquero", "vela"]);
+    // 3. Combinar yesquero + vela → antorcha
     const torch = await request<AttemptResult & { output?: string }>(
       a,
       GAME_MESSAGES.combine,
-      { puzzleId: "p-combina", inputs: ["mechero", "vela"] },
+      { puzzleId: "p-combina", inputs: ["yesquero", "vela"] },
       GAME_MESSAGES.attemptResult,
     );
     expect(torch).toMatchObject({ ok: true, output: "antorcha" });

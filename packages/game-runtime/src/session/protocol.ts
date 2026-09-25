@@ -34,6 +34,8 @@ export const GAME_PROTOCOL = {
   plateState: "plate_state",
   splitView: "split_view",
   hintRequest: "hint_request",
+  /** Elegir/cambiar de personaje ya dentro de la sala (lobby, A1/specs/19). */
+  selectCharacter: "select_character",
   // Servidor → cliente
   puzzleView: "puzzle_view",
   attemptResult: "attempt_result",

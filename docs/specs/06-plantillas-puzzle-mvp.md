@@ -114,7 +114,7 @@ interface CombineItemsDefinition extends PuzzleDefinition {
   recipes: Recipe[];                  // el puzzle ES el conjunto de recetas descubribles
 }
 interface Recipe {
-  inputs: string[];                   // ["mechero", "vela"]
+  inputs: string[];                   // ["yesquero", "vela"]
   output: string;                     // "antorcha"
   consumeInputs: boolean;             // si los ingredientes desaparecen
   description?: string;               // p. ej. "Inspeccionar: una llave dentro de otra"

@@ -46,6 +46,9 @@ No es un borrador legal, es la lista de decisiones de producto que el TOS debe r
 
 ### 2.3 Audio generado por IA (ElevenLabs)
 
+- Este apartado cubre **audio de voz generado por usuarios/creadores** (UGC), no arte de packs
+  gráficos oficiales de la plataforma (p. ej. los avatares de `26-pack-grafico-v1.md` §4.4/§8, que
+  produce el equipo, no un usuario — su titularidad es de la plataforma, no un caso de este §2.3).
 - La titularidad de contenido generado por IA no está asentada de forma uniforme y depende de los
   TOS de ElevenLabs (qué derechos cede sobre lo generado en uso comercial de terceros).
 - **Punto explícito a revisar con asesoría antes de lanzar la función:** no se puede asumir

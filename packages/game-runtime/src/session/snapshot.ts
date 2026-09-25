@@ -25,6 +25,7 @@ export interface GameRoomStateLike {
     y: number;
     roomId: string;
     tint: string;
+    characterId: string;
     connected: boolean;
   }>;
   objects: Each<string>;
@@ -74,6 +75,7 @@ export function toGameSnapshot(state: GameRoomStateLike | undefined, selfId: str
       y: player.y,
       roomId: player.roomId,
       tint: player.tint,
+      characterId: player.characterId,
       connected: player.connected,
       isHost: player.id === state.hostId,
       isSelf: player.id === selfId,

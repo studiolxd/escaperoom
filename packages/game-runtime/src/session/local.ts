@@ -6,6 +6,7 @@ import {
   type RoomPuzzleActionResult,
   type RoomSession,
 } from "@escaperoom/shared/session";
+import { PLACEHOLDER_CHARACTER_ID } from "../pack";
 import { Emitter } from "./emitter";
 import { GAME_MAX_STEP_CELLS, GAME_PROTOCOL_ERRORS, MOVE_OUT_OF_BOUNDS } from "./protocol";
 import { emptyGameSnapshot } from "./snapshot";
@@ -25,6 +26,7 @@ export interface LocalGameClientOptions {
   playerId?: string;
   name?: string;
   tint?: string;
+  characterId?: string;
   /** Límite de la partida en segundos (por defecto 3600, como la `GameRoom`). */
   timeLimitSec?: number;
   /** Idioma de los textos de pista. */
@@ -89,6 +91,7 @@ export function createLocalGameClient(
   const chat: GameSnapshot["chat"] = [];
   let ended = false;
   let chatId = 0;
+  let characterId = options.characterId ?? PLACEHOLDER_CHARACTER_ID;
   let snapshot = buildSnapshot();
 
   function buildSnapshot(): GameSnapshot {
@@ -101,6 +104,7 @@ export function createLocalGameClient(
       y: position?.y ?? 0,
       roomId: position?.roomId ?? "",
       tint: options.tint ?? "#38bdf8",
+      characterId,
       connected: true,
       isHost: true,
       isSelf: true,
@@ -471,6 +475,13 @@ export function createLocalGameClient(
         viewpointId: view.viewpointId || null,
         fragments,
       });
+    },
+
+    selectCharacter(next) {
+      // Cliente local (playtest sin servidor, un solo jugador): no hay
+      // colisión posible con otro jugador, así que se acepta sin más.
+      characterId = next;
+      sync();
     },
 
     requestHint(puzzleId) {

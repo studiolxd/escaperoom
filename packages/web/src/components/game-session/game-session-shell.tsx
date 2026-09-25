@@ -57,6 +57,7 @@ import { SplitCluePanel, type SplitClueFeedback } from "@/components/puzzles/spl
 import { ErrorBoundary } from "@/components/error-boundary";
 import { formatDuration } from "@/lib/session-format";
 import { INTRO_DIALOG_ID, isIntroOpen, isWorldInputEnabled } from "@/lib/playtest-state";
+import { CharacterPicker } from "./character-picker";
 import { ConnectionBadge } from "./connection-badge";
 import type { GameSessionCanvasHandle } from "./game-session-canvas";
 import type { GameConnectionStatus } from "./use-game-connection";
@@ -244,13 +245,14 @@ export function GameSessionShell({
     handleRef.current?.setPlayers(
       snapshot.players
         .filter((player) => !player.isSelf)
-        .map(({ id, name, roomId: playerRoom, x, y, tint, connected }) => ({
+        .map(({ id, name, roomId: playerRoom, x, y, tint, characterId, connected }) => ({
           id,
           name,
           roomId: playerRoom,
           x,
           y,
           tint,
+          characterId,
           connected,
         })),
     );
@@ -285,6 +287,11 @@ export function GameSessionShell({
     if (selfTint) handleRef.current?.setLocalTint(selfTint);
   }, [selfTint]);
 
+  const selfCharacterId = self?.characterId;
+  useEffect(() => {
+    if (selfCharacterId) handleRef.current?.setLocalCharacter(selfCharacterId);
+  }, [selfCharacterId]);
+
   const onReady = useCallback(
     (handle: GameSessionCanvasHandle) => {
       handleRef.current = handle;
@@ -298,6 +305,7 @@ export function GameSessionShell({
       if (current.self) {
         serverRoomRef.current = current.self.roomId;
         if (current.self.tint) handle.setLocalTint(current.self.tint);
+        if (current.self.characterId) handle.setLocalCharacter(current.self.characterId);
         handle.placeAvatar(current.self.x, current.self.y);
       }
     },
@@ -754,9 +762,9 @@ export function GameSessionShell({
                       event.dataTransfer.effectAllowed = "move";
                     }}
                     onDragEnd={() => setDraggingItem(null)}
-                    className="flex cursor-grab items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/10 px-2 py-0.5 text-[0.7rem] text-amber-100 active:cursor-grabbing"
+                    className="flex cursor-grab items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/10 py-1 pl-1 pr-2.5 text-[0.7rem] text-amber-100 active:cursor-grabbing"
                   >
-                    {renderItemIcon(itemId, 16)}
+                    {renderItemIcon(itemId, 28)}
                     {itemName(itemId)}
                   </li>
                 ))
@@ -780,12 +788,19 @@ export function GameSessionShell({
         </div>
       </div>
 
-      {/* Jugadores e invitación */}
-      <aside className="pointer-events-auto absolute left-4 top-40 z-10 flex w-56 flex-col gap-2 rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-white backdrop-blur">
+      {/* Jugadores e invitación. Altura total acotada (además del tope del propio
+          registro, ticket 6.5): en pantallas de 720 px, con varios jugadores y
+          varias líneas de registro a la vez, el aside podía llegar a estirarse
+          hasta tapar la barra de objetos (bottom-left) y robarle los clics — le
+          pasó a la barra de objetos con `pointer-events`, no solo visualmente. */}
+      <aside className="pointer-events-auto absolute left-4 top-40 z-10 flex max-h-52 w-56 flex-col gap-2 overflow-y-auto rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-white backdrop-blur">
         <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
           {t("lobby.players", { count: snapshot.players.length })}
         </span>
-        <ul className="flex flex-col gap-1 text-xs" data-testid="game-players">
+        <ul
+          className="flex max-h-20 flex-col gap-1 overflow-y-auto text-xs"
+          data-testid="game-players"
+        >
           {snapshot.players.map((player) => (
             <li key={player.id} className="flex items-center gap-2">
               <span
@@ -810,8 +825,8 @@ export function GameSessionShell({
         <span className="mt-1 text-[0.65rem] uppercase tracking-wide text-white/50">
           {tp("log.title")}
         </span>
-        {/* Altura acotada: el registro crece con la partida y, sin tope, el panel
-            tapaba la barra de objetos en pantallas de 720 px (ticket 6.5). */}
+        {/* Tope propio además del de arriba: el registro es lo que más crece
+            dentro del aside a lo largo de la partida. */}
         <ul
           className="flex max-h-24 flex-col gap-0.5 overflow-y-auto text-[0.65rem] text-white/70"
           aria-live="polite"
@@ -833,6 +848,20 @@ export function GameSessionShell({
             <p className="text-sm text-white/70">
               {t("lobby.players", { count: snapshot.players.length })}
             </p>
+            {pack ? (
+              <CharacterPicker
+                pack={pack}
+                occupiedBy={
+                  new Set(
+                    snapshot.players
+                      .filter((player) => !player.isSelf && player.connected)
+                      .map((player) => player.characterId),
+                  )
+                }
+                value={self?.characterId}
+                onChange={(characterId) => client.selectCharacter(characterId)}
+              />
+            ) : null}
             {isHost ? (
               <Button onClick={() => client.startGame()} data-testid="game-start">
                 {t("lobby.start")}
@@ -913,7 +942,7 @@ export function GameSessionShell({
                     applyItemUse(itemId, target);
                   }}
                 >
-                  {renderItemIcon(itemId, 16)}
+                  {renderItemIcon(itemId, 28)}
                   {itemName(itemId)}
                 </Button>
               ))}

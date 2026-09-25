@@ -59,11 +59,11 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
     // 1. Inspeccionar el cuadro → llave de bronce
     await a.inspect("cuadro-aurelio");
     await a.expectItems("Llave de bronce");
-    // 2. Abrir el armario con la llave → mechero + vela
+    // 2. Abrir el armario con la llave → yesquero + vela
     await a.useItemOn("armario", "Llave de bronce");
-    await a.expectItems("Mechero de pedernal", "Vela");
-    // 3. Combinar mechero + vela → antorcha
-    await a.combine(["Mechero de pedernal", "Vela"], "Antorcha encendida");
+    await a.expectItems("Yesquero", "Vela");
+    // 3. Combinar yesquero + vela → antorcha
+    await a.combine(["Yesquero", "Vela"], "Antorcha encendida");
     // 4. Encender el brasero con la antorcha → dígito 3
     await a.inspect("brasero");
     // 5. Candado del arca «4732» → cáliz + pergamino

@@ -920,6 +920,8 @@
     },
     "lobby": {
       "title": "Waiting room",
+      "chooseCharacter": "Choose your character",
+      "characterTaken": "taken",
       "players": "{count, plural, one {# player} other {# players}}",
       "start": "Start game",
       "waitingHost": "Waiting for the host to start…",

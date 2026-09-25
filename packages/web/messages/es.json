@@ -158,7 +158,7 @@
     "step": {
       "cuadro": "Inspeccionar el cuadro",
       "armario": "Abrir el armario",
-      "antorcha": "Combinar mechero + vela",
+      "antorcha": "Combinar yesquero + vela",
       "brasero": "Encender el brasero",
       "arca": "Candado del arca",
       "placas": "Placas simultáneas",
@@ -870,6 +870,8 @@
     },
     "lobby": {
       "title": "Sala de espera",
+      "chooseCharacter": "Elige tu personaje",
+      "characterTaken": "ocupado",
       "players": "{count, plural, one {# jugador} other {# jugadores}}",
       "start": "Empezar partida",
       "waitingHost": "Esperando a que el anfitrión empiece…",

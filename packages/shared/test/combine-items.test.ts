@@ -23,7 +23,7 @@ function makeDef(overrides: Partial<CombineItemsDefinition> = {}): CombineItemsD
     grantsItems: [],
     unlocks: ["compuerta-oro"],
     recipes: [
-      { inputs: ["mechero", "vela"], output: "antorcha", consumeInputs: true },
+      { inputs: ["yesquero", "vela"], output: "antorcha", consumeInputs: true },
       {
         inputs: ["llave-plata"],
         output: "llave-oro",
@@ -54,10 +54,10 @@ describe("combine_items · estado inicial", () => {
 });
 
 describe("combine_items · evaluación de recetas", () => {
-  it("mechero + vela casa con la receta que consume", () => {
+  it("yesquero + vela casa con la receta que consume", () => {
     const def = makeDef();
-    const evaluation = evaluateCombination(stateWith(["mechero", "vela"], def), def, [
-      "mechero",
+    const evaluation = evaluateCombination(stateWith(["yesquero", "vela"], def), def, [
+      "yesquero",
       "vela",
     ]);
     expect(evaluation.matchedRecipe).not.toBeNull();
@@ -68,15 +68,15 @@ describe("combine_items · evaluación de recetas", () => {
 
   it("el orden de los inputs es indiferente", () => {
     const def = makeDef();
-    const direct = findRecipe(def, ["mechero", "vela"]);
-    const swapped = findRecipe(def, ["vela", "mechero"]);
+    const direct = findRecipe(def, ["yesquero", "vela"]);
+    const swapped = findRecipe(def, ["vela", "yesquero"]);
     expect(direct).not.toBeNull();
     expect(swapped?.output).toBe("antorcha");
   });
 
   it("una receta inexistente no casa", () => {
     const def = makeDef();
-    const evaluation = evaluateCombination(stateWith(["mechero"], def), def, ["mechero", "cuerda"]);
+    const evaluation = evaluateCombination(stateWith(["yesquero"], def), def, ["yesquero", "cuerda"]);
     expect(evaluation.matchedRecipe).toBeNull();
     expect(evaluation.output).toBeNull();
     expect(evaluation.consumeInputs).toBe(false);
@@ -84,22 +84,22 @@ describe("combine_items · evaluación de recetas", () => {
 
   it("marca hasInputs=false si falta algún ingrediente", () => {
     const def = makeDef();
-    const evaluation = evaluateCombination(stateWith(["mechero"], def), def, ["mechero", "vela"]);
+    const evaluation = evaluateCombination(stateWith(["yesquero"], def), def, ["yesquero", "vela"]);
     expect(evaluation.matchedRecipe).not.toBeNull();
     expect(evaluation.hasInputs).toBe(false);
   });
 });
 
 describe("combine_items · aplicar recetas", () => {
-  it("mechero + vela → antorcha consume los ingredientes", () => {
+  it("yesquero + vela → antorcha consume los ingredientes", () => {
     const def = makeDef();
-    const state = stateWith(["mechero", "vela"], def);
-    const result = applyCombination(state, def, ["mechero", "vela"], 1_000);
+    const state = stateWith(["yesquero", "vela"], def);
+    const result = applyCombination(state, def, ["yesquero", "vela"], 1_000);
 
     expect(result.outcome).toBe("combined");
     expect(result.output).toBe("antorcha");
     expect(result.state.inventory).toContain("antorcha");
-    expect(result.state.inventory).not.toContain("mechero");
+    expect(result.state.inventory).not.toContain("yesquero");
     expect(result.state.inventory).not.toContain("vela");
     // La otra receta sigue pendiente → in_progress, no solved.
     expect(result.state.state).toBe("in_progress");
@@ -116,42 +116,42 @@ describe("combine_items · aplicar recetas", () => {
 
   it("no muta el estado de entrada (lógica pura)", () => {
     const def = makeDef();
-    const state = stateWith(["mechero", "vela"], def);
-    applyCombination(state, def, ["mechero", "vela"], 1_000);
-    expect(state.inventory).toEqual(["mechero", "vela"]);
+    const state = stateWith(["yesquero", "vela"], def);
+    applyCombination(state, def, ["yesquero", "vela"], 1_000);
+    expect(state.inventory).toEqual(["yesquero", "vela"]);
     expect(state.state).toBe("available");
     expect(state.appliedRecipes).toEqual([]);
   });
 
   it("rechaza una receta inexistente", () => {
     const def = makeDef();
-    const result = applyCombination(stateWith(["mechero", "vela"], def), def, [
-      "mechero",
+    const result = applyCombination(stateWith(["yesquero", "vela"], def), def, [
+      "yesquero",
       "cuerda",
     ]);
     expect(result.outcome).toBe("invalid_combination");
-    expect(result.state.inventory).toEqual(["mechero", "vela"]);
+    expect(result.state.inventory).toEqual(["yesquero", "vela"]);
   });
 
   it("no combina si faltan ingredientes (validación de posesión)", () => {
     const def = makeDef();
     const state = stateWith(["vela"], def);
-    const result = applyCombination(state, def, ["mechero", "vela"]);
+    const result = applyCombination(state, def, ["yesquero", "vela"]);
     expect(result.outcome).toBe("missing_items");
     expect(result.state.inventory).toEqual(["vela"]);
   });
 
   it("un puzzle bloqueado no acepta combinaciones", () => {
     const def = makeDef({ requiresSolved: ["p-mural-vendimia"] });
-    const result = applyCombination(stateWith(["mechero", "vela"], def), def, ["mechero", "vela"]);
+    const result = applyCombination(stateWith(["yesquero", "vela"], def), def, ["yesquero", "vela"]);
     expect(result.outcome).toBe("unavailable");
     expect(result.state.state).toBe("locked");
   });
 
   it("marca solved cuando se aplican todas las recetas", () => {
     const def = makeDef();
-    const first = applyCombination(stateWith(["mechero", "vela", "llave-plata"], def), def, [
-      "mechero",
+    const first = applyCombination(stateWith(["yesquero", "vela", "llave-plata"], def), def, [
+      "yesquero",
       "vela",
     ]);
     expect(first.state.state).toBe("in_progress");
@@ -175,8 +175,8 @@ describe("combine_items · idempotencia", () => {
 
   it("una receta que consume no vuelve a aplicarse sin ingredientes", () => {
     const def = makeDef();
-    const first = applyCombination(stateWith(["mechero", "vela"], def), def, ["mechero", "vela"]);
-    const second = applyCombination(first.state, def, ["mechero", "vela"]);
+    const first = applyCombination(stateWith(["yesquero", "vela"], def), def, ["yesquero", "vela"]);
+    const second = applyCombination(first.state, def, ["yesquero", "vela"]);
     expect(second.outcome).toBe("missing_items");
     expect(second.state).toEqual(first.state);
     expect(second.state.inventory.filter((item) => item === "antorcha")).toHaveLength(1);
@@ -185,7 +185,7 @@ describe("combine_items · idempotencia", () => {
   it("recipeKey es estable e independiente del orden de los inputs", () => {
     const recipe = makeDef().recipes[0];
     if (!recipe) throw new Error("receta esperada");
-    expect(recipeKey(recipe)).toBe("mechero+vela->antorcha");
+    expect(recipeKey(recipe)).toBe("vela+yesquero->antorcha");
   });
 });
 
@@ -196,15 +196,15 @@ describe("combine_items · proyección pública", () => {
     const serialized = JSON.stringify(view);
 
     expect(view).not.toHaveProperty("recipes");
-    for (const token of ["mechero", "vela", "antorcha", "llave-plata", "llave-oro"]) {
+    for (const token of ["yesquero", "vela", "antorcha", "llave-plata", "llave-oro"]) {
       expect(serialized).not.toContain(token);
     }
   });
 
   it("expone inventario y contadores para el panel", () => {
     const def = makeDef();
-    const state = applyCombination(stateWith(["mechero", "vela"], def), def, [
-      "mechero",
+    const state = applyCombination(stateWith(["yesquero", "vela"], def), def, [
+      "yesquero",
       "vela",
     ]).state;
     const view = toCombineItemsPublicView(state, def);

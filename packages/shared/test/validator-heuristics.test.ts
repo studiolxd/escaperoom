@@ -118,25 +118,25 @@ describe("validador — consumeInputs en más de una receta", () => {
     const pkg = cloneFixture();
     const combine = pkg.puzzles.find((puzzle) => puzzle.id === "p-combina")!;
     if (combine.type !== "combine_items") throw new Error("tipo inesperado");
-    combine.recipes.push({ inputs: ["mechero", "pergamino"], output: "antorcha", consumeInputs });
+    combine.recipes.push({ inputs: ["yesquero", "pergamino"], output: "antorcha", consumeInputs });
     return pkg;
   }
 
-  it("avisa del mechero, gastado por mechero+vela y usado en una segunda receta", () => {
+  it("avisa del yesquero, gastado por yesquero+vela y usado en una segunda receta", () => {
     const report = validateRoomPackage(withSecondRecipe(false));
     const check = checkOf(report, "recipe_consumption");
     expect(check).toMatchObject({ status: "warning", passed: false });
     expect(check.issues).toHaveLength(1);
     expect(check.issues[0]).toMatchObject({
       code: "consumed_in_several_recipes",
-      ids: ["mechero"],
+      ids: ["yesquero"],
     });
     expect(check.issues[0]!.message).toContain("es input de 2 recetas");
     expect(check.issues[0]!.message).toContain("una lo gasta");
     // El pergamino solo está en una receta: sin aviso.
     expect(check.issues.flatMap((issue) => issue.ids)).not.toContain("pergamino");
     expect(renderValidationReport(report)).toContain(
-      "🟡 Items con consumeInputs en más de una receta: mechero",
+      "🟡 Items con consumeInputs en más de una receta: yesquero",
     );
   });
 
@@ -151,14 +151,14 @@ describe("validador — consumeInputs en más de una receta", () => {
   it("una regla repetible que devuelve el ítem lo resuelve (patrón r-recoger-caliz)", () => {
     const pkg = withSecondRecipe(true);
     pkg.rules.push({
-      id: "r-recoger-mechero",
+      id: "r-recoger-yesquero",
       priority: 0,
       once: false,
       trigger: { type: "on_interact", objectId: "armario" },
-      conditions: [{ type: "flag_is", flag: "mechero-suelto", value: true }],
+      conditions: [{ type: "flag_is", flag: "yesquero-suelto", value: true }],
       actions: [
-        { type: "grant_item", itemId: "mechero", to: "interactor" },
-        { type: "set_flag", flag: "mechero-suelto", value: false },
+        { type: "grant_item", itemId: "yesquero", to: "interactor" },
+        { type: "set_flag", flag: "yesquero-suelto", value: false },
       ],
     });
     expect(checkOf(validateRoomPackage(pkg), "recipe_consumption").passed).toBe(true);

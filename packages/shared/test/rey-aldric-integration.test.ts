@@ -209,11 +209,11 @@ function playSalonHastaArca(script: Script): void {
   // 1. Inspeccionar el cuadro → llave-bronce
   record(session.interact("cuadro-aurelio", clock.next(), "p1").engine);
   expect(session.inventory("p1")).toContain("llave-bronce");
-  // 2. Abrir el armario con la llave → mechero + vela
+  // 2. Abrir el armario con la llave → yesquero + vela
   record(session.useItemOnObject("llave-bronce", "armario", clock.next(), "p1").engine);
-  expect(session.inventory("p1")).toEqual(expect.arrayContaining(["mechero", "vela"]));
-  // 3. Combinar mechero + vela → antorcha
-  record(session.combine("p-combina", ["mechero", "vela"], clock.next(), "p1").engine);
+  expect(session.inventory("p1")).toEqual(expect.arrayContaining(["yesquero", "vela"]));
+  // 3. Combinar yesquero + vela → antorcha
+  record(session.combine("p-combina", ["yesquero", "vela"], clock.next(), "p1").engine);
   expect(session.inventory("p1")).toContain("antorcha");
   // 4. Encender el brasero → dígito 3 visible
   record(session.interact("brasero", clock.next(), "p1").engine);

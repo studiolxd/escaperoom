@@ -25,6 +25,8 @@ export interface RoomRuntimeOptions {
   inputEnabled?: boolean;
   /** Id del jugador local, para el reparto de inventario (`distribution`). */
   localPlayerId?: string;
+  /** Personaje jugable del avatar local (`manifest.avatars[].id`, o el de reserva). */
+  localCharacterId?: string;
   /** `play` (por defecto) o `edit`: lienzo del editor (specs/09 §1). */
   mode?: "play" | "edit";
   /** Emite `avatar-move` con la posición del avatar local (cliente de red). */
@@ -54,6 +56,7 @@ export class RoomRuntime {
       intentOnly: options.intentOnly,
       inputEnabled: options.inputEnabled,
       localPlayerId: options.localPlayerId,
+      localCharacterId: options.localCharacterId,
       mode: options.mode,
       emitAvatarMoves: options.emitAvatarMoves,
     });
@@ -95,6 +98,11 @@ export class RoomRuntime {
   /** Tinte del avatar local (`#rrggbb` asignado por el servidor). */
   setLocalTint(tint: string): void {
     this.scene.setLocalTint(Phaser.Display.Color.HexStringToColor(tint).color);
+  }
+
+  /** Personaje del avatar local (asignado o confirmado por el servidor). */
+  setLocalCharacter(characterId: string): void {
+    this.scene.setLocalCharacter(characterId);
   }
 
   /** Otros jugadores de la partida (se pintan los de la sala visible). */

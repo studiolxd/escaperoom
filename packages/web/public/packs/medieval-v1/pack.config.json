@@ -1,1 +1,176 @@
-{"collides": {"1": false, "2": false, "3": false, "10": true, "20": false, "21": false, "22": false}}
+{
+  "collides": { "1": false, "2": false, "3": false, "10": true, "20": false, "21": false, "22": false },
+  "avatarOrigin": [0.5, 0.886],
+  "avatars": [
+    {
+      "id": "caballero-m",
+      "label": { "es": { "text": "Caballero" }, "en": { "text": "Knight" } }
+    }
+  ],
+  "anims": [
+    {
+      "key": "avatar-caballero-m-e-idle",
+      "frames": [
+        "avatar-caballero-m-e-idle-1",
+        "avatar-caballero-m-e-idle-2",
+        "avatar-caballero-m-e-idle-3",
+        "avatar-caballero-m-e-idle-4",
+        "avatar-caballero-m-e-idle-5",
+        "avatar-caballero-m-e-idle-6",
+        "avatar-caballero-m-e-idle-7",
+        "avatar-caballero-m-e-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-m-s-idle",
+      "frames": [
+        "avatar-caballero-m-s-idle-1",
+        "avatar-caballero-m-s-idle-2",
+        "avatar-caballero-m-s-idle-3",
+        "avatar-caballero-m-s-idle-4",
+        "avatar-caballero-m-s-idle-5",
+        "avatar-caballero-m-s-idle-6",
+        "avatar-caballero-m-s-idle-7",
+        "avatar-caballero-m-s-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-m-w-idle",
+      "frames": [
+        "avatar-caballero-m-w-idle-1",
+        "avatar-caballero-m-w-idle-2",
+        "avatar-caballero-m-w-idle-3",
+        "avatar-caballero-m-w-idle-4",
+        "avatar-caballero-m-w-idle-5",
+        "avatar-caballero-m-w-idle-6",
+        "avatar-caballero-m-w-idle-7",
+        "avatar-caballero-m-w-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-m-n-idle",
+      "frames": [
+        "avatar-caballero-m-n-idle-1",
+        "avatar-caballero-m-n-idle-2",
+        "avatar-caballero-m-n-idle-3",
+        "avatar-caballero-m-n-idle-4",
+        "avatar-caballero-m-n-idle-5",
+        "avatar-caballero-m-n-idle-6",
+        "avatar-caballero-m-n-idle-7",
+        "avatar-caballero-m-n-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-m-e-walk",
+      "frames": [
+        "avatar-caballero-m-e-walk-1",
+        "avatar-caballero-m-e-walk-2",
+        "avatar-caballero-m-e-walk-3",
+        "avatar-caballero-m-e-walk-4",
+        "avatar-caballero-m-e-walk-5",
+        "avatar-caballero-m-e-walk-6",
+        "avatar-caballero-m-e-walk-7",
+        "avatar-caballero-m-e-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-m-s-walk",
+      "frames": [
+        "avatar-caballero-m-s-walk-1",
+        "avatar-caballero-m-s-walk-2",
+        "avatar-caballero-m-s-walk-3",
+        "avatar-caballero-m-s-walk-4",
+        "avatar-caballero-m-s-walk-5",
+        "avatar-caballero-m-s-walk-6",
+        "avatar-caballero-m-s-walk-7",
+        "avatar-caballero-m-s-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-m-w-walk",
+      "frames": [
+        "avatar-caballero-m-w-walk-1",
+        "avatar-caballero-m-w-walk-2",
+        "avatar-caballero-m-w-walk-3",
+        "avatar-caballero-m-w-walk-4",
+        "avatar-caballero-m-w-walk-5",
+        "avatar-caballero-m-w-walk-6",
+        "avatar-caballero-m-w-walk-7",
+        "avatar-caballero-m-w-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-m-n-walk",
+      "frames": [
+        "avatar-caballero-m-n-walk-1",
+        "avatar-caballero-m-n-walk-2",
+        "avatar-caballero-m-n-walk-3",
+        "avatar-caballero-m-n-walk-4",
+        "avatar-caballero-m-n-walk-5",
+        "avatar-caballero-m-n-walk-6",
+        "avatar-caballero-m-n-walk-7",
+        "avatar-caballero-m-n-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-m-e-interact",
+      "frames": [
+        "avatar-caballero-m-e-interact-1",
+        "avatar-caballero-m-e-interact-2",
+        "avatar-caballero-m-e-interact-3",
+        "avatar-caballero-m-e-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-caballero-m-s-interact",
+      "frames": [
+        "avatar-caballero-m-s-interact-1",
+        "avatar-caballero-m-s-interact-2",
+        "avatar-caballero-m-s-interact-3",
+        "avatar-caballero-m-s-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-caballero-m-w-interact",
+      "frames": [
+        "avatar-caballero-m-w-interact-1",
+        "avatar-caballero-m-w-interact-2",
+        "avatar-caballero-m-w-interact-3",
+        "avatar-caballero-m-w-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-caballero-m-n-interact",
+      "frames": [
+        "avatar-caballero-m-n-interact-1",
+        "avatar-caballero-m-n-interact-2",
+        "avatar-caballero-m-n-interact-3",
+        "avatar-caballero-m-n-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    }
+  ]
+}

@@ -153,7 +153,7 @@ al re-inspeccionar un objeto ya resuelto).
   "conditions": [ { "type": "item_in_inventory", "itemId": "llave-bronce", "consumed": true } ],
   "actions": [
     { "type": "set_object_state", "objectId": "armario", "state": "open" },
-    { "type": "grant_item", "itemId": "mechero", "to": "interactor" },
+    { "type": "grant_item", "itemId": "yesquero", "to": "interactor" },
     { "type": "grant_item", "itemId": "vela", "to": "interactor" }
   ]
 }

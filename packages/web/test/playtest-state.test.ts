@@ -59,9 +59,9 @@ describe("el inventario abierto no propaga clics al mundo", () => {
 describe("combinar con dos seleccionados", () => {
   it("selecciona, deselecciona y reemplaza al más antiguo", () => {
     let staged: string[] = [];
-    staged = toggleSelection(staged, "mechero");
+    staged = toggleSelection(staged, "yesquero");
     staged = toggleSelection(staged, "vela");
-    expect(staged).toEqual(["mechero", "vela"]);
+    expect(staged).toEqual(["yesquero", "vela"]);
 
     // Un tercero reemplaza al más antiguo.
     staged = toggleSelection(staged, "llave-bronce");
@@ -73,9 +73,9 @@ describe("combinar con dos seleccionados", () => {
   });
 
   it("combina dos items distintos o uno solo (receta de un ingrediente)", () => {
-    expect(combineInputs(["mechero", "vela"])).toEqual(["mechero", "vela"]);
+    expect(combineInputs(["yesquero", "vela"])).toEqual(["yesquero", "vela"]);
     expect(combineInputs(["llave-plata"])).toEqual(["llave-plata"]);
     expect(combineInputs([])).toBeNull();
-    expect(combineInputs(["mechero", "mechero"])).toBeNull();
+    expect(combineInputs(["yesquero", "yesquero"])).toBeNull();
   });
 });

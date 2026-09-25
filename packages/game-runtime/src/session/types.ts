@@ -25,6 +25,8 @@ export interface GamePlayerSnapshot {
   roomId: string;
   /** Color de tintado `#rrggbb` asignado por el servidor. */
   tint: string;
+  /** Personaje jugable (`manifest.avatars[].id`, o el de reserva, A1/B4). */
+  characterId: string;
   connected: boolean;
   isHost: boolean;
   isSelf: boolean;
@@ -141,6 +143,8 @@ export interface GameActions {
   setPlate(plateId: string, active: boolean, puzzleId?: string): void;
   requestSplitView(puzzleId?: string): void;
   requestHint(puzzleId: string): void;
+  /** Elige/cambia de personaje (A1); el servidor valida unicidad y difunde el estado. */
+  selectCharacter(characterId: string): void;
   sendChat(text: string): void;
   requestMediaToken(role?: "player" | "observer"): void;
 }

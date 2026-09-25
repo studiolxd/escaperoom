@@ -821,6 +821,8 @@
     },
     "lobby": {
       "title": "Wachtkamer",
+      "chooseCharacter": "Kies je personage",
+      "characterTaken": "bezet",
       "players": "{count, plural, one {# speler} other {# spelers}}",
       "start": "Spel starten",
       "waitingHost": "Wachten tot de host start…",

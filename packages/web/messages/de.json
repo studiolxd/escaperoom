@@ -821,6 +821,8 @@
     },
     "lobby": {
       "title": "Warteraum",
+      "chooseCharacter": "Wähle deinen Charakter",
+      "characterTaken": "vergeben",
       "players": "{count, plural, one {# Spieler} other {# Spieler}}",
       "start": "Spiel starten",
       "waitingHost": "Warte darauf, dass der Host startet…",

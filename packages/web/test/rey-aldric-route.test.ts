@@ -29,7 +29,7 @@ describe("ruta crítica del playtest (2.8)", () => {
     session.start(0);
     session.interact("cuadro-aurelio", 1);
     session.useItemOnObject("llave-bronce", "armario", 2);
-    session.combine("p-combina", ["mechero", "vela"], 3);
+    session.combine("p-combina", ["yesquero", "vela"], 3);
     session.interact("brasero", 4);
     session.attemptCode("p-candado-arca", "4732", 5);
     expect(done(session)).toEqual(["cuadro", "armario", "antorcha", "brasero", "arca"]);

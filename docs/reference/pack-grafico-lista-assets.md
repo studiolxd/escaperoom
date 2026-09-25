@@ -89,20 +89,26 @@ en la misma capa.
 | `relicario-sellado.png` | 96×96 | Relicario sellado |
 | `relicario-abierto.png` | 96×96 | Relicario abierto |
 | `vasijas-8.png` | 128×96 | Conjunto de 8 vasijas |
-| **Iconos de inventario** | | |
+| **Iconos de inventario** (10; vista 3/4 común, C1) | | |
 | `icon-antorcha.png` | 64×64 | Icono: antorcha |
+| `icon-busto.png` | 64×64 | Icono: busto (`busto-piedra`; C3, ya se usaba en el fixture) |
 | `icon-caliz.png` | 64×64 | Icono: cáliz |
 | `icon-espejo.png` | 64×64 | Icono: espejo |
 | `icon-llave-bronce.png` | 64×64 | Icono: llave de bronce |
 | `icon-llave-plata.png` | 64×64 | Icono: llave de plata |
 | `icon-llave-oro.png` | 64×64 | Icono: llave de oro |
-| `icon-mechero.png` | 64×64 | Icono: mechero |
+| `icon-yesquero.png` | 64×64 | Icono: yesquero (antes `icon-mechero`, C2) |
 | `icon-pergamino.png` | 64×64 | Icono: pergamino |
 | `icon-vela.png` | 64×64 | Icono: vela |
-| **Avatar** (1 base tintable, 28 frames) | | |
-| `avatar-n-idle-1.png` … `avatar-n-idle-2.png` | 64×96 | Avatar mirando al norte (quieto) |
-| `avatar-n-walk-1.png` … `avatar-n-walk-4.png` | 64×96 | Avatar andando al norte |
-| `avatar-n-interact-1.png` | 64×96 | Avatar interactuando al norte |
-| *(idem `e`, `s`, `w`)* | 64×96 | … al este / sur / oeste |
+| **Avatares** (8 personajes seleccionables, 80 frames c/u; hoy solo `caballero-m`) | | |
+| `avatar/caballero-m/avatar-caballero-m-n-idle-1.png` … `-8.png` | 64×96 | Caballero (m) mirando al norte, idle (bucle) |
+| `avatar/caballero-m/avatar-caballero-m-n-walk-1.png` … `-8.png` | 64×96 | Caballero (m) andando al norte |
+| `avatar/caballero-m/avatar-caballero-m-n-interact-1.png` … `-4.png` | 64×96 | Caballero (m) interactuando al norte |
+| *(idem `e`, `s`, `w`; y el resto de personajes cuando se entreguen, cada uno en su propia carpeta `avatar/<characterId>/`)* | 64×96 | … al este / sur / oeste |
+| **Maniquí de reserva** (`characterId` `maniqui`, no seleccionable, 28 frames) | | |
+| `avatar/maniqui/avatar-maniqui-n-idle-1.svg` … `-2.svg` | 64×96 | Maniquí (fallback tintado) mirando al norte, idle |
+| `avatar/maniqui/avatar-maniqui-n-walk-1.svg` … `-4.svg` | 64×96 | Maniquí andando al norte |
+| `avatar/maniqui/avatar-maniqui-n-interact-1.svg` | 64×96 | Maniquí interactuando al norte |
+| *(idem `e`, `s`, `w`)* | 64×96 | … al este / sur / oeste. Se usa mientras falten personajes en el pack (`specs/04` §2, A1) |
 | **Efectos** | | |
 | `fx-spark-1.png` … `fx-spark-64.png` | 64×64 | Brillo dorado (o sheet 512×512, 8×8) |

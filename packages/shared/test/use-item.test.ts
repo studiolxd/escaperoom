@@ -75,7 +75,7 @@ describe("motor de reglas — on_use_item", () => {
     );
     expect(ok.fired.map((fired) => fired.ruleId)).toEqual(["r-abrir-armario"]);
     expect(engine.state.objectStates.armario).toBe("open");
-    expect(engine.state.inventory.p1).toContain("mechero");
+    expect(engine.state.inventory.p1).toContain("yesquero");
     expect(engine.state.inventory.p1).toContain("vela");
     expect(engine.state.inventory.p1).not.toContain("llave-bronce");
   });
@@ -100,7 +100,7 @@ describe("motor de reglas — on_use_item", () => {
 });
 
 describe("RoomSession.useItemOnObject — tres vías lógicas", () => {
-  it("con la llave: abre el armario y otorga mechero + vela", () => {
+  it("con la llave: abre el armario y otorga yesquero + vela", () => {
     const session = newSession();
     session.start(0);
     session.interact("cuadro-aurelio", 0);
@@ -109,7 +109,7 @@ describe("RoomSession.useItemOnObject — tres vías lógicas", () => {
 
     expect(result.engine.fired.map((fired) => fired.ruleId)).toEqual(["r-abrir-armario"]);
     expect(session.objectState("armario")).toBe("open");
-    expect(session.inventory()).toEqual(["mechero", "vela"]);
+    expect(session.inventory()).toEqual(["yesquero", "vela"]);
   });
 
   it("sin la llave: no hace nada", () => {
