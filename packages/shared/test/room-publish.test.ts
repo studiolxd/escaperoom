@@ -26,6 +26,7 @@ import {
   type PublishAssetSource,
   type RoomPackageSerializer,
 } from "../src/services";
+import type { AssetManifestInput } from "../src/validator";
 
 const ROOM_ID = "11111111-1111-4111-8111-111111111111";
 const AUDIO_OK = "upload:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -85,7 +86,13 @@ function fakeAssetSource(assets: Map<string, FakeAsset>): PublishAssetSource & {
   };
 }
 
-function setup(opts: { serializer?: RoomPackageSerializer | null } = {}) {
+function setup(
+  opts: {
+    serializer?: RoomPackageSerializer | null;
+    loadAssetManifest?: (pkg: RoomPackage) => Promise<AssetManifestInput | undefined>;
+    runtimeModelCheck?: (pkg: RoomPackage) => void;
+  } = {},
+) {
   const draftStore = createInMemoryRoomDraftStore([{ id: ROOM_ID, authorId: author.userId }]);
   const drafts = createRoomDraftService({ store: draftStore });
   const store = createInMemoryRoomPublishStore(
@@ -104,6 +111,8 @@ function setup(opts: { serializer?: RoomPackageSerializer | null } = {}) {
     serializer: opts.serializer === undefined ? jsonSerializer : opts.serializer,
     assets,
     storage,
+    loadAssetManifest: opts.loadAssetManifest,
+    runtimeModelCheck: opts.runtimeModelCheck,
   });
 
   // Doc "del editor": cada cambio emite un update que se persiste por el draft.
@@ -490,5 +499,71 @@ describe("nextSemver", () => {
     expect(nextSemver([])).toBe("1.0.0");
     expect(nextSemver(["1.0.0", "1.10.0", "1.9.3"])).toBe("1.10.1");
     expect(nextSemver(["1.0.0"], "1.1.0")).toBe("1.1.0");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D-13: el check `assets` corre en publish() cuando hay manifiesto disponible
+// ---------------------------------------------------------------------------
+
+describe("publicación — manifiesto de assets (D-13)", () => {
+  it("sin loadAssetManifest, el check assets no se comprueba (degrada, no bloquea)", async () => {
+    const { service, writeDraft } = setup();
+    await writeDraft(clone());
+    const result = await service.publish(author, ROOM_ID);
+    const assetsCheck = result.report.checks.find((c) => c.id === "assets")!;
+    expect(assetsCheck.summary).toContain("no comprobados");
+  });
+
+  it("con loadAssetManifest resolviendo undefined (clon limpio sin pack:build), degrada igual", async () => {
+    const { service, writeDraft } = setup({ loadAssetManifest: async () => undefined });
+    await writeDraft(clone());
+    const result = await service.publish(author, ROOM_ID);
+    const assetsCheck = result.report.checks.find((c) => c.id === "assets")!;
+    expect(assetsCheck.summary).toContain("no comprobados");
+  });
+
+  it("con manifiesto que no declara un sprite usado, el check assets avisa (no bloquea la publicación)", async () => {
+    const { service, writeDraft } = setup({
+      loadAssetManifest: async () => ({ tiles: {}, sprites: {}, ui: { icons: {} } }),
+    });
+    await writeDraft(clone());
+    const result = await service.publish(author, ROOM_ID);
+    const assetsCheck = result.report.checks.find((c) => c.id === "assets")!;
+    expect(assetsCheck.status).toBe("warning");
+    expect(assetsCheck.issues.length).toBeGreaterThan(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D-3: smoke test de `toRuntimeModel` antes de publicar
+// ---------------------------------------------------------------------------
+
+describe("publicación — smoke test del runtime (D-3)", () => {
+  it("si runtimeModelCheck lanza, publish() falla con VALIDATION_FAILED y no escribe nada", async () => {
+    const { service, writeDraft, store } = setup({
+      runtimeModelCheck: () => {
+        throw new Error("posición fuera de la rejilla");
+      },
+    });
+    await writeDraft(clone());
+    const err = await publishError(service.publish(author, ROOM_ID));
+    expect(err.code).toBe("VALIDATION_FAILED");
+    expect(err.message).toContain("posición fuera de la rejilla");
+    expect(await service.listVersions(author, ROOM_ID)).toHaveLength(0);
+    expect(store.rooms.get(ROOM_ID)?.status).toBe("draft");
+  });
+
+  it("si runtimeModelCheck pasa, publish() sigue su curso normal", async () => {
+    const calls: RoomPackage[] = [];
+    const { service, writeDraft } = setup({
+      runtimeModelCheck: (pkg) => {
+        calls.push(pkg);
+      },
+    });
+    await writeDraft(clone());
+    const result = await service.publish(author, ROOM_ID);
+    expect(result.report.ok).toBe(true);
+    expect(calls).toHaveLength(1);
   });
 });

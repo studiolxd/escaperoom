@@ -1,3 +1,4 @@
+import { loadAssetManifestFor } from "@/server/asset-manifest";
 import { resolveActorFromRequest } from "@/server/context";
 import type { RoomRouteContext } from "@/server/rest/room-draft";
 import { createRoomValidateHandlers } from "@/server/rest/room-validate";
@@ -16,5 +17,6 @@ export function POST(request: Request, ctx: RoomRouteContext) {
     drafts: getRoomDraftService(),
     resolveActor: resolveActorFromRequest,
     serialize: getDraftSerializer(),
+    loadAssetManifest: loadAssetManifestFor,
   }).postValidate(request, ctx);
 }

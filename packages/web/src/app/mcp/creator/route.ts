@@ -6,6 +6,7 @@ import {
   getMcpOAuthProvider,
   getMcpToolRateLimiter,
 } from "@/server/mcp-oauth";
+import { loadAssetManifestFor } from "@/server/asset-manifest";
 import { getPlaytestLauncher } from "@/server/playtest-launcher";
 import {
   getCatalogService,
@@ -38,6 +39,7 @@ function handler(request: Request): Promise<Response> {
       appUrl: siteUrl(),
       playtests: getPlaytestLauncher(),
       publishRequests: getPublishConfirmationService(),
+      loadAssetManifest: loadAssetManifestFor,
     }),
   });
 }
