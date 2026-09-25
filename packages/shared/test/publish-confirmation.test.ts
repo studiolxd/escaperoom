@@ -256,6 +256,9 @@ describe("confirmación humana de la publicación", { timeout: 30_000 }, () => {
     }
     // Publicar desde el editor también invalida las solicitudes previas.
     const third = await confirmations.request(author, ROOM_ID, { versionNotes: "v2" });
+    const edited = clone();
+    edited.meta.title = "Rey Aldric (edición revisada)";
+    await writeDraft(edited);
     await publish.publish(author, ROOM_ID);
     expect(
       (await rejection<RoomPublishError>(confirmations.confirm(author, third.token))).code,

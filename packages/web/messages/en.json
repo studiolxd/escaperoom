@@ -1008,7 +1008,8 @@
       "CONTENT_BLOCKED": "The moderation pre-check blocked some of the room's texts. Fix them or appeal the block.",
       "ACCOUNT_FROZEN": "Your account is frozen while a serious report is reviewed: you can't publish.",
       "CREATOR_SUSPENDED": "Publishing is temporarily suspended on your account by moderation.",
-      "CREATOR_BANNED": "Your account can no longer publish rooms."
+      "CREATOR_BANNED": "Your account can no longer publish rooms.",
+      "NOTHING_TO_PUBLISH": "The draft has no changes since the last published version: there is nothing to publish."
     }
   },
   "McpConsent": {

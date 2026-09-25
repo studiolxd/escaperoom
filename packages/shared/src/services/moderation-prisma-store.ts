@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient } from "../../generated/client";
+import { Prisma, type PrismaClient } from "../../generated/client";
 import type {
   AppealRow,
   AppealStatus,
@@ -253,7 +253,15 @@ export function createPrismaModerationStore(prisma: PrismaClient): ModerationSto
          GROUP BY "targetType", COALESCE("roomId"::text, "reviewId"::text, "targetUserId")`;
       return new Map(rows.map((r) => [`${r.targetType}:${r.targetId}`, Number(r.n)]));
     },
-    async listUnsampledVersions(since, limit) {
+    async listUnsampledVersions(since, limit, roomIds) {
+      // `roomIds` (docs/DEUDA.md "test inestable: muestreo de moderación") es
+      // opcional: sin él, la consulta es global como siempre; los tests de
+      // integración lo pasan para no depender de lo que publiquen otros
+      // ficheros en el mismo Postgres compartido.
+      const roomFilter =
+        roomIds && roomIds.length > 0
+          ? Prisma.sql`AND v."roomId" = ANY(${roomIds}::uuid[])`
+          : Prisma.empty;
       return prisma.$queryRaw<
         Array<{ roomId: string; versionId: string; authorId: string; publishedAt: Date }>
       >`
@@ -262,6 +270,7 @@ export function createPrismaModerationStore(prisma: PrismaClient): ModerationSto
           JOIN "room" r ON r.id = v."roomId"
          WHERE v."publishedAt" >= ${since}
            AND r.status IN ('published', 'unlisted') AND r."deletedAt" IS NULL
+           ${roomFilter}
            AND NOT EXISTS (SELECT 1 FROM "contentReport" c
                             WHERE c."roomVersionId" = v.id AND c.source = 'sampling')
          ORDER BY v."publishedAt" ASC

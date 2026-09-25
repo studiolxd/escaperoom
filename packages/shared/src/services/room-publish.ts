@@ -14,6 +14,7 @@ import type { AudioAssetService } from "./audio-assets";
 import { UUID_RE, requireUser } from "./common";
 import type { ModerationService, PublishPrecheck } from "./moderation";
 import { buildDraftDoc, type RoomDraftTx } from "./room-draft";
+import { classifyRoomPackageChange, type RoomPackageChange } from "./room-version-diff";
 
 /**
  * Publicación de salas (ticket 3.9, specs/08 §5–6, specs/13 §4).
@@ -105,6 +106,8 @@ export type RoomVersionMeta = {
 export interface RoomPublishTx {
   /** `semver` de todas las versiones de la sala (para calcular la siguiente). */
   listSemvers(roomId: string): Promise<string[]>;
+  /** Última versión publicada (`package` incluido, para clasificar el cambio), o `null` sin ninguna. */
+  findLatestVersion(roomId: string): Promise<RoomVersionRow | null>;
   insertVersion(version: NewRoomVersion): Promise<RoomVersionRow>;
   /** `draft` → `published` en la primera publicación; otros estados no cambian. */
   markPublished(roomId: string): Promise<void>;
@@ -115,7 +118,9 @@ export interface RoomPublishTx {
  * publicaciones de una misma sala (Postgres: `SELECT … FOR UPDATE` sobre
  * `room`), de modo que dos publicaciones simultáneas obtienen semver distintos.
  */
-export interface RoomPublishStore extends AdminDirectory, Pick<RoomPublishTx, "listSemvers"> {
+export interface RoomPublishStore
+  extends AdminDirectory,
+    Pick<RoomPublishTx, "listSemvers" | "findLatestVersion"> {
   findRoom(roomId: string): Promise<PublishRoomRef | null>;
   listVersions(roomId: string): Promise<RoomVersionMeta[]>;
   findVersion(roomId: string, versionId: string): Promise<RoomVersionRow | null>;
@@ -143,6 +148,8 @@ export type RoomPublishErrorCode =
   | "NOT_FOUND"
   | "VALIDATION_ERROR"
   | "VERSION_CONFLICT"
+  /** El paquete candidato es idéntico al de la última versión publicada (ADR-035). */
+  | "NOTHING_TO_PUBLISH"
   | "ROOM_NOT_PUBLISHABLE"
   | "INVALID_PACKAGE"
   | "UNSUPPORTED_PACKAGE_FORMAT"
@@ -229,29 +236,30 @@ export function latestSemver(existing: readonly string[]): string | null {
 }
 
 /**
- * Semver de la próxima versión: el pedido (debe ser mayor que todos los
- * existentes) o, si no se pide, el parche siguiente al mayor (`1.0.0` la
- * primera vez).
+ * Semver de la próxima versión, a partir de cómo cambió el contenido
+ * respecto a la última versión publicada (`classifyRoomPackageChange`,
+ * ADR-035): `1.0.0` en la primera publicación; si no, MAJOR/MINOR/PATCH ponen
+ * a cero los componentes inferiores (`2.3.4` + MAJOR → `3.0.0`; + MINOR →
+ * `2.4.0`; + PATCH → `2.3.5`). `"none"` (nada cambió) no tiene semver
+ * siguiente: se rechaza con `NOTHING_TO_PUBLISH`.
  */
-export function nextSemver(existing: readonly string[], requested?: string): string {
+export function nextSemver(existing: readonly string[], change: RoomPackageChange): string {
   const parsed = existing.map(parseSemver).filter((v): v is Semver => v !== null);
   const latest = parsed.sort(compareSemver).at(-1) ?? null;
-  if (requested === undefined) {
-    return latest ? `${latest[0]}.${latest[1]}.${latest[2] + 1}` : "1.0.0";
+  if (!latest) return "1.0.0";
+  switch (change) {
+    case "major":
+      return `${latest[0] + 1}.0.0`;
+    case "minor":
+      return `${latest[0]}.${latest[1] + 1}.0`;
+    case "patch":
+      return `${latest[0]}.${latest[1]}.${latest[2] + 1}`;
+    case "none":
+      throw new RoomPublishError(
+        "NOTHING_TO_PUBLISH",
+        "El contenido no ha cambiado desde la última versión publicada: no hay nada que publicar",
+      );
   }
-  const wanted = parseSemver(requested);
-  if (!wanted) {
-    throw new RoomPublishError("VALIDATION_ERROR", `"${requested}" no es un semver X.Y.Z`, {
-      issues: [{ path: "semver", message: "Formato X.Y.Z" }],
-    });
-  }
-  if (latest && compareSemver(wanted, latest) <= 0) {
-    throw new RoomPublishError(
-      "VERSION_CONFLICT",
-      `La versión ${requested} no es posterior a la última publicada (${latest.join(".")})`,
-    );
-  }
-  return requested;
 }
 
 /**
@@ -369,7 +377,7 @@ export function computeAssetsHash(input: {
 
 // ── Servicio ───────────────────────────────────────────────────────────────
 
-export type PublishInput = { semver?: string; changelog?: string | null };
+export type PublishInput = { changelog?: string | null };
 
 /**
  * Condiciones extra de una publicación (ticket 4.5, confirmación humana del
@@ -414,11 +422,8 @@ function parsePublishInput(input: unknown): PublishInput {
   if (typeof input !== "object" || Array.isArray(input)) {
     throw new RoomPublishError("VALIDATION_ERROR", "El cuerpo debe ser un objeto JSON");
   }
-  const { semver, changelog } = input as Record<string, unknown>;
+  const { changelog } = input as Record<string, unknown>;
   const issues: ReadableIssue[] = [];
-  if (semver !== undefined && typeof semver !== "string") {
-    issues.push({ path: "semver", message: "Debe ser un string X.Y.Z" });
-  }
   if (changelog !== undefined && changelog !== null && typeof changelog !== "string") {
     issues.push({ path: "changelog", message: "Debe ser un string" });
   } else if (typeof changelog === "string" && changelog.length > MAX_CHANGELOG_LENGTH) {
@@ -427,7 +432,6 @@ function parsePublishInput(input: unknown): PublishInput {
   if (issues.length > 0)
     throw new RoomPublishError("VALIDATION_ERROR", "Datos no válidos", { issues });
   return {
-    semver: semver as string | undefined,
     changelog: typeof changelog === "string" && changelog.trim() ? changelog.trim() : null,
   };
 }
@@ -560,7 +564,6 @@ export function createRoomPublishService(deps: {
   async function prepare(
     actor: Actor,
     room: PublishRoomRef,
-    semver: string | undefined,
     guard: PublishGuard = {},
     record = false,
   ) {
@@ -577,10 +580,8 @@ export function createRoomPublishService(deps: {
         moderation: { until: blocker.until },
       });
     }
-    // Falla pronto si el semver pedido no es válido o no es posterior.
     const semvers = await store.listSemvers(roomId);
     checkLatestSemver(guard, semvers);
-    const resolvedSemver = nextSemver(semvers, semver);
 
     const draftPackage = await serializeDraft(room);
     const packageHash = computePackageHash(draftPackage);
@@ -590,6 +591,18 @@ export function createRoomPublishService(deps: {
         "El draft ha cambiado desde que se aprobó la publicación: vuelve a solicitarla",
       );
     }
+    // Clasifica el cambio de contenido frente a la última versión publicada
+    // (ADR-035) para resolver el semver automáticamente. `checkPublishable`
+    // (`record` falso: es una vista previa, la usa también `inspect` de la
+    // confirmación humana de 4.5) no falla si no hay cambios — solo informa
+    // que publicar ahora repetiría la última versión; el error explícito
+    // `NOTHING_TO_PUBLISH` solo lo lanza la escritura real (`publish`,
+    // `record` verdadero), tanto aquí como al recalcular dentro del lock.
+    const previousVersion = await store.findLatestVersion(roomId);
+    const change = classifyRoomPackageChange(previousVersion?.package ?? null, draftPackage);
+    const resolvedSemver =
+      !record && change === "none" ? (latestSemver(semvers) ?? "1.0.0") : nextSemver(semvers, change);
+
     const format = draftPackage.meta.packageFormat;
     if (!supportedFormats.includes(format)) {
       throw new RoomPublishError(
@@ -680,14 +693,8 @@ export function createRoomPublishService(deps: {
       guard?: PublishGuard,
     ): Promise<PublishResult> {
       const room = await authorizeAuthor(actor, roomId);
-      const { semver, changelog } = parsePublishInput(input);
-      const { draftPackage, report, refs, precheck } = await prepare(
-        actor,
-        room,
-        semver,
-        guard,
-        true,
-      );
+      const { changelog } = parsePublishInput(input);
+      const { draftPackage, report, refs, precheck } = await prepare(actor, room, guard, true);
 
       const packaged = await packageAssets(actor, room.id, refs);
       const assetsHash = computeAssetsHash({
@@ -698,7 +705,9 @@ export function createRoomPublishService(deps: {
       const version = await store.withRoomLock(roomId, async (tx) => {
         const semvers = await tx.listSemvers(roomId);
         checkLatestSemver(guard, semvers);
-        const resolved = nextSemver(semvers, semver);
+        const previousVersion = await tx.findLatestVersion(roomId);
+        const change = classifyRoomPackageChange(previousVersion?.package ?? null, draftPackage);
+        const resolved = nextSemver(semvers, change);
         const frozen = rewriteAssetRefs(
           {
             ...draftPackage,
@@ -745,7 +754,7 @@ export function createRoomPublishService(deps: {
      */
     async checkPublishable(actor: Actor, roomId: string): Promise<PublishCheck> {
       const room = await authorizeAuthor(actor, roomId);
-      const prepared = await prepare(actor, room, undefined);
+      const prepared = await prepare(actor, room);
       return {
         roomId: room.id,
         title: prepared.draftPackage.meta.title,
@@ -817,6 +826,12 @@ export function createInMemoryRoomPublishStore(
     async listSemvers(roomId) {
       return versions.filter((v) => v.roomId === roomId).map((v) => v.semver);
     },
+    async findLatestVersion(roomId) {
+      const matches = versions
+        .filter((v) => v.roomId === roomId)
+        .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
+      return matches[0] ? clone(matches[0]) : null;
+    },
     async insertVersion(input) {
       if (versions.some((v) => v.roomId === input.roomId && v.semver === input.semver)) {
         throw new Error(`UNIQUE (roomId, semver) violado: ${input.semver}`);
@@ -838,6 +853,7 @@ export function createInMemoryRoomPublishStore(
 
   return {
     listSemvers: tx.listSemvers,
+    findLatestVersion: tx.findLatestVersion,
     rooms: roomById,
     addRoom(room) {
       roomById.set(room.id, { ...room });

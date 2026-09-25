@@ -1000,7 +1000,8 @@
       "CONTENT_BLOCKED": "Die Moderations-Vorprüfung hat einige Texte des Raums blockiert. Korrigiere sie oder lege Einspruch ein.",
       "ACCOUNT_FROZEN": "Dein Konto ist eingefroren, während eine schwere Meldung geprüft wird: Du kannst nicht veröffentlichen.",
       "CREATOR_SUSPENDED": "Das Veröffentlichen ist für dein Konto vorübergehend gesperrt.",
-      "CREATOR_BANNED": "Dein Konto kann keine Räume mehr veröffentlichen."
+      "CREATOR_BANNED": "Dein Konto kann keine Räume mehr veröffentlichen.",
+      "NOTHING_TO_PUBLISH": "Der Entwurf enthält seit der letzten veröffentlichten Version keine Änderungen: Es gibt nichts zu veröffentlichen."
     }
   },
   "McpConsent": {

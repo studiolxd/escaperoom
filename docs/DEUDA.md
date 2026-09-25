@@ -47,64 +47,6 @@ Tareas pendientes que no bloquean pero hay que resolver.
       PR #117); revisar también que los textos legales (`privacy.ts`,
       `cookies.ts`) describen la configuración real (dominio, retención de GA,
       transferencias internacionales de Google).
-- [ ] **Versión (semver) automática al publicar según el cambio del
-      `RoomPackage`.** Hoy `nextSemver(existing, requested?)`
-      (`packages/shared/src/services/room-publish.ts`) acepta un semver pedido
-      por el autor o, si no se pide, sube el parche. Cambiarlo por una
-      clasificación automática comparando el paquete candidato con el de la
-      última `roomVersion` publicada:
-      - **Primera publicación** → siempre `1.0.0`.
-      - **MAJOR** → cambia el conjunto de `puzzles[]`: se añade o se elimina
-        algún puzzle (comparando por `id`, no por posición; reordenar sin
-        añadir ni quitar no es MAJOR salvo que se decida lo contrario).
-      - **MINOR** → mismo conjunto de ids de `puzzles[]`, pero algún puzzle
-        existente cambia cualquier campo (tipo/plantilla, solución, pistas,
-        capa, posición…). Sin granularidad por campo: cualquier modificación
-        de un puzzle con el mismo id es MINOR.
-      - **PATCH** → nada cambia dentro de `puzzles[]`; solo `objects`, `map`,
-        `items`, `dialogs`, `hints`, `meta.assetsManifest` u otros campos de
-        presentación/assets.
-      - **`rules[]` (decidido, entra en el diff):** comparar también `rules[]`
-        entre la versión anterior y la candidata, por `id` de regla igual que
-        `puzzles[]`.
-        - Si una regla se añade, elimina o modifica y referencia (en su
-          `trigger`, `conditions` o `actions`) un `puzzleId` que existe en ambas
-          versiones → cuenta como cambio de ese puzzle → **MINOR** (mismo
-          criterio grueso, sin sub-clasificar campos de la regla).
-        - Si la regla cambiada no referencia ningún `puzzleId` (solo
-          `objectId`/`itemId` sin relación con un puzzle) → no dispara MINOR por
-          sí sola; es un cambio de presentación/mundo → **PATCH** si no hay
-          ningún otro cambio en `puzzles[]`.
-        - Se evalúa después de la comprobación de MAJOR (añadir/quitar puzzles)
-          y se combina con el diff de `puzzles[]`: si ya hay MAJOR, no hace falta
-          mirar `rules[]`.
-      - **Sin ningún cambio:** decidir si se permite publicar (como PATCH) o se
-        devuelve un error explícito "nada que publicar", y documentarlo.
-      - **Dónde:** función pura `classifyRoomPackageChange(previous: RoomPackage
-        | null, candidate: RoomPackage): 'major' | 'minor' | 'patch'` en un
-        módulo nuevo `packages/shared/src/services/room-version-diff.ts` (o
-        junto a `nextSemver`). `nextSemver` deja de aceptar el semver pedido por
-        el autor y recibe el resultado de la clasificación: MAJOR/MINOR ponen a
-        cero los componentes inferiores (2.3.4 + MAJOR → 3.0.0; + MINOR →
-        2.4.0; + PATCH → 2.3.5). Quitar `semver` de `PublishInput` y de la
-        validación de la entrada.
-      - **Tests unitarios:** añadir/quitar puzzle → MAJOR; modificar puzzle
-        existente → MINOR; cambios solo fuera de `puzzles[]` → PATCH; primera
-        publicación → 1.0.0; sin cambios → lo que se decida; y modificar una
-        regla que apunta a un puzzle existente sin tocar el objeto puzzle en sí
-        → MINOR (no PATCH).
-      - **Documentación:** `docs/specs/13-api-rest.md` (quitar `semver` del
-        contrato de `POST /api/rooms/:roomId/publish` y documentar la política
-        automática); `docs/specs/08-formato-roompackage.md` (cómo se calcula el
-        semver de `roomVersion` a partir del contenido); ADR nuevo en
-        `docs/reference/registro-de-decisiones.md` (por qué se quita el
-        override manual, por qué "puzzle cambió sí/no" y no campo a campo, y cómo
-        se tratan los cambios de `rules[]`). Revisar también el MCP (`publish`)
-        y el editor si exponen el semver manual.
-      - **Fuera de alcance:** no tocar `meta.packageFormat` (es la versión del
-        formato del contrato, ortogonal a la del contenido); no hay UI de
-        rankings ni notificaciones a compradores que actualizar. Si se toca la
-        pantalla de confirmación de publicación, solo shadcn/ui (ADR-019).
 - [ ] **Retirar la ruta de partida de prueba `/[locale]/play`.** Debe desaparecer
       antes de pasar a producto. El flujo de **salas gratis jugables sin
       cuenta** que la sustituye como forma de jugar una sala sin compra ya
@@ -195,16 +137,42 @@ Tareas pendientes que no bloquean pero hay que resolver.
       dentro de `(public)`, así que ya no enseñan la shell pública por error
       — verificado (`editor/[roomId]`, `dev/rules-graph`, `dev/validation`,
       `play`). `global-error.tsx` ya estaba mínimo y coherente (no tocado).
-- [ ] **Test inestable: muestreo de moderación.**
+- [x] **Versión (semver) automática al publicar según el cambio del
+      `RoomPackage`.** `nextSemver(existing, requested?)`
+      (`packages/shared/src/services/room-publish.ts`) aceptaba un semver
+      pedido por el autor o, si no se pedía, subía el parche sin mirar qué
+      había cambiado en el `RoomPackage`.
+      Resuelto (ADR-035, `docs/reference/registro-de-decisiones.md`):
+      `classifyRoomPackageChange` (`packages/shared/src/services/room-version-diff.ts`)
+      clasifica el cambio comparando el paquete candidato con el de la última
+      `roomVersion` publicada — MAJOR si se añade/quita algún `puzzles[]` (por
+      `id`); MINOR si algún puzzle existente cambia de contenido, o una regla
+      de `rules[]` añadida/eliminada/modificada referencia (en su `trigger`,
+      alguna `condition` o `action`, con recursión en `delay`) un `puzzleId`
+      presente en ambas versiones; PATCH para cualquier otra diferencia; y
+      `NOTHING_TO_PUBLISH` (409) si no hay ningún cambio de contenido —
+      `checkPublishable` (vista previa del editor y de la confirmación humana
+      del MCP) no lo bloquea, solo informa. `nextSemver` ya no acepta un
+      semver pedido; se quitó `semver` de `PublishInput` y de la validación de
+      `POST /api/rooms/:roomId/publish` (el MCP y el editor no lo exponían).
+      Tests: `packages/shared/test/room-version-diff.test.ts` y actualizados
+      `room-publish.test.ts`/`publish-confirmation.test.ts`/`room-publish-api.test.ts`.
+      `docs/specs/13-api-rest.md` y `docs/specs/08-formato-roompackage.md`
+      actualizados. PR #156.
+- [x] **Test inestable: muestreo de moderación.**
       `packages/shared/test/moderation-prisma.integration.test.ts` › "muestreo: la
-      versión reciente entra una sola vez" falla de forma intermitente cuando
-      la suite de `shared` corre en paralelo: `sampleRecentlyPublished({rate:1})`
-      no filtra por las salas del propio test y recoge `roomVersion` creadas por
-      otros ficheros de integración (y su limpieza choca por FK con esos otros
-      tests). Pasa siempre en aislamiento. Aislarlo: que el test solo cuente sus
-      propias salas (filtro por ids o por un autor/etiqueta propios) o que el
-      muestreo acepte un filtro inyectable en tests. Lo han señalado varias PRs
-      de la auditoría (#134, #135, #136, #141, #150).
+      versión reciente entra una sola vez" fallaba de forma intermitente cuando
+      la suite de `shared` corría en paralelo: `sampleRecentlyPublished({rate:1})`
+      no filtraba por las salas del propio test y recogía `roomVersion` creadas
+      por otros ficheros de integración. Pasaba siempre en aislamiento. Lo
+      habían señalado varias PRs de la auditoría (#134, #135, #136, #141, #150).
+      Resuelto: `listUnsampledVersions`/`sampleRecentlyPublished`
+      (`packages/shared/src/services/moderation.ts` y
+      `moderation-prisma-store.ts`) aceptan ahora un `roomIds` opcional (sin
+      él, comportamiento global igual que antes — no cambia producción); el
+      test lo pasa para contar solo su propia sala. Verificado con 5 pasadas
+      seguidas de toda la suite de `shared` en verde (90 ficheros, 950 tests)
+      contra Postgres. PR #156.
 - [ ] **Definir la generación de assets con Magnific en la plataforma.** Magnific va a
       usarse (decisión del usuario, 2026-09-25): los textos legales ya lo declaran como
       proveedor activo. Falta definir la funcionalidad: qué podrá generar o editar un

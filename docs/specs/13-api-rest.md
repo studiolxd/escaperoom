@@ -106,7 +106,7 @@ alrededor de la edición:
 | DELETE | `/api/rooms/:roomId` | autor | Borrado lógico (`deleted_at`); con `purchase`/`review` nunca se borra físicamente |
 | GET | `/api/rooms/:roomId/draft` | autor/colaborador | Bootstrap del editor: último snapshot + updates posteriores |
 | POST | `/api/rooms/:roomId/validate` | autor (o MCP) | Corre el validador sobre el draft: `{ valid, errors, warnings, estimatedMinutes, estimatedDifficulty }` |
-| POST | `/api/rooms/:roomId/publish` | autor | `{ semver, changelog }`. Exige `validate` en verde (repetido server-side). Empaqueta, sube assets a R2, calcula `assetsHash`, inserta `roomVersion`. `VALIDATION_FAILED` si no pasa |
+| POST | `/api/rooms/:roomId/publish` | autor | `{ changelog }`. El semver es siempre automático (ADR-035, `classifyRoomPackageChange` sobre el `RoomPackage` candidato frente al de la última versión): ya no se puede pedir uno. Exige `validate` en verde (repetido server-side). Empaqueta, sube assets a R2, calcula `assetsHash`, inserta `roomVersion`. `VALIDATION_FAILED` si no pasa; `NOTHING_TO_PUBLISH` (409) si el contenido es idéntico al de la última versión publicada |
 | GET | `/api/rooms/:roomId/versions/:versionId/package` | autor, admin o servicio interno | El `RoomPackage` completo — única ruta que lo expone, nunca al público |
 | POST | `/api/rooms/:roomId/license-checkout` | creador | Compra la licencia de la sala de otro → Stripe Checkout, `purchase_type: 'room_license'` |
 | POST | `/api/rooms/:roomId/gift-copy` | autor | Envía copia gratuita a otro creador (`{ recipientEmail }`) — sin Stripe, fork inmediato |
@@ -155,7 +155,6 @@ Checkout con **Stripe Checkout** hospedado (no se gestionan tarjetas directament
 |---|---|---|---|
 | POST | `/api/purchases/room-checkout` | usuario | `{ roomVersionId }` → valida `saleIndividual` y precio, crea `purchase` (`pending`) + Checkout Session con `metadata.purchaseId`. Devuelve `{ checkoutUrl }` |
 | GET | `/api/purchases/:id` | comprador o admin | Estado de una compra |
-| GET | `/api/rooms/:roomId/access` | usuario | `{ owned, playable, gameToken?, roomId? }` (B-4, auditoría 2026-09-24; punto f de "CTA Jugar", `docs/DEUDA.md`): libre y en curso son ambas `playable: true` (en curso además lleva `roomId`, para unirse a esa `GameRoom` en vez de crear otra); consumida es `playable: false` sin token. Sin sesión, o sin `roomId` con forma de UUID, responde como anónimo (nunca revela si una compra ajena existe). El botón de la ficha decide Jugar/Reanudar vs. Comprar a partir de esta misma ruta (specs/02 §2.1) |
 | GET | `/api/rooms/:roomId/free-access` | público, sin sesión | `{ eligible, gameToken?, roomVersionId? }` (punto i de "CTA Jugar", `docs/DEUDA.md`; specs/02 §2.2): sala realmente gratis (`priceCents: 0` + `saleIndividual: true`), sin `purchase` ni Stripe. Rate-limitada por IP (`free-room-play`, `docs/reference/seguridad.md` §1) — cada emisión corresponde a una `GameRoom` nueva |
 
 El reparto 70/30 se calcula al liquidar el pago en el webhook (§7), no en la creación; el

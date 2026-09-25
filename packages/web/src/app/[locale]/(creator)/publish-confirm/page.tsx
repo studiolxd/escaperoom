@@ -36,6 +36,8 @@ const KNOWN_ERRORS = new Set([
   "CREATOR_SUSPENDED",
   "CREATOR_BANNED",
   "PUBLISH_CONFIRM_DISABLED",
+  // ADR-035: el draft es idéntico a la última versión publicada.
+  "NOTHING_TO_PUBLISH",
 ]);
 
 type View = { kind: "error"; code: string } | { kind: "state"; state: PublishConfirmationState };

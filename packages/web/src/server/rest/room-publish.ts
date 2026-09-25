@@ -23,6 +23,7 @@ export const PUBLISH_STATUS_BY_CODE: Record<RoomPublishErrorCode, number> = {
   // A-22: fijado en specs/13 §1 — VALIDATION_ERROR es 422 en todas las rutas (era 400 aquí).
   VALIDATION_ERROR: 422,
   VERSION_CONFLICT: 409,
+  NOTHING_TO_PUBLISH: 409,
   ROOM_NOT_PUBLISHABLE: 409,
   INVALID_PACKAGE: 422,
   UNSUPPORTED_PACKAGE_FORMAT: 422,
