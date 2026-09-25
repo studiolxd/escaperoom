@@ -29,11 +29,11 @@ import {
   rotatePipe,
   setPlateActive,
   submitCombination,
+  toCodeLockPublicView,
   toCombineItemsPublicView,
   toHiddenKeyPublicView,
   toMemoryPublicView,
   toPipesPuzzlePublicView,
-  toPublicView,
   toSimultaneousPlatesPublicView,
   toSlidingPuzzlePublicView,
   toSplitCluePublicView,
@@ -376,7 +376,7 @@ export class RoomSession {
   /** Proyección pública de un `code_lock` (nunca incluye el código). */
   codeLockView(puzzleId: string): CodeLockPublicView {
     const def = this.definition(puzzleId, "code_lock");
-    return toPublicView(this.templates.code_lock.get(puzzleId)!, def);
+    return toCodeLockPublicView(this.templates.code_lock.get(puzzleId)!, def);
   }
 
   /** Proyección pública de un `combine_items` sobre el inventario de un jugador. */
