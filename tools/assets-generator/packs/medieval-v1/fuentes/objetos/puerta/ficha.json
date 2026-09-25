@@ -1,0 +1,20 @@
+{
+  "asset": "objetos/puerta",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Puerta de madera (hoja pintada de frente; el hueco del arco lo da el muro)",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-25T12:55:41+00:00",
+      "magnific": "N2dZVUr6D9",
+      "prompt": "A medieval wooden castle door for a fantasy game, seen perfectly straight from the front, flat, filling the whole image. A tall narrow door with a round arched top (a rectangle with a full semicircle on top), made of vertical dark orange-brown oak planks with dark seams, three horizontal grey iron straps with round rivets and long strap hinges on the left side, and one thick grey iron ring handle on the right side. Same wood, iron and rivets as the reference wardrobe. Chunky simple bold shapes, no carvings, no window, no text. Same stylized 3D toon rendering, soft shading and soft upper-left lighting as the reference. Edges defined only by light and shading, no outline. The door fills the frame edge to edge on a flat light grey background, no wall, no frame, no shadow, no text."
+    }
+  ],
+  "creditos_total": 180
+}

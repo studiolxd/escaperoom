@@ -1,0 +1,4 @@
+{
+  "nombre": "Vector plano",
+  "descripcion": "La estética original del generador de tiles: vector plano con trazos y ruido sutil, piedra gris fría, muros bajos y los objetos de scripts/tiles/sprites.py. Solo tiles (sin Blender). Su mapa de pack es tiles/pack.json (lista en pack-assets.md)."
+}

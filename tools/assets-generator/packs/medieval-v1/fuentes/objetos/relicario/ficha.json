@@ -1,0 +1,28 @@
+{
+  "asset": "objetos/relicario",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Catacumbas · relicario: master → 3D (sello y alma en Blender)",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-25T12:29:22+00:00",
+      "magnific": "vQgEzvKa47",
+      "prompt": "Game prop design of a royal reliquary that holds the soul of a king, for an isometric escape room game in a medieval fantasy castle. A small rectangular chest-shaped reliquary of gold and dark wood with a FLAT lid (not domed), the lid slightly overhanging, four short gold feet, gold corner fittings with round rivets, a simple round gold medallion on the front (no symbols). Closed. Chunky simple bold shapes, no fine filigree, no gems, no text. Seen in a three-quarter front view slightly from above, whole object visible and centered, symmetrical. Exactly the same stylized 3D toon rendering, soft shading, saturated colors and soft upper-left lighting as the reference chest. Edges defined only by light and shading, no outline. Isolated on a flat uniform light grey background, no floor, no shadow, no text."
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-p1",
+      "creditos": 580,
+      "fecha": "2026-09-25T12:31:05+00:00",
+      "magnific": "eI5oi5mdqL"
+    }
+  ],
+  "creditos_total": 760
+}

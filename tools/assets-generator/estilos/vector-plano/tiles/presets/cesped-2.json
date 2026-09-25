@@ -1,0 +1,60 @@
+{
+  "type": "cesped",
+  "params": {
+    "seed": 9,
+    "base": [
+      96,
+      138,
+      58
+    ],
+    "patch_color": [
+      78,
+      116,
+      46
+    ],
+    "patches": 10,
+    "patch_radius": [
+      0.8,
+      1.8
+    ],
+    "patch_opacity": 0.35,
+    "tones": [
+      [
+        80,
+        120,
+        44
+      ],
+      [
+        98,
+        142,
+        58
+      ],
+      [
+        116,
+        158,
+        66
+      ],
+      [
+        134,
+        172,
+        78
+      ]
+    ],
+    "tone_weights": [
+      3,
+      4,
+      4,
+      2
+    ],
+    "grid": 10,
+    "jitter": 0.45,
+    "blades_per_tuft": 4,
+    "under_blades": 2,
+    "blade_h_min": 4,
+    "blade_h_max": 11,
+    "blade_width": 1.4,
+    "lean": 0.8,
+    "bend": 0.45,
+    "noise_alpha": 0.4
+  }
+}

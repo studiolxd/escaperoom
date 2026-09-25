@@ -148,3 +148,9 @@ y `--cpu-throttle` (heurístico para tests sensibles al paralelismo, sin
 fiabilidad completa frente a los timeouts reales de CI — ver el aviso en el
 propio script). Requiere el worktree ya preparado (`pnpm infra:up`,
 `pnpm dev:env`, `pnpm db:migrate && pnpm db:seed`).
+
+## Assets gráficos
+
+Assets gráficos (estilos, packs, renders de Blender, tiles SVG):
+`tools/assets-generator/` — leer su `CLAUDE.md` antes de tocarlo; sus
+binarios (`fuentes/`, `entregas/`) son locales y no se versionan.

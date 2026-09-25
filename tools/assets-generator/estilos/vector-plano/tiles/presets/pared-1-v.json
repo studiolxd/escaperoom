@@ -1,0 +1,34 @@
+{
+  "type": "pared",
+  "params": {
+    "seed": 5,
+    "dir": "v",
+    "thick": 2.0,
+    "height": 64,
+    "canvas_h": 128,
+    "courses": 6,
+    "block_len": 2.0,
+    "gray_min": 138,
+    "gray_max": 178,
+    "tint": [
+      4,
+      4,
+      0
+    ],
+    "mortar": [
+      58,
+      56,
+      54
+    ],
+    "gap": 0.7,
+    "jitter": 0.6,
+    "highlight": 26,
+    "shadow": 34,
+    "shade_left": 0,
+    "shade_right": -34,
+    "shade_top": 18,
+    "foot_shadow": 4,
+    "foot_opacity": 0.2,
+    "noise_alpha": 0.3
+  }
+}

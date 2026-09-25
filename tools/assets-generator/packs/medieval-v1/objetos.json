@@ -1,0 +1,1119 @@
+{
+ "_": "Objetos del pack. render: configuración de scripts/blender/render_objeto.py (rutas relativas a fuentes/; el constructor de cada objeto está en blender/objetos.py). empaquetar: grupos de scripts/empaquetar/empaquetar_objeto.py (render = carpeta de renders/, ortho y zc del encuadre, frames del juego -> (frame del render, orientación)).",
+ "estados_activos": [
+  "abierta",
+  "abierto",
+  "activa",
+  "con-agua",
+  "encendido",
+  "hundida",
+  "movido"
+ ],
+ "render": {
+  "arca": {
+   "glb": "objetos/arca/tripo.glb",
+   "escala": [
+    "y",
+    0.95
+   ],
+   "tapa_z": 0.012,
+   "apertura_deg": 105,
+   "encuadre": [
+    2.2,
+    0.45
+   ],
+   "frames": {
+    "cerrado": "arca-cerrada",
+    "abierto": "arca-abierta"
+   }
+  },
+  "armario": {
+   "glb": "objetos/armario/tripo.glb",
+   "escala": [
+    "z",
+    1.6
+   ],
+   "puertas_y": [
+    -0.262,
+    0.257
+   ],
+   "puertas_z": [
+    -0.402,
+    0.44
+   ],
+   "frente_x": 0.14,
+   "corte_y": -0.025,
+   "placa": [
+    [
+     -0.105,
+     0.095
+    ],
+    [
+     -0.058,
+     0.112
+    ]
+   ],
+   "apertura_deg": 140,
+   "encuadre": [
+    3.0,
+    0.9
+   ],
+   "frames": {
+    "cerrado": "armario",
+    "abierto": "armario-abierto"
+   }
+  },
+  "brasero": {
+   "glb": "objetos/brasero/tripo.glb",
+   "escala": [
+    "z",
+    0.95
+   ],
+   "cuenco_z": [
+    0.19,
+    0.27
+   ],
+   "encuadre": [
+    2.4,
+    0.8
+   ],
+   "orientaciones": [
+    "abajo-izq"
+   ],
+   "frames": {
+    "apagado": "brasero-apagado",
+    "encendido": "brasero-encendido"
+   }
+  },
+  "estatua": {
+   "glb": "objetos/estatua/tripo.glb",
+   "escala": [
+    "z",
+    2.4
+   ],
+   "encuadre": [
+    3.6,
+    1.25
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "frames": {
+    "base": "estatua-caballero"
+   }
+  },
+  "trono": {
+   "glb": "objetos/trono/tripo.glb",
+   "escala": [
+    "z",
+    2.0
+   ],
+   "encuadre": [
+    3.2,
+    1.0
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "frames": {
+    "base": "trono"
+   }
+  },
+  "barril": {
+   "glb": "objetos/barril/tripo.glb",
+   "escala": [
+    "z",
+    1.0
+   ],
+   "encuadre": [
+    2.4,
+    0.5
+   ],
+   "orientaciones": [
+    "abajo-izq"
+   ],
+   "frames": {
+    "cerrado": "barril-cerrado",
+    "movido": "barril-movido"
+   }
+  },
+  "barriles": {
+   "glb": "objetos/barril/tripo.glb",
+   "escala": [
+    "x",
+    0.85
+   ],
+   "encuadre": [
+    2.6,
+    0.6
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "frames": {
+    "base": "barriles"
+   }
+  },
+  "mesa": {
+   "glb": "objetos/mesa/tripo.glb",
+   "escala": [
+    "z",
+    0.78
+   ],
+   "encuadre": [
+    3.4,
+    0.45
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "frames": {
+    "reposo": "mesa",
+    "activa": "mesa-activa"
+   }
+  },
+  "sarcofago": {
+   "glb": "objetos/sarcofago/tripo.glb",
+   "escala": [
+    "y",
+    2.1
+   ],
+   "encuadre": [
+    3.4,
+    0.5
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "frames": {
+    "base": "sarcofago"
+   }
+  },
+  "altar": {
+   "glb": "objetos/altar/tripo.glb",
+   "escala": [
+    "z",
+    0.9
+   ],
+   "encuadre": [
+    2.8,
+    0.55
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "frames": {
+    "seco": "altar-seco",
+    "con-agua": "altar-con-agua"
+   }
+  },
+  "relicario": {
+   "glb": "objetos/relicario/tripo.glb",
+   "escala": [
+    "y",
+    0.7
+   ],
+   "tapa_z": 0.095,
+   "alto_tapa": 0.08,
+   "apertura_deg": 110,
+   "encuadre": [
+    2.0,
+    0.45
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "frames": {
+    "cerrado": "relicario-sellado",
+    "abierto": "relicario-abierto"
+   }
+  },
+  "vasijas": {
+   "glb": "objetos/vasija/tripo.glb",
+   "escala": [
+    "z",
+    0.7
+   ],
+   "encuadre": [
+    3.0,
+    0.55
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "frames": {
+    "base": "vasijas-8"
+   }
+  },
+  "canal": {
+   "glb": null,
+   "escala": null,
+   "encuadre": [
+    2.4,
+    0.3
+   ],
+   "orientaciones": [
+    "abajo-der",
+    "abajo-izq"
+   ],
+   "frames": {
+    "base": "canal"
+   }
+  },
+  "canal-tramo": {
+   "glb": null,
+   "escala": null,
+   "encuadre": [
+    2.4,
+    0.3
+   ],
+   "orientaciones": [
+    "abajo-der",
+    "abajo-izq"
+   ],
+   "frames": {
+    "base": "canal-tramo"
+   }
+  },
+  "compuerta": {
+   "glb": null,
+   "escala": null,
+   "encuadre": [
+    2.6,
+    0.5
+   ],
+   "orientaciones": [
+    "abajo-der",
+    "abajo-izq"
+   ],
+   "frames": {
+    "cerrado": "compuerta-cerrada",
+    "abierta": "compuerta-abierta"
+   }
+  },
+  "antorcha": {
+   "glb": null,
+   "escala": null,
+   "encuadre": [
+    3.0,
+    1.0
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "frames": {
+    "base": "antorcha"
+   }
+  },
+  "puerta": {
+   "glb": null,
+   "escala": null,
+   "encuadre": [
+    3.0,
+    1.0
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "imagen": "objetos/puerta/hoja.png",
+   "frames": {
+    "cerrado": "puerta-cerrada",
+    "abierto": "puerta-abierta"
+   }
+  },
+  "reja": {
+   "glb": null,
+   "escala": null,
+   "encuadre": [
+    3.0,
+    1.0
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "frames": {
+    "cerrado": "reja-cerrada",
+    "abierto": "reja-abierta"
+   }
+  },
+  "placa": {
+   "glb": null,
+   "escala": null,
+   "encuadre": [
+    1.6,
+    0.1
+   ],
+   "orientaciones": [
+    "abajo-izq"
+   ],
+   "frames": {
+    "arriba": "placa-arriba",
+    "hundida": "placa-hundida"
+   }
+  },
+  "columna": {
+   "glb": null,
+   "escala": null,
+   "encuadre": [
+    3.2,
+    1.2
+   ],
+   "orientaciones": [
+    "abajo-izq"
+   ],
+   "pieza": "entera",
+   "frames": {
+    "base": "columna"
+   },
+   "salida": "columnas"
+  },
+  "columna-base": {
+   "glb": null,
+   "escala": null,
+   "encuadre": [
+    3.2,
+    1.2
+   ],
+   "orientaciones": [
+    "abajo-izq"
+   ],
+   "pieza": "base",
+   "frames": {
+    "base": "columna-base"
+   },
+   "salida": "columnas"
+  },
+  "columna-capital": {
+   "glb": null,
+   "escala": null,
+   "encuadre": [
+    3.2,
+    1.2
+   ],
+   "orientaciones": [
+    "abajo-izq"
+   ],
+   "pieza": "capital",
+   "frames": {
+    "base": "columna-capital"
+   },
+   "salida": "columnas"
+  },
+  "umbral": {
+   "glb": null,
+   "escala": null,
+   "encuadre": [
+    1.6,
+    0.1
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "frames": {
+    "base": "umbral"
+   }
+  },
+  "escalon": {
+   "glb": null,
+   "escala": null,
+   "encuadre": [
+    1.6,
+    0.15
+   ],
+   "orientaciones": [
+    "abajo-izq",
+    "abajo-der"
+   ],
+   "frames": {
+    "base": "escalon"
+   }
+  }
+ },
+ "empaquetar": {
+  "arca": {
+   "render": "arca",
+   "ortho": 2.2,
+   "zc": 0.45,
+   "frames": {
+    "arca": [
+     "arca-cerrada",
+     "abajo-izq"
+    ],
+    "arca-cerrada": [
+     "arca-cerrada",
+     "abajo-izq"
+    ],
+    "arca-abierta": [
+     "arca-abierta",
+     "abajo-izq"
+    ],
+    "arca-der": [
+     "arca-cerrada",
+     "abajo-der"
+    ],
+    "arca-cerrada-der": [
+     "arca-cerrada",
+     "abajo-der"
+    ],
+    "arca-abierta-der": [
+     "arca-abierta",
+     "abajo-der"
+    ]
+   }
+  },
+  "armario": {
+   "render": "armario",
+   "ortho": 3.0,
+   "zc": 0.9,
+   "frames": {
+    "armario": [
+     "armario",
+     "abajo-izq"
+    ],
+    "armario-abierto": [
+     "armario-abierto",
+     "abajo-izq"
+    ],
+    "armario-der": [
+     "armario",
+     "abajo-der"
+    ],
+    "armario-abierto-der": [
+     "armario-abierto",
+     "abajo-der"
+    ]
+   }
+  },
+  "brasero": {
+   "render": "brasero",
+   "ortho": 2.4,
+   "zc": 0.8,
+   "frames": {
+    "brasero": [
+     "brasero-apagado",
+     "abajo-izq"
+    ],
+    "brasero-apagado": [
+     "brasero-apagado",
+     "abajo-izq"
+    ],
+    "brasero-encendido": [
+     "brasero-encendido",
+     "abajo-izq"
+    ]
+   }
+  },
+  "estatua": {
+   "render": "estatua",
+   "ortho": 3.6,
+   "zc": 1.25,
+   "frames": {
+    "estatua-caballero": [
+     "estatua-caballero",
+     "abajo-izq"
+    ],
+    "estatua-caballero-der": [
+     "estatua-caballero",
+     "abajo-der"
+    ]
+   }
+  },
+  "trono": {
+   "render": "trono",
+   "ortho": 3.2,
+   "zc": 1.0,
+   "frames": {
+    "trono": [
+     "trono",
+     "abajo-izq"
+    ],
+    "trono-der": [
+     "trono",
+     "abajo-der"
+    ]
+   }
+  },
+  "cuadro-rey": {
+   "render": "pared-salon",
+   "ortho": 3.0,
+   "zc": 1.0,
+   "frames": {
+    "cuadro-rey": [
+     "cuadro-rey",
+     "abajo-izq"
+    ],
+    "cuadro-rey-torcido": [
+     "cuadro-rey-torcido",
+     "abajo-izq"
+    ],
+    "cuadro-rey-der": [
+     "cuadro-rey",
+     "abajo-der"
+    ],
+    "cuadro-rey-torcido-der": [
+     "cuadro-rey-torcido",
+     "abajo-der"
+    ]
+   }
+  },
+  "cuadro-reino-4torres": {
+   "render": "pared-salon",
+   "ortho": 3.0,
+   "zc": 1.0,
+   "frames": {
+    "cuadro-reino-4torres": [
+     "cuadro-reino-4torres",
+     "abajo-izq"
+    ],
+    "cuadro-reino-4torres-der": [
+     "cuadro-reino-4torres",
+     "abajo-der"
+    ]
+   }
+  },
+  "cuadro-reino-brasero": {
+   "render": "pared-salon",
+   "ortho": 3.0,
+   "zc": 1.0,
+   "frames": {
+    "cuadro-reino-brasero": [
+     "cuadro-reino-brasero",
+     "abajo-izq"
+    ],
+    "cuadro-reino-brasero-der": [
+     "cuadro-reino-brasero",
+     "abajo-der"
+    ]
+   }
+  },
+  "cuadro-reino-estatuas": {
+   "render": "pared-salon",
+   "ortho": 3.0,
+   "zc": 1.0,
+   "frames": {
+    "cuadro-reino-estatuas": [
+     "cuadro-reino-estatuas",
+     "abajo-izq"
+    ],
+    "cuadro-reino-estatuas-der": [
+     "cuadro-reino-estatuas",
+     "abajo-der"
+    ]
+   }
+  },
+  "tapiz-7-dragones": {
+   "render": "pared-salon",
+   "ortho": 3.0,
+   "zc": 1.0,
+   "frames": {
+    "tapiz-7-dragones": [
+     "tapiz-7-dragones",
+     "abajo-izq"
+    ],
+    "tapiz-7-dragones-der": [
+     "tapiz-7-dragones",
+     "abajo-der"
+    ]
+   }
+  },
+  "tapiz-dragones": {
+   "render": "pared-salon",
+   "ortho": 3.0,
+   "zc": 1.0,
+   "frames": {
+    "tapiz-dragones": [
+     "tapiz-dragones",
+     "abajo-izq"
+    ],
+    "tapiz-dragones-der": [
+     "tapiz-dragones",
+     "abajo-der"
+    ]
+   }
+  },
+  "barril": {
+   "render": "barril",
+   "ortho": 2.4,
+   "zc": 0.5,
+   "frames": {
+    "barril-suelto": [
+     "barril-cerrado",
+     "abajo-izq"
+    ],
+    "barril-cerrado": [
+     "barril-cerrado",
+     "abajo-izq"
+    ],
+    "barril-movido": [
+     "barril-movido",
+     "abajo-izq"
+    ]
+   }
+  },
+  "barriles": {
+   "render": "barriles",
+   "ortho": 2.6,
+   "zc": 0.6,
+   "frames": {
+    "barriles": [
+     "barriles",
+     "abajo-izq"
+    ],
+    "barriles-der": [
+     "barriles",
+     "abajo-der"
+    ]
+   }
+  },
+  "mesa": {
+   "render": "mesa",
+   "ortho": 3.4,
+   "zc": 0.45,
+   "frames": {
+    "mesa-catas": [
+     "mesa",
+     "abajo-izq"
+    ],
+    "mesa": [
+     "mesa",
+     "abajo-izq"
+    ],
+    "mesa-activa": [
+     "mesa-activa",
+     "abajo-izq"
+    ],
+    "mesa-catas-der": [
+     "mesa",
+     "abajo-der"
+    ],
+    "mesa-der": [
+     "mesa",
+     "abajo-der"
+    ],
+    "mesa-activa-der": [
+     "mesa-activa",
+     "abajo-der"
+    ]
+   }
+  },
+  "mural": {
+   "render": "pared-bodega",
+   "ortho": 3.0,
+   "zc": 1.0,
+   "frames": {
+    "mural-azulejos": [
+     "mural-desordenado",
+     "abajo-izq"
+    ],
+    "mural-azulejos-der": [
+     "mural-desordenado",
+     "abajo-der"
+    ],
+    "mural-desordenado": [
+     "mural-desordenado",
+     "abajo-izq"
+    ],
+    "mural-desordenado-der": [
+     "mural-desordenado",
+     "abajo-der"
+    ],
+    "mural-completo": [
+     "mural-completo",
+     "abajo-izq"
+    ],
+    "mural-completo-der": [
+     "mural-completo",
+     "abajo-der"
+    ],
+    "compartimento": [
+     "compartimento-cerrado",
+     "abajo-izq"
+    ],
+    "compartimento-der": [
+     "compartimento-cerrado",
+     "abajo-der"
+    ],
+    "compartimento-cerrado": [
+     "compartimento-cerrado",
+     "abajo-izq"
+    ],
+    "compartimento-cerrado-der": [
+     "compartimento-cerrado",
+     "abajo-der"
+    ],
+    "compartimento-abierto": [
+     "compartimento-abierto",
+     "abajo-izq"
+    ],
+    "compartimento-abierto-der": [
+     "compartimento-abierto",
+     "abajo-der"
+    ],
+    "ranura-caliz": [
+     "ranura-vacia",
+     "abajo-izq"
+    ],
+    "ranura-caliz-der": [
+     "ranura-vacia",
+     "abajo-der"
+    ],
+    "ranura-vacia": [
+     "ranura-vacia",
+     "abajo-izq"
+    ],
+    "ranura-vacia-der": [
+     "ranura-vacia",
+     "abajo-der"
+    ],
+    "ranura-con-caliz": [
+     "ranura-con-caliz",
+     "abajo-izq"
+    ],
+    "ranura-con-caliz-der": [
+     "ranura-con-caliz",
+     "abajo-der"
+    ]
+   }
+  },
+  "mirilla": {
+   "render": "pared-bodega",
+   "ortho": 3.0,
+   "zc": 1.0,
+   "frames": {
+    "mirilla": [
+     "mirilla",
+     "abajo-izq"
+    ],
+    "mirilla-der": [
+     "mirilla",
+     "abajo-der"
+    ]
+   }
+  },
+  "sarcofago": {
+   "render": "sarcofago",
+   "ortho": 3.4,
+   "zc": 0.5,
+   "frames": {
+    "sarcofago": [
+     "sarcofago",
+     "abajo-izq"
+    ],
+    "sarcofago-der": [
+     "sarcofago",
+     "abajo-der"
+    ]
+   }
+  },
+  "altar": {
+   "render": "altar",
+   "ortho": 2.8,
+   "zc": 0.55,
+   "frames": {
+    "altar": [
+     "altar-seco",
+     "abajo-izq"
+    ],
+    "altar-seco": [
+     "altar-seco",
+     "abajo-izq"
+    ],
+    "altar-con-agua": [
+     "altar-con-agua",
+     "abajo-izq"
+    ],
+    "altar-der": [
+     "altar-seco",
+     "abajo-der"
+    ],
+    "altar-seco-der": [
+     "altar-seco",
+     "abajo-der"
+    ],
+    "altar-con-agua-der": [
+     "altar-con-agua",
+     "abajo-der"
+    ]
+   }
+  },
+  "relicario": {
+   "render": "relicario",
+   "ortho": 2.0,
+   "zc": 0.45,
+   "frames": {
+    "relicario": [
+     "relicario-sellado",
+     "abajo-izq"
+    ],
+    "relicario-sellado": [
+     "relicario-sellado",
+     "abajo-izq"
+    ],
+    "relicario-abierto": [
+     "relicario-abierto",
+     "abajo-izq"
+    ],
+    "relicario-der": [
+     "relicario-sellado",
+     "abajo-der"
+    ],
+    "relicario-sellado-der": [
+     "relicario-sellado",
+     "abajo-der"
+    ],
+    "relicario-abierto-der": [
+     "relicario-abierto",
+     "abajo-der"
+    ]
+   }
+  },
+  "vasijas": {
+   "render": "vasijas",
+   "ortho": 3.0,
+   "zc": 0.55,
+   "frames": {
+    "vasijas-8": [
+     "vasijas-8",
+     "abajo-izq"
+    ],
+    "vasijas-8-der": [
+     "vasijas-8",
+     "abajo-der"
+    ]
+   }
+  },
+  "canal": {
+   "render": "canal",
+   "ortho": 2.4,
+   "zc": 0.3,
+   "frames": {
+    "canal": [
+     "canal",
+     "abajo-der"
+    ],
+    "canal-y": [
+     "canal",
+     "abajo-izq"
+    ]
+   }
+  },
+  "canal-tramo": {
+   "render": "canal-tramo",
+   "ortho": 2.4,
+   "zc": 0.3,
+   "frames": {
+    "canal-tramo": [
+     "canal-tramo",
+     "abajo-der"
+    ],
+    "canal-tramo-y": [
+     "canal-tramo",
+     "abajo-izq"
+    ]
+   }
+  },
+  "compuerta": {
+   "render": "compuerta",
+   "ortho": 2.6,
+   "zc": 0.5,
+   "frames": {
+    "compuerta": [
+     "compuerta-cerrada",
+     "abajo-der"
+    ],
+    "compuerta-cerrada": [
+     "compuerta-cerrada",
+     "abajo-der"
+    ],
+    "compuerta-abierta": [
+     "compuerta-abierta",
+     "abajo-der"
+    ],
+    "compuerta-y": [
+     "compuerta-cerrada",
+     "abajo-izq"
+    ],
+    "compuerta-cerrada-y": [
+     "compuerta-cerrada",
+     "abajo-izq"
+    ],
+    "compuerta-abierta-y": [
+     "compuerta-abierta",
+     "abajo-izq"
+    ]
+   }
+  },
+  "antorcha": {
+   "render": "antorcha",
+   "ortho": 3.0,
+   "zc": 1.0,
+   "frames": {
+    "antorcha": [
+     "antorcha",
+     "abajo-izq"
+    ],
+    "antorcha-der": [
+     "antorcha",
+     "abajo-der"
+    ]
+   }
+  },
+  "puerta": {
+   "render": "puerta",
+   "ortho": 3.0,
+   "zc": 1.0,
+   "frames": {
+    "puerta-madera": [
+     "puerta-cerrada",
+     "abajo-izq"
+    ],
+    "puerta-madera-x": [
+     "puerta-cerrada",
+     "abajo-der"
+    ],
+    "puerta-cerrada": [
+     "puerta-cerrada",
+     "abajo-izq"
+    ],
+    "puerta-cerrada-x": [
+     "puerta-cerrada",
+     "abajo-der"
+    ],
+    "puerta-abierta": [
+     "puerta-abierta",
+     "abajo-izq"
+    ],
+    "puerta-abierta-x": [
+     "puerta-abierta",
+     "abajo-der"
+    ]
+   }
+  },
+  "reja": {
+   "render": "reja",
+   "ortho": 3.0,
+   "zc": 1.0,
+   "frames": {
+    "reja": [
+     "reja-cerrada",
+     "abajo-izq"
+    ],
+    "reja-x": [
+     "reja-cerrada",
+     "abajo-der"
+    ],
+    "reja-cerrada": [
+     "reja-cerrada",
+     "abajo-izq"
+    ],
+    "reja-cerrada-x": [
+     "reja-cerrada",
+     "abajo-der"
+    ],
+    "reja-abierta": [
+     "reja-abierta",
+     "abajo-izq"
+    ],
+    "reja-abierta-x": [
+     "reja-abierta",
+     "abajo-der"
+    ]
+   }
+  },
+  "placa": {
+   "render": "placa",
+   "ortho": 1.6,
+   "zc": 0.1,
+   "frames": {
+    "placa-piedra": [
+     "placa-arriba",
+     "abajo-izq"
+    ],
+    "placa-arriba": [
+     "placa-arriba",
+     "abajo-izq"
+    ],
+    "placa-hundida": [
+     "placa-hundida",
+     "abajo-izq"
+    ]
+   }
+  },
+  "columnas": {
+   "render": "columnas",
+   "ortho": 3.2,
+   "zc": 1.2,
+   "frames": {
+    "columna": [
+     "columna",
+     "abajo-izq"
+    ],
+    "columna-base": [
+     "columna-base",
+     "abajo-izq"
+    ],
+    "columna-capital": [
+     "columna-capital",
+     "abajo-izq"
+    ]
+   }
+  },
+  "estandarte": {
+   "render": "estandarte",
+   "ortho": 3.0,
+   "zc": 1.0,
+   "frames": {
+    "estandarte": [
+     "estandarte",
+     "abajo-izq"
+    ],
+    "estandarte-der": [
+     "estandarte",
+     "abajo-der"
+    ]
+   }
+  },
+  "umbral": {
+   "render": "umbral",
+   "ortho": 1.6,
+   "zc": 0.1,
+   "frames": {
+    "umbral": [
+     "umbral",
+     "abajo-izq"
+    ],
+    "umbral-x": [
+     "umbral",
+     "abajo-der"
+    ]
+   }
+  },
+  "escalon": {
+   "render": "escalon",
+   "ortho": 1.6,
+   "zc": 0.15,
+   "frames": {
+    "escalon": [
+     "escalon",
+     "abajo-izq"
+    ],
+    "escalon-x": [
+     "escalon",
+     "abajo-der"
+    ]
+   }
+  }
+ }
+}

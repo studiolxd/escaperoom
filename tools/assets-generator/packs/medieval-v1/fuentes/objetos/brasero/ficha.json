@@ -1,0 +1,28 @@
+{
+  "asset": "objetos/brasero",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Brasero: master → 3D (fuego y brasas en Blender)",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-25T10:43:48+00:00",
+      "magnific": "DoqexA6pcl",
+      "prompt": "Game prop design of a medieval ceremonial brazier for the throne room of a castle, for an isometric escape room game, unlit. A wide shallow dark iron bowl with a thick rim and a light grey iron band with round rivets around it, resting on a short sturdy octagonal pedestal of warm grey stone blocks with a simple square capital at the top and a square stone plinth at the base. Total height about 1 meter, the bowl is wide and takes the upper third. Inside the bowl: charred black logs, black charcoal and grey ash, completely cold: no fire, no flames, no glow, no embers, no smoke. Same grey iron with round rivets as the reference chest. Chunky simple bold shapes, no fine engravings, no emblems. Seen in a three-quarter front view slightly from above, whole object visible and centered, symmetrical. Exactly the same stylized 3D toon rendering, soft shading, saturated colors and soft upper-left lighting as the reference image. Edges defined only by light and shading, no outline. Isolated on a flat uniform light grey background, no floor, no shadow, no text."
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-p1",
+      "creditos": 580,
+      "fecha": "2026-09-25T10:45:23+00:00",
+      "magnific": "s7GgMCSl8e"
+    }
+  ],
+  "creditos_total": 760
+}

@@ -1,0 +1,4 @@
+{
+  "type": "piedra",
+  "params": { "seed": 3, "grid": 3, "jitter": 0.9 }
+}

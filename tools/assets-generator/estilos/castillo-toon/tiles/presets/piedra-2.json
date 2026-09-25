@@ -1,0 +1,9 @@
+{
+  "type": "piedra",
+  "params": {
+    "seed": 21,
+    "grid": 4,
+    "gray_min": 100,
+    "gray_max": 128
+  }
+}

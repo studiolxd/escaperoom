@@ -1,0 +1,111 @@
+{
+  "nombre": "Castillo toon",
+  "descripcion": "Toon 3D pulido sin contorno (masters 2D en Magnific -> 3D Tripo -> Blender), luz única arriba-izquierda, isométrico 2:1. Suelos y muros SVG en piedra gris cálida con muros de 2,4 m. Biblia en biblia.md.",
+  "celda_m": 0.905,
+  "camara": {
+    "elevacion_deg": 60,
+    "azimut_deg": 45
+  },
+  "luz": {
+    "_": "sol: dirección = −derecha·d + hacia_camara·h + arriba·a (ejes de la cámara), normalizada",
+    "derecha": 0.7,
+    "hacia_camara": 0.5,
+    "arriba": 0.9,
+    "energia": 3.0
+  },
+  "fondo": {
+    "color": [
+      0.75,
+      0.78,
+      0.85
+    ],
+    "fuerza": 0.6
+  },
+  "sala": {
+    "_": "sala neutra de prueba (render_objeto.py, escenas de pared, sala_prueba.py): losas alternas, color de muro y muros del estilo",
+    "losas": [
+      [
+        0.42,
+        0.4,
+        0.38
+      ],
+      [
+        0.36,
+        0.34,
+        0.33
+      ]
+    ],
+    "muro": [
+      0.55,
+      0.5,
+      0.45
+    ],
+    "alto_muro_m": 2.4,
+    "grosor_muro_m": 0.18
+  },
+  "personajes": {
+    "_": "Cámara FIJA para todos los personajes (no depende de la altura de cada uno): pivote y escala iguales en todos. Referencia: personaje de 1,75 m. recorte = caja fija 2:3 sobre el render; suelo_y = fila del render donde cae el suelo.",
+    "altura_ref_m": 1.75,
+    "res": [
+      1024,
+      1536
+    ],
+    "ortho": 2.1875,
+    "centro_z": 0.875,
+    "cabeza_deg": 14,
+    "sol_angulo_deg": 8,
+    "fondo_degradado": {
+      "posiciones": [
+        0.4,
+        0.6
+      ],
+      "colores": [
+        [
+          0.25,
+          0.22,
+          0.2
+        ],
+        [
+          0.85,
+          0.9,
+          1.0
+        ]
+      ],
+      "fuerza": 0.6
+    },
+    "direcciones_deg": {
+      "abajo-izq": 0,
+      "abajo-der": 90,
+      "arriba-der": 180,
+      "arriba-izq": -90
+    },
+    "recorte": [
+      62,
+      104,
+      962,
+      1454
+    ],
+    "suelo_y": 1300,
+    "metal": {
+      "_": "los píxeles de la textura poco saturados y claros (armadura) pasan a ser metal; null = sin metal",
+      "saturacion_max": 0.14,
+      "valor_min": 0.45,
+      "metalico": 0.85,
+      "rugosidad": [
+        0.9,
+        0.32
+      ],
+      "tinte": [
+        0.72,
+        0.75,
+        0.8
+      ]
+    }
+  },
+  "objetos": {
+    "res": 1024
+  },
+  "iconos": {
+    "relleno": 0.84
+  }
+}

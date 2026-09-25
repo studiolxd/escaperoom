@@ -47,3 +47,14 @@ packages/web/public/packs/**/manifest.json
 
 # Next.js genera/reescribe next-env.d.ts en cada build
 packages/web/next-env.d.ts
+
+# assets-generator: los binarios se quedan en local, fuera de git (el almacenamiento se decidirá más adelante;
+# copia de seguridad en el repo pipeline-assets). Sí se versionan las fichas (JSON) y los LEEME (Markdown).
+tools/assets-generator/packs/*/fuentes/**
+!tools/assets-generator/packs/*/fuentes/**/
+!tools/assets-generator/packs/*/fuentes/**/*.json
+tools/assets-generator/packs/*/entregas/**
+!tools/assets-generator/packs/*/entregas/**/
+!tools/assets-generator/packs/*/entregas/**/*.md
+tools/assets-generator/estilos/*/referencias/**
+!tools/assets-generator/estilos/*/referencias/**/

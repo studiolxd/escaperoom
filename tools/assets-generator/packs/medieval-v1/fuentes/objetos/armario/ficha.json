@@ -1,0 +1,45 @@
+{
+  "asset": "objetos/armario",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Armario: master → retoque cerradura → master final (tapajuntas en local) → 3D",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-25T10:04:13+00:00",
+      "magnific": "IfxIZqhtvE",
+      "prompt": "Game prop design of a medieval wooden wardrobe cabinet (armario) for an isometric escape room game, closed. Tall upright cabinet about 1.8 m high, two flat rectangular front doors meeting in the middle, each door hinged on its outer edge with visible iron strap hinges; a single iron lock plate with a keyhole in the center where the doors meet; small iron ring handles. Same dark orange-brown wood planks with dark seams and grey iron bands with round rivets as the reference chest, simple flat top with a slight cornice, short block feet. Chunky simple bold shapes, no fine engravings. Seen in a three-quarter front view slightly from above, whole object visible and centered, symmetrical. Exactly the same stylized 3D toon rendering, soft shading, saturated colors and soft upper-left lighting as the reference image. Edges defined only by light and shading, no outline. Isolated on a flat uniform light grey background, no floor, no shadow, no text."
+    },
+    {
+      "paso": "retoque",
+      "herramienta": "retouch",
+      "modelo": "Auto",
+      "creditos": 10,
+      "fecha": "2026-09-25T10:16:59+00:00",
+      "magnific": "ov1oDdR829",
+      "prompt": "A vertical light grey iron cover strip running the full height of the doors down the middle, covering the gap between the two doors, with round rivets along it, same width and look as the iron bands of the cabinet frame but a bit narrower. At mid height on the strip, one large chunky light grey iron lock plate with beveled corners, four round rivets and a big black keyhole. Just below the lock plate, two thick light grey iron ring handles at exactly the same height, one on each side of the strip, each hanging from its own small riveted iron plate. All metal exactly like the hinges and bands of the cabinet: chunky bold light grey iron with soft highlights, same stylized toon shading, orange-brown vertical wood planks around it."
+    },
+    {
+      "paso": "subida (retoque local)",
+      "herramienta": "upload",
+      "modelo": null,
+      "creditos": 0,
+      "fecha": "2026-09-25T10:24:09+00:00",
+      "magnific": "O6VP97cynm"
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-p1",
+      "creditos": 580,
+      "fecha": "2026-09-25T10:24:17+00:00",
+      "magnific": "ovrIhC2829"
+    }
+  ],
+  "creditos_total": 770
+}

@@ -1,0 +1,5 @@
+{
+  "nombre": "Vector plano",
+  "descripcion": "La estética original: vector plano con trazos y ruido sutil, piedra gris fría, muros bajos (64 px a 2×) y los objetos de sprites.py. Presets sin prefijo; su mapa de pack es estilos/vector-plano/tiles/pack.json -> estilos/vector-plano/renders/pack/.",
+  "tipos": {}
+}

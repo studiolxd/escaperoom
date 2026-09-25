@@ -1,0 +1,18 @@
+{
+  "_": "Suelos y muros del pack medieval-v1 (escape room del Rey Aldric) con presets del estilo castillo-toon. Los objetos, iconos y avatares salen de Blender (entregas/). muro-antorcha y muro-tapiz no se generan: la antorcha y los tapices son objetos 3D colgados sobre muro-1. Muros con elemento: sin sufijo = fila y=0 del juego (cara −u del generador, mira a la sala hacia abajo-izquierda); -x = columna x=0 (cara +v). tile-20/21/22 del fixture = muro con hueco de arco (puerta, reja y arco abierto van en la fila de muro; la hoja de la puerta y la reja son objetos que se dibujan encima).",
+  "tile-1": "castillo-toon/piedra-1",
+  "tile-2": "castillo-toon/piedra-2",
+  "tile-3": "castillo-toon/alfombra-1",
+  "tile-madera": "castillo-toon/madera-1",
+  "tile-10": "castillo-toon/muro-1",
+  "muro-esquina": "castillo-toon/muro-1",
+  "muro-remate": "castillo-toon/muro-1",
+  "muro-arco": "castillo-toon/muro-arco-1-v",
+  "tile-22": "castillo-toon/muro-arco-1-v",
+  "muro-ventana": "castillo-toon/muro-ventana-1-v",
+  "trampilla": "castillo-toon/trampilla-1",
+  "muro-arco-x": "castillo-toon/muro-arco-1",
+  "muro-ventana-x": "castillo-toon/muro-ventana-1",
+  "tile-20": "castillo-toon/muro-arco-1-v",
+  "tile-21": "castillo-toon/muro-arco-1-v"
+}

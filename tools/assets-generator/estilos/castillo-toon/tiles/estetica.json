@@ -1,0 +1,71 @@
+{
+  "nombre": "Castillo toon",
+  "descripcion": "Estilo castillo-toon (pack medieval-v1, escape room del Rey Aldric): suelos y muros SVG en piedra gris cálida para casar con los objetos renderizados en 3D toon (Blender). Muros de 2,4 m (64×136 a 1×). Los objetos NO salen de sprites.py.",
+  "escala": {
+    "px_por_metro_1x": 49.93,
+    "celda_m": 0.905,
+    "alto_muro_m": 2.4,
+    "nota": "Mismas medidas que render_objeto.py / empaquetar_objeto.py: celda 64×32 a 1×, avatar de 1,75 m = 96 px. En vertical, 1 m = 43,2 px a 1× (86,4 px en el viewBox a 2×)."
+  },
+  "tipos": {
+    "piedra": {
+      "grid": 3,
+      "jitter": 0.9,
+      "gray_min": 118,
+      "gray_max": 146,
+      "tint": [
+        16,
+        8,
+        -6
+      ],
+      "mortar": "#3b322b",
+      "shadow": 26,
+      "highlight": 16
+    },
+    "pared": {
+      "thick": 8.0,
+      "height": 208,
+      "canvas_h": 272,
+      "courses": 11,
+      "block_len": 4.0,
+      "jitter": 0.3,
+      "gray_min": 112,
+      "gray_max": 140,
+      "tint": [
+        16,
+        8,
+        -6
+      ],
+      "mortar": [
+        70,
+        60,
+        52
+      ],
+      "torch_z": 130,
+      "window_w": 8,
+      "window_h": 60,
+      "window_z": 90,
+      "arch_w": 6.4,
+      "arch_h": 130
+    },
+    "madera": {
+      "base": [
+        140,
+        78,
+        40
+      ],
+      "shade_range": 6
+    },
+    "alfombra": {
+      "color": "#8e1f25",
+      "weave_color": "#6e141a",
+      "motif": "rombos",
+      "motif_color": "#c9a04a",
+      "motif_width": 0.08,
+      "motif_opacity": 0.45
+    },
+    "trampilla": {
+      "floor_preset": "castillo-toon/piedra-1"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "type": "alfombra",
+  "params": {
+    "seed": 5,
+    "color": "#9c1b23",
+    "weave_color": "#7a1218",
+    "weave_step": 0.5,
+    "weave_opacity": 0.35,
+    "fine_alpha": 0.6,
+    "blotch_alpha": 0.25,
+    "weave_width": 0.04,
+    "motif": "rombos",
+    "motif_step": 2,
+    "motif_color": "#c9a04a",
+    "motif_width": 0.1,
+    "motif_opacity": 0.5,
+    "motif_dot": 0.16
+  }
+}

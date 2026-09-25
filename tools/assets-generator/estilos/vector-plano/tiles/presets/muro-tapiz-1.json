@@ -1,0 +1,55 @@
+{
+  "type": "pared",
+  "params": {
+    "seed": 5,
+    "dir": "u",
+    "arms": null,
+    "thick": 8,
+    "height": 64,
+    "canvas_h": 128,
+    "courses": 7,
+    "block_len": 2.0,
+    "gray_min": 148,
+    "gray_max": 174,
+    "tint": [
+      4,
+      4,
+      0
+    ],
+    "mortar": [
+      84,
+      80,
+      74
+    ],
+    "gap": 0.45,
+    "jitter": 0.3,
+    "highlight": 16,
+    "shadow": 20,
+    "edge_width": 0.5,
+    "edge_opacity": 0.6,
+    "shade_left": 0,
+    "shade_right": -34,
+    "shade_top": 18,
+    "foot_shadow": 4,
+    "foot_opacity": 0.2,
+    "noise_alpha": 0.3,
+    "feature": "tapiz",
+    "feature_pos": 0.5,
+    "torch_z": 30,
+    "banner_color": [
+      140,
+      26,
+      34
+    ],
+    "banner_trim": [
+      201,
+      160,
+      74
+    ],
+    "window_w": 4,
+    "window_h": 22,
+    "window_z": 26,
+    "arch_w": 3.4,
+    "arch_h": 30
+  }
+}
