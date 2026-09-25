@@ -68,6 +68,9 @@ describe("contrato de error REST en app/api/** (A-22)", () => {
     expect(allRoutes.length).toBeGreaterThan(20);
   });
 
+  // Recorre ~40 rutas reales (algunas importan clientes de red perezosos): bajo
+  // contención de CPU con otros procesos de test en paralelo, el timeout por
+  // defecto (5 s) se queda corto sin que haya nada realmente colgado.
   it("cuerpo `{` roto: si la ruta responde 400, siempre es INVALID_JSON con no-store", async () => {
     let exercised = 0;
     let skipped = 0;
@@ -115,5 +118,5 @@ describe("contrato de error REST en app/api/** (A-22)", () => {
     // Si nada se pudo ejercitar sin infra, el test no está comprobando nada de verdad.
     expect(exercised).toBeGreaterThan(10);
     expect(exercised + skipped).toBeGreaterThan(0);
-  });
+  }, 30_000);
 });
