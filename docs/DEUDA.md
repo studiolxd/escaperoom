@@ -122,12 +122,20 @@ Tareas pendientes que no bloquean pero hay que resolver.
       - **PATCH** → nada cambia dentro de `puzzles[]`; solo `objects`, `map`,
         `items`, `dialogs`, `hints`, `meta.assetsManifest` u otros campos de
         presentación/assets.
-      - **`rules[]`** (fuera de `puzzles[]`, puede tener lógica de desbloqueo
-        que referencia `puzzleId`/`objectId`/`itemId`): decidirlo y
-        documentarlo explícitamente. Recomendado: un cambio en `rules[]` que
-        referencie un `puzzleId` existente cuenta como cambio de ese puzzle
-        (MINOR), salvo que ya haya MAJOR. Si se deja fuera, anotarlo como
-        limitación conocida en el código y en la PR, no en silencio.
+      - **`rules[]` (decidido, entra en el diff):** comparar también `rules[]`
+        entre la versión anterior y la candidata, por `id` de regla igual que
+        `puzzles[]`.
+        - Si una regla se añade, elimina o modifica y referencia (en su
+          `trigger`, `conditions` o `actions`) un `puzzleId` que existe en ambas
+          versiones → cuenta como cambio de ese puzzle → **MINOR** (mismo
+          criterio grueso, sin sub-clasificar campos de la regla).
+        - Si la regla cambiada no referencia ningún `puzzleId` (solo
+          `objectId`/`itemId` sin relación con un puzzle) → no dispara MINOR por
+          sí sola; es un cambio de presentación/mundo → **PATCH** si no hay
+          ningún otro cambio en `puzzles[]`.
+        - Se evalúa después de la comprobación de MAJOR (añadir/quitar puzzles)
+          y se combina con el diff de `puzzles[]`: si ya hay MAJOR, no hace falta
+          mirar `rules[]`.
       - **Sin ningún cambio:** decidir si se permite publicar (como PATCH) o se
         devuelve un error explícito "nada que publicar", y documentarlo.
       - **Dónde:** función pura `classifyRoomPackageChange(previous: RoomPackage
@@ -140,14 +148,16 @@ Tareas pendientes que no bloquean pero hay que resolver.
         validación de la entrada.
       - **Tests unitarios:** añadir/quitar puzzle → MAJOR; modificar puzzle
         existente → MINOR; cambios solo fuera de `puzzles[]` → PATCH; primera
-        publicación → 1.0.0; sin cambios → lo que se decida.
+        publicación → 1.0.0; sin cambios → lo que se decida; y modificar una
+        regla que apunta a un puzzle existente sin tocar el objeto puzzle en sí
+        → MINOR (no PATCH).
       - **Documentación:** `docs/specs/13-api-rest.md` (quitar `semver` del
         contrato de `POST /api/rooms/:roomId/publish` y documentar la política
         automática); `docs/specs/08-formato-roompackage.md` (cómo se calcula el
         semver de `roomVersion` a partir del contenido); ADR nuevo en
         `docs/reference/registro-de-decisiones.md` (por qué se quita el
-        override manual, por qué "puzzle cambió sí/no" y no campo a campo, y la
-        limitación de `rules[]` si aplica). Revisar también el MCP (`publish`)
+        override manual, por qué "puzzle cambió sí/no" y no campo a campo, y cómo
+        se tratan los cambios de `rules[]`). Revisar también el MCP (`publish`)
         y el editor si exponen el semver manual.
       - **Fuera de alcance:** no tocar `meta.packageFormat` (es la versión del
         formato del contrato, ortogonal a la del contenido); no hay UI de
