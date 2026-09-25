@@ -77,9 +77,13 @@ model analyticsEvent {
   @@id([id, createdAt])
   @@index([sessionId], map: "ixAnalyticsEventSession")
   @@index([eventType, createdAt], map: "ixAnalyticsEventType")
-  /// E-7: construido a mano por partición con CREATE INDEX CONCURRENTLY +
-  /// ATTACH PARTITION (no se puede crear CONCURRENTLY directo sobre una
-  /// tabla particionada); las particiones mensuales futuras lo heredan solas.
+  /// E-7: CREATE INDEX normal (sin CONCURRENTLY) sobre la tabla padre —
+  /// Postgres no admite CONCURRENTLY directo sobre una tabla particionada,
+  /// y construirlo por partición con nombres fijos a mano rompe en cuanto
+  /// las particiones reales no son esas (ver el comentario de la
+  /// migración). Sin producción ni volumen real, el bloqueo breve de un
+  /// CREATE INDEX normal es aceptable; las particiones futuras lo heredan
+  /// solas.
   @@index([roomVersionId, createdAt], map: "ixAnalyticsEventRoomVersion")
 }
 
