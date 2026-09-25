@@ -1,18 +1,35 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations, useFormatter } from "next-intl";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Loader2 } from "lucide-react";
+import { createMinimalEvent } from "@/actions/events";
 import { Button } from "@/components/ui/button";
+import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useRouter } from "@/i18n/navigation";
 
 type PricingSnapshot = {
   tiers: Array<{ minPlayers: number; maxPlayers: number | null; priceCentsPerPlayer: number; currency: string }>;
 };
 
-type State = "idle" | "loading" | "error";
+/** Límites en sincronía con `CreateEventInput` (`@escaperoom/shared/services/events.ts`). */
+function useNewEventSchema() {
+  const t = useTranslations("NewEvent.errors");
+  return z.object({
+    title: z.string().trim().min(1, t("titleRequired")).max(200, t("titleTooLong")),
+    players: z
+      .number(t("playersInvalid"))
+      .int(t("playersInvalid"))
+      .min(1, t("playersInvalid"))
+      .max(100_000, t("playersTooMany")),
+  });
+}
+
+type NewEventFormValues = z.infer<ReturnType<typeof useNewEventSchema>>;
 
 /**
  * Flujo MÍNIMO de "Organizar un evento con esta sala" (punto h de "CTA
@@ -26,12 +43,20 @@ type State = "idle" | "loading" | "error";
  */
 export function NewEventForm({ roomVersionId }: { roomVersionId: string }) {
   const t = useTranslations("NewEvent");
+  const schema = useNewEventSchema();
   const format = useFormatter();
   const router = useRouter();
   const [tiers, setTiers] = useState<PricingSnapshot["tiers"] | null>(null);
-  const [title, setTitle] = useState("");
-  const [players, setPlayers] = useState(10);
-  const [state, setState] = useState<State>("idle");
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<NewEventFormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { title: "", players: 10 },
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -48,56 +73,43 @@ export function NewEventForm({ roomVersionId }: { roomVersionId: string }) {
     };
   }, []);
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setState("loading");
-    try {
-      const res = await fetch("/api/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          roomVersionId,
-          title,
-          playersPlanned: players,
-          maxSimultaneousSessions: 1,
-          groupingMode: "free",
-          requireConfirmation: false,
-          expiryRules: [],
-          audience: "general",
-        }),
-      });
-      const json = (await res.json().catch(() => null)) as { id?: string } | null;
-      if (!res.ok || !json?.id) throw new Error("sin id");
-      router.push(`/events/${json.id}`);
-    } catch {
-      setState("error");
+  const onSubmit = handleSubmit(async (values) => {
+    setFormError(null);
+    const result = await createMinimalEvent({
+      roomVersionId,
+      title: values.title,
+      playersPlanned: values.players,
+    });
+    if (!result.ok) {
+      setFormError(t("submitError"));
+      return;
     }
-  };
+    router.push(`/events/${result.data.id}`);
+  });
 
   return (
-    <form onSubmit={submit} className="flex max-w-md flex-col gap-4" noValidate>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="new-event-title">{t("titleLabel")}</Label>
+    <form onSubmit={onSubmit} className="flex max-w-md flex-col gap-4" noValidate>
+      <Field data-invalid={!!errors.title}>
+        <FieldLabel htmlFor="new-event-title">{t("titleLabel")}</FieldLabel>
         <Input
           id="new-event-title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          maxLength={200}
-          required
+          aria-invalid={!!errors.title}
+          aria-describedby={errors.title ? "new-event-title-error" : undefined}
+          {...register("title")}
         />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="new-event-players">{t("playersLabel")}</Label>
+        <FieldError id="new-event-title-error" errors={[errors.title]} />
+      </Field>
+      <Field data-invalid={!!errors.players}>
+        <FieldLabel htmlFor="new-event-players">{t("playersLabel")}</FieldLabel>
         <Input
           id="new-event-players"
           type="number"
-          min={1}
-          max={10000}
-          value={players}
-          onChange={(e) => setPlayers(Number(e.target.value) || 1)}
-          required
+          aria-invalid={!!errors.players}
+          aria-describedby={errors.players ? "new-event-players-error" : undefined}
+          {...register("players", { valueAsNumber: true })}
         />
-      </div>
+        <FieldError id="new-event-players-error" errors={[errors.players]} />
+      </Field>
       <div className="flex flex-col gap-1.5 rounded-lg border border-border p-3 text-sm">
         <p className="font-medium">{t("pricingTitle")}</p>
         {tiers === null ? (
@@ -120,9 +132,13 @@ export function NewEventForm({ roomVersionId }: { roomVersionId: string }) {
           </ul>
         )}
       </div>
-      {state === "error" && <p className="text-sm text-destructive">{t("submitError")}</p>}
-      <Button type="submit" disabled={state === "loading"} className="w-fit">
-        {state === "loading" && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />}
+      {formError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {formError}
+        </p>
+      ) : null}
+      <Button type="submit" disabled={isSubmitting} className="w-fit">
+        {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />}
         {t("submit")}
       </Button>
     </form>
