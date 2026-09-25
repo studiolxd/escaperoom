@@ -186,6 +186,7 @@ export function aldricScript(pkg: RoomPackage): {
     rule("r-entrar-catacumbas");
     rule("r-inspeccionar-sarcofago");
     rule("r-inspeccionar-vasijas");
+    rule("r-imagen-vasijas");
     object("compuerta-oro");
     // Ya hay llave de plata (mural) y compuerta: la mesa de combinar completa.
     puzzle("p-combina", true);

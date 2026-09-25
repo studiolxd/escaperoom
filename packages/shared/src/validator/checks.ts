@@ -294,13 +294,38 @@ export interface RepeatableRuleInfo {
 }
 
 /**
+ * Acciones de pura presentación (diálogo, imagen, sonido, FX, panel): no
+ * mutan estado del mundo/partida, así que una regla `once: false` compuesta
+ * solo por estas es segura de repetir sin condición de corte a propósito
+ * (p. ej. reinspeccionar una pista de conteo cuantas veces haga falta) — no
+ * es el "puede repetirse sin fin" que preocupa al heurístico, que es sobre
+ * acciones que acumulan o resetean estado.
+ */
+const PRESENTATION_ONLY_ACTIONS: ReadonlySet<RuleAction["type"]> = new Set([
+  "show_dialog",
+  "show_image",
+  "play_sound",
+  "spawn_effect",
+  "open_panel_puzzle",
+]);
+
+/** `true` si la acción muta estado del mundo/partida (no es de presentación). */
+function hasStateEffect(action: RuleAction): boolean {
+  return !PRESENTATION_ONLY_ACTIONS.has(action.type);
+}
+
+/**
  * Reglas `once: false`: tienen condición de corte si alguna de sus condiciones
  * deja de cumplirse por efecto de sus propias acciones (estado de objeto o flag
  * que cambian, ítem que se gasta). Sin corte, pueden dispararse sin fin.
+ *
+ * Una regla cuyas acciones son todas de presentación (`PRESENTATION_ONLY_ACTIONS`)
+ * queda fuera de este análisis: repetirla sin condición de corte es el diseño
+ * buscado, no un riesgo.
  */
 export function analyzeRepeatableRules(rules: readonly Rule[]): RepeatableRuleInfo[] {
   return rules
-    .filter((rule) => !rule.once)
+    .filter((rule) => !rule.once && flattenActions(rule.actions).some(hasStateEffect))
     .map((rule) => {
       const actions = flattenActions(rule.actions);
       const cutConditions = rule.conditions.filter((condition) => {

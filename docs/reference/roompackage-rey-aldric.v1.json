@@ -362,13 +362,17 @@
       "conditions": [],
       "actions": [ { "type": "show_dialog", "dialogId": "d-sarcofago" } ] },
 
-    { "id": "r-inspeccionar-vasijas", "priority": 0, "once": false,
+    { "id": "r-inspeccionar-vasijas", "priority": 0, "once": true,
+      "trigger": { "type": "on_interact", "objectId": "vasijas" },
+      "conditions": [],
+      "actions": [ { "type": "set_flag", "flag": "digito4", "value": 8 } ] },
+
+    { "id": "r-imagen-vasijas", "priority": 0, "once": false,
       "trigger": { "type": "on_interact", "objectId": "vasijas" },
       "conditions": [],
       "actions": [
         { "type": "show_dialog", "dialogId": "d-vasijas" },
-        { "type": "show_image", "image": "vasijas-8" },
-        { "type": "set_flag", "flag": "digito4", "value": 8 }
+        { "type": "show_image", "image": "vasijas-8" }
       ] },
 
     { "id": "r-canal-resuelto", "priority": 5, "once": true,

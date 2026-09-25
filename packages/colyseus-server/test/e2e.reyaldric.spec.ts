@@ -61,6 +61,7 @@ const ONCE_RULES = [
   "r-canal-resuelto",
   "r-inspeccionar-sarcofago",
   "r-inspeccionar-vasijas",
+  "r-imagen-vasijas",
   "r-sello-resuelto",
 ] as const;
 

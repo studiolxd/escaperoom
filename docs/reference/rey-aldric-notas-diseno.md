@@ -74,10 +74,12 @@ Acompaña a `reference/roompackage-rey-aldric.v1.json` y a `specs/08-formato-roo
 ✅ Solvabilidad: ruta crítica verificada (ver secuencia abajo)
 🟡 El candado del arca tiene pistas asociadas (OK) — el sello final depende de 3 dígitos
    descubiertos sin pista directa; cubierto por hint-sello-1/2 (OK)
-🟡 Reglas sin condición de corte: r-imagen-cuadro, r-inspeccionar-retrato-2/3/4,
-   r-inspeccionar-tapiz-dragones, r-inspeccionar-vasijas — repetibles a propósito, para
-   reinspeccionar una pista de conteo cuantas veces haga falta (r-recoger-caliz es repeatable
-   con guarda doble, no entra en este aviso)
+✅ Sin reglas sin condiciones de corte (r-recoger-caliz es repeatable con guarda doble; las
+   reglas de inspección repetibles — r-imagen-cuadro, r-inspeccionar-retrato-2/3/4,
+   r-inspeccionar-tapiz-dragones, r-imagen-vasijas — son solo de presentación
+   (show_dialog/show_image, sin mutar estado), así que el heurístico no las cuenta: repetirlas
+   sin condición de corte es el diseño buscado, no un riesgo. El `set_flag digito4` de
+   r-inspeccionar-vasijas vive en una regla aparte, `once: true`)
 🟡 Dificultad 2 coherente con estimatedMinutes 55
 ```
 

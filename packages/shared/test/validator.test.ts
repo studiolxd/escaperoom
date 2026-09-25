@@ -54,7 +54,7 @@ describe("validador — Rey Aldric", () => {
 
   it("reproduce los mismos ✅/🟡 del informe esperado de las notas de diseño", () => {
     const expected = icons(expectedReportBlock());
-    expect(expected).toEqual(["✅", "✅", "✅", "🟡", "🟡", "🟡"]);
+    expect(expected).toEqual(["✅", "✅", "✅", "🟡", "✅", "🟡"]);
     // 3.7 añade el 🟡 «Puzzles sin pista asociada» (specs/09 §5), posterior a
     // las notas: el Rey Aldric solo tiene HintDef para sus dos candados.
     // La auditoría D-3/D-10 añade tres checks nuevos (geometría, invariantes
@@ -98,7 +98,7 @@ describe("validador — Rey Aldric", () => {
     expect(checkOf(report, "dead_ends")).toMatchObject({ status: "ok", passed: true });
     expect(checkOf(report, "solvability")).toMatchObject({ status: "ok", passed: true });
     expect(checkOf(report, "code_hints")).toMatchObject({ status: "warning", passed: true });
-    expect(checkOf(report, "rule_cuts")).toMatchObject({ status: "warning", passed: false });
+    expect(checkOf(report, "rule_cuts")).toMatchObject({ status: "ok", passed: true });
     expect(checkOf(report, "difficulty")).toMatchObject({ status: "warning", passed: true });
     expect(checkOf(report, "references").passed).toBe(true);
     expect(checkOf(report, "double_use").passed).toBe(true);
@@ -107,11 +107,7 @@ describe("validador — Rey Aldric", () => {
     expect(text).toContain(
       "toda puerta se desbloquea (puerta-bodega ← p-placas-estatuas; reja-escalera ← p-reja-mirillas)",
     );
-    // r-recoger-caliz es repeatable con guarda doble (cut conditions): no
-    // aparece entre las reglas sin condición de corte.
-    expect(checkOf(report, "rule_cuts").issues.map((issue) => issue.ids[0])).not.toContain(
-      "r-recoger-caliz",
-    );
+    expect(text).toContain("r-recoger-caliz es repeatable con guarda doble");
     expect(text).toContain("Dificultad 2 coherente con estimatedMinutes 55");
     expect(text).toContain("cubierto por hint-sello-1/2/3 (OK)");
   });
@@ -363,22 +359,50 @@ describe("validador — huérfanos, reglas y referencias", () => {
     const report = validateRoomPackage(pkg);
     const cuts = checkOf(report, "rule_cuts");
     expect(cuts.status).toBe("warning");
-    // El fixture base ya trae reglas de inspección repetibles (`once: false`,
-    // sin condición de corte) a propósito: reinspeccionar pistas de conteo.
-    expect(cuts.issues.map((issue) => issue.ids)).toEqual([
-      ["r-imagen-cuadro"],
-      ["r-inspeccionar-retrato-2"],
-      ["r-inspeccionar-retrato-3"],
-      ["r-inspeccionar-retrato-4"],
-      ["r-inspeccionar-tapiz-dragones"],
-      ["r-inspeccionar-vasijas"],
-      ["r-bucle"],
-    ]);
-    expect(renderValidationReport(report)).toContain(
-      "🟡 Reglas sin condición de corte: r-imagen-cuadro, r-inspeccionar-retrato-2, " +
-        "r-inspeccionar-retrato-3, r-inspeccionar-retrato-4, r-inspeccionar-tapiz-dragones, " +
-        "r-inspeccionar-vasijas, r-bucle",
-    );
+    // Las reglas de inspección repetibles del fixture base son solo de
+    // presentación (show_dialog/show_image): el heurístico no las cuenta
+    // (`analyzeRepeatableRules` test más abajo), así que solo aparece r-bucle.
+    expect(cuts.issues.map((issue) => issue.ids)).toEqual([["r-bucle"]]);
+    expect(renderValidationReport(report)).toContain("🟡 Reglas sin condición de corte: r-bucle");
+  });
+
+  it("una regla repetible sin condición de corte, pero solo de presentación, no avisa", () => {
+    const pkg = cloneFixture();
+    pkg.rules.push({
+      id: "r-eco",
+      priority: 0,
+      once: false,
+      trigger: { type: "on_interact", objectId: "trono" },
+      conditions: [],
+      actions: [
+        { type: "show_dialog", dialogId: "d-cuadro" },
+        { type: "show_image", image: "cuadro-rey" },
+        { type: "play_sound", soundId: "fx-eco" },
+      ],
+    });
+
+    const report = validateRoomPackage(pkg);
+    expect(checkOf(report, "rule_cuts")).toMatchObject({ status: "ok", passed: true, issues: [] });
+  });
+
+  it("una regla repetible que además muta estado (set_flag) sigue avisando", () => {
+    const pkg = cloneFixture();
+    pkg.rules.push({
+      id: "r-eco-con-flag",
+      priority: 0,
+      once: false,
+      trigger: { type: "on_interact", objectId: "trono" },
+      conditions: [],
+      actions: [
+        { type: "show_dialog", dialogId: "d-cuadro" },
+        { type: "set_flag", flag: "eco", value: true },
+      ],
+    });
+
+    const report = validateRoomPackage(pkg);
+    const cuts = checkOf(report, "rule_cuts");
+    expect(cuts.status).toBe("warning");
+    expect(cuts.issues.map((issue) => issue.ids)).toEqual([["r-eco-con-flag"]]);
   });
 
   it("avisa del doble uso conflictivo de un objeto-puente que también se gasta en una regla", () => {

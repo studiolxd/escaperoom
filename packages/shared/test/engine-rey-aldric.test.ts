@@ -158,6 +158,7 @@ describe("motor de reglas — ruta crítica del Rey Aldric", () => {
       "r-entrar-catacumbas",
       "r-inspeccionar-sarcofago",
       "r-inspeccionar-vasijas",
+      "r-imagen-vasijas",
       "r-canal-resuelto",
       "r-aviso-10min",
       "r-sello-resuelto",
