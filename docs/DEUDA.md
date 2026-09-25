@@ -52,14 +52,30 @@ Tareas pendientes que no bloquean pero hay que resolver.
            (patrón fetch + redirect de `payouts-panel.tsx`).
         c. Si el viewer no ha iniciado sesión: el CTA de compra lleva primero a
            login/registro con retorno a la sala, sin lanzar el checkout.
-        d. Si `room.priceCents === 0` o el viewer ya tiene acceso: mantener
-           "Jugar la sala".
+        d. Si el viewer ya tiene acceso (compra `playable`): mantener "Jugar la
+           sala" (ver f). **No** tratar `priceCents === 0` como acceso libre:
+           hoy no existe atajo de Stripe para precio 0 o nulo
+           (`purchases.ts:192-194` rechaza `saleIndividual: false` o
+           `priceCents: null` con `SALE_INDIVIDUAL_DISABLED`).
         e. Reutilizar `checkout/confirmation` como destino tras el pago.
         f. **Jugar una sala comprada:** con acceso `playable`, el CTA "Jugar"
            crea la `GameRoom` con el `gameToken` del endpoint de acceso (hoy
            `/es/play` solo firma partidas de prueba `dev_test`); si la compra
            está "en curso", reconectar a esa partida; si está consumida, mostrar
            que ya se jugó (y, si aplica, ofrecer volver a comprar).
+        g. **`/redeem` solo para eventos:** el canje de clave de evento
+           (`/redeem`) queda reservado a quien llega con un enlace o invitación
+           de evento; nunca como destino genérico o de reserva del CTA de la
+           ficha. El único caso legítimo para enlazar `/redeem` desde la ficha es
+           que la sala tenga un **evento activo vinculado al viewer**.
+        h. **Sala sin venta individual y sin evento:** si `saleIndividual:
+           false` o `priceCents: null` y el viewer no tiene ningún evento activo
+           asociado, hoy no hay ningún camino de acceso real. No enlazar a
+           `/redeem` por defecto: decidir y documentar qué se muestra (CTA
+           deshabilitado con explicación, u ocultarlo). Si resulta que debería
+           existir el caso de producto "sala realmente gratis, jugable sin
+           clave ni compra", dejarlo como **pregunta abierta en la PR**, sin
+           improvisar una solución.
 - [ ] **Permitir valoraciones en medios puntos.**
       - **Estado actual:** `review.rating` es `Int @db.SmallInt`
         (`packages/shared/prisma/schema.prisma:431`), con `CHECK` en la base
@@ -95,3 +111,71 @@ Tareas pendientes que no bloquean pero hay que resolver.
            del nuevo selector (p. ej. "3,5 de 5 estrellas") en los 6 idiomas.
       - **Datos existentes:** los ratings enteros ya guardados (1–5) siguen
         siendo válidos; con escala doblada, la migración los multiplica por 2.
+- [ ] **Claves reales de analítica antes de desplegar en producción.** En
+      desarrollo se activan Plausible y Google Analytics con valores de prueba
+      (para ver el banner de consentimiento de cookies). Antes del primer
+      despliegue en producción hay que poner los reales: dominio de Plausible
+      registrado y el ID de medición de Google Analytics (`G-…`) de la
+      propiedad real. El arranque en producción debe fallar si faltan o si
+      siguen siendo los de desarrollo (mismo mecanismo que `requireInProduction`,
+      PR #117); revisar también que los textos legales (`privacy.ts`,
+      `cookies.ts`) describen la configuración real (dominio, retención de GA,
+      transferencias internacionales de Google).
+- [ ] **Versión (semver) automática al publicar según el cambio del
+      `RoomPackage`.** Hoy `nextSemver(existing, requested?)`
+      (`packages/shared/src/services/room-publish.ts`) acepta un semver pedido
+      por el autor o, si no se pide, sube el parche. Cambiarlo por una
+      clasificación automática comparando el paquete candidato con el de la
+      última `roomVersion` publicada:
+      - **Primera publicación** → siempre `1.0.0`.
+      - **MAJOR** → cambia el conjunto de `puzzles[]`: se añade o se elimina
+        algún puzzle (comparando por `id`, no por posición; reordenar sin
+        añadir ni quitar no es MAJOR salvo que se decida lo contrario).
+      - **MINOR** → mismo conjunto de ids de `puzzles[]`, pero algún puzzle
+        existente cambia cualquier campo (tipo/plantilla, solución, pistas,
+        capa, posición…). Sin granularidad por campo: cualquier modificación
+        de un puzzle con el mismo id es MINOR.
+      - **PATCH** → nada cambia dentro de `puzzles[]`; solo `objects`, `map`,
+        `items`, `dialogs`, `hints`, `meta.assetsManifest` u otros campos de
+        presentación/assets.
+      - **`rules[]` (decidido, entra en el diff):** comparar también `rules[]`
+        entre la versión anterior y la candidata, por `id` de regla igual que
+        `puzzles[]`.
+        - Si una regla se añade, elimina o modifica y referencia (en su
+          `trigger`, `conditions` o `actions`) un `puzzleId` que existe en ambas
+          versiones → cuenta como cambio de ese puzzle → **MINOR** (mismo
+          criterio grueso, sin sub-clasificar campos de la regla).
+        - Si la regla cambiada no referencia ningún `puzzleId` (solo
+          `objectId`/`itemId` sin relación con un puzzle) → no dispara MINOR por
+          sí sola; es un cambio de presentación/mundo → **PATCH** si no hay
+          ningún otro cambio en `puzzles[]`.
+        - Se evalúa después de la comprobación de MAJOR (añadir/quitar puzzles)
+          y se combina con el diff de `puzzles[]`: si ya hay MAJOR, no hace falta
+          mirar `rules[]`.
+      - **Sin ningún cambio:** decidir si se permite publicar (como PATCH) o se
+        devuelve un error explícito "nada que publicar", y documentarlo.
+      - **Dónde:** función pura `classifyRoomPackageChange(previous: RoomPackage
+        | null, candidate: RoomPackage): 'major' | 'minor' | 'patch'` en un
+        módulo nuevo `packages/shared/src/services/room-version-diff.ts` (o
+        junto a `nextSemver`). `nextSemver` deja de aceptar el semver pedido por
+        el autor y recibe el resultado de la clasificación: MAJOR/MINOR ponen a
+        cero los componentes inferiores (2.3.4 + MAJOR → 3.0.0; + MINOR →
+        2.4.0; + PATCH → 2.3.5). Quitar `semver` de `PublishInput` y de la
+        validación de la entrada.
+      - **Tests unitarios:** añadir/quitar puzzle → MAJOR; modificar puzzle
+        existente → MINOR; cambios solo fuera de `puzzles[]` → PATCH; primera
+        publicación → 1.0.0; sin cambios → lo que se decida; y modificar una
+        regla que apunta a un puzzle existente sin tocar el objeto puzzle en sí
+        → MINOR (no PATCH).
+      - **Documentación:** `docs/specs/13-api-rest.md` (quitar `semver` del
+        contrato de `POST /api/rooms/:roomId/publish` y documentar la política
+        automática); `docs/specs/08-formato-roompackage.md` (cómo se calcula el
+        semver de `roomVersion` a partir del contenido); ADR nuevo en
+        `docs/reference/registro-de-decisiones.md` (por qué se quita el
+        override manual, por qué "puzzle cambió sí/no" y no campo a campo, y cómo
+        se tratan los cambios de `rules[]`). Revisar también el MCP (`publish`)
+        y el editor si exponen el semver manual.
+      - **Fuera de alcance:** no tocar `meta.packageFormat` (es la versión del
+        formato del contrato, ortogonal a la del contenido); no hay UI de
+        rankings ni notificaciones a compradores que actualizar. Si se toca la
+        pantalla de confirmación de publicación, solo shadcn/ui (ADR-019).

@@ -336,6 +336,49 @@ describe("roomDraftService: restauración del historial", () => {
     expect(stateOf(editor.doc)).toEqual(await currentState(service));
   });
 
+  it("C-21: planRestoreAgainstDoc calcula el diff contra el doc VIVO, no una foto de BD que puede quedarse obsoleta", async () => {
+    const { service } = setup(1000);
+    const editor = createEditorDoc();
+    const checkpoint = await persistEdits(service, editor, 0, 4);
+    const expected = await currentState(service);
+    await persistEdits(service, editor, 4, 8);
+
+    // El doc vivo tiene, además de lo ya persistido, una edición que TODAVÍA
+    // no ha llegado a BD — como la de otro cliente conectado al servidor de
+    // sincronización que se aplica al doc en memoria mientras se calcula el
+    // plan de restauración (la ventana de carrera de C-21).
+    const liveDoc = buildDraftDoc(await service.loadDraft(author, ROOM_ID));
+    edit(liveDoc, 999);
+
+    const stalePlan = await service.planRestore(author, ROOM_ID, { updateId: checkpoint });
+    const freshPlan = await service.planRestoreAgainstDoc(
+      author,
+      ROOM_ID,
+      { updateId: checkpoint },
+      liveDoc,
+    );
+    expect(stalePlan).not.toBeNull();
+    expect(freshPlan).not.toBeNull();
+
+    const applyOverLiveDoc = (plan: Uint8Array) => {
+      const doc = new Y.Doc();
+      Y.applyUpdate(doc, Y.encodeStateAsUpdate(liveDoc));
+      Y.applyUpdate(doc, plan);
+      return doc;
+    };
+
+    // El plan calculado sobre BD (`planRestore`) no sabe nada de la edición
+    // 999 del doc vivo: al aplicarlo sobre ese doc, la deja huérfana y el
+    // resultado NO es realmente el checkpoint — la restauración mentiría
+    // sobre a dónde volvió el contenido.
+    expect(stateOf(applyOverLiveDoc(stalePlan!))).not.toEqual(expected);
+
+    // El plan calculado contra el doc vivo (`planRestoreAgainstDoc`) sí la
+    // conoce y la deshace junto con el resto: el resultado es exactamente
+    // el checkpoint.
+    expect(stateOf(applyOverLiveDoc(freshPlan!))).toEqual(expected);
+  });
+
   it("autoriza y valida el punto de restauración", async () => {
     const { service } = setup();
     const editor = createEditorDoc();

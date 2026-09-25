@@ -171,22 +171,21 @@ function toMeta(snapshot: DraftSnapshot): DraftSnapshotMeta {
 }
 
 /**
- * Update Yjs que, aplicado sobre el estado actual, devuelve el CONTENIDO del
- * doc al del punto `target` sin reescribir la historia (specs/09 §2).
- *
- * Técnica: se reconstruye el doc en el punto objetivo, se aplica encima (en
- * una sola transacción rastreada por un `UndoManager` de alcance doc completo)
- * todo lo posterior, y se deshace esa transacción. Las operaciones de "deshacer"
- * son operaciones nuevas del CRDT (borran lo insertado después y re-crean lo
- * borrado después), así que el resultado es un update normal que se añade al
- * historial y que mergea con ediciones concurrentes. Devuelve `null` si no hay
- * nada que deshacer (el doc ya está en ese punto).
+ * Técnica común de `buildRestoreUpdate`/`buildRestoreUpdateFromDoc`: se
+ * reconstruye el doc en el punto objetivo, se aplica encima (en una sola
+ * transacción rastreada por un `UndoManager` de alcance doc completo) el
+ * estado "actual" que aporte `applyCurrent`, y se deshace esa transacción.
+ * Las operaciones de "deshacer" son operaciones nuevas del CRDT (borran lo
+ * insertado después y re-crean lo borrado después), así que el resultado es
+ * un update normal que se añade al historial y que mergea con ediciones
+ * concurrentes. Devuelve `null` si no hay nada que deshacer (el doc ya está
+ * en ese punto).
  */
-export function buildRestoreUpdate(input: {
-  target: Pick<RoomDraft, "snapshot" | "updates">;
-  current: Pick<RoomDraft, "snapshot" | "updates">;
-}): Uint8Array | null {
-  const doc = buildDraftDoc(input.target);
+function computeRestoreUpdate(
+  target: Pick<RoomDraft, "snapshot" | "updates">,
+  applyCurrent: (doc: Y.Doc, tracked: symbol) => void,
+): Uint8Array | null {
+  const doc = buildDraftDoc(target);
   const tracked = Symbol("restore");
   const undo = new Y.UndoManager(doc, { trackedOrigins: new Set([tracked]), captureTimeout: 0 });
   // Con alcance doc completo el UndoManager apila aunque la transacción no
@@ -197,14 +196,7 @@ export function buildRestoreUpdate(input: {
   };
   doc.on("afterTransaction", onAfterTransaction);
   try {
-    Y.transact(
-      doc,
-      () => {
-        if (input.current.snapshot) Y.applyUpdate(doc, input.current.snapshot.state);
-        for (const update of input.current.updates) Y.applyUpdate(doc, update.data);
-      },
-      tracked,
-    );
+    applyCurrent(doc, tracked);
     doc.off("afterTransaction", onAfterTransaction);
     if (!changed) return null;
     const before = Y.encodeStateVector(doc);
@@ -216,6 +208,49 @@ export function buildRestoreUpdate(input: {
     undo.destroy();
     doc.destroy();
   }
+}
+
+/**
+ * Update Yjs que, aplicado sobre el estado actual, devuelve el CONTENIDO del
+ * doc al del punto `target` sin reescribir la historia (specs/09 §2). El
+ * "actual" se reconstruye desde `snapshot`+`updates` persistidos (se usa para
+ * restaurar salas sin sesión de edición viva, ver `restoreDraft`/`planRestore`).
+ */
+export function buildRestoreUpdate(input: {
+  target: Pick<RoomDraft, "snapshot" | "updates">;
+  current: Pick<RoomDraft, "snapshot" | "updates">;
+}): Uint8Array | null {
+  return computeRestoreUpdate(input.target, (doc, tracked) => {
+    Y.transact(
+      doc,
+      () => {
+        if (input.current.snapshot) Y.applyUpdate(doc, input.current.snapshot.state);
+        for (const update of input.current.updates) Y.applyUpdate(doc, update.data);
+      },
+      tracked,
+    );
+  });
+}
+
+/**
+ * Igual que `buildRestoreUpdate`, pero el "actual" es el estado de un doc Yjs
+ * VIVO (`currentDoc`) en vez de reconstruirlo desde `snapshot`+`updates` leídos
+ * de Postgres (C-21): el servidor de sincronización ya tiene el doc en
+ * memoria con todas las ediciones aplicadas (incluidas las que aún no han
+ * terminado de persistirse), así que usarlo directamente evita el viaje a BD
+ * para el lado "actual" del diff — que es justo la ventana en la que
+ * ediciones concurrentes podían colarse entre calcular el plan de
+ * restauración y aplicarlo. `Y.encodeStateAsUpdate(currentDoc)` se lee de
+ * forma síncrona en el mismo tick en que se aplica, así que captura siempre
+ * el estado más reciente del doc.
+ */
+export function buildRestoreUpdateFromDoc(input: {
+  target: Pick<RoomDraft, "snapshot" | "updates">;
+  currentDoc: Y.Doc;
+}): Uint8Array | null {
+  return computeRestoreUpdate(input.target, (doc, tracked) => {
+    Y.applyUpdate(doc, Y.encodeStateAsUpdate(input.currentDoc), tracked);
+  });
 }
 
 /**
@@ -274,23 +309,26 @@ export function createRoomDraftService(deps: {
     return update.id;
   }
 
+  /** Snapshot+updates persistidos hasta el punto de restauración `through` (historia inmutable). */
+  async function targetDraft(
+    tx: RoomDraftTx,
+    roomId: string,
+    through: bigint,
+  ): Promise<Pick<RoomDraft, "snapshot" | "updates">> {
+    const snapshot = await tx.latestSnapshot(roomId, through);
+    const updates = await tx.updatesAfter(roomId, snapshot?.updatesAppliedThrough ?? 0n, through);
+    return { snapshot, updates };
+  }
+
   async function planRestoreInTx(
     tx: RoomDraftTx,
     roomId: string,
     through: bigint,
   ): Promise<Uint8Array | null> {
-    const targetSnapshot = await tx.latestSnapshot(roomId, through);
-    const targetUpdates = await tx.updatesAfter(
-      roomId,
-      targetSnapshot?.updatesAppliedThrough ?? 0n,
-      through,
-    );
+    const target = await targetDraft(tx, roomId, through);
     const snapshot = await tx.latestSnapshot(roomId);
     const updates = await tx.updatesAfter(roomId, snapshot?.updatesAppliedThrough ?? 0n);
-    return buildRestoreUpdate({
-      target: { snapshot: targetSnapshot, updates: targetUpdates },
-      current: { snapshot, updates },
-    });
+    return buildRestoreUpdate({ target, current: { snapshot, updates } });
   }
 
   async function appendInTx(
@@ -403,6 +441,27 @@ export function createRoomDraftService(deps: {
       await authorize(actor, roomId);
       const through = await resolveRestorePoint(roomId, target);
       return planRestoreInTx(store, roomId, through);
+    },
+
+    /**
+     * Como `planRestore`, pero el lado "actual" del diff es `currentDoc` (el
+     * doc Yjs vivo del servidor de sincronización) en vez de lo persistido en
+     * Postgres (C-21): solo el punto `target` —historia inmutable— se lee de
+     * BD; el estado "actual" se toma del doc en memoria en el mismo tick en
+     * que se calcula el update, así que no hay viaje a BD en el que una
+     * edición concurrente pueda colarse entre el cálculo del plan y su
+     * aplicación sobre ese mismo doc.
+     */
+    async planRestoreAgainstDoc(
+      actor: Actor,
+      roomId: string,
+      target: RestoreTarget,
+      currentDoc: Y.Doc,
+    ): Promise<Uint8Array | null> {
+      await authorize(actor, roomId);
+      const through = await resolveRestorePoint(roomId, target);
+      const targetState = await targetDraft(store, roomId, through);
+      return buildRestoreUpdateFromDoc({ target: targetState, currentDoc });
     },
 
     /**
