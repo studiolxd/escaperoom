@@ -110,6 +110,10 @@ describe("catalogService.listRooms — filtro por idioma", () => {
     expect(await onlyFeatured.listRooms(ANONYMOUS_ACTOR, { language: "es" })).toEqual({
       items: [],
       nextCursor: null,
+      page: 1,
+      pageSize: 12,
+      totalCount: 0,
+      totalPages: 1,
     });
   });
 });

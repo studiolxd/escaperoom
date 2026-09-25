@@ -124,6 +124,9 @@ export function createInMemoryPublishedRoomListing(
     async getPublished(roomId) {
       return catalogRows().find((room) => room.id === roomId) ?? null;
     },
+    async countPublished(filter) {
+      return catalogRows().filter((room) => matchesCatalogFilter(room, filter)).length;
+    },
   };
 }
 
@@ -268,6 +271,21 @@ export function createPrismaPublishedRoomListing(prisma: PrismaClient): Publishe
       const row = rows[0];
       return row ? toRoom(row) : null;
     },
+    async countPublished(filter) {
+      const rows = await prisma.$queryRaw<{ count: number }[]>`
+        WITH latest AS (
+          SELECT DISTINCT ON (v."roomId") v."roomId", v.package
+            FROM "roomVersion" v
+            JOIN "room" r ON r.id = v."roomId"
+           WHERE r.status = 'published' AND r."deletedAt" IS NULL
+           ORDER BY v."roomId", v."publishedAt" DESC
+        )
+        SELECT COUNT(*)::int AS count
+          FROM latest
+          JOIN "room" r ON r.id = latest."roomId"
+         WHERE ${whereClause(filter)}`;
+      return rows[0]?.count ?? 0;
+    },
   };
 }
 
@@ -283,7 +301,7 @@ export interface CatalogCacheStore {
 
 /** Un evento de acceso al cache, para medir aciertos y tiempos (decisión de 6.4). */
 export type CatalogCacheTiming = {
-  op: "listPublished" | "getPublished";
+  op: "listPublished" | "getPublished" | "countPublished";
   hit: boolean;
   ms: number;
 };
@@ -375,5 +393,7 @@ export function createCachedPublishedRoomListing(
         inner.listPublished(filter, page),
       ),
     getPublished: (roomId) => withCache("getPublished", roomId, () => inner.getPublished(roomId)),
+    countPublished: (filter) =>
+      withCache("countPublished", stableStringify(filter), () => inner.countPublished(filter)),
   };
 }

@@ -240,7 +240,7 @@ describe("catalogService.listRooms — filtros combinables", () => {
       { players: "101" },
       { sort: "popular" },
       { cursor: "no-es-un-cursor" },
-      { limit: "51" },
+      { limit: "49" },
       { q: "x".repeat(101) },
       { language: "english" },
     ];
@@ -250,7 +250,7 @@ describe("catalogService.listRooms — filtros combinables", () => {
     expect(parseCatalogQuery({ q: "  ", sort: "" })).toMatchObject({
       filter: { q: null, sort: "recent", difficulties: [], players: null },
       offset: 0,
-      limit: 20,
+      limit: 12,
     });
   });
 });

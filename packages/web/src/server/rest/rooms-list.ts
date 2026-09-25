@@ -55,6 +55,7 @@ export function catalogInputFromSearchParams(params: URLSearchParams): CatalogLi
     sort: params.get("sort"),
     cursor: params.get("cursor"),
     limit: params.get("limit"),
+    page: params.get("page"),
   };
 }
 

@@ -1,8 +1,8 @@
 import { languageVersionsSection } from "./language-versions";
-import { legalLink, type LegalDocument } from "./types";
+import type { LegalDocument } from "./types";
 
 /**
- * Política de Cookies — BORRADOR TÉCNICO (ticket 6.2, specs/18).
+ * Política de Cookies (specs/18).
  *
  * Cookies reales en uso, verificadas por grep en `packages/web/src`: sesión
  * de Better Auth (`better-auth.session_token`, sin configuración de nombre
@@ -16,16 +16,8 @@ import { legalLink, type LegalDocument } from "./types";
  * la guía de cookies de la AEPD los trata como "tecnologías similares".
  */
 export const cookiesPolicy: LegalDocument = {
-  draftDate: "2026-09-23",
+  versionDate: "2026-09-23",
   sections: [
-    {
-      heading: "0. Qué es este documento",
-      paragraphs: [
-        "Esta página es un borrador técnico, no un texto legal vigente. Explica qué cookies utiliza " +
-          "hoy EscapeRoom Creator y cuáles están planificadas pero no activas todavía, a partir de una " +
-          "revisión del código. Un abogado especializado en protección de datos debe revisarlo.",
-      ],
-    },
     {
       heading: "1. Resumen",
       paragraphs: [
@@ -55,12 +47,7 @@ export const cookiesPolicy: LegalDocument = {
     {
       heading: "3. Analítica de producto",
       paragraphs: [
-        [
-          "La plataforma incorpora dos herramientas de analítica de producto, con tratamiento muy " +
-            "distinto según si usan cookies o no — a diferencia de LiveKit Cloud, que la ",
-          legalLink("Política de Privacidad", "/legal/privacy"),
-          " sigue describiendo como planificado y no activo.",
-        ],
+        "La plataforma usa dos herramientas de analítica de producto:",
       ],
       list: [
         "Plausible: mide tráfico agregado sin usar cookies y sin identificar a nadie individualmente. " +

@@ -2,11 +2,7 @@ import { languageVersionsSection } from "./language-versions";
 import { legalLink, type LegalDocument } from "./types";
 
 /**
- * Política de Privacidad — BORRADOR TÉCNICO (ticket 6.2, specs/18 §3–§4).
- *
- * Mismo aviso que `terms.ts`: no es un texto legal definitivo, es la base
- * técnica para que un abogado redacte el texto real antes del primer evento
- * educativo real o el primer pago.
+ * Política de Privacidad (specs/18 §3–§4).
  *
  * Contrastada con la política de slxd (`slxd/packages/legal/content/es/privacy.mdx`,
  * mismo responsable): de ahí salen la lista completa de derechos con la
@@ -15,17 +11,8 @@ import { legalLink, type LegalDocument } from "./types";
  * plataforma ya hace y no estaban descritos.
  */
 export const privacyPolicy: LegalDocument = {
-  draftDate: "2026-09-23",
+  versionDate: "2026-09-23",
   sections: [
-    {
-      heading: "0. Qué es este documento",
-      paragraphs: [
-        "Esta página es un borrador técnico, no un texto legal vigente. Describe qué datos trata " +
-          "EscapeRoom Creator, con qué base legal y durante cuánto tiempo, a partir de las decisiones " +
-          "de producto ya tomadas (specs/18 §3). Un abogado especializado en protección de datos " +
-          "(RGPD/LOPDGDD) debe revisarlo y convertirlo en el texto vigente.",
-      ],
-    },
     {
       heading: "1. Roles según el flujo de datos",
       paragraphs: [
@@ -59,9 +46,9 @@ export const privacyPolicy: LegalDocument = {
           "contenido de la sala sobre la que trabaja se envían al proveedor del modelo de lenguaje " +
           "configurado (véase la sección 6) para ejecutar el contrato (artículo 6.1.b del RGPD).",
         [
-          "Analítica de producto: Plausible, que no usa cookies, por interés legítimo (artículo 6.1.f " +
-            "del RGPD) con mecanismo de oposición; Google Analytics, solo con tu consentimiento previo " +
-            "(artículo 6.1.a del RGPD). Véase la ",
+          "Analítica de producto: Plausible, que no usa cookies, por interés legítimo (artículo " +
+            "6.1.f del RGPD) con mecanismo de oposición; Google Analytics, solo con tu consentimiento " +
+            "previo (artículo 6.1.a del RGPD). Véase la ",
           legalLink("Política de Cookies", "/legal/cookies"),
           ".",
         ],
@@ -114,8 +101,8 @@ export const privacyPolicy: LegalDocument = {
           "familias.",
         "Por la misma razón, el modelo no depende de dónde esté fijada esa edad: seguiría siendo " +
           "válido si la ley la eleva (por ejemplo, a 16 años, como plantea el proyecto de Ley " +
-          "Orgánica de protección de menores en entornos digitales en tramitación al redactar este " +
-          "borrador). Lo que sí sigue siendo obligación de la plataforma, como encargado, es tratar " +
+          "Orgánica de protección de menores en entornos digitales en tramitación). Lo que sí sigue " +
+          "siendo obligación de la plataforma, como encargado, es tratar " +
           "esos datos solo según las instrucciones del organizador, aplicar una minimización " +
           "reforzada (plazo de conservación más corto para eventos educativos, véase la sección 4) y " +
           "asistir al centro si necesita una evaluación de impacto por tratar datos de menores.",
@@ -160,8 +147,8 @@ export const privacyPolicy: LegalDocument = {
         "Puedes ejercer en cualquier momento tus derechos de acceso, rectificación, supresión, " +
           "limitación del tratamiento, oposición y portabilidad escribiendo a hello@studiolxd.com. " +
           "Cuando un tratamiento se basa en tu consentimiento (por ejemplo, la grabación de una " +
-          "sesión o Google Analytics), puedes retirarlo en cualquier momento, sin que eso afecte a la " +
-          "licitud del tratamiento anterior.",
+          "sesión o Google Analytics), puedes retirarlo en cualquier momento, sin que eso afecte a " +
+          "la licitud del tratamiento anterior.",
         "Si consideras que no hemos atendido correctamente tu solicitud, puedes presentar una " +
           "reclamación ante la Agencia Española de Protección de Datos (aepd.es, calle Jorge Juan, " +
           "6, 28001 Madrid).",
@@ -195,38 +182,46 @@ export const privacyPolicy: LegalDocument = {
       heading: "6. Encargados de tratamiento (proveedores) y transferencias internacionales",
       paragraphs: [
         "Los siguientes proveedores tratan datos de usuarios por cuenta de la plataforma, bajo " +
-          "contrato de encargo de tratamiento. Stripe y ElevenLabs tienen sede en Estados Unidos: " +
-          "cuando tratan datos lo hacen amparados en las Cláusulas Contractuales Tipo aprobadas por la " +
-          "Comisión Europea u otro mecanismo de transferencia válido conforme al RGPD. Resend/Postmark " +
-          "y Cloudflare R2 aplican la misma garantía para lo que su infraestructura procesa fuera del " +
-          "Espacio Económico Europeo:",
+          "contrato de encargo de tratamiento:",
       ],
       list: [
         "Netcup — hosting de la plataforma (servidores y base de datos), en Núremberg (Alemania), " +
           "Unión Europea; no supone una transferencia internacional.",
-        "Stripe — pagos y verificación de creadores (Connect).",
-        "ElevenLabs — conversión de texto a audio (generación de voces por IA). Sus condiciones de " +
-          "uso vigentes en plan de pago reconocen la titularidad de EscapeRoom Creator sobre el audio " +
-          "generado, pero ElevenLabs se reserva una licencia perpetua sobre las voces y el contenido " +
-          "que se le envía para entrenar sus propios modelos.",
+        "Stripe — pagos y verificación de creadores (Connect). Sede en Estados Unidos; la " +
+          "transferencia se ampara en las Cláusulas Contractuales Tipo aprobadas por la Comisión " +
+          "Europea.",
+        "ElevenLabs — conversión de texto a audio (generación de voces por IA). Sede en Estados " +
+          "Unidos; la transferencia se ampara en las Cláusulas Contractuales Tipo aprobadas por la " +
+          "Comisión Europea. Sus condiciones de uso vigentes en plan de pago reconocen la titularidad " +
+          "de EscapeRoom Creator sobre el audio generado, pero ElevenLabs se reserva una licencia " +
+          "perpetua sobre las voces y el contenido que se le envía para entrenar sus propios modelos.",
         "Anthropic, OpenAI o Google — modelo de lenguaje del editor asistido por IA. La plataforma " +
           "usa uno solo de los tres a la vez, según su configuración, y solo recibe datos cuando un " +
-          "creador usa el chat del editor. Los tres tienen sede en Estados Unidos y tratan los datos " +
-          "con las mismas garantías de transferencia que Stripe y ElevenLabs.",
-        "Resend/Postmark — envío de emails transaccionales.",
-        "Cloudflare R2 — almacenamiento de assets y grabaciones.",
+          "creador usa el chat del editor. Los tres tienen sede en Estados Unidos; la transferencia se " +
+          "ampara en las Cláusulas Contractuales Tipo aprobadas por la Comisión Europea.",
+        "Resend/Postmark — envío de emails transaccionales. Cuando procesan datos fuera del Espacio " +
+          "Económico Europeo, la transferencia se ampara en las Cláusulas Contractuales Tipo " +
+          "aprobadas por la Comisión Europea u otro mecanismo de transferencia válido conforme al " +
+          "RGPD.",
+        "Cloudflare R2 — almacenamiento de assets y grabaciones. Cuando procesa datos fuera del " +
+          "Espacio Económico Europeo, la transferencia se ampara en las Cláusulas Contractuales Tipo " +
+          "aprobadas por la Comisión Europea u otro mecanismo de transferencia válido conforme al " +
+          "RGPD.",
         "LiveKit Cloud — solo si se activa como plan de contingencia para audio/vídeo en tránsito; " +
           "mientras el servicio se opere en modo self-hosted, este proveedor no interviene.",
+        "Magnific — generación y edición de assets visuales (imágenes) con IA, prevista para el " +
+          "editor; todavía no activa. Mientras no se active, este proveedor no interviene.",
         [
-          "Plausible — analítica de producto; no usa cookies ni identifica a nadie individualmente " +
+          "Plausible — analítica de producto agregada, sin cookies ni identificación individual. " +
+            "Empresa y servidores en la Unión Europea; no supone una transferencia internacional " +
             "(véase la ",
           legalLink("Política de Cookies", "/legal/cookies"),
           ").",
         ],
         [
-          "Google Analytics — analítica de producto; usa cookies (`_ga`/`_ga_*`) y solo se carga con tu " +
-            "consentimiento previo, con sede en Estados Unidos y las mismas garantías de transferencia " +
-            "que el resto de proveedores de esta lista (véase la ",
+          "Google Analytics — analítica de producto; usa cookies (`_ga`/`_ga_*`) y solo se carga con " +
+            "tu consentimiento previo. Sede en Estados Unidos; la transferencia se ampara en las " +
+            "Cláusulas Contractuales Tipo aprobadas por la Comisión Europea (véase la ",
           legalLink("Política de Cookies", "/legal/cookies"),
           ").",
         ],

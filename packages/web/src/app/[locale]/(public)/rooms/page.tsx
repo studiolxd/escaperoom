@@ -76,7 +76,6 @@ export default async function CatalogPage({ params, searchParams }: Props) {
       // aislando el renderizado de la parrilla igualmente (F-20).
       resultPromise={Promise.resolve(result)}
       filters={filters}
-      isFirstPage={invalidFilters || !query.get("cursor")}
       invalidFilters={invalidFilters}
     />
   );
