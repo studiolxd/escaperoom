@@ -59,16 +59,32 @@ export function emptyGameSnapshot(selfId = ""): GameSnapshot {
   };
 }
 
-/**
- * Convierte el room state sincronizado en la instantánea plana que consumen
- * Phaser y React. Las flags viajan serializadas en JSON (`"3"`, `true`…).
- */
-export function toGameSnapshot(state: GameRoomStateLike | undefined, selfId: string): GameSnapshot {
-  if (!state) return emptyGameSnapshot(selfId);
+/** Igualdad superficial por clave (primitivos únicamente, como los snapshots de aquí). */
+function shallowEqual<T extends object>(a: T, b: T): boolean {
+  const ar = a as Record<string, unknown>;
+  const br = b as Record<string, unknown>;
+  for (const key in ar) if (ar[key] !== br[key]) return false;
+  for (const key in br) if (!(key in ar)) return false;
+  return true;
+}
 
-  const players: GamePlayerSnapshot[] = [];
+/**
+ * F-4: reconstruye la lista de jugadores, pero reutiliza la referencia
+ * anterior —del array y de cada jugador que no cambió— si nada varió desde
+ * el último `toGameSnapshot`. Antes se creaba un array y un objeto por
+ * jugador en CADA patch de Colyseus (~20 Hz), lo que invalidaba cualquier
+ * `React.memo`/selector aguas abajo aunque nada relevante hubiera cambiado.
+ */
+function buildPlayers(
+  state: GameRoomStateLike,
+  selfId: string,
+  previous: readonly GamePlayerSnapshot[],
+): GamePlayerSnapshot[] {
+  const next: GamePlayerSnapshot[] = [];
+  let index = 0;
+  let changed = false;
   state.players?.forEach((player) => {
-    players.push({
+    const candidate: GamePlayerSnapshot = {
       id: player.id,
       name: player.name,
       x: player.x,
@@ -79,42 +95,166 @@ export function toGameSnapshot(state: GameRoomStateLike | undefined, selfId: str
       connected: player.connected,
       isHost: player.id === state.hostId,
       isSelf: player.id === selfId,
-    });
+    };
+    const prevPlayer = previous[index];
+    if (prevPlayer && shallowEqual(prevPlayer, candidate)) {
+      next.push(prevPlayer);
+    } else {
+      next.push(candidate);
+      changed = true;
+    }
+    index += 1;
   });
+  if (!changed && next.length === previous.length) return previous as GamePlayerSnapshot[];
+  return next;
+}
 
-  const objects: Record<string, string> = {};
+/** F-4: mismo objeto que la vez anterior si ningún objeto del mundo cambió de estado. */
+function buildObjects(
+  state: GameRoomStateLike,
+  previous: Record<string, string>,
+): Record<string, string> {
+  const next: Record<string, string> = {};
+  let count = 0;
+  let changed = false;
   state.objects?.forEach((value, id) => {
-    objects[id] = value;
+    next[id] = value;
+    count += 1;
+    if (previous[id] !== value) changed = true;
   });
+  if (!changed && count === Object.keys(previous).length) return previous;
+  return next;
+}
 
-  const puzzles: Record<string, GamePuzzleSnapshot> = {};
+/** F-4: idem, pero reutiliza también cada `GamePuzzleSnapshot` individual sin cambios (paneles memoizables). */
+function buildPuzzles(
+  state: GameRoomStateLike,
+  previous: Record<string, GamePuzzleSnapshot>,
+): Record<string, GamePuzzleSnapshot> {
+  const next: Record<string, GamePuzzleSnapshot> = {};
+  let count = 0;
+  let changed = false;
   state.puzzles?.forEach((puzzle, id) => {
-    puzzles[id] = { state: puzzle.state, attempts: puzzle.attempts, solvedBy: puzzle.solvedBy };
+    const candidate: GamePuzzleSnapshot = {
+      state: puzzle.state,
+      attempts: puzzle.attempts,
+      solvedBy: puzzle.solvedBy,
+    };
+    const prev = previous[id];
+    if (prev && shallowEqual(prev, candidate)) {
+      next[id] = prev;
+    } else {
+      next[id] = candidate;
+      changed = true;
+    }
+    count += 1;
   });
+  if (!changed && count === Object.keys(previous).length) return previous;
+  return next;
+}
 
-  const inventories: Record<string, string[]> = {};
+/** F-4: idem para el inventario de cada jugador (array reutilizado si no cambió su contenido). */
+function buildInventories(
+  state: GameRoomStateLike,
+  previous: Record<string, string[]>,
+): Record<string, string[]> {
+  const next: Record<string, string[]> = {};
+  let count = 0;
+  let changed = false;
   state.inventories?.forEach((entry, playerId) => {
     const items: string[] = [];
     entry.items.forEach((item) => items.push(item));
-    inventories[playerId] = items;
+    const prev = previous[playerId];
+    if (prev && prev.length === items.length && prev.every((item, i) => item === items[i])) {
+      next[playerId] = prev;
+    } else {
+      next[playerId] = items;
+      changed = true;
+    }
+    count += 1;
   });
+  if (!changed && count === Object.keys(previous).length) return previous;
+  return next;
+}
 
-  const flags: Record<string, string | number | boolean> = {};
+/** F-4: idem para las flags decodificadas. */
+function buildFlags(
+  state: GameRoomStateLike,
+  previous: Record<string, string | number | boolean>,
+): Record<string, string | number | boolean> {
+  const next: Record<string, string | number | boolean> = {};
+  let count = 0;
+  let changed = false;
   state.flags?.forEach((encoded, name) => {
-    flags[name] = decodeFlag(encoded);
+    const value = decodeFlag(encoded);
+    next[name] = value;
+    count += 1;
+    if (previous[name] !== value) changed = true;
   });
+  if (!changed && count === Object.keys(previous).length) return previous;
+  return next;
+}
 
-  const chat: GameChatEntry[] = [];
+/** F-4: idem para la ventana de chat (misma referencia mientras no llegue/rote ningún mensaje). */
+function buildChat(
+  state: GameRoomStateLike,
+  previous: readonly GameChatEntry[],
+): GameChatEntry[] {
+  const next: GameChatEntry[] = [];
+  let index = 0;
+  let changed = false;
   state.chat?.forEach((message) => {
-    chat.push({
+    const candidate: GameChatEntry = {
       id: message.id,
       authorId: message.authorId,
       authorName: message.authorName,
       text: message.text,
       ts: message.ts,
       filtered: message.filtered,
-    });
+    };
+    const prev = previous[index];
+    if (prev && shallowEqual(prev, candidate)) {
+      next.push(prev);
+    } else {
+      next.push(candidate);
+      changed = true;
+    }
+    index += 1;
   });
+  if (!changed && next.length === previous.length) return previous as GameChatEntry[];
+  return next;
+}
+
+/**
+ * Convierte el room state sincronizado en la instantánea plana que consumen
+ * Phaser y React. Las flags viajan serializadas en JSON (`"3"`, `true`…).
+ *
+ * F-4: `previous` (el snapshot anterior, si lo hay) permite reconstruir cada
+ * colección de forma incremental — reutilizando su referencia si no cambió
+ * de verdad — en vez de crear players/objects/puzzles/inventories/chat desde
+ * cero en cada patch de Colyseus (~20 Hz). Un selector por slice (o
+ * `React.memo`) aguas abajo puede entonces saltarse el repintado cuando la
+ * parte que le importa no cambió, aunque llegue un patch por otra razón
+ * (p. ej. solo se movió un jugador).
+ */
+export function toGameSnapshot(
+  state: GameRoomStateLike | undefined,
+  selfId: string,
+  previous: GameSnapshot = emptyGameSnapshot(selfId),
+): GameSnapshot {
+  if (!state) return emptyGameSnapshot(selfId);
+
+  const players = buildPlayers(state, selfId, previous.players);
+  const objects = buildObjects(state, previous.objects);
+  const puzzles = buildPuzzles(state, previous.puzzles);
+  const inventories = buildInventories(state, previous.inventories);
+  const flags = buildFlags(state, previous.flags);
+  const chat = buildChat(state, previous.chat);
+  const inventory = inventories[selfId] ?? EMPTY_INVENTORY;
+  // `buildPlayers` reutiliza el objeto de cada jugador sin cambios, así que
+  // esto mantiene la misma referencia para `self` mientras no cambien sus
+  // propios datos, aunque la lista entera se reconstruya por otro jugador.
+  const self = players.find((player) => player.isSelf) ?? null;
 
   return {
     selfId,
@@ -127,15 +267,17 @@ export function toGameSnapshot(state: GameRoomStateLike | undefined, selfId: str
     startedAt: state.startedAt,
     endsAt: state.endsAt,
     players,
-    self: players.find((player) => player.isSelf) ?? null,
+    self,
     objects,
     puzzles,
-    inventory: inventories[selfId] ?? [],
+    inventory,
     inventories,
     flags,
     chat,
   };
 }
+
+const EMPTY_INVENTORY: string[] = [];
 
 function decodeFlag(encoded: string): string | number | boolean {
   try {
