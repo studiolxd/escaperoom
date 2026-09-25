@@ -19,6 +19,7 @@ import {
   createPrismaInvitationStore,
   createPrismaPurchaseConfirmationStore,
   createPrismaSessionIpUaPurgeStore,
+  createPrismaStripeWebhookEventPurgeStore,
   createPrismaTermsAcceptanceIpUaPurgeStore,
   readEmailPurgeSecret,
   readIpUaPurgeSecret,
@@ -32,6 +33,7 @@ import { createInvitationEmailWorker } from "./invitation-email";
 import { createPurchaseConfirmationEmailWorker } from "./purchase-confirmation-email";
 import { createPurchaseConfirmationOutboxWorker } from "./purchase-confirmation-outbox";
 import { createModerationSamplingWorker } from "./moderation-sampling";
+import { createStripeWebhookPurgeWorker } from "./stripe-webhook-purge";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
 import { startWorkerHealthServer } from "./health-server";
 
@@ -227,6 +229,13 @@ async function main(): Promise<void> {
     connection: samplingConnection,
   });
 
+  // Purga de stripeWebhookEvent (B-19): nunca se limpiaba, crecía sin límite.
+  const stripeWebhookPurgeConnection = createQueueRedis();
+  const stripeWebhookPurge = await createStripeWebhookPurgeWorker({
+    store: createPrismaStripeWebhookEventPurgeStore(prisma),
+    connection: stripeWebhookPurgeConnection,
+  });
+
   // Todos los Worker de BullMQ en marcha, para el readiness de /healthz: si
   // cualquiera deja de consumir (`isRunning() === false`) sin que el proceso
   // se haya caído, un orquestador debe poder verlo y reiniciar el pod.
@@ -242,6 +251,7 @@ async function main(): Promise<void> {
       partitions.worker,
       sampling.worker,
       purchaseConfirmationOutbox?.worker,
+      stripeWebhookPurge.worker,
     ].filter((w): w is Worker => Boolean(w));
 
   let closing = false;
@@ -268,6 +278,8 @@ async function main(): Promise<void> {
     await sampling.queue.close();
     await purchaseConfirmationOutbox?.worker.close();
     await purchaseConfirmationOutbox?.queue.close();
+    await stripeWebhookPurge.worker.close();
+    await stripeWebhookPurge.queue.close();
     await new Promise<void>((resolve, reject) =>
       healthServer ? healthServer.close((err) => (err ? reject(err) : resolve())) : resolve(),
     ).catch((err: unknown) => logger.warn({ err }, "analytics worker: fallo cerrando /healthz"));
@@ -281,6 +293,7 @@ async function main(): Promise<void> {
     await partitionsConnection.quit().catch(() => undefined);
     await samplingConnection.quit().catch(() => undefined);
     await purchaseConfirmationOutboxConnection?.quit().catch(() => undefined);
+    await stripeWebhookPurgeConnection.quit().catch(() => undefined);
     // El propio barrido reencola con la conexión "productora" compartida de
     // kit (misma que usaría un `createPurchaseConfirmationEmailQueue()` en
     // web), no con `purchaseConfirmationOutboxConnection` (esa es solo del
