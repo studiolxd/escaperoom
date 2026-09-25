@@ -6,14 +6,19 @@ export const CONSENT_CATEGORIES = ["analytics", "marketing", "preferences"] as c
 export type ConsentCategoryId = (typeof CONSENT_CATEGORIES)[number];
 
 /**
- * Categorías opcionales con alguna cookie activa hoy. Vacío: ni Google
- * Analytics (planificado, no activo — `content/legal/cookies.ts` §3) ni
- * marketing ni preferencias tienen ninguna cookie que gestionar todavía.
- * Con esta lista vacía, `hasConsentUI()` es `false` y ni la banda ni el
- * enlace de preferencias se muestran a usuarios reales — el mecanismo queda
- * listo para cuando se active la primera cookie opcional (típicamente GA).
+ * Categorías opcionales con alguna cookie activa hoy. Google Analytics
+ * (`_ga`/`_ga_*`) es la única con cookie propia — Plausible no usa cookies
+ * (`content/legal/cookies.ts` §3) — así que "analytics" solo entra en la
+ * lista cuando `NEXT_PUBLIC_GA_MEASUREMENT_ID` está configurado
+ * (`components/analytics/google-analytics-script.tsx`). Marketing y
+ * preferencias siguen sin ninguna cookie que gestionar. Sin GA configurado,
+ * la lista queda vacía, `hasConsentUI()` es `false` y ni la banda ni el
+ * enlace de preferencias se muestran.
  */
-export const ACTIVE_OPTIONAL_CATEGORIES: readonly ConsentCategoryId[] = [];
+export const ACTIVE_OPTIONAL_CATEGORIES: readonly ConsentCategoryId[] = process.env
+  .NEXT_PUBLIC_GA_MEASUREMENT_ID
+  ? ["analytics"]
+  : [];
 
 export function hasConsentUI(): boolean {
   return ACTIVE_OPTIONAL_CATEGORIES.length > 0;
