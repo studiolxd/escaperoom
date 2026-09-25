@@ -41,6 +41,7 @@ import {
   type CreditsService,
   createAudioGenerationService,
   type AudioGenerationService,
+  createRedisAudioPreviewCache,
   createElevenLabsHttpClient,
   readElevenLabsConfig,
   createRoomPublishService,
@@ -267,6 +268,7 @@ export function getAudioGenerationService(): AudioGenerationService | null {
         store: createPrismaAudioAssetStore(prisma),
         blobs: audioBlobs,
         config: { voiceId: config.voiceId },
+        previewCache: createRedisAudioPreviewCache(),
       })
     : null;
   return audioGeneration;

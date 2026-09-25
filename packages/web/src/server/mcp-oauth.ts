@@ -12,7 +12,8 @@ import {
 import { prisma } from "@escaperoom/shared/db";
 import { resolveActorFromRequest, resolveBrowserActorFromRequest } from "./context";
 import { createPrismaOAuthStore } from "./mcp-oauth-store";
-import { createMcpOAuthHandlers } from "./rest/mcp-oauth";
+import { consumeRateLimit } from "./rate-limit";
+import { createMcpOAuthHandlers, type McpRegisterRateLimiter } from "./rest/mcp-oauth";
 
 /**
  * Composition root del OAuth 2.1 del MCP del creador (ticket 4.7): proveedor
@@ -23,7 +24,19 @@ import { createMcpOAuthHandlers } from "./rest/mcp-oauth";
 let store: OAuthStore | undefined;
 const providers = new Map<string, OAuthProvider>();
 let toolRateLimiter: RateLimiter | undefined;
-let registerLimiter: RateLimiter | undefined;
+
+/**
+ * Cuota del registro dinámico (A-4/D-4): a diferencia del limitador de tools
+ * (en memoria, por proceso — está bien porque cada token ya está autenticado),
+ * este endpoint es público y sin sesión, así que su cuota vive en Redis
+ * (política `mcp-register`, `@escaperoom/kit/rate-limit`) con `clientIpFromHeaders`
+ * (antes se usaba la primera entrada de `x-forwarded-for`, que escribe el
+ * cliente).
+ */
+const checkRegisterRateLimit: McpRegisterRateLimiter = async (request) => {
+  const result = await consumeRateLimit("mcp-register", request);
+  return result.ok ? { ok: true } : { ok: false, retryAfterSeconds: result.retryAfter };
+};
 
 /**
  * Origen público de la app: `BETTER_AUTH_URL` (o `NEXT_PUBLIC_APP_URL`) si
@@ -58,22 +71,37 @@ export function getMcpToolRateLimiter(): RateLimiter {
 }
 
 /**
+ * A-20/D-6: cuando la identidad viene de la cookie de sesión (sin token, ver
+ * abajo), hace falta el mismo criterio anti-CSRF que `decide()`
+ * (`rest/mcp-oauth.ts`) y `publish-confirm.ts` — la cookie `SameSite=Lax`
+ * viaja igual en un POST cross-site; con token OAuth no hace falta (el
+ * `Authorization` no lo pone el navegador solo).
+ */
+export function isSameOriginAsIssuer(request: Request, issuer: string): boolean {
+  const origin = request.headers.get("origin");
+  if (origin) return origin === issuer;
+  return request.headers.get("sec-fetch-site") === "same-origin";
+}
+
+/**
  * Identidad de `/mcp/creator`: con `Authorization: Bearer`, SOLO el access
  * token OAuth (un token inválido es 401 `invalid_token`, sin probar otra
- * vía); sin él, la cookie de sesión de Better Auth (chat web integrado).
+ * vía); sin él, la cookie de sesión de Better Auth (chat web integrado), y
+ * solo si la petición viene del propio origen (A-20/D-6).
  */
 export const authenticateMcpRequest: HttpAuthenticator = async (request) => {
   if (bearerToken(request)) return authenticateOAuthBearer(getMcpOAuthProvider(request), request);
+  const provider = getMcpOAuthProvider(request);
+  if (!isSameOriginAsIssuer(request, provider.issuer)) return null;
   return resolveActorFromRequest(request);
 };
 
 /** Handlers de los endpoints OAuth para las rutas de Next. */
 export function getMcpOAuthHandlers() {
-  registerLimiter ??= createRateLimiter({ limit: 20, windowSeconds: 60 * 60 });
   return createMcpOAuthHandlers({
     provider: getMcpOAuthProvider,
     // El consentimiento es de un humano: solo la sesión del navegador.
     resolveActor: resolveBrowserActorFromRequest,
-    registerLimiter,
+    registerLimiter: checkRegisterRateLimit,
   });
 }

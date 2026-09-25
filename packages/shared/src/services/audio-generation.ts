@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { parseMp3 } from "../audio/mp3";
 import { uploadAudioRef } from "../audio/refs";
@@ -95,6 +96,33 @@ export type AudioGenerationResult = {
   balanceAfter: bigint;
 };
 
+/** Bytes cacheados de una previsualización, por hash de texto+voz (B-7). */
+export type CachedAudioPreview = { audio: Uint8Array; contentType: string };
+
+/**
+ * Caché de previsualizaciones por hash de `texto + voz` (B-7): la preview es
+ * gratis y no descuenta créditos, así que sin caché cada repetición del mismo
+ * texto (el creador prueba, ajusta, prueba igual) es una llamada de pago a
+ * ElevenLabs. `null` en `get` = no cacheado o caché no disponible (Redis
+ * caído): se sintetiza igual, nunca bloquea la preview.
+ */
+export interface AudioPreviewCache {
+  get(key: string): Promise<CachedAudioPreview | null>;
+  set(key: string, value: CachedAudioPreview): Promise<void>;
+}
+
+/** Caché no-op: por defecto, si no se inyecta una real. */
+export function createNoopAudioPreviewCache(): AudioPreviewCache {
+  return {
+    async get() {
+      return null;
+    },
+    async set() {
+      // no-op
+    },
+  };
+}
+
 function requireSession(actor: Actor): void {
   if (isAnonymous(actor)) throw new AudioGenerationError("UNAUTHORIZED", "No hay sesión");
 }
@@ -116,13 +144,21 @@ export function createAudioGenerationService(deps: {
   blobs: AudioBlobStore;
   config: AudioGenerationConfig;
   moderation?: AudioModerationProvider;
+  /** Caché de previsualizaciones por hash de texto+voz (B-7). Sin ella, no cachea. */
+  previewCache?: AudioPreviewCache;
   now?: () => Date;
   newId?: () => string;
 }) {
   const { elevenlabs, credits, store, blobs, config } = deps;
   const moderation = deps.moderation ?? createManualAudioModeration();
+  const previewCache = deps.previewCache ?? createNoopAudioPreviewCache();
   const now = deps.now ?? (() => new Date());
   const newId = deps.newId ?? (() => globalThis.crypto.randomUUID());
+
+  /** Clave de caché: hash de texto+voz, no el texto en claro (B-7). */
+  function previewCacheKey(text: string): string {
+    return createHash("sha256").update(config.voiceId).update("\u0000").update(text).digest("hex");
+  }
 
   async function synthesize(text: string): Promise<Uint8Array> {
     try {
@@ -158,8 +194,15 @@ export function createAudioGenerationService(deps: {
           `Hacen falta ${costCredits} créditos para generar este audio`,
         );
       }
+      const cacheKey = previewCacheKey(text);
+      const cached = await previewCache.get(cacheKey);
+      if (cached) {
+        return { costCredits, characterCount: text.length, ...cached };
+      }
       const audio = await synthesize(text);
-      return { costCredits, characterCount: text.length, audio, contentType: "audio/mpeg" };
+      const contentType = "audio/mpeg";
+      await previewCache.set(cacheKey, { audio, contentType });
+      return { costCredits, characterCount: text.length, audio, contentType };
     },
 
     /**

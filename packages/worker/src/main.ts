@@ -18,6 +18,7 @@ import {
   createPrismaAccessKeyEmailPurgeStore,
   createPrismaCreatorPayoutStore,
   createPrismaInvitationStore,
+  createPrismaMcpOAuthPurgeStore,
   createPrismaPurchaseConfirmationStore,
   createPrismaSessionIpUaPurgeStore,
   createPrismaTermsAcceptanceIpUaPurgeStore,
@@ -34,6 +35,7 @@ import { createAccessKeyExpiryWorker } from "./access-key-expiry";
 import { createAccessKeyEmailPurgeWorker } from "./access-key-email-purge";
 import { createCreatorPayoutsWorker } from "./creator-payouts";
 import { createIpUaPurgeWorker } from "./ip-ua-purge";
+import { createMcpOAuthPurgeWorker } from "./mcp-oauth-purge";
 import { createInvitationEmailWorker } from "./invitation-email";
 import { createPurchaseConfirmationEmailWorker } from "./purchase-confirmation-email";
 import { createPurchaseConfirmationOutboxWorker } from "./purchase-confirmation-outbox";
@@ -249,6 +251,13 @@ async function main(): Promise<void> {
     connection: samplingConnection,
   });
 
+  // Purga del OAuth del MCP (A-15): filas `mcp-oauth:*` caducadas en `verification`.
+  const mcpOAuthPurgeConnection = createQueueRedis();
+  const mcpOAuthPurge = await createMcpOAuthPurgeWorker({
+    store: createPrismaMcpOAuthPurgeStore(prisma),
+    connection: mcpOAuthPurgeConnection,
+  });
+
   // Todos los Worker de BullMQ en marcha, para el readiness de /healthz: si
   // cualquiera deja de consumir (`isRunning() === false`) sin que el proceso
   // se haya caído, un orquestador debe poder verlo y reiniciar el pod.
@@ -265,6 +274,7 @@ async function main(): Promise<void> {
       sampling.worker,
       purchaseConfirmationOutbox?.worker,
       payouts?.worker,
+      mcpOAuthPurge.worker,
     ].filter((w): w is Worker => Boolean(w));
 
   let closing = false;
@@ -293,6 +303,8 @@ async function main(): Promise<void> {
     await purchaseConfirmationOutbox?.queue.close();
     await payouts?.worker.close();
     await payouts?.queue.close();
+    await mcpOAuthPurge.worker.close();
+    await mcpOAuthPurge.queue.close();
     await new Promise<void>((resolve, reject) =>
       healthServer ? healthServer.close((err) => (err ? reject(err) : resolve())) : resolve(),
     ).catch((err: unknown) => logger.warn({ err }, "analytics worker: fallo cerrando /healthz"));
@@ -307,6 +319,7 @@ async function main(): Promise<void> {
     await samplingConnection.quit().catch(() => undefined);
     await purchaseConfirmationOutboxConnection?.quit().catch(() => undefined);
     await payoutsConnection?.quit().catch(() => undefined);
+    await mcpOAuthPurgeConnection.quit().catch(() => undefined);
     // El propio barrido reencola con la conexión "productora" compartida de
     // kit (misma que usaría un `createPurchaseConfirmationEmailQueue()` en
     // web), no con `purchaseConfirmationOutboxConnection` (esa es solo del

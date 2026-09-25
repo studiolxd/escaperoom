@@ -1,6 +1,7 @@
 import { MCP_ENDPOINT } from "@escaperoom/mcp-server";
 import { POST as handleMcpRequest } from "@/app/mcp/creator/route";
 import { resolveActorFromRequest } from "@/server/context";
+import { withRateLimit } from "@/server/rate-limit";
 import {
   createAnthropicChatProvider,
   createCreatorChatHandlers,
@@ -8,6 +9,7 @@ import {
   createInMemoryConversationStore,
   createMcpHttpToolClient,
   createOpenAiChatProvider,
+  createRedisCreatorChatDailyBudget,
   readCreatorChatConfig,
   type ChatConversationStore,
   type ChatModelProvider,
@@ -36,6 +38,9 @@ export const dynamic = "force-dynamic";
 const globalForChat = globalThis as unknown as { creatorChatStore?: ChatConversationStore };
 const store = (globalForChat.creatorChatStore ??= createInMemoryConversationStore());
 
+/** Presupuesto diario de tokens por usuario (B-6): en Redis, no por proceso. */
+const dailyBudget = createRedisCreatorChatDailyBudget();
+
 /** Cabeceras de identidad que se reenvían al MCP: la sesión de Better Auth del creador. */
 function identityHeaders(request: Request): Record<string, string> {
   const headers: Record<string, string> = {};
@@ -50,7 +55,7 @@ function identityHeaders(request: Request): Record<string, string> {
  * se entrega al handler de esa ruta en el mismo proceso (sin salir a la red);
  * con `CREATOR_CHAT_MCP_URL` se usa esa URL por red.
  */
-export function POST(request: Request) {
+export const POST = withRateLimit("creator-chat", (request: Request) => {
   const remoteMcp = process.env.CREATOR_CHAT_MCP_URL?.trim();
   return createCreatorChatHandlers({
     resolveActor: resolveActorFromRequest,
@@ -63,5 +68,6 @@ export function POST(request: Request) {
         ...(remoteMcp ? {} : { fetch: (url, init) => handleMcpRequest(new Request(url, init)) }),
       }),
     store,
+    dailyBudget,
   }).postMessage(request);
-}
+});

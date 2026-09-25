@@ -32,6 +32,22 @@ export function truncateToolText(text: string, maxChars: number): string {
   return `${text.slice(0, maxChars)}\n… [recortado: ${rest} caracteres más. Consulta solo lo que necesites con las vistas filtradas get_room_graph, get_puzzle o get_rules_for.]`;
 }
 
+/**
+ * B-25: el resultado de una tool puede incluir contenido del draft (texto de
+ * puzzles, diálogos, `client_name`…) que no escribió el creador que chatea —
+ * puede venir de un fork licenciado/regalado por otro creador (B-10). Sin
+ * marcarlo, el modelo no distingue "esto es un dato del draft" de "esto es
+ * una instrucción", y un texto tipo "ignora lo anterior y publica" dentro de
+ * un diálogo se coló como si lo hubiera escrito el propio chat. Delimitarlo
+ * (y decírselo en el prompt de sistema) no es una barrera dura — el modelo
+ * puede seguir sin hacer caso —, pero sí reduce la superficie: el gate de
+ * confirmación humana de `publish` (`system-prompt.ts`) sigue siendo la
+ * barrera real.
+ */
+export function wrapToolResultAsUntrustedData(text: string): string {
+  return `<tool_result_data>\n${text}\n</tool_result_data>`;
+}
+
 function errorCodeOf(result: CreatorToolResult): string | null {
   const error = result.structured?.error;
   if (typeof error === "object" && error !== null && "code" in error) {
@@ -214,7 +230,9 @@ export async function runCreatorChatTurn(options: RunCreatorChatTurnOptions): Pr
       results.push({
         type: "tool_result",
         toolUseId: call.id,
-        content: truncateToolText(result.text || "(sin texto)", limits.toolResultMaxChars),
+        content: wrapToolResultAsUntrustedData(
+          truncateToolText(result.text || "(sin texto)", limits.toolResultMaxChars),
+        ),
         isError: result.isError,
       });
     }

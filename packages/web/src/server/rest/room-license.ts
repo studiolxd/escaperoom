@@ -1,4 +1,6 @@
+import { tooManyRequestsResponse } from "@escaperoom/kit/rate-limit/http";
 import {
+  GiftCopyInput,
   RoomLicenseError,
   type Actor,
   type ForkResult,
@@ -6,6 +8,7 @@ import {
   type RoomLicenseErrorCode,
   type RoomLicenseService,
 } from "@escaperoom/shared/services";
+import { consumeGiftCopyRecipientLimit } from "@/server/rate-limit";
 
 /** Dependencias inyectables de los handlers de licencias (testeables sin Postgres ni Stripe). */
 export type RoomLicenseHandlerDeps = {
@@ -130,14 +133,38 @@ export function createRoomLicenseHandlers(deps: RoomLicenseHandlerDeps) {
       });
     },
 
-    /** `POST /api/rooms/:roomId/gift-copy` — `{ recipientEmail, roomVersionId? }` → 201 `{ purchase, room }`. */
+    /**
+     * `POST /api/rooms/:roomId/gift-copy` — `{ recipientEmail, roomVersionId? }`.
+     *
+     * B-10: la respuesta es SIEMPRE 202 con el mismo mensaje genérico, exista o
+     * no una cuenta con ese email — antes, `RECIPIENT_NOT_FOUND` (404) frente a
+     * un 201 con los datos del fork convertía este endpoint en un oráculo para
+     * averiguar qué emails tienen cuenta. Cuota por remitente (política
+     * `gift-copy`, en el `route.ts`) y por destinatario
+     * (`consumeGiftCopyRecipientLimit`, cuenta por email exista o no la cuenta).
+     */
     async postGiftCopy(request: Request, ctx: RoomRouteContext): Promise<Response> {
       return handle(async () => {
         const { roomId } = await ctx.params;
         const actor = await deps.resolveActor(request);
         deps.licenses.authorize(actor);
-        const result = await deps.licenses.giftCopy(actor, roomId, await readJson(request));
-        return Response.json(forkJson(result), { status: 201, headers: NO_STORE });
+        const body = await readJson(request);
+
+        const parsedEmail = GiftCopyInput.pick({ recipientEmail: true }).safeParse(body);
+        if (parsedEmail.success) {
+          const recipientQuota = await consumeGiftCopyRecipientLimit(parsedEmail.data.recipientEmail);
+          if (!recipientQuota.ok) return tooManyRequestsResponse(recipientQuota.retryAfter);
+        }
+
+        try {
+          await deps.licenses.giftCopy(actor, roomId, body);
+        } catch (err) {
+          if (!(err instanceof RoomLicenseError) || err.code !== "RECIPIENT_NOT_FOUND") throw err;
+        }
+        return Response.json(
+          { message: "Si existe una cuenta con ese email, verá la copia al iniciar sesión." },
+          { status: 202, headers: NO_STORE },
+        );
       });
     },
   };

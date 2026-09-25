@@ -76,4 +76,23 @@ describe("GET/POST /api/legal/terms-acceptance", () => {
     const json = (await statusResponse.json()) as { needsAcceptance: boolean };
     expect(json.needsAcceptance).toBe(false);
   });
+
+  // A-7: la primera entrada de `x-forwarded-for` la escribe el cliente; solo
+  // la última (la que añade el último salto de confianza) es de fiar.
+  it("POST usa la última entrada de x-forwarded-for, no la que declara el cliente", async () => {
+    const store = createInMemoryTermsAcceptanceStore();
+    const handlers = createLegalAcceptanceHandlers({
+      termsAcceptance: createTermsAcceptanceService({ store }),
+      resolveActor: async () => USER,
+    });
+
+    await handlers.accept(
+      request("POST", {
+        "x-forwarded-for": "9.9.9.9-suplantada, 10.0.0.5",
+        "user-agent": "vitest",
+      }),
+    );
+
+    expect(store.rows[0]?.ipAddress).toBe("10.0.0.5");
+  });
 });

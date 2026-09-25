@@ -76,7 +76,7 @@ describe.skipIf(!process.env.DATABASE_URL)("moderación sobre Postgres (integrac
     await prisma.$disconnect();
   });
 
-  it("reporte crítico → sala `removed` en la misma transacción; descartarlo la restaura", async () => {
+  it("reporte crítico → entra en cola con prioridad máxima sin tocar la sala ni la cuenta (A-3, revisado 2026-09-25)", async () => {
     const moderation = service();
     const { report } = await moderation.report(actor(ids.jugadora), {
       targetType: "room",
@@ -88,31 +88,42 @@ describe.skipIf(!process.env.DATABASE_URL)("moderación sobre Postgres (integrac
       severity: "critical",
       roomVersionId: versionId,
       targetUserId: ids.autora,
-      roomStatusBefore: "published",
+      actionTaken: null,
+      autoActioned: false,
+      roomStatusBefore: null,
     });
-    expect((await prisma.room.findUniqueOrThrow({ where: { id: roomId } })).status).toBe("removed");
-    expect(await moderation.publishBlocker(ids.autora)).toMatchObject({ code: "ACCOUNT_FROZEN" });
+    expect((await prisma.room.findUniqueOrThrow({ where: { id: roomId } })).status).toBe(
+      "published",
+    );
+    expect(await moderation.publishBlocker(ids.autora)).toBeNull();
 
     const queue = await moderation.listQueue(actor(ids.mod));
     expect(queue.some((q) => q.report.id === report.id)).toBe(true);
+
+    // El moderador descarta: la sala nunca se tocó, así que no hay nada que
+    // restaurar (a diferencia del comportamiento previo a esta revisión).
     await moderation.resolveReport(actor(ids.mod), report.id, { status: "dismissed" });
     expect((await prisma.room.findUniqueOrThrow({ where: { id: roomId } })).status).toBe(
       "published",
     );
   });
 
-  it("reseña crítica oculta; strikes, suspensión y apelación estimada que la levanta", async () => {
+  it("reseña reportada: el moderador la oculta al confirmar; strikes, suspensión y apelación estimada que la levanta", async () => {
     const moderation = service();
     const hidden = await moderation.report(actor(ids.autora), {
       targetType: "review",
       targetId: reviewId,
-      category: "minor_safety",
+      category: "harassment",
       reason: "Datos de un menor",
     });
+    // A-3 (revisado 2026-09-25): sin revisar, la reseña sigue visible.
+    expect((await prisma.review.findUniqueOrThrow({ where: { id: reviewId } })).hiddenAt).toBe(
+      null,
+    );
+    await moderation.resolveReport(actor(ids.mod), hidden.report.id, { status: "actioned" });
     expect((await prisma.review.findUniqueOrThrow({ where: { id: reviewId } })).hiddenAt).not.toBe(
       null,
     );
-    await moderation.resolveReport(actor(ids.mod), hidden.report.id, { status: "dismissed" });
 
     for (const category of ["spam", "quality"]) {
       const { report } = await moderation.report(actor(ids.jugadora), {

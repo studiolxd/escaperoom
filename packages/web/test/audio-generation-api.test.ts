@@ -8,8 +8,16 @@ import {
   createInMemoryCreditAccountStore,
   type Actor,
 } from "@escaperoom/shared/services";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+import { RATE_LIMIT_POLICIES } from "../src/server/rate-limit";
 import { createAudioGenerationHandlers } from "../src/server/rest/audio-generation";
+import type { AudioGenerationService } from "@escaperoom/shared/services";
+
+const quotaServices = vi.hoisted(() => ({ generation: null as AudioGenerationService | null }));
+vi.mock("@/server/services", () => ({ getAudioGenerationService: () => quotaServices.generation }));
+vi.mock("@/server/context", () => ({
+  resolveActorFromRequest: async () => ({ userId: "ana", organizationId: null, role: "member" }),
+}));
 
 const ana: Actor = { userId: "ana", organizationId: null, role: "member" };
 
@@ -127,5 +135,49 @@ describe("POST /api/audio/generate/confirm", () => {
     );
     expect(res.status).toBe(502);
     expect(account.balanceCredits).toBe(5n);
+  });
+});
+
+// B-7: sin cuota, la preview (gratis, sin cobrar créditos) era ilimitada.
+describe("POST /api/audio/generate/preview — cuota (route module real)", () => {
+  let POST: (request: Request) => Promise<Response>;
+
+  beforeAll(async () => {
+    const { createAudioGenerationService, createCreditsService, createFakeElevenLabsClient, createInMemoryAudioAssetStore, createInMemoryAudioBlobStore, createInMemoryCreditAccountStore } =
+      await import("@escaperoom/shared/services");
+    const creditStore = createInMemoryCreditAccountStore();
+    const credits = createCreditsService({ store: creditStore });
+    const account = await creditStore.ensureAccountForActor({
+      userId: "ana",
+      organizationId: null,
+      role: "member",
+    });
+    account.balanceCredits = 1_000_000n;
+    quotaServices.generation = createAudioGenerationService({
+      elevenlabs: createFakeElevenLabsClient(),
+      credits,
+      store: createInMemoryAudioAssetStore(),
+      blobs: createInMemoryAudioBlobStore(),
+      config: { voiceId: "voice-default" },
+    });
+    ({ POST } = await import("../src/app/api/audio/generate/preview/route"));
+  });
+
+  function req(ip: string): Request {
+    return new Request("http://localhost/api/audio/generate/preview", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": ip },
+      body: JSON.stringify({ text: "Hola creador" }),
+    });
+  }
+
+  it(`agota la cuota "audio-preview" y responde 429`, async () => {
+    const ip = "203.0.113.77";
+    const { limit } = RATE_LIMIT_POLICIES["audio-preview"].ip;
+    for (let i = 0; i < limit; i += 1) {
+      expect((await POST(req(ip))).status).toBe(200);
+    }
+    const blocked = await POST(req(ip));
+    expect(blocked.status).toBe(429);
   });
 });

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   slidingRateLimiter,
   type RateLimitResult,
@@ -65,6 +66,17 @@ export const RATE_LIMIT_POLICIES = {
     ip: { limit: 30, windowSeconds: 600 },
     user: { limit: 10, windowSeconds: 600 },
   },
+  /**
+   * Cuota adicional (se suma a `report-write`) para reportes de categoría
+   * crítica (`illegal_content`, `minor_safety`, A-3/ADR-013 revisado
+   * 2026-09-25): entran con máxima prioridad en la cola, pero sin acción
+   * automática; esta cuota, más estricta, acota el spam de reportes falsos de
+   * esta categoría mientras la revisa un moderador.
+   */
+  "report-write-critical": {
+    ip: { limit: 5, windowSeconds: 600 },
+    user: { limit: 3, windowSeconds: 600 },
+  },
   /** `POST /api/rooms/:roomId/appeal` y `POST /api/me/appeal` (ticket 6.1). */
   "appeal-write": {
     ip: { limit: 20, windowSeconds: 3600 },
@@ -86,6 +98,59 @@ export const RATE_LIMIT_POLICIES = {
   "terms-acceptance-write": {
     ip: { limit: 20, windowSeconds: 3600 },
     user: { limit: 10, windowSeconds: 3600 },
+  },
+  /**
+   * `POST /api/analytics/collect` — público, sin sesión obligatoria (A-2).
+   * Cuota generosa (fire-and-forget desde el wizard de onboarding) pero
+   * acotada: sin ella, un lote de 100 eventos por petición podía repetirse
+   * sin límite y rellenar Redis/`analyticsEvent`.
+   */
+  "analytics-collect": {
+    ip: { limit: 60, windowSeconds: 60 },
+    user: { limit: 60, windowSeconds: 60 },
+  },
+  /** `POST /api/onboarding/rooms` — crea el fixture de la sala de ejemplo (A-9). */
+  "onboarding-room-create": {
+    ip: { limit: 5, windowSeconds: 3600 },
+    user: { limit: 5, windowSeconds: 3600 },
+  },
+  /**
+   * `POST /api/rooms/:roomId/gift-copy` (B-10): cuota del REMITENTE (quién
+   * regala). Ver `consumeGiftCopyRecipientLimit` para el límite por
+   * DESTINATARIO (a quién se le regala, protege su cuenta de un aluvión de
+   * copias no pedidas de cualquier remitente).
+   */
+  "gift-copy": {
+    ip: { limit: 30, windowSeconds: 3600 },
+    user: { limit: 10, windowSeconds: 3600 },
+  },
+  /**
+   * `POST /api/audio/generate/preview` (B-7): la preview no cobra créditos ni
+   * comprueba nada más allá del saldo, así que sin cuota era gratis e
+   * ilimitada (hasta 5000 caracteres por llamada a ElevenLabs).
+   */
+  "audio-preview": {
+    ip: { limit: 40, windowSeconds: 600 },
+    user: { limit: 20, windowSeconds: 600 },
+  },
+  /**
+   * `POST /api/creator-chat` (B-6): exige sesión, así que el cubo por
+   * usuario es el que importa; el de IP acota a quien rota de cuenta. El
+   * presupuesto de coste real (turnos/tokens por conversación y diarios) lo
+   * llevan `CreatorChatLimits` y `CreatorChatDailyBudget`, no esta cuota.
+   */
+  "creator-chat": {
+    ip: { limit: 60, windowSeconds: 600 },
+    user: { limit: 30, windowSeconds: 600 },
+  },
+  /**
+   * `POST /api/mcp/oauth/register` — registro dinámico de clientes OAuth
+   * (RFC 7591, A-4/D-4). Público, sin sesión: solo IP. Antes vivía en un
+   * limitador en memoria por proceso con la primera entrada (falsificable) de
+   * `x-forwarded-for`.
+   */
+  "mcp-register": {
+    ip: { limit: 20, windowSeconds: 3600 },
   },
 } as const satisfies Record<string, RateLimitPolicy>;
 
@@ -202,4 +267,27 @@ export function withRateLimit<Rest extends unknown[]>(
     }
     return response;
   };
+}
+
+/**
+ * Límite de `gift-copy` por DESTINATARIO (B-10): cuenta por el email al que
+ * se intenta regalar, exista o no cuenta con ese email — así el momento en
+ * que se agota la cuota no filtra si el destinatario existe (la respuesta al
+ * remitente ya es indistinguible, `postGiftCopy`). Protege a una cuenta
+ * concreta de que cualquier combinación de remitentes la llene de copias no
+ * pedidas.
+ */
+const GIFT_COPY_RECIPIENT_LIMIT = { limit: 5, windowSeconds: 24 * 60 * 60 } as const;
+
+export async function consumeGiftCopyRecipientLimit(
+  recipientEmail: string,
+  store: SlidingWindowStore = slidingRateLimiter,
+): Promise<RateLimitResult> {
+  if (process.env.RATE_LIMIT_ENABLED?.trim().toLowerCase() === "false") return ALLOWED;
+  const hash = createHash("sha256").update(recipientEmail.trim().toLowerCase()).digest("hex");
+  return store.hit(
+    `gift-copy-recipient:${hash}`,
+    GIFT_COPY_RECIPIENT_LIMIT.limit,
+    GIFT_COPY_RECIPIENT_LIMIT.windowSeconds,
+  );
 }

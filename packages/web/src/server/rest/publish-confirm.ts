@@ -47,8 +47,12 @@ export function createPublishConfirmHandlers(deps: PublishConfirmHandlerDeps) {
           403,
         );
       }
+      // B-25: se exige que la cabecera esté PRESENTE y valga "same-origin",
+      // no solo que no traiga un valor distinto — sin `Sec-Fetch-Site`
+      // (navegadores viejos, o quien simplemente no la manda) la petición
+      // pasaba igual.
       const site = request.headers.get("sec-fetch-site");
-      if (site && site !== "same-origin") {
+      if (site !== "same-origin") {
         return errorResponse(
           "CROSS_SITE",
           "La confirmación solo se acepta desde la propia web",
