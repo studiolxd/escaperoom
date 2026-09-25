@@ -28,6 +28,7 @@ export function createReadOnlyGameClient(client: NetworkGameClient): NetworkGame
     setPlate: noop,
     requestSplitView: noop,
     requestHint: noop,
+    selectCharacter: noop,
     sendChat: noop,
     requestMediaToken: noop,
   };

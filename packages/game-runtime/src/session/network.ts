@@ -166,6 +166,7 @@ export function createNetworkGameClient(
       ),
     requestSplitView: (puzzleId) => send(GAME_PROTOCOL.splitView, puzzleId ? { puzzleId } : {}),
     requestHint: (puzzleId) => send(GAME_PROTOCOL.hintRequest, { puzzleId }),
+    selectCharacter: (characterId) => send(GAME_PROTOCOL.selectCharacter, { characterId }),
     sendChat: (text) => send(CHAT_PROTOCOL_MESSAGE, { text }),
     requestMediaToken: (role = "player") => send(MEDIA_PROTOCOL.request, { role }),
     leave: async () => {
