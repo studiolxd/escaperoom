@@ -8,9 +8,11 @@ import { createStorage } from "../src/storage/index";
 import { RedisRateLimitStore } from "../src/rate-limit/redis-store";
 
 // ---------------------------------------------------------------------------
-// Integración contra la infra local (`pnpm infra:up`). En CI no hay Redis ni
-// MinIO, así que estos bloques se SALTAN si las variables de entorno que los
-// configuran no están presentes: los unitarios son los que corren siempre.
+// Integración contra la infra local (`pnpm infra:up`). En CI, Redis y
+// SeaweedFS se levantan como servicios del job `verify`, así que estos
+// bloques corren ahí también; fuera de CI se SALTAN si las variables de
+// entorno que los configuran no están presentes: los unitarios son los que
+// corren siempre.
 //
 //   REDIS_URL=redis://:redis_dev_only@localhost:56380 \
 //   STORAGE_PROVIDER=s3 STORAGE_BUCKET=escaperoom-assets \
@@ -72,7 +74,7 @@ describe.skipIf(!hasRedis)("redis (integración con infra local)", () => {
   });
 });
 
-describe.skipIf(!hasStorage)("storage (integración con MinIO local)", () => {
+describe.skipIf(!hasStorage)("storage (integración con SeaweedFS local)", () => {
   const storage = createStorage(readStorageEnv());
 
   it("sube, descarga, firma y borra un objeto", async () => {
