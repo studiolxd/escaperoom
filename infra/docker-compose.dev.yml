@@ -72,41 +72,62 @@ services:
       retries: 5
 
   # S3 compatible solo para desarrollo. En producción, Cloudflare R2.
-  minio:
-    image: minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+  #
+  # 2026-09-25: sustituye a MinIO (imagen borrada de Docker Hub y quay.io el
+  # 2026-09-11, repo archivado desde 2026-02 — ver ADR-030). Mismo endpoint
+  # (127.0.0.1:9002), mismas credenciales de dev (minioadmin/minioadmin) y
+  # mismo bucket (escaperoom-assets) que antes: los `.env` existentes de cada
+  # desarrollador siguen funcionando sin tocarlos. Las claves fijas viven en
+  # infra/seaweedfs/s3.json (versionado, no es un secreto real). `weed server
+  # -s3` arranca también el filer que el gateway S3 necesita (sin flag
+  # aparte: lo activa automáticamente).
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882
+    command:
+      - server
+      - -dir=/data
+      - -s3
+      - -s3.port=8333
+      - -s3.config=/etc/seaweedfs/s3.json
+      - -ip=seaweedfs
+    volumes:
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+      - seaweedfs-data:/data
     ports:
-      - "127.0.0.1:${MINIO_API_PORT:-9002}:9000"
-      - "127.0.0.1:${MINIO_CONSOLE_PORT:-59002}:9001"
+      - "127.0.0.1:${MINIO_API_PORT:-9002}:8333"
+      # UI del filer (navegar los ficheros subidos), equivalente a la consola
+      # de MinIO que sustituye. No admite login propio: solo para dev.
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-59002}:8888"
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "curl", "-f", "http://localhost:8333/status"]
       interval: 10s
       timeout: 5s
       retries: 5
-    volumes:
-      - minio-data:/data
 
   # Los buckets no se crean solos: sin este paso la primera subida muere con
-  # NoSuchBucket. La lista vive en infra/minio-dev/buckets.txt.
-  minio-init:
-    image: minio/mc:latest@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+  # NoSuchBucket. La lista vive en infra/minio-dev/buckets.txt (nombre
+  # histórico, se mantiene para no romper el path). Idempotente: usa
+  # head-bucket antes de crear, así que un `docker compose up` repetido no
+  # falla si el bucket ya existe en el volumen persistente.
+  seaweedfs-init:
+    image: amazon/aws-cli:2.37.2@sha256:e38214027df83cb6631adcf980a092a98d1d29788789bff2a0f424e87e3da8ed
     depends_on:
-      minio:
+      seaweedfs:
         condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_DEFAULT_REGION: us-east-1
     volumes:
       - ./minio-dev/buckets.txt:/buckets.txt:ro
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >
         set -e;
-        mc alias set dev http://minio:9000
-        "${MINIO_ROOT_USER:-minioadmin}" "${MINIO_ROOT_PASSWORD:-minioadmin}";
         while read -r b; do
         case "$$b" in ''|\#*) continue ;; esac;
-        mc mb -p "dev/$$b";
+        aws --endpoint-url http://seaweedfs:8333 s3api head-bucket --bucket "$$b" 2>/dev/null
+        || aws --endpoint-url http://seaweedfs:8333 s3 mb "s3://$$b";
         done < /buckets.txt
 
   # SFU de voz/webcam (specs/12). La room de medios vive y muere con la de
@@ -147,5 +168,9 @@ services:
 
 volumes:
   postgres-data:
-  minio-data:
+  # minio-data (retirado 2026-09-25): NO se borra el volumen de Docker
+  # existente, tiene datos de dev de quien lo tuviera creado; solo deja de
+  # declararse aquí. `docker volume rm escaperoom-dev_minio-data` a mano si
+  # quieres liberar el espacio.
+  seaweedfs-data:
   uptime-kuma-data:
