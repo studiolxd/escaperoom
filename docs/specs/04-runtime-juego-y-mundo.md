@@ -28,9 +28,18 @@ interacciones con el servidor está en `11-protocolo-multijugador.md`; la lógic
 
 ## 2. Avatares y movimiento
 
-- Un sprite base por jugador con **tintado por color** (4 colores = 4 jugadores en v1) y
-  animaciones mínimas: `idle` (2 frames), `andar` (4 direcciones × 4 frames), `interactuar` (1).
-  Sin personalización en v1.
+- **8 personajes medievales seleccionables** (caballero/a, arquero/a, mago/a, campesino/a; el
+  primero entregado es `caballero-m`, `26-pack-grafico-v1.md` §4.4), no un sprite tintable: cada
+  jugador elige uno y **dos jugadores de la misma sesión no pueden tener el mismo personaje**
+  (`specs/11` §3, `specs/19` §1). El servidor valida el personaje contra `manifest.avatars` y los
+  ya ocupados; el color del jugador (tint) sigue existiendo, pero ahora pinta un **anillo bajo los
+  pies** para distinguir jugadores, no el sprite del personaje.
+- **Mientras falten personajes** (hoy solo `caballero-m`): al unirse sin elegir, el servidor asigna
+  el primer personaje libre; si no queda ninguno libre, el jugador usa el **maniquí de reserva**
+  (el sprite SVG tintado por color que existía antes de esta decisión), que no es único — varios
+  jugadores pueden compartirlo, distinguibles por el anillo.
+- Animaciones por personaje: `idle` (8 frames), `andar` (4 direcciones × 8 frames), `interactuar`
+  (4 frames) — 80 frames por personaje.
 - El movimiento es **autoritativo en servidor**: el cliente pide, el servidor valida distancia
   máxima por tick (anti-teletransporte), el resto de clientes interpolan.
 - El sistema deriva `enter_room` server-side al cruzar umbrales; el cliente no lo envía.
@@ -172,11 +181,13 @@ encargable como un único pack. El **brief y contrato de entrega** completo est�
 
 ### Avatares
 
-- 1 sprite base con tintado por color (4 colores) + animaciones mínimas descritas en §2.
+- 8 personajes seleccionables (uno entregado hoy, `caballero-m`) + el maniquí de reserva, con las
+  animaciones descritas en §2. Anillo de color de jugador (no tintado del sprite) y sombra de
+  contacto los dibuja el runtime, no el pack (`26-pack-grafico-v1.md` §4.4).
 
 ### Objetos de puzzle (sprites sueltos)
 
-- Llave (bronce/plata/oro como tintados), candado, cáliz, mechero, vela, antorcha, espejo,
+- Llave (bronce/plata/oro como tintados), candado, cáliz, yesquero, vela, antorcha, espejo,
   palanca, placa de presión, copa ×6, azulejo de mural, pieza de tubería ×4 tipos, relicario.
 
 ### Efectos

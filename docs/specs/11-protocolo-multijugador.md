@@ -75,7 +75,8 @@ class PlayerState extends Schema {
   sessionId: string;                // id de Colyseus
   userId: string;
   name: string;
-  avatarColor: string;
+  avatarColor: string;              // pinta el anillo bajo los pies, no el sprite del personaje
+  characterId: string;              // personaje elegido (manifest.avatars[].id, o el de reserva)
   x: number; y: number;             // posición (celdas, interpolada en cliente)
   roomId: string;                   // subroom actual
   role: 'host' | 'player' | 'observer';
@@ -83,6 +84,14 @@ class PlayerState extends Schema {
   voiceMuted: boolean; camOff: boolean;
 }
 ```
+
+**Personaje único por sesión (A1, `26-pack-grafico-v1.md` §4.4):** dos jugadores de la misma
+sesión no pueden compartir `characterId` — excepto el maniquí de reserva, que no es único (varios
+jugadores caen a él mientras falten personajes en el pack). El servidor es la autoridad: valida
+`characterId` contra `manifest.avatars` y contra los ya ocupados, y resuelve la carrera de dos
+jugadores que eligen el mismo a la vez procesando las peticiones en el orden en que llegan (el
+segundo pierde y cae al siguiente libre, o al maniquí). El lobby (`specs/19` §1) muestra los
+personajes ocupados como no disponibles.
 
 **Qué NO viaja en el state (anti-trampa):**
 - Códigos de candados, soluciones, pesos, melodías objetivo, asignación de símbolos (memoria).
@@ -97,7 +106,8 @@ Envoltura: `{type, payload, clientTime?}` — `clientTime` para corrección de r
 
 | Mensaje | Payload | Quién | Respuesta / efecto |
 |---|---|---|---|
-| `join` | `{sessionId, joinToken, accessKey?}` | cualquiera | Valida compra/clave/joinToken → asigna role. Error si clave inválida/caducada/usada |
+| `join` | `{sessionId, joinToken, accessKey?, characterId?}` | cualquiera | Valida compra/clave/joinToken → asigna role. Error si clave inválida/caducada/usada. `characterId` es opcional: sin él (o si está ocupado/no existe), el servidor asigna el primer libre, o el maniquí de reserva |
+| `select_character` | `{characterId}` | jugador | Lobby o en partida. El servidor valida unicidad contra `manifest.avatars`; rechaza (`NOT_AVAILABLE`) si ya está en uso por otro jugador |
 | `set_ready` | `{ready: bool}` | jugador | Lobby. Cuando todos ready → host puede empezar |
 | `start_game` | `{}` | host | `lobby → playing`. Inicia cronómetro, dispara regla `on_game_start` |
 | `leave` | `{}` | cualquiera | Sale de la partida |

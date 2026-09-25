@@ -45,9 +45,18 @@ produce un estudio externo con plazo propio; el runtime lo consume cuando el pac
 | Proyección | isométrica 2:1 |
 | Celda (footprint en pantalla) | **64 × 32 px** a 1× |
 | Export de referencia | 1× (64×32) y 2× (128×64) para pantallas HiDPI |
-| Origen/pivote | **abajo-centro** del rombo de la celda (documentado en el manifiesto) |
+| Origen/pivote | **abajo-centro** del rombo de la celda (documentado en el manifiesto); **excepción: avatares**, ver abajo |
 | Overhang | permitido hacia arriba (paredes, columnas, objetos altos); nunca hacia abajo/lados |
 | Direcciones de avatar | 4 sentidos de rejilla (`n`, `e`, `s`, `w`), dibujados en iso |
+
+**Pivote del avatar (excepción a "abajo-centro").** El punto de apoyo (suelo bajo el personaje)
+está al **88,6 % del alto del frame** (desde arriba), centrado en horizontal —
+`avatarOrigin: [0.5, 0.886]` en el manifiesto (§6)—, el mismo valor para los 8 personajes. En
+proyección isométrica, el pie adelantado y la puntera quedan **por debajo** del punto de apoyo en
+pantalla: si el suelo fuese el borde inferior del lienzo, habría que cortar los pies; dejando
+espacio y pivotando en ese punto, el personaje no flota ni se hunde. El runtime lee
+`avatarOrigin` del manifiesto con `[0.5, 1]` (abajo-centro) por defecto, por compatibilidad con
+packs antiguos que no lo declaran.
 
 ### 3.2 Formato y export
 
@@ -66,6 +75,8 @@ Los nombres de frame **deben coincidir exactamente** con los identificadores del
 - `Decoration.sprite` → un frame con ese nombre (`columna`, `tapiz-dragones`, …).
 - `ItemDef.icon` → un frame con ese nombre (`icon-llave-bronce`, …).
 - Tiles → `tile-<id>` (p. ej. `tile-10`), mapeado por el manifiesto (§6).
+- Avatares → `avatar-<characterId>-<dirección>-<acción>-<n>` (p. ej.
+  `avatar-caballero-m-e-idle-1`), ver §4.4.
 
 Así el runtime resuelve frames por nombre sin tablas intermedias específicas del pack.
 
@@ -172,22 +183,53 @@ pivotado a la celda que ocupa.
 - Las transiciones de estado con animación son **opcionales en v1** (`SpriteState.animation`,
   `04` §3.1); si se entregan, nombrarlas `<sprite>.<accion>` y declararlas en `anims` (§6).
 
-### 4.3 Iconos de inventario (9)
+### 4.3 Iconos de inventario (10)
 
-`icon-antorcha`, `icon-caliz`, `icon-espejo`, `icon-llave-bronce`, `icon-llave-oro`,
-`icon-llave-plata`, `icon-mechero`, `icon-pergamino`, `icon-vela`.
+`icon-antorcha`, `icon-busto`, `icon-caliz`, `icon-espejo`, `icon-llave-bronce`, `icon-llave-oro`,
+`icon-llave-plata`, `icon-yesquero`, `icon-pergamino`, `icon-vela`.
 
-Formato cuadrado, ~64×64 a 1×, legible sobre panel oscuro. Las 3 llaves pueden compartir forma y
-distinguirse por tintado (bronce/plata/oro), pero deben entregarse los 3 frames.
+Formato cuadrado, ~64×64 a 1×, legible sobre panel oscuro **y** claro. Las 3 llaves pueden compartir
+forma y distinguirse por tintado (bronce/plata/oro), pero deben entregarse los 3 frames.
 
-### 4.4 Avatares (1 base + atlas)
+**Vista común (C1):** los 10 iconos comparten una misma vista de cámara — 3/4 ligeramente desde
+arriba (~30°), objetos alargados dibujados en diagonal y verticales de pie — con el mismo
+tratamiento toon 3D que los personajes (§4.4): sin contorno ni sombra propia, luz única
+arriba-izquierda, cada objeto ocupando ~80 % del lienzo. En el inventario los iconos se ven juntos;
+una vista común los hace parecer del mismo pack, y la 3/4 lee mejor los objetos verticales (cáliz,
+vela, busto) que una vista frontal pura.
 
-- **1 sprite base** con **tintado por color** (4 colores = 4 jugadores en v1); no se entregan 4
-  sprites, solo la máscara tintable.
-- Tamaño ~48×64 a 1× (cabe en una celda con overhang).
-- Animaciones mínimas (`04` §2): `idle` (2 frames), `andar` (4 direcciones × 4 frames),
-  `interactuar` (1 frame).
-- Se entrega como **atlas de avatar** (`avatar-atlas`) con sus frames y `anims` en el manifiesto.
+### 4.4 Avatares (8 personajes seleccionables)
+
+- **8 personajes medievales** cerrados, no un avatar tintable: caballero/a, arquero/a, mago/a,
+  campesino/a (4 masculinos, 4 femeninos). Se producen de uno en uno; el primero entregado es
+  `caballero-m`. La elección de personaje **no** es personalización de avatar (fuera de alcance,
+  §11): son personajes prediseñados entre los que el jugador elige.
+- Lienzo **64×96** a 1× (128×192 a 2×), cabe en una celda con overhang para el pivote de §3.1.
+- Animaciones por personaje (`04` §2): `idle` **8 frames** (bucle, 8 fps), `andar` **8 frames** ×
+  4 direcciones (bucle, 12 fps), `interactuar` **4 frames** (una vez, 8 fps) — **80 frames por
+  personaje**. "Interactuar" es alcanzar/manipular: el personaje extiende el brazo hacia el
+  objeto a la altura del pecho y vuelve (cuadros, palancas, cofres, cerraduras); otros gestos
+  quedan para después.
+- **Sin sombra de contacto en el sprite** (A5): la dibuja el runtime en su propia capa bajo el
+  avatar (una elipse, en el mismo punto de apoyo que el pivote de §3.1), para que no se desalinee
+  al andar ni quede por encima de otros objetos en el orden isométrico.
+- **Anillo de color del jugador**: como los personajes pueden repetirse entre dos jugadores de la
+  misma sesión (el pack de hoy solo tiene uno), el runtime dibuja bajo los pies un anillo discreto
+  con el color del jugador (el mismo del chat), junto a la sombra, y el nombre encima si ya existe
+  esa etiqueta — así se reconoce quién es quién sin leer nombres, sin necesidad de tintar el
+  sprite del personaje.
+- Se entrega un **master 2D a 1536×2048** por personaje y su **modelo 3D**, para reutilizar
+  (retrato del lobby/chat, nuevas animaciones o direcciones) sin volver a generar desde cero
+  (A3/A9).
+- **Estructura de entrega:** subcarpeta `avatar/<characterId>/` con los 80 frames prefijados
+  (`avatar-<characterId>-<dirección>-<acción>-<n>`), su `pack.config.fragment.json` (`anims` y
+  `avatarOrigin`) y su `LEEME.md` (herramientas y fecha, §8). `pnpm pack:build` fusiona todos los
+  personajes en un único **atlas de avatar**; el manifiesto declara la lista en `avatars` (§6).
+- **Personaje de reserva:** mientras no estén los 8, el maniquí SVG tintado por color que existía
+  antes de A1 se mantiene en el pack como personaje de reserva (`avatar/maniqui/…`, characterId
+  `maniqui`) — no aparece en `manifest.avatars` (no es seleccionable), pero conserva la convención
+  de nombres de frame para que el runtime lo trate como un personaje más. Ver `specs/19` para
+  cuándo el servidor lo asigna.
 
 ### 4.5 Efectos (FX)
 
@@ -230,6 +272,10 @@ interface PackManifest {
   ui: { icons: Record<string, string> };
   fx: { spark: string };
   keys: string[];          // claves de atlas a precargar
+  /** Personajes jugables seleccionables (A1/§4.4); opcional (packs antiguos, sin lista). */
+  avatars?: { id: string; label: LocalizedText; portrait?: string }[];
+  /** Punto de apoyo del avatar, fracción [x, y] del frame, y desde arriba (§3.1); por defecto [0.5, 1]. */
+  avatarOrigin?: [number, number];
 }
 ```
 
@@ -237,8 +283,9 @@ interface PackManifest {
 
 - [ ] Frame para cada **tileId** del fixture (`1`, `2`, `3`, `10`, `20`, `21`, `22`) + variedad §4.1.
 - [ ] **57 frames** de objeto/estado/decoración con el nombre literal del `RoomPackage`.
-- [ ] **9 iconos** `icon-*`.
-- [ ] **Atlas de avatar** con `idle`/`andar`/`interactuar` y sus `anims`.
+- [ ] **10 iconos** `icon-*` (§4.3, vista 3/4 común).
+- [ ] **Atlas de avatar** con `idle`/`andar`/`interactuar` y sus `anims`, 80 frames por personaje
+      declarado en `manifest.avatars` (§4.4).
 - [ ] **FX** de brillo reutilizable.
 - [ ] `manifest.json` completo y validado (§6).
 - [ ] Licencia y titularidad documentadas (§8).
@@ -247,8 +294,10 @@ interface PackManifest {
 
 - Al ser un pack **oficial** de la plataforma, la titularidad es de la plataforma o del estudio
   contratado según el contrato de encargo; se documenta la cesión de derechos.
-- Si algún asset se generara con IA, aplica `18` §2.3: revisar TOS del proveedor y no asumir
-  titularidad plena; reflejarlo en la licencia del asset.
+- **Avatares (A8):** las imágenes de los personajes las genera **el equipo** (no los usuarios) con
+  herramientas bajo licencia comercial (Magnific plan de pago, Blender, Mixamo); su titularidad es
+  de la plataforma, no un caso de `18` §2.3 (que trata audio de voz generado por IA para
+  jugadores). Cada personaje documenta herramientas y fecha en su `LEEME.md` (§4.4).
 - Nada de assets de terceros sin licencia compatible; sin marcas registradas.
 
 ## 9. Empaquetado y publicación
@@ -261,11 +310,15 @@ interface PackManifest {
 ### 9.1 Empaquetado local (`pack:build`, ticket 1.2)
 
 El arte se entrega como **un PNG por frame** (nombre = identificador del `RoomPackage`, §3.3) en
-`packages/web/public/packs/<packId>/{tiles,sprites,icons,avatar,fx}`. El script
-`packages/game-runtime/scripts/build-pack.ts` (raíz: `pnpm pack:build <packId>`) decodifica los PNG,
-compone un atlas Phaser por carpeta (`atlas-<kind>.png` + `atlas-<kind>.json`) y genera
+`packages/web/public/packs/<packId>/{tiles,sprites,icons,avatar,fx}`. La carpeta `avatar/` acepta
+además subcarpetas `avatar/<characterId>/…` (§4.4, un personaje por carpeta con sus 80 frames ya
+prefijados), además de ficheros sueltos directamente en `avatar/` (el maniquí de reserva). El
+script `packages/game-runtime/scripts/build-pack.ts` (raíz: `pnpm pack:build <packId>`) decodifica
+los PNG, compone un atlas Phaser por carpeta (`atlas-<kind>.png` + `atlas-<kind>.json`) y genera
 `manifest.json` (§6). El manifiesto se valida con el esquema Zod y contra el `RoomPackage`: exige un
-frame por sprite/icono y una entrada `tiles` con `collides` **explícito** por cada `tileId` no nulo.
+frame por sprite/icono, una entrada `tiles` con `collides` **explícito** por cada `tileId` no nulo,
+y **80 frames** por cada personaje declarado en `pack.config.json → avatars` (error si hay una
+entrega parcial; aviso, no bloqueante, si el personaje aún no tiene ningún frame).
 
 ```bash
 pnpm pack:build medieval-v1            # genera atlas + manifest.json en public/packs/medieval-v1
@@ -295,7 +348,8 @@ atravesando puertas (`plan/fase-1-runtime.md` 1.2).
 ## 11. Fuera de alcance v1
 
 - Rotación de cámara, multinivel/elevaciones, iluminación dinámica avanzada.
-- Personalización de avatar, animaciones de combate/emote, temas gráficos adicionales.
+- Personalización de avatar (más allá de elegir entre los personajes cerrados de §4.4), animaciones
+  de combate/emote, temas gráficos adicionales.
 - Audio (vive en `15-audio-y-creditos-ia.md`).
 - Plantillas de puzzle v2 (`07-plantillas-puzzle-v2.md`).
 

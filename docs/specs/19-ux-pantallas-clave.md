@@ -16,6 +16,7 @@ Corresponde a la fase `lobby` del protocolo, entre `created` y `playing`.
 | Región | Contenido | Decisión de diseño |
 |---|---|---|
 | Cabecera | Título de la sala, tema, contador `3/4 jugadores` | El contador usa siempre la capacidad declarada por el creador (`players.max`), nunca un número fijo |
+| Selector de personaje | Retrato + nombre por personaje de `manifest.avatars` (`26-pack-grafico-v1.md` §4.4), `RadioGroup` + `Card` de shadcn/ui | Los personajes ya ocupados por otro jugador conectado se muestran deshabilitados (A1: únicos por sesión). Sin retrato declarado, se usa el primer frame `s-idle` del personaje. Elegir envía `select_character`; el servidor es la autoridad y puede corregir la selección si hubo carrera con otro jugador |
 | Tiles de jugador | Uno por conectado + huecos vacíos | Cada tile muestra cámara (si `allowVideo`) o icono de solo-micro, nombre y estado `listo`/`conectando…`. El estado `listo` es local (el jugador pulsa "estoy listo"), no implica nada sobre la partida |
 | Enlace de invitación | Solo visible en compra individual (B2C); en un evento el jugador ya llegó vía clave | El enlace nunca contiene la clave en claro reutilizable — es de un solo uso de sesión |
 | Barra inferior | Controles de mic/cámara/chat/ajustes + botón "Comenzar" | El botón solo lo ve y pulsa el **host**. Deshabilitado hasta que todos los presentes estén `listo` — no hace falta llenar el cupo máximo (un grupo de 2 puede empezar en sala de 4) |
