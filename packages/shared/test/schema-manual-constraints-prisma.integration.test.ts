@@ -54,6 +54,14 @@ describe.skipIf(!process.env.DATABASE_URL)(
       return rows[0]?.exists ?? false;
     }
 
+    async function constraintDef(constraintName: string): Promise<string | null> {
+      const rows = await prisma.$queryRaw<{ definition: string }[]>`
+        SELECT pg_get_constraintdef(oid) AS definition
+          FROM pg_constraint WHERE conname = ${constraintName}
+      `;
+      return rows[0]?.definition ?? null;
+    }
+
     async function triggerExists(triggerName: string, tableName: string): Promise<boolean> {
       const rows = await prisma.$queryRaw<{ exists: boolean }[]>`
         SELECT EXISTS (
@@ -81,12 +89,20 @@ describe.skipIf(!process.env.DATABASE_URL)(
 
     it("ixRoomCatalog y trgRoomUpdatedAt siguen ahí (0005_rooms)", async () => {
       const catalog = await indexDef("ixRoomCatalog");
-      expect(catalog).toMatch(/WHERE \(\(status = 'published'::"roomStatus"\) AND \("deletedAt" IS NULL\)\)/);
+      expect(catalog).toMatch(
+        /WHERE \(\(status = 'published'::"roomStatus"\) AND \("deletedAt" IS NULL\)\)/,
+      );
       expect(await triggerExists("trgRoomUpdatedAt", "room")).toBe(true);
     });
 
     it("trgReviewUpdatedAt sigue ahí (0009_reviews)", async () => {
       expect(await triggerExists("trgReviewUpdatedAt", "review")).toBe(true);
+    });
+
+    it("review_rating_check admite la escala doblada 2–10 (medios puntos, 20260925160000)", async () => {
+      const def = await constraintDef("review_rating_check");
+      expect(def).toMatch(/rating >= 2/);
+      expect(def).toMatch(/rating <= 10/);
     });
 
     it("ixContentReportStatus/ixContentReportRoom siguen siendo parciales (0010/0016)", async () => {
@@ -107,7 +123,9 @@ describe.skipIf(!process.env.DATABASE_URL)(
       expect(stripePi).toMatch(/UNIQUE INDEX/);
       expect(stripePi).toMatch(/WHERE \("stripePaymentIntentId" IS NOT NULL\)/);
       expect(ownedRoom).toMatch(/UNIQUE INDEX/);
-      expect(ownedRoom).toMatch(/WHERE \(\("purchaseType" = 'room'::"purchaseType"\) AND \(status = 'succeeded'::"purchaseStatus"\)\)/);
+      expect(ownedRoom).toMatch(
+        /WHERE \(\("purchaseType" = 'room'::"purchaseType"\) AND \(status = 'succeeded'::"purchaseStatus"\)\)/,
+      );
       expect(await constraintExists("chkPurchaseTarget")).toBe(true);
       expect(await constraintExists("chkPurchasePaidNeedsStripe")).toBe(true);
     });

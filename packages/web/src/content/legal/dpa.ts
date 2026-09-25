@@ -134,9 +134,6 @@ export const dpaAnnex: LegalDocument = {
         "Resend/Postmark — envío del email de invitación con la clave de acceso.",
         "Cloudflare R2 — almacenamiento de las grabaciones de sesión, solo cuando se activa la " +
           "grabación.",
-        "LiveKit Cloud — audio y vídeo en tránsito durante la sesión, solo si se activa como plan de " +
-          "contingencia; mientras el servicio se opere en modo self-hosted, este proveedor no " +
-          "interviene.",
       ],
     },
     {
@@ -144,8 +141,9 @@ export const dpaAnnex: LegalDocument = {
       paragraphs: [
         [
           "Stripe (pagos del organizador), ElevenLabs (voces generadas a partir de los textos de los " +
-            "creadores), los proveedores de modelos de lenguaje del editor asistido por IA y las " +
-            "herramientas de analítica aparecen en la ",
+            "creadores), Magnific (generación y edición de assets visuales del editor), los " +
+            "proveedores de modelos de lenguaje del editor asistido por IA y las herramientas de " +
+            "analítica aparecen en la ",
           legalLink("Política de Privacidad", "/legal/privacy"),
           ", pero no reciben datos de los participantes de un evento: tratan datos de la relación " +
             "de la plataforma con sus propios usuarios, como responsable, y por eso no forman parte " +

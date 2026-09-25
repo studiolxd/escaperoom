@@ -16,33 +16,28 @@ import {
 } from "@/components/ui/empty";
 
 /**
- * Límite de error del segmento `[locale]` (F-2): sin este archivo, cualquier
- * excepción sin capturar (Phaser, LiveKit, un `throw` de render) tira toda la
- * página con la pantalla de error genérica de Next, sin traducir.
- *
- * Vive dentro de `NextIntlClientProvider` (lo monta `[locale]/layout.tsx`
- * alrededor de este límite), así que puede traducir normalmente.
- *
- * Es el respaldo de rutas SIN chrome propio (creador, jugar, auth): al vivir
- * en `[locale]`, sustituye también la shell pública si el error ocurre
- * dentro de `(public)`, así que ese grupo tiene su propio `error.tsx` con
- * cabecera/pie públicos (deuda técnica, PR #120).
+ * Límite de error del grupo `(public)`: al vivir en el mismo segmento que
+ * `(public)/layout.tsx`, Next lo envuelve con la cabecera y el pie públicos
+ * en vez de sustituir todo el árbol como hacía el `[locale]/error.tsx`
+ * genérico (deuda técnica, PR #120). Ese genérico se mantiene como respaldo
+ * para el resto de grupos (creador, jugar, auth), que no llevan la shell
+ * pública.
  */
-export default function LocaleError({
+export default function PublicError({
   error,
   retry,
 }: {
   error: Error & { digest?: string };
   retry: () => void;
 }) {
-  const t = useTranslations("ErrorPage");
+  const t = useTranslations("PublicErrorPage");
 
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-16 text-foreground">
+    <main className="flex flex-1 items-center justify-center bg-background px-4 py-16 text-foreground">
       <Empty>
         <EmptyHeader>
           <EmptyMedia variant="icon">

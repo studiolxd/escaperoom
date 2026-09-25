@@ -750,13 +750,13 @@
     "reviewsHeading": "Avis",
     "noReviews": "Cette salle n'a pas encore d'avis.",
     "moreReviews": "Voir plus d'avis",
-    "stars": "{rating} étoiles sur 5"
+    "stars": "{rating, number} étoiles sur 5"
   },
   "Reviews": {
     "formHeading": "Votre avis",
     "editHeading": "Modifier votre avis",
     "ratingLabel": "Note",
-    "star": "{n, plural, one {# étoile} other {# étoiles}}",
+    "ratingOption": "{n, number} étoiles sur 5",
     "textLabel": "Commentaire (facultatif)",
     "submit": "Publier l'avis",
     "update": "Enregistrer",
@@ -1341,6 +1341,18 @@
     "retry": "Réessayer"
   },
   "NotFound": {
+    "title": "Page introuvable",
+    "description": "Le lien est peut-être rompu ou la page n'existe plus.",
+    "home": "Retour à l'accueil",
+    "browseCatalog": "Voir le catalogue"
+  },
+  "PublicErrorPage": {
+    "title": "Une erreur est survenue",
+    "description": "Cette page n'a pas pu se charger. Vous pouvez réessayer ou revenir à l'accueil.",
+    "retry": "Réessayer",
+    "home": "Retour à l'accueil"
+  },
+  "PublicNotFound": {
     "title": "Page introuvable",
     "description": "Le lien est peut-être rompu ou la page n'existe plus.",
     "home": "Retour à l'accueil",

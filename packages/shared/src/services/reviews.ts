@@ -69,11 +69,21 @@ export type ReviewInput = { rating: unknown; text?: unknown };
  * (specs/17 §3): se desinfecta (HTML, control, espacios) y, si contiene
  * términos de la lista, se rechaza (🛑 "bloquea enviar"), no se censura: una
  * reseña pública con asteriscos no aporta y el usuario puede reformularla.
+ *
+ * La valoración admite medios puntos: {1, 1.5, 2, …, 5}. Se valida contra la
+ * escala doblada (×2 debe ser un entero entre 2 y 10, el mismo rango que
+ * `review_rating_check`) para no depender de comparaciones de coma flotante
+ * sobre decimales, y se normaliza al medio punto exacto antes de devolverla.
  */
 export function parseReviewInput(input: ReviewInput): { rating: number; text: string | null } {
   const { rating, text } = input;
-  if (typeof rating !== "number" || !Number.isInteger(rating) || rating < 1 || rating > 5) {
-    throw new ReviewError("VALIDATION_ERROR", "La valoración debe ser un entero entre 1 y 5");
+  const doubled = typeof rating === "number" ? Math.round(rating * 2) : Number.NaN;
+  const isHalfStep = typeof rating === "number" && Math.abs(rating * 2 - doubled) < 1e-9;
+  if (!isHalfStep || doubled < 2 || doubled > 10) {
+    throw new ReviewError(
+      "VALIDATION_ERROR",
+      "La valoración debe ser 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5 o 5",
+    );
   }
   if (text !== undefined && text !== null && typeof text !== "string") {
     throw new ReviewError("VALIDATION_ERROR", "El texto de la reseña debe ser una cadena");
@@ -91,7 +101,7 @@ export function parseReviewInput(input: ReviewInput): { rating: number; text: st
       "La reseña contiene lenguaje no permitido; reformúlala para publicarla",
     );
   }
-  return { rating, text: filtered.text.length > 0 ? filtered.text : null };
+  return { rating: doubled / 2, text: filtered.text.length > 0 ? filtered.text : null };
 }
 
 function isAnonymous(actor: Actor): boolean {

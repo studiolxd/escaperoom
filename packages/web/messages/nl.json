@@ -750,13 +750,13 @@
     "reviewsHeading": "Reviews",
     "noReviews": "Deze kamer heeft nog geen reviews.",
     "moreReviews": "Meer reviews bekijken",
-    "stars": "{rating} van 5 sterren"
+    "stars": "{rating, number} van 5 sterren"
   },
   "Reviews": {
     "formHeading": "Jouw review",
     "editHeading": "Je review bewerken",
     "ratingLabel": "Beoordeling",
-    "star": "{n, plural, one {# ster} other {# sterren}}",
+    "ratingOption": "{n, number} van 5 sterren",
     "textLabel": "Opmerking (optioneel)",
     "submit": "Review plaatsen",
     "update": "Wijzigingen opslaan",
@@ -1341,6 +1341,18 @@
     "retry": "Opnieuw proberen"
   },
   "NotFound": {
+    "title": "We konden deze pagina niet vinden",
+    "description": "De link is mogelijk verbroken of de pagina bestaat niet meer.",
+    "home": "Naar de startpagina",
+    "browseCatalog": "Bekijk de catalogus"
+  },
+  "PublicErrorPage": {
+    "title": "Er is iets misgegaan",
+    "description": "Deze pagina kon niet worden geladen. Je kunt het opnieuw proberen of terug naar de startpagina gaan.",
+    "retry": "Opnieuw proberen",
+    "home": "Naar de startpagina"
+  },
+  "PublicNotFound": {
     "title": "We konden deze pagina niet vinden",
     "description": "De link is mogelijk verbroken of de pagina bestaat niet meer.",
     "home": "Naar de startpagina",

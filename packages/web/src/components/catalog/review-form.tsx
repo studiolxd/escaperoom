@@ -8,8 +8,23 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { StarRating } from "./star-rating";
 
 type Status = "idle" | "saving" | "created" | "updated" | "errorContent" | "errorGeneric";
+
+/**
+ * Zonas clicables del selector: la primera estrella es una única zona
+ * (mínimo 1, no 0,5 — valores válidos {1, 1.5, …, 5}); las otras cuatro se
+ * parten en mitad izquierda (medio punto) y mitad derecha (punto entero).
+ */
+const RATING_ZONES = [1, 2, 3, 4, 5].flatMap((star) =>
+  star === 1
+    ? [{ value: 1, width: "w-[20%]" }]
+    : [
+        { value: star - 0.5, width: "w-[10%]" },
+        { value: star, width: "w-[10%]" },
+      ],
+);
 
 /**
  * Formulario de reseña (crear o editar la propia: una por usuario y sala).
@@ -58,30 +73,31 @@ export function ReviewForm({ roomId, initial }: { roomId: string; initial: Revie
       <h3 className="font-semibold">{hasReview ? t("editHeading") : t("formHeading")}</h3>
       <fieldset className="flex flex-col gap-1">
         <legend className="text-sm">{t("ratingLabel")}</legend>
-        <RadioGroup
-          name="rating"
-          value={rating > 0 ? String(rating) : ""}
-          onValueChange={(value) => setRating(Number(value))}
-          className="flex w-fit flex-row gap-1"
-          required
-        >
-          {[1, 2, 3, 4, 5].map((n) => (
-            <Label
-              key={n}
-              htmlFor={`review-rating-${n}`}
-              className="cursor-pointer text-2xl leading-none font-normal"
-            >
-              <RadioGroupItem id={`review-rating-${n}`} value={String(n)} className="sr-only" />
-              <span
-                aria-hidden="true"
-                className={n <= rating ? "text-amber-500" : "text-muted-foreground/40"}
+        <div className="relative inline-block w-fit text-2xl leading-none">
+          <StarRating value={rating} className="pointer-events-none" />
+          <RadioGroup
+            name="rating"
+            value={rating > 0 ? String(rating) : ""}
+            onValueChange={(value) => setRating(Number(value))}
+            className="absolute inset-0 flex flex-row"
+            required
+          >
+            {RATING_ZONES.map(({ value, width }) => (
+              <Label
+                key={value}
+                htmlFor={`review-rating-${value}`}
+                className={`block h-full cursor-pointer ${width}`}
               >
-                ★
-              </span>
-              <span className="sr-only">{t("star", { n })}</span>
-            </Label>
-          ))}
-        </RadioGroup>
+                <RadioGroupItem
+                  id={`review-rating-${value}`}
+                  value={String(value)}
+                  className="sr-only"
+                />
+                <span className="sr-only">{t("ratingOption", { n: value })}</span>
+              </Label>
+            ))}
+          </RadioGroup>
+        </div>
       </fieldset>
       <Label className="flex flex-col items-start gap-1 text-sm">
         {t("textLabel")}

@@ -123,11 +123,14 @@ describe("reviewService.upsertReview", () => {
 });
 
 describe("parseReviewInput — validación y filtro de lenguaje (specs/17 §3)", () => {
-  it("valoración entera de 1 a 5", () => {
-    for (const rating of [0, 6, 4.5, "5", null, undefined]) {
+  it("valoración en medios puntos, entre 1 y 5", () => {
+    for (const rating of [0, 0.5, 6, 1.2, 4.3, "5", null, undefined]) {
       expect(() => parseReviewInput({ rating }), String(rating)).toThrow(ReviewError);
     }
     expect(parseReviewInput({ rating: 1 })).toEqual({ rating: 1, text: null });
+    expect(parseReviewInput({ rating: 4.5 })).toEqual({ rating: 4.5, text: null });
+    expect(parseReviewInput({ rating: 2.5 })).toEqual({ rating: 2.5, text: null });
+    expect(parseReviewInput({ rating: 5 })).toEqual({ rating: 5, text: null });
   });
 
   it("desinfecta el texto y deja null si queda vacío", () => {
