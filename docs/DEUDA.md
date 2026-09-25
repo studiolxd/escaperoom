@@ -2,13 +2,21 @@
 
 Tareas pendientes que no bloquean pero hay que resolver.
 
-- [ ] **Retirar `world-preview` o dejarlo solo para desarrollo.** Ruta
-      `packages/web/src/app/[locale]/(creator)/world-preview/`. Decidir si se
-      elimina o si se restringe a entorno de desarrollo (no accesible en
-      producción).
-- [ ] **`room-preview` solo accesible desde el editor.** Ruta
-      `packages/web/src/app/[locale]/(creator)/room-preview/`. Que no se pueda
-      abrir directamente por URL, solo lanzándola desde el editor.
+- [x] **Retirar `world-preview` o dejarlo solo para desarrollo.** Ruta
+      `packages/web/src/app/[locale]/(creator)/world-preview/`. Resuelto:
+      restringida con `isDevFallbackAllowed()` (mismo criterio que `/play`
+      sin `?session`) — `notFound()` en producción, sigue disponible en
+      desarrollo para validar el runtime a mano.
+- [x] **`room-preview` solo accesible desde el editor.** Ruta
+      `packages/web/src/app/[locale]/(creator)/room-preview/`. Resuelto con
+      el mismo criterio que `world-preview` (`isDevFallbackAllowed()`) en vez
+      de un token firmado/comprobación de autoría: la ruta no toma `roomId`
+      ni previsualiza el borrador real de una sala, siempre renderiza la
+      fixture fija del Rey Aldric — el editor real usa "Jugar"
+      (`/api/rooms/:roomId/playtest`) para previsualizar la sala concreta, no
+      esta ruta. Sin contenido de autor real que proteger, el token firmado
+      propuesto en la redacción original de esta entrada no aportaba nada
+      sobre `isDevFallbackAllowed()`.
 - [ ] **Mínimo y máximo de jugadores por sala, coherentes con sus pruebas.**
       - **Configuración:** la sala declara mínimo y máximo de jugadores
         (`meta.players { min, max }` ya existe en el formato, techo 8); comprobar
