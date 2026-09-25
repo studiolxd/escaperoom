@@ -57,6 +57,7 @@ import { SplitCluePanel, type SplitClueFeedback } from "@/components/puzzles/spl
 import { ErrorBoundary } from "@/components/error-boundary";
 import { formatDuration } from "@/lib/session-format";
 import { INTRO_DIALOG_ID, isIntroOpen, isWorldInputEnabled } from "@/lib/playtest-state";
+import { CharacterPicker } from "./character-picker";
 import { ConnectionBadge } from "./connection-badge";
 import type { GameSessionCanvasHandle } from "./game-session-canvas";
 import type { GameConnectionStatus } from "./use-game-connection";
@@ -244,13 +245,14 @@ export function GameSessionShell({
     handleRef.current?.setPlayers(
       snapshot.players
         .filter((player) => !player.isSelf)
-        .map(({ id, name, roomId: playerRoom, x, y, tint, connected }) => ({
+        .map(({ id, name, roomId: playerRoom, x, y, tint, characterId, connected }) => ({
           id,
           name,
           roomId: playerRoom,
           x,
           y,
           tint,
+          characterId,
           connected,
         })),
     );
@@ -285,6 +287,11 @@ export function GameSessionShell({
     if (selfTint) handleRef.current?.setLocalTint(selfTint);
   }, [selfTint]);
 
+  const selfCharacterId = self?.characterId;
+  useEffect(() => {
+    if (selfCharacterId) handleRef.current?.setLocalCharacter(selfCharacterId);
+  }, [selfCharacterId]);
+
   const onReady = useCallback(
     (handle: GameSessionCanvasHandle) => {
       handleRef.current = handle;
@@ -298,6 +305,7 @@ export function GameSessionShell({
       if (current.self) {
         serverRoomRef.current = current.self.roomId;
         if (current.self.tint) handle.setLocalTint(current.self.tint);
+        if (current.self.characterId) handle.setLocalCharacter(current.self.characterId);
         handle.placeAvatar(current.self.x, current.self.y);
       }
     },
@@ -754,9 +762,9 @@ export function GameSessionShell({
                       event.dataTransfer.effectAllowed = "move";
                     }}
                     onDragEnd={() => setDraggingItem(null)}
-                    className="flex cursor-grab items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/10 px-2 py-0.5 text-[0.7rem] text-amber-100 active:cursor-grabbing"
+                    className="flex cursor-grab items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/10 py-1 pl-1 pr-2.5 text-[0.7rem] text-amber-100 active:cursor-grabbing"
                   >
-                    {renderItemIcon(itemId, 16)}
+                    {renderItemIcon(itemId, 28)}
                     {itemName(itemId)}
                   </li>
                 ))
@@ -833,6 +841,20 @@ export function GameSessionShell({
             <p className="text-sm text-white/70">
               {t("lobby.players", { count: snapshot.players.length })}
             </p>
+            {pack ? (
+              <CharacterPicker
+                pack={pack}
+                occupiedBy={
+                  new Set(
+                    snapshot.players
+                      .filter((player) => !player.isSelf && player.connected)
+                      .map((player) => player.characterId),
+                  )
+                }
+                value={self?.characterId}
+                onChange={(characterId) => client.selectCharacter(characterId)}
+              />
+            ) : null}
             {isHost ? (
               <Button onClick={() => client.startGame()} data-testid="game-start">
                 {t("lobby.start")}
@@ -913,7 +935,7 @@ export function GameSessionShell({
                     applyItemUse(itemId, target);
                   }}
                 >
-                  {renderItemIcon(itemId, 16)}
+                  {renderItemIcon(itemId, 28)}
                   {itemName(itemId)}
                 </Button>
               ))}

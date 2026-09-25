@@ -39,8 +39,19 @@ export function sanitizePlayerName(name: string | null | undefined): string | un
 }
 
 /** Opciones de join de cada room (el servidor valida todo). */
-export function joinOptions(target: GameJoinTarget, name?: string): Record<string, unknown> {
-  const base = sanitizePlayerName(name) ? { name: sanitizePlayerName(name) } : {};
+export function joinOptions(
+  target: GameJoinTarget,
+  name?: string,
+  characterId?: string,
+): Record<string, unknown> {
+  const base: Record<string, unknown> = sanitizePlayerName(name)
+    ? { name: sanitizePlayerName(name) }
+    : {};
+  // El personaje solo aplica a partidas reales (`game`): en evento/playtest/
+  // observador el servidor asigna o no lo necesita.
+  if (target.kind !== "playtest" && target.kind !== "event" && target.kind !== "spectate" && characterId) {
+    base.characterId = characterId;
+  }
   if (target.kind === "playtest") {
     return { ...base, playtestId: target.playtestId, token: target.token };
   }
@@ -58,8 +69,9 @@ export async function joinGameRoom(
   client: Pick<Client, "create" | "join" | "joinById" | "joinOrCreate">,
   target: GameJoinTarget,
   name?: string,
+  characterId?: string,
 ): Promise<GameRoomHandle> {
-  const options = joinOptions(target, name);
+  const options = joinOptions(target, name, characterId);
   if (target.kind === "playtest") {
     return client.joinOrCreate<GameRoomStateLike>(PLAYTEST_ROOM, options);
   }

@@ -821,6 +821,8 @@
     },
     "lobby": {
       "title": "Salle d'attente",
+      "chooseCharacter": "Choisis ton personnage",
+      "characterTaken": "pris",
       "players": "{count, plural, one {# joueur} other {# joueurs}}",
       "start": "Commencer la partie",
       "waitingHost": "En attente du lancement par l'hôte…",
