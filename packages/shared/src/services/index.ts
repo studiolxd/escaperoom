@@ -33,6 +33,8 @@ export * from "./access-key-email-purge-prisma-store";
 export * from "./ip-ua-purge";
 export * from "./session-ip-ua-purge-prisma-store";
 export * from "./terms-acceptance-ip-ua-purge-prisma-store";
+export * from "./mcp-oauth-purge";
+export * from "./mcp-oauth-purge-prisma-store";
 export * from "./join-token";
 export * from "./redeem";
 export * from "./room-license";

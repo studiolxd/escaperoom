@@ -113,6 +113,15 @@ export const RATE_LIMIT_POLICIES = {
     ip: { limit: 5, windowSeconds: 3600 },
     user: { limit: 5, windowSeconds: 3600 },
   },
+  /**
+   * `POST /api/mcp/oauth/register` — registro dinámico de clientes OAuth
+   * (RFC 7591, A-4/D-4). Público, sin sesión: solo IP. Antes vivía en un
+   * limitador en memoria por proceso con la primera entrada (falsificable) de
+   * `x-forwarded-for`.
+   */
+  "mcp-register": {
+    ip: { limit: 20, windowSeconds: 3600 },
+  },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitPolicyName = keyof typeof RATE_LIMIT_POLICIES;

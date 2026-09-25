@@ -1013,7 +1013,8 @@
       "error": "Sign-in failed. Please try again."
     },
     "errors": {
-      "invalid": "The authorization request is not valid. Reconnect the assistant from its app."
+      "invalid": "The authorization request is not valid. Reconnect the assistant from its app.",
+      "continueToClient": "Return to the app that brought you here"
     }
   },
   "CreatorChat": {

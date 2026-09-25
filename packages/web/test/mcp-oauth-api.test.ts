@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import {
   authenticateOAuthBearer,
   createOAuthProvider,
-  createRateLimiter,
   handleCreatorMcpRequest,
   MCP_ENDPOINT,
 } from "@escaperoom/mcp-server";
@@ -17,7 +16,19 @@ import {
 } from "@escaperoom/shared/services";
 import { describe, expect, it } from "vitest";
 import { createPrismaOAuthStore, type VerificationDelegate } from "../src/server/mcp-oauth-store";
-import { createMcpOAuthHandlers } from "../src/server/rest/mcp-oauth";
+import {
+  createMcpOAuthHandlers,
+  type McpRegisterRateLimiter,
+} from "../src/server/rest/mcp-oauth";
+
+/** Limitador en memoria del registro dinámico, para inyectar en los tests (A-4). */
+function fakeRegisterLimiter(limit: number): McpRegisterRateLimiter {
+  let count = 0;
+  return async () => {
+    count += 1;
+    return count <= limit ? { ok: true } : { ok: false, retryAfterSeconds: 3600 };
+  };
+}
 
 const ORIGIN = "http://localhost:3000";
 const REDIRECT_URI = "http://127.0.0.1:7777/callback";
@@ -71,7 +82,7 @@ function setup() {
     provider: () => provider,
     resolveActor: async (req) =>
       sessions[req.headers.get("x-test-session") ?? ""] ?? ANONYMOUS_ACTOR,
-    registerLimiter: createRateLimiter({ limit: 2, windowSeconds: 3600 }),
+    registerLimiter: fakeRegisterLimiter(2),
   });
   return { rows, provider, handlers };
 }
@@ -163,14 +174,16 @@ describe("OAuth del MCP en la web (4.7)", () => {
     );
     expect(new URL(english.headers.get("location")!).pathname).toBe("/en/oauth/consent");
 
-    // Sin PKCE: error devuelto al cliente, sin pasar por el consentimiento.
+    // A-13: sin PKCE (error "seguro" según RFC 6749 §4.1.2.1) tampoco se
+    // redirige 302 directo al cliente — sería un redirector abierto hacia
+    // cualquier `redirect_uri` que alguien se auto-registre (A-4). Siempre a
+    // la pantalla de consentimiento, que decide si ofrece un enlace explícito.
     params.delete("code_challenge");
     const noPkce = await handlers.authorize(
       new Request(`${ORIGIN}/api/mcp/oauth/authorize?${params}`),
     );
-    const back = new URL(noPkce.headers.get("location")!);
-    expect(back.origin + back.pathname).toBe(REDIRECT_URI);
-    expect(back.searchParams.get("error")).toBe("invalid_request");
+    expect(noPkce.status).toBe(302);
+    expect(new URL(noPkce.headers.get("location")!).pathname).toBe("/es/oauth/consent");
   });
 
   it("consentimiento → código → token (PKCE) que abre /mcp/creator solo sobre sus drafts", async () => {
@@ -302,6 +315,31 @@ describe("OAuth del MCP en la web (4.7)", () => {
     expect(back.searchParams.get("code")).toBeNull();
   });
 
+  it("A-4/D-4: el registro dinámico rechaza client_name y redirect_uri por encima de 120 caracteres", async () => {
+    const { handlers } = setup();
+    const post = (body: unknown) =>
+      handlers.register(
+        new Request(`${ORIGIN}/api/mcp/oauth/register`, {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-forwarded-for": "10.9.0.1" },
+          body: JSON.stringify(body),
+        }),
+      );
+
+    const longName = await post({
+      client_name: "x".repeat(121),
+      redirect_uris: [REDIRECT_URI],
+    });
+    expect(longName.status).toBe(400);
+    expect(((await longName.json()) as { error: string }).error).toBe("invalid_client_metadata");
+
+    const longRedirect = await post({
+      redirect_uris: [`http://127.0.0.1:7777/${"x".repeat(120)}`],
+    });
+    expect(longRedirect.status).toBe(400);
+    expect(((await longRedirect.json()) as { error: string }).error).toBe("invalid_redirect_uri");
+  });
+
   it("el registro dinámico está limitado por IP", async () => {
     const { handlers } = setup();
     await register(handlers);
@@ -315,5 +353,91 @@ describe("OAuth del MCP en la web (4.7)", () => {
     );
     expect(third.status).toBe(429);
     expect(third.headers.get("retry-after")).toBeTruthy();
+  });
+
+  /** Consentimiento aprobado hasta tener el código; helper para A-14/A-6. */
+  async function approvedCode(handlers: ReturnType<typeof setup>["handlers"]) {
+    const clientId = await register(handlers);
+    const { verifier, challenge } = pkce();
+    const approved = await decide(handlers, authorizeParams(clientId, challenge), {
+      session: "autora",
+    });
+    const code = new URL(approved.headers.get("location")!).searchParams.get("code")!;
+    return { clientId, verifier, code };
+  }
+
+  it("A-14: si redirect_uri vino explícita al autorizar, es obligatoria al canjear el código", async () => {
+    const { handlers } = setup();
+    const { clientId, verifier, code } = await approvedCode(handlers);
+
+    const missing = await handlers.token(
+      new Request(`${ORIGIN}/api/mcp/oauth/token`, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code,
+          code_verifier: verifier,
+          client_id: clientId,
+          resource: `${ORIGIN}${MCP_ENDPOINT}`,
+          // Sin redirect_uri, aunque la autorización la llevó explícita.
+        }),
+      }),
+    );
+    expect(missing.status).toBe(400);
+    expect(((await missing.json()) as { error: string }).error).toBe("invalid_request");
+  });
+
+  it("A-6: reutilizar un refresh token ya rotado revoca toda la familia", async () => {
+    const { handlers, provider } = setup();
+    const { clientId, verifier, code } = await approvedCode(handlers);
+
+    const first = await handlers.token(
+      new Request(`${ORIGIN}/api/mcp/oauth/token`, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code,
+          code_verifier: verifier,
+          client_id: clientId,
+          redirect_uri: REDIRECT_URI,
+          resource: `${ORIGIN}${MCP_ENDPOINT}`,
+        }),
+      }),
+    );
+    const { refresh_token, access_token } = (await first.json()) as {
+      refresh_token: string;
+      access_token: string;
+    };
+
+    const refreshExchange = (token: string) =>
+      handlers.token(
+        new Request(`${ORIGIN}/api/mcp/oauth/token`, {
+          method: "POST",
+          headers: { "content-type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            grant_type: "refresh_token",
+            refresh_token: token,
+            client_id: clientId,
+          }),
+        }),
+      );
+
+    // Uso legítimo: rota a un nuevo par de tokens.
+    const rotated = await refreshExchange(refresh_token);
+    expect(rotated.status).toBe(200);
+    const { access_token: rotatedAccess } = (await rotated.json()) as { access_token: string };
+
+    // Reutilizar el refresh ya rotado (robo/duplicado) revoca la familia
+    // entera: incluso el access token recién emitido deja de servir.
+    const reused = await refreshExchange(refresh_token);
+    expect(reused.status).toBe(400);
+    expect(((await reused.json()) as { error: string }).error).toBe("invalid_grant");
+
+    // La familia entera queda revocada: ni el access token original ni el
+    // recién rotado por el uso legítimo siguen sirviendo.
+    expect((await provider.verifyAccessToken(access_token)).ok).toBe(false);
+    expect((await provider.verifyAccessToken(rotatedAccess)).ok).toBe(false);
   });
 });

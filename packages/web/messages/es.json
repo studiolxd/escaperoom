@@ -1013,7 +1013,8 @@
       "error": "No se ha podido iniciar sesión. Inténtalo de nuevo."
     },
     "errors": {
-      "invalid": "La solicitud de autorización no es válida. Vuelve a conectar el asistente desde su aplicación."
+      "invalid": "La solicitud de autorización no es válida. Vuelve a conectar el asistente desde su aplicación.",
+      "continueToClient": "Volver a la aplicación que te ha traído aquí"
     }
   },
   "CreatorChat": {

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { OAuthStore } from "@escaperoom/mcp-server";
+import { MCP_OAUTH_PURGE_IDENTIFIER_PREFIX } from "@escaperoom/shared/services";
 
 /** Lo mínimo del delegado Prisma de `verification` que usa el almacén. */
 export type VerificationDelegate = {
@@ -13,8 +14,12 @@ export type VerificationDelegate = {
   deleteMany(args: { where: { identifier: string } | { id: string } }): Promise<{ count: number }>;
 };
 
-/** Prefijo de las filas del OAuth del MCP en `verification`. */
-export const MCP_OAUTH_IDENTIFIER_PREFIX = "mcp-oauth:";
+/**
+ * Prefijo de las filas del OAuth del MCP en `verification` (A-15: el job de
+ * purga de `@escaperoom/worker` usa el mismo prefijo desde
+ * `@escaperoom/shared/services`, única fuente de verdad).
+ */
+export const MCP_OAUTH_IDENTIFIER_PREFIX = MCP_OAUTH_PURGE_IDENTIFIER_PREFIX;
 
 /**
  * Almacén del OAuth del MCP (ticket 4.7) sobre la tabla `verification` de
