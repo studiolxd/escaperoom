@@ -298,6 +298,23 @@ describe("memory · turnMode", () => {
     expect(next.outcome).toBe("flipped");
     expect(next.state.currentPlayerId).toBe("p3");
   });
+
+  it("per_player rota al siguiente jugador de la partida cuando se conoce la lista (D-8)", () => {
+    const def = makeDef({ turnMode: "per_player" });
+    const state = makeState(def);
+    const uva = cardIdsForSymbol(state, def).get("uva")![0]!;
+    const sol = cardIdsForSymbol(state, def).get("sol")![0]!;
+    const players = ["p1", "p2", "p3"];
+
+    const first = flipCard(state, def, uva, "p1", 1_000, { players });
+    const second = flipCard(first.state, def, sol, "p1", 1_100, { players });
+    expect(second.outcome).toBe("turn_ended");
+    // Con la lista de jugadores, el turno rota a p2 aunque nadie de p2/p3 haya
+    // jugado todavía (antes de D-8, sin `players`, el turno solo cambiaba si
+    // OTRO jugador tomaba la iniciativa por su cuenta).
+    expect(second.state.currentPlayerId).toBe("p2");
+    expect(second.nextPlayerId).toBe("p2");
+  });
 });
 
 describe("memory · maxFlipsPerTurn", () => {
@@ -444,5 +461,44 @@ describe("memory · solvencia (validador futuro)", () => {
         makeDef({ winCondition: "find_target_pairs", targetPairIds: ["par-uva"] }),
       ),
     ).toBe(true);
+  });
+});
+
+describe("memory · símbolos repetidos entre parejas (D-7)", () => {
+  it("dos parejas con el mismo símbolo se emparejan por pairId, no por símbolo", () => {
+    const def = makeDef({
+      pairs: [
+        { id: "par-a1", symbol: "uva" },
+        { id: "par-a2", symbol: "uva" },
+      ],
+    });
+    const state = makeState(def);
+    const forPair = (pairId: string) => state.cards.filter((c) => c.pairId === pairId).map((c) => c.id);
+    const a1 = forPair("par-a1");
+    const a2 = forPair("par-a2");
+    expect(a1).toHaveLength(2);
+    expect(a2).toHaveLength(2);
+
+    // Voltear las dos cartas de par-a1 las empareja...
+    const afterFirst = flipCard(flipCard(state, def, a1[0]!, "p1", 1_000).state, def, a1[1]!, "p1", 1_100);
+    expect(afterFirst.outcome).toBe("match");
+    expect(afterFirst.state.matchedPairIds).toEqual(["par-a1"]);
+    // ...y NO resuelve par-a2 de rebote (antes de D-7, indexar por símbolo
+    // hacía que ambas parejas con el mismo símbolo se dieran por resueltas a
+    // la vez).
+    expect(afterFirst.state.matchedPairIds).not.toContain("par-a2");
+    expect(afterFirst.state.state).toBe("in_progress");
+
+    // par-a2 sigue jugable de forma independiente.
+    const afterSecond = flipCard(
+      flipCard(afterFirst.state, def, a2[0]!, "p1", 1_200).state,
+      def,
+      a2[1]!,
+      "p1",
+      1_300,
+    );
+    expect(afterSecond.outcome).toBe("match");
+    expect(afterSecond.state.matchedPairIds.sort()).toEqual(["par-a1", "par-a2"]);
+    expect(afterSecond.state.state).toBe("solved");
   });
 });

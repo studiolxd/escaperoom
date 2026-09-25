@@ -57,11 +57,19 @@ describe("validador — Rey Aldric", () => {
     expect(expected).toEqual(["✅", "✅", "✅", "🟡", "✅", "🟡"]);
     // 3.7 añade el 🟡 «Puzzles sin pista asociada» (specs/09 §5), posterior a
     // las notas: el Rey Aldric solo tiene HintDef para sus dos candados.
-    const withoutHintLine = text
+    // La auditoría D-3/D-10 añade tres checks nuevos (geometría, invariantes
+    // estructurales, cupo de spawnPoints) que tampoco estaban en las notas.
+    const withoutNewLines = text
       .split("\n")
-      .filter((line) => !line.startsWith("🟡 Puzzles sin pista asociada"))
+      .filter(
+        (line) =>
+          !line.startsWith("🟡 Puzzles sin pista asociada") &&
+          !line.startsWith("✅ Geometría íntegra") &&
+          !line.startsWith("✅ Invariantes estructurales") &&
+          !line.startsWith("✅ spawnPoints suficientes"),
+      )
       .join("\n");
-    expect(icons(withoutHintLine)).toEqual(expected);
+    expect(icons(withoutNewLines)).toEqual(expected);
     expect(report.ok).toBe(true);
   });
 
@@ -154,7 +162,11 @@ describe("validador — Rey Aldric", () => {
     expect(last.victory).toBe(true);
     expect(last.subjectId).toBe("p-sello-final");
     expect(text).toContain("Secuencia de solución verificada (ruta crítica, 1 jugador)");
-    expect(text).toContain('Resolver p-sello-final "4538"');
+    // El código del candado no viaja en el informe (auditoría D-14): hoy solo
+    // lo ve el autor, pero una futura pantalla de moderación/colaborador que
+    // reutilice el mismo texto lo filtraría.
+    expect(text).toContain("Resolver p-sello-final (candado de 4 dígitos)");
+    expect(text).not.toContain("4538");
   });
 
   it("en grupo las placas se pisan sin puente y la ruta es más corta", () => {

@@ -1,9 +1,11 @@
+import type { RoomPackage } from "@escaperoom/shared/schemas";
 import type {
   Actor,
   CatalogService,
   PublishConfirmationService,
   RoomDraftService,
 } from "@escaperoom/shared/services";
+import type { AssetManifestInput } from "@escaperoom/shared/validator";
 import type { BeforeDraftCommit, LiveDraftSync } from "./draft-writer";
 import type { DraftSnapshotCache } from "./mutation-validation";
 import type { PreviewPlaytestLauncher } from "./links";
@@ -51,4 +53,10 @@ export type CreatorMcpDeps = {
    * Por defecto `DEFAULT_MAX_TOOL_RESPONSE_BYTES`; `Infinity` lo desactiva.
    */
   maxToolResponseBytes?: number;
+  /**
+   * Manifiesto del pack gráfico para el check `assets` del validador
+   * (auditoría D-13): sin esto, la tool `validate` nunca comprobaba los
+   * assets referenciados. `undefined` degrada el check a aviso, no bloquea.
+   */
+  loadAssetManifest?: (pkg: RoomPackage) => Promise<AssetManifestInput | undefined>;
 };

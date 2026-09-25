@@ -4,6 +4,7 @@ import { storage } from "@escaperoom/kit/storage";
 import { getRedis, redisPrefix } from "@escaperoom/kit/redis";
 import { roomDocToPackage, roomPackageToDoc } from "@escaperoom/editor/room-doc";
 import type { RoomPackageSerializer } from "@escaperoom/editor/validation";
+import { toRuntimeModel } from "@escaperoom/game-runtime";
 import { prisma } from "@escaperoom/shared/db";
 import {
   createInvitationEmailQueue,
@@ -109,6 +110,7 @@ import {
 } from "@escaperoom/shared/services";
 import type Stripe from "stripe";
 import { createBullCardExportQueue } from "@escaperoom/shared/access-key-cards-queue";
+import { loadAssetManifestFor } from "./asset-manifest";
 import { resolveColyseusHttpUrl } from "./playtest-launcher";
 import { getEditorSyncOriginId } from "./room-sync";
 
@@ -314,6 +316,10 @@ export function getRoomPublishService(): RoomPublishService {
           storage.putObject({ key, body: Buffer.from(bytes), contentType }),
       },
       moderation: getModerationService(),
+      loadAssetManifest: loadAssetManifestFor,
+      runtimeModelCheck: (pkg) => {
+        toRuntimeModel(pkg);
+      },
     });
   }
   return roomPublish;

@@ -88,12 +88,27 @@ describe("comandos de estructura y contenido (4.2)", () => {
       4,
     );
 
+    // Encoger sin reubicar el spawn (auditoría D-3): «spawn-1» (3,2) quedaría
+    // fuera de una rejilla de 3×2 (x/y válidos hasta 2). Se impide.
     expect(
-      defineSubRooms(doc, [{ id: "salon", name: "Gran salón", grid: { cols: 3, rows: 2 } }]),
+      codeOf(() =>
+        defineSubRooms(doc, [{ id: "salon", name: "Gran salón", grid: { cols: 3, rows: 2 } }]),
+      ),
+    ).toBe("OUT_OF_BOUNDS");
+
+    expect(
+      defineSubRooms(doc, [
+        {
+          id: "salon",
+          name: "Gran salón",
+          grid: { cols: 3, rows: 2 },
+          spawnPoints: [{ id: "spawn-1", x: 1, y: 1 }],
+        },
+      ]),
     ).toEqual({ created: [], updated: ["salon"] });
     const [salon, bodega] = roomDocToPackage(doc).map.rooms;
     expect(salon).toMatchObject({ name: "Gran salón", grid: { cols: 3, rows: 2 } });
-    expect(salon?.spawnPoints).toEqual([{ id: "spawn-1", x: 3, y: 2 }]);
+    expect(salon?.spawnPoints).toEqual([{ id: "spawn-1", x: 1, y: 1 }]);
     // La celda (5, 3) quedó fuera al encoger: se borra del doc.
     expect(salon?.layers).toEqual([{ name: "ground", rle: [1, 4, 2, 0, 3, 0] }]);
     expect(bodega?.spawnPoints).toEqual([]);

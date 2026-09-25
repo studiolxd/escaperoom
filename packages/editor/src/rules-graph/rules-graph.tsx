@@ -1,5 +1,11 @@
 "use client";
 
+// El CSS de React Flow vive aquí (junto al único componente que lo usa), no en
+// el barrel de `@escaperoom/editor` (auditoría F-16): así solo se descarga
+// cuando se carga este módulo — `packages/web` lo hace vía `next/dynamic` +
+// el subpath `@escaperoom/editor/rules-graph`, en vez de en el bundle inicial
+// del editor.
+import "@xyflow/react/dist/style.css";
 import {
   Background,
   Controls,

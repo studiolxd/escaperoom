@@ -7,6 +7,7 @@ import {
   collection,
   nextOrder,
   readFlatRecord,
+  writeRoomDocFormat,
   type RecordMap,
 } from "./doc-model";
 import { DEFAULT_PACKAGE_FORMAT, buildSubRoomRecord, readLayerTiles } from "./serialize";
@@ -437,6 +438,7 @@ export function writeRoomMeta(doc: Y.Doc, input: RoomMetaInput): void {
     meta.set("players", { ...(input.players ?? { min: 1, max: 4 }) });
     meta.set("assetsManifest", input.assetsManifest ?? packAssetsManifest(DEFAULT_TILESET));
     initRoomLanguages(doc, input.languages, input.defaultLanguage);
+    writeRoomDocFormat(doc);
   });
 }
 

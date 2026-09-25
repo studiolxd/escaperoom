@@ -19,7 +19,14 @@ import {
   initRoomDoc,
   lineCells,
   moveObject,
+  buildRoomDialogs,
+  buildRoomHints,
+  buildRoomItems,
+  buildRoomMap,
+  buildRoomObjects,
+  buildRoomPuzzles,
   observeRoomDoc,
+  observeRoomDocRoots,
   paintTiles,
   placeObject,
   proposeObjectId,
@@ -143,6 +150,44 @@ describe("RoomPackage ⇄ doc Yjs — ida y vuelta", () => {
     stop();
     paintTiles(doc, "bodega", "ground", [{ x: 1, y: 1 }], 3);
     expect(calls).toBe(2);
+  });
+
+  it("observeRoomDocRoots solo marca sucias las raíces que cambiaron (D-17)", () => {
+    const doc = aldricDoc();
+    const remote = replicate(doc);
+    const dirtyPerCall: string[][] = [];
+    const stop = observeRoomDocRoots(doc, (dirty) => dirtyPerCall.push([...dirty].sort()));
+
+    paintTiles(doc, "bodega", "ground", [{ x: 1, y: 1 }], 3);
+    expect(dirtyPerCall).toEqual([["subrooms"]]);
+
+    moveObject(remote, "trono", { x: 9, y: 2 });
+    sync(remote, doc);
+    expect(dirtyPerCall).toEqual([["subrooms"], ["objects"]]);
+
+    // Una transacción que toca varias colecciones marca solo las que cambian,
+    // una vez cada una (no una por cada operación dentro de la transacción).
+    doc.transact(() => {
+      fillTiles(doc, "bodega", "decor", { x: 2, y: 2 }, 21);
+      fillTiles(doc, "bodega", "decor", { x: 3, y: 3 }, 22);
+      moveObject(doc, "trono", { x: 8, y: 2 });
+    });
+    expect(dirtyPerCall.at(-1)).toEqual(["objects", "subrooms"]);
+
+    stop();
+    paintTiles(doc, "bodega", "ground", [{ x: 5, y: 5 }], 4);
+    expect(dirtyPerCall).toHaveLength(3);
+  });
+
+  it("los builders por campo coinciden con el equivalente de roomDocToPackage (D-17)", () => {
+    const doc = aldricDoc();
+    const full = roomDocToPackage(doc);
+    expect(buildRoomMap(doc)).toEqual(full.map);
+    expect(buildRoomObjects(doc)).toEqual(full.objects);
+    expect(buildRoomItems(doc, full.meta.languages)).toEqual(full.items);
+    expect(buildRoomPuzzles(doc)).toEqual(full.puzzles);
+    expect(buildRoomDialogs(doc, full.meta.languages)).toEqual(full.dialogs);
+    expect(buildRoomHints(doc, full.meta.languages)).toEqual(full.hints);
   });
 });
 
@@ -321,6 +366,38 @@ describe("controlador de herramientas (eventos del runtime → doc)", () => {
     tools.pointer(move(8, 8)); // sin trazo activo no pinta
     for (let x = 1; x <= 4; x++) expect(getTile(doc, "bodega", "ground", { x, y: 1 })).toBe(3);
     expect(getTile(doc, "bodega", "ground", { x: 8, y: 8 })).toBe(2);
+  });
+
+  it("pincel: un trazo rápido se agrupa en pocas transacciones Yjs, no una por celda (D-17)", () => {
+    const doc = aldricDoc();
+    const updates: Uint8Array[] = [];
+    doc.on("update", (u: Uint8Array) => updates.push(u));
+    const tools = new EditToolController(doc, { roomId: "bodega" });
+    tools.selectTile(3, "ground");
+
+    // 17 celdas en un solo trazo continuo (down + 16 move + up, dentro de la
+    // rejilla de `bodega`, 18×12), todas dentro de la ventana de coalescencia
+    // (los eventos llegan sin esperar).
+    tools.pointer(down(1, 1));
+    for (let x = 2; x < 17; x++) tools.pointer(move(x, 1));
+    tools.pointer(up(16, 1));
+
+    // Sin agrupar: 16 transacciones (una por celda). Agrupado: la primera
+    // (down) se vuelca al instante y el resto se acumula hasta el `up`.
+    expect(updates.length).toBeLessThan(5);
+    expect(updates.length).toBeGreaterThan(0);
+    for (let x = 1; x <= 16; x++) expect(getTile(doc, "bodega", "ground", { x, y: 1 })).toBe(3);
+  });
+
+  it("pincel: cambiar de herramienta a media pincelada no pierde las celdas pendientes", () => {
+    const doc = aldricDoc();
+    const tools = new EditToolController(doc, { roomId: "bodega" });
+    tools.selectTile(3, "ground");
+    tools.pointer(down(1, 1));
+    tools.pointer(move(3, 1));
+    // Sin `up`: cambiar de herramienta debe volcar lo pintado hasta ahora.
+    tools.setTool("select");
+    for (let x = 1; x <= 3; x++) expect(getTile(doc, "bodega", "ground", { x, y: 1 })).toBe(3);
   });
 
   it("borrador y relleno sobre la capa activa", () => {

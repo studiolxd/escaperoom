@@ -3,8 +3,11 @@ import { clueRequirements, computeCodeClues } from "./clues";
 import {
   analyzeDoubleUse,
   analyzeRepeatableRules,
+  checkGeometry,
   checkReferences,
   checkSoloBridges,
+  checkSpawnCapacity,
+  checkStructuralInvariants,
   guardLabel,
 } from "./checks";
 import { checkAssets, checkPuzzleHints, checkRecipeConsumption } from "./heuristics";
@@ -133,6 +136,9 @@ export function validateRoomPackage(
 
   const checks: ValidationCheck[] = [
     referencesCheck(pkg),
+    geometryCheck(pkg),
+    structureCheck(pkg),
+    spawnCapacityCheck(pkg),
     orphansCheck(
       index,
       closures.map((closure) => closure.state),
@@ -215,7 +221,10 @@ function describeMove(
             description: `Inspeccionar ${puzzle.hidingSpot.objectId ?? puzzle.id} (${puzzle.id})`,
           };
         case "code_lock":
-          return { ...base, description: `Resolver ${puzzle.id} "${puzzle.code}"` };
+          // No se incluye el código en el informe (auditoría D-14): hoy solo
+          // lo ve el autor, pero cualquier pantalla futura de moderación o
+          // colaborador que reutilice `describeMove` filtraría el secreto.
+          return { ...base, description: `Resolver ${puzzle.id} (candado de ${puzzle.length} dígitos)` };
         case "simultaneous_plates":
           return {
             ...base,
@@ -393,6 +402,39 @@ function referencesCheck(pkg: RoomPackage): ValidationCheck {
     issues,
     "Referencias íntegras: todo id referenciado existe",
     `Referencias rotas: ${issues.length} id(s) inexistentes o duplicados`,
+  );
+}
+
+function geometryCheck(pkg: RoomPackage): ValidationCheck {
+  const issues = checkGeometry(pkg);
+  return check(
+    "geometry",
+    "error",
+    issues,
+    "Geometría íntegra: toda posición cae dentro de la rejilla de su habitación",
+    `Geometría: ${issues.length} posición(es) fuera de la rejilla de su habitación`,
+  );
+}
+
+function structureCheck(pkg: RoomPackage): ValidationCheck {
+  const issues = checkStructuralInvariants(pkg);
+  return check(
+    "structure",
+    "error",
+    issues,
+    "Invariantes estructurales en orden (idiomas, rango de jugadores, estados, spawnPoints, código)",
+    `Invariantes estructurales incumplidos: ${issues.length}`,
+  );
+}
+
+function spawnCapacityCheck(pkg: RoomPackage): ValidationCheck {
+  const issues = checkSpawnCapacity(pkg);
+  return check(
+    "spawn_capacity",
+    "warning",
+    issues,
+    "spawnPoints suficientes para players.max en toda habitación",
+    `Habitaciones con spawnPoints insuficientes: ${issues.map((issue) => issue.ids[0]).join(", ")}`,
   );
 }
 

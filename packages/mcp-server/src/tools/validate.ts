@@ -31,7 +31,11 @@ export const validateTool = defineTool({
   annotations: READ_ONLY,
   async run({ roomId, playerCounts }, { actor, deps }) {
     const room = await readDraftRoomPackage(deps, actor, roomId);
-    const report = validateRoomPackage(room, playerCounts ? { playerCounts } : {});
+    const assetManifest = await deps.loadAssetManifest?.(room);
+    const report = validateRoomPackage(room, {
+      ...(playerCounts ? { playerCounts } : {}),
+      ...(assetManifest ? { assetManifest } : {}),
+    });
     return textResult(renderPublishChecklist(report, roomId), {
       ok: report.ok,
       ...buildPublishChecklist(report),

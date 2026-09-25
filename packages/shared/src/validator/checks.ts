@@ -1,4 +1,4 @@
-import type { PuzzleDefinition, RoomPackage, Rule, RuleAction } from "../schemas";
+import type { Grid, PuzzleDefinition, RoomPackage, Rule, RuleAction, RuleCondition } from "../schemas";
 import { flattenActions, puzzleGrants, type RoomIndex } from "./model";
 import type { DoubleUseItem, ValidationIssue } from "./types";
 
@@ -24,6 +24,29 @@ export interface RuleReference {
   field: "trigger" | "conditions" | "actions";
   /** Ruta exacta dentro de la regla (`actions[2].actions[0].objectId`). */
   path: string;
+}
+
+/**
+ * Entidad que referencia una condición de regla/diálogo (`item_in_inventory`,
+ * `puzzle_state_is`, `object_state_is`), o `null` si no referencia nada
+ * (`flag_is`, `player_count_min/max`, `time_remaining_below`). Lo comparten
+ * `ruleReferences` (condiciones de regla) y `checkReferences`
+ * (`dialog.conditions`, auditoría D-10): un diálogo condicionado a un item o
+ * puzzle inexistente fallaba en silencio (nunca se mostraba).
+ */
+function conditionReference(
+  condition: RuleCondition,
+): { kind: RuleReferenceKind; id: string; field: string } | null {
+  switch (condition.type) {
+    case "item_in_inventory":
+      return { kind: "item", id: condition.itemId, field: "itemId" };
+    case "puzzle_state_is":
+      return { kind: "puzzle", id: condition.puzzleId, field: "puzzleId" };
+    case "object_state_is":
+      return { kind: "object", id: condition.objectId, field: "objectId" };
+    default:
+      return null;
+  }
 }
 
 /**
@@ -66,16 +89,8 @@ export function ruleReferences(rule: Rule): RuleReference[] {
   }
 
   rule.conditions.forEach((condition, i) => {
-    const path = `conditions[${i}]`;
-    if (condition.type === "item_in_inventory") {
-      push("item", condition.itemId, "conditions", `${path}.itemId`);
-    }
-    if (condition.type === "puzzle_state_is") {
-      push("puzzle", condition.puzzleId, "conditions", `${path}.puzzleId`);
-    }
-    if (condition.type === "object_state_is") {
-      push("object", condition.objectId, "conditions", `${path}.objectId`);
-    }
+    const found = conditionReference(condition);
+    if (found) push(found.kind, found.id, "conditions", `conditions[${i}].${found.field}`);
   });
 
   const visit = (actions: readonly RuleAction[], prefix: string): void => {
@@ -257,6 +272,13 @@ export function checkReferences(pkg: RoomPackage): ValidationIssue[] {
   }
 
   for (const hint of pkg.hints) ref("puzzle", hint.puzzleId, `hints[${hint.id}]`);
+
+  for (const dialog of pkg.dialogs) {
+    (dialog.conditions ?? []).forEach((condition, i) => {
+      const found = conditionReference(condition);
+      if (found) ref(found.kind, found.id, `dialogs[${dialog.id}].conditions[${i}].${found.field}`);
+    });
+  }
   return issues;
 }
 
@@ -444,6 +466,185 @@ export function checkSoloBridges(pkg: RoomPackage): ValidationIssue[] {
       ids: [puzzle.id],
       playerCounts: [1],
     });
+  }
+  return issues;
+}
+
+// ---------------------------------------------------------------------------
+// Geometría (auditoría D-3): posiciones fuera de la rejilla de su habitación
+// ---------------------------------------------------------------------------
+
+function inGrid(grid: Grid, x: number, y: number, w = 0, h = 0): boolean {
+  return x >= 0 && y >= 0 && x + w <= grid.cols && y + h <= grid.rows;
+}
+
+/**
+ * Toda posición (objetos, `spawnPoints`, decoraciones, antorchas, `hidingSpot`,
+ * placas, `viewpoints.zone`, `puzzle.position`) debe caer dentro de la rejilla
+ * de su habitación. Encoger una habitación en el editor podía dejar objetos
+ * "fuera" que el runtime (`toRuntimeModel`) rechazaba solo al publicar
+ * (auditoría D-3): este check lo detecta antes, en el informe de validación.
+ */
+export function checkGeometry(pkg: RoomPackage): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  const grids = new Map(pkg.map.rooms.map((room) => [room.id, room.grid]));
+
+  const at = (roomId: string, x: number, y: number, label: string, id: string): void => {
+    const grid = grids.get(roomId);
+    // Habitación inexistente: ya lo reporta checkReferences.
+    if (!grid) return;
+    if (!inGrid(grid, x, y)) {
+      issues.push({
+        code: "out_of_bounds",
+        message: `${label} en (${x}, ${y}) queda fuera de la rejilla de «${roomId}» (${grid.cols}×${grid.rows})`,
+        ids: [id],
+      });
+    }
+  };
+
+  for (const room of pkg.map.rooms) {
+    for (const spawn of room.spawnPoints) {
+      at(room.id, spawn.x, spawn.y, `el spawnPoint «${spawn.id}»`, spawn.id);
+    }
+    for (const decoration of room.decorations) {
+      at(room.id, decoration.x, decoration.y, `la decoración «${decoration.sprite}»`, decoration.sprite);
+    }
+    for (const light of room.lighting) {
+      if (light.type === "torch") {
+        at(room.id, light.x, light.y, "la antorcha", light.objectId ?? `${room.id}:torch`);
+      }
+    }
+  }
+
+  for (const object of pkg.objects) {
+    at(object.roomId, object.position.x, object.position.y, `el objeto «${object.id}»`, object.id);
+  }
+
+  for (const puzzle of pkg.puzzles) {
+    if (puzzle.position) {
+      at(puzzle.roomId, puzzle.position.x, puzzle.position.y, `el puzzle «${puzzle.id}»`, puzzle.id);
+    }
+    switch (puzzle.type) {
+      case "hidden_key":
+        if (puzzle.hidingSpot.x !== undefined && puzzle.hidingSpot.y !== undefined) {
+          at(puzzle.roomId, puzzle.hidingSpot.x, puzzle.hidingSpot.y, `el escondite de «${puzzle.id}»`, puzzle.id);
+        }
+        break;
+      case "simultaneous_plates":
+        for (const plate of puzzle.plates) {
+          at(puzzle.roomId, plate.x, plate.y, `una placa de «${puzzle.id}»`, puzzle.id);
+        }
+        break;
+      case "split_clue": {
+        const grid = grids.get(puzzle.roomId);
+        if (grid) {
+          for (const viewpoint of puzzle.viewpoints) {
+            const zone = viewpoint.zone;
+            if (!inGrid(grid, zone.x, zone.y, zone.w, zone.h)) {
+              issues.push({
+                code: "out_of_bounds",
+                message: `el punto de vista de «${puzzle.id}» (zona ${zone.x},${zone.y} ${zone.w}×${zone.h}) queda fuera de la rejilla de «${puzzle.roomId}» (${grid.cols}×${grid.rows})`,
+                ids: [puzzle.id],
+              });
+            }
+          }
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  return issues;
+}
+
+// ---------------------------------------------------------------------------
+// Invariantes estructurales (auditoría D-10): checks que faltaban del informe
+// ---------------------------------------------------------------------------
+
+/**
+ * Invariantes que no dependen de la búsqueda ni del BFS: idioma por defecto
+ * declarado, rango de jugadores coherente, estado inicial existente, cupo de
+ * puntos de aparición y longitud del código de un `code_lock`. Antes solo
+ * `create_room` (MCP) validaba `players.min ≤ max`, y el resto ni se
+ * comprobaba (fallaban en silencio en el loader o el runtime).
+ */
+export function checkStructuralInvariants(pkg: RoomPackage): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+
+  if (!pkg.meta.languages.includes(pkg.meta.defaultLanguage)) {
+    issues.push({
+      code: "default_language_not_declared",
+      message: `defaultLanguage «${pkg.meta.defaultLanguage}» no está en languages [${pkg.meta.languages.join(", ")}]`,
+      ids: [],
+    });
+  }
+  if (pkg.meta.players.min > pkg.meta.players.max) {
+    issues.push({
+      code: "players_range_invalid",
+      message: `players.min (${pkg.meta.players.min}) es mayor que players.max (${pkg.meta.players.max})`,
+      ids: [],
+    });
+  }
+
+  for (const object of pkg.objects) {
+    // `states: {}` + `initialState: ""` es el sentinel de "sin máquina de
+    // estados" (objetos puramente decorativos, p. ej. `vasijas` en el fixture
+    // Rey Aldric): solo es un error si el objeto SÍ declara estados.
+    const hasStates = Object.keys(object.states).length > 0;
+    if (hasStates && !(object.initialState in object.states)) {
+      issues.push({
+        code: "unknown_initial_state",
+        message: `«${object.id}».initialState «${object.initialState}» no está entre sus estados declarados: [${Object.keys(object.states).join(", ")}]`,
+        ids: [object.id],
+      });
+    }
+  }
+
+  for (const puzzle of pkg.puzzles) {
+    if (puzzle.type === "memory") {
+      const symbols = new Map<string, number>();
+      for (const pair of puzzle.pairs) symbols.set(pair.symbol, (symbols.get(pair.symbol) ?? 0) + 1);
+      for (const [symbol, count] of symbols) {
+        if (count > 1) {
+          issues.push({
+            code: "duplicate_memory_symbol",
+            message: `«${puzzle.id}»: el símbolo «${symbol}» se repite en ${count} parejas; cada pareja necesita un símbolo único`,
+            ids: [puzzle.id],
+          });
+        }
+      }
+    }
+    if (puzzle.type === "code_lock" && puzzle.code.length !== puzzle.length) {
+      issues.push({
+        code: "code_length_mismatch",
+        message: `«${puzzle.id}»: code tiene ${puzzle.code.length} caracteres pero length declara ${puzzle.length}`,
+        ids: [puzzle.id],
+      });
+    }
+  }
+
+  return issues;
+}
+
+/**
+ * Cupo de `spawnPoints` por habitación (auditoría D-10, specs/08 §2.1): con
+ * menos puntos de aparición que `players.max`, `spawnPlayer`/`handleRoomChange`
+ * reparten jugadores por índice `% spawnPoints.length` y varios acaban en la
+ * misma casilla. No bloquea la partida (por eso es un check aparte, no un
+ * invariante estructural duro), pero avisa al creador.
+ */
+export function checkSpawnCapacity(pkg: RoomPackage): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  for (const room of pkg.map.rooms) {
+    if (room.spawnPoints.length < pkg.meta.players.max) {
+      issues.push({
+        code: "not_enough_spawn_points",
+        message: `«${room.id}» tiene ${room.spawnPoints.length} spawnPoint(s) pero players.max es ${pkg.meta.players.max}: varios jugadores aparecerían en la misma casilla`,
+        ids: [room.id],
+      });
+    }
   }
   return issues;
 }

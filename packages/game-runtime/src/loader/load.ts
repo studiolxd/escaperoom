@@ -30,6 +30,20 @@ export interface ToRuntimeModelOptions {
 }
 
 /**
+ * Migra un candidato de `RoomPackage` a `meta.packageFormat` actual antes de
+ * validarlo con el esquema (auditoría D-24, ADR-028): reserva el paso
+ * `loadRoomPackage → migrate → parse` para cuando exista un
+ * `roompackage/v2`. Hoy `"roompackage/v1"` es el único formato que ha
+ * existido, así que es un no-op — pero fija el punto único donde reescribir
+ * un paquete viejo, en vez de que cada punto de entrada (loader, `publish()`,
+ * el MCP) tenga que saberlo. No valida nada: eso lo hace el `safeParse` de
+ * después.
+ */
+export function migrateRoomPackage(candidate: unknown): unknown {
+  return candidate;
+}
+
+/**
  * Carga y valida un `RoomPackage` con el schema de 0.6. Acepta un objeto ya
  * parseado o una cadena JSON. Lanza `RoomPackageLoadError` con las rutas de los
  * campos inválidos si el documento no cumple el contrato (specs/08).
@@ -53,6 +67,8 @@ export function loadRoomPackage(input: unknown): RoomPackage {
       "RoomPackage inválido: se esperaba un objeto JSON con las claves meta, map, objects, items, puzzles, rules, dialogs y hints.",
     );
   }
+
+  candidate = migrateRoomPackage(candidate);
 
   const result = RoomPackageSchema.safeParse(candidate);
   if (!result.success) {

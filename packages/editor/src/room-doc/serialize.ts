@@ -27,9 +27,11 @@ import {
   plain,
   readFlatRecord,
   readPlain,
+  writeRoomDocFormat,
   type RecordCollection,
   type RecordMap,
 } from "./doc-model";
+import { migrateRoomDoc } from "./migrate";
 import { decodeRle, encodeRowRle, parseTileKey, tileKey } from "./tiles";
 
 /**
@@ -128,6 +130,7 @@ export function roomPackageToDoc(pkg: RoomPackage, doc: Y.Doc = new Y.Doc()): Y.
     for (const key of META_SCALARS) meta.set(key, pkg.meta[key]);
     meta.set("players", plain(pkg.meta.players));
     initRoomLanguages(doc, pkg.meta.languages, pkg.meta.defaultLanguage);
+    writeRoomDocFormat(doc);
 
     const map = doc.getMap<unknown>(ROOM_DOC_KEYS.map);
     map.clear();
@@ -262,66 +265,95 @@ function readCollection<T>(
  * se limitan a los idiomas declarados (las traducciones retiradas se quedan en
  * el borrador, 3.10) y las capas se codifican en RLE por filas.
  */
+function withoutLocalized(record: RecordMap, field: string): Record<string, unknown> {
+  const flat = readFlatRecord(record);
+  delete flat[field];
+  return flat;
+}
+
+/**
+ * Builders por campo del `RoomPackage` (auditoría D-17): `roomDocToPackage`
+ * los compone todos para un snapshot completo (validador, `publish()`, MCP),
+ * pero `useRoomPackage` (la sala en vivo del editor) los llama por separado
+ * — solo recalcula el campo cuya raíz Yjs cambió en la última transacción, en
+ * vez de reserializar el doc entero en cada pincelada.
+ */
+export function buildRoomMap(doc: Y.Doc): RoomPackage["map"] {
+  return {
+    tileset: str(doc.getMap<unknown>(ROOM_DOC_KEYS.map).get("tileset")),
+    rooms: readCollection(doc, "subrooms", readSubRoom),
+  };
+}
+
+export function buildRoomObjects(doc: Y.Doc): WorldObject[] {
+  return readCollection(doc, "objects", (r, id) => ({ ...readFlatRecord(r), id }) as WorldObject);
+}
+
+export function buildRoomItems(doc: Y.Doc, languages: readonly string[]): ItemDef[] {
+  return readCollection(
+    doc,
+    "items",
+    (r, id) =>
+      ({
+        ...withoutLocalized(r, "name"),
+        id,
+        icon: str(readPlain(r, "icon")),
+        name: readLocalized(r, "name", [...languages]),
+      }) as ItemDef,
+  );
+}
+
+export function buildRoomPuzzles(doc: Y.Doc): PuzzleDefinition[] {
+  return readCollection(
+    doc,
+    "puzzles",
+    (r, id) => ({ ...readFlatRecord(r), id }) as PuzzleDefinition,
+  );
+}
+
+export function buildRoomDialogs(doc: Y.Doc, languages: readonly string[]): DialogDef[] {
+  return readCollection(
+    doc,
+    "dialogs",
+    (r, id) =>
+      ({
+        ...withoutLocalized(r, "text"),
+        id,
+        text: readLocalized(r, "text", [...languages]),
+      }) as DialogDef,
+  );
+}
+
+export function buildRoomHints(doc: Y.Doc, languages: readonly string[]): HintDef[] {
+  return readCollection(
+    doc,
+    "hints",
+    (r, id) =>
+      ({
+        ...withoutLocalized(r, "text"),
+        id,
+        puzzleId: str(readPlain(r, "puzzleId")),
+        tier: num(readPlain(r, "tier"), 1),
+        cost: num(readPlain(r, "cost")),
+        text: readLocalized(r, "text", [...languages]),
+      }) as HintDef,
+  );
+}
+
 export function roomDocToPackage(doc: Y.Doc): RoomPackage {
+  migrateRoomDoc(doc);
   const meta = readMeta(doc);
   const languages = meta.languages;
-  const withoutLocalized = (record: RecordMap, field: string) => {
-    const flat = readFlatRecord(record);
-    delete flat[field];
-    return flat;
-  };
 
   return {
     meta,
-    map: {
-      tileset: str(doc.getMap<unknown>(ROOM_DOC_KEYS.map).get("tileset")),
-      rooms: readCollection(doc, "subrooms", readSubRoom),
-    },
-    objects: readCollection(
-      doc,
-      "objects",
-      (r, id) => ({ ...readFlatRecord(r), id }) as WorldObject,
-    ),
-    items: readCollection(
-      doc,
-      "items",
-      (r, id) =>
-        ({
-          ...withoutLocalized(r, "name"),
-          id,
-          icon: str(readPlain(r, "icon")),
-          name: readLocalized(r, "name", languages),
-        }) as ItemDef,
-    ),
-    puzzles: readCollection(
-      doc,
-      "puzzles",
-      (r, id) => ({ ...readFlatRecord(r), id }) as PuzzleDefinition,
-    ),
+    map: buildRoomMap(doc),
+    objects: buildRoomObjects(doc),
+    items: buildRoomItems(doc, languages),
+    puzzles: buildRoomPuzzles(doc),
     rules: readRules(doc),
-    dialogs: readCollection(
-      doc,
-      "dialogs",
-      (r, id) =>
-        ({
-          ...withoutLocalized(r, "text"),
-          id,
-          text: readLocalized(r, "text", languages),
-        }) as DialogDef,
-    ),
-    hints: readCollection(
-      doc,
-      "hints",
-      (r, id) =>
-        ({
-          ...withoutLocalized(r, "text"),
-          id,
-          puzzleId: str(readPlain(r, "puzzleId")),
-          tier: num(readPlain(r, "tier"), 1),
-          cost: num(readPlain(r, "cost")),
-          text: readLocalized(r, "text", languages),
-        }) as HintDef,
-    ),
+    dialogs: buildRoomDialogs(doc, languages),
+    hints: buildRoomHints(doc, languages),
   };
 }
 
@@ -347,6 +379,40 @@ export function observeRoomDoc(doc: Y.Doc, listener: () => void): () => void {
   doc.on("afterTransaction", onAfterTransaction);
   return () => {
     for (const root of roots) root.unobserveDeep(markDirty);
+    doc.off("afterTransaction", onAfterTransaction);
+  };
+}
+
+/** Nombre de una raíz del doc (`ROOM_DOC_KEYS`). */
+export type RoomDocRoot = (typeof ROOM_DOC_KEYS)[keyof typeof ROOM_DOC_KEYS];
+
+/**
+ * Variante de `observeRoomDoc` que informa QUÉ raíces cambiaron en la
+ * transacción (auditoría D-17): `useRoomPackage` la usa para recalcular solo
+ * el campo del `RoomPackage` afectado (p. ej. `subrooms` → solo `map`) en vez
+ * de reserializar el doc entero por cada pincelada. Igual que `observeRoomDoc`,
+ * agrupa por transacción y cubre cambios propios y remotos.
+ */
+export function observeRoomDocRoots(
+  doc: Y.Doc,
+  listener: (dirty: ReadonlySet<RoomDocRoot>) => void,
+): () => void {
+  const dirty = new Set<RoomDocRoot>();
+  const observers = OBSERVED_ROOTS.map((name) => {
+    const root = doc.getMap<unknown>(name);
+    const markDirty = () => dirty.add(name);
+    root.observeDeep(markDirty);
+    return { root, markDirty };
+  });
+  const onAfterTransaction = () => {
+    if (dirty.size === 0) return;
+    const snapshot = new Set(dirty);
+    dirty.clear();
+    listener(snapshot);
+  };
+  doc.on("afterTransaction", onAfterTransaction);
+  return () => {
+    for (const { root, markDirty } of observers) root.unobserveDeep(markDirty);
     doc.off("afterTransaction", onAfterTransaction);
   };
 }
