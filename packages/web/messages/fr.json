@@ -986,7 +986,8 @@
       "CONTENT_BLOCKED": "Le pré-contrôle de modération a bloqué certains textes de la salle. Corrigez-les ou faites recours.",
       "ACCOUNT_FROZEN": "Votre compte est gelé pendant l'examen d'un signalement grave : vous ne pouvez pas publier.",
       "CREATOR_SUSPENDED": "La publication est temporairement suspendue sur votre compte.",
-      "CREATOR_BANNED": "Votre compte ne peut plus publier de salles."
+      "CREATOR_BANNED": "Votre compte ne peut plus publier de salles.",
+      "NOTHING_TO_PUBLISH": "Le brouillon n'a aucun changement depuis la dernière version publiée : il n'y a rien à publier."
     }
   },
   "McpConsent": {
