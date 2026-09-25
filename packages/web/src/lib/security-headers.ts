@@ -77,6 +77,36 @@ function unique(values: string[]): string[] {
   return [...new Set(values)];
 }
 
+/**
+ * Endpoint de reporte de violaciones de CSP de Sentry (A-23), construido a
+ * partir del DSN (https://docs.sentry.io/security-legal-pii/security/csp/):
+ * `{protocolo}//{host}/api/{projectId}/security/?sentry_key={clave}`.
+ */
+function sentryReportUri(dsn: string | undefined): string | null {
+  if (!dsn) return null;
+  try {
+    const url = new URL(dsn);
+    const key = url.username;
+    const projectId = url.pathname.replace(/^\//u, "");
+    if (!key || !projectId) return null;
+    return `${url.protocol}//${url.host}/api/${projectId}/security/?sentry_key=${key}`;
+  } catch {
+    return null;
+  }
+}
+
+const CSP_REPORT_GROUP = "csp-endpoint";
+
+/**
+ * Valor de la cabecera `Report-To` (RFC 9116-adyacente, la que consume la
+ * directiva `report-to` de la CSP) — `null` sin Sentry configurado.
+ */
+export function reportToHeaderValue(dsn: string | undefined): string | null {
+  const uri = sentryReportUri(dsn);
+  if (!uri) return null;
+  return JSON.stringify({ group: CSP_REPORT_GROUP, max_age: 10886400, endpoints: [{ url: uri }] });
+}
+
 /** Cabecera de la petición con su nonce, por si un Server Component lo necesita. */
 export const NONCE_HEADER = "x-nonce";
 
@@ -98,9 +128,12 @@ export function createNonce(): string {
 export function buildContentSecurityPolicy(nonce: string, env: SecurityEnv = {}): string {
   const dev = env.NODE_ENV === "development";
   const storage = httpOrigin(env.STORAGE_ENDPOINT);
+  // A-23: los `localhost` por defecto son solo para dev — sin la variable en
+  // producción, la CSP no debe autorizar `ws://localhost:2567` (antes lo
+  // hacía siempre, con o sin `NEXT_PUBLIC_COLYSEUS_URL`).
   const realtime = unique([
-    ...serviceOrigins(env.NEXT_PUBLIC_COLYSEUS_URL || DEFAULT_COLYSEUS_URL),
-    ...serviceOrigins(env.NEXT_PUBLIC_EDITOR_SYNC_URL || DEFAULT_EDITOR_SYNC_URL),
+    ...serviceOrigins(env.NEXT_PUBLIC_COLYSEUS_URL || (dev ? DEFAULT_COLYSEUS_URL : undefined)),
+    ...serviceOrigins(env.NEXT_PUBLIC_EDITOR_SYNC_URL || (dev ? DEFAULT_EDITOR_SYNC_URL : undefined)),
     ...liveKitOrigins(env.NEXT_PUBLIC_LIVEKIT_URL || env.LIVEKIT_URL),
   ]);
   const extraConnect = (env.CSP_EXTRA_CONNECT_SRC ?? "").split(/\s+/u).filter(Boolean);
@@ -131,6 +164,13 @@ export function buildContentSecurityPolicy(nonce: string, env: SecurityEnv = {})
   ];
   const policy = directives.map(([name, values]) => `${name} ${values.join(" ")}`);
   if (!dev) policy.push("upgrade-insecure-requests");
+  // A-23: con Sentry configurado, las violaciones de CSP se reportan (antes
+  // no había `report-to`/`report-uri`: el navegador las descartaba en silencio).
+  const reportUri = sentryReportUri(env.NEXT_PUBLIC_SENTRY_DSN);
+  if (reportUri) {
+    policy.push(`report-to ${CSP_REPORT_GROUP}`);
+    policy.push(`report-uri ${reportUri}`);
+  }
   return policy.join("; ");
 }
 
@@ -155,8 +195,13 @@ export function staticSecurityHeaders(
         "camera=(self), microphone=(self), display-capture=(), geolocation=(), payment=(), usb=()",
     },
     { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+    // A-23: nada de esta API/web se sirve para ser cargado desde otro origen.
+    { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
     ...(env.NODE_ENV === "production"
       ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" }]
+      : []),
+    ...(reportToHeaderValue(env.NEXT_PUBLIC_SENTRY_DSN)
+      ? [{ key: "Report-To", value: reportToHeaderValue(env.NEXT_PUBLIC_SENTRY_DSN)! }]
       : []),
   ];
 }

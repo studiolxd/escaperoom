@@ -147,17 +147,23 @@ worker-src 'self' blob:;
 frame-src 'none'; object-src 'none'; base-uri 'self';
 form-action 'self' https://accounts.google.com;
 frame-ancestors 'none';
-upgrade-insecure-requests
+upgrade-insecure-requests;
+report-to csp-endpoint; report-uri <sentry-security-endpoint>
 ```
+
+Las dos últimas directivas (A-23) solo aparecen con `NEXT_PUBLIC_SENTRY_DSN` configurado: las
+violaciones de la CSP se reportan al endpoint de seguridad del proyecto de Sentry
+(`reportToHeaderValue`/`sentryReportUri`, `src/lib/security-headers.ts`), emparejadas con la
+cabecera `Report-To` (`{ group: "csp-endpoint", endpoints: [{ url: … }] }`) de las cabeceras fijas.
 
 Excepciones a `'self'` y su motivo:
 
 | Directiva | Excepción | Por qué |
 |---|---|---|
 | `script-src` | `'strict-dynamic'` | Los chunks que carga Next en cliente (Phaser con `next/dynamic`, el editor, LiveKit) heredan la confianza del script con nonce. Sin `'unsafe-inline'` ni `'unsafe-eval'` (salvo `'unsafe-eval'` en `next dev`, que React usa para sus trazas). |
-| `style-src` | `'unsafe-inline'` | Atributos `style` de React (paneles de puzzle, React Flow del editor) y el CSS de `next/font`. No ejecuta código. |
+| `style-src` | `'unsafe-inline'` | Atributos `style` de React (paneles de puzzle, React Flow del editor) y el CSS de `next/font`. No ejecuta código. **Deuda documentada (F-30, auditoría 2026-09-24):** no hay nonce de estilos porque los atributos `style` inline de React no lo soportan sin reescribir esos componentes a CSS Modules/clases — evaluar esa migración es trabajo aparte, no una corrección de esta ronda. |
 | `img-src`, `media-src` | `data:`, `blob:`, bucket | Texturas base64 por defecto de Phaser, vistas previas generadas en cliente y URLs firmadas del bucket (`STORAGE_ENDPOINT`). |
-| `connect-src` | Colyseus, editor-sync, LiveKit, bucket | `NEXT_PUBLIC_COLYSEUS_URL` (matchmaking HTTP + WebSocket), `NEXT_PUBLIC_EDITOR_SYNC_URL` (Yjs), `NEXT_PUBLIC_LIVEKIT_URL`/`LIVEKIT_URL` (señalización; con LiveKit Cloud, `*.livekit.cloud` por los hosts regionales). Sin variables, los `localhost` de desarrollo. `CSP_EXTRA_CONNECT_SRC` añade orígenes sin tocar código. |
+| `connect-src` | Colyseus, editor-sync, LiveKit, bucket | `NEXT_PUBLIC_COLYSEUS_URL` (matchmaking HTTP + WebSocket), `NEXT_PUBLIC_EDITOR_SYNC_URL` (Yjs), `NEXT_PUBLIC_LIVEKIT_URL`/`LIVEKIT_URL` (señalización; con LiveKit Cloud, `*.livekit.cloud` por los hosts regionales). Sin variables, los `localhost` de desarrollo **solo en `NODE_ENV=development`** (A-23: antes se colaban también en producción sin la variable fijada). `CSP_EXTRA_CONNECT_SRC` añade orígenes sin tocar código. |
 | `worker-src` | `blob:` | Worker de cifrado E2EE de LiveKit. |
 | `form-action` | `accounts.google.com` | Redirección del login con Google (OAuth). |
 
@@ -214,7 +220,9 @@ mientras la lectura de Redis se mantiene plana, así que el ahorro relativo aume
 cache no cambia el rendimiento del RENDER en sí (sigue siendo dinámico por el nonce), solo evita
 repetir la parte más cara de construir la página.
 
-**CSP de la API** (`/api/*`, `next.config.ts`): `default-src 'none'; frame-ancestors 'none'`.
+**CSP de la API** (`next.config.ts`): `default-src 'none'; frame-ancestors 'none'` en `/api/*` y,
+desde A-23, también en `/.well-known/*` (descubrimiento OAuth del MCP) y `/mcp/*` (el propio MCP)
+— las tres sirven JSON, no HTML, así que la misma CSP cerrada les vale.
 
 **Cabeceras fijas** (todas las respuestas, `next.config.ts`):
 
@@ -225,7 +233,9 @@ repetir la parte más cara de construir la página.
 | `X-Frame-Options` | `DENY` (redundante con `frame-ancestors`, para navegadores viejos) |
 | `Permissions-Policy` | `camera=(self), microphone=(self), display-capture=(), geolocation=(), payment=(), usb=()` |
 | `Cross-Origin-Opener-Policy` | `same-origin` |
+| `Cross-Origin-Resource-Policy` | `same-origin` (A-23: nada se sirve para cargarse desde otro origen) |
 | `Strict-Transport-Security` | `max-age=63072000; includeSubDomains` (solo en producción) |
+| `Report-To` | Grupo `csp-endpoint` con el mismo endpoint de Sentry que `report-uri` (A-23) — solo con `NEXT_PUBLIC_SENTRY_DSN` |
 
 Además, `poweredByHeader: false` (sin `X-Powered-By: Next.js`).
 
