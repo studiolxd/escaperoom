@@ -19,6 +19,8 @@ const CODE_BY_PUBLISH_ERROR: Partial<Record<RoomPublishError["code"], ToolErrorC
   ROOM_NOT_PUBLISHABLE: "NOT_PUBLISHABLE",
   UNSUPPORTED_PACKAGE_FORMAT: "NOT_PUBLISHABLE",
   ASSETS_NOT_PUBLISHABLE: "NOT_PUBLISHABLE",
+  // ADR-035: nada cambió desde la última versión publicada.
+  NOTHING_TO_PUBLISH: "NOT_PUBLISHABLE",
   // Moderación (6.1): cuenta restringida o contenido bloqueado por el pre-check.
   ACCOUNT_FROZEN: "NOT_PUBLISHABLE",
   CREATOR_SUSPENDED: "NOT_PUBLISHABLE",

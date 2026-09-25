@@ -186,14 +186,9 @@ describe("publicación — congelar la versión", () => {
     edited.meta.title = "Rey Aldric II";
     await writeDraft(edited);
     const v2 = await service.publish(author, ROOM_ID, { changelog: "Título nuevo" });
-    const v3 = await service.publish(author, ROOM_ID, { semver: "2.0.0" });
 
-    expect([v1.version.semver, v2.version.semver, v3.version.semver]).toEqual([
-      "1.0.0",
-      "1.0.1",
-      "2.0.0",
-    ]);
-    expect(new Set([v1.version.id, v2.version.id, v3.version.id]).size).toBe(3);
+    expect([v1.version.semver, v2.version.semver]).toEqual(["1.0.0", "1.0.1"]);
+    expect(new Set([v1.version.id, v2.version.id]).size).toBe(2);
     expect(
       (await service.getVersionPackage(author, ROOM_ID, v1.version.id)).package.meta.title,
     ).toBe("La Maldición del Rey Aldric");
@@ -202,37 +197,56 @@ describe("publicación — congelar la versión", () => {
     ).toBe("Rey Aldric II");
 
     const listed = await service.listVersions(ANONYMOUS_ACTOR, ROOM_ID);
-    expect(listed.map((v) => v.semver)).toEqual(["2.0.0", "1.0.1", "1.0.0"]);
+    expect(listed.map((v) => v.semver)).toEqual(["1.0.1", "1.0.0"]);
     expect(listed[0]).not.toHaveProperty("package");
   });
 
-  it("dos publicaciones simultáneas obtienen semver distintos (lock por sala)", async () => {
-    const { service, writeDraft } = setup();
+  it("dos publicaciones simultáneas con el mismo contenido: el lock las serializa y solo una tiene éxito", async () => {
+    // ADR-035: con contenido idéntico ya no hay dos versiones "vacías" (1.0.0,
+    // 1.0.1); la que pierde la carrera del lock ve NOTHING_TO_PUBLISH porque,
+    // para cuando le toca, la otra ya publicó exactamente lo mismo.
+    const { service, store, writeDraft } = setup();
     await writeDraft(clone());
-    const [a, b] = await Promise.all([
+    const results = await Promise.allSettled([
       service.publish(author, ROOM_ID),
       service.publish(author, ROOM_ID),
     ]);
-    expect([a.version.semver, b.version.semver].sort()).toEqual(["1.0.0", "1.0.1"]);
+    const fulfilled = results.filter((r) => r.status === "fulfilled");
+    const rejected = results.filter((r) => r.status === "rejected");
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    const reason = (rejected[0] as PromiseRejectedResult).reason as unknown;
+    expect(reason).toBeInstanceOf(RoomPublishError);
+    expect((reason as RoomPublishError).code).toBe("NOTHING_TO_PUBLISH");
+    expect(await store.listSemvers(ROOM_ID)).toEqual(["1.0.0"]);
   });
 
-  it("un semver pedido debe ser X.Y.Z y posterior al último", async () => {
+  it("publicar sin ningún cambio respecto a la última versión falla con NOTHING_TO_PUBLISH (ADR-035)", async () => {
     const { service, writeDraft } = setup();
     await writeDraft(clone());
-    await service.publish(author, ROOM_ID, { semver: "1.2.0" });
+    await service.publish(author, ROOM_ID);
 
-    expect((await publishError(service.publish(author, ROOM_ID, { semver: "1.2.0" }))).code).toBe(
-      "VERSION_CONFLICT",
-    );
-    expect((await publishError(service.publish(author, ROOM_ID, { semver: "1.1.9" }))).code).toBe(
-      "VERSION_CONFLICT",
-    );
-    expect((await publishError(service.publish(author, ROOM_ID, { semver: "v2" }))).code).toBe(
-      "VALIDATION_ERROR",
+    expect((await publishError(service.publish(author, ROOM_ID))).code).toBe(
+      "NOTHING_TO_PUBLISH",
     );
     expect(
       (await publishError(service.publish(author, ROOM_ID, { changelog: "x".repeat(5001) }))).code,
     ).toBe("VALIDATION_ERROR");
+  });
+
+  it("modificar el contenido de un puzzle existente (sin añadir ni quitar) sube MINOR", async () => {
+    const { service, writeDraft } = setup();
+    await writeDraft(clone());
+    const v1 = await service.publish(author, ROOM_ID);
+    expect(v1.version.semver).toBe("1.0.0");
+
+    const edited = clone();
+    const lock = edited.puzzles.find((p) => p.id === "p-candado-arca");
+    if (!lock || lock.type !== "code_lock") throw new Error("fixture sin p-candado-arca");
+    lock.code = "9999";
+    await writeDraft(edited);
+    const v2 = await service.publish(author, ROOM_ID);
+    expect(v2.version.semver).toBe("1.1.0");
   });
 });
 
@@ -495,10 +509,20 @@ describe("publicación — permisos", () => {
 });
 
 describe("nextSemver", () => {
-  it("parche siguiente al mayor existente, 1.0.0 la primera vez", () => {
-    expect(nextSemver([])).toBe("1.0.0");
-    expect(nextSemver(["1.0.0", "1.10.0", "1.9.3"])).toBe("1.10.1");
-    expect(nextSemver(["1.0.0"], "1.1.0")).toBe("1.1.0");
+  it("1.0.0 sin versiones previas, sea cual sea el cambio", () => {
+    expect(nextSemver([], "major")).toBe("1.0.0");
+    expect(nextSemver([], "patch")).toBe("1.0.0");
+  });
+
+  it("bump según la clasificación del cambio, sobre el mayor existente", () => {
+    expect(nextSemver(["1.0.0", "1.10.0", "1.9.3"], "patch")).toBe("1.10.1");
+    expect(nextSemver(["1.2.3"], "patch")).toBe("1.2.4");
+    expect(nextSemver(["1.2.3"], "minor")).toBe("1.3.0");
+    expect(nextSemver(["1.2.3"], "major")).toBe("2.0.0");
+  });
+
+  it('"none" con versiones previas lanza NOTHING_TO_PUBLISH', () => {
+    expect(() => nextSemver(["1.2.3"], "none")).toThrow(RoomPublishError);
   });
 });
 

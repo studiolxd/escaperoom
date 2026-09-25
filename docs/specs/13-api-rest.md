@@ -106,7 +106,7 @@ alrededor de la edición:
 | DELETE | `/api/rooms/:roomId` | autor | Borrado lógico (`deleted_at`); con `purchase`/`review` nunca se borra físicamente |
 | GET | `/api/rooms/:roomId/draft` | autor/colaborador | Bootstrap del editor: último snapshot + updates posteriores |
 | POST | `/api/rooms/:roomId/validate` | autor (o MCP) | Corre el validador sobre el draft: `{ valid, errors, warnings, estimatedMinutes, estimatedDifficulty }` |
-| POST | `/api/rooms/:roomId/publish` | autor | `{ semver, changelog }`. Exige `validate` en verde (repetido server-side). Empaqueta, sube assets a R2, calcula `assetsHash`, inserta `roomVersion`. `VALIDATION_FAILED` si no pasa |
+| POST | `/api/rooms/:roomId/publish` | autor | `{ changelog }`. El semver es siempre automático (ADR-035, `classifyRoomPackageChange` sobre el `RoomPackage` candidato frente al de la última versión): ya no se puede pedir uno. Exige `validate` en verde (repetido server-side). Empaqueta, sube assets a R2, calcula `assetsHash`, inserta `roomVersion`. `VALIDATION_FAILED` si no pasa; `NOTHING_TO_PUBLISH` (409) si el contenido es idéntico al de la última versión publicada |
 | GET | `/api/rooms/:roomId/versions/:versionId/package` | autor, admin o servicio interno | El `RoomPackage` completo — única ruta que lo expone, nunca al público |
 | POST | `/api/rooms/:roomId/license-checkout` | creador | Compra la licencia de la sala de otro → Stripe Checkout, `purchase_type: 'room_license'` |
 | POST | `/api/rooms/:roomId/gift-copy` | autor | Envía copia gratuita a otro creador (`{ recipientEmail }`) — sin Stripe, fork inmediato |

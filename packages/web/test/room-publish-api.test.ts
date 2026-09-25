@@ -155,18 +155,19 @@ describe("REST de publicación (specs/13 §4)", () => {
     expect((await api.getVersions()).status).toBe(200);
   });
 
-  it("JSON roto → 400 INVALID_JSON; datos inválidos → 422 VALIDATION_ERROR (A-22); semver repetido → 409", async () => {
+  it("JSON roto → 400 INVALID_JSON; datos inválidos → 422 VALIDATION_ERROR (A-22); sin cambios → 409 NOTHING_TO_PUBLISH", async () => {
     const api = setup();
     const badJson = await api.postPublish("{no-json", "autora");
     expect(badJson.status).toBe(400);
     expect(((await badJson.json()) as ErrorJson).error.code).toBe("INVALID_JSON");
-    const badBody = await api.postPublish({ semver: 3 }, "autora");
+    const badBody = await api.postPublish({ changelog: 3 }, "autora");
     expect(badBody.status).toBe(422);
     expect(((await badBody.json()) as ErrorJson).error.code).toBe("VALIDATION_ERROR");
-    expect((await api.postPublish({ semver: "2.0.0" }, "autora")).status).toBe(201);
-    const conflict = await api.postPublish({ semver: "2.0.0" }, "autora");
+    expect((await api.postPublish({}, "autora")).status).toBe(201);
+    // El draft no cambió desde la publicación anterior: nada que publicar (ADR-035).
+    const conflict = await api.postPublish({}, "autora");
     expect(conflict.status).toBe(409);
-    expect(((await conflict.json()) as ErrorJson).error.code).toBe("VERSION_CONFLICT");
+    expect(((await conflict.json()) as ErrorJson).error.code).toBe("NOTHING_TO_PUBLISH");
   });
 
   it("con la serialización real del editor (3.1) congela el draft Yjs guardado", async () => {

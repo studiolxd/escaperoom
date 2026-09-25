@@ -33,9 +33,20 @@ function listSemvers(db: Db) {
   };
 }
 
+function findLatestVersion(db: Db) {
+  return async (roomId: string): Promise<RoomVersionRow | null> => {
+    const row = await db.roomVersion.findFirst({
+      where: { roomId },
+      orderBy: { publishedAt: "desc" },
+    });
+    return row ? toRow(row) : null;
+  };
+}
+
 function txOps(db: Db): RoomPublishTx {
   return {
     listSemvers: listSemvers(db),
+    findLatestVersion: findLatestVersion(db),
     async insertVersion(version) {
       const row = await db.roomVersion.create({
         data: {
@@ -66,6 +77,7 @@ function txOps(db: Db): RoomPublishTx {
 export function createPrismaRoomPublishStore(prisma: PrismaClient): RoomPublishStore {
   return {
     listSemvers: listSemvers(prisma),
+    findLatestVersion: findLatestVersion(prisma),
     ...createPrismaAdminDirectory(prisma),
     findRoom(roomId) {
       return prisma.room.findFirst({

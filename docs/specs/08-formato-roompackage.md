@@ -146,8 +146,18 @@ PostgreSQL
 
 - **Publicar** = congelar el JSON, validarlo en servidor, subir assets a R2 con hash, crear fila
   en `roomVersion`. Lo que juega la gente nunca cambia en caliente.
-- **Parche** = nueva versión. Los jugadores con sala comprada reciben la nueva versión; los
-  eventos ya vendidos pueden **fijar la versión original** (flag en `Event`/sesión).
+- **Semver automático (ADR-035):** el autor ya no elige el semver de la nueva versión —
+  `classifyRoomPackageChange` (`packages/shared/src/services/room-version-diff.ts`) compara el
+  `RoomPackage` candidato con el de la última versión publicada y clasifica el cambio:
+  - **MAJOR**: se añade o elimina algún `puzzles[]` (por `id`).
+  - **MINOR**: mismo conjunto de puzzles, pero alguno cambia de contenido, o una regla de
+    `rules[]` añadida/eliminada/modificada referencia un `puzzleId` presente en ambas versiones.
+  - **PATCH**: cualquier otra diferencia (`objects`, `map`, `items`, `dialogs`, `hints`,
+    `meta.assetsManifest`, otros campos de `meta`, o una regla sin referencia a ningún puzzle).
+  - **Sin ningún cambio:** no se permite publicar una versión idéntica a la anterior — `publish`
+    responde `NOTHING_TO_PUBLISH` (409). La primera publicación de una sala es siempre `1.0.0`.
+- Los jugadores con sala comprada reciben la nueva versión; los eventos ya vendidos pueden
+  **fijar la versión original** (flag en `Event`/sesión).
 - El runtime del jugador descarga `roomVersion` → JSON → mismo contrato que en el editor.
 
 ## 6. Versionado del formato (`packageFormat`)
