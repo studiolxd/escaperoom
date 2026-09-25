@@ -704,6 +704,8 @@
     "anyDifficulty": "Qualquer dificuldade",
     "players": "Jogadores",
     "anyPlayers": "Qualquer número",
+    "playersSolo": "Jogo individual",
+    "playersUpTo": "Até {n} jogadores",
     "priceFree": "Grátis",
     "priceMax": "Preço máximo",
     "priceUnlimited": "Sem limite",
@@ -716,8 +718,9 @@
     "emptyDescription": "Tenta mudar ou remover alguns filtros.",
     "emptyClearFilters": "Limpar filtros",
     "invalidFilters": "Algum filtro não é válido; são mostradas todas as salas.",
-    "nextPage": "Mais salas",
-    "firstPage": "Voltar ao início",
+    "previousPage": "Anterior",
+    "nextPage": "Seguinte",
+    "pageSize": "Salas por página",
     "difficulty1": "Fácil",
     "difficulty2": "Média",
     "difficulty3": "Difícil",
@@ -726,6 +729,7 @@
     "free": "Grátis",
     "byAuthor": "por {author}",
     "rating": "{avg} de 5 ({count, plural, one {# avaliação} other {# avaliações}})",
+    "ratingCount": "{count, plural, one {# avaliação} other {# avaliações}}",
     "noRatings": "Ainda sem avaliações"
   },
   "RoomDetail": {
@@ -940,7 +944,6 @@
     "intro": "Introduz a chave do teu cartão ou convite para entrares no jogo do teu grupo.",
     "codeLabel": "Chave",
     "nameLabel": "O teu nome (o teu grupo vai vê-lo)",
-    "namePlaceholder": "p. ex. Ana",
     "cta": "Entrar no jogo",
     "redeeming": "A resgatar…",
     "errors": {
@@ -1341,5 +1344,11 @@
     "description": "O link pode estar quebrado ou a página já não existe.",
     "home": "Ir para o início",
     "browseCatalog": "Ver o catálogo"
+  },
+  "ThemeToggle": {
+    "label": "Tema",
+    "light": "Claro",
+    "dark": "Escuro",
+    "system": "Sistema"
   }
 }

@@ -1,4 +1,4 @@
-import type { CatalogListResult } from "@escaperoom/shared/services";
+import { CATALOG_DEFAULT_LIMIT, type CatalogListResult } from "@escaperoom/shared/services";
 import { Suspense } from "react";
 import { SearchX } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -15,7 +15,9 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@/components/ui/pagination";
 import { CatalogFilters, type CatalogFilterValues } from "./catalog-filters";
+import { PageSizeSelect } from "./page-size-select";
 import { RoomCard } from "./room-card";
 
 function CatalogResultsSkeleton() {
@@ -28,6 +30,94 @@ function CatalogResultsSkeleton() {
   );
 }
 
+/** URL de una página concreta, conservando filtros y `limit` (omitidos si son el valor por defecto). */
+function pageHref(query: Record<string, string>, pageSize: number, page: number) {
+  const nextQuery: Record<string, string> = { ...query };
+  if (pageSize !== CATALOG_DEFAULT_LIMIT) nextQuery.limit = String(pageSize);
+  else delete nextQuery.limit;
+  if (page > 1) nextQuery.page = String(page);
+  else delete nextQuery.page;
+  return { pathname: CATALOG_PATH, query: nextQuery };
+}
+
+/** Números de página a mostrar: 1, el entorno de la actual, y la última; el resto se colapsa. */
+function buildPageItems(current: number, total: number): Array<number | "ellipsis"> {
+  const items: Array<number | "ellipsis"> = [1];
+  if (current > 3) items.push("ellipsis");
+  for (let n = Math.max(2, current - 1); n <= Math.min(total - 1, current + 1); n++) {
+    items.push(n);
+  }
+  if (current < total - 2) items.push("ellipsis");
+  if (total > 1) items.push(total);
+  return items;
+}
+
+function CatalogPagination({
+  query,
+  page,
+  pageSize,
+  totalPages,
+}: {
+  query: Record<string, string>;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}) {
+  const t = useTranslations("Catalog");
+  return (
+    <Pagination className="mx-0 w-auto shrink-0 justify-end">
+      <PaginationContent>
+        <PaginationItem>
+          {page > 1 ? (
+            <Button asChild variant="ghost" size="default">
+              <Link href={pageHref(query, pageSize, page - 1)} rel="prev">
+                {t("previousPage")}
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="ghost" size="default" disabled aria-hidden="true">
+              {t("previousPage")}
+            </Button>
+          )}
+        </PaginationItem>
+
+        {buildPageItems(page, totalPages).map((item, index) =>
+          item === "ellipsis" ? (
+            <PaginationItem key={`ellipsis-${index}`}>
+              <PaginationEllipsis />
+            </PaginationItem>
+          ) : (
+            <PaginationItem key={item}>
+              <Button asChild variant={item === page ? "outline" : "ghost"} size="icon">
+                <Link
+                  href={pageHref(query, pageSize, item)}
+                  aria-current={item === page ? "page" : undefined}
+                >
+                  {item}
+                </Link>
+              </Button>
+            </PaginationItem>
+          ),
+        )}
+
+        <PaginationItem>
+          {page < totalPages ? (
+            <Button asChild variant="ghost" size="default">
+              <Link href={pageHref(query, pageSize, page + 1)} rel="next">
+                {t("nextPage")}
+              </Link>
+            </Button>
+          ) : (
+            <Button variant="ghost" size="default" disabled aria-hidden="true">
+              {t("nextPage")}
+            </Button>
+          )}
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
 /**
  * Solo la parrilla de salas y la paginación esperan a `resultPromise`
  * (F-20): la cabecera y los filtros no dependen de la consulta al catálogo,
@@ -37,14 +127,12 @@ async function CatalogResults({
   resultPromise,
   locale,
   query,
-  isFirstPage,
 }: {
   resultPromise: Promise<CatalogListResult>;
   locale: string;
   query: Record<string, string>;
-  isFirstPage: boolean;
 }) {
-  const [t, { items: rooms, nextCursor }] = await Promise.all([
+  const [t, { items: rooms, page, pageSize, totalPages }] = await Promise.all([
     getTranslations({ locale, namespace: "Catalog" }),
     resultPromise,
   ]);
@@ -74,41 +162,28 @@ async function CatalogResults({
         </div>
       )}
 
-      <nav className="flex gap-4 text-sm">
-        {!isFirstPage ? (
-          <Link
-            href={{ pathname: CATALOG_PATH, query }}
-            className="underline-offset-4 hover:underline"
-          >
-            {t("firstPage")}
-          </Link>
-        ) : null}
-        {nextCursor ? (
-          <Link
-            href={{ pathname: CATALOG_PATH, query: { ...query, cursor: nextCursor } }}
-            rel="next"
-            className="underline-offset-4 hover:underline"
-          >
-            {t("nextPage")} →
-          </Link>
-        ) : null}
-      </nav>
+      {rooms.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <PageSizeSelect pageSize={pageSize} defaultPageSize={CATALOG_DEFAULT_LIMIT} query={query} />
+          {totalPages > 1 ? (
+            <CatalogPagination query={query} page={page} pageSize={pageSize} totalPages={totalPages} />
+          ) : null}
+        </div>
+      ) : null}
     </>
   );
 }
 
-/** Listado SSR del catálogo: filtros, tarjetas y paginación por cursor. */
+/** Listado SSR del catálogo: filtros, tarjetas y paginador real (números de página). */
 export function CatalogView({
   locale,
   resultPromise,
   filters,
-  isFirstPage,
   invalidFilters,
 }: {
   locale: string;
   resultPromise: Promise<CatalogListResult>;
   filters: CatalogFilterValues;
-  isFirstPage: boolean;
   invalidFilters: boolean;
 }) {
   const t = useTranslations("Catalog");
@@ -135,12 +210,7 @@ export function CatalogView({
       ) : null}
 
       <Suspense fallback={<CatalogResultsSkeleton />}>
-        <CatalogResults
-          resultPromise={resultPromise}
-          locale={locale}
-          query={query}
-          isFirstPage={isFirstPage}
-        />
+        <CatalogResults resultPromise={resultPromise} locale={locale} query={query} />
       </Suspense>
     </main>
   );

@@ -11,19 +11,31 @@
 # Redis SÍ es una instancia compartida (a diferencia de Postgres): en los
 # worktrees enlazados, escribe (o actualiza, sin tocar el resto del fichero)
 # `REDIS_PREFIX=<mismo slug que la BD>` en los `.env` de `web`/`kit`/`worker`/
-# `colyseus-server`, para que el rate limiting, las colas (BullMQ) y el
-# pub/sub de `editor-sync` de un worktree no pisen los de otro corriendo en
+# `colyseus-server`/`shared`, para que el rate limiting, las colas (BullMQ) y
+# el pub/sub de `editor-sync` de un worktree no pisen los de otro corriendo en
 # paralelo. El worktree principal sigue con el prefijo por defecto.
 #
-#   pnpm dev:env              # idempotente; NO pisa un .env existente
-#   pnpm dev:env -- --force   # reescribe packages/shared/.env (REDIS_PREFIX
-#                              # de los demás .env siempre se mantiene al día)
+# Los worktrees enlazados también obtienen tres puertos propios (web,
+# Colyseus, editor-sync) fuera de los que usa el worktree principal
+# (3000/2567/2568) y el smoke E2E (3100/2667/2668): ver «Puertos por
+# worktree» más abajo.
+#
+#   pnpm dev:env              # idempotente; NO pisa un .env existente ni los
+#                              # puertos ya asignados a este worktree
+#   pnpm dev:env -- --force   # reescribe packages/shared/.env y reasigna
+#                              # puertos (REDIS_PREFIX de los demás .env
+#                              # siempre se mantiene al día)
 #
 # Prerequisito: `pnpm infra:up` (Postgres en localhost:55433, Redis en 56380).
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
+
+for bin in jq lsof; do
+  command -v "$bin" > /dev/null 2>&1 \
+    || { echo "✖ falta '$bin' (necesario para asignar puertos por worktree)" >&2; exit 1; }
+done
 
 FORCE=false
 for arg in "$@"; do
@@ -137,6 +149,7 @@ if [ "$KIND" = "enlazado" ]; then
     packages/kit/.env
     packages/worker/.env
     packages/colyseus-server/.env
+    packages/shared/.env
   )
   for f in "${REDIS_ENV_FILES[@]}"; do
     if [ -f "$f" ] && grep -q '^REDIS_PREFIX=' "$f"; then
@@ -158,6 +171,152 @@ if [ "$KIND" = "enlazado" ]; then
       ok "$f: creado con REDIS_PREFIX=$DB"
     fi
   done
+fi
+
+# --- Puertos por worktree ----------------------------------------------------
+# Los puertos 3000 (web), 2567 (Colyseus) y 2568 (editor-sync) son del
+# worktree principal (los usa el usuario con `pnpm dev`), y 3100/2667/2668 son
+# del smoke E2E (packages/e2e/support/env.ts) — un worktree enlazado nunca
+# debe arrancar en ninguno de esos seis. Cada enlazado obtiene tres puertos
+# libres en rangos propios (web 3200-3299, Colyseus 2700-2799, editor-sync
+# 2800-2899), asignados una vez y reutilizados en corridas siguientes
+# (auditoría 2026-09-25, puertos por worktree; decisión: buscar puertos
+# libres al ejecutar dev:env y guardarlos, no derivarlos de un hash).
+#
+# El registro vive fuera del árbol de trabajo, en el `.git` común a todos los
+# worktrees (`git rev-parse --git-common-dir`): así sobrevive a un
+# `orca worktree rm` de otro worktree y no hace falta compartir nada por red.
+if [ "$KIND" = "enlazado" ]; then
+  step "Puertos por worktree (web / Colyseus / editor-sync)"
+
+  GIT_COMMON_DIR=$(git rev-parse --git-common-dir)
+  case "$GIT_COMMON_DIR" in
+    /*) : ;;
+    *) GIT_COMMON_DIR="$ROOT/$GIT_COMMON_DIR" ;;
+  esac
+  PORTS_FILE="$GIT_COMMON_DIR/escaperoom-dev-ports.json"
+  PORTS_LOCK="$GIT_COMMON_DIR/escaperoom-dev-ports.lock"
+
+  # Lock corto (mkdir es atómico): dos `dev:env` de worktrees distintos no
+  # deben asignar el mismo puerto libre a la vez. Mismo patrón (sin flock,
+  # recuperación de lock huérfano) que `scripts/verify-pr.sh`.
+  PORTS_LOCK_HELD=false
+  acquire_ports_lock() {
+    local waited=0
+    while ! mkdir "$PORTS_LOCK" 2>/dev/null; do
+      if [ -n "$(find "$PORTS_LOCK" -maxdepth 0 -mmin +1 2>/dev/null)" ]; then
+        warn "lock de puertos huérfano (>1 min) — lo recupero"
+        rmdir "$PORTS_LOCK" 2>/dev/null || true
+        continue
+      fi
+      waited=$((waited + 1))
+      [ "$waited" -le 50 ] || die "no pude adquirir el lock de puertos ($PORTS_LOCK)"
+      sleep 0.2
+    done
+    PORTS_LOCK_HELD=true
+  }
+  release_ports_lock() {
+    if [ "$PORTS_LOCK_HELD" = true ]; then
+      rmdir "$PORTS_LOCK" 2>/dev/null || true
+      PORTS_LOCK_HELD=false
+    fi
+  }
+  trap release_ports_lock EXIT
+
+  acquire_ports_lock
+  [ -f "$PORTS_FILE" ] || echo '{}' > "$PORTS_FILE"
+
+  # Descarta asignaciones de worktrees que ya no existen (`orca worktree rm`,
+  # `git worktree remove`…), para no agotar los rangos con basura.
+  existing_json=$(git worktree list --porcelain | sed -n 's/^worktree //p' | jq -R . | jq -s .)
+  tmp=$(mktemp)
+  jq --argjson existing "$existing_json" \
+    'with_entries(select(.key as $k | $existing | index($k) != null))' \
+    "$PORTS_FILE" > "$tmp" && mv "$tmp" "$PORTS_FILE"
+
+  # Libre = nadie escucha en el puerto Y no está ya asignado a OTRO worktree
+  # en el registro (aunque ese worktree no lo tenga levantado ahora mismo).
+  port_used_elsewhere() {
+    jq -e --arg root "$ROOT" --argjson p "$1" \
+      'to_entries | any(.key != $root and ([.value.web, .value.colyseus, .value.editorSync] | index($p)))' \
+      "$PORTS_FILE" > /dev/null
+  }
+  find_free_port() {
+    local start=$1 end=$2 p
+    for ((p = start; p <= end; p++)); do
+      if lsof -iTCP:"$p" -sTCP:LISTEN > /dev/null 2>&1; then continue; fi
+      if port_used_elsewhere "$p"; then continue; fi
+      printf '%s' "$p"
+      return 0
+    done
+    die "sin puertos libres en $start-$end (revisa $PORTS_FILE)"
+  }
+
+  current=$(jq -r --arg root "$ROOT" '.[$root] // empty' "$PORTS_FILE")
+  if [ -n "$current" ] && [ "$FORCE" != true ]; then
+    WEB_PORT=$(printf '%s' "$current" | jq -r '.web')
+    COLYSEUS_PORT_VAL=$(printf '%s' "$current" | jq -r '.colyseus')
+    EDITOR_SYNC_PORT_VAL=$(printf '%s' "$current" | jq -r '.editorSync')
+    skip "reutilizo puertos ya asignados: web=$WEB_PORT colyseus=$COLYSEUS_PORT_VAL editor-sync=$EDITOR_SYNC_PORT_VAL"
+  else
+    WEB_PORT=$(find_free_port 3200 3299)
+    COLYSEUS_PORT_VAL=$(find_free_port 2700 2799)
+    EDITOR_SYNC_PORT_VAL=$(find_free_port 2800 2899)
+    tmp=$(mktemp)
+    jq --arg root "$ROOT" --argjson web "$WEB_PORT" --argjson col "$COLYSEUS_PORT_VAL" \
+      --argjson es "$EDITOR_SYNC_PORT_VAL" \
+      '.[$root] = {web: $web, colyseus: $col, editorSync: $es}' "$PORTS_FILE" > "$tmp" \
+      && mv "$tmp" "$PORTS_FILE"
+    ok "asignados: web=$WEB_PORT colyseus=$COLYSEUS_PORT_VAL editor-sync=$EDITOR_SYNC_PORT_VAL"
+  fi
+  release_ports_lock
+  trap - EXIT
+
+  # --- Escribe los puertos en los .env de cada paquete -----------------------
+  ensure_env_file() {
+    local file=$1 example=$2
+    if [ -f "$file" ]; then return 0; fi
+    if [ -f "$example" ]; then
+      cp "$example" "$file"
+      ok "$file: creado desde $example"
+    else
+      mkdir -p "$(dirname "$file")"
+      : > "$file"
+    fi
+  }
+  set_env_var() {
+    local file=$1 key=$2 value=$3
+    if grep -q "^${key}=" "$file" 2>/dev/null; then
+      local current_value
+      current_value=$(sed -n "s#^${key}=##p" "$file" | head -1)
+      [ "$current_value" = "$value" ] && return 0
+      local tmp
+      tmp=$(mktemp)
+      sed "s#^${key}=.*#${key}=${value}#" "$file" > "$tmp" && mv "$tmp" "$file"
+    else
+      printf '%s=%s\n' "$key" "$value" >> "$file"
+    fi
+  }
+
+  WEB_ENV=packages/web/.env
+  COLYSEUS_ENV=packages/colyseus-server/.env
+  WORKER_ENV=packages/worker/.env
+  ensure_env_file "$WEB_ENV" packages/web/.env.example
+  ensure_env_file "$COLYSEUS_ENV" packages/colyseus-server/.env.example
+  ensure_env_file "$WORKER_ENV" packages/worker/.env.example
+
+  set_env_var "$WEB_ENV" PORT "$WEB_PORT"
+  set_env_var "$WEB_ENV" APP_URL "http://localhost:$WEB_PORT"
+  set_env_var "$WEB_ENV" NEXT_PUBLIC_APP_URL "http://localhost:$WEB_PORT"
+  set_env_var "$WEB_ENV" BETTER_AUTH_URL "http://localhost:$WEB_PORT"
+  set_env_var "$WEB_ENV" NEXT_PUBLIC_COLYSEUS_URL "ws://localhost:$COLYSEUS_PORT_VAL"
+  set_env_var "$WEB_ENV" COLYSEUS_INTERNAL_URL "http://localhost:$COLYSEUS_PORT_VAL"
+  set_env_var "$WEB_ENV" NEXT_PUBLIC_EDITOR_SYNC_URL "ws://localhost:$EDITOR_SYNC_PORT_VAL"
+  set_env_var "$WEB_ENV" EDITOR_SYNC_PORT "$EDITOR_SYNC_PORT_VAL"
+  set_env_var "$WEB_ENV" EDITOR_SYNC_ALLOWED_ORIGINS "http://localhost:$WEB_PORT"
+  set_env_var "$COLYSEUS_ENV" COLYSEUS_PORT "$COLYSEUS_PORT_VAL"
+  set_env_var "$WORKER_ENV" APP_URL "http://localhost:$WEB_PORT"
+  ok "puertos escritos en $WEB_ENV, $COLYSEUS_ENV y $WORKER_ENV"
 fi
 
 printf '\n'

@@ -32,8 +32,8 @@ export type LegalSection = {
 };
 
 export type LegalDocument = {
-  /** Fecha de esta versión del borrador (no la de entrada en vigor: no está vigente). */
-  draftDate: string;
+  /** Fecha de la versión vigente de este documento. */
+  versionDate: string;
   sections: LegalSection[];
 };
 

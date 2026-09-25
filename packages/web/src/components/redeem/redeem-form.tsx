@@ -66,37 +66,37 @@ export function RedeemForm({ initialCode }: RedeemFormProps) {
   };
 
   return (
-    <form className="space-y-3" onSubmit={(event) => void redeem(event)}>
-      <Label className="flex-col items-start gap-1 text-sm">
-        <span className="text-white/80">{t("codeLabel")}</span>
+    <form className="space-y-4" onSubmit={(event) => void redeem(event)}>
+      <div className="space-y-1.5">
+        <Label htmlFor="redeem-code">{t("codeLabel")}</Label>
         <Input
+          id="redeem-code"
           value={code}
           onChange={(event) => setCode(event.target.value)}
           required
           maxLength={64}
           autoComplete="off"
           spellCheck={false}
-          className="h-auto border-white/15 bg-white/5 px-2 py-1.5 font-mono text-base uppercase tracking-widest text-white focus-visible:border-white/30 focus-visible:ring-1 focus-visible:ring-white/30"
+          className="font-mono uppercase tracking-widest"
         />
-      </Label>
-      <Label className="flex-col items-start gap-1 text-sm">
-        <span className="text-white/80">{t("nameLabel")}</span>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="redeem-name">{t("nameLabel")}</Label>
         <Input
+          id="redeem-name"
           value={name}
           onChange={(event) => setName(event.target.value)}
           maxLength={32}
-          placeholder={t("namePlaceholder")}
-          className="h-auto border-white/15 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-white/40 focus-visible:border-white/30 focus-visible:ring-1 focus-visible:ring-white/30"
         />
-      </Label>
-      <Button type="submit" variant="overlay" disabled={state.kind === "redeeming"}>
-        {state.kind === "redeeming" ? t("redeeming") : t("cta")}
-      </Button>
+      </div>
       {state.kind === "error" ? (
-        <p role="alert" className="text-sm text-red-300">
+        <p role="alert" className="text-sm text-destructive">
           {KNOWN_ERRORS.has(state.code) ? t(`errors.${state.code}`) : t("errors.UNKNOWN")}
         </p>
       ) : null}
+      <Button type="submit" className="w-full" disabled={state.kind === "redeeming"}>
+        {state.kind === "redeeming" ? t("redeeming") : t("cta")}
+      </Button>
     </form>
   );
 }

@@ -18,10 +18,10 @@ export function languageVersionsSection(number: number): LegalSection {
     heading: `${number}. Versiones lingüísticas`,
     paragraphs: [
       "Este documento solo está disponible en español. El resto de la plataforma (menús, " +
-        "formularios y el título y la navegación de estas páginas legales) sí está traducido a los " +
-        "idiomas que ofrecemos, pero el contenido de los documentos legales se mantiene, por ahora, " +
-        "en un único idioma: mientras sea un borrador pendiente de revisión por un abogado, " +
-        "traducirlo multiplicaría por seis un texto que todavía puede cambiar.",
+        "formularios y el título de estas páginas legales) sí está traducido a los idiomas que " +
+        "ofrecemos, pero el contenido de los documentos legales se mantiene, por ahora, en un único " +
+        "idioma: España es la jurisdicción de referencia de la plataforma y todavía no se ofrecen " +
+        "traducciones del texto legal.",
       "Al existir una sola versión del texto, no hay traducciones que puedan contradecirla. Si en " +
         "el futuro se publican versiones en otros idiomas, se ofrecerán por comodidad y, en caso de " +
         "discrepancia, prevalecerá la versión en español.",

@@ -1,12 +1,12 @@
 import { getTranslations } from "next-intl/server";
 import { Button } from "@/components/ui/button";
-import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { Link } from "@/i18n/navigation";
 
 /**
  * Cabecera compartida por las páginas públicas de marketing (grupo de rutas
- * `(public)`): logo, catálogo, contacto, idioma y CTA de creador. Las páginas
- * de jugar una sala o de creador tienen su propio chrome y no la incluyen.
+ * `(public)`): logo, catálogo, contacto y CTA de creador. El idioma y el
+ * tema viven en el pie (`PublicFooter`). Las páginas de jugar una sala o de
+ * creador tienen su propio chrome y no la incluyen.
  */
 export async function PublicHeader() {
   const t = await getTranslations("PublicNav");
@@ -25,7 +25,6 @@ export async function PublicHeader() {
           <Button asChild variant="ghost">
             <Link href="/contact">{t("contact")}</Link>
           </Button>
-          <LocaleSwitcher variant="select" />
           <Button asChild>
             <Link href="/creator/onboarding">{t("createCta")}</Link>
           </Button>

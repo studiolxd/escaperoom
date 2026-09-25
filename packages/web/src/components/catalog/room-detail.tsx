@@ -118,7 +118,7 @@ export function RoomDetailView({
   ];
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-4xl flex-col gap-6 bg-background px-4 py-8 text-foreground">
+    <main className="mx-auto flex min-h-dvh max-w-6xl flex-col gap-6 bg-background px-4 py-8 text-foreground">
       <Link href={CATALOG_PATH} className="text-sm underline-offset-4 hover:underline">
         ← {t("back")}
       </Link>

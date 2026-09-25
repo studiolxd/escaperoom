@@ -2,24 +2,14 @@ import { languageVersionsSection } from "./language-versions";
 import { legalLink, type LegalDocument } from "./types";
 
 /**
- * Aviso Legal — BORRADOR TÉCNICO (ticket 6.2, specs/18).
+ * Aviso Legal (specs/18).
  *
  * Datos identificativos conforme a la LSSI-CE (Ley 34/2002) para el titular
- * de la plataforma, Studio LXD, S.L. Mismo aviso que el resto de páginas
- * legales: no es un texto legal vigente hasta que lo revise un abogado.
+ * de la plataforma, Studio LXD, S.L.
  */
 export const legalNotice: LegalDocument = {
-  draftDate: "2026-09-23",
+  versionDate: "2026-09-23",
   sections: [
-    {
-      heading: "0. Qué es este documento",
-      paragraphs: [
-        "Esta página es un borrador técnico, no un texto legal vigente. Recoge los datos " +
-          "identificativos exigidos por la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad " +
-          "de la Información y de Comercio Electrónico (LSSI-CE) para que un abogado los revise antes " +
-          "de aceptar el primer pago real o el primer evento educativo real.",
-      ],
-    },
     {
       heading: "1. Datos del titular",
       paragraphs: ["En cumplimiento de la LSSI-CE, se informan los siguientes datos:"],
