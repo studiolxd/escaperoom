@@ -25,6 +25,7 @@ import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/error-boundary";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
+import { EDITOR_UI_KIT } from "./editor-ui-kit";
 import { PlaytestButton } from "./playtest-button";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
 import { RoomEditorInspector } from "./room-editor-inspector";
@@ -287,6 +288,7 @@ function ValidatedWorkspace({
             height="100%"
             focusRuleId={focusRuleId}
             onSelectRule={(ruleId) => select({ kind: "rule", id: ruleId })}
+            components={EDITOR_UI_KIT}
           />
         </ErrorBoundary>
       }
@@ -302,7 +304,12 @@ function ValidatedWorkspace({
         />
       }
       validation={
-        <ValidationPanel state={validation} labels={panelLabels} onSelectTarget={selectTarget} />
+        <ValidationPanel
+          state={validation}
+          labels={panelLabels}
+          onSelectTarget={selectTarget}
+          components={EDITOR_UI_KIT}
+        />
       }
       headerActions={
         <>

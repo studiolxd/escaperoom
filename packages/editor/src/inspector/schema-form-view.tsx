@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, type CSSProperties, type ReactNode } from "react";
+import { DEFAULT_UI_KIT, type EditorUiKit } from "../ui-kit";
 import type { InspectorLabeler } from "./labels";
 import type { RefKind } from "./references";
 import {
@@ -25,6 +26,8 @@ export type SchemaFormContext = {
   /** Renderers del host por `kind`; lo que no esté usa `BUILTIN_RENDERERS`. */
   renderers: Readonly<Record<string, FieldRenderer>>;
   readOnly: boolean;
+  /** Controles interactivos del host (auditoría F-6); por defecto, elemento nativo. */
+  uiKit: EditorUiKit;
 };
 
 export type FieldRendererProps = {
@@ -90,8 +93,10 @@ export function CommitInput(props: {
   mono?: boolean;
   placeholder?: string;
   "aria-label"?: string;
+  /** Control del host (auditoría F-6); por defecto, `<input>` nativo. */
+  Input?: EditorUiKit["Input"];
 }) {
-  const { value, onCommit, mono, ...rest } = props;
+  const { value, onCommit, mono, Input = DEFAULT_UI_KIT.Input, ...rest } = props;
   const [draft, setDraft] = useState(value);
   const [editing, setEditing] = useState(false);
   useEffect(() => {
@@ -102,7 +107,7 @@ export function CommitInput(props: {
     if (draft !== value) onCommit(draft);
   };
   return (
-    <input
+    <Input
       {...rest}
       style={{ ...inputStyle, ...(mono ? monoStyle : {}) }}
       value={draft}
@@ -135,23 +140,16 @@ const TextRenderer: FieldRenderer = ({ field, value, onChange, ctx, inputId }) =
     const options = [...ctx.idOptions(field.ref)];
     if (current && !options.includes(current)) options.unshift(current);
     return (
-      <select
+      <ctx.uiKit.Select
         id={inputId}
+        className="w-full font-mono"
         style={{ ...inputStyle, ...monoStyle }}
         value={current}
         disabled={disabled}
-        data-ref={field.ref}
-        onChange={(event) =>
-          onChange(event.target.value === "" && field.optional ? undefined : event.target.value)
-        }
-      >
-        {field.optional || current === "" ? <option value="">{ctx.t.ui("none")}</option> : null}
-        {options.map((id) => (
-          <option key={id} value={id}>
-            {id}
-          </option>
-        ))}
-      </select>
+        placeholder={field.optional || current === "" ? ctx.t.ui("none") : undefined}
+        options={options.map((id) => ({ value: id, label: id }))}
+        onValueChange={(next) => onChange(next === "" && field.optional ? undefined : next)}
+      />
     );
   }
   const listId = field.suggestions ? `${inputId}-list` : undefined;
@@ -162,6 +160,7 @@ const TextRenderer: FieldRenderer = ({ field, value, onChange, ctx, inputId }) =
         value={current}
         list={listId}
         disabled={disabled}
+        Input={ctx.uiKit.Input}
         onCommit={(next) => onChange(next === "" && field.optional ? undefined : next)}
       />
       {listId ? (
@@ -183,6 +182,7 @@ const NumberRenderer: FieldRenderer = ({ field, value, onChange, ctx, inputId })
     min={field.min}
     value={asString(value)}
     disabled={ctx.readOnly || field.readOnly}
+    Input={ctx.uiKit.Input}
     onCommit={(next) => {
       if (next.trim() === "") {
         if (field.optional) onChange(undefined);
@@ -195,32 +195,25 @@ const NumberRenderer: FieldRenderer = ({ field, value, onChange, ctx, inputId })
 );
 
 const BooleanRenderer: FieldRenderer = ({ field, value, onChange, ctx, inputId }) => (
-  <input
+  <ctx.uiKit.Checkbox
     id={inputId}
-    type="checkbox"
     checked={value === true}
     disabled={ctx.readOnly || field.readOnly}
-    onChange={(event) => onChange(event.target.checked)}
+    onCheckedChange={onChange}
   />
 );
 
 const EnumRenderer: FieldRenderer = ({ field, value, onChange, ctx, inputId }) => (
-  <select
+  <ctx.uiKit.Select
     id={inputId}
+    className="w-full"
     style={inputStyle}
     value={asString(value)}
     disabled={ctx.readOnly || field.readOnly}
-    onChange={(event) =>
-      onChange(event.target.value === "" && field.optional ? undefined : event.target.value)
-    }
-  >
-    {field.optional || value === undefined ? <option value="">{ctx.t.ui("none")}</option> : null}
-    {field.options?.map((option) => (
-      <option key={option} value={option}>
-        {ctx.t.option(option)}
-      </option>
-    ))}
-  </select>
+    placeholder={field.optional || value === undefined ? ctx.t.ui("none") : undefined}
+    options={(field.options ?? []).map((option) => ({ value: option, label: ctx.t.option(option) }))}
+    onValueChange={(next) => onChange(next === "" && field.optional ? undefined : next)}
+  />
 );
 
 const LiteralRenderer: FieldRenderer = ({ field, ctx }) => (
@@ -261,7 +254,7 @@ const ListRenderer: FieldRenderer = ({ field, value, onChange, ctx, renderField 
             })}
           </div>
           {disabled ? null : (
-            <button
+            <ctx.uiKit.Button
               type="button"
               style={smallButtonStyle}
               aria-label={ctx.t.ui("remove")}
@@ -269,19 +262,19 @@ const ListRenderer: FieldRenderer = ({ field, value, onChange, ctx, renderField 
               onClick={() => onChange(items.filter((_, i) => i !== index))}
             >
               ×
-            </button>
+            </ctx.uiKit.Button>
           )}
         </div>
       ))}
       {disabled ? null : (
         <div>
-          <button
+          <ctx.uiKit.Button
             type="button"
             style={smallButtonStyle}
             onClick={() => onChange([...items, defaultValueFor(item, ctx.kinds)])}
           >
             + {ctx.t.ui("add")}
-          </button>
+          </ctx.uiKit.Button>
         </div>
       )}
     </div>
@@ -292,14 +285,14 @@ function NewKeyForm({ onAdd, ctx }: { onAdd: (key: string) => void; ctx: SchemaF
   const [key, setKey] = useState("");
   return (
     <div style={rowStyle}>
-      <input
+      <ctx.uiKit.Input
         style={{ ...inputStyle, ...monoStyle }}
         value={key}
         placeholder={ctx.t.ui("newKey")}
         aria-label={ctx.t.ui("newKey")}
         onChange={(event) => setKey(event.target.value)}
       />
-      <button
+      <ctx.uiKit.Button
         type="button"
         style={smallButtonStyle}
         disabled={key.trim() === ""}
@@ -309,7 +302,7 @@ function NewKeyForm({ onAdd, ctx }: { onAdd: (key: string) => void; ctx: SchemaF
         }}
       >
         + {ctx.t.ui("add")}
-      </button>
+      </ctx.uiKit.Button>
     </div>
   );
 }
@@ -333,10 +326,11 @@ const RecordRenderer: FieldRenderer = ({ field, value, onChange, ctx, renderFiel
               mono
               disabled={disabled}
               aria-label={ctx.t.ui("key")}
+              Input={ctx.uiKit.Input}
               onCommit={(next) => renameKey(key, next.trim())}
             />
             {disabled ? null : (
-              <button
+              <ctx.uiKit.Button
                 type="button"
                 style={smallButtonStyle}
                 aria-label={ctx.t.ui("remove")}
@@ -344,7 +338,7 @@ const RecordRenderer: FieldRenderer = ({ field, value, onChange, ctx, renderFiel
                 onClick={() => onChange(Object.fromEntries(entries.filter(([k]) => k !== key)))}
               >
                 ×
-              </button>
+              </ctx.uiKit.Button>
             )}
           </div>
           {renderField(valueField, entry, (next) => onChange({ ...record, [key]: next }))}
@@ -378,22 +372,17 @@ const UnionRenderer: FieldRenderer = ({ field, value, onChange, ctx, renderField
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }} data-variant={variant.value}>
       {(field.variants?.length ?? 0) > 1 ? (
-        <select
+        <ctx.uiKit.Select
           id={inputId}
           style={inputStyle}
           value={variant.value}
           disabled={disabled}
-          onChange={(event) => {
-            const next = field.variants?.find((v) => v.value === event.target.value);
-            if (next) onChange(defaultValueFor(next.field, ctx.kinds));
+          options={(field.variants ?? []).map((v) => ({ value: v.value, label: ctx.t.option(v.value) }))}
+          onValueChange={(next) => {
+            const variantField = field.variants?.find((v) => v.value === next);
+            if (variantField) onChange(defaultValueFor(variantField.field, ctx.kinds));
           }}
-        >
-          {field.variants?.map((v) => (
-            <option key={v.value} value={v.value}>
-              {ctx.t.option(v.value)}
-            </option>
-          ))}
-        </select>
+        />
       ) : null}
       {inner.kind === "object" && (inner.fields?.length ?? 0) === 0
         ? null
@@ -409,7 +398,7 @@ const JsonRenderer: FieldRenderer = ({ field, value, onChange, ctx, inputId }) =
   useEffect(() => setDraft(text), [text]);
   return (
     <>
-      <textarea
+      <ctx.uiKit.Textarea
         id={inputId}
         style={{ ...inputStyle, ...monoStyle, minHeight: 48 }}
         value={draft}
@@ -486,13 +475,13 @@ function FieldView({
         <span style={{ fontSize: 11, opacity: 0.6 }}>{ctx.t.ui("unset")}</span>
       ) : (
         <div>
-          <button
+          <ctx.uiKit.Button
             type="button"
             style={smallButtonStyle}
             onClick={() => onChange(defaultValueFor(field, ctx.kinds))}
           >
             + {ctx.t.ui("add")}
-          </button>
+          </ctx.uiKit.Button>
         </div>
       )
     ) : (
@@ -525,14 +514,14 @@ function FieldView({
           {ctx.t.field(field.key)}
         </label>
         {field.optional && !absent && !disabled && !inline ? (
-          <button
+          <ctx.uiKit.Button
             type="button"
             style={{ ...smallButtonStyle, marginLeft: "auto", fontSize: 10 }}
             title={ctx.t.ui("unset")}
             onClick={() => onChange(undefined)}
           >
             {ctx.t.ui("unset")}
-          </button>
+          </ctx.uiKit.Button>
         ) : null}
       </div>
       {body}
