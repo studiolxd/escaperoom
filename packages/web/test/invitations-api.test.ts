@@ -82,6 +82,11 @@ function setup() {
         jobs.push(job);
         return String(jobs.length);
       },
+      enqueueBulk: async (items) =>
+        items.map((job) => {
+          jobs.push(job);
+          return String(jobs.length);
+        }),
     },
     confirmation,
     now,

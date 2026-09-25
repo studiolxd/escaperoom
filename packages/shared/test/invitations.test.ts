@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createMemoryMailTransport, MailDeliveryError, type InvitationEmailJob } from "../src/mail";
 import {
   AccessKeyError,
@@ -86,6 +86,13 @@ function setup(opts: { organizerLocale?: string; queueEnabled?: boolean } = {}) 
       jobs.push(job);
       return `job-${jobs.length}`;
     },
+    async enqueueBulk(items: InvitationEmailJob[]) {
+      if (opts.queueEnabled === false) return items.map(() => null);
+      return items.map((job) => {
+        jobs.push(job);
+        return `job-${jobs.length}`;
+      });
+    },
   };
   const confirmation = { secret: SECRET, ttlSeconds: 7 * 24 * 3600 };
   const invitations = createInvitationService({
@@ -122,6 +129,7 @@ function setup(opts: { organizerLocale?: string; queueEnabled?: boolean } = {}) 
     invitations,
     keyStore,
     jobs,
+    queue,
     transport,
     deliveryDeps,
     drain,
@@ -151,6 +159,9 @@ function linkOf(text: string): { code: string; token: string } {
 describe("invitaciones por email (ticket 5.6)", () => {
   it("invitar a 30 emails encola 30 envíos y cada email lleva su clave en el idioma del evento", async () => {
     const t = setup();
+    // B-23: un único enqueueBulk (no 30 enqueue seguidos).
+    const enqueue = vi.spyOn(t.queue, "enqueue");
+    const enqueueBulk = vi.spyOn(t.queue, "enqueueBulk");
     const event = await t.createEvent({ locale: "fr" });
     const list = emails(30);
     const activation = await t.invitations.activateAndInvite(author, event.id, {
@@ -159,6 +170,9 @@ describe("invitaciones por email (ticket 5.6)", () => {
 
     expect(activation.keys).toHaveLength(30);
     expect(activation.emails).toEqual({ requested: 30, queued: 30 });
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(enqueueBulk).toHaveBeenCalledTimes(1);
+    expect(enqueueBulk.mock.calls[0]![0]).toHaveLength(30);
     expect(t.jobs).toHaveLength(30);
     expect(new Set(t.jobs.map((j) => j.code)).size).toBe(30);
     // El job solo lleva código y tipo: ni la dirección ni datos personales.
@@ -492,7 +506,7 @@ describe("invitaciones por email (ticket 5.6)", () => {
     const svc = createInvitationService({
       store: createInMemoryInvitationStore({ keys: t.keyStore }),
       accessKeys: t.accessKeys,
-      queue: { enqueue: async () => null },
+      queue: { enqueue: async () => null, enqueueBulk: async (items) => items.map(() => null) },
       confirmation: null,
     });
     await rejects(svc.confirm("ABCD-EFGH-JKMN", { token: "a.b" }), "CONFIRMATION_UNAVAILABLE");

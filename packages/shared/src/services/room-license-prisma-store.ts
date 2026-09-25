@@ -41,6 +41,7 @@ function toPurchase(row: PurchaseRow): LicensePurchaseRow {
 }
 
 const versionSelect = { id: true, roomId: true, semver: true, package: true } as const;
+const versionRefSelect = { id: true, roomId: true, semver: true } as const;
 
 function toVersion(row: {
   id: string;
@@ -98,6 +99,22 @@ export function createPrismaRoomLicenseStore(prisma: PrismaClient): RoomLicenseS
         select: versionSelect,
       });
       return row ? toVersion(row) : null;
+    },
+    // B-24: igual que las dos de arriba pero sin `select: package` (JSONB
+    // completo de la sala) — para startLicenseCheckout con precio > 0, que
+    // solo necesita validar la versión y anotar su id.
+    async findLatestVersionRef(roomId) {
+      return prisma.roomVersion.findFirst({
+        where: { roomId },
+        orderBy: [{ publishedAt: "desc" }, { id: "desc" }],
+        select: versionRefSelect,
+      });
+    },
+    async findVersionRef(versionId) {
+      return prisma.roomVersion.findUnique({
+        where: { id: versionId },
+        select: versionRefSelect,
+      });
     },
     async findPurchase(id) {
       const row = await prisma.purchase.findFirst({ where: { id, purchaseType: "room_license" } });

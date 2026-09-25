@@ -839,3 +839,22 @@ marcarlo como tal evita que una pantalla retina pida algo que no existe. El inve
 (descartado: arrastra confusión de nombres sin motivo una vez que todo el repo puede renombrarse en
 la misma PR); versionar `icon-busto.svg` a partir del PNG entregado (descartado por la nota de la
 coordinadora: usar el PNG entregado tal cual, no crear un SVG que no existe en origen).
+
+---
+
+## ADR-033 — Nota: `DROP TABLE "waitlistSignup"` (con emails) sin registrar en su momento (E-23, 2026-09-25)
+
+**Contexto:** al eliminar la funcionalidad de waitlist de la landing (#96), la migración
+`20260923110132_remove_waitlist` hace `DROP TABLE "waitlistSignup"` — una tabla con emails de
+personas que se habían apuntado — sin que quedara una línea en este registro explicando el borrado
+de esos datos. La auditoría de 2026-09-24 (bloque 9, E-23) lo señaló como hueco de documentación,
+no de producto: la migración en sí es correcta (la funcionalidad se retiró de verdad, specs y
+tests incluidos) y ya llevaba meses en `main`.
+
+**Decisión:** ninguna acción sobre el dato (ya inaplicable: la tabla y sus filas ya no existen desde
+`main` en `8f50aa6`/`d3b22ad`); se deja esta nota para que el histórico de "por qué se borraron
+esos emails" quede en el registro en vez de solo en el mensaje de commit de la migración.
+
+**Consecuencias:** ninguna sobre el código. Sirve de recordatorio: una migración que hace `DROP
+TABLE`/`DROP COLUMN` sobre datos de usuarios reales (no solo un cambio de esquema vacío) debería
+traer su línea en este registro en la misma PR, no después.

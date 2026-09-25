@@ -1,0 +1,23 @@
+-- E-7: analyticsEvent.roomVersionId sin índice; el dashboard de un creador
+-- agrega analítica por versión de sala.
+--
+-- Revisión de la coordinadora sobre la versión anterior de esta migración
+-- (4 migraciones con CREATE INDEX CONCURRENTLY por partición + ATTACH
+-- PARTITION, con los nombres de partición 2026_09/2026_10/default fijados a
+-- mano): rompía en dos casos reales — (a) una base con particiones que ya
+-- no son esas (el worker crea 3 meses por delante, packages/worker/src
+-- /analytics-partitions.ts; con el tiempo 2026_09/2026_10 dejan de existir
+-- o hay más particiones nuevas sin índice, dejando el índice del padre
+-- ON ONLY inválido por no tener todas las particiones adjuntas); (b) una
+-- base sin la partición 2026_09 (producción desplegada después, o tras la
+-- retención de 24 meses) hace que la migración falle y bloquee el
+-- despliegue.
+--
+-- CREATE INDEX normal (sin CONCURRENTLY) sobre la tabla padre: Postgres lo
+-- propaga solo a TODAS las particiones existentes en ese momento (y las
+-- futuras lo heredan al crearse), sin depender de sus nombres. Sí bloquea
+-- escritura mientras construye el índice en cada partición, pero no hay
+-- producción ni volumen real todavía, así que el bloqueo breve es
+-- aceptable (a diferencia del resto de índices de este bloque, que sí usan
+-- CONCURRENTLY por ir sobre tablas con datos ya en producción).
+CREATE INDEX "ixAnalyticsEventRoomVersion" ON "analyticsEvent"("roomVersionId", "createdAt");
