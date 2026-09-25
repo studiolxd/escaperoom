@@ -990,6 +990,7 @@ export function GameSessionShell({
       <Dialog open={imagePanel !== null} onOpenChange={(open) => !open && setImagePanel(null)}>
         <DialogContent
           showCloseButton
+          data-testid="game-image-panel"
           className="flex w-[min(92vw,40rem)] max-w-none flex-col items-center gap-3 rounded-2xl border-amber-200/30 bg-slate-950/95 p-5 text-center text-white shadow-2xl"
         >
           <DialogTitle className="sr-only">{tp("inspectImage")}</DialogTitle>

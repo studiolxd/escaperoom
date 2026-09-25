@@ -40,6 +40,7 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
     expect(order).toEqual([
       "r-inicio",
       "r-inspeccionar-cuadro",
+      "r-imagen-cuadro",
       "r-abrir-armario",
       "r-encender-brasero",
     ]);
@@ -77,8 +78,18 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
       replay.push(...engine.dispatch(event, 0).fired.map((f) => f.ruleId));
     }
 
-    expect(replay).toEqual([]);
-    expect(engine.snapshot()).toEqual(before);
+    // r-imagen-cuadro es repeatable (`once: false`): vuelve a dispararse en el
+    // replay (no muta estado, es solo `show_image`), a diferencia del resto
+    // (todas `once: true`) — su contador de disparos sube, el resto del
+    // estado no cambia.
+    expect(replay).toEqual(["r-imagen-cuadro"]);
+    expect(engine.snapshot()).toEqual({
+      ...before,
+      ruleRuns: {
+        ...before.ruleRuns,
+        "r-imagen-cuadro": { ...before.ruleRuns["r-imagen-cuadro"], count: 2 },
+      },
+    });
   });
 });
 
@@ -135,6 +146,7 @@ describe("motor de reglas — ruta crítica del Rey Aldric", () => {
     expect(order).toEqual([
       "r-inicio",
       "r-inspeccionar-cuadro",
+      "r-imagen-cuadro",
       "r-abrir-armario",
       "r-encender-brasero",
       "r-leer-pergamino",

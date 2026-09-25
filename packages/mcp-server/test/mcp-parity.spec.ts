@@ -240,8 +240,8 @@ describe("paridad editor ↔ MCP: el Rey Aldric construido por MCP (4.8)", () =>
     }
     expect(pkg.map.rooms[0]?.lighting).toContainEqual({
       type: "torch",
-      x: 5,
-      y: 1,
+      x: 4,
+      y: 6,
       objectId: "brasero",
     });
     // Las habitaciones sí conservan el orden (el primer spawn es el del salón).

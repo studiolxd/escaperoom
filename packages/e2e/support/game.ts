@@ -69,15 +69,32 @@ export class UiPlayer {
   }
 
   /**
-   * A partir de aquí, los diálogos de lore (cuadro, brasero, pergamino…) se
+   * A partir de aquí, los diálogos de lore (cuadro, brasero, pergamino…) y el
+   * panel de imagen de inspección (`show_image`, retratos/tapiz/vasijas) se
    * cierran solos cuando tapan el mundo, como haría una persona al seguir.
    * Ojo: el handler de Playwright también corre antes de cada aserción.
    */
   async dismissDialogsWhenBlocking(): Promise<void> {
+    // El panel de imagen (`show_image`) es un overlay de shadcn/ui por
+    // encima del diálogo de lore: si los dos están abiertos a la vez, el
+    // handler de `game-dialog` no puede clicar a través del panel de
+    // imagen, así que lo cierra primero (Escape) antes de intentarlo.
     await this.page.addLocatorHandler(
       this.page.getByTestId("game-dialog"),
       async (dialog) => {
+        const imagePanel = this.page.getByTestId("game-image-panel");
+        if (await imagePanel.isVisible().catch(() => false)) {
+          await this.page.keyboard.press("Escape");
+          return;
+        }
         await dialog.click();
+      },
+      { noWaitAfter: true },
+    );
+    await this.page.addLocatorHandler(
+      this.page.getByTestId("game-image-panel"),
+      async () => {
+        await this.page.keyboard.press("Escape");
       },
       { noWaitAfter: true },
     );
@@ -86,6 +103,7 @@ export class UiPlayer {
   /** Deja de cerrar diálogos (la pantalla de resultados tapa el último, y está bien). */
   async stopDismissingDialogs(): Promise<void> {
     await this.page.removeLocatorHandler(this.page.getByTestId("game-dialog"));
+    await this.page.removeLocatorHandler(this.page.getByTestId("game-image-panel"));
   }
 
   /** Botón del objeto en la lista «Objetos» (su texto es el id del objeto). */

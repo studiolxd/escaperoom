@@ -252,10 +252,12 @@ describe("inspector sobre el Rey Aldric", () => {
     const inspected = inspectElement(roomDocToPackage(doc), target);
     expect(inspected?.rules.map((r) => r.ruleId)).toEqual([
       "r-inspeccionar-cuadro",
+      "r-imagen-cuadro",
       "r-revelar-cuadro",
     ]);
     expect(inspected?.rules[0]).toMatchObject({ trigger: true, conditions: [], actions: [] });
-    expect(inspected?.rules[1]).toMatchObject({ trigger: false, actions: [0] });
+    expect(inspected?.rules[1]).toMatchObject({ trigger: true, conditions: [], actions: [] });
+    expect(inspected?.rules[2]).toMatchObject({ trigger: false, actions: [0] });
   });
 
   it("editar propiedades cambia el doc y roomDocToPackage lo refleja", () => {

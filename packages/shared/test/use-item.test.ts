@@ -149,7 +149,9 @@ describe("inspeccionar el cuadro dos veces", () => {
 
     const second = session.interact("cuadro-aurelio", 0);
     expect(second.dialogIds).toEqual([]);
-    expect(second.engine.fired).toEqual([]);
+    // r-imagen-cuadro es repeatable (`once: false`): la imagen de inspección
+    // se puede reabrir, a diferencia del diálogo y de la llave.
+    expect(second.engine.fired.map((f) => f.ruleId)).toEqual(["r-imagen-cuadro"]);
     expect(session.inventory()).toEqual(["llave-bronce"]);
   });
 });

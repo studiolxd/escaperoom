@@ -236,12 +236,14 @@
     { "id": "r-inspeccionar-cuadro", "priority": 0, "once": true,
       "trigger": { "type": "on_interact", "objectId": "cuadro-aurelio" },
       "conditions": [],
-      "actions": [
-        { "type": "show_dialog", "dialogId": "d-cuadro" },
-        { "type": "show_image", "image": "cuadro-rey" }
-      ] },
+      "actions": [ { "type": "show_dialog", "dialogId": "d-cuadro" } ] },
 
-    { "id": "r-inspeccionar-retrato-2", "priority": 0, "once": true,
+    { "id": "r-imagen-cuadro", "priority": 0, "once": false,
+      "trigger": { "type": "on_interact", "objectId": "cuadro-aurelio" },
+      "conditions": [],
+      "actions": [ { "type": "show_image", "image": "cuadro-rey" } ] },
+
+    { "id": "r-inspeccionar-retrato-2", "priority": 0, "once": false,
       "trigger": { "type": "on_interact", "objectId": "retrato-2" },
       "conditions": [],
       "actions": [
@@ -249,7 +251,7 @@
         { "type": "show_image", "image": "cuadro-reino-4torres" }
       ] },
 
-    { "id": "r-inspeccionar-retrato-3", "priority": 0, "once": true,
+    { "id": "r-inspeccionar-retrato-3", "priority": 0, "once": false,
       "trigger": { "type": "on_interact", "objectId": "retrato-3" },
       "conditions": [],
       "actions": [
@@ -257,7 +259,7 @@
         { "type": "show_image", "image": "cuadro-reino-brasero" }
       ] },
 
-    { "id": "r-inspeccionar-retrato-4", "priority": 0, "once": true,
+    { "id": "r-inspeccionar-retrato-4", "priority": 0, "once": false,
       "trigger": { "type": "on_interact", "objectId": "retrato-4" },
       "conditions": [],
       "actions": [
@@ -265,7 +267,7 @@
         { "type": "show_image", "image": "cuadro-reino-estatuas" }
       ] },
 
-    { "id": "r-inspeccionar-tapiz-dragones", "priority": 0, "once": true,
+    { "id": "r-inspeccionar-tapiz-dragones", "priority": 0, "once": false,
       "trigger": { "type": "on_interact", "objectId": "tapiz-dragones" },
       "conditions": [],
       "actions": [
@@ -360,7 +362,7 @@
       "conditions": [],
       "actions": [ { "type": "show_dialog", "dialogId": "d-sarcofago" } ] },
 
-    { "id": "r-inspeccionar-vasijas", "priority": 0, "once": true,
+    { "id": "r-inspeccionar-vasijas", "priority": 0, "once": false,
       "trigger": { "type": "on_interact", "objectId": "vasijas" },
       "conditions": [],
       "actions": [

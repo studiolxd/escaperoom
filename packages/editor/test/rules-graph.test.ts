@@ -175,7 +175,7 @@ describe("grafo de reglas — el doc Yjs es la fuente de verdad", () => {
 
     expect(notified).toBeGreaterThan(0);
     const graph = graphOf(editor);
-    expect(nodeById(graph, actionNodeId("r-inspeccionar-cuadro", [2])).data).toMatchObject({
+    expect(nodeById(graph, actionNodeId("r-inspeccionar-cuadro", [1])).data).toMatchObject({
       action: { type: "play_sound", soundId: "fx-cuadro" },
     });
     expect(nodeById(graph, triggerNodeId("r-inspeccionar-cuadro")).data).toMatchObject({

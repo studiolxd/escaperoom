@@ -152,7 +152,7 @@ describe("decorate_subroom (paridad de decoración e iluminación)", () => {
       dryRun: true,
     });
     expect(ok.isError, ok.text).toBe(false);
-    expect(ok.text).toMatch(/^🧪 decorate_subroom \(dry-run\) — "bodega": 4 decoración\(es\)/);
+    expect(ok.text).toMatch(/^🧪 decorate_subroom \(dry-run\) — "bodega": 5 decoración\(es\)/);
     expect(ok.text).toContain("🧪 dryRun: true — no se ha escrito nada en el draft.");
     expect(ok.structured).toMatchObject({ dryRun: true, validation: { ok: true } });
 
