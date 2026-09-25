@@ -103,7 +103,7 @@ alrededor de la edición:
 | GET | `/api/rooms/:roomId/versions/:versionId/package` | autor, admin o servicio interno | El `RoomPackage` completo — única ruta que lo expone, nunca al público |
 | POST | `/api/rooms/:roomId/license-checkout` | creador | Compra la licencia de la sala de otro → Stripe Checkout, `purchase_type: 'room_license'` |
 | POST | `/api/rooms/:roomId/gift-copy` | autor | Envía copia gratuita a otro creador (`{ recipientEmail }`) — sin Stripe, fork inmediato |
-| GET | `/api/rooms/:roomId/access` | usuario | `{ owned, playable }` — `playable: false` si ya se consumió la única partida (B2C) |
+| GET | `/api/rooms/:roomId/access` | usuario | `{ owned, playable, gameToken? }` — `playable: false` si ya se consumió la única partida (B2C); con `playable: true`, `gameToken` es lo que exige `onAuth` de la `GameRoom` (C-4/B-4, auditoría 2026-09-24) |
 
 ### 4.1 Audio del creador (ticket 3.11)
 
