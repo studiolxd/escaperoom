@@ -7,9 +7,10 @@ import { legalLink, type LegalDocument } from "./types";
  * Cookies reales en uso, verificadas por grep en `packages/web/src`: sesión
  * de Better Auth (`better-auth.session_token`, sin configuración de nombre
  * propia en `src/lib/auth.ts`) y `NEXT_LOCALE` de next-intl (`src/i18n/`).
- * Plausible y Google Analytics se describen como PLANIFICADOS, no activos
- * todavía — mismo patrón de aviso que `dpa.ts`/`privacy.ts` usan
- * para LiveKit Cloud.
+ * Plausible y Google Analytics están activos (docs/DEUDA.md «Claves reales de
+ * analítica antes de desplegar en producción»): Plausible no usa cookies;
+ * Google Analytics (`_ga`/`_ga_*`) solo se carga tras aceptar la categoría
+ * "analítica" del banner de consentimiento (`components/consent/`).
  *
  * `localStorage`/`sessionStorage` (sección 6) también verificados por grep:
  * la guía de cookies de la AEPD los trata como "tecnologías similares".
@@ -28,12 +29,10 @@ export const cookiesPolicy: LegalDocument = {
     {
       heading: "1. Resumen",
       paragraphs: [
-        "Hoy la plataforma solo usa cookies estrictamente necesarias para funcionar: tu sesión de " +
-          "cuenta y tu idioma preferido. No hay ninguna cookie de analítica, marketing ni preferencias " +
-          "activa.",
-        "Cuando se active la analítica de producto (véase la sección 3), Plausible no dejará cookies " +
-          "en tu navegador; Google Analytics sí, y requerirá tu consentimiento previo antes de " +
-          "cargarse.",
+        "La plataforma usa cookies estrictamente necesarias para funcionar (tu sesión de cuenta y tu " +
+          "idioma preferido) y, además, analítica de producto (véase la sección 3): Plausible, que no " +
+          "deja ninguna cookie en tu navegador, y Google Analytics, que sí, y que solo se carga tras tu " +
+          "consentimiento previo. No hay ninguna cookie de marketing ni de preferencias activa.",
       ],
     },
     {
@@ -42,11 +41,11 @@ export const cookiesPolicy: LegalDocument = {
         "Necesarias (siempre activas): imprescindibles para el funcionamiento básico de la " +
           "plataforma y exentas de consentimiento. Hoy son tu sesión de autenticación y tu idioma " +
           "preferido.",
-        "Analítica: nos ayudaría a entender cómo se usa la plataforma (visitas agregadas, fuentes de " +
-          "tráfico) para poder mejorarla. Planificado, no activo todavía: Plausible y Google Analytics " +
-          "(véase la sección 3). Mientras no se activen, esta categoría no tiene ninguna cookie ni " +
-          "requiere ningún banner de consentimiento; cuando se active Google Analytics, sí lo " +
-          "requerirá, al ser el único de los dos que usa cookies.",
+        "Analítica: nos ayuda a entender cómo se usa la plataforma (visitas agregadas, fuentes de " +
+          "tráfico) para poder mejorarla. Activo: Plausible y Google Analytics (véase la sección 3). " +
+          "Plausible no usa cookies y no requiere consentimiento; Google Analytics sí las usa, así que " +
+          "esta categoría solo aparece en el banner y en el panel de preferencias por él, y no se " +
+          "carga hasta que la aceptas.",
         "Marketing: mediría la publicidad con píxeles de terceros. Hoy no hay ninguna activa en la " +
           "plataforma.",
         "Preferencias: recordaría personalización opcional, no esencial. Hoy no hay ninguna activa " +
@@ -54,22 +53,22 @@ export const cookiesPolicy: LegalDocument = {
       ],
     },
     {
-      heading: "3. Analíticas planificadas (no activas todavía)",
+      heading: "3. Analítica de producto",
       paragraphs: [
         [
-          "La plataforma tiene planificada la incorporación de dos herramientas de analítica de " +
-            "producto. Mientras no se activen, ninguno de estos dos proveedores interviene y no se " +
-            "establece ninguna cookie relacionada con ellos — el mismo patrón que ya usa la ",
+          "La plataforma incorpora dos herramientas de analítica de producto, con tratamiento muy " +
+            "distinto según si usan cookies o no — a diferencia de LiveKit Cloud, que la ",
           legalLink("Política de Privacidad", "/legal/privacy"),
-          " para LiveKit Cloud.",
+          " sigue describiendo como planificado y no activo.",
         ],
       ],
       list: [
         "Plausible: mide tráfico agregado sin usar cookies y sin identificar a nadie individualmente. " +
-          "Al no usar cookies, no exigiría banner de consentimiento cuando se active.",
+          "Al no usar cookies, no exige banner de consentimiento y se carga siempre.",
         "Google Analytics: usa las cookies `_ga` y `_ga_*` para distinguir usuarios y mantener el " +
-          "estado de la sesión de medición de forma agregada. Al usar cookies, no se cargaría hasta " +
-          "que dieras tu consentimiento explícito a la categoría de analítica.",
+          "estado de la sesión de medición de forma agregada. Al usar cookies, no se carga hasta que " +
+          "das tu consentimiento explícito a la categoría de analítica, y deja de cargarse y borra esas " +
+          "cookies si lo retiras.",
       ],
     },
     {
@@ -88,13 +87,11 @@ export const cookiesPolicy: LegalDocument = {
       heading: "5. Gestionar tus preferencias",
       paragraphs: [
         "Las cookies necesarias no se pueden desactivar sin romper el funcionamiento de la " +
-          "plataforma (no podrías mantener sesión iniciada ni conservar tu idioma). Cuando se activen " +
-          "las analíticas planificadas de la sección 3, Google Analytics solo se cargará si das tu " +
-          "consentimiento explícito, y podrás retirarlo en cualquier momento.",
-        "El mecanismo de gestión (banda de consentimiento y panel de preferencias) ya está construido " +
-          "y listo para cuando se active la primera cookie opcional; hasta entonces no le aparece a " +
-          "nadie porque no hay ninguna categoría opcional activa. Puedes revisarlo o cambiarlo en " +
-          "cualquier momento desde «Preferencias de cookies», debajo y en el pie de la plataforma.",
+          "plataforma (no podrías mantener sesión iniciada ni conservar tu idioma). Google Analytics " +
+          "(véase la sección 3) solo se carga si das tu consentimiento explícito, y puedes retirarlo en " +
+          "cualquier momento.",
+        "Puedes revisar o cambiar tu decisión en cualquier momento desde «Preferencias de cookies», " +
+          "debajo y en el pie de la plataforma.",
         "También puedes bloquear cookies desde los ajustes de tu navegador, aunque las cookies " +
           "necesarias no se pueden desactivar sin romper el funcionamiento de la plataforma.",
         "Más información sobre cookies en la guía de la Agencia Española de Protección de Datos: " +
