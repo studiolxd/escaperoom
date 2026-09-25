@@ -35,15 +35,30 @@ export type CreatorHttpOptions = {
 
 type JsonRpcMessage = { jsonrpc?: string; id?: string | number | null; method?: string };
 
-/** Mensajes JSON-RPC del cuerpo (uno o un lote); `[]` si no es JSON. */
-async function peekMessages(request: Request): Promise<JsonRpcMessage[]> {
-  if (request.method !== "POST") return [];
-  const body = (await request
-    .clone()
-    .json()
-    .catch(() => null)) as unknown;
-  const list = Array.isArray(body) ? body : [body];
-  return list.filter((m): m is JsonRpcMessage => typeof m === "object" && m !== null);
+/**
+ * Cuerpo JSON-RPC (uno o un lote) leído una sola vez, sobre un `.clone()` (el
+ * original queda intacto para el SDK). D-25: antes, cuando el body parseaba
+ * bien, este `.clone().json()` y el `req.json()` interno del SDK
+ * (`WebStandardStreamableHTTPServerTransport.handlePostRequest`) decodificaban
+ * el mismo JSON dos veces por petición; ahora el resultado de este parseo se
+ * reutiliza pasándolo como `parsedBody` a `transport.handleRequest` (más
+ * abajo), así que el SDK no vuelve a parsear. Si el JSON es inválido,
+ * `parsedBody` queda `undefined` y el SDK hace su propio intento (y responde
+ * el mismo "Parse error" de siempre).
+ */
+async function readJsonRpcBody(
+  request: Request,
+): Promise<{ parsedBody?: unknown; messages: JsonRpcMessage[] }> {
+  if (request.method !== "POST") return { messages: [] };
+  let parsedBody: unknown;
+  try {
+    parsedBody = await request.clone().json();
+  } catch {
+    return { messages: [] };
+  }
+  const list = Array.isArray(parsedBody) ? parsedBody : [parsedBody];
+  const messages = list.filter((m): m is JsonRpcMessage => typeof m === "object" && m !== null);
+  return { parsedBody, messages };
 }
 
 /** 429 con un error JSON-RPC legible para el agente y `Retry-After`. */
@@ -94,11 +109,11 @@ export async function handleCreatorMcpRequest(
     });
   }
   const actor = auth.actor;
+  const { parsedBody, messages } = await readJsonRpcBody(request);
   if (options.rateLimiter) {
-    const messages = await peekMessages(request);
     const calls = messages.filter((m) => m.method === "tools/call").length;
     if (calls > 0) {
-      const decision = options.rateLimiter.consume(auth.rateLimitKey, calls);
+      const decision = await options.rateLimiter.consume(auth.rateLimitKey, calls);
       if (!decision.ok) return rateLimitedResponse(messages, decision);
     }
   }
@@ -113,7 +128,7 @@ export async function handleCreatorMcpRequest(
     ...(options.allowedOrigins ? { allowedOrigins: options.allowedOrigins } : {}),
   });
   await server.connect(transport);
-  return transport.handleRequest(request);
+  return transport.handleRequest(request, parsedBody !== undefined ? { parsedBody } : undefined);
 }
 
 /** Convierte una petición de `node:http` en un `Request` web estándar. */

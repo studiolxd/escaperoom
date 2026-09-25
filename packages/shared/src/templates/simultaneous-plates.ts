@@ -1,4 +1,5 @@
 import type { SimultaneousPlatesDefinition, PuzzleState } from "../schemas";
+import { guardPlayable, initialPuzzleState, publicBase } from "./base";
 
 /**
  * Plantilla `simultaneous_plates` (specs/06 §2.3). Toda la validación de la
@@ -110,7 +111,7 @@ export function createSimultaneousPlatesState(
       bridged: false,
     };
   }
-  return { state: def.requiresSolved.length > 0 ? "locked" : "available", plates };
+  return { state: initialPuzzleState(def.requiresSolved), plates };
 }
 
 /**
@@ -165,10 +166,8 @@ export function setPlateActive(
   now: number,
   playerId?: string,
 ): PlateActionResult {
-  if (state.state === "solved") return plateResult("already_solved", state, def, objectId, now);
-  if (state.state === "locked" || state.state === "failed") {
-    return plateResult("unavailable", state, def, objectId, now);
-  }
+  const guard = guardPlayable(state.state);
+  if (guard !== null) return plateResult(guard, state, def, objectId, now);
   if (!def.plates.some((plate) => plate.objectId === objectId)) {
     return plateResult("unknown_plate", state, def, objectId, now);
   }
@@ -216,12 +215,8 @@ export function placeSoloBridge(
   plateObjectId?: string,
   playerId?: string,
 ): PlateActionResult {
-  if (state.state === "solved") {
-    return plateResult("already_solved", state, def, plateObjectId ?? null, now);
-  }
-  if (state.state === "locked" || state.state === "failed") {
-    return plateResult("unavailable", state, def, plateObjectId ?? null, now);
-  }
+  const guard = guardPlayable(state.state);
+  if (guard !== null) return plateResult(guard, state, def, plateObjectId ?? null, now);
   if (!def.soloBridgeItemId) {
     return plateResult("unavailable", state, def, plateObjectId ?? null, now);
   }
@@ -253,8 +248,9 @@ export function placeSoloBridge(
 
 /**
  * Proyección pública: estado por placa, progreso y fin de ventana, sin
- * `soloBridgeItemId` ni la solución. Se prefija con `SimultaneousPlates` para
- * no colisionar con `toPublicView` de `code-lock` al reexportar las plantillas.
+ * `soloBridgeItemId` ni la solución. Se prefija con `SimultaneousPlates`
+ * (como el resto de plantillas) para no colisionar al reexportar las
+ * plantillas.
  */
 export function toSimultaneousPlatesPublicView(
   state: SimultaneousPlatesState,
@@ -264,9 +260,7 @@ export function toSimultaneousPlatesPublicView(
   const active = activePlateIds(state, def, now);
   const activeSet = new Set(active);
   return {
-    id: def.id,
-    type: "simultaneous_plates",
-    state: state.state,
+    ...publicBase(def.id, "simultaneous_plates", state.state, state.solvedAt, state.solvedBy),
     holdMode: def.holdMode,
     windowMs: def.windowMs,
     plates: def.plates.map((plate) => {
@@ -281,8 +275,6 @@ export function toSimultaneousPlatesPublicView(
     activeCount: active.length,
     totalCount: def.plates.length,
     windowEndsAt: windowEndsAt(state, def, now),
-    solvedAt: state.solvedAt ?? null,
-    solvedBy: state.solvedBy ?? null,
   };
 }
 

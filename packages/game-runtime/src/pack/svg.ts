@@ -242,15 +242,16 @@ export async function rasterizeSvg(
   const needsReframe = checkSvgAspect(svg, frame, sizes) !== null;
   const piped = needsReframe ? await reframeToAspect(base, canvas) : base;
 
-  const resized = await piped
+  // D-28: antes se codificaba a PNG (`.png().toBuffer()`) y se volvía a
+  // decodificar con un `sharp(resized)` nuevo solo para sacar el RGBA crudo
+  // — dos rasterizaciones (más la de `reframeToAspect` si hace falta) por lo
+  // que ya era un único redimensionado. `raw()` directamente sobre el mismo
+  // pipeline da el mismo resultado sin el viaje de ida y vuelta por PNG.
+  const { data: rgba, info } = await piped
     .resize(canvas.width, canvas.height, {
       fit: "fill",
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
-    .png()
-    .toBuffer();
-
-  const { data: rgba, info } = await sharp(resized)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true });

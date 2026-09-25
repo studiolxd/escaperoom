@@ -1,4 +1,15 @@
 import type { MemoryPuzzleDefinition, PuzzleState } from "../schemas";
+import { guardPlayable, initialPuzzleState, publicBase } from "./base";
+
+/**
+ * Prefijo con el que se generan los `pairId` de las cartas señuelo
+ * (`decoy:<n>`). El emparejamiento usa el flag `isDecoy` de cada carta, no
+ * este prefijo (D-22): antes se detectaban señuelos con
+ * `pairId.startsWith(MEMORY_DECOY_PAIR_PREFIX)`, así que un creador que
+ * pusiera `pair.id: "decoy:0"` a una pareja real hacía que
+ * `findMatchingPairId` la tratara como señuelo y nunca emparejara.
+ */
+export const MEMORY_DECOY_PAIR_PREFIX = "decoy:";
 
 /**
  * Plantilla `memory` (specs/06 §2.6). Toda la validación y, sobre todo, la
@@ -50,6 +61,12 @@ export interface MemoryCard {
    * la vez porque la clave interna se indexaba por símbolo.
    */
   pairId: string;
+  /**
+   * `true` si la carta es un señuelo (D-22): el emparejamiento se decide por
+   * este flag, nunca por el prefijo `decoy:` de `pairId`, así una pareja real
+   * con `id: "decoy:0"` sigue emparejando con normalidad.
+   */
+  isDecoy: boolean;
   /** Fila del tablero. */
   row: number;
   /** Columna del tablero. */
@@ -59,7 +76,7 @@ export interface MemoryCard {
 /**
  * Estado interno de un `memory` (nunca sale al cliente tal cual). Incluye el
  * reparto completo de símbolos (`cards`), que solo se proyecta en
- * `toPublicView` para las cartas ya volteadas o emparejadas.
+ * `toMemoryPublicView` para las cartas ya volteadas o emparejadas.
  */
 export interface MemoryState {
   /** `locked` si hay `requiresSolved` pendientes; `failed` solo si es definitivo. */
@@ -188,21 +205,26 @@ export function memoryRows(def: MemoryPuzzleDefinition): number {
  * parejas. Las posiciones se barajan con Fisher–Yates.
  */
 export function shuffleMemoryCards(def: MemoryPuzzleDefinition, rng: MemoryRng): MemoryCard[] {
-  const entries: { symbol: string; pairId: string }[] = [];
+  const entries: { symbol: string; pairId: string; isDecoy: boolean }[] = [];
   for (const pair of def.pairs) {
-    entries.push({ symbol: pair.symbol, pairId: pair.id }, { symbol: pair.symbol, pairId: pair.id });
+    entries.push(
+      { symbol: pair.symbol, pairId: pair.id, isDecoy: false },
+      { symbol: pair.symbol, pairId: pair.id, isDecoy: false },
+    );
   }
   const decoys = def.decoys ?? 0;
   for (let i = 0; i < decoys; i += 1) {
-    entries.push({ symbol: `decoy:${i}`, pairId: `decoy:${i}` });
+    const pairId = `${MEMORY_DECOY_PAIR_PREFIX}${i}`;
+    entries.push({ symbol: pairId, pairId, isDecoy: true });
   }
 
   const cols = memoryCols(def);
-  return fisherYates(entries, rng).map(({ symbol, pairId }, index) => ({
+  return fisherYates(entries, rng).map(({ symbol, pairId, isDecoy }, index) => ({
     id: `carta-${index}`,
     index,
     symbol,
     pairId,
+    isDecoy,
     row: Math.floor(index / cols),
     col: index % cols,
   }));
@@ -215,7 +237,7 @@ export function shuffleMemoryCards(def: MemoryPuzzleDefinition, rng: MemoryRng):
  */
 export function createMemoryState(def: MemoryPuzzleDefinition, rng: MemoryRng): MemoryState {
   return {
-    state: def.requiresSolved.length > 0 ? "locked" : "available",
+    state: initialPuzzleState(def.requiresSolved),
     cards: shuffleMemoryCards(def, rng),
     flippedCardIds: [],
     matchedPairIds: [],
@@ -252,10 +274,8 @@ export function flipCard(
   now: number,
   options: FlipCardOptions = {},
 ): MemoryFlipResult {
-  if (state.state === "solved") return flipResult("already_solved", state, cardId);
-  if (state.state === "locked" || state.state === "failed") {
-    return flipResult("unavailable", state, cardId);
-  }
+  const guard = guardPlayable(state.state);
+  if (guard !== null) return flipResult(guard, state, cardId);
   if (
     def.turnMode === "per_player" &&
     state.currentPlayerId !== null &&
@@ -331,8 +351,8 @@ export function flipCard(
 
 /**
  * Proyección pública: el panel recibe el tablero con los símbolos **solo** de
- * las cartas ya volteadas o emparejadas. Se prefija con `Memory` para no
- * colisionar con `toPublicView` de `code-lock` al reexportar las plantillas.
+ * las cartas ya volteadas o emparejadas. Se prefija con `Memory` (como el
+ * resto de plantillas) para no colisionar al reexportar las plantillas.
  */
 export function toMemoryPublicView(
   state: MemoryState,
@@ -343,9 +363,7 @@ export function toMemoryPublicView(
   const targetKeys = targetPairIdsOf(def);
 
   return {
-    id: def.id,
-    type: "memory",
-    state: state.state,
+    ...publicBase(def.id, "memory", state.state, state.solvedAt, state.solvedBy),
     cols: memoryCols(def),
     rows: memoryRows(def),
     cards: state.cards.map((card) => {
@@ -370,8 +388,6 @@ export function toMemoryPublicView(
     flipsThisTurn: state.flipsThisTurn,
     currentPlayerId: state.currentPlayerId,
     flipsRemaining: Math.max(0, maxFlipsPerTurnOf(def) - state.flipsThisTurn),
-    solvedAt: state.solvedAt ?? null,
-    solvedBy: state.solvedBy ?? null,
   };
 }
 
@@ -410,7 +426,7 @@ export function isCoherentMemoryDefinition(def: MemoryPuzzleDefinition): boolean
 function findMatchingPairId(cards: MemoryCard[]): string | null {
   const counts = new Map<string, number>();
   for (const card of cards) {
-    if (card.pairId.startsWith("decoy:")) continue;
+    if (card.isDecoy) continue;
     const next = (counts.get(card.pairId) ?? 0) + 1;
     if (next >= 2) return card.pairId;
     counts.set(card.pairId, next);
