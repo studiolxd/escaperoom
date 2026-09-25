@@ -497,12 +497,16 @@ export function createModerationService(deps: {
     }
   }
 
+  /**
+   * A-3/ADR-013 (revisado 2026-09-25): la congelación de la cuenta ya no la
+   * dispara automáticamente un reporte crítico pendiente sin revisar —
+   * cualquiera podía congelar la cuenta de otro creador con la palabra de un
+   * reportante, sin verificación. `frozen` queda en `false` hasta que exista
+   * un mecanismo de congelación manual por un moderador.
+   */
   async function standingOf(tx: ModerationTx, userId: string): Promise<CreatorStanding> {
-    const [strikes, critical] = await Promise.all([
-      tx.listStrikes(userId),
-      tx.listReports({ targetUserId: userId, status: "pending", severity: "critical", limit: 1 }),
-    ]);
-    return creatorStanding(strikes, now(), critical.length > 0);
+    const strikes = await tx.listStrikes(userId);
+    return creatorStanding(strikes, now(), false);
   }
 
   /** Recalcula y guarda la consecuencia de cada strike vigente del usuario. */
@@ -649,33 +653,15 @@ export function createModerationService(deps: {
         if (duplicate) return { report: duplicate, created: false };
 
         const severity: ReportSeverity = REPORT_CATEGORY_SEVERITY[parsed.category];
-        let actionTaken: ModerationAction | null = null;
-        let roomStatusBefore: ModeratedRoomStatus | null = null;
 
-        // Reincidencia (§4.1 alta, §5.2): con un strike alto o crítico vigente
-        // del mismo creador, un reporte alto también retira la sala.
-        const repeatOffender =
-          severity === "high" && target.targetUserId
-            ? (await tx.listStrikes(target.targetUserId)).some(
-                (s) =>
-                  s.revokedAt === null &&
-                  s.severity !== "normal" &&
-                  at.getTime() - s.createdAt.getTime() < STRIKE_WINDOW_DAYS * DAY_MS,
-              )
-            : false;
-
-        if (
-          parsed.targetType === "room" &&
-          target.roomId &&
-          (severity === "critical" || repeatOffender)
-        ) {
-          roomStatusBefore = await unpublishRoom(tx, target.roomId);
-          if (roomStatusBefore) actionTaken = "unpublish";
-        } else if (parsed.targetType === "review" && target.reviewId && severity === "critical") {
-          await tx.setReviewHidden(target.reviewId, { at, by: null });
-          actionTaken = "hide";
-        }
-
+        // A-3/ADR-013 (revisado 2026-09-25): un reporte de usuario, sea cual sea
+        // su severidad, YA NO despublica la sala ni oculta la reseña al
+        // insertarse — la severidad la fija la categoría que elige el propio
+        // reportante, sin verificación previa, así que actuar al instante era
+        // abusable por cualquier cuenta gratuita (despublicar salas ajenas o
+        // congelar cuentas con una sola llamada). Entra en la cola con la
+        // prioridad de su severidad (§4.2 de specs/17) y la acción la decide un
+        // moderador humano en `resolveReport`.
         const report = await tx.insertReport({
           reporterId: actor.userId,
           targetType: parsed.targetType,
@@ -688,9 +674,9 @@ export function createModerationService(deps: {
           status: "pending",
           flags: [],
           slaDueAt: slaDueAt(severity, at),
-          actionTaken,
-          autoActioned: actionTaken !== null,
-          roomStatusBefore,
+          actionTaken: null,
+          autoActioned: false,
+          roomStatusBefore: null,
           contentHash: null,
         });
         return { report, created: true };

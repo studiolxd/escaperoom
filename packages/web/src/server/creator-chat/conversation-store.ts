@@ -32,6 +32,8 @@ export interface ChatConversationStore {
   /** La conversación si existe, no caducó y es de `userId`. */
   get(id: string, userId: string): ChatConversation | null;
   touch(conversation: ChatConversation): void;
+  /** Conversaciones vivas (no caducadas) de `userId` (B-6: tope por usuario). */
+  countActive(userId: string): number;
 }
 
 export type InMemoryConversationStoreOptions = {
@@ -100,6 +102,14 @@ export function createInMemoryConversationStore(
       conversation.updatedAt = now();
       conversations.delete(conversation.id);
       conversations.set(conversation.id, conversation);
+    },
+    countActive(userId) {
+      evict();
+      let count = 0;
+      for (const conversation of conversations.values()) {
+        if (conversation.userId === userId) count += 1;
+      }
+      return count;
     },
   };
 }

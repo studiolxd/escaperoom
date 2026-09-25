@@ -8,6 +8,7 @@ export * from "./ai-sdk-provider";
 export * from "./anthropic-provider";
 export * from "./config";
 export * from "./conversation-store";
+export * from "./daily-budget";
 export * from "./google-provider";
 export * from "./handler";
 export * from "./mcp-tools";

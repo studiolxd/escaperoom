@@ -67,6 +67,7 @@ describe("validateEnvOnBoot (E-4)", () => {
       JOIN_TOKEN_SECRET: "join-secret",
       PLAYTEST_SECRET: "playtest-secret",
       PUBLISH_CONFIRM_SECRET: "publish-secret",
+      ANALYTICS_SERVER_SECRET: "analytics-server-secret",
       EMAIL_FROM: "no-reply@example.com",
       EMAIL_FROM_NAME: "EscapeRoom",
       STORAGE_BUCKET: "bucket",

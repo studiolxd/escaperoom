@@ -74,12 +74,14 @@ function setup(opts: { disabled?: boolean; resolveActor?: (req: Request) => Prom
           method: "POST",
           headers: {
             "content-type": "application/json",
+            "sec-fetch-site": "same-origin",
             ...(user ? { "x-test-user": user } : {}),
             ...extra,
           },
           body: typeof body === "string" ? body : JSON.stringify(body),
         }),
       ),
+    handlers,
   };
 }
 
@@ -129,6 +131,18 @@ describe("POST /api/publish-confirm (confirmación humana, ticket 4.5)", { timeo
     const crossSite = await api.post({ token }, "autora", { "sec-fetch-site": "cross-site" });
     expect(crossSite.status).toBe(403);
     expect(((await crossSite.json()) as ErrorJson).error.code).toBe("CROSS_SITE");
+
+    // B-25: sin la cabecera (no solo con un valor distinto de "same-origin")
+    // también se rechazaba de largo.
+    const noHeader = await api.handlers.postConfirm(
+      new Request("http://localhost/api/publish-confirm", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-test-user": "autora" },
+        body: JSON.stringify({ token }),
+      }),
+    );
+    expect(noHeader.status).toBe(403);
+    expect(((await noHeader.json()) as ErrorJson).error.code).toBe("CROSS_SITE");
 
     const invalid = await api.post({ token: `${token}x` }, "autora");
     expect(invalid.status).toBe(400);
@@ -190,6 +204,9 @@ describe("POST /api/publish-confirm (confirmación humana, ticket 4.5)", { timeo
           code,
           code_verifier: verifier,
           client_id,
+          // A-14: redirect_uri vino explícita en authorize, así que es
+          // obligatoria aquí también (OAuth 2.1 §4.1.3).
+          redirect_uri: redirectUri,
         }),
       }),
     );

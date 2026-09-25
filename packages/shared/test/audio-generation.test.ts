@@ -10,12 +10,32 @@ import {
   createInMemoryCreditAccountStore,
   createCreditsService,
   type Actor,
+  type AudioPreviewCache,
+  type CachedAudioPreview,
 } from "../src/services";
 
 const ana: Actor = { userId: "user-ana", organizationId: null, role: "member" };
 
+/** Caché en memoria, para probar el hit/miss sin Redis (B-7). */
+function createInMemoryAudioPreviewCache(): AudioPreviewCache & { size: number } {
+  const map = new Map<string, CachedAudioPreview>();
+  return {
+    get size() {
+      return map.size;
+    },
+    async get(key) {
+      return map.get(key) ?? null;
+    },
+    async set(key, value) {
+      map.set(key, value);
+    },
+  };
+}
+
 let seq = 0;
-function setup(opts: { elevenlabsFails?: boolean; balance?: bigint } = {}) {
+function setup(
+  opts: { elevenlabsFails?: boolean; balance?: bigint; previewCache?: AudioPreviewCache } = {},
+) {
   const creditStore = createInMemoryCreditAccountStore();
   const credits = createCreditsService({ store: creditStore });
   const audioStore = createInMemoryAudioAssetStore();
@@ -29,6 +49,7 @@ function setup(opts: { elevenlabsFails?: boolean; balance?: bigint } = {}) {
     store: audioStore,
     blobs,
     config: { voiceId: "voice-default" },
+    previewCache: opts.previewCache,
     newId: () => `00000000-0000-4000-8000-${String(++seq).padStart(12, "0")}`,
   });
   return { creditStore, credits, audioStore, blobs, elevenlabs, service };
@@ -83,6 +104,34 @@ describe("audio-generation: preview", () => {
     await expect(service.preview(ANONYMOUS_ACTOR, { text: "hola" })).rejects.toMatchObject({
       code: "UNAUTHORIZED",
     });
+  });
+
+  // B-7: sin caché, cada repetición del mismo texto es una llamada de pago a
+  // ElevenLabs; con ella, el segundo "prueba, ajusta, prueba igual" no lo es.
+  it("B-7: cachea por hash de texto+voz; no repite la llamada a ElevenLabs", async () => {
+    const previewCache = createInMemoryAudioPreviewCache();
+    const { creditStore, service, elevenlabs } = setup({ previewCache });
+    await grant(creditStore, ana, 10n);
+
+    const first = await service.preview(ana, { text: "Hola creador" });
+    expect(elevenlabs.calls).toHaveLength(1);
+    expect(previewCache.size).toBe(1);
+
+    const second = await service.preview(ana, { text: "Hola creador" });
+    expect(elevenlabs.calls).toHaveLength(1); // no ha vuelto a llamar
+    expect(Buffer.from(second.audio)).toEqual(Buffer.from(first.audio));
+    expect(second.contentType).toBe(first.contentType);
+  });
+
+  it("B-7: un texto distinto (o sin caché inyectada) no comparte entrada", async () => {
+    const previewCache = createInMemoryAudioPreviewCache();
+    const { creditStore, service, elevenlabs } = setup({ previewCache });
+    await grant(creditStore, ana, 10n);
+
+    await service.preview(ana, { text: "Hola creador" });
+    await service.preview(ana, { text: "Otro texto distinto" });
+    expect(elevenlabs.calls).toHaveLength(2);
+    expect(previewCache.size).toBe(2);
   });
 
   it("valida el texto vacío", async () => {

@@ -44,6 +44,21 @@ export const ANALYTICS_EVENT_TYPES = [
 
 export const AnalyticsEventTypeSchema = z.enum(ANALYTICS_EVENT_TYPES);
 
+/**
+ * Tipos que el navegador puede emitir directamente contra
+ * `POST /api/analytics/collect` (A-2, ticket 6.6). El resto de la taxonomía
+ * (compras, sesiones, claves…) solo la emiten el servidor (Colyseus, el
+ * worker) con la cabecera `x-analytics-server-secret`: sin ella, esos ids
+ * los podría rellenar cualquiera con los de otro usuario.
+ */
+export const BROWSER_ANALYTICS_EVENT_TYPES = ["onboarding_step"] as const satisfies readonly AnalyticsEventType[];
+
+export function isBrowserEmittableAnalyticsEventType(
+  eventType: AnalyticsEventType,
+): eventType is (typeof BROWSER_ANALYTICS_EVENT_TYPES)[number] {
+  return (BROWSER_ANALYTICS_EVENT_TYPES as readonly string[]).includes(eventType);
+}
+
 /** Máximo de eventos por lote aceptado por el punto de colección. */
 export const ANALYTICS_MAX_BATCH = 100;
 

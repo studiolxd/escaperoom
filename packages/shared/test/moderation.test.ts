@@ -88,22 +88,24 @@ const reportRoom = (category: string, roomId = ROOM, reason = "Motivo del report
   reason,
 });
 
-describe("reportes y despublicación automática (specs/17 §5.1)", () => {
-  it("un reporte crítico despublica la sala al instante y la deja en cola con severidad crítica y SLA de 1 h", async () => {
+describe("reportes: cola con prioridad, sin acción automática (specs/17 §5.1, revisado 2026-09-25, A-3)", () => {
+  it("un reporte crítico entra en cola con severidad crítica y SLA de 1 h, pero no toca la sala ni la cuenta", async () => {
     const { service, store } = setup();
     const { report, created } = await service.report(jugadora, reportRoom("minor_safety"));
 
     expect(created).toBe(true);
-    expect(store.rooms.get(ROOM)?.status).toBe("removed");
+    // Antes de un moderador, la sala sigue publicada: la severidad la fija la
+    // categoría que elige el propio reportante, sin verificar nada (A-3).
+    expect(store.rooms.get(ROOM)?.status).toBe("published");
     expect(report).toMatchObject({
       severity: "critical",
       status: "pending",
       source: "user_report",
       targetUserId: autora.userId,
       roomVersionId: VERSION,
-      actionTaken: "unpublish",
-      autoActioned: true,
-      roomStatusBefore: "published",
+      actionTaken: null,
+      autoActioned: false,
+      roomStatusBefore: null,
     });
     expect(report.slaDueAt.getTime() - MONDAY.getTime()).toBe(HOUR);
 
@@ -111,16 +113,16 @@ describe("reportes y despublicación automática (specs/17 §5.1)", () => {
     expect(queue.map((q) => q.report.id)).toEqual([report.id]);
     expect(queue[0]!.overdue).toBe(false);
 
-    // Cuenta del creador congelada mientras se revisa (§5.1 paso 2).
-    expect(await service.publishBlocker(autora.userId)).toMatchObject({ code: "ACCOUNT_FROZEN" });
+    // La cuenta del creador no se congela solo por un reporte sin revisar.
+    expect(await service.publishBlocker(autora.userId)).toBeNull();
   });
 
-  it("el moderador restaura (falso positivo): la sala vuelve a su estado previo y se descongela la cuenta", async () => {
+  it("el moderador puede descartar un crítico sin que la sala se haya visto nunca afectada", async () => {
     const { service, store } = setup();
     const { report } = await service.report(jugadora, {
       ...reportRoom("illegal_content", ROOM_2),
     });
-    expect(store.rooms.get(ROOM_2)?.status).toBe("removed");
+    expect(store.rooms.get(ROOM_2)?.status).toBe("unlisted");
 
     const res = await service.resolveReport(mod, report.id, {
       status: "dismissed",
@@ -140,9 +142,11 @@ describe("reportes y despublicación automática (specs/17 §5.1)", () => {
     expect(again.code).toBe("ALREADY_REVIEWED");
   });
 
-  it("el moderador confirma un crítico: la sala sigue retirada y el creador queda baneado sin strikes previos", async () => {
+  it("el moderador confirma un crítico: entonces sí se retira la sala y el creador queda baneado sin strikes previos", async () => {
     const { service, store } = setup();
     const { report } = await service.report(jugadora, reportRoom("minor_safety"));
+    expect(store.rooms.get(ROOM)?.status).toBe("published");
+
     const res = await service.resolveReport(mod, report.id, { status: "actioned" });
 
     expect(res.report).toMatchObject({ status: "actioned", actionTaken: "unpublish" });
@@ -152,21 +156,22 @@ describe("reportes y despublicación automática (specs/17 §5.1)", () => {
     expect(await service.publishBlocker(autora.userId)).toMatchObject({ code: "CREATOR_BANNED" });
   });
 
-  it("con dos críticos pendientes, descartar uno no restaura la sala: el otro hereda el estado previo", async () => {
+  it("dos críticos pendientes sobre la misma sala: ninguno la toca hasta que un moderador decide", async () => {
     const { service, store } = setup();
     const first = await service.report(jugadora, reportRoom("minor_safety"));
     const second = await service.report(otra, reportRoom("illegal_content"));
+    expect(first.report.actionTaken).toBeNull();
     expect(second.report.actionTaken).toBeNull();
+    expect(store.rooms.get(ROOM)?.status).toBe("published");
 
     await service.resolveReport(mod, first.report.id, { status: "dismissed" });
-    expect(store.rooms.get(ROOM)?.status).toBe("removed");
-    expect(store.reports.get(second.report.id)).toMatchObject({
-      actionTaken: "unpublish",
-      roomStatusBefore: "published",
-    });
-
-    await service.resolveReport(mod, second.report.id, { status: "dismissed" });
     expect(store.rooms.get(ROOM)?.status).toBe("published");
+
+    // El segundo sigue pendiente e intacto: descartar el primero no lo tocó.
+    expect(store.reports.get(second.report.id)).toMatchObject({
+      status: "pending",
+      actionTaken: null,
+    });
   });
 
   it("un reporte no crítico no toca la sala; repetirlo mientras sigue pendiente devuelve el mismo", async () => {
@@ -178,7 +183,7 @@ describe("reportes y despublicación automática (specs/17 §5.1)", () => {
     expect(b).toMatchObject({ created: false, report: { id: a.report.id } });
   });
 
-  it("un reporte crítico sobre una reseña la oculta; descartarlo la vuelve a mostrar", async () => {
+  it("un reporte crítico sobre una reseña no la oculta; el moderador sí puede ocultarla al confirmar", async () => {
     const { service, store } = setup();
     const { report } = await service.report(otra, {
       targetType: "review",
@@ -186,11 +191,11 @@ describe("reportes y despublicación automática (specs/17 §5.1)", () => {
       category: "minor_safety",
       reason: "Datos de un menor",
     });
-    expect(report).toMatchObject({ targetUserId: jugadora.userId, actionTaken: "hide" });
-    expect(store.reviews.get(REVIEW)?.hiddenAt).not.toBeNull();
-
-    await service.resolveReport(mod, report.id, { status: "dismissed" });
+    expect(report).toMatchObject({ targetUserId: jugadora.userId, actionTaken: null });
     expect(store.reviews.get(REVIEW)?.hiddenAt).toBeNull();
+
+    await service.resolveReport(mod, report.id, { status: "actioned" });
+    expect(store.reviews.get(REVIEW)?.hiddenAt).not.toBeNull();
   });
 
   it("confirmar un reporte de reseña la oculta (sin strike: los strikes son de creadores)", async () => {
@@ -346,15 +351,18 @@ describe("strikes con consecuencias escalonadas (specs/17 §6)", () => {
     expect(res.strike).toBeNull();
   });
 
-  it("reincidencia: con un strike alto vigente, un nuevo reporte alto retira la sala mientras se revisa", async () => {
+  it("reincidencia: con un strike alto vigente, un nuevo reporte alto tampoco retira la sala hasta que un moderador lo confirma (A-3)", async () => {
     const s = setup();
     await confirm(s, "harassment", ROOM);
     const { report } = await s.service.report(otra, reportRoom("sexual_content", ROOM_3));
     expect(report).toMatchObject({
       severity: "high",
-      actionTaken: "unpublish",
-      autoActioned: true,
+      actionTaken: null,
+      autoActioned: false,
     });
+    expect(s.store.rooms.get(ROOM_3)?.status).toBe("published");
+
+    await s.service.resolveReport(mod, report.id, { status: "actioned" });
     expect(s.store.rooms.get(ROOM_3)?.status).toBe("removed");
   });
 
@@ -708,12 +716,26 @@ describe("pre-check en la publicación (3.9 + 6.1)", () => {
     expect((await publishError(publish.publish(autora, ROOM_ID))).code).toBe("CONTENT_BLOCKED");
   });
 
-  it("un creador suspendido o congelado no publica", async () => {
+  it("un reporte crítico pendiente sin revisar ya no bloquea publicar (A-3, revisado 2026-09-25)", async () => {
     const { publish, writeDraft, moderation, moderationStore } = publishSetup();
     await writeDraft(structuredClone(reyAldric));
     moderationStore.rooms.get(ROOM_ID)!.status = "published";
     await moderation.report(jugadora, reportRoom("illegal_content", ROOM_ID));
+    // No hay cuenta congelada por un reporte sin revisar: la sala publica igual.
+    await expect(publish.publish(autora, ROOM_ID)).resolves.toMatchObject({});
+  });
+
+  it("un creador suspendido por strikes confirmados no publica", async () => {
+    const { publish, writeDraft, moderation, moderationStore } = publishSetup();
+    await writeDraft(structuredClone(reyAldric));
+    moderationStore.rooms.get(ROOM_ID)!.status = "published";
+
+    const first = await moderation.report(jugadora, reportRoom("spam", ROOM_ID));
+    await moderation.resolveReport(mod, first.report.id, { status: "actioned" });
+    const second = await moderation.report(jugadora, reportRoom("spam", ROOM_ID));
+    await moderation.resolveReport(mod, second.report.id, { status: "actioned" });
+
     const err = await publishError(publish.publish(autora, ROOM_ID));
-    expect(err.code).toBe("ACCOUNT_FROZEN");
+    expect(err.code).toBe("CREATOR_SUSPENDED");
   });
 });

@@ -100,6 +100,7 @@ export function serverEnv(): Record<string, string> {
     JOIN_TOKEN_SECRET: "e2e-join-token-secret-0123456789abcdef012",
     PLAYTEST_SECRET: "e2e-playtest-secret-0123456789abcdef01234",
     PUBLISH_CONFIRM_SECRET: "e2e-publish-confirm-secret-0123456789abcd",
+    ANALYTICS_SERVER_SECRET: "e2e-analytics-server-secret-0123456789abc",
     CONFIRMATION_TOKEN_SECRET: "e2e-confirmation-secret-0123456789abcdef0",
     NEXT_PUBLIC_COLYSEUS_URL: COLYSEUS_URL,
     COLYSEUS_INTERNAL_URL: COLYSEUS_HTTP_URL,

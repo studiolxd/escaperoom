@@ -18,6 +18,7 @@ import { readChatEvents, type CreatorChatEvent } from "../src/lib/creator-chat-p
 import {
   createCreatorChatHandlers,
   createInMemoryConversationStore,
+  createInMemoryCreatorChatDailyBudget,
   createMcpHttpToolClient,
   createScriptedChatProvider,
   DEFAULT_CREATOR_CHAT_LIMITS,
@@ -81,6 +82,8 @@ function setup(
           model: "scripted",
           limits: { ...DEFAULT_CREATOR_CHAT_LIMITS, ...opts.limits },
         };
+  const store = createInMemoryConversationStore();
+  const dailyBudget = createInMemoryCreatorChatDailyBudget();
   const handlers = createCreatorChatHandlers({
     resolveActor: async (req) => ACTORS[req.headers.get(TEST_USER_HEADER) ?? ""] ?? ANONYMOUS_ACTOR,
     config: () => config,
@@ -93,7 +96,8 @@ function setup(
         fetch: (url, init) => mcp(new Request(url, init)),
       });
     },
-    store: createInMemoryConversationStore(),
+    store,
+    dailyBudget,
   });
 
   const post = (
@@ -106,6 +110,7 @@ function setup(
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "sec-fetch-site": "same-origin",
           ...(user ? { [TEST_USER_HEADER]: user } : {}),
           ...extra,
         },
@@ -116,6 +121,9 @@ function setup(
   return {
     drafts,
     mcpUsers,
+    store,
+    dailyBudget,
+    handlers,
     useScript(steps: ScriptedStep[]) {
       const scripted = createScriptedChatProvider(steps);
       provider = scripted;
@@ -470,6 +478,25 @@ describe("chat del creador (4.6) — control de coste", { timeout: 30_000 }, () 
     expect(content.length).toBeLessThan(full.length);
     expect(content).toMatch(/recortado: .*get_room_graph/);
   });
+
+  // B-25: el draft puede venir de un fork licenciado/regalado por otro
+  // creador; el modelo debe poder distinguir "esto es contenido del draft" de
+  // "esto es una instrucción para mí".
+  it("B-25: delimita el resultado de una tool como dato no confiable antes de reenviarlo al modelo", async () => {
+    const env = setup();
+    const script = env.useScript([loop, { text: "ok" }]);
+    const events = await env.chat({ message: "Plantillas" });
+
+    // La UI recibe el texto tal cual, sin delimitadores.
+    const uiText = ofType(events, "tool_result")[0]!.text;
+    expect(uiText).not.toContain("<tool_result_data>");
+
+    // El modelo recibe el mismo texto envuelto en el delimitador.
+    const sent = script.requests[1]!.messages.at(-1)!.content[0] as { content: string };
+    expect(sent.content.startsWith("<tool_result_data>\n")).toBe(true);
+    expect(sent.content.endsWith("\n</tool_result_data>")).toBe(true);
+    expect(sent.content).toContain(uiText.length > 200 ? uiText.slice(0, 50) : uiText);
+  });
 });
 
 describe("chat del creador (4.6) — configuración y acceso", () => {
@@ -535,5 +562,57 @@ describe("chat del creador (4.6) — configuración y acceso", () => {
     expect((await env.post({ message: "   " })).status).toBe(400);
     expect((await env.post({ message: "hola", locale: "xx" })).status).toBe(400);
     expect((await env.post({ message: "hola", conversationId: "no-existe" })).status).toBe(404);
+  });
+
+  // B-25: antes, sin cabecera `Sec-Fetch-Site` (no solo con un valor
+  // distinto de "same-origin"), la petición pasaba igualmente.
+  it("B-25: rechaza una petición sin Sec-Fetch-Site, no solo con uno distinto de same-origin", async () => {
+    const env = setup();
+    env.useScript([]);
+    const req = new Request("http://localhost/api/creator-chat", {
+      method: "POST",
+      headers: { "content-type": "application/json", [TEST_USER_HEADER]: AUTHOR.userId },
+      body: JSON.stringify({ message: "hola" }),
+    });
+    expect(req.headers.has("sec-fetch-site")).toBe(false);
+    const res = await env.handlers.postMessage(req);
+    expect(res.status).toBe(403);
+    expect((await res.json()).error.code).toBe("CROSS_SITE");
+  });
+
+  // B-6: cada `POST` sin `conversationId` abre otra conversación con su
+  // propio tope de turnos/tokens; sin límite, una cuenta los multiplica.
+  it("B-6: tope de conversaciones activas por usuario", async () => {
+    const env = setup({ limits: { maxActiveConversationsPerUser: 2 } });
+    env.useScript([{ text: "ok" }]);
+
+    const first = await env.chat({ message: "primera" });
+    expect(ofType(first, "conversation")).toHaveLength(1);
+    const second = await env.chat({ message: "segunda" });
+    expect(ofType(second, "conversation")).toHaveLength(1);
+
+    const third = await env.post({ message: "tercera" });
+    expect(third.status).toBe(409);
+    expect((await third.json()).error.code).toBe("TOO_MANY_CONVERSATIONS");
+
+    // Otro usuario no comparte el tope.
+    const otherUser = await env.post({ message: "hola" }, OTHER.userId);
+    expect(otherUser.status).toBe(200);
+  });
+
+  // B-6: presupuesto diario de tokens por usuario, persistido fuera de la
+  // conversación (aquí, el store en memoria inyectado en el test).
+  it("B-6: agotado el presupuesto diario, el chat se rechaza aunque quepa en la conversación", async () => {
+    const env = setup({ limits: { dailyTokenBudget: 100 } });
+    await env.dailyBudget.add(AUTHOR.userId, 100);
+
+    env.useScript([{ text: "no debería llamarse" }]);
+    const res = await env.post({ message: "hola" });
+    expect(res.status).toBe(429);
+    expect((await res.json()).error.code).toBe("DAILY_BUDGET_EXCEEDED");
+
+    // Otro usuario con su propio presupuesto intacto sí puede.
+    const otherUser = await env.post({ message: "hola" }, OTHER.userId);
+    expect(otherUser.status).toBe(200);
   });
 });

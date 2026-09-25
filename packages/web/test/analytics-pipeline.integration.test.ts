@@ -8,7 +8,13 @@ import { createAnalyticsQueue, emitAnalyticsEvents } from "@escaperoom/shared/an
 import type { PrismaClient } from "@escaperoom/shared/db";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "@escaperoom/worker";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createAnalyticsCollectHandler } from "../src/server/rest/analytics-collect";
+import { ANONYMOUS_ACTOR } from "@escaperoom/shared/services";
+import {
+  ANALYTICS_SERVER_SECRET_HEADER,
+  createAnalyticsCollectHandler,
+} from "../src/server/rest/analytics-collect";
+
+const TEST_SERVER_SECRET = "integration-test-analytics-server-secret";
 
 // ---------------------------------------------------------------------------
 // Integración GATEADA por entorno: en CI no hay Redis ni Postgres, así que se
@@ -47,6 +53,8 @@ describe.skipIf(!hasInfra)("pipeline de analítica (integración: Redis + Postgr
 
     POST = createAnalyticsCollectHandler({
       emit: (events) => emitAnalyticsEvents(events, queue),
+      resolveActor: async () => ANONYMOUS_ACTOR,
+      serverSecret: TEST_SERVER_SECRET,
     });
   });
 
@@ -63,7 +71,10 @@ describe.skipIf(!hasInfra)("pipeline de analítica (integración: Redis + Postgr
     const response = await POST(
       new Request("http://localhost/api/analytics/collect", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          [ANALYTICS_SERVER_SECRET_HEADER]: TEST_SERVER_SECRET,
+        },
         body: JSON.stringify({
           eventType: "room_playtest_started",
           playerId: marker,

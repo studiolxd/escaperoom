@@ -68,10 +68,23 @@ export default async function McpConsentPage({ params, searchParams }: Props) {
 
   let body: ReactNode;
   if (!parsed.ok) {
+    // A-13: nunca se redirige aquí automáticamente al `redirect_uri` del
+    // cliente (registro dinámico abierto, A-4) — el enlace es explícito y lo
+    // pulsa la persona, para que este dominio de confianza no sea un
+    // redirector abierto hacia cualquier `https://` que alguien se registre.
     body = (
       <div role="alert" className="space-y-2">
         <p className="text-sm text-red-300">{t("errors.invalid")}</p>
         <p className="font-mono text-xs text-white/60">{parsed.description}</p>
+        {parsed.redirectTo ? (
+          <a
+            href={parsed.redirectTo.toString()}
+            rel="nofollow noopener noreferrer"
+            className="inline-block text-sm text-blue-300 underline"
+          >
+            {t("errors.continueToClient")}
+          </a>
+        ) : null}
       </div>
     );
   } else if (!session) {
