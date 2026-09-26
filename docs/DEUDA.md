@@ -326,12 +326,20 @@ Tareas pendientes que no bloquean pero hay que resolver.
         token de observador y entra en la room), no es una mutación de dominio.
       - `payouts-panel`: ambos botones son redirecciones a Stripe Connect
         (`window.location.href` a una URL de onboarding/dashboard Express).
-- [ ] **F-5: partir `GameSessionShell` y `RoomPlaytestShell` (auditoría 2026-09-24, ALTA).**
-      1 053 y 920 líneas casi duplicadas: extraer hooks (`useSceneSync`,
-      `useServerEvents`, `usePanelState`, `useHudHotkeys`) y subcomponentes del HUD, y que
-      el playtest monte `GameSessionShell` con `createLocalGameClient`. Aplazado en el
-      bloque 10; va al final de la cola (después de C-13 y D-26, que tocan el HUD) y sin
-      cambiar el aspecto.
+- [x] **F-5: partir `GameSessionShell` y `RoomPlaytestShell` (auditoría 2026-09-24, ALTA).**
+      Resuelto: `RoomPlaytestShell` monta `GameSessionShell` (`createLocalGameClient`,
+      `packages/game-runtime/src/session/local.ts`, ahora expone `session` de solo lectura
+      para el checklist del Rey Aldric) — una sola máquina de estados para partida y
+      playtest. `GameSessionShell` se partió en hooks (`useSceneSync`, `useHudHotkeys`,
+      `useGameHud`) y subcomponentes (`HudHeader`, `ObjectsBar`, `PlayersAside`/`HudLogCorner`,
+      `ContextMenuPopover`, `ItemPickerPopover`, `PanelHost`, `InventoryDialog`, `LobbyPanel`,
+      `DialogButton`/`ImageDialog`) bajo `components/game-session/{hooks,components}/`. Lo
+      propio del playtest (sin lobby, checklist de la ruta crítica, botón de reinicio,
+      registro de depuración) entra por `variant="playtest"` y los slots
+      `objectsBarHeader`/`objectsBarFooter`; `room-playtest-canvas.tsx` se retiró (el
+      playtest reutiliza `GameSessionCanvas`, ahora con `emitAvatarMoves` en vez del modo
+      `localPlayerId` desacoplado). Detalle completo y diferencias de comportamiento
+      detectadas en la PR.
 - [ ] **E-23 (resto): configuración del worker centralizada.** Concurrencias, `everyMs`
       y crons de los ~14 workers sin variable de entorno; un `workerConfig` común
       (pospuesto en la #139 por solaparse con otros bloques). Al final de la cola.
