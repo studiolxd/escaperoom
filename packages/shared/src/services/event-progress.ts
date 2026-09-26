@@ -119,10 +119,13 @@ export function createColyseusLiveProgressSource(options: {
 // ── Inicio conjunto ("Todos los grupos comienzan juntos") ──────────────────
 
 /**
- * Desenlace de `EventRoom.organizerStartGroup` para UN grupo: `started` (se
- * arrancó), `already_started` (fase distinta de `lobby`, no-op), `empty`
- * (sin conectados: nunca arranca, ni con `force`), `min_not_met`/`not_ready`
- * (sin `force`: por debajo del mínimo o con alguien sin "Listo").
+ * Desenlace de un grupo en "Comenzar todos": `started` (se arrancó),
+ * `already_started` (fase distinta de `lobby`, no-op), `empty` (sin
+ * conectados: nunca arranca, ni con `force`), `min_not_met`/`not_ready` (sin
+ * `force`: por debajo del mínimo o con alguien sin "Listo" — bloquean el
+ * todo-o-nada), `ready` (cumple mínimo y "Listo" pero no arrancó porque OTRO
+ * grupo del evento bloqueó el todo-o-nada: diagnóstico, no viene nunca de
+ * `EventRoom.organizerStartGroup`, que a esos sí los arranca).
  */
 export const GROUP_START_STATUSES = [
   "started",
@@ -130,6 +133,7 @@ export const GROUP_START_STATUSES = [
   "empty",
   "min_not_met",
   "not_ready",
+  "ready",
 ] as const;
 export type GroupStartStatus = (typeof GROUP_START_STATUSES)[number];
 
@@ -162,6 +166,20 @@ export interface StartAllGroupsSource {
 }
 
 /**
+ * Estado de un grupo sin mutar nada — lo usa el panel para el detalle de qué
+ * falla y la ruta interna de "Comenzar todos" para decidir sin `force`.
+ * `"ready"` es puramente diagnóstico: cumple mínimo y "Listo" pero solo
+ * `EventRoom.organizerStartGroup` lo arranca de verdad.
+ */
+export function groupReadinessStatus(group: SessionLiveProgress): GroupStartStatus {
+  if (group.phase !== "lobby") return "already_started";
+  if (group.players === 0) return "empty";
+  if (group.players < group.minPlayers) return "min_not_met";
+  if (group.readyCount < group.players) return "not_ready";
+  return "ready";
+}
+
+/**
  * ¿Arrancan TODOS los grupos no vacíos sin `force`? (specs 11/19, ticket
  * "inicio conjunto"): sin `force`, "Comenzar todos" es todo-o-nada — si
  * cualquier grupo con conectados no cumple mínimo+listos, no arranca
@@ -171,7 +189,7 @@ export interface StartAllGroupsSource {
 export function allNonEmptyGroupsReady(groups: readonly SessionLiveProgress[]): boolean {
   return groups
     .filter((group) => group.phase === "lobby" && group.players > 0)
-    .every((group) => group.players >= group.minPlayers && group.readyCount >= group.players);
+    .every((group) => groupReadinessStatus(group) === "ready");
 }
 
 /** Cliente HTTP de la ruta interna de "Comenzar todos"; cualquier fallo → `null`. */

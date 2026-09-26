@@ -1113,6 +1113,18 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       );
       return;
     }
+    // Ticket "inicio conjunto": con la opción activa, el anfitrión no puede
+    // arrancar su grupo por su cuenta (defensa en profundidad — el cliente ya
+    // le oculta "Empezar" y muestra "Esperando al organizador"); solo
+    // `EventRoom.organizerStartGroup` puede.
+    if (this.state.organizerControlsStart) {
+      this.fail(
+        client,
+        GAME_ERRORS.permissionDenied,
+        "Solo el organizador puede iniciar esta partida (inicio conjunto).",
+      );
+      return;
+    }
     if (this.state.phase !== "lobby" || !this.session) {
       this.fail(client, GAME_ERRORS.invalidState, "La partida ya ha empezado.");
       return;

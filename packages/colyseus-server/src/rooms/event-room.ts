@@ -169,7 +169,7 @@ export class EventRoom extends GameRoom {
     if ("timeLimitOverrideMinutes" in loaded) {
       this.eventTimeLimitOverrideMinutes = loaded.timeLimitOverrideMinutes;
     }
-    this.organizerControlsStart = loaded.allGroupsStartTogether;
+    this.organizerControlsStart = loaded.allGroupsStartTogether && !loaded.anyGroupAlreadyStarted;
     this.recorder = createProgressRecorder(runtime, claims.sessionId);
 
     await super.onCreate(options);

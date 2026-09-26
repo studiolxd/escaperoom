@@ -27,6 +27,7 @@ export const FIXTURE_EVENT_RUNTIME: EventRuntimeStore = {
       roomPackage: loadReyAldricRoomPackage(),
       allowVideo: false,
       allGroupsStartTogether: false,
+      anyGroupAlreadyStarted: false,
     };
   },
   async recordMilestone() {},

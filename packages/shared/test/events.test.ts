@@ -609,3 +609,38 @@ describe("eventos — permisos y lectura", () => {
     await rejects(events.listMyEvents(organizer, { cursor: "basura" }), "VALIDATION_ERROR");
   });
 });
+
+describe("`allGroupsStartTogether` (ticket \"inicio conjunto\")", () => {
+  it("el organizador la activa/desactiva en draft y en active", async () => {
+    const { events } = setup();
+    // Autoventa (organizador = autor de la sala): activable sin pago.
+    const draft = await events.createEvent(author, baseInput());
+    const enabled = await events.setAllGroupsStartTogether(author, draft.id, true);
+    expect(enabled.config.allGroupsStartTogether).toBe(true);
+
+    const active = await events.activate(author, draft.id);
+    const disabled = await events.setAllGroupsStartTogether(author, active.id, false);
+    expect(disabled.config.allGroupsStartTogether).toBe(false);
+  });
+
+  it("bloqueada en cuanto un grupo del evento ha empezado a jugar", async () => {
+    const { events, store } = setup();
+    const event = await events.createEvent(organizer, baseInput());
+    store.startedSessionEventIds.add(event.id);
+
+    await rejects(
+      events.setAllGroupsStartTogether(organizer, event.id, true),
+      "EVENT_NOT_EDITABLE",
+    );
+  });
+
+  it("solo el organizador; requiere sesión", async () => {
+    const { events } = setup();
+    const event = await events.createEvent(organizer, baseInput());
+    await rejects(events.setAllGroupsStartTogether(other, event.id, true), "FORBIDDEN");
+    await rejects(
+      events.setAllGroupsStartTogether(ANONYMOUS_ACTOR, event.id, true),
+      "UNAUTHORIZED",
+    );
+  });
+});

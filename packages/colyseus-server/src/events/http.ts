@@ -4,6 +4,7 @@ import { matchMaker } from "@colyseus/core";
 import {
   allNonEmptyGroupsReady,
   EVENT_PROGRESS_INTERNAL_PATH,
+  groupReadinessStatus,
   isEventProgressAuthorized,
   type GroupStartResult,
   type SessionLiveProgress,
@@ -145,14 +146,7 @@ export function createEventProgressRouter(): Router {
       if (result) return result;
       return {
         sessionId: snapshot.sessionId,
-        status:
-          snapshot.phase !== "lobby"
-            ? "already_started"
-            : snapshot.players === 0
-              ? "empty"
-              : snapshot.players < snapshot.minPlayers
-                ? "min_not_met"
-                : "not_ready",
+        status: groupReadinessStatus(snapshot),
         connected: snapshot.players,
         ready: snapshot.readyCount,
         min: snapshot.minPlayers,

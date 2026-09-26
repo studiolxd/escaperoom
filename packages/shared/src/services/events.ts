@@ -229,6 +229,12 @@ export interface EventStore extends AdminDirectory {
     opts: { limit: number; after: EventListCursor | null },
   ): Promise<EventRow[]>;
   summarize(eventId: string): Promise<EventSummary>;
+  /**
+   * ¿Algún `gameSession` (grupo) de este evento ha empezado a jugar
+   * (`status !== 'pending'`)? Ticket "inicio conjunto": la opción "Todos los
+   * grupos comienzan juntos" solo es editable mientras esto sea `false`.
+   */
+  hasStartedSession(eventId: string): Promise<boolean>;
 
   // ── Purchase `event_credits` (B-1/B-8): congela importe y liquida por id ──
   insertEventPurchase(purchase: NewEventPurchase): Promise<void>;
@@ -990,6 +996,33 @@ export function createEventService(deps: {
       if (!updated) throw notEditable();
       return toEventView(updated);
     },
+
+    /**
+     * "Todos los grupos comienzan juntos" (ticket "inicio conjunto"): a
+     * diferencia de `updateEvent`, editable en `draft` Y en `active` — el
+     * organizador puede activarla/desactivarla mientras el evento ya está en
+     * marcha, siempre que **ningún grupo haya empezado a jugar todavía**
+     * (`EventStore.hasStartedSession`). Bloqueada en `closed`.
+     */
+    async setAllGroupsStartTogether(
+      actor: Actor,
+      id: string,
+      enabled: boolean,
+    ): Promise<EventView> {
+      const event = await findOwnEvent(actor, id);
+      if (event.status === "closed") throw notEditable();
+      if (await store.hasStartedSession(event.id)) {
+        throw new EventError(
+          "EVENT_NOT_EDITABLE",
+          "No se puede cambiar esta opción: ya hay grupos que han empezado a jugar",
+        );
+      }
+      const updated = await store.updateEvent(event.id, expected(event), {
+        config: { ...event.config, allGroupsStartTogether: enabled },
+      });
+      if (!updated) throw notEditable();
+      return toEventView(updated);
+    },
   };
 }
 
@@ -1058,11 +1091,18 @@ export function createInMemoryEventStore(opts: {
   adminIds?: Iterable<string>;
   roomVersions?: EventRoomVersionRef[];
   summaries?: Record<string, EventSummary>;
-}): EventStore & { rows: EventRow[]; purchases: (EventPurchaseRef & { paymentRef: string | null })[] } {
+  /** Ids de evento con al menos un grupo ya empezado (`hasStartedSession`). Mutable en el test. */
+  startedSessionEventIds?: Iterable<string>;
+}): EventStore & {
+  rows: EventRow[];
+  purchases: (EventPurchaseRef & { paymentRef: string | null })[];
+  startedSessionEventIds: Set<string>;
+} {
   const admins = new Set(opts.adminIds ?? []);
   const versions = new Map((opts.roomVersions ?? []).map((v) => [v.roomVersionId, { ...v }]));
   const rows: EventRow[] = [];
   const purchases: (EventPurchaseRef & { paymentRef: string | null })[] = [];
+  const startedSessionEventIds = new Set(opts.startedSessionEventIds ?? []);
   const copy = (e: EventRow): EventRow => structuredClone(e);
   const newer = (a: EventListCursor, b: EventListCursor) =>
     b.createdAt.getTime() - a.createdAt.getTime() || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
@@ -1070,12 +1110,16 @@ export function createInMemoryEventStore(opts: {
   return {
     rows,
     purchases,
+    startedSessionEventIds,
     async isAdmin(userId) {
       return admins.has(userId);
     },
     async findRoomVersion(id) {
       const v = versions.get(id);
       return v ? { ...v } : null;
+    },
+    async hasStartedSession(eventId) {
+      return startedSessionEventIds.has(eventId);
     },
     async insertEvent(event) {
       const version = versions.get(event.roomVersionId);

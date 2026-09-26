@@ -83,6 +83,16 @@ export type EventPackage = {
    * arrancarlos (`EventRoom.organizerStartGroup`). Default `false`.
    */
   allGroupsStartTogether: boolean;
+  /**
+   * ¿Ya hay OTRO grupo (`gameSession`) de este evento que ha empezado a
+   * jugar? Se comprueba al CREAR la room (specs §3): un grupo que estaba
+   * vacío en el momento de "Comenzar todos"/"Comenzar igualmente" y solo
+   * recibe a su primer jugador después nace con `organizerControlsStart =
+   * false` aunque el evento siga con la opción activa — su anfitrión puede
+   * empezar él mismo, como en un evento sin la opción, para que nadie quede
+   * bloqueado esperando un segundo "Comenzar todos" que quizá no llegue.
+   */
+  anyGroupAlreadyStarted: boolean;
 };
 
 /** Puerto de persistencia del runtime de eventos (Postgres o memoria). */
@@ -268,6 +278,9 @@ export function createInMemoryEventRuntimeStore(opts: {
             roomPackage: structuredClone(roomPackage),
             allowVideo: event.config.allowVideo,
             allGroupsStartTogether: event.config.allGroupsStartTogether ?? false,
+            anyGroupAlreadyStarted: opts.keys.sessions.some(
+              (session) => session.eventId === eventId && session.status !== "pending",
+            ),
             ...(("timeLimitMinutes" in event.config)
               ? { timeLimitOverrideMinutes: event.config.timeLimitMinutes }
               : {}),
