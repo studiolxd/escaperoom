@@ -1009,3 +1009,64 @@ que journal-ear más allá del propio token, de vida corta (15 min, igual que el
   contra abuso").
 
 ---
+
+## ADR-037 — Migración a Prisma 7: adaptador `@prisma/adapter-pg` y PgBouncer solo en CI/producción (2026-09-26)
+
+**Contexto:** las PRs de Dependabot #129 (`@prisma/client` 7.10.0) y #130 (`prisma` 7.10.0) fallaban
+en CI: Prisma 7 ya no admite `url`/`directUrl` en el bloque `datasource` de `schema.prisma` (P1012,
+ahora se resuelven vía `prisma.config.ts`) y las suben por separado, con el riesgo de que cliente y
+CLI queden en versiones distintas. Prisma 7 tampoco trae ya un motor de Rust embebido: el generador
+clásico (`prisma-client-js`) sigue existiendo pero el nuevo (`prisma-client`) requiere un
+**adaptador de driver** explícito.
+
+**Decisión:** subir `prisma`/`@prisma/client` juntos y fijados a **7.10.0**, con el generador
+`prisma-client` (en un commit propio, fácil de revertir a `prisma-client-js` si hiciera falta) y el
+adaptador **`@prisma/adapter-pg`**, montado en un único punto de creación
+(`createPrismaClient()`, `packages/shared/src/db/index.ts`) que cada proceso llama una vez con su
+propio `max` de pool (`DB_POOL_MAX`, documentado por proceso en `infra/README.md`). Las URLs de
+conexión y el comando de seed se mueven a `packages/shared/prisma.config.ts` (Prisma 7 ya no carga
+`.env` por su cuenta ni lee `package.json#prisma.seed`).
+
+**PgBouncer solo en CI y producción, no en desarrollo.** El compose de dev
+(`infra/docker-compose.dev.yml`) ya traía un PgBouncer local (56433) desde antes de esta migración,
+pero como opción para probar paridad de pooling, no como default (un `migrate reset` invalida sus
+planes cacheados tras recrear los ENUMs). Se mantiene así: dev sigue directo a Postgres (55433).
+CI (`.github/workflows/ci.yml`, `e2e-nightly.yml`) añade su propio servicio PgBouncer en modo
+transacción y `DATABASE_URL` pasa a apuntar ahí, para tener paridad real con producción (que ya iba
+a ir detrás de un pooler); `DIRECT_URL` (Migrate) sigue yendo directo a Postgres en todos los
+entornos — el DDL de una migración no es compatible con el modo transacción del pooler.
+`scripts/verify-pr.sh` reproduce esto en local reescribiendo el puerto de `DATABASE_URL` al del
+PgBouncer local (56433) cuando lo detecta viniendo del `.env` del worktree.
+
+**Regla nueva, documentada en `CLAUDE.md` e `infra/README.md`: nada de estado de sesión en SQL.**
+Con PgBouncer en modo transacción, la conexión física vuelve al pool entre transacciones — cualquier
+código que asuma "sigo en la misma conexión" (bloqueos de sesión, `SET` sin `LOCAL`, `LISTEN`,
+tablas temporales, cursores `WITH HOLD`) se rompe de forma intermitente y difícil de reproducir en
+dev (que no pasa por el pooler). Solo `pg_advisory_xact_lock`/`SET LOCAL` (de transacción), patrón
+ya usado en `analytics/partitions-prisma.ts` y `admin-prisma-store.ts`, verificado contra el
+PgBouncer real como parte de esta migración.
+
+**Consecuencias:** `@prisma/client-runtime-utils` pasa a ser dependencia directa de
+`@escaperoom/shared` — el cliente generado (con `output` fuera de `node_modules`, como ya estaba)
+importa ese paquete por specifier, y pnpm no lo resuelve como dependencia fantasma si no está
+declarado. El símbolo exportado `prisma` de `src/db/index.ts` sigue siendo perezoso (un `Proxy` que
+solo construye el cliente real al primer uso): `packages/worker/src/main.ts` importa `prisma` de
+forma estática antes de cargar su propio `.env`, y a diferencia del motor de Rust anterior (que no
+se conectaba hasta la primera query), el pool `pg` del adaptador fijaría `DATABASE_URL` al
+construirse si no se retrasara. `packages/e2e/support/auth.ts` sigue sin poder importar
+`@escaperoom/shared/db` (pool `pg` propio, sin cambios): el motivo original era un import de
+directorio sin extensión, y con el nuevo generador el propio cliente generado importa sus ficheros
+internos también sin extensión — mismo problema de fondo, resuelto por Next/tsx pero no por el
+loader ESM estricto de Playwright.
+
+**Alternativas descartadas:**
+
+- **Quedarse en `prisma-client-js` (motor de Rust) con Prisma 7**: sigue existiendo como opción,
+  pero no resuelve el problema real que motivó mirar Prisma 7 (P1012 de las PRs de Dependabot exige
+  moverse a `prisma.config.ts` de todas formas) y deja pendiente para más adelante una migración de
+  adaptador que ya se puede hacer ahora con el resto de cambios agrupados en una sola PR.
+- **PgBouncer también en desarrollo**: descartado, ya lo estaba antes de esta migración — un
+  `migrate reset` (frecuente en dev, cada worktree con su propia base) invalida los planes
+  cacheados del pooler.
+
+---

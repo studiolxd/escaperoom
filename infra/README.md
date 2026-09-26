@@ -15,7 +15,8 @@ pnpm db:seed       # admin + creador + Rey Aldric publicado
 
 > El `.env` de Prisma vive en `packages/shared/.env`. No crees también
 > `packages/shared/prisma/.env`: Prisma cargaría los dos y fallaría por conflicto
-> de variables.
+> de variables. Prisma 7 ya no carga `.env` por su cuenta: lo hace
+> explícitamente `packages/shared/prisma.config.ts`.
 
 ## Una base de datos por worktree (ticket 0.12)
 
@@ -124,6 +125,48 @@ solo son alcanzables desde el propio host, nunca desde fuera de la máquina.
 > paridad de pooling, pero tras un `migrate reset` hay que reiniciarlo
 > (`docker compose -f infra/docker-compose.dev.yml restart pgbouncer`) porque
 > sus planes cacheados referencian los ENUMs viejos.
+
+## Prisma 7: adaptador, pool y PgBouncer (dev directo, CI/producción por el pooler)
+
+Desde la migración a Prisma 7 (sin motor de Rust; generador `prisma-client` +
+`@prisma/adapter-pg`), el cliente ya no gestiona su propia URL de conexión ni
+su propio pool: los monta `createPrismaClient()`
+(`packages/shared/src/db/index.ts`), un único punto de creación que cada
+proceso llama una vez con un `max` de pool explícito (`DB_POOL_MAX`, por
+defecto 10):
+
+| Proceso          | `DB_POOL_MAX` | Motivo (ver el `.env.example` de cada paquete) |
+| ---------------- | ------------- | ----------------------------------------------- |
+| web (+editor-sync) | 10          | Muchas peticiones HTTP concurrentes (Next.js); comparte pool con `editor-sync`, que corre desde el mismo `.env` |
+| colyseus-server   | 10            | Partidas concurrentes, patrón similar a web       |
+| worker            | 4             | Colas de BullMQ mayormente en serie; deja más presupuesto de conexiones al resto contra el mismo PgBouncer |
+
+**Regla dura, documentada aquí para que ningún agente la pase por alto: nada
+de estado de sesión en SQL.** Con PgBouncer en modo transacción (CI y
+producción) la conexión física se devuelve al pool entre transacciones, así
+que cualquier estado que dependa de "seguir en la misma conexión" se filtra a
+la siguiente petición de otro proceso o se pierde sin avisar:
+
+- Nunca `pg_advisory_lock` (de sesión) — solo `pg_advisory_xact_lock` (de
+  transacción, se libera solo al hacer commit/rollback; patrón ya usado en
+  `analytics/partitions-prisma.ts` y `admin-prisma-store.ts`).
+- Nunca `SET` sin `LOCAL` — solo `SET LOCAL` (dura solo la transacción
+  actual).
+- Nunca `LISTEN`/`NOTIFY`, tablas temporales ni cursores `WITH HOLD`
+  (necesitan una conexión fija de principio a fin).
+
+**Migraciones siempre por la URL directa.** `DIRECT_URL` (nunca
+`DATABASE_URL`) es la que usa Prisma Migrate (`prisma.config.ts`,
+`datasource.url`): el DDL de una migración y las sentencias preparadas del
+motor de esquema no son compatibles con el modo transacción del pooler.
+
+Dev sigue yendo directo a Postgres (55433) sin cambios (arriba). CI
+(`.github/workflows/ci.yml`, `e2e-nightly.yml`) añade un servicio PgBouncer
+propio (mismos parámetros que este compose) para que `DATABASE_URL` vaya por
+el pooler igual que en producción; `pnpm verify:pr` reproduce esto en local
+reescribiendo el puerto de Postgres directo (55433) al del PgBouncer LOCAL de
+esta tabla (56433) solo para `DATABASE_URL` — `DIRECT_URL` no se toca (ver
+`scripts/verify-pr.sh`).
 
 ## Migración: MinIO → SeaweedFS (2026-09-25, ADR-030)
 
