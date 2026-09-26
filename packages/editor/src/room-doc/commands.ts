@@ -1,4 +1,5 @@
 import * as Y from "yjs";
+import { DEFAULT_ROOM_TIME_LIMIT_MINUTES } from "@escaperoom/shared/schemas";
 import type { Position, RoomPackageMeta, WorldObject } from "@escaperoom/shared/schemas";
 import { initRoomLanguages } from "../i18n-fields/room-languages";
 import {
@@ -434,6 +435,10 @@ export function writeRoomMeta(doc: Y.Doc, input: RoomMetaInput): void {
     meta.set("theme", input.theme);
     meta.set("description", input.description ?? "");
     meta.set("estimatedMinutes", input.estimatedMinutes ?? 30);
+    meta.set(
+      "timeLimitMinutes",
+      input.timeLimitMinutes === undefined ? DEFAULT_ROOM_TIME_LIMIT_MINUTES : input.timeLimitMinutes,
+    );
     meta.set("difficulty", input.difficulty ?? 2);
     meta.set("players", { ...(input.players ?? { min: 1, max: 4 }) });
     meta.set("assetsManifest", input.assetsManifest ?? packAssetsManifest(DEFAULT_TILESET));
@@ -452,6 +457,18 @@ export function writeRoomMeta(doc: Y.Doc, input: RoomMetaInput): void {
 export function setRoomPlayers(doc: Y.Doc, players: { min: number; max: number }): void {
   doc.transact(() => {
     doc.getMap<unknown>(ROOM_DOC_KEYS.meta).set("players", { ...players });
+  });
+}
+
+/**
+ * Cambia el límite de partida de la sala (ticket duración-salas, specs/04
+ * §6). `null` marca la sala como "sin duración" (sin límite de tiempo); un
+ * entero positivo fija el límite en minutos, sin tope máximo. Lo aplica
+ * siempre el servidor, nunca el cliente.
+ */
+export function setRoomTimeLimit(doc: Y.Doc, timeLimitMinutes: number | null): void {
+  doc.transact(() => {
+    doc.getMap<unknown>(ROOM_DOC_KEYS.meta).set("timeLimitMinutes", timeLimitMinutes);
   });
 }
 

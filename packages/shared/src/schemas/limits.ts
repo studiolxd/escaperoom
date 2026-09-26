@@ -46,3 +46,13 @@ export const MAX_ACTIONS_PER_LIST = 64;
 
 /** Puntos de vista de `split_clue` a partir de los cuales el oráculo deja de buscar subconjuntos exhaustivamente. */
 export const MAX_SPLIT_CLUE_VIEWPOINTS_FOR_SUBSET = 12;
+
+/**
+ * Duración de partida (`meta.timeLimitMinutes`, ticket duración-salas) para
+ * salas publicadas ANTES de este campo (retrocompatibilidad): el límite fijo
+ * que ya tenían todas las salas (`GAME_TIME_LIMIT_SEC` de `colyseus-server`,
+ * 1 h). Solo se usa cuando el campo falta del `RoomPackage` — un paquete
+ * nuevo declara `null` explícitamente para "sin duración", nunca lo omite
+ * para conseguir el mismo efecto.
+ */
+export const DEFAULT_ROOM_TIME_LIMIT_MINUTES = 60;
