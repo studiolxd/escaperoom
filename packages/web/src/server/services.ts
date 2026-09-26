@@ -58,6 +58,7 @@ import {
   createPrismaAccessKeyStore,
   createRedeemService,
   createColyseusLiveProgressSource,
+  createColyseusStartAllGroupsSource,
   createEventPanelService,
   createPrismaEventRuntimeStore,
   type EventPanelService,
@@ -575,6 +576,12 @@ export function getEventPanelService(): EventPanelService {
             secret: joinToken.secret,
           })
         : { forEvent: async () => null },
+      startAll: joinToken
+        ? createColyseusStartAllGroupsSource({
+            baseUrl: resolveColyseusHttpUrl(),
+            secret: joinToken.secret,
+          })
+        : undefined,
       stored: createPrismaEventRuntimeStore(prisma),
       spectator: joinToken,
       colyseusEndpoint: process.env.NEXT_PUBLIC_COLYSEUS_URL?.trim() || "ws://localhost:2567",

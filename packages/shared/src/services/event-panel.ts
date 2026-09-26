@@ -7,10 +7,12 @@ import type { EventRow, EventStatus } from "./events";
 import type { InvitationStats, InvitationStore } from "./invitations";
 import {
   rankEventGroups,
+  type GroupStartResult,
   type LiveProgressSource,
   type LiveResult,
   type SessionLiveProgress,
   type SessionStoredProgress,
+  type StartAllGroupsSource,
   type StoredProgressSource,
 } from "./event-progress";
 import {
@@ -46,6 +48,11 @@ export type EventPanelDeps = {
   live: LiveProgressSource;
   /** Progreso persistido (`progressEvent`, 5.12); sin él, solo lo vivo. */
   stored?: StoredProgressSource;
+  /**
+   * "Comenzar todos" (ticket "inicio conjunto"); `undefined` si Colyseus no
+   * está configurado, igual que `spectator: null` para el modo observador.
+   */
+  startAll?: StartAllGroupsSource;
   /** Secreto de los tokens de evento; `null` desactiva el modo observador. */
   spectator: JoinTokenConfig | null;
   /** Endpoint WebSocket de Colyseus que se devuelve al observador. */
@@ -97,6 +104,13 @@ export type EventSessionRow = {
   hintsUsed: number;
   /** Jugadores conectados ahora. */
   players: number;
+  /**
+   * Mínimo de la sala y "Listos" entre los conectados (ticket "inicio
+   * conjunto"): estado en vivo de cada grupo en el panel. `0` sin room viva
+   * en `lobby` (no aplica: ya empezó, terminó o está `offline`).
+   */
+  minPlayers: number;
+  readyCount: number;
   elapsedMs: number;
   startedAt: string | null;
   endedAt: string | null;
@@ -132,6 +146,11 @@ export type EventDashboard = {
      * = sin override (usa la de la sala); solo editable mientras `draft`.
      */
     timeLimitMinutes?: number | null;
+    /**
+     * "Todos los grupos comienzan juntos" (ticket "inicio conjunto"): editable
+     * mientras ningún grupo haya empezado a jugar (`setAllGroupsStartTogether`).
+     */
+    allGroupsStartTogether: boolean;
   };
   keys: EventKeyCounts;
   invitations: InvitationStats;
@@ -215,6 +234,8 @@ export function buildSessionRows(
       puzzlesTotal: progress?.puzzlesTotal ?? 0,
       hintsUsed: progress?.hintsUsed ?? 0,
       players: room?.players ?? 0,
+      minPlayers: room?.minPlayers ?? 0,
+      readyCount: room?.readyCount ?? 0,
       elapsedMs: progress?.elapsedMs ?? 0,
       startedAt: iso(progress?.startedAt ?? null),
       endedAt: iso(progress?.endedAt ?? null),
@@ -468,6 +489,7 @@ export function createEventPanelService(deps: EventPanelDeps) {
         roomVersionId: event.roomVersionId,
         requireConfirmation: event.requireConfirmation,
         playersPlanned: event.playersPurchased,
+        allGroupsStartTogether: event.config.allGroupsStartTogether === true,
         ...("timeLimitMinutes" in event.config
           ? { timeLimitMinutes: event.config.timeLimitMinutes }
           : {}),
@@ -555,6 +577,43 @@ export function createEventPanelService(deps: EventPanelDeps) {
         expiresAt: new Date(expiresAt).toISOString(),
         colyseus: { endpoint: deps.colyseusEndpoint, roomName: deps.roomName },
       };
+    },
+
+    /**
+     * `POST /api/events/:id/start-all` — "Comenzar todos"/"Comenzar
+     * igualmente" (ticket "inicio conjunto", specs/11 §4.1/§4.5, specs/19
+     * §2): solo el organizador y solo con la opción activa en el evento. Sin
+     * `force`, todo o nada; con `force`, arranca todo grupo con algún
+     * conectado y salta el mínimo (nunca uno vacío) — la decisión y el
+     * detalle por grupo los resuelve la propia room (`organizerStartGroup`
+     * vía la ruta interna de Colyseus).
+     */
+    async startAllGroups(
+      actor: Actor,
+      eventId: string,
+      opts: { force: boolean },
+    ): Promise<GroupStartResult[]> {
+      const event = await findOwnEvent(actor, eventId);
+      if (!event.config.allGroupsStartTogether) {
+        throw new EventPanelError(
+          "NOT_APPLICABLE",
+          "Este evento no tiene activado \"Todos los grupos comienzan juntos\"",
+        );
+      }
+      if (!deps.startAll) {
+        throw new EventPanelError(
+          "START_ALL_UNAVAILABLE",
+          "El inicio conjunto no está configurado",
+        );
+      }
+      const result = await deps.startAll.startAll(event.id, opts);
+      if (!result) {
+        throw new EventPanelError(
+          "START_ALL_UNAVAILABLE",
+          "No se pudo contactar con el servidor de partida",
+        );
+      }
+      return result.groups;
     },
   };
 }

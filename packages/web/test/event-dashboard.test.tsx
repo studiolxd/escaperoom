@@ -28,6 +28,7 @@ const DASHBOARD: EventDashboard = {
     roomVersionId: "version-1",
     requireConfirmation: false,
     playersPlanned: 4,
+    allGroupsStartTogether: false,
   },
   keys: { generated: 0, sent: 0, confirmed: 0, redeemed: 0, pendingConfirmation: 0, byStatus: {} },
   invitations: { invited: 0, sent: 0, confirmed: 0, pending: 0, expired: 0 },

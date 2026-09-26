@@ -187,6 +187,18 @@ export const RATE_LIMIT_POLICIES = {
   "free-room-play": {
     ip: { limit: 20, windowSeconds: 3600 },
   },
+  /**
+   * `POST /api/events/:id/start-all` (ticket "inicio conjunto"): "Comenzar
+   * todos"/"Comenzar igualmente" del organizador. Exige sesión (organizador
+   * del evento), así que el cubo por usuario es el que importa; el de IP
+   * acota reintentos automatizados. El panel puede pulsarlo varias veces
+   * seguidas (Refrescar/Esperar/Comenzar igualmente del mismo aviso), así que
+   * la cuota es más generosa que la de escritura típica.
+   */
+  "event-start-all": {
+    ip: { limit: 60, windowSeconds: 600 },
+    user: { limit: 30, windowSeconds: 600 },
+  },
 } as const satisfies Record<string, RateLimitPolicy>;
 
 export type RateLimitPolicyName = keyof typeof RATE_LIMIT_POLICIES;

@@ -58,6 +58,7 @@ canjea sus claves detrás del mismo NAT: los canjes correctos no la tocan.
 | `free-room-play` | `GET /api/rooms/:roomId/free-access` (público, sin sesión) | 20 / 1 h | — | — |
 | `room-cover-write` | `POST /api/rooms/:roomId/cover-image` (A-12); mismo cupo que la meta-tool `upload` del MCP con `kind: "cover_image"` (revisión de la PR #168, D-12) | 20 / 1 h | 10 / 1 h | — |
 | `audio-upload` | `POST /api/audio/uploads` (3.11); mismo cupo que `upload` del MCP con `kind: "audio"` (revisión de la PR #168, D-12) | 10 / 1 h | 6 / 1 h | — |
+| `event-start-all` | `POST /api/events/:id/start-all` (ticket "inicio conjunto"): "Comenzar todos"/"Comenzar igualmente" del organizador | 60 / 10 min | 30 / 10 min | — |
 
 Razonamiento de los números:
 

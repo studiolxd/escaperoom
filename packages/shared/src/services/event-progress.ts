@@ -226,6 +226,20 @@ export function createColyseusStartAllGroupsSource(options: {
   };
 }
 
+/** Fuente en memoria de "Comenzar todos" (tests del servicio del panel, sin Colyseus). */
+export function createInMemoryStartAllGroupsSource(
+  handler: (eventId: string, opts: { force: boolean }) => StartAllGroupsResult | null,
+): StartAllGroupsSource & { calls: Array<{ eventId: string; force: boolean }> } {
+  const calls: Array<{ eventId: string; force: boolean }> = [];
+  return {
+    calls,
+    async startAll(eventId, opts) {
+      calls.push({ eventId, force: opts.force });
+      return handler(eventId, opts);
+    },
+  };
+}
+
 // ── Progreso persistido (ticket 5.12) ──────────────────────────────────────
 
 /**
