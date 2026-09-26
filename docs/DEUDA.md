@@ -71,6 +71,18 @@ Tareas pendientes que no bloquean pero hay que resolver.
       qué queda acoplado hoy a Prisma, Next o Colyseus y hay que abstraer, y cómo se
       empaqueta una partida para SCORM/xAPI (jugar sin servidor en red, con
       `createLocalGameClient`, y reportar progreso y resultado al LMS).
+- [ ] **Usar los motores 2D/3D para otros géneros: RPG educativo (muy largo plazo).**
+      Aprovechar el motor 2D actual (y el 3D, cuando exista) para crear, además de escape
+      rooms, juegos tipo **RPG** como el onboarding de Studio LXD
+      (`/Users/suvi/Dev/apps/onboarding`: Phaser + React, diálogos, paneles de
+      información, pantallas interactivas y SCORM con `@studiolxd/scorm`): **NPC** con
+      los que hablar, **diálogos** ramificados, **objetivos/misiones** y su seguimiento,
+      progreso guardado y resultado reportable. Encaja con el paquete compartido
+      `@studiolxd` (entrada de arriba): el motor sería común y cada producto (escape room,
+      RPG) aportaría sus mecánicas. Antes de implementar: spec del modelo de juego
+      genérico (qué es común — mapa, objetos, inventario, reglas, diálogos, sesión — y qué
+      es propio de cada género), cómo se amplían el editor y el MCP, y si el catálogo y
+      los eventos del SaaS admiten otros tipos de experiencia además de salas.
 - [ ] **Decidir el dominio de producción.** Pendiente operativo, sin fecha. El Aviso
       Legal (`packages/web/src/content/legal/legal-notice.ts`) lleva un `[PENDIENTE]`
       con el dominio; al decidirlo, sustituirlo y revisar el resto de sitios que lo
