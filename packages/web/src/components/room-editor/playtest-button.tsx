@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { ROOM_PLAYTEST_ERROR_CODES, type RoomDraftErrorCode } from "@escaperoom/shared/error-codes";
+import { createPlaytest } from "@/actions/playtest";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { RoomPlaytestResponse } from "@/server/rest/room-playtest";
 
 /** Códigos de error de `POST /api/rooms/:roomId/playtest` con mensaje propio. */
 export const KNOWN_ERRORS: ReadonlySet<string> = new Set([
@@ -63,16 +63,13 @@ export function PlaytestButton({ roomId, disabled }: PlaytestButtonProps) {
     }
     setState({ kind: "creating" });
     try {
-      const res = await fetch(`/api/rooms/${encodeURIComponent(roomId)}/playtest`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const json = (await res.json().catch(() => null)) as { error?: { code?: string } } | null;
+      const result = await createPlaytest(roomId);
+      if (!result.ok) {
         tab?.close();
-        setState({ kind: "error", code: json?.error?.code ?? "UNKNOWN" });
+        setState({ kind: "error", code: result.error.code });
         return;
       }
-      const created = (await res.json()) as RoomPlaytestResponse;
+      const created = result.data;
       const url = new URL(`/${locale}${created.path}`, window.location.origin).toString();
       if (tab) tab.location.href = url;
       setState({ kind: "ready", url, expiresAt: created.expiresAt, copied: false });

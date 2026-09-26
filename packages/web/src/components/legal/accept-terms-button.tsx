@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { acceptTerms } from "@/actions/legal";
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -20,8 +21,8 @@ export function AcceptTermsButton({ next }: { next: string }) {
   const accept = async () => {
     setState({ kind: "sending" });
     try {
-      const res = await fetch("/api/legal/terms-acceptance", { method: "POST" });
-      if (!res.ok) throw new Error("fallo al aceptar");
+      const result = await acceptTerms();
+      if (!result.ok) throw new Error("fallo al aceptar");
       router.replace(next);
       router.refresh();
     } catch {

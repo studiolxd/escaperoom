@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import type { AccessKeyErrorCode } from "@escaperoom/shared/error-codes";
+import { confirmAttendance as confirmAttendanceAction } from "@/actions/attendance";
 import { Button } from "@/components/ui/button";
 
 /** Códigos de error de `POST /api/access-keys/:code/confirm` con mensaje propio. */
@@ -38,20 +39,12 @@ export function ConfirmAttendance({ code, token }: ConfirmAttendanceProps) {
   const confirm = async () => {
     setState({ kind: "confirming" });
     try {
-      const res = await fetch(`/api/access-keys/${encodeURIComponent(code)}/confirm`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-      });
-      const json = (await res.json().catch(() => null)) as {
-        alreadyConfirmed?: boolean;
-        error?: { code?: string };
-      } | null;
-      if (!res.ok) {
-        setState({ kind: "error", code: json?.error?.code ?? "UNKNOWN" });
+      const result = await confirmAttendanceAction({ code, token });
+      if (!result.ok) {
+        setState({ kind: "error", code: result.error.code });
         return;
       }
-      setState({ kind: "done", already: json?.alreadyConfirmed === true });
+      setState({ kind: "done", already: result.data.alreadyConfirmed });
     } catch {
       setState({ kind: "error", code: "UNKNOWN" });
     }

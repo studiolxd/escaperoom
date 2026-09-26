@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { createOnboardingRoomAction } from "@/actions/onboarding";
 import { PlaytestButton } from "@/components/room-editor/playtest-button";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -40,14 +41,9 @@ export function OnboardingWizard() {
   const createRoom = async () => {
     setCreate({ kind: "creating" });
     try {
-      const res = await fetch("/api/onboarding/rooms", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ template }),
-      });
-      if (!res.ok) throw new Error("create failed");
-      const json = (await res.json()) as { roomId: string };
-      setCreate({ kind: "done", roomId: json.roomId });
+      const result = await createOnboardingRoomAction({ template });
+      if (!result.ok) throw new Error("create failed");
+      setCreate({ kind: "done", roomId: result.data.roomId });
       goNext();
     } catch {
       setCreate({ kind: "error" });
