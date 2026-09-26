@@ -64,8 +64,8 @@ export function createAudioGenerationHandlers(deps: AudioGenerationHandlerDeps) 
 
     /**
      * `POST /api/audio/generate/confirm` — `{ text, referenceId }`. Cobra los
-     * créditos SOLO si la generación, la subida y el alta tuvieron éxito;
-     * el audio queda `pending` en la misma cola de moderación que 3.11.
+     * créditos SOLO si la generación, la subida y el alta tuvieron éxito; el
+     * audio queda `approved`, disponible al instante (ADR-039).
      */
     async confirm(request: Request): Promise<Response> {
       return handle(async () => {

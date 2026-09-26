@@ -340,9 +340,14 @@ Tareas pendientes que no bloquean pero hay que resolver.
       playtest reutiliza `GameSessionCanvas`, ahora con `emitAvatarMoves` en vez del modo
       `localPlayerId` desacoplado). Detalle completo y diferencias de comportamiento
       detectadas en la PR.
-- [ ] **E-23 (resto): configuración del worker centralizada.** Concurrencias, `everyMs`
-      y crons de los ~14 workers sin variable de entorno; un `workerConfig` común
-      (pospuesto en la #139 por solaparse con otros bloques). Al final de la cola.
+- [x] **E-23 (resto): configuración del worker centralizada.** Resuelto: `workerConfig`
+      común (`packages/worker/src/config.ts`) lee de variables de entorno `WORKER_*`
+      la concurrencia, `everyMs` o cron de cada factoría, con los mismos valores por
+      defecto que tenía cada una fija en código; valida con Zod (enteros positivos,
+      cron válido) y falla al arrancar con un mensaje claro si alguna es inválida.
+      `main.ts` lo construye una vez y lo pasa a las 13 factorías. Documentado en
+      `packages/worker/.env.example` y `docs/specs/24-operaciones-y-escalabilidad.md`
+      §6.1 (tabla con recomendación de ajuste en producción).
 - [ ] **F-33: lobby de pruebas a 20 Hz.** `lobby-canvas.tsx`, `lobby-store.ts` y
       `lobby-scene.ts` crean objetos nuevos en cada `onStateChange` y se suscriben sin
       selector. Es una página de desarrollo: valorar retirarla junto con `/[locale]/play`.

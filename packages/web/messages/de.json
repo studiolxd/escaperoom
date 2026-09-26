@@ -355,17 +355,15 @@
       "sfx": "Soundeffekte",
       "voice": "Stimmen"
     },
-    "optionPending": "{name} (wartet auf Moderation)",
     "optionRejected": "{name} (abgelehnt)",
     "credits": "Lizenz {license} · {author}",
     "noAudioIn": "Kein Audio auf {language}",
     "status": {
-      "pending": "Wartet auf Moderation: Du kannst es im Entwurf testen, den Raum aber erst nach der Freigabe veröffentlichen.",
       "rejected": "In der Moderation abgelehnt: {reason}. Wähle ein anderes Audio."
     },
     "upload": "MP3 hochladen",
     "uploading": "Wird hochgeladen…",
-    "uploadHint": "Nur MP3, bis {maxMb} MB und {maxMinutes} Min. Wir prüfen es, bevor du den Raum damit veröffentlichen kannst.",
+    "uploadHint": "Nur MP3, bis {maxMb} MB und {maxMinutes} Min. Sofort verfügbar zum Nutzen und Veröffentlichen.",
     "rightsDeclared": "Ich erkläre, dass ich die Rechte an diesem Audio besitze und es keine Stimmen Dritter ohne deren Einwilligung enthält.",
     "errors": {
       "tooLarge": "Die Datei überschreitet das Limit von {maxMb} MB.",
@@ -1013,7 +1011,7 @@
       "DRAFT_CHANGED": "Der Entwurf hat sich seit der Anfrage geändert. Bitte den Assistenten, ihn zu validieren und erneut anzufragen.",
       "VERSION_CHANGED": "Mit dieser Anfrage (oder danach) wurde bereits eine Version veröffentlicht. Fordere eine neue an, um erneut zu veröffentlichen.",
       "VALIDATION_FAILED": "Der Raum besteht den Validator nicht mehr: Behebe die Fehler vor dem Veröffentlichen.",
-      "ASSETS_NOT_PUBLISHABLE": "Einige Audiodateien sind in der Moderation ausstehend oder abgelehnt: Veröffentlichen ist noch nicht möglich.",
+      "ASSETS_NOT_PUBLISHABLE": "Einige Audiodateien sind in der Moderation abgelehnt: Veröffentlichen ist damit nicht möglich.",
       "ROOM_NOT_PUBLISHABLE": "Der Raum wurde von der Moderation entfernt und kann nicht veröffentlicht werden.",
       "PUBLISH_CONFIRM_DISABLED": "Die Bestätigung von Veröffentlichungen ist in dieser Umgebung nicht verfügbar.",
       "UNKNOWN": "Der Raum konnte nicht veröffentlicht werden. Bitte versuche es erneut.",
@@ -1243,14 +1241,13 @@
   "Moderation": {
     "metaTitle": "Moderationswarteschlange",
     "title": "Moderationswarteschlange",
-    "intro": "Meldungen nach Schweregrad und SLA sortiert, offene Einsprüche und hochgeladenes Audio zur Prüfung.",
+    "intro": "Meldungen nach Schweregrad und SLA sortiert, und offene Einsprüche.",
     "forbidden": "Nur Moderatoren oder Administratoren können die Moderationswarteschlange sehen.",
     "loading": "Warteschlange wird geladen…",
     "empty": "Nichts ausstehend.",
     "tabs": {
       "reports": "Meldungen ({count})",
-      "appeals": "Einsprüche ({count})",
-      "audio": "Audio ({count})"
+      "appeals": "Einsprüche ({count})"
     },
     "severity": {
       "critical": "Kritisch",
@@ -1276,7 +1273,6 @@
     },
     "meta": "Prüfen bis {due} · erstellt {created} · {count, plural, one {# Meldung} other {# Meldungen}} zu diesem Inhalt",
     "note": "Entscheidungsnotiz (Begründung für den Ersteller)",
-    "rejectNeedsNote": "Zum Ablehnen eines Audios die Begründung in die Notiz schreiben",
     "appeal": {
       "room": "Einspruch zu einem Raum",
       "account": "Kontoeinspruch (Sperre oder Bann)"
@@ -1287,9 +1283,7 @@
       "dismiss": "Verwerfen",
       "restore": "Wiederherstellen (Fehlalarm)",
       "uphold": "Entscheidung aufrechterhalten",
-      "overturn": "Maßnahme aufheben",
-      "approve": "Freigeben",
-      "reject": "Ablehnen"
+      "overturn": "Maßnahme aufheben"
     },
     "errors": {
       "UNAUTHORIZED": "Melde dich an, um zu moderieren.",

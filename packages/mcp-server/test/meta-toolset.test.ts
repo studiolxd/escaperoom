@@ -48,11 +48,8 @@ const fakeAudio = (): Pick<AudioAssetService, "uploadAudio"> => ({
       contentType: "audio/mpeg",
       byteSize: input.bytes.byteLength,
       durationMs: 1000,
-      status: "pending",
-      moderationFlags: [],
+      status: "approved",
       rejectionReason: null,
-      reviewedBy: null,
-      reviewedAt: null,
       rightsDeclaredAt: new Date(),
       createdAt: new Date(),
       source: "upload",
@@ -407,7 +404,7 @@ describe("upload", () => {
         rightsDeclared: true,
       });
       expect(result.isError, result.text).toBe(false);
-      expect(result.structured?.status).toBe("pending");
+      expect(result.structured?.status).toBe("approved");
     } finally {
       await close();
     }

@@ -16,21 +16,18 @@ import {
   createInMemoryAudioAssetStore,
   createInMemoryAudioBlobStore,
   type Actor,
-  type AudioModerationProvider,
 } from "../src/services";
 
 const ana: Actor = { userId: "user-ana", organizationId: "org-1", role: "member" };
 const bruno: Actor = { userId: "user-bruno", organizationId: null, role: "member" };
-const mod: Actor = { userId: "user-mod", organizationId: null, role: "member" };
 
 let seq = 0;
-function setup(opts: { moderation?: AudioModerationProvider; maxDurationMs?: number } = {}) {
-  const store = createInMemoryAudioAssetStore({ moderatorIds: [mod.userId] });
+function setup(opts: { maxDurationMs?: number } = {}) {
+  const store = createInMemoryAudioAssetStore();
   const blobs = createInMemoryAudioBlobStore();
   const service = createAudioAssetService({
     store,
     blobs,
-    moderation: opts.moderation,
     limits: opts.maxDurationMs ? { maxDurationMs: opts.maxDurationMs } : {},
     newId: () => `00000000-0000-4000-8000-${String(++seq).padStart(12, "0")}`,
   });
@@ -109,32 +106,28 @@ describe("biblioteca y referencias", () => {
     expect(() => service.listLibrary({ kind: "podcast" })).toThrow(AudioError);
   });
 
-  it("una pista de la biblioteca es usable al publicar sin moderación", async () => {
+  it("una pista de la biblioteca es usable sin restricciones", async () => {
     const { service } = setup();
     const resolved = await service.resolveAudioRef(
       ANONYMOUS_ACTOR,
       libraryAudioRef("music-dungeon-ambience"),
-      "publish",
     );
     expect(resolved).toMatchObject({
       source: "library",
       storageKey: "library/audio/music-dungeon-ambience.mp3",
     });
-    await expectAudioError(
-      service.resolveAudioRef(ana, libraryAudioRef("no-existe"), "draft"),
-      "NOT_FOUND",
-    );
+    await expectAudioError(service.resolveAudioRef(ana, libraryAudioRef("no-existe")), "NOT_FOUND");
   });
 });
 
 describe("subida propia", () => {
-  it("un MP3 válido queda pendiente de moderación y almacenado", async () => {
+  it("un MP3 válido queda disponible al instante (sin moderación previa)", async () => {
     const { service, blobs } = setup();
     const asset = await service.uploadAudio(ana, mp3(1500));
     expect(asset).toMatchObject({
       ownerId: ana.userId,
       organizationId: "org-1",
-      status: "pending",
+      status: "approved",
       contentType: "audio/mpeg",
       originalFilename: "narrador.mp3",
       rejectionReason: null,
@@ -146,45 +139,29 @@ describe("subida propia", () => {
     expect(await service.listMyUploads(bruno)).toHaveLength(0);
   });
 
-  it("pendiente: usable en el borrador de su dueño, no al publicar", async () => {
+  it("disponible de inmediato: usable en el borrador y al publicar de su dueño", async () => {
     const { service } = setup();
-    const ref = audioAssetRef(await service.uploadAudio(ana, mp3()));
-    await expect(service.resolveAudioRef(ana, ref, "draft")).resolves.toMatchObject({
+    const asset = await service.uploadAudio(ana, mp3());
+    const ref = audioAssetRef(asset);
+    await expect(service.resolveAudioRef(ana, ref)).resolves.toMatchObject({
       source: "upload",
-      status: "pending",
+      status: "approved",
     });
-    const err = await expectAudioError(
-      service.resolveAudioRef(ana, ref, "publish"),
-      "AUDIO_PENDING_MODERATION",
-    );
-    expect(err.message).toContain("pendiente de moderación");
+    expect(await service.checkRefsForPublish(ana, [ref])).toEqual([]);
   });
 
-  it("aprobado → usable al publicar", async () => {
-    const { service } = setup();
+  it("rechazado (histórico) → no usable ni en el borrador, y con motivo", async () => {
+    const { service, store } = setup();
     const asset = await service.uploadAudio(ana, mp3());
-    const reviewed = await service.reviewUpload(mod, asset.id, { decision: "approved" });
-    expect(reviewed).toMatchObject({ status: "approved", reviewedBy: mod.userId });
-    expect(reviewed.reviewedAt).toBeInstanceOf(Date);
-    await expect(
-      service.resolveAudioRef(ana, audioAssetRef(asset), "publish"),
-    ).resolves.toMatchObject({ status: "approved" });
-    expect(await service.checkRefsForPublish(ana, [audioAssetRef(asset)])).toEqual([]);
-  });
-
-  it("rechazado → no usable ni en el borrador, y con motivo", async () => {
-    const { service } = setup();
-    const asset = await service.uploadAudio(ana, mp3());
-    await expectAudioError(
-      service.reviewUpload(mod, asset.id, { decision: "rejected" }),
-      "VALIDATION_ERROR",
-    );
-    await service.reviewUpload(mod, asset.id, {
-      decision: "rejected",
-      reason: "Contiene una voz reconocible sin consentimiento",
+    // No hay cola de moderación: un "rejected" solo puede venir de una
+    // decisión humana histórica ya congelada en la fila.
+    store.rows.set(asset.id, {
+      ...asset,
+      status: "rejected",
+      rejectionReason: "Contiene una voz reconocible sin consentimiento",
     });
     const err = await expectAudioError(
-      service.resolveAudioRef(ana, audioAssetRef(asset), "draft"),
+      service.resolveAudioRef(ana, audioAssetRef(asset)),
       "AUDIO_REJECTED",
     );
     expect(err.rejectionReason).toBe("Contiene una voz reconocible sin consentimiento");
@@ -196,11 +173,6 @@ describe("subida propia", () => {
     // Su dueño ve el motivo en su listado, pero ya no se le sirve el audio.
     expect((await service.listMyUploads(ana))[0]?.rejectionReason).toContain("voz reconocible");
     expect((await service.getUpload(ana, asset.id)).previewUrl).toBeNull();
-    // Una revisión es definitiva.
-    await expectAudioError(
-      service.reviewUpload(mod, asset.id, { decision: "approved" }),
-      "ALREADY_REVIEWED",
-    );
   });
 
   it("fichero no MP3 → 415 con mensaje claro, sin almacenar nada", async () => {
@@ -246,9 +218,8 @@ describe("subida propia", () => {
   it("un usuario no puede usar ni ver el audio subido por otro", async () => {
     const { service } = setup();
     const asset = await service.uploadAudio(ana, mp3());
-    await service.reviewUpload(mod, asset.id, { decision: "approved" });
     const err = await expectAudioError(
-      service.resolveAudioRef(bruno, audioAssetRef(asset), "draft"),
+      service.resolveAudioRef(bruno, audioAssetRef(asset)),
       "FORBIDDEN",
     );
     expect(err.message).toContain("otro usuario");
@@ -256,41 +227,9 @@ describe("subida propia", () => {
       { code: "FORBIDDEN" },
     ]);
     await expectAudioError(service.getUpload(bruno, asset.id), "NOT_FOUND");
-    // El dueño y el moderador sí lo escuchan.
+    // Solo el dueño lo escucha.
     expect((await service.getUpload(ana, asset.id)).previewUrl).toBe(
       `memory://${asset.storageKey}`,
     );
-    expect((await service.getUpload(mod, asset.id)).previewUrl).toBeTruthy();
-  });
-
-  it("solo moderadores revisan y ven la cola", async () => {
-    const { service } = setup();
-    const first = await service.uploadAudio(ana, mp3());
-    await service.uploadAudio(bruno, mp3());
-    await expectAudioError(service.listModerationQueue(ana), "FORBIDDEN");
-    await expectAudioError(
-      service.reviewUpload(ana, first.id, { decision: "approved" }),
-      "FORBIDDEN",
-    );
-    await expectAudioError(service.listModerationQueue(ANONYMOUS_ACTOR), "UNAUTHORIZED");
-    expect(await service.listModerationQueue(mod)).toHaveLength(2);
-    await service.reviewUpload(mod, first.id, { decision: "approved" });
-    expect(await service.listModerationQueue(mod)).toHaveLength(1);
-    expect(await service.listModerationQueue(mod, { status: "approved" })).toHaveLength(1);
-  });
-
-  it("el pre-filtro automático marca o bloquea, pero nunca aprueba", async () => {
-    const flagging = setup({
-      moderation: { precheck: async () => ({ action: "flag", flags: ["third_party_voice"] }) },
-    });
-    const flagged = await flagging.service.uploadAudio(ana, mp3());
-    expect(flagged).toMatchObject({ status: "pending", moderationFlags: ["third_party_voice"] });
-
-    const blocking = setup({
-      moderation: { precheck: async () => ({ action: "block", reason: "hash conocido" }) },
-    });
-    await expectAudioError(blocking.service.uploadAudio(ana, mp3()), "UPLOAD_BLOCKED");
-    expect(blocking.blobs.objects.size).toBe(0);
-    expect(blocking.store.rows.size).toBe(0);
   });
 });

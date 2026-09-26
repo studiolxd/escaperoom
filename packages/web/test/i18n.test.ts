@@ -150,7 +150,6 @@ describe("i18n", () => {
         "EditorAudio.library",
         "EditorAudio.myUploads",
         "EditorAudio.kinds.music",
-        "EditorAudio.status.pending",
         "EditorAudio.status.rejected",
         "EditorAudio.upload",
         "EditorAudio.uploadHint",

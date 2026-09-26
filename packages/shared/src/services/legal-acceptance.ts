@@ -22,8 +22,15 @@
  *
  * 2026-09-26: Política de Privacidad — Magnific puede tratar datos fuera del
  * EEE a través de sus subencargados (proveedores de IA y nube), con CCT.
+ *
+ * 2026-09-26-2: Términos de Servicio — se retira la moderación previa de
+ * audio (ADR-039): responsabilidad explícita del creador (todo el contenido
+ * de su sala) y del organizador (revisar antes de usar una sala con su
+ * grupo). Sufijo `-2` porque cambia el mismo día que la entrada anterior (el
+ * formato base sigue siendo `"AAAA-MM-DD"`; un segundo cambio el mismo día
+ * añade `-N` para que la versión sea distinta y dispare la reaceptación).
  */
-export const CURRENT_TERMS_VERSION = "2026-09-26";
+export const CURRENT_TERMS_VERSION = "2026-09-26-2";
 
 // ── Tipos de dominio ────────────────────────────────────────────────────────
 

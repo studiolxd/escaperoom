@@ -13,9 +13,9 @@ import { actionError, actionOk, type ActionResult } from "@/server/actions/actio
  * ya exige `isModerator | isAdmin` en el propio servicio
  * (`requireModerator`); sin cuota, igual que las rutas REST.
  *
- * La pestaña de audio (`PATCH /api/admin/audio/:id`) NO se migra aquí: otro
- * agente va a retirar la moderación previa de audio (la pestaña y las rutas
- * `/api/admin/audio*`), así que invertir en esa acción sería trabajo tirado.
+ * La pestaña de audio ya no existe (ADR-039, `/api/admin/audio*` retirada):
+ * el audio no tiene cola de moderación previa, así que no hay nada que
+ * migrar aquí para él.
  */
 
 export type ResolveReportInput = {

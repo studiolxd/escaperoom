@@ -4,13 +4,7 @@ import { parseMp3 } from "../audio/mp3";
 import { uploadAudioRef } from "../audio/refs";
 import type { Actor } from "./actor";
 import { requireUser } from "./common";
-import {
-  createManualAudioModeration,
-  type AudioAssetRow,
-  type AudioAssetStore,
-  type AudioBlobStore,
-  type AudioModerationProvider,
-} from "./audio-assets";
+import { type AudioAssetRow, type AudioAssetStore, type AudioBlobStore } from "./audio-assets";
 import { InsufficientCreditsError, type CreditsService } from "./credits";
 import { ElevenLabsError, type ElevenLabsClient } from "./elevenlabs-client";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
@@ -18,10 +12,11 @@ import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
 /**
  * Generación de audio por IA (ticket 4.9, specs/15 §2-4): coste en créditos →
  * comprobación de saldo → síntesis con ElevenLabs → subida a storage → alta en
- * `audioAsset` (misma tabla y mismo pipeline de moderación que la subida
- * manual, ticket 3.11) → cobro del movimiento **solo si todo lo anterior tuvo
- * éxito**. La referencia resultante es `upload:<id>`, la misma que usan las
- * subidas: el resto del sistema (publicación, editor) no distingue el origen.
+ * `audioAsset` (misma tabla que la subida manual, ticket 3.11), `approved` y
+ * disponible al instante (decisión de 2026-09-26, ADR-039) → cobro del
+ * movimiento **solo si todo lo anterior tuvo éxito**. La referencia resultante
+ * es `upload:<id>`, la misma que usan las subidas: el resto del sistema
+ * (publicación, editor) no distingue el origen.
  *
  * La previsualización llama a ElevenLabs pero no toca el ledger ni almacena
  * nada (specs/15 §3): solo devuelve los bytes para escuchar antes de confirmar.
@@ -145,14 +140,12 @@ export function createAudioGenerationService(deps: {
   store: AudioAssetStore;
   blobs: AudioBlobStore;
   config: AudioGenerationConfig;
-  moderation?: AudioModerationProvider;
   /** Caché de previsualizaciones por hash de texto+voz (B-7). Sin ella, no cachea. */
   previewCache?: AudioPreviewCache;
   now?: () => Date;
   newId?: () => string;
 }) {
   const { elevenlabs, credits, store, blobs, config } = deps;
-  const moderation = deps.moderation ?? createManualAudioModeration();
   const previewCache = deps.previewCache ?? createNoopAudioPreviewCache();
   const now = deps.now ?? (() => new Date());
   const newId = deps.newId ?? (() => globalThis.crypto.randomUUID());
@@ -209,7 +202,7 @@ export function createAudioGenerationService(deps: {
 
     /**
      * Confirmación: sintetiza, sube a storage, da de alta el `audioAsset`
-     * (`pending`, misma cola de moderación que 3.11) y SOLO entonces cobra el
+     * (`approved`, disponible al instante) y SOLO entonces cobra el
      * movimiento de créditos. Si falla cualquier paso antes del cobro, no se
      * descuenta nada; si el cobro falla (saldo agotado entre la comprobación y
      * el cobro, carrera de dos generaciones a la vez), se deshace la subida.
@@ -233,19 +226,6 @@ export function createAudioGenerationService(deps: {
       const storageKey = `generated/audio/${actor.userId}/${id}.mp3`;
       await blobs.put(storageKey, bytes, "audio/mpeg");
 
-      // Mismo pre-filtro automático que las subidas (specs/17 §3): nunca aprueba,
-      // solo señala para la cola humana o bloquea antes de guardar nada.
-      const verdict = await moderation.precheck({
-        ownerId: actor.userId,
-        filename: `${id}.mp3`,
-        bytes,
-        durationMs,
-      });
-      if (verdict.action === "block") {
-        await blobs.delete(storageKey).catch(() => undefined);
-        throw new AudioGenerationError("PROVIDER_ERROR", `Generación bloqueada: ${verdict.reason}`);
-      }
-
       let asset: AudioAssetRow;
       try {
         asset = await store.insertAsset({
@@ -257,7 +237,6 @@ export function createAudioGenerationService(deps: {
           contentType: "audio/mpeg",
           byteSize: bytes.byteLength,
           durationMs,
-          moderationFlags: verdict.flags ?? [],
           rightsDeclaredAt: now(),
           source: "ai_generated",
           generationText: text,
@@ -277,8 +256,8 @@ export function createAudioGenerationService(deps: {
         });
         return { asset, ref: uploadAudioRef(asset.id), costCredits, balanceAfter };
       } catch (err) {
-        // El asset ya está insertado (queda pendiente de moderación) pero, si no
-        // se puede cobrar, no debe quedar disponible ni facturarse: se deshace.
+        // El asset ya está insertado (y ya disponible) pero, si no se puede
+        // cobrar, no debe quedar disponible ni facturarse: se deshace.
         await blobs.delete(storageKey).catch(() => undefined);
         await store.deleteAsset(asset.id).catch(() => undefined);
         if (err instanceof InsufficientCreditsError) {

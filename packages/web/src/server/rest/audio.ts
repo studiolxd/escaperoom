@@ -7,7 +7,7 @@ import {
   type AudioErrorCode,
 } from "@escaperoom/shared/services";
 import type { AudioLibraryTrack } from "@escaperoom/shared/audio";
-import { BadJsonError, handleDomainErrors, NO_STORE, queryOf, readJson } from "./_http";
+import { BadJsonError, handleDomainErrors, NO_STORE } from "./_http";
 
 /** Dependencias inyectables de los handlers de audio (testeables sin Postgres ni R2). */
 export type AudioHandlerDeps = {
@@ -21,13 +21,10 @@ const STATUS_BY_CODE: Record<AudioErrorCode, number> = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
-  ALREADY_REVIEWED: 409,
-  AUDIO_PENDING_MODERATION: 409,
   AUDIO_REJECTED: 409,
   PAYLOAD_TOO_LARGE: 413,
   UNSUPPORTED_MEDIA_TYPE: 415,
   VALIDATION_ERROR: 422,
-  UPLOAD_BLOCKED: 422,
 };
 
 /** Holgura para las cabeceras multipart al pre-filtrar por `Content-Length`. */
@@ -50,26 +47,16 @@ function assetJson(a: AudioAssetRow) {
     durationMs: a.durationMs,
     status: a.status,
     rejectionReason: a.rejectionReason,
-    reviewedAt: a.reviewedAt?.toISOString() ?? null,
     createdAt: a.createdAt.toISOString(),
-  };
-}
-
-/** Vista del moderador: añade dueño, señales del pre-filtro y revisor. */
-function moderationJson(a: AudioAssetRow) {
-  return {
-    ...assetJson(a),
-    ownerId: a.ownerId,
-    organizationId: a.organizationId,
-    moderationFlags: a.moderationFlags,
-    reviewedBy: a.reviewedBy,
   };
 }
 
 /**
  * Handlers REST del audio del creador (ticket 3.11, specs/15 §1, specs/17 §1).
  * Adaptadores finos sobre `AudioAssetService`: la validación (tipo real,
- * tamaño, duración), la propiedad y la moderación viven en el servicio.
+ * tamaño, duración) y la propiedad viven en el servicio. Un audio nuevo queda
+ * `approved` y disponible al instante (ADR-039); no hay cola de moderación
+ * previa.
  */
 export function createAudioHandlers(deps: AudioHandlerDeps) {
   return {
@@ -82,7 +69,7 @@ export function createAudioHandlers(deps: AudioHandlerDeps) {
       });
     },
 
-    /** `GET /api/audio/uploads` — subidas propias con su estado de moderación. */
+    /** `GET /api/audio/uploads` — subidas propias del creador. */
     async listMyUploads(request: Request): Promise<Response> {
       return handle(async () => {
         const actor = await deps.resolveActor(request);
@@ -93,7 +80,7 @@ export function createAudioHandlers(deps: AudioHandlerDeps) {
 
     /**
      * `POST /api/audio/uploads` — multipart con `file` (MP3) y
-     * `rightsDeclared=true`. Responde 201 con el audio en `pending`.
+     * `rightsDeclared=true`. Responde 201 con el audio ya `approved`.
      */
     async upload(request: Request): Promise<Response> {
       return handle(async () => {
@@ -130,37 +117,13 @@ export function createAudioHandlers(deps: AudioHandlerDeps) {
       });
     },
 
-    /** `GET /api/audio/uploads/:id` — metadatos + URL de escucha firmada (dueño o moderador). */
+    /** `GET /api/audio/uploads/:id` — metadatos + URL de escucha firmada (solo el dueño). */
     async getUpload(request: Request, ctx: AudioUploadRouteContext): Promise<Response> {
       return handle(async () => {
         const { id } = await ctx.params;
         const actor = await deps.resolveActor(request);
         const { asset, previewUrl } = await deps.audio.getUpload(actor, id);
         return Response.json({ ...assetJson(asset), previewUrl }, { headers: NO_STORE });
-      });
-    },
-
-    /** `GET /api/admin/audio?status=pending&limit=50` — cola de moderación. */
-    async listModerationQueue(request: Request): Promise<Response> {
-      return handle(async () => {
-        const actor = await deps.resolveActor(request);
-        const query = queryOf(request, ["status", "limit"]);
-        const rows = await deps.audio.listModerationQueue(actor, query);
-        return Response.json(
-          { items: rows.map(moderationJson), nextCursor: null },
-          { headers: NO_STORE },
-        );
-      });
-    },
-
-    /** `PATCH /api/admin/audio/:id` — `{ decision: "approved" | "rejected", reason? }`. */
-    async review(request: Request, ctx: AudioUploadRouteContext): Promise<Response> {
-      return handle(async () => {
-        const { id } = await ctx.params;
-        const actor = await deps.resolveActor(request);
-        await deps.audio.authorizeModeration(actor);
-        const asset = await deps.audio.reviewUpload(actor, id, await readJson(request));
-        return Response.json(moderationJson(asset), { headers: NO_STORE });
       });
     },
   };
