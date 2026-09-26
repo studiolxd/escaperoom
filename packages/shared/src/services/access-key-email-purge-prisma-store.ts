@@ -1,4 +1,4 @@
-import type { PrismaClient } from "../../generated/client";
+import type { PrismaClient } from "../../generated/client/client";
 import {
   EMAIL_RETENTION_MONTHS,
   PURGED_EMAIL_PREFIX,

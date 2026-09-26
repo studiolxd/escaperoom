@@ -1,4 +1,4 @@
-import type { PrismaClient, audioAsset } from "../../generated/client";
+import type { PrismaClient, audioAsset } from "../../generated/client/client";
 import type { AudioAssetRow, AudioAssetSource, AudioAssetStatus, AudioAssetStore } from "./audio-assets";
 
 function toRow(row: audioAsset): AudioAssetRow {

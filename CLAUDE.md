@@ -79,6 +79,16 @@ el flujo por defecto para cualquier tarea de código es:
      `pnpm infra:up` ya esté levantado, normalmente ya lo está porque lo
      comparte con el principal) y luego `pnpm db:reset` para migrar y
      sembrar esa base nueva desde cero.
+   - **Prisma 7 (adaptador `@prisma/adapter-pg`, sin motor de Rust):
+     migraciones SIEMPRE por `DIRECT_URL` (directo a Postgres, nunca por
+     PgBouncer) y NADA de estado de sesión en SQL** — solo
+     `pg_advisory_xact_lock`/`SET LOCAL` (de transacción), nunca
+     `pg_advisory_lock`, `SET` sin `LOCAL`, `LISTEN`/`NOTIFY`, tablas
+     temporales ni cursores `WITH HOLD`: dev sigue directo a Postgres, pero
+     CI y producción van por PgBouncer en modo transacción (paridad), donde
+     la conexión física se devuelve al pool entre transacciones. Detalle
+     completo (pool `max` por proceso, motivo de cada regla) en
+     `infra/README.md` §"Prisma 7: adaptador, pool y PgBouncer".
    - **Los puertos 3000 (web), 2567 (Colyseus) y 2568 (editor-sync) son del
      usuario**, aunque en ese momento estén libres: el worktree principal los
      usa cuando el usuario arranca `pnpm dev` ahí. **Ningún agente puede

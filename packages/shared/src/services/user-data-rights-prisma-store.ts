@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { PrismaClient } from "../../generated/client";
+import type { PrismaClient } from "../../generated/client/client";
 import { hashPurgedEmail, readEmailPurgeSecret } from "./access-key-email-purge";
 import { hashPurgedValue, readIpUaPurgeSecret } from "./ip-ua-purge";
 import {

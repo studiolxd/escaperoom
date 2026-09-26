@@ -1,7 +1,8 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PrismaClient } from "../generated/client";
+import type { PrismaClient } from "../generated/client/client";
+import { createPrismaClient } from "../src/db";
 import {
   ANALYTICS_PARTITIONS_LOCK_KEY,
   createPartitionSql,
@@ -56,7 +57,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
     };
 
     beforeAll(async () => {
-      prisma = new PrismaClient();
+      prisma = createPrismaClient();
       await dropTestPartitions();
     });
 

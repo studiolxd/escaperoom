@@ -74,7 +74,14 @@ cuestión de marcarlo como check obligatorio en la protección de la rama `main`
 
 ## Problemas conocidos
 
-- `Prisma Client could not locate the Query Engine` en `.run/web.log`: el
-  `packages/shared/generated/client` viene de la caché de turbo de **otro worktree** (se
-  ve en su `sourceFilePath`). Regenerarlo y volver a lanzar:
-  `pnpm --filter @escaperoom/shared exec prisma generate`.
+- Con Prisma 6 (`prisma-client-js`) veías aquí `Prisma Client could not locate
+  the Query Engine` cuando `packages/shared/generated/client` venía de la
+  caché de turbo de **otro worktree** (binario nativo por plataforma). Desde
+  la migración a Prisma 7 (generador `prisma-client`, adaptador
+  `@prisma/adapter-pg`, sin motor de Rust) esto ya no puede pasar: el cliente
+  generado es solo TypeScript, sin binario que dependa de la plataforma del
+  worktree que lo generó. Si `pnpm --filter @escaperoom/shared build` no se
+  ha corrido tras un cambio de `prisma/schema.prisma`, el síntoma ahora es un
+  error de tipos o de módulo no encontrado, no de motor — regenerarlo con
+  `pnpm --filter @escaperoom/shared exec prisma generate` sigue siendo el
+  arreglo.

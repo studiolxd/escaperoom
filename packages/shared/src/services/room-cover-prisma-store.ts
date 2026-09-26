@@ -1,4 +1,4 @@
-import type { PrismaClient } from "../../generated/client";
+import type { PrismaClient } from "../../generated/client/client";
 import type { RoomCoverRoomRef, RoomCoverStore } from "./room-cover";
 
 /** Implementación Prisma del puerto de portada de sala sobre `room` (0005_rooms). */

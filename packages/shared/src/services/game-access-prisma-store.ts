@@ -1,4 +1,4 @@
-import type { PrismaClient } from "../../generated/client";
+import type { PrismaClient } from "../../generated/client/client";
 import { parseRoomPackage, type RoomPackage } from "../schemas";
 import { PLAY_SESSION_STALE_AFTER_SECONDS, type GameAccessStore } from "./game-access";
 

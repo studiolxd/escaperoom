@@ -1,4 +1,4 @@
-import type { PrismaClient } from "../../generated/client";
+import type { PrismaClient } from "../../generated/client/client";
 import type { RoomAccessStore } from "./room-access";
 
 /** `RoomAccessStore` sobre Postgres (B-4). */

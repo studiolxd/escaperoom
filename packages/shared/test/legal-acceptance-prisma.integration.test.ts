@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PrismaClient } from "../generated/client";
+import type { PrismaClient } from "../generated/client/client";
+import { createPrismaClient } from "../src/db";
 import { createPrismaTermsAcceptanceStore } from "../src/services/legal-acceptance-prisma-store";
 import { createTermsAcceptanceService } from "../src/services/legal-acceptance";
 
@@ -28,7 +29,7 @@ describe.skipIf(!process.env.DATABASE_URL)("reaceptación de términos sobre Pos
   const userId = TAG;
 
   beforeAll(async () => {
-    prisma = new PrismaClient();
+    prisma = createPrismaClient();
     await prisma.user.create({ data: { id: userId, name: TAG, email: `${userId}@test.local` } });
   });
 

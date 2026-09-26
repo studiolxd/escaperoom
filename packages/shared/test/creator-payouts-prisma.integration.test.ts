@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PrismaClient } from "../generated/client";
+import type { PrismaClient } from "../generated/client/client";
+import { createPrismaClient } from "../src/db";
 import {
   createFakeConnectGateway,
   createFakePaymentGateway,
@@ -55,7 +56,7 @@ describe.skipIf(!process.env.DATABASE_URL)("payouts a creadores sobre Postgres (
   }
 
   beforeAll(async () => {
-    prisma = new PrismaClient();
+    prisma = createPrismaClient();
     await prisma.user.create({
       data: { id: buyerId, name: "Compradora de prueba", email: `${TAG}-buyer@escaperoom.local` },
     });

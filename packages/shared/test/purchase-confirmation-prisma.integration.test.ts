@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { PrismaClient } from "../generated/client";
+import type { PrismaClient } from "../generated/client/client";
+import { createPrismaClient } from "../src/db";
 import type { PendingConfirmationsWindow } from "../src/services";
 import { createPrismaPurchaseConfirmationStore } from "../src/services";
 
@@ -91,7 +92,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
     }
 
     beforeAll(async () => {
-      prisma = new PrismaClient();
+      prisma = createPrismaClient();
       await prisma.user.create({
         data: { id: userId, name: "Compradora de prueba", email: `${TAG}@escaperoom.local` },
       });

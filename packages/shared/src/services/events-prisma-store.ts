@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "../../generated/client";
+import { Prisma, type PrismaClient } from "../../generated/client/client";
 import { createPrismaAdminDirectory } from "./admin-prisma-store";
 import type { EventConfig, EventPurchaseRef, EventRow, EventStore, EventSummary, ExpiryRule } from "./events";
 import type { PricingSnapshot } from "./pricing-tiers";
