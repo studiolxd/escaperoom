@@ -54,8 +54,9 @@ Organizado por fase de creación, con esquemas Zod (compartidos desde `packages/
 
 | Tool | Descripción |
 |---|---|
-| `create_room(meta)` | Crea draft: título, tema, idioma, dificultad, nº jugadores |
+| `create_room(meta)` | Crea draft: título, tema, idioma, dificultad, nº jugadores, duración de partida (`timeLimitMinutes`, opcional, sin tope; ticket duración-salas) |
 | `set_map({tileset, size, layers})` | Define dimensiones y tileset |
+| `set_room_duration({roomId, timeLimitMinutes})` | Cambia la duración de partida de un draft ya creado (ticket duración-salas; única tool que edita `meta` post-creación) |
 | `paint_tiles({layer, cells})` | Pinta celdas (el "brush" del agente) |
 | `define_subrooms([{id, name, bounds}])` | Habitaciones internas (Salón, Bodega, Catacumbas) |
 
