@@ -30,8 +30,8 @@ export default async function ModerationPage({ params }: Props) {
   const allowed = await getModerationService().canModerate(actor);
 
   return (
-    <main className="relative min-h-dvh bg-slate-950 p-4 text-white md:p-8">
-      <div className="mx-auto max-w-4xl">
+    <main className="relative min-h-dvh p-4 text-white md:p-8">
+      <div className="mx-auto w-full max-w-4xl">
         {allowed ? (
           <ModerationQueueView />
         ) : (

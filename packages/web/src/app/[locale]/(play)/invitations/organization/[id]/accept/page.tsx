@@ -62,7 +62,8 @@ export default async function AcceptOrganizationInvitationPage({ params }: Props
         </>
       );
     } catch (error) {
-      const code = error instanceof APIError ? (error.body as { code?: string } | undefined)?.code : undefined;
+      const code =
+        error instanceof APIError ? (error.body as { code?: string } | undefined)?.code : undefined;
       if (code === "YOU_ARE_NOT_THE_RECIPIENT_OF_THE_INVITATION") {
         body = (
           <>
@@ -89,7 +90,7 @@ export default async function AcceptOrganizationInvitationPage({ params }: Props
   }
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center bg-slate-950 p-4 text-white">
+    <main className="relative flex min-h-dvh items-center justify-center p-4 text-white">
       <section className="w-full max-w-md space-y-4 rounded-xl border border-white/10 bg-white/5 p-6">
         <h1 className="text-lg font-semibold">{t("title")}</h1>
         {body}

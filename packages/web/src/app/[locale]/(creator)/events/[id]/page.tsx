@@ -20,8 +20,8 @@ export default async function EventDashboardPage({ params }: Props) {
   const { locale, id } = await params;
   setRequestLocale(locale);
   return (
-    <main className="relative min-h-dvh bg-slate-950 p-4 text-white md:p-8">
-      <div className="mx-auto max-w-6xl">
+    <main className="relative min-h-dvh p-4 text-white md:p-8">
+      <div className="mx-auto w-full max-w-6xl">
         <EventDashboardView eventId={id} />
       </div>
       <div className="absolute right-4 top-4">

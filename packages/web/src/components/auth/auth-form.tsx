@@ -50,7 +50,7 @@ export function AuthForm({ mode, callbackURL = "/", className, ...props }: AuthF
         <CardContent>
           <form noValidate onSubmit={onSubmit}>
             <FieldGroup>
-              <div className="flex flex-col items-center gap-2 text-center">
+              <div className="flex flex-col gap-2 text-left">
                 <h1 className="text-2xl font-bold">{t(`${mode}.title`)}</h1>
                 <p className="text-balance text-muted-foreground">{t(`${mode}.subtitle`)}</p>
               </div>

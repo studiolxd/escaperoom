@@ -28,10 +28,10 @@ export default async function LocaleNotFound() {
     <main className="flex min-h-dvh items-center justify-center bg-background px-4 py-16 text-foreground">
       <Empty>
         <EmptyHeader>
-          <EmptyMedia variant="icon">
+          <EmptyMedia variant="icon" className="size-12 [&_svg:not([class*='size-'])]:size-6">
             <CompassIcon />
           </EmptyMedia>
-          <EmptyTitle>{t("title")}</EmptyTitle>
+          <EmptyTitle className="text-2xl font-bold">{t("title")}</EmptyTitle>
           <EmptyDescription>{t("description")}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>

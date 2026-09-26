@@ -11,7 +11,7 @@ import { legalLink, type LegalDocument } from "./types";
  * marketplace (sin suscripciones ni periodo de prueba).
  */
 export const termsOfService: LegalDocument = {
-  versionDate: "2026-09-26-2",
+  versionDate: "2026-09-26-3",
   sections: [
     {
       heading: "1. Quién presta el servicio y aceptación",
@@ -64,6 +64,11 @@ export const termsOfService: LegalDocument = {
         "El reparto de ingresos entre la plataforma y el creador, la comisión aplicada y el " +
           "funcionamiento de los créditos de generación asistida por IA se rigen por las condiciones " +
           "económicas vigentes en cada momento, publicadas en la plataforma.",
+        "La compra de una sala da derecho a una partida de esa sala. La partida se considera " +
+          "jugada cuando termina (se resuelve la sala, se agota el tiempo o el grupo la da por " +
+          "perdida). Si se cierra sin terminar —por ejemplo, porque todos los jugadores se " +
+          "desconectan durante más de 60 minutos—, la compra no se consume y puede volver a " +
+          "jugarse.",
         "Los créditos de generación por IA no son reembolsables una vez consumidos. El saldo de un " +
           "evento no utilizado (aforo comprado que no se llega a jugar) no se convierte en crédito ni " +
           "se reembolsa salvo que la ley aplicable exija lo contrario.",
@@ -157,7 +162,7 @@ export const termsOfService: LegalDocument = {
           "reportes por contenido ilegal o que comprometa la seguridad de menores se atienden con " +
           "prioridad y pueden retirar la sala de inmediato mientras se revisan.",
         [
-          "La plataforma se presta \"tal cual\" y \"según disponibilidad\". En la medida permitida por " +
+          'La plataforma se presta "tal cual" y "según disponibilidad". En la medida permitida por ' +
             "la ley, EscapeRoom Creator no será responsable de daños indirectos derivados del uso de " +
             "la plataforma, ni de la disponibilidad o el correcto funcionamiento de sistemas de " +
             "terceros a los que se conecta (Stripe, ElevenLabs, LiveKit u otros proveedores listados " +

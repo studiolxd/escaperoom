@@ -44,7 +44,7 @@ export default async function ReacceptTermsPage({ params, searchParams }: Props)
   const t = await getTranslations("Legal.reaccept");
 
   return (
-    <main className="mx-auto flex min-h-[60vh] max-w-md items-center px-4 py-16">
+    <main className="mx-auto flex min-h-[60vh] w-full max-w-md items-center px-4 py-16">
       <Card className="w-full">
         <CardHeader>
           <CardTitle>{t("title")}</CardTitle>

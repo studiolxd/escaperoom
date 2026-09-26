@@ -53,7 +53,7 @@ export function OnboardingWizard() {
   const roomId = create.kind === "done" ? create.roomId : null;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
+    <div className="mx-auto w-full max-w-2xl px-4 py-10">
       <h1 className="text-xl font-semibold">{t("title")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{t("progress", { step: stepIndex + 1 })}</p>
 
@@ -96,7 +96,10 @@ export function OnboardingWizard() {
               onValueChange={(value) => setTemplate(value as "rey-aldric" | "blank")}
               className="space-y-2"
             >
-              <Label htmlFor="onboarding-template-rey-aldric" className="items-start text-sm font-normal">
+              <Label
+                htmlFor="onboarding-template-rey-aldric"
+                className="items-start text-sm font-normal"
+              >
                 <RadioGroupItem
                   id="onboarding-template-rey-aldric"
                   value="rey-aldric"
@@ -108,7 +111,10 @@ export function OnboardingWizard() {
                   <span className="text-muted-foreground">{t("step2.templateDesc")}</span>
                 </span>
               </Label>
-              <Label htmlFor="onboarding-template-blank" className="items-start text-sm font-normal">
+              <Label
+                htmlFor="onboarding-template-blank"
+                className="items-start text-sm font-normal"
+              >
                 <RadioGroupItem id="onboarding-template-blank" value="blank" className="mt-1" />
                 <span>
                   <span className="font-medium">{t("step2.blankOption")}</span>

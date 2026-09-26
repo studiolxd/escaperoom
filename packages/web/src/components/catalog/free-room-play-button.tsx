@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,19 @@ type FreeAccess = { eligible: true; gameToken: string } | { eligible: false };
 export function FreeRoomPlayButton({ roomId }: { roomId: string }) {
   const t = useTranslations("RoomDetail");
   const [state, setState] = useState<State>("idle");
+
+  // Al volver atrás desde `/play/room/...`, el navegador puede restaurar esta
+  // página desde el bfcache tal cual quedó al navegar fuera: congelada en
+  // pleno "loading" (el `window.location.href` de abajo pasa a otro
+  // documento sin dar tiempo a que este componente vuelva a "idle"). `pageshow`
+  // con `persisted: true` detecta esa restauración y resetea el botón.
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) setState("idle");
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
 
   const startFreeGame = async () => {
     setState("loading");

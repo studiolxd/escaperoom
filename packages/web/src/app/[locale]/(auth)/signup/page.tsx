@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { AuthForm } from "@/components/auth/auth-form";
-import { Link } from "@/i18n/navigation";
+import { PublicShell } from "@/components/layout/public-shell";
 import { buildPageMetadata } from "@/lib/catalog-seo";
 import { safeCallbackURL } from "@/lib/callback-url";
 
@@ -25,17 +25,15 @@ export async function generateMetadata({ params }: Pick<Props, "params">): Promi
 export default async function SignupPage({ params, searchParams }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations("PublicNav");
   const { callbackURL } = await searchParams;
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        <Link href="/" className="self-center text-sm font-semibold tracking-tight">
-          {t("logo")}
-        </Link>
-        <AuthForm mode="signup" callbackURL={safeCallbackURL(callbackURL)} />
-      </div>
-    </div>
+    <PublicShell>
+      <main className="flex w-full flex-1 items-center justify-center p-6 md:p-10">
+        <div className="flex w-full max-w-sm flex-col gap-6">
+          <AuthForm mode="signup" callbackURL={safeCallbackURL(callbackURL)} />
+        </div>
+      </main>
+    </PublicShell>
   );
 }

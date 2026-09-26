@@ -38,14 +38,14 @@ export default async function NewEventPage({ params, searchParams }: Props) {
 
   if (isAnonymous(actor)) {
     return (
-      <main className="mx-auto max-w-md px-4 py-16">
+      <main className="mx-auto w-full max-w-md px-4 py-16">
         <OnboardingLogin callbackURL={`/${locale}/events/new?roomVersionId=${version}`} />
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex max-w-2xl flex-col gap-6 px-4 py-12">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-12">
       <h1 className="text-2xl font-semibold">{t("heading")}</h1>
       <NewEventForm roomVersionId={version} />
     </main>

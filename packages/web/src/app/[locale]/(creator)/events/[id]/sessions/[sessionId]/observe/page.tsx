@@ -29,8 +29,8 @@ export default async function ObserveSessionPage({ params }: Props) {
   const { model } = buildGameModel(loadRoomPackage(readReyAldricRoomPackageJson()), locale);
 
   return (
-    <main className="relative min-h-dvh bg-slate-950 p-4 text-white md:p-8">
-      <div className="mx-auto max-w-6xl space-y-4">
+    <main className="relative min-h-dvh p-4 text-white md:p-8">
+      <div className="mx-auto w-full max-w-6xl space-y-4">
         <header>
           <p className="text-xs uppercase tracking-wide text-white/50">{t("title")}</p>
           <h1 className="text-2xl font-semibold">{t("observer.title")}</h1>

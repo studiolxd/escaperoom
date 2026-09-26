@@ -36,7 +36,7 @@ export default async function CreatorChatPage({ params, searchParams }: Props) {
   const actor = config.configured ? await resolveActorFromHeaders(await headers()) : null;
 
   return (
-    <main className="relative flex h-dvh flex-col bg-slate-950 p-4 text-white">
+    <main className="relative flex h-dvh flex-col p-4 text-white">
       <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-3">
         <div className="flex items-start justify-between gap-4">
           <div>
