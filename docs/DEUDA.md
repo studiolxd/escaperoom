@@ -432,20 +432,22 @@ Tareas pendientes que no bloquean pero hay que resolver.
       - Documentación pública del contrato (OpenAPI o similar) y un compromiso de estabilidad
         (`specs/13` "el contrato evoluciona de forma aditiva" ya lo anticipa).
       - Las rutas en sí, marcadas "API pública — futura" en `specs/13`.
-- [ ] **Sala duplicada en el catálogo justo tras publicar (visto en el nightly, 2026-09-26).**
-      `editor-publish.spec.ts` publica una sala (MCP `publish` + confirmación humana) y
-      navega a `/rooms`: el `<article data-room-id="…">` de esa sala aparece DOS veces
-      (`strict mode violation: … resolved to 2 elements`, mismo id en ambos, reproducible en
-      3 tiradas del nightly con salas distintas cada vez — no es dato de una tirada
-      concreta). Nunca se había visto antes porque este test nunca llegaba tan lejos (lo
-      cortaban el 429 de Better Auth y luego el gate de reaceptación de Términos, ambos ya
-      resueltos). Revisado sin encontrar la causa en el código: `catalogSelect()`
-      (`packages/shared/src/services/catalog-listing.ts`) usa `DISTINCT ON (v."roomId")`,
-      que no puede devolver dos filas por sala; `CatalogResults`
-      (`packages/web/src/components/catalog/catalog-view.tsx`) solo mapea `rooms` una vez,
-      sin `Suspense` doble. El array `items` que llega al componente debe de traer la sala
-      dos veces por alguna otra vía (¿cache de catálogo en Redis con una escritura
-      duplicada?, ¿algo del lado de `publish` que inserta dos `roomVersion` con el mismo
-      `publishedAt` y `DISTINCT ON` fuera determinista entre invocaciones?) — hace falta
-      reproducir con acceso a los logs/Redis en vivo para confirmar. Mitigado en el test con
-      `.first()` mientras tanto; no toca la app.
+- [x] **Sala duplicada en el catálogo justo tras publicar (visto en el nightly, 2026-09-26;
+      causa encontrada y arreglada 2026-09-26).** `catalogSelect()` (`DISTINCT ON`) nunca
+      pudo devolver dos filas por sala, y `CatalogResults` solo mapea `rooms` una vez —
+      confirmado con Redis en vivo (`redis-cli MONITOR` mientras se reproducía a mano) que
+      la causa real era el CACHE del catálogo (`createCachedPublishedRoomListing`, Redis,
+      TTL 60 s, ADR-027): la clave no cambiaba al publicar, así que una consulta LENTA que
+      había empezado ANTES de publicar podía escribir (fire-and-forget) su foto vieja
+      DESPUÉS de que otra petición más rápida ya hubiera cacheado la correcta, dejando el
+      catálogo desactualizado (sala ausente o, según el orden exacto de esa escritura tardía
+      frente a otras lecturas en vuelo, duplicada) hasta que expirase el TTL. Reproducido en
+      local con inserciones directas en Postgres + peticiones concurrentes a `/rooms`
+      mientras se observaba el tráfico real de Redis. Arreglo: `createCachedPublishedRoomListing`
+      incluye ahora una GENERACIÓN en cada clave de cache
+      (`packages/shared/src/services/catalog-listing.ts`), y `getRoomPublishService().publish`
+      (`packages/web/src/server/services.ts`) la cambia (`invalidatePublishedRoomListingCache`)
+      justo tras publicar: cualquier escritura tardía de una consulta anterior cae en una
+      clave ya abandonada, y toda petición posterior a la publicación es un miss que relee
+      Postgres. Tests de regresión en `packages/shared/test/catalog-listing-cache.test.ts`.
+      Quitado el `.first()` de `editor-publish.spec.ts` (ya no hace falta).
