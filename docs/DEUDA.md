@@ -48,6 +48,27 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `packages/shared/test/catalog-filters.test.ts` (rango + compatibilidad),
       `packages/editor/test/room-doc-players.test.ts` (aviso al revés) y
       `packages/web/test/components/room-players-dialog.test.tsx` (UI).
+- [ ] **Lobby como pantalla propia: diseño en el editor, introducción (texto/vídeo) y
+      3-2-1.** Encargo `lobby-c13` (decisiones del usuario 2026-09-26): esta PR entrega
+      solo la parte de C-13 (`set_ready`, `kick`, `player_left`, mínimo/"Empezar
+      igualmente", analítica mínima por `onMilestone`) y C-20 (logging estructurado en
+      `colyseus-server`), reutilizando el panel de lobby actual (overlay sobre el mapa,
+      `lobby-panel.tsx`). Queda pendiente, para un encargo aparte por su tamaño:
+      - El lobby como **sala diseñable en el editor** (tipo especial `lobby`: tamaño,
+        suelo/muros, decoración, sin pruebas/puertas/ítems — validador + MCP + specs/10) y
+        el lobby por defecto autogenerado para salas sin uno.
+      - **Introducción** por sala (`meta.intro`, texto multiidioma **o vídeo** con
+        subtítulos WebVTT, subida a SeaweedFS/R2 con límite de 200 MB y sniff de magic
+        bytes, sin moderación previa) configurable en el editor ("Lobby e introducción").
+      - **3-2-1** (3 s, sin botón de saltar) tras la introducción, y que el reloj de la
+        partida arranque cuando el PRIMER jugador entra de verdad en el mapa (no al pulsar
+        "Empezar") — `startedAt`/`endsAt` del servidor.
+      - Que el **playtest** (editor y en red) pase por el lobby con un solo jugador
+        (elegir personaje, Listo, Empezar) igual que la partida real.
+      - Permitir entrar **tarde** a una partida ya empezada fuera de eventos (hoy solo
+        funciona en eventos).
+      - Dejar el disparo del inicio del lobby fácil de invocar desde fuera de la room
+        (para el encargo siguiente, "Todos los grupos comienzan juntos").
 - [ ] **Salas en 3D, además de 2D (muy largo plazo).** Permitir crear y jugar salas en
       3D, además de las 2D isométricas actuales, tanto en el creador (editor y MCP) como
       en el juego. Implica también una etiqueta **2D/3D** en cada sala y un **filtro
