@@ -3,8 +3,13 @@ import type { CallToolResult, ToolAnnotations } from "@modelcontextprotocol/sdk/
 import { z } from "zod";
 import type { CreatorMcpDeps } from "../deps";
 
-/** Fases de creación del toolset (specs/10 §2). */
-export type ToolPhase = "structure" | "content" | "logic" | "verification" | "query";
+/**
+ * Fases de creación del toolset (specs/10 §2). `"meta"` son las 4
+ * meta-herramientas del propio MCP (`find_tools`, `tool_schema`, `run_tool`,
+ * `upload`, auditoría D-12): no construyen la sala, así que quedan fuera del
+ * ensayo `dryRun` de las mutaciones del draft (specs/10 §3).
+ */
+export type ToolPhase = "structure" | "content" | "logic" | "verification" | "query" | "meta";
 
 /** Contexto de ejecución de una tool: actor identificado + servicios. */
 export type ToolContext = { actor: Actor; deps: CreatorMcpDeps };
@@ -42,8 +47,14 @@ export const RoomIdSchema = z
 export const READ_ONLY: ToolAnnotations = { readOnlyHint: true, openWorldHint: false };
 
 /**
- * Anotaciones de una mutación del draft (ADR-010): `destructiveHint` para que
- * el gate de confirmación de 4.4/4.5 la intercepte.
+ * Anotaciones de una mutación del draft (ADR-010, revisado 2026-09-26 — D-12
+ * de la auditoría). El draft es reversible (historial Yjs, validador
+ * incremental en cada paso), así que estas mutaciones NO exigen `confirm` ni
+ * pasan por ningún gate: se escriben directas. Solo `publish` (irreversible)
+ * exige confirmación humana explícita, y ya la tiene (4.5,
+ * `PublishConfirmationService`). `destructiveHint`/`readOnlyHint` se
+ * mantienen igual: son información estándar del protocolo MCP para que el
+ * cliente decida cómo mostrar la tool, no un mecanismo propio de gate.
  */
 export const MUTATION: ToolAnnotations = {
   readOnlyHint: false,

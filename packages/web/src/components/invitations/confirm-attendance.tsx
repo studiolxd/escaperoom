@@ -2,16 +2,17 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import type { AccessKeyErrorCode } from "@escaperoom/shared/error-codes";
 import { Button } from "@/components/ui/button";
 
 /** Códigos de error de `POST /api/access-keys/:code/confirm` con mensaje propio. */
-const KNOWN_ERRORS = new Set([
+export const KNOWN_ERRORS: ReadonlySet<string> = new Set([
   "CONFIRMATION_INVALID",
   "CONFIRMATION_EXPIRED",
   "CONFIRMATION_UNAVAILABLE",
   "ACCESS_KEY_INVALID",
   "ACCESS_KEY_EXPIRED",
-]);
+] satisfies readonly AccessKeyErrorCode[]);
 
 type State =
   | { kind: "idle" }

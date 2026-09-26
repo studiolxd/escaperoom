@@ -307,6 +307,15 @@ Tareas pendientes que no bloquean pero hay que resolver.
 - [ ] **F-33: lobby de pruebas a 20 Hz.** `lobby-canvas.tsx`, `lobby-store.ts` y
       `lobby-scene.ts` crean objetos nuevos en cada `onStateChange` y se suscriben sin
       selector. Es una página de desarrollo: valorar retirarla junto con `/[locale]/play`.
+- [ ] **Tests de rate limit de `web` aún intermitentes bajo `pnpm verify:pr` (429).** La #161
+      dio a cada worktree su propio `REDIS_PREFIX`, pero ese prefijo **persiste entre
+      ejecuciones del mismo worktree**: las cuotas consumidas en una tirada de `verify:pr`
+      siguen vivas en el Redis compartido en la siguiente, y tests como
+      `room-license-api.test.ts` (`POST /api/rooms/:roomId/gift-copy`) reciben 429 (visto en
+      la #170, reproducible también en `main`). Corrección candidata: prefijo por ejecución
+      en `scripts/verify-pr.sh` (p. ej. `<prefijo-del-worktree>_<id-de-tirada>`) o limpieza
+      de las claves del prefijo al empezar. Se resuelve junto con el nightly E2E (misma tarea
+      de estabilidad de tests).
 - [ ] **Nightly E2E en rojo desde que existe (issue #115).** El job nocturno
       `.github/workflows/e2e-nightly.yml` (2:30, suite completa de Playwright + paridad
       MCP + carga) falla todas las noches desde el 2026-09-24 y nadie lo estaba mirando;

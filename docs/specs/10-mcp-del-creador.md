@@ -35,14 +35,28 @@ pueden co-editar agente y humano a la vez (el agente aparece como colaborador).
 
 Se copia el patrón de SLXD (ADR-017/022):
 
-- **Servidor:** `@slxd/mcp-server` adaptado — pipeline de petición, registro de herramientas, gate de
-  confirmación y meta-tools (`find_tools`, `tool_schema`, `run_tool`, `upload`).
+- **Servidor:** `@slxd/mcp-server` adaptado — pipeline de petición, registro de herramientas y
+  meta-tools de descubrimiento diferido (`find_tools`, `tool_schema`, `run_tool`) más `upload`.
 - **Transporte:** HTTP streamable en `/mcp/creator` (chat web) y **stdio** (Claude Desktop).
 - **Auth:** `@slxd/mcp-auth` adaptado — OAuth 2.1 con PKCE + DCR; el login se resuelve contra la
   sesión de **Better Auth** (no hay plano de control aparte). El token de un creador no puede tocar
   salas ajenas.
-- **Mutuaciones:** `destructiveHint: true` → el pipeline exige `confirm: true` o devuelve vista
-  previa; `publish` es irreversible y lleva confirmación humana explícita.
+- **Mutaciones (revisado 2026-09-26, auditoría D-12):** van directas, sin gate de confirmación —
+  el draft es reversible (historial Yjs, validador incremental en cada paso, `dryRun` para
+  ensayar sin escribir). `destructiveHint`/`readOnlyHint` se mantienen como anotaciones estándar
+  del protocolo MCP (para que el cliente decida cómo mostrarlas), pero no activan ningún mecanismo
+  propio de gate. Solo **`publish` es irreversible** y exige la confirmación humana explícita que
+  ya tenía (el creador la aprueba en la web, ticket 4.5).
+- **Meta-tools (D-12):** `find_tools` (busca por texto/fase sobre el catálogo de tools de
+  contenido y devuelve nombre + descripción, sin cargar todos los esquemas) → `tool_schema`
+  (esquema de entrada completo de una tool concreta) → `run_tool` (la ejecuta por nombre con sus
+  argumentos, por el MISMO pipeline que una llamada directa — identidad, validación, autorización,
+  límite de tamaño de respuesta; no puede ejecutarse a sí misma ni a las otras meta-tools). `upload`
+  sube un asset (imagen de portada o audio) en base64 — MCP no transporta binarios por streaming —
+  reutilizando los servicios de subida que ya existen en la web (`RoomCoverService`,
+  `AudioAssetService`), con los mismos límites de tipo, tamaño y cuota (`docs/reference/seguridad.md`
+  §1): el límite genérico de llamadas del MCP no basta por sí solo para una tool que sube ficheros de
+  hasta 10 MB.
 - **La costura:** cada tool llama a un **servicio de dominio** con un `actor`; no reimplementa el
   router tRPC (ADR-010).
 
@@ -93,6 +107,15 @@ Organizado por fase de creación, con esquemas Zod (compartidos desde `packages/
 | `get_room()` | Estado completo del draft como JSON |
 | `get_template_catalog()` | Catálogo de plantillas con sus esquemas (configs válidas) |
 | Vistas filtradas | `get_puzzle(id)`, `get_rules_for(objectId)` — ahorran tokens |
+
+### Fase F — Meta-tools (D-12)
+
+| Tool | Descripción |
+|---|---|
+| `find_tools({query?, phase?})` | Busca por texto y/o fase sobre el catálogo de tools de contenido; devuelve nombre + descripción |
+| `tool_schema({name})` | Esquema de entrada completo de una tool concreta |
+| `run_tool({name, arguments?})` | La ejecuta por su nombre, por el mismo pipeline que una llamada directa |
+| `upload({kind, roomId?, filename, contentType, data, rightsDeclared?})` | Sube una imagen de portada o un audio (base64) y devuelve su referencia |
 
 ## 3. Patrón clave: validación + dry-run en cada tool
 

@@ -22,12 +22,41 @@ sobre un draft reciben `roomId` (el mismo `:roomId` de `/api/rooms/:roomId/draft
 | E — Consulta | `get_room` | **implementada** (draft de 3.2) |
 | E — Consulta | `get_template_catalog` | **implementada** (4.2), pública |
 | E — Consulta | `get_puzzle`, `get_rules_for` | **implementadas** (4.3), vistas filtradas |
+| F — Meta-tools | `find_tools`, `tool_schema`, `run_tool`, `upload` | **implementadas** (D-12, auditoría) |
 
 Con 4.5 todo el toolset está implementado; una tool sin `run` respondería con `isError: true`, el
 texto `❌ <tool>: no implementado todavía (ticket 4.x)…` y `structuredContent.error.code =
 "NOT_IMPLEMENTED"`. Los errores usan los mismos códigos (`UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`,
 `INVALID_DRAFT`, `INVALID_INPUT`, `VALIDATION_FAILED`, `NOT_PUBLISHABLE`, `RESPONSE_TOO_LARGE`,
-`NOT_AVAILABLE`, `INTERNAL`); los de una referencia inexistente llevan además `reason` y los ids `available` (specs/10 §3).
+`PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`, `UPLOAD_BLOCKED`, `RATE_LIMITED`, `NOT_AVAILABLE`,
+`INTERNAL`); los de
+una referencia inexistente llevan además `reason` y los ids `available` (specs/10 §3).
+
+### Meta-tools (D-12 de la auditoría)
+
+`find_tools({query?, phase?})` → `tool_schema({name})` → `run_tool({name, arguments?})`: el
+descubrimiento diferido del catálogo de tools de contenido (`CONTENT_TOOLSET` en `tools/index.ts`),
+copiado de SLXD (specs/10 §1.1). `run_tool` delega en el mismo `runTool` que usa el registro directo
+de cada tool (identidad, traducción de errores, tope de tamaño): no es un atajo. Solo puede ejecutar
+tools de `CONTENT_TOOLSET`, que por construcción no incluye a las meta-tools — así `run_tool` no
+puede alcanzarse a sí misma ni a las otras tres, sin necesitar una lista de bloqueo aparte.
+
+`upload({kind: "cover_image" | "audio", roomId?, filename, contentType, data, rightsDeclared?})` sube
+un asset en base64 (MCP no transporta binarios por streaming) reutilizando los mismos servicios de
+dominio que la web: `RoomCoverService.uploadCoverImage` (portada de sala, A-12: autorización + magic
+bytes + 5 MB) o `AudioAssetService.uploadAudio` (biblioteca del creador, 3.11: tipo real + duración +
+pre-filtro de moderación + 10 MB). Sin `deps.roomCover`/`deps.audio` inyectados (p. ej. el proceso
+stdio, sin bucket), responde `NOT_AVAILABLE` para ese `kind`.
+
+**Cuota de `upload` (revisión de la PR #168).** El límite genérico de llamadas del MCP (por token,
+ver más abajo) no basta por sí solo: permitiría subir ficheros de hasta 10 MB al mismo ritmo que
+cualquier tool barata, saltándose la cuota de almacenamiento/moderación de la web. `upload` consume
+además la MISMA política que su ruta REST equivalente (`room-cover-write`/`audio-upload`,
+`docs/reference/seguridad.md` §1) con la MISMA clave (`<política>:user:<userId>`) sobre el mismo
+`slidingRateLimiter` (`@escaperoom/kit/rate-limit`) — comparten cupo de verdad. El número vive en
+`RATE_LIMIT_POLICIES` de `packages/web` (que el MCP no importa, para no invertir la dependencia) y
+se inyecta por `deps.uploadQuota`; sin él, no hay cuota propia (solo aceptable en tests o en un
+proceso sin `packages/web` delante). Cuota agotada → `RATE_LIMITED` con `retryAfter` en segundos.
 
 `get_room`/`validate` leen el draft con `RoomDraftService.loadDraft` (misma autorización que el
 editor: solo el autor) y lo convierten a `RoomPackage` con `roomDocToPackage`, la conversión doc

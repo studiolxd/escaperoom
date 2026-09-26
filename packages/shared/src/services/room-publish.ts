@@ -142,32 +142,8 @@ export type PublishDraftReader = Pick<RoomDraftTx, "latestSnapshot" | "updatesAf
 
 // ── Errores ────────────────────────────────────────────────────────────────
 
-export type RoomPublishErrorCode =
-  | "UNAUTHORIZED"
-  | "FORBIDDEN"
-  | "NOT_FOUND"
-  | "VALIDATION_ERROR"
-  | "VERSION_CONFLICT"
-  /** El paquete candidato es idéntico al de la última versión publicada (ADR-035). */
-  | "NOTHING_TO_PUBLISH"
-  | "ROOM_NOT_PUBLISHABLE"
-  | "INVALID_PACKAGE"
-  | "UNSUPPORTED_PACKAGE_FORMAT"
-  | "VALIDATION_FAILED"
-  | "ASSETS_NOT_PUBLISHABLE"
-  | "SERIALIZER_UNAVAILABLE"
-  /** El draft ya no es el que se aprobó (`PublishGuard.packageHash`, ticket 4.5). */
-  | "DRAFT_CHANGED"
-  /** Se publicó otra versión desde que se aprobó (`PublishGuard.latestSemver`, ticket 4.5). */
-  | "VERSION_CHANGED"
-  /** Moderación (6.1): cuenta congelada por un reporte crítico pendiente. */
-  | "ACCOUNT_FROZEN"
-  /** Moderación (6.1): 2º strike en 90 días, publicación suspendida 14 días. */
-  | "CREATOR_SUSPENDED"
-  /** Moderación (6.1): ban como creador. */
-  | "CREATOR_BANNED"
-  /** Moderación (6.1): el pre-check automático bloqueó el contenido (apelable). */
-  | "CONTENT_BLOCKED";
+export { ROOM_PUBLISH_ERROR_CODES, type RoomPublishErrorCode } from "./error-codes";
+import type { RoomPublishErrorCode } from "./error-codes";
 
 export type RoomPublishErrorDetails = {
   /** Campos inválidos (entrada o `RoomPackage` que no cumple el esquema). */

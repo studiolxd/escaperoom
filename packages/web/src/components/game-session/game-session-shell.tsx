@@ -28,6 +28,7 @@ import {
   type GameEvent,
   type GameSnapshot,
 } from "@escaperoom/game-runtime/session";
+import { RATE_LIMITED_ERROR } from "@escaperoom/shared/error-codes";
 import type { HintRequestErrorCode } from "@escaperoom/shared/hints";
 import type { RoomPuzzlePublicView, SessionSummary } from "@escaperoom/shared/session";
 import type {
@@ -114,10 +115,10 @@ const FEEDBACK_KEY: Partial<Record<RuntimePuzzle["type"], keyof PanelFeedback>> 
 };
 
 /** Errores de protocolo con texto propio (specs/11 §7); el resto, genérico. */
-const KNOWN_ERRORS = new Set<string>([
+export const KNOWN_ERRORS = new Set<string>([
   ...Object.values(GAME_PROTOCOL_ERRORS),
   MOVE_OUT_OF_BOUNDS,
-  "RATE_LIMITED",
+  RATE_LIMITED_ERROR,
 ]);
 
 /**

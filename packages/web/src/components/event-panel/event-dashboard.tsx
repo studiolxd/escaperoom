@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
+import { ACCESS_KEY_CARDS_ERROR_CODES, EVENT_PANEL_ERROR_CODES } from "@escaperoom/shared/error-codes";
 import type { EventDashboard, EventSessionRow } from "@escaperoom/shared/services";
 import { Button } from "@/components/ui/button";
 import { EventTimeLimitDialog } from "./event-time-limit-dialog";
@@ -14,14 +15,10 @@ const POLL_MS = 5000;
 /** Cada cuánto se consulta un PDF de claves encolado (≥ 50 tarjetas). */
 const PDF_POLL_MS = 3000;
 
-const KNOWN_ERRORS = new Set([
-  "UNAUTHORIZED",
-  "FORBIDDEN",
-  "NOT_FOUND",
-  "NO_PRINTABLE_KEYS",
-  "SESSION_NOT_FOUND",
-  "SESSION_NOT_LIVE",
-  "SPECTATOR_UNAVAILABLE",
+/** Este panel agrega dos servicios: sesiones del evento y export de tarjetas. */
+export const KNOWN_ERRORS: ReadonlySet<string> = new Set([
+  ...EVENT_PANEL_ERROR_CODES,
+  "NO_PRINTABLE_KEYS" satisfies (typeof ACCESS_KEY_CARDS_ERROR_CODES)[number],
 ]);
 
 type PdfState =

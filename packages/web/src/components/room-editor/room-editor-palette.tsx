@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 import type { EditTool, EditorTileLayer } from "@escaperoom/editor";
 import type { EditorPalette } from "@escaperoom/game-runtime";
 import type { WorldObject } from "@escaperoom/shared/schemas";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 
 export interface RoomEditorPaletteProps {

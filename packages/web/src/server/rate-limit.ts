@@ -145,11 +145,28 @@ export const RATE_LIMIT_POLICIES = {
   },
   /**
    * `POST /api/rooms/:roomId/cover-image` (A-12): el autor sube la portada
-   * de su sala. Antes sin cuota (E-17/A-12).
+   * de su sala. Antes sin cuota (E-17/A-12). Ahora también la consume la
+   * meta-tool `upload` del MCP con `kind: "cover_image"` (revisión de la PR
+   * #168, D-12): comparten cupo por usuario (misma clave
+   * `room-cover-write:user:<id>` sobre el mismo `slidingRateLimiter`), así
+   * que el MCP no es un atajo para saltarse esta cuota.
    */
   "room-cover-write": {
     ip: { limit: 20, windowSeconds: 3600 },
     user: { limit: 10, windowSeconds: 3600 },
+  },
+  /**
+   * `POST /api/audio/uploads` (3.11): el creador sube un MP3 propio a la
+   * biblioteca. No tenía cuota (hueco encontrado al revisar la PR #168, D-12,
+   * al cablear la misma cuota para la meta-tool `upload` del MCP con
+   * `kind: "audio"`) — sin ella, tanto la ruta REST como el MCP podían
+   * encolar subidas sin límite a moderación y al bucket. Más estricta que
+   * `room-cover-write`: los ficheros son mayores (10 MB vs. 5 MB) y cada uno
+   * cuesta además una revisión humana en la cola de moderación (specs/17).
+   */
+  "audio-upload": {
+    ip: { limit: 10, windowSeconds: 3600 },
+    user: { limit: 6, windowSeconds: 3600 },
   },
   /**
    * `POST /api/mcp/oauth/register` — registro dinámico de clientes OAuth

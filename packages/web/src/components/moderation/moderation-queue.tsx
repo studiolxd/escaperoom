@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
+import type { ModerationErrorCode } from "@escaperoom/shared/error-codes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,13 +59,15 @@ const ENDPOINT: Record<Tab, string> = {
   audio: "/api/admin/audio",
 };
 
-const KNOWN_ERRORS = new Set([
+// `Moderation.errors` (messages/es.json) solo traduce estos 5 de los 9 códigos
+// de `ModerationErrorCode`; el resto cae en `errors.UNKNOWN` (F-9 pendiente).
+export const KNOWN_ERRORS: ReadonlySet<string> = new Set([
   "UNAUTHORIZED",
   "FORBIDDEN",
   "NOT_FOUND",
   "ALREADY_REVIEWED",
   "VALIDATION_ERROR",
-]);
+] satisfies readonly ModerationErrorCode[]);
 
 const SEVERITY_CLASS: Record<QueueReport["severity"], string> = {
   critical: "bg-red-500/20 text-red-200 border-red-400/40",

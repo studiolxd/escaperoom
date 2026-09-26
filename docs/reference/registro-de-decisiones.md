@@ -175,7 +175,7 @@ con estilos por dato; el MCP edita el mismo grafo (datos en Yjs) sin capa de sin
 
 ---
 
-## ADR-010 — MCP del creador: los mismos servicios que el editor (revisado 2026-09-22)
+## ADR-010 — MCP del creador: los mismos servicios que el editor (revisado 2026-09-26)
 
 **Contexto original:** el MCP se diseñó como cliente fino de la API REST, para garantizar la paridad
 editor↔MCP. Al copiar el patrón de SLXD (ADR-022) se comprobó que compartir **contrato** es más débil
@@ -185,8 +185,22 @@ que compartir **lógica**.
 reimplementan lógica**. Igual que el router tRPC del editor y las rutas REST públicas, llaman a la
 **misma capa de servicios de dominio** (`packages/shared/services`), con un
 `actor {organizationId, userId, role}` como única diferencia — el patrón verificado en SLXD
-(`specs/04` § "Mutar por MCP"). Las tools que mutan llevan `destructiveHint` y pasan por el gate de
-confirmación; el agente sigue siendo un colaborador más del doc Yjs.
+(`specs/04` § "Mutar por MCP"). El agente sigue siendo un colaborador más del doc Yjs.
+
+**Confirmación de mutaciones (revisado 2026-09-26, auditoría D-12):** las tools que mutan el draft
+llevan `destructiveHint`/`readOnlyHint` como anotaciones estándar del protocolo MCP (información
+para el cliente), pero **no** pasan por ningún gate de confirmación propio: el draft es reversible
+(historial Yjs, validador incremental en cada mutación, `dryRun` para ensayar sin escribir), así que
+exigir `confirm: true` en cada paso solo añadía fricción sin reducir riesgo real. La única operación
+irreversible, `publish`, mantiene su confirmación humana explícita (4.5: el MCP pide, el creador
+confirma en la web). Se revisa así la decisión original de ADR-010, que prometía copiar también el
+gate de mutaciones de SLXD.
+
+**Meta-tools (D-12):** sí se implementan las cuatro de specs/10 §1.1 — `find_tools`/`tool_schema`/
+`run_tool` (descubrimiento diferido: buscar, inspeccionar el esquema y ejecutar sin cargar todo el
+catálogo en cada turno) y `upload` (subida de assets en base64, reutilizando `RoomCoverService` y
+`AudioAssetService` sin lógica paralela). `run_tool` delega en el mismo pipeline que una llamada
+directa y no puede alcanzar ni a sí misma ni a las otras tres meta-tools.
 
 **Consecuencias:** la paridad editor↔MCP es literal (mismo código, no solo mismo contrato); no hay dos
 superficies que sincronizar; se reutilizan `@slxd/mcp-server` y `@slxd/mcp-auth`. El transporte es

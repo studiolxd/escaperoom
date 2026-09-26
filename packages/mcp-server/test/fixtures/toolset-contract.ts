@@ -18,12 +18,21 @@ export function toolsetContract(getClient: () => Client): void {
       expect(tool.description).toBe(def?.description);
       expect(tool.inputSchema.type).toBe("object");
       expect(tool.annotations).toMatchObject(def?.annotations ?? {});
-      if (def && "roomId" in def.inputSchema.shape) {
+      // Las meta-tools (D-12) no operan sobre un draft ni tienen ensayo
+      // `dryRun`: `upload` tiene un `roomId` opcional (solo para `kind:
+      // "cover_image"`), y `run_tool`/`find_tools`/`tool_schema` no mutan el
+      // draft — mutan (o no) lo que la tool delegada decida.
+      if (def && def.phase !== "meta" && "roomId" in def.inputSchema.shape) {
         expect(tool.inputSchema.required).toContain("roomId");
       }
       // Toda tool implementada que muta el draft admite el ensayo `dryRun` (4.4),
       // opcional. `publish` no escribe (solo pide la confirmación humana, 4.5).
-      if (def?.run && def.annotations.readOnlyHint === false && def.name !== "publish") {
+      if (
+        def?.run &&
+        def.phase !== "meta" &&
+        def.annotations.readOnlyHint === false &&
+        def.name !== "publish"
+      ) {
         expect(Object.keys(tool.inputSchema.properties ?? {}), tool.name).toContain("dryRun");
         expect(tool.inputSchema.required ?? []).not.toContain("dryRun");
       }

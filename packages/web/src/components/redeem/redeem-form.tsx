@@ -5,6 +5,11 @@ import { useLocale, useTranslations } from "next-intl";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import {
+  RATE_LIMITED_ERROR,
+  REDEEM_UNAVAILABLE_ERROR,
+  type AccessKeyErrorCode,
+} from "@escaperoom/shared/error-codes";
 import { redeemAccessKey } from "@/actions/redeem";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
@@ -12,15 +17,17 @@ import { Input } from "@/components/ui/input";
 import { eventPlayPath } from "@/lib/game-net";
 
 /** Códigos de error de `redeemAccessKey` con mensaje propio. */
-const KNOWN_ERRORS = new Set([
-  "ACCESS_KEY_INVALID",
-  "ACCESS_KEY_USED",
-  "ACCESS_KEY_EXPIRED",
-  "ACCESS_KEY_NOT_CONFIRMED",
-  "SESSION_FULL",
-  "SESSION_REQUIRED",
-  "RATE_LIMITED",
-  "REDEEM_UNAVAILABLE",
+export const KNOWN_ERRORS: ReadonlySet<string> = new Set([
+  ...([
+    "ACCESS_KEY_INVALID",
+    "ACCESS_KEY_USED",
+    "ACCESS_KEY_EXPIRED",
+    "ACCESS_KEY_NOT_CONFIRMED",
+    "SESSION_FULL",
+    "SESSION_REQUIRED",
+  ] satisfies readonly AccessKeyErrorCode[]),
+  RATE_LIMITED_ERROR,
+  REDEEM_UNAVAILABLE_ERROR,
 ]);
 
 function useRedeemSchema() {

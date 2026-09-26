@@ -1,7 +1,11 @@
 "use server";
 
 import { headers } from "next/headers";
-import { AccessKeyError, type RedeemResult } from "@escaperoom/shared/services";
+import {
+  AccessKeyError,
+  REDEEM_UNAVAILABLE_ERROR,
+  type RedeemResult,
+} from "@escaperoom/shared/services";
 import { resolveActorFromHeaders } from "@/server/context";
 import { getRedeemService } from "@/server/services";
 import {
@@ -36,7 +40,7 @@ export async function redeemAccessKey(
   const actor = await resolveActorFromHeaders(hdrs);
   const redeem = getRedeemService();
   if (!redeem) {
-    return actionError("REDEEM_UNAVAILABLE", "El canje de claves no está disponible");
+    return actionError(REDEEM_UNAVAILABLE_ERROR, "El canje de claves no está disponible");
   }
 
   try {
