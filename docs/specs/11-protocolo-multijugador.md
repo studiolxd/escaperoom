@@ -422,6 +422,33 @@ Al terminar la partida (`game_ended`: victoria, derrota o tiempo agotado):
    (compra sin evento) no tiene panel de resultados fuera de la room; si se necesita, es un
    ticket aparte (no lo cubre esta corrección).
 
+### 8.2 Partidas abandonadas (decisión del usuario, 2026-09-26)
+
+En juego (`starting`/`playing`) la plaza se reserva **indefinidamente** al desconectar (§8, C-2:
+`allowReconnection(client, "manual")`) — se puede volver en cualquier momento mientras dure la
+partida. Con duración, una partida sin nadie termina igual al agotar el cronómetro; **sin
+duración** (ticket duración-salas), nada la cerraba: quedaba una room zombi para siempre, y en una
+compra B2C su latido (`heartbeatPlaySession`) dejaba la compra "en curso" indefinidamente.
+
+Regla: si una partida lanzada se queda **sin ningún jugador conectado durante
+`ABANDONED_GAME_TIMEOUT_SEC`** (1 h por defecto, `constants.ts`; acortable en tests con el mismo
+patrón que `lobbyReconnectGraceSeconds` — `abandonedGameTimeoutSeconds`), se cierra:
+
+1. Cualquier reconexión o entrada tardía antes de agotar el plazo cancela la cuenta atrás; con al
+   menos un jugador conectado la partida nunca se cierra por esto.
+2. Al cumplirse, se fuerza el resultado `aborted` (`RoomSession.abort`, sobre `endSession` de
+   `@escaperoom/shared/session` — el mismo cierre externo sin resultado del motor que ya
+   contemplaba `resolveSessionResult`) y se reutiliza el camino normal de fin de partida (§8.1:
+   `game_ended`, rechazo de reconexiones pendientes, destrucción tras `RESULTS_ROOM_LIFETIME_SEC`).
+3. **Compras (B2C)**: a diferencia de un `game_ended` normal (que CONSUME la compra,
+   `markPlaySessionEnded`), el cierre por abandono la LIBERA (`releasePlaySession`) — no se gasta
+   la única partida de la compra por un abandono; el usuario puede volver a reclamarla.
+4. **`EventRoom`**: sin cambios propios — su `onMilestone` ya persiste cualquier `game_ended` tal
+   cual (resultado incluido) y `event-runtime.ts` ya distingue `aborted` (`session.status =
+   "aborted"`, sin `group.completedAt`: `completesGroup` solo victoria/tiempo) de un fin normal.
+   El panel del organizador muestra el grupo con ese estado, igual que cualquier partida terminada.
+5. El lobby no cambia: sigue con `LOBBY_RECONNECT_GRACE_SEC` (60 s).
+
 ## 9. Rate limiting y validaciones de protocolo
 
 | Mensaje | Límite |

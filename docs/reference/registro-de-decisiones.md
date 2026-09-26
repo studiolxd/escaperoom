@@ -1456,3 +1456,63 @@ mano, MCP. Se retira la escritura manual en `insertVersion` (redundante). Nuevo 
 (`packages/shared/test/seed-room-languages.integration.test.ts`) que corre el seed REAL como
 subproceso y comprueba contra el catálogo que el Rey Aldric sembrado aparece al filtrar por su
 idioma — habría fallado con la versión anterior de este ADR.
+
+## ADR-043 — Cierre de partidas abandonadas: sin nadie conectado 1 h, se cierra como `aborted` y libera la compra (2026-09-26)
+
+**Contexto:** en juego (`starting`/`playing`) la plaza se reserva indefinidamente al desconectar
+(`GameRoom.onDrop` → `allowReconnection(client, "manual")`, C-2 — se puede volver en cualquier
+momento mientras dure la partida). Con duración, una partida sin nadie termina igual al agotar el
+cronómetro; **sin duración** (ADR-038/#169), nada la cerraba: quedaba una room zombi para siempre,
+y en una compra B2C su latido (`heartbeatPlaySession`) dejaba la compra "en curso" indefinidamente.
+
+**Decisión:** si una partida lanzada se queda sin ningún jugador conectado durante
+`ABANDONED_GAME_TIMEOUT_SEC` (1 h, `colyseus-server/src/constants.ts`; punto de extensión
+`abandonedGameTimeoutSeconds()`, mismo patrón que `lobbyReconnectGraceSeconds`), la `GameRoom` la
+cierra:
+
+1. Cualquier reconexión o entrada tardía antes de agotar el plazo cancela la cuenta atrás
+   (`scheduleAbandonedGameCheck`/`cancelAbandonedGameCheck`, enganchados en `onDrop`/`onLeave`/
+   `onJoin`/`onReconnect`/`adoptSeat` — los únicos puntos donde el nº de conectados puede llegar a
+   cero o dejar de estarlo).
+2. Al cumplirse, se añade `RoomSession.abort(now)` (`packages/shared/src/session/room-session.ts`)
+   que fuerza el resultado `aborted` reutilizando `endSession` (ya existía en `end-game.ts`, sin
+   usar hasta ahora: cierre externo sin resultado del motor, específicamente pensado para esto) y
+   mutando `engine.state` en el sitio (el motor no expone un setter de `state`, solo el getter). El
+   cierre en sí reutiliza `announceEnd()` sin duplicarlo: difunde `game_ended`, registra el hito,
+   rechaza las reconexiones pendientes y programa la destrucción tras `RESULTS_ROOM_LIFETIME_SEC`,
+   exactamente como un fin de partida normal.
+3. **Compras (B2C):** a diferencia de un `game_ended` normal (que CONSUME la compra vía
+   `markPlaySessionEnded` — decisión de specs/02, "una compra = una partida", gastada al terminar),
+   el cierre por abandono la LIBERA (`releasePlaySession`, el mismo camino que ya usaba `onDispose`
+   cuando la partida no terminó) — un `closedAsAbandoned` interno de la room distingue el caso en
+   `onMilestone`. Se decide así porque nadie llegó a terminar realmente la partida: no tendría
+   sentido gastar la única partida de la compra por una desconexión de todos que nunca volvió.
+4. **`EventRoom`:** sin cambios propios. Su `onMilestone` ya persistía cualquier `game_ended` tal
+   cual llegue (resultado incluido) y `event-runtime.ts` ya distinguía `aborted` de un fin normal
+   desde antes de este ticket: `completesGroup(result)` (solo victoria/tiempo) decide si se escribe
+   `group.completedAt`, y `recordMilestone` ya fijaba `session.status = "aborted"` para ese
+   resultado. El panel del organizador ya mostraba ese estado para cualquier sesión que terminara
+   así (p. ej. un `end_game result=abandoned` de una regla de sala) — una partida cerrada por este
+   ticket no es distinguible, a ojos del panel, de cualquier otro cierre "abortado".
+
+**Alternativas descartadas:**
+
+- **Job periódico que barra rooms activas buscando abandono:** descartado — cada `GameRoom` ya sabe
+  en el instante exacto en que se queda sin nadie conectado (`onDrop`/`onLeave`); un job periódico
+  añadiría latencia (hasta su siguiente pasada) y una fuente de estado extra (qué rooms están
+  vivas) que Colyseus ya mantiene él mismo.
+- **Reutilizar `allowReconnection` con segundos finitos en vez de `"manual"` durante el juego:**
+  descartado — cambiaría la semántica ya decidida (C-2: "se puede volver en cualquier momento
+  mientras dure la partida", sin plazo por jugador individual) por una MUY distinta (plazo por
+  jugador, no por room sin nadie); el temporizador de este ADR opera a nivel de room, no de plaza.
+- **Consumir la compra igual que un fin normal:** descartado por decisión explícita del usuario — el
+  criterio de "una compra = una partida" asume que la partida se JUGÓ; un abandono total sin que
+  nadie volviera en 1 h no cumple eso.
+
+**Consecuencias:** `specs/11` §8.2 documenta la regla; constante y punto de extensión nuevos en
+`colyseus-server/src/constants.ts`/`GameRoom`; `RoomSession.abort` nuevo en `packages/shared`
+(reutiliza `endSession`, ya exportado pero sin ningún llamador hasta ahora). Tests de servidor
+(`packages/colyseus-server/test/game-room-abandoned.test.ts`): cierre a los N s acortados con
+resultado `aborted` y `dispose` posterior; reconexión antes de N cancela la cuenta atrás; con un
+jugador conectado nunca se cierra; sala sin duración; compra liberada (no consumida); `EventRoom`
+con `session.status = "aborted"` y sin `group.completedAt`.
