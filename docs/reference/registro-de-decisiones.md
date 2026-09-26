@@ -1384,3 +1384,60 @@ explícitamente en specs/11 §2.2 para que no se confunda con el `force` de un a
   `matchMaker.remoteRoomCall` (usado ya por el progreso del panel, ticket 5.9) resuelve exactamente
   esto sin inventar un mecanismo nuevo; `kit/room-sync` es específico de `editor-sync` (borradores
   Yjs), no de Colyseus.
+
+---
+
+## ADR-042 — Filtro de idiomas del catálogo: `room.languages` denormalizado, se retira el GIN sobre `roomVersion.package` (E-23, 2026-09-26)
+
+**Contexto:** `ixRoomVersionPackage` (GIN `jsonb_path_ops` sobre `roomVersion.package`, 0005_rooms)
+indexaba el `RoomPackage` ENTERO (mapa, objetos, puzzles, diálogos…) para servir un único filtro del
+catálogo público (`meta.languages`, `catalog-listing.ts`). La auditoría de 2026-09-24 (E-23) señaló
+que sobra indexar todo el paquete cuando solo se consulta `meta.languages` (o `meta` entera).
+
+Medido con ~4500 versiones/1500 salas (volumen realista, paquete con el tamaño real de la plantilla
+Rey Aldric, `~28 kB`): el índice pesaba **11 MB**, más de la mitad del tamaño de `roomVersion`. Pero
+el problema no era solo el tamaño — con `EXPLAIN (ANALYZE, BUFFERS)` sobre la consulta REAL del
+catálogo, el índice **nunca se usaba**: el filtro `latest.package @> {"meta":{"languages":[...]}}`
+se aplica en el `WHERE` de la CTE `latest`, que ya es la salida MATERIALIZADA del `DISTINCT ON`
+(última versión por sala) — Postgres no puede empujar un índice de `roomVersion` a través de esa
+subconsulta ya calculada, así que el plan siempre era `Seq Scan` + `Filter`, nunca `Bitmap Index
+Scan` (confirmado forzando `enable_seqscan = off`: el índice SÍ puede usarse si se filtra
+`roomVersion` directamente, pero la consulta del catálogo no lo hace así). Esto pasaba con
+cualquier forma de índice sobre `package` (completo o por expresión, `package->'meta'`): el filtro
+sigue aplicándose después del `DISTINCT ON`, así que una indexación más pequeña no arregla que el
+índice esté fuera del alcance del planificador.
+
+**Decisión:** se añade `room.languages text[]` (meta.languages de la ÚLTIMA versión publicada,
+escrito en el mismo publish que crea la `roomVersion` — `room-publish-prisma-store.ts`), con
+`ixRoomLanguages` (GIN sobre el array) y backfill en la propia migración
+(`20260926180000_room_languages_index`). Se borra `ixRoomVersionPackage` en la misma migración. La
+consulta del catálogo mueve el filtro de idiomas AL `WHERE` de la CTE `latest` (antes del
+`DISTINCT ON`, sobre `room` — una fila por sala, no por versión), no al `WHERE` de fuera: así las
+salas que no casan se descartan ANTES de calcular su última versión, no solo se evita leer el JSONB
+completo.
+
+**Medición después:** mismo volumen (~4500 versiones/1500 salas) — `ixRoomLanguages` pesa **72 kB**
+(antes 11 MB). Con un idioma selectivo (`de`, ~19 % de las salas) la consulta baja de
+~85–91 ms (plan roto: siempre recorre TODAS las versiones antes de filtrar) a **~9 ms**; con uno
+poco selectivo (`es`, ~65 %) baja a ~40 ms — el filtro ahora escala con la selectividad, cosa que el
+índice anterior nunca hacía porque nunca se usaba. Insertar una `roomVersion` (paquete ~28 kB) +
+actualizar `room.languages` sigue en ~2,5 ms de media (30 inserciones): sin penalización de
+escritura medible a este volumen; el ahorro real de escritura es evitar mantener un índice GIN de
+11 MB (y creciendo con cada publicación) que no aportaba nada a la lectura.
+
+**Alternativas descartadas:**
+
+- **Índice por expresión sobre `package->'meta'` o `package->'meta'->'languages'`** (más pequeño que
+  indexar el paquete entero): descartado tras medir — no resuelve el problema real, que es que el
+  filtro se aplica sobre la salida materializada del `DISTINCT ON`, no sobre `roomVersion`
+  directamente; el índice seguiría sin usarse nunca en la consulta real del catálogo.
+- **Filtrar `roomVersion.package` DENTRO de la CTE, antes del `DISTINCT ON`**: descartado — cambia
+  la semántica: filtrar versiones antes de deduplicar seleccionaría "la versión más reciente que
+  case", no "¿la versión ACTUAL de la sala casa?" (una sala que retiró un idioma en su última
+  versión debe dejar de aparecer, aunque una versión antigua sí lo tuviera).
+
+**Consecuencias:** `specs/14` y `docs/reference/seguridad.md` actualizados (columna/índice nuevos,
+sin el GIN de `roomVersion`); test de integración que comprueba plan de consulta
+(`packages/shared/test/catalog-listing-index.integration.test.ts`). La caché del catálogo (`v3`,
+ADR-027/#177) no cambia de versión: el filtro sigue devolviendo exactamente lo mismo, solo cambia
+cómo se calcula en Postgres.
