@@ -28,7 +28,8 @@ Con 4.5 todo el toolset está implementado; una tool sin `run` respondería con 
 texto `❌ <tool>: no implementado todavía (ticket 4.x)…` y `structuredContent.error.code =
 "NOT_IMPLEMENTED"`. Los errores usan los mismos códigos (`UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`,
 `INVALID_DRAFT`, `INVALID_INPUT`, `VALIDATION_FAILED`, `NOT_PUBLISHABLE`, `RESPONSE_TOO_LARGE`,
-`PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`, `UPLOAD_BLOCKED`, `NOT_AVAILABLE`, `INTERNAL`); los de
+`PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`, `UPLOAD_BLOCKED`, `RATE_LIMITED`, `NOT_AVAILABLE`,
+`INTERNAL`); los de
 una referencia inexistente llevan además `reason` y los ids `available` (specs/10 §3).
 
 ### Meta-tools (D-12 de la auditoría)
@@ -46,6 +47,16 @@ dominio que la web: `RoomCoverService.uploadCoverImage` (portada de sala, A-12: 
 bytes + 5 MB) o `AudioAssetService.uploadAudio` (biblioteca del creador, 3.11: tipo real + duración +
 pre-filtro de moderación + 10 MB). Sin `deps.roomCover`/`deps.audio` inyectados (p. ej. el proceso
 stdio, sin bucket), responde `NOT_AVAILABLE` para ese `kind`.
+
+**Cuota de `upload` (revisión de la PR #168).** El límite genérico de llamadas del MCP (por token,
+ver más abajo) no basta por sí solo: permitiría subir ficheros de hasta 10 MB al mismo ritmo que
+cualquier tool barata, saltándose la cuota de almacenamiento/moderación de la web. `upload` consume
+además la MISMA política que su ruta REST equivalente (`room-cover-write`/`audio-upload`,
+`docs/reference/seguridad.md` §1) con la MISMA clave (`<política>:user:<userId>`) sobre el mismo
+`slidingRateLimiter` (`@escaperoom/kit/rate-limit`) — comparten cupo de verdad. El número vive en
+`RATE_LIMIT_POLICIES` de `packages/web` (que el MCP no importa, para no invertir la dependencia) y
+se inyecta por `deps.uploadQuota`; sin él, no hay cuota propia (solo aceptable en tests o en un
+proceso sin `packages/web` delante). Cuota agotada → `RATE_LIMITED` con `retryAfter` en segundos.
 
 `get_room`/`validate` leen el draft con `RoomDraftService.loadDraft` (misma autorización que el
 editor: solo el autor) y lo convierten a `RoomPackage` con `roomDocToPackage`, la conversión doc

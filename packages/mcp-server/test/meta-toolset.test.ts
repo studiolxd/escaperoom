@@ -1,16 +1,29 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
+  __resetInMemoryRateLimitersForTests,
+  slidingRateLimiter,
+} from "@escaperoom/kit/rate-limit";
+import {
   AudioError,
   RoomCoverError,
   type AudioAssetRow,
   type AudioAssetService,
   type RoomCoverService,
 } from "@escaperoom/shared/services";
-import { describe, expect, it } from "vitest";
-import { createCreatorMcpServer, type CreatorMcpDeps } from "../src";
+import { beforeEach, describe, expect, it } from "vitest";
+import { createCreatorMcpServer, type CreatorMcpDeps, type UploadQuotaPolicy } from "../src";
 import { call, errorCode } from "./fixtures/client";
 import { ALDRIC_ROOM_ID, AUTHOR, FOREIGN_ROOM_ID, createTestDeps } from "./fixtures/drafts";
+
+/**
+ * Ventana en memoria (sin `REDIS_URL` en test/CI) del `slidingRateLimiter`
+ * compartido: reiniciarla entre tests evita que la cuota de uno contamine al
+ * siguiente (mismo patrón que `packages/web/test/rate-limit.test.ts`).
+ */
+beforeEach(() => {
+  __resetInMemoryRateLimitersForTests();
+});
 
 const fakeRoomCover = (): Pick<RoomCoverService, "uploadCoverImage"> => ({
   async uploadCoverImage(_actor, roomId) {
@@ -250,6 +263,86 @@ describe("upload", () => {
     }
   });
 
+  it("kind: cover_image agotada la cuota, devuelve RATE_LIMITED con retryAfter", async () => {
+    const deps = await createTestDeps(AUTHOR);
+    const quota: UploadQuotaPolicy = {
+      policyName: "test-cover-quota",
+      user: { limit: 2, windowSeconds: 60 },
+    };
+    const { client, close } = await connect({
+      ...deps,
+      roomCover: fakeRoomCover(),
+      uploadQuota: { coverImage: quota },
+    });
+    try {
+      const uploadOnce = () =>
+        call(client, "upload", {
+          kind: "cover_image",
+          roomId: ALDRIC_ROOM_ID,
+          filename: "cover.png",
+          contentType: "image/png",
+          data: smallPng,
+        });
+      expect((await uploadOnce()).isError).toBe(false);
+      expect((await uploadOnce()).isError).toBe(false);
+      const third = await uploadOnce();
+      expect(third.isError).toBe(true);
+      expect(errorCode(third)).toBe("RATE_LIMITED");
+      expect((third.structured?.error as { retryAfter?: number })?.retryAfter).toBeGreaterThan(0);
+    } finally {
+      await close();
+    }
+  });
+
+  it("kind: cover_image comparte cuota con la web: la misma clave ya consumida por la ruta REST también bloquea el MCP", async () => {
+    const deps = await createTestDeps(AUTHOR);
+    const quota: UploadQuotaPolicy = {
+      policyName: "test-cover-quota-shared",
+      user: { limit: 1, windowSeconds: 60 },
+    };
+    // Simula lo que haría `withRateLimit("room-cover-write", …)` en la ruta
+    // REST: la MISMA clave (`<policyName>:user:<userId>`) sobre el MISMO
+    // `slidingRateLimiter` — no un contador aparte del MCP.
+    await slidingRateLimiter.hit(`${quota.policyName}:user:${AUTHOR.userId}`, 1, 60);
+    const { client, close } = await connect({
+      ...deps,
+      roomCover: fakeRoomCover(),
+      uploadQuota: { coverImage: quota },
+    });
+    try {
+      const result = await call(client, "upload", {
+        kind: "cover_image",
+        roomId: ALDRIC_ROOM_ID,
+        filename: "cover.png",
+        contentType: "image/png",
+        data: smallPng,
+      });
+      expect(result.isError).toBe(true);
+      expect(errorCode(result)).toBe("RATE_LIMITED");
+    } finally {
+      await close();
+    }
+  });
+
+  it("sin deps.uploadQuota, no aplica ninguna cuota propia (solo el límite genérico del MCP)", async () => {
+    const deps = await createTestDeps(AUTHOR);
+    const { client, close } = await connect({ ...deps, roomCover: fakeRoomCover() });
+    try {
+      for (let i = 0; i < 5; i += 1) {
+        const result = await call(client, "upload", {
+          kind: "cover_image",
+          roomId: ALDRIC_ROOM_ID,
+          filename: "cover.png",
+          contentType: "image/png",
+          data: smallPng,
+        });
+        expect(result.isError, `intento ${i + 1}`).toBe(false);
+      }
+    } finally {
+      await close();
+    }
+  });
+
   it("kind: cover_image respeta la autorización: no se puede subir a una sala ajena", async () => {
     const deps = await createTestDeps(AUTHOR);
     const { client, close } = await connect({ ...deps, roomCover: fakeRoomCover() });
@@ -315,6 +408,35 @@ describe("upload", () => {
       });
       expect(result.isError, result.text).toBe(false);
       expect(result.structured?.status).toBe("pending");
+    } finally {
+      await close();
+    }
+  });
+
+  it("kind: audio agotada la cuota, devuelve RATE_LIMITED (misma cuota que audio-upload)", async () => {
+    const deps = await createTestDeps(AUTHOR);
+    const quota: UploadQuotaPolicy = {
+      policyName: "test-audio-quota",
+      user: { limit: 1, windowSeconds: 60 },
+    };
+    const { client, close } = await connect({
+      ...deps,
+      audio: fakeAudio(),
+      uploadQuota: { audio: quota },
+    });
+    try {
+      const uploadOnce = () =>
+        call(client, "upload", {
+          kind: "audio",
+          filename: "musica.mp3",
+          contentType: "audio/mpeg",
+          data: smallPng,
+          rightsDeclared: true,
+        });
+      expect((await uploadOnce()).isError).toBe(false);
+      const second = await uploadOnce();
+      expect(second.isError).toBe(true);
+      expect(errorCode(second)).toBe("RATE_LIMITED");
     } finally {
       await close();
     }

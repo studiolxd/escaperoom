@@ -54,7 +54,9 @@ Se copia el patrón de SLXD (ADR-017/022):
   límite de tamaño de respuesta; no puede ejecutarse a sí misma ni a las otras meta-tools). `upload`
   sube un asset (imagen de portada o audio) en base64 — MCP no transporta binarios por streaming —
   reutilizando los servicios de subida que ya existen en la web (`RoomCoverService`,
-  `AudioAssetService`), con los mismos límites de tipo y tamaño.
+  `AudioAssetService`), con los mismos límites de tipo, tamaño y cuota (`docs/reference/seguridad.md`
+  §1): el límite genérico de llamadas del MCP no basta por sí solo para una tool que sube ficheros de
+  hasta 10 MB.
 - **La costura:** cada tool llama a un **servicio de dominio** con un `actor`; no reimplementa el
   router tRPC (ADR-010).
 

@@ -56,6 +56,8 @@ canjea sus claves detrás del mismo NAT: los canjes correctos no la tocan.
 | `contact-write` | `POST /api/contact` (público, sin sesión) | 5 / 10 min | — | — |
 | `terms-acceptance-write` | `POST /api/legal/terms-acceptance` (reaceptación de términos) | 20 / 1 h | 10 / 1 h | — |
 | `free-room-play` | `GET /api/rooms/:roomId/free-access` (público, sin sesión) | 20 / 1 h | — | — |
+| `room-cover-write` | `POST /api/rooms/:roomId/cover-image` (A-12); mismo cupo que la meta-tool `upload` del MCP con `kind: "cover_image"` (revisión de la PR #168, D-12) | 20 / 1 h | 10 / 1 h | — |
+| `audio-upload` | `POST /api/audio/uploads` (3.11); mismo cupo que `upload` del MCP con `kind: "audio"` (revisión de la PR #168, D-12) | 10 / 1 h | 6 / 1 h | — |
 
 Razonamiento de los números:
 
@@ -73,10 +75,19 @@ Razonamiento de los números:
   corresponde 1:1 a una `GameRoom` nueva, así que esta cuota es también el límite de rooms por IP
   que pide el punto i contra abuso; 20/hora deja jugar varias veces de verdad sin abrir la puerta a
   un bucle automatizado de creación de rooms.
+- **Portada y audio.** `room-cover-write` no cambia con esta revisión. `audio-upload` es más
+  estricto (10/6 en vez de 20/10 por hora): los ficheros son mayores (10 MB vs. 5 MB) y cada uno
+  cuesta además una revisión humana en la cola de moderación (specs/17) — antes de la PR #168 no
+  tenía ninguna cuota.
 
 **Fuera de este limitador**, a propósito:
 
-- **MCP**: el ticket 4.7 aplica su propio límite por token; no se duplica.
+- **MCP**: el ticket 4.7 aplica su propio límite por token (genérico, pensado para tools baratas) a
+  TODAS las tools; no se duplica con esta tabla. Excepción: la meta-tool `upload` (D-12, revisión de
+  la PR #168) además consume la MISMA cuota por usuario que su ruta REST equivalente
+  (`room-cover-write`/`audio-upload`, con la clave `<política>:user:<id>` sobre el mismo
+  `slidingRateLimiter`) — el límite genérico por token no basta para una tool que sube ficheros de
+  hasta 10 MB, y sin esto sería un atajo para saltarse la cuota de la web.
 - **`POST /api/stripe/webhook`**: specs/13 §11 pide limitarlo por firma válida, no por IP; la
   verificación de firma ya descarta lo ajeno, así que no lleva `withRateLimit`.
 - **`/api/auth/*`** (Better Auth 1.7): trae su propio rate limit, encendido en producción (100 peticiones / 10 s y reglas más duras en el login), pero **en memoria por proceso**. Llevarlo a Redis (`secondaryStorage`) queda como mejora.
