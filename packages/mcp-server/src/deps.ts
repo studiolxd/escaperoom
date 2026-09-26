@@ -1,8 +1,10 @@
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import type {
   Actor,
+  AudioAssetService,
   CatalogService,
   PublishConfirmationService,
+  RoomCoverService,
   RoomDraftService,
 } from "@escaperoom/shared/services";
 import type { AssetManifestInput } from "@escaperoom/shared/validator";
@@ -59,4 +61,19 @@ export type CreatorMcpDeps = {
    * assets referenciados. `undefined` degrada el check a aviso, no bloquea.
    */
   loadAssetManifest?: (pkg: RoomPackage) => Promise<AssetManifestInput | undefined>;
+  /**
+   * Subida de portada de sala (meta-tool `upload`, D-12): el MISMO servicio
+   * de dominio que `POST /api/rooms/:roomId/cover-image` (A-12) — comprueba
+   * que el actor es el autor de la sala, sniffea los magic bytes y aplica el
+   * mismo límite de tamaño. `undefined`/`null` → `upload` responde
+   * `NOT_AVAILABLE` para `kind: "cover_image"` (p. ej. por stdio, sin bucket).
+   */
+  roomCover?: Pick<RoomCoverService, "uploadCoverImage"> | null;
+  /**
+   * Subida de audio a la biblioteca del creador (meta-tool `upload`, D-12): el
+   * MISMO servicio que `POST /api/audio/uploads` (3.11) — tipo real, tamaño,
+   * duración y pre-filtro de moderación antes de quedar `pending`.
+   * `undefined`/`null` → `upload` responde `NOT_AVAILABLE` para `kind: "audio"`.
+   */
+  audio?: Pick<AudioAssetService, "uploadAudio"> | null;
 };

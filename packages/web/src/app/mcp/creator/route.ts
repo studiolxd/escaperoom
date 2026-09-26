@@ -9,8 +9,10 @@ import {
 import { loadAssetManifestFor } from "@/server/asset-manifest";
 import { getPlaytestLauncher } from "@/server/playtest-launcher";
 import {
+  getAudioAssetService,
   getCatalogService,
   getPublishConfirmationService,
+  getRoomCoverService,
   getRoomDraftService,
 } from "@/server/services";
 
@@ -40,6 +42,10 @@ function handler(request: Request): Promise<Response> {
       playtests: getPlaytestLauncher(),
       publishRequests: getPublishConfirmationService(),
       loadAssetManifest: loadAssetManifestFor,
+      // Meta-tool `upload` (D-12): mismos servicios que las rutas REST de
+      // subida (A-12, 3.11), sin lógica paralela.
+      roomCover: getRoomCoverService(),
+      audio: getAudioAssetService(),
     }),
   });
 }
