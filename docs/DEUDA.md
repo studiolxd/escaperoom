@@ -248,12 +248,28 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `phaser/room-scene.ts`) y el inspector del editor (`inspector-model.ts`,
       `schema-form.ts`). Aplazado en el bloque 10 (#163) por ser un cambio de tipos y
       arquitectura del modelo, no un ajuste puntual.
-- [ ] **E2E fuera del smoke rotos sin que nadie lo vea.** CI solo ejecuta `e2e:smoke`;
-      el resto de specs de `packages/e2e` no corren en ningún sitio y se han roto en
-      silencio. Detectado en #164: `event-flow.spec.ts` falla, y la ruta larga de
-      `game.reyaldric.spec.ts` busca el tablero de memoria con `role="list"` cuando el
-      componente usa `role="listbox"`. Arreglarlos y decidir cómo se ejecutan
-      periódicamente (job nocturno o manual en CI) para que no vuelvan a pudrirse.
+- [ ] **Nightly E2E en rojo desde que existe (issue #115).** El job nocturno
+      `.github/workflows/e2e-nightly.yml` (2:30, suite completa de Playwright + paridad
+      MCP + carga) falla todas las noches desde el 2026-09-24 y nadie lo estaba mirando;
+      el PR solo corre `e2e:smoke`. Causas (ejecución del 2026-09-26):
+      1. **429 al iniciar sesión** (`event-flow`, `events-only-room`, `editor-publish`):
+         el rate limit propio de Better Auth corta el enlace mágico cuando la suite
+         completa hace varios logins seguidos. Hace falta un login de e2e que no gaste
+         ese cupo (sesión creada directamente o límite desactivado solo en el servidor
+         de e2e, nunca en producción).
+      2. **Test desactualizado** en `editor-publish` (regalar copia editable): espera la
+         respuesta antigua; el servidor ahora responde con un mensaje que no revela si
+         el email existe.
+      3. **Ruta larga de `game.reyaldric`** (pasos 7–11): busca el tablero de memoria con
+         `role="list"` y el componente usa `role="listbox"` (detectado en #164).
+      4. **Prueba de carga** (`packages/e2e/load/ten-sessions.ts`): falla con
+         `GAME_TOKEN_REQUIRED` desde que unirse exige token de partida (#140), y el paso
+         sale en verde porque su salida pasa por `| tee` y el código de salida se pierde.
+      Además, al arrancar aparece `relation "roomVersion" does not exist`: el servidor
+      consulta antes de que terminen las migraciones.
+      **Se resuelve junto con la retirada de `/[locale]/play`** (entrada de arriba), en
+      un único encargo tras integrar la duración de salas: los dos tocan los e2e de
+      partida y el acceso con token. Cerrar #115 al terminar.
 - [x] **404 de URLs que no existen.** Resuelto (auditoría 2026-09-24, B-27):
       `app/[locale]/(public)/[...rest]/page.tsx` (comodín, llama a `notFound()`) captura
       cualquier URL con locale válido que ninguna otra ruta capturó, y sale con la shell
@@ -289,3 +305,17 @@ Tareas pendientes que no bloquean pero hay que resolver.
       defensa adicional para que ningún test dependa del estado que deje otro. También E-22
       (auditoría): `RedisSlidingWindowStore` ya no falla abierto si Redis cae, cae a un
       `MemorySlidingWindowStore` por proceso (`docs/reference/seguridad.md` §1).
+- [ ] **API pública para terceros (auditoría 2026-09-24, A-8).** `specs/13` describe una superficie
+      REST también pensada para integradores externos (Bearer/API key, `Idempotency-Key`,
+      `/api/me/purchases`, `/api/me/rooms`, alta de organización y miembros por REST, CRUD de salas
+      por REST, grupos de sesión por REST, grabaciones, progreso de sesión por REST) que hoy no
+      consume nadie: la UI usa tRPC y el creador el MCP (ADR-022). Decidido (2026-09-26): no se
+      implementa hasta tener una versión chequeada del proyecto; se diseñará con el primer
+      integrador real, probablemente un LMS vía LTI (también agencias de eventos o revendedores).
+      Piezas que faltan cuando se retome:
+      - Emisión y revocación de API keys por organización (hoy no hay ningún modelo de API key).
+      - Cuotas por cliente (rate limiting propio, distinto del de sesión de usuario).
+      - Idempotencia real vía cabecera `Idempotency-Key` (persistir la respuesta 24 h).
+      - Documentación pública del contrato (OpenAPI o similar) y un compromiso de estabilidad
+        (`specs/13` "el contrato evoluciona de forma aditiva" ya lo anticipa).
+      - Las rutas en sí, marcadas "API pública — futura" en `specs/13`.

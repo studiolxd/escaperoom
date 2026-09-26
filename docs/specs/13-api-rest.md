@@ -21,8 +21,9 @@ procesos distintos.
 - **Formato:** JSON en request y response, salvo subida de assets (multipart) y export de PDF
   (binario o URL firmada, §9).
 - **Auth:** Better Auth con sesión por cookie httpOnly para la UI. El MCP usa **OAuth 2.1** contra sus
-  propias tools (`/mcp/creator`, ADR-010); los clientes externos usan **Bearer/API key** contra esta
-  superficie REST.
+  propias tools (`/mcp/creator`, ADR-010). **API pública — futura** (ADR-022, A-8): los clientes
+  externos usarían **Bearer/API key** contra esta superficie REST, pero hoy no hay emisión ni
+  revocación de API keys — se diseñará con el primer integrador (ver `docs/DEUDA.md`).
 - **Errores:** siempre `{ "error": { "code": "STRING_CODE", "message": "texto legible" } }` con el
   HTTP status correspondiente (400/401/403/404/409/422/429/500). Nunca se filtra un stack trace.
   Códigos fijados en toda la superficie REST (A-22, auditoría 2026-09-24 — antes variaban de un
@@ -34,8 +35,11 @@ procesos distintos.
   - Toda respuesta privada (con sesión) o de error lleva `Cache-Control: no-store`.
 - **Paginación:** cursor-based (`?cursor=...&limit=20`), respuesta
   `{ items: [...], nextCursor: string | null }`.
-- **Idempotencia:** todo POST con efecto económico (checkout, generación de claves en lote) acepta
-  cabecera `Idempotency-Key`; se persiste la respuesta 24 h.
+- **Idempotencia — API pública, futura** (A-8): la intención es que todo POST con efecto económico
+  (checkout, generación de claves en lote) acepte cabecera `Idempotency-Key` y persista la respuesta
+  24 h; hoy ningún handler la lee (la idempotencia real actual es otra: dedupe de eventos de Stripe
+  por `event.id` en el webhook, §7, y comprobaciones de estado en cada servicio). Se implementará
+  junto con la API pública para terceros.
 - **Versionado:** sin prefijo `/v1/`; el contrato evoluciona de forma aditiva.
 - **Autorización:** se aplica siempre en el handler, nunca solo en el cliente.
 
@@ -46,14 +50,14 @@ Better Auth gestiona `/api/auth/*` (signin, callback OAuth, signout, session; pl
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
 | GET | `/api/me` | usuario | Perfil: `user`, saldo de `creditAccount` (personal + cada org), organizaciones |
-| PATCH | `/api/me` | usuario | Actualiza `name`, `image`, `locale` |
+| PATCH | `/api/me` | usuario | **No implementado** (A-8, auditoría 2026-09-24): `name`/`image` ya los cubre `POST /api/auth/update-user` de Better Auth (sin plugin propio); `locale` no tiene ningún punto de escritura hoy porque no existe una página de perfil/ajustes que lo use — el `LocaleSwitcher` solo cambia el segmento de la URL, no persiste. Se retoma si aparece una necesidad real (página de ajustes) |
 | POST | `/api/me/stripe-connect` | usuario | Inicia onboarding de Stripe Connect; devuelve URL hospedada |
 | GET | `/api/me/stripe-connect/status` | usuario | `not_started \| pending \| complete` |
-| GET | `/api/me/purchases` | usuario | Historial paginado de `purchase` propias |
-| GET | `/api/me/rooms` | usuario | Todas sus salas (incluidos drafts) |
+| GET | `/api/me/purchases` | usuario | **API pública — futura** (A-8): la web no lo necesita (el organizador ve sus compras en sus propios paneles); solo tendría sentido para un integrador externo que consulte el historial de un usuario |
+| GET | `/api/me/rooms` | usuario | **API pública — futura**: idem, listado de salas propias por REST para un integrador externo |
 | GET | `/api/me/events` | usuario | Sus eventos como organizador |
-| POST | `/api/organizations` | usuario | Crea organización (el creador pasa a `owner`) |
-| POST | `/api/organizations/:orgId/members` | owner/admin | Invita a un miembro por email |
+| POST | `/api/organizations` | usuario | **API pública — futura**: alta de organización por REST para un integrador; hoy las organizaciones de este proyecto no se crean desde la UI |
+| POST | `/api/organizations/:orgId/members` | owner/admin | **API pública — futura**: hoy la invitación se crea con Better Auth `POST /api/auth/organization/invite-member` (plugin `organization()`, `lib/auth.ts`), que desde A-8 sí envía el email (`sendInvitationEmail`) |
 | GET | `/api/me/data-export` | usuario | Export completo de datos (portabilidad RGPD) |
 | DELETE | `/api/me` | usuario | Cierre de cuenta y anonimización según plazos |
 | POST | `/api/organizations/:id/dpa/sign` | owner/admin | Aceptación del DPA antes de habilitar claves individuales con email. Cuerpo `{ version }` (la vigente; si no, 409 `DPA_VERSION_MISMATCH`); responde `{ organizationId, currentVersion, signed, version, signedBy, signedAt, alreadySigned }`. Miembro sin rol → 403 (specs/18 §3.1) |
@@ -101,16 +105,16 @@ alrededor de la edición:
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| POST | `/api/rooms` | usuario | Crea sala: `{ title, theme? }` → fila `room` (`draft`) + doc Yjs vacío |
-| PATCH | `/api/rooms/:roomId` | autor | Metadata: `title`, `priceCents`, `saleIndividual`, `saleEvents`, `licensable`, `licensePriceCents`, o `status: 'archived'` |
-| DELETE | `/api/rooms/:roomId` | autor | Borrado lógico (`deleted_at`); con `purchase`/`review` nunca se borra físicamente |
+| POST | `/api/rooms` | usuario | **API pública — futura** (A-8): hoy una sala nueva se crea por onboarding (fixture, `POST /api/onboarding/rooms`) o por el MCP (`create_room`, `RoomDraftService.createDraft`), nunca por este endpoint genérico; solo haría falta para un integrador externo |
+| PATCH | `/api/rooms/:roomId` | autor | **API pública — futura**: metadata (`title`, `priceCents`, `saleIndividual`, `saleEvents`, `licensable`, `licensePriceCents`, `status: 'archived'`) se fija al crear/publicar y hoy no tiene UI de edición posterior |
+| DELETE | `/api/rooms/:roomId` | autor | **API pública — futura**: borrado lógico sin implementar; hoy no hay UI para archivar/borrar una sala publicada |
 | GET | `/api/rooms/:roomId/draft` | autor/colaborador | Bootstrap del editor: último snapshot + updates posteriores |
 | POST | `/api/rooms/:roomId/validate` | autor (o MCP) | Corre el validador sobre el draft: `{ valid, errors, warnings, estimatedMinutes, estimatedDifficulty }` |
 | POST | `/api/rooms/:roomId/publish` | autor | `{ changelog }`. El semver es siempre automático (ADR-035, `classifyRoomPackageChange` sobre el `RoomPackage` candidato frente al de la última versión): ya no se puede pedir uno. Exige `validate` en verde (repetido server-side). Empaqueta, sube assets a R2, calcula `assetsHash`, inserta `roomVersion`. `VALIDATION_FAILED` si no pasa; `NOTHING_TO_PUBLISH` (409) si el contenido es idéntico al de la última versión publicada |
 | GET | `/api/rooms/:roomId/versions/:versionId/package` | autor, admin o servicio interno | El `RoomPackage` completo — única ruta que lo expone, nunca al público |
 | POST | `/api/rooms/:roomId/license-checkout` | creador | Compra la licencia de la sala de otro → Stripe Checkout, `purchase_type: 'room_license'` |
 | POST | `/api/rooms/:roomId/gift-copy` | autor | Envía copia gratuita a otro creador (`{ recipientEmail }`) — sin Stripe, fork inmediato |
-| GET | `/api/rooms/:roomId/access` | usuario | `{ owned, playable, gameToken?, roomId? }` (C-4/B-4, auditoría 2026-09-24): `playable: false` solo cuando la partida ya TERMINÓ (`game_ended`, specs/02 §2.1); mientras esté libre o en curso, `playable: true` con el `gameToken` que exige `onAuth` de la `GameRoom` — con `roomId` cuando hay una partida en curso a la que unirse en vez de crear otra |
+| GET | `/api/rooms/:roomId/access` | usuario | `{ owned, playable, gameToken?, roomId? }` (C-4/B-4, auditoría 2026-09-24): `playable: false` solo cuando la partida ya TERMINÓ (`game_ended`, specs/02 §2.1); mientras esté libre o en curso, `playable: true` con el `gameToken` que exige `onAuth` de la `GameRoom` — con `roomId` cuando hay una partida en curso a la que unirse en vez de crear otra. **Implementada** (`server/rest/room-access.ts`); A-8 corrige la mención de esta fila como "ausente" en la nota A-8 de la auditoría 2026-09-24 |
 
 ### 4.1 Audio del creador (ticket 3.11)
 
@@ -178,7 +182,7 @@ El reparto 70/30 se calcula al liquidar el pago en el webhook (§7), no en la cr
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
 | POST | `/api/events/:id/sessions` | organizador | Crea una o varias sesiones (`{ name, capacity }[]`), hasta `maxSimultaneousSessions` |
-| POST | `/api/events/:id/sessions/:sessionId/groups` | organizador | Crea grupo dentro de una sesión |
+| POST | `/api/events/:id/sessions/:sessionId/groups` | organizador | **API pública — futura** (A-8): la agrupación (`groupingMode`) hoy se resuelve al generar las claves (`POST .../access-keys`) y en el `join`, sin un endpoint propio para crear un grupo suelto; solo haría falta para que un integrador gestione grupos por su cuenta |
 | POST | `/api/events/:id/access-keys` | organizador | Generación en lote: `{ type, count, sessionId?, groupAssignment, emails? }`. Aplica `groupingMode`; con `emails` encola el envío de cada invitación (Nodemailer/SMTP por defecto, Resend opcional — ADR-020) |
 | GET | `/api/events/:id/access-keys` | organizador | Listado paginado con estado — alimenta el panel |
 | POST | `/api/access-keys/:code/resend` | organizador | Reenvía el email de invitación (202; recordatorio si aún no confirmó) |
@@ -238,7 +242,11 @@ menos pistas, menos tiempo); las sesiones sin empezar no tienen puesto. `spectat
 `SESSION_NOT_FOUND` (sesión de otro evento), 409 `SESSION_NOT_LIVE` (sin partida en curso) y 503
 `SPECTATOR_UNAVAILABLE` (sin `JOIN_TOKEN_SECRET` en producción).
 
-### 6.3 Grabaciones
+### 6.3 Grabaciones — API pública, futura
+
+**No implementado** (A-8, auditoría 2026-09-24): ninguna de las dos rutas existe hoy. La grabación en
+sí (LiveKit + `allowVideo`, specs/11) tampoco tiene todavía un flujo de exportación/borrado propio en
+la web — se retoma junto con la API pública para terceros.
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
@@ -249,7 +257,7 @@ menos pistas, menos tiempo); las sesiones sin empezar no tienen puesto. `spectat
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| POST | `/api/webhooks/stripe` | firma Stripe (`Stripe-Signature`, sin sesión) | Único punto de entrada de eventos de Stripe |
+| POST | `/api/stripe/webhook` | firma Stripe (`Stripe-Signature`, sin sesión) | Único punto de entrada de eventos de Stripe |
 
 | Evento Stripe | Efecto |
 |---|---|
@@ -269,7 +277,11 @@ menos pistas, menos tiempo); las sesiones sin empezar no tienen puesto. `spectat
   (`idempotencyKey` + comprobación de `transfers.list({transfer_group})` antes de crear, B-3): un
   reintento del webhook o del barrido de payouts nunca duplica una transferencia.
 
-## 8. Sesiones y progreso (lectura)
+## 8. Sesiones y progreso (lectura) — API pública, futura
+
+**No implementado** (A-8): ninguna de las dos rutas existe hoy. El organizador ya ve este progreso
+en `GET /api/events/:id/dashboard` (§6.2), que cruza Postgres con el estado en vivo de Colyseus; estas
+dos serían el equivalente de solo-lectura por sesión para un integrador externo.
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
@@ -316,7 +328,7 @@ de terminar el job; la ruta de descarga lee el objeto del bucket y lo sirve. Sin
 
 - Redis para rate limiting por IP + ruta; límites más estrictos en rutas públicas sensibles:
   `POST /api/access-keys/redeem` (fuerza bruta de códigos), `POST /api/rooms/:roomId/reviews`,
-  `POST /api/webhooks/stripe` (excepción: se limita por firma válida, no por IP).
+  `POST /api/stripe/webhook` (excepción: se limita por firma válida, no por IP).
 - CSP estricta en el frontend. Ninguna ruta REST devuelve soluciones/pesos/melodías (eso es
   exclusivo del protocolo de Colyseus, ya filtrado en su `GameState`).
 - Auditoría de endpoints administrativos: log de quién hizo qué.
