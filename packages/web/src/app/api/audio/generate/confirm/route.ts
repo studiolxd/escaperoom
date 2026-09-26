@@ -13,7 +13,8 @@ const handlers = () =>
 
 /**
  * POST /api/audio/generate/confirm — cobra créditos y da de alta el audio
- * generado, pendiente de moderación (ticket 4.9, specs/15 §2-4).
+ * generado, disponible al instante sin moderación previa (ticket 4.9,
+ * specs/15 §2-4, ADR-039).
  */
 export function POST(request: Request) {
   return handlers().confirm(request);
