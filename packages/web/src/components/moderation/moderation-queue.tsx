@@ -42,22 +42,12 @@ export type QueueAppeal = {
   createdAt: string;
 };
 
-export type QueueAudio = {
-  id: string;
-  ownerId: string;
-  originalFilename: string;
-  durationMs: number;
-  moderationFlags: string[];
-  createdAt: string;
-};
+type Tab = "reports" | "appeals";
 
-type Tab = "reports" | "appeals" | "audio";
-
-const TABS: readonly Tab[] = ["reports", "appeals", "audio"];
+const TABS: readonly Tab[] = ["reports", "appeals"];
 const ENDPOINT: Record<Tab, string> = {
   reports: "/api/admin/reports",
   appeals: "/api/admin/appeals",
-  audio: "/api/admin/audio",
 };
 
 // `Moderation.errors` (messages/es.json) solo traduce estos 5 de los 9 códigos
@@ -77,12 +67,13 @@ const SEVERITY_CLASS: Record<QueueReport["severity"], string> = {
   low: "bg-white/10 text-white/70 border-white/20",
 };
 
-type Lists = { reports: QueueReport[]; appeals: QueueAppeal[]; audio: QueueAudio[] };
+type Lists = { reports: QueueReport[]; appeals: QueueAppeal[] };
 
 /**
  * Cola de moderación (ticket 6.1, specs/17 §4): reportes priorizados con su
- * SLA, apelaciones pendientes y la cola de audio de 3.11. Cada decisión es un
- * PATCH a la API de admin, que vuelve a comprobar `isModerator | isAdmin`.
+ * SLA y apelaciones pendientes. El audio ya no tiene cola previa (ADR-039):
+ * se modera igual que el resto, por reportes. Cada decisión llama a una
+ * server action que vuelve a comprobar `isModerator | isAdmin`.
  */
 export function ModerationQueueView() {
   const t = useTranslations("Moderation");
@@ -103,12 +94,11 @@ export function ModerationQueueView() {
         setError(await readApiError(failed));
         return;
       }
-      const [reports, appeals, audio] = (await Promise.all(responses.map((r) => r.json()))) as [
+      const [reports, appeals] = (await Promise.all(responses.map((r) => r.json()))) as [
         { items: QueueReport[] },
         { items: QueueAppeal[] },
-        { items: QueueAudio[] },
       ];
-      setLists({ reports: reports.items, appeals: appeals.items, audio: audio.items });
+      setLists({ reports: reports.items, appeals: appeals.items });
       setError(null);
     } catch {
       setError("UNKNOWN");
@@ -137,27 +127,6 @@ export function ModerationQueueView() {
     try {
       const result = await resolveModerationAppeal({ id, ...body });
       setError(result.ok ? null : result.error.code);
-      await load();
-    } catch {
-      setError("UNKNOWN");
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  // La pestaña de audio se va a retirar (otro agente elimina la moderación
-  // previa de audio y las rutas /api/admin/audio*): se deja en fetch, sin
-  // invertir en una server action que se borraría con ella.
-  const decideAudio = async (id: string, decision: "approved" | "rejected", reason?: string) => {
-    setBusy(id);
-    try {
-      const res = await fetch(`/api/admin/audio/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(decision === "approved" ? { decision } : { decision, reason }),
-      });
-      if (!res.ok) setError(await readApiError(res));
-      else setError(null);
       await load();
     } catch {
       setError("UNKNOWN");
@@ -351,44 +320,6 @@ export function ModerationQueueView() {
                     }
                   >
                     {t("actions.overturn")}
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )
-      ) : null}
-
-      {lists && tab === "audio" ? (
-        lists.audio.length === 0 ? (
-          <p className="text-sm text-white/60">{t("empty")}</p>
-        ) : (
-          <ul className="space-y-3">
-            {lists.audio.map((a) => (
-              <li key={a.id} className="space-y-2 rounded-lg border border-white/10 bg-white/5 p-4">
-                <p className="text-sm">{a.originalFilename}</p>
-                <p className="text-xs text-white/50">
-                  {a.ownerId} · {when(a.createdAt)}
-                  {a.moderationFlags.length > 0 ? ` · ${a.moderationFlags.join(", ")}` : ""}
-                </p>
-                {noteField(a.id)}
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="overlay"
-                    disabled={busy !== null}
-                    onClick={() => decideAudio(a.id, "approved")}
-                  >
-                    {t("actions.approve")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    disabled={busy !== null || !noteOf(a.id)}
-                    title={t("rejectNeedsNote")}
-                    onClick={() => decideAudio(a.id, "rejected", noteOf(a.id))}
-                  >
-                    {t("actions.reject")}
                   </Button>
                 </div>
               </li>

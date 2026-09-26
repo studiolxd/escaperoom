@@ -3,9 +3,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   ANONYMOUS_ACTOR,
-  createAudioAssetService,
-  createInMemoryAudioAssetStore,
-  createInMemoryAudioBlobStore,
   createInMemoryModerationStore,
   createModerationService,
   createInMemoryPlatformSettingStore,
@@ -46,10 +43,6 @@ vi.mock("@/server/services", () => {
   const pricing = createPricingTierService({
     store: createInMemoryPricingTierStore({ adminIds, tiers: [] }),
   });
-  const audio = createAudioAssetService({
-    store: createInMemoryAudioAssetStore({ moderatorIds: [moderator.userId] }),
-    blobs: createInMemoryAudioBlobStore(),
-  });
   // `canModerate` = `isModerator || isAdmin`: el admin también modera.
   const moderation = createModerationService({
     store: createInMemoryModerationStore({ moderatorIds: [moderator.userId, admin.userId] }),
@@ -57,13 +50,12 @@ vi.mock("@/server/services", () => {
   return {
     getPlatformSettingsService: () => settings,
     getPricingTierService: () => pricing,
-    getAudioAssetService: () => audio,
     getModerationService: () => moderation,
   };
 });
 
-/** Rutas de la cola de moderación: `isModerator | isAdmin` (audio 3.11, reportes y apelaciones 6.1). */
-const MODERATION_ROUTES = ["/api/admin/audio", "/api/admin/reports", "/api/admin/appeals"];
+/** Rutas de la cola de moderación: `isModerator | isAdmin` (reportes y apelaciones 6.1). */
+const MODERATION_ROUTES = ["/api/admin/reports", "/api/admin/appeals"];
 const isModerationRoute = (url: string) => MODERATION_ROUTES.some((r) => url.startsWith(r));
 
 const ADMIN_DIR = fileURLToPath(new URL("../src/app/api/admin", import.meta.url));
@@ -129,8 +121,6 @@ describe("auditoría de /api/admin/*", () => {
       expect.arrayContaining([
         "/api/admin/appeals",
         "/api/admin/appeals/[id]",
-        "/api/admin/audio",
-        "/api/admin/audio/[id]",
         "/api/admin/pricing-tiers",
         "/api/admin/pricing-tiers/[id]",
         "/api/admin/reports",
@@ -151,7 +141,7 @@ describe("auditoría de /api/admin/*", () => {
     expect(statuses.filter((s) => s.status !== 403)).toEqual([]);
   });
 
-  it("el moderador solo entra en la moderación (audio, reportes, apelaciones); ajustes y precios siguen en 403", async () => {
+  it("el moderador solo entra en la moderación (reportes, apelaciones); ajustes y precios siguen en 403", async () => {
     const { statuses } = await callEveryMethod("mod");
     const outside = statuses.filter((s) => !isModerationRoute(s.route));
     expect(outside.length).toBeGreaterThan(0);

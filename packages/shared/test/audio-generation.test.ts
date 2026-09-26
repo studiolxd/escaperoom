@@ -142,7 +142,7 @@ describe("audio-generation: preview", () => {
 });
 
 describe("audio-generation: confirm", () => {
-  it("cobra créditos SOLO tras generar, subir y dar de alta el audio (pending)", async () => {
+  it("cobra créditos SOLO tras generar, subir y dar de alta el audio (approved)", async () => {
     const { creditStore, service, blobs, audioStore } = setup();
     await grant(creditStore, ana, 10n);
 
@@ -151,7 +151,7 @@ describe("audio-generation: confirm", () => {
     expect(result.costCredits).toBe(1);
     expect(result.balanceAfter).toBe(9n);
     expect(result.ref).toBe(`upload:${result.asset.id}`);
-    expect(result.asset.status).toBe("pending");
+    expect(result.asset.status).toBe("approved");
     expect(result.asset.source).toBe("ai_generated");
     expect(result.asset.generationText).toBe("Hola creador");
     expect(blobs.objects.has(result.asset.storageKey)).toBe(true);

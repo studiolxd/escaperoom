@@ -27,9 +27,6 @@ const AUDIO_ERROR_TO_TOOL_ERROR: Record<AudioErrorCode, ToolErrorCode> = {
   VALIDATION_ERROR: "INVALID_INPUT",
   UNSUPPORTED_MEDIA_TYPE: "UNSUPPORTED_MEDIA_TYPE",
   PAYLOAD_TOO_LARGE: "PAYLOAD_TOO_LARGE",
-  UPLOAD_BLOCKED: "UPLOAD_BLOCKED",
-  ALREADY_REVIEWED: "INVALID_INPUT",
-  AUDIO_PENDING_MODERATION: "NOT_PUBLISHABLE",
   AUDIO_REJECTED: "NOT_PUBLISHABLE",
 };
 
@@ -81,9 +78,9 @@ function decodeBase64(data: string): Uint8Array {
  * lógica (ADR-010/022): `RoomCoverService.uploadCoverImage` (portada, A-12,
  * autorización + magic bytes + límite de tamaño) y
  * `AudioAssetService.uploadAudio` (biblioteca del creador, 3.11, tipo real +
- * duración + pre-filtro de moderación). No hay un tercer tipo de asset
- * "genérico" en el editor: el resto del contenido de una sala usa el pack
- * gráfico (sprites/tiles), no subidas del creador.
+ * duración; disponible al instante, sin moderación previa, ADR-039). No hay
+ * un tercer tipo de asset "genérico" en el editor: el resto del contenido de
+ * una sala usa el pack gráfico (sprites/tiles), no subidas del creador.
  *
  * También reutiliza la CUOTA de esas rutas (revisión de la PR #168): el
  * límite genérico de llamadas del MCP (4.7) es por token y pensado para tools
@@ -97,7 +94,7 @@ export const uploadTool = defineTool({
   name: "upload",
   title: "Subir un asset",
   description:
-    "Sube una imagen (portada de sala, kind: cover_image) o un audio (biblioteca del creador, kind: audio) y devuelve la referencia para usarlo en otras tools. El binario va en base64 en `data` (MCP no soporta subida por streaming). Mismo límite de tipo, tamaño y cuota que la web: imágenes hasta 5 MB (jpeg/png/webp/gif por sus magic bytes), audio hasta 10 MB (mp3, pendiente de moderación tras subir).",
+    "Sube una imagen (portada de sala, kind: cover_image) o un audio (biblioteca del creador, kind: audio) y devuelve la referencia para usarlo en otras tools. El binario va en base64 en `data` (MCP no soporta subida por streaming). Mismo límite de tipo, tamaño y cuota que la web: imágenes hasta 5 MB (jpeg/png/webp/gif por sus magic bytes), audio hasta 10 MB (mp3, disponible al instante).",
   phase: "meta",
   ticket: "D-12",
   inputSchema: z.object({
@@ -168,10 +165,11 @@ export const uploadTool = defineTool({
         bytes,
         rightsDeclared,
       });
-      return textResult(
-        `✅ upload — audio "${filename}" subido, pendiente de moderación (id ${asset.id})`,
-        { kind, id: asset.id, status: asset.status },
-      );
+      return textResult(`✅ upload — audio "${filename}" subido y disponible (id ${asset.id})`, {
+        kind,
+        id: asset.id,
+        status: asset.status,
+      });
     } catch (error) {
       if (error instanceof AudioError) {
         throw new ToolError(AUDIO_ERROR_TO_TOOL_ERROR[error.code], error.message);

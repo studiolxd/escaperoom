@@ -650,6 +650,14 @@ CREATE INDEX "ixAudioAssetOwner" ON "audioAsset"("ownerId", "createdAt" DESC);
 CREATE INDEX "ixAudioAssetPending" ON "audioAsset"("createdAt") WHERE status = 'pending';
 ```
 
+> **2026-09-26 (ADR-039):** se retira la moderación previa de audio. `status` pasa a valer solo
+> `approved`/`rejected` (los `pending` existentes se migran a `approved`; los `rejected` se
+> conservan inutilizables como decisión histórica) y se eliminan las columnas `moderationFlags`,
+> `reviewedBy` y `reviewedAt` (sin cola de revisión humana no aportan información activa; el
+> motivo del rechazo, que sí importa al creador, se conserva en `rejectionReason`). Se retira
+> también `ixAudioAssetPending`/`ixAudioAssetStatusCreatedAt`: sin cola no hay consultas por
+> `status`. Ver migraciones `_audio_asset_drop_pending` y `_audio_asset_status_index_drop`.
+
 ## 11. Relaciones — vista de conjunto
 
 ```
@@ -674,7 +682,7 @@ user ──< review >── room
 
 user ──< contentReport >── roomVersion
 user ──< moderationAppeal >── room | contentReport
-user ──< audioAsset                                (dueño; revisor = user moderador)
+user ──< audioAsset                                (dueño; sin revisor desde ADR-039)
 
 pricingTier / platformSetting / stripeWebhookEvent     (independientes)
 analyticsEvent                                         (sin FK, alto volumen)

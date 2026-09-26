@@ -89,45 +89,36 @@ model analyticsEvent {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-/// E-18: drift preexistente ya resuelto — hasta esta migración, `@@index
-/// ([createdAt], map: "ixAudioAssetPending")` describía como un índice
-/// normal lo que en 0011_audio_assets era en realidad un índice PARCIAL
-/// (`ON "createdAt" WHERE status = 'pending'`, no representable en Prisma):
-/// un `migrate dev` a ciegas podía proponer sustituirlo por uno completo,
-/// más grande y sin la condición. Además, `listModerationQueue`
-/// (audio-assets.ts) filtra por cualquiera de los tres `status` posibles
-/// (`pending`/`approved`/`rejected`, ver `AudioQueueQuery`), y el índice
-/// parcial solo cubría `pending`: las colas de `approved`/`rejected` hacían
-/// seq scan. Sustituido por `ixAudioAssetStatusCreatedAt`
-/// (`status`, `createdAt`), sí representable y que cubre los tres.
+/// 2026-09-26: se retira la moderación previa de audio (ADR-039, ver migración
+/// `_audio_asset_drop_pending`). `status` ya solo vale `approved`/`rejected`:
+/// un audio nuevo nace `approved` y disponible al instante; `rejected` es
+/// histórico de decisiones humanas ya tomadas antes de este cambio, conservado
+/// inutilizable a propósito. Se retiran `moderationFlags` (señales de un
+/// pre-filtro que ya no existe) y `reviewedBy`/`reviewedAt` (sin cola de
+/// revisión humana ya no aportan información activa; el motivo del rechazo,
+/// que sí importa al creador, se conserva en `rejectionReason`).
 model audioAsset {
-  id                               String        @id @db.Uuid
-  ownerId                          String
-  organizationId                   String?
-  storageKey                       String        @unique
-  originalFilename                 String
-  contentType                      String
-  byteSize                         Int
-  durationMs                       Int
-  status                           String        @default("pending")
-  moderationFlags                  String[]      @default([])
-  rejectionReason                  String?
-  reviewedBy                       String?
-  reviewedAt                       DateTime?     @db.Timestamptz(6)
-  rightsDeclaredAt                 DateTime      @db.Timestamptz(6)
-  createdAt                        DateTime      @default(now()) @db.Timestamptz(6)
-  source                           String        @default("upload")
-  generationText                   String?
-  generationVoiceId                String?
-  generationCreditsCost            Int?
-  organization                     organization? @relation(fields: [organizationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user_audioAsset_ownerIdTouser    user          @relation("audioAsset_ownerIdTouser", fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user_audioAsset_reviewedByTouser user?         @relation("audioAsset_reviewedByTouser", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                            String        @id @db.Uuid
+  ownerId                       String
+  organizationId                String?
+  storageKey                    String        @unique
+  originalFilename              String
+  contentType                   String
+  byteSize                      Int
+  durationMs                    Int
+  status                        String        @default("approved")
+  rejectionReason               String?
+  rightsDeclaredAt              DateTime      @db.Timestamptz(6)
+  createdAt                     DateTime      @default(now()) @db.Timestamptz(6)
+  source                        String        @default("upload")
+  generationText                String?
+  generationVoiceId             String?
+  generationCreditsCost         Int?
+  organization                  organization? @relation(fields: [organizationId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_audioAsset_ownerIdTouser user          @relation("audioAsset_ownerIdTouser", fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([ownerId, createdAt(sort: Desc)], map: "ixAudioAssetOwner")
-  @@index([status, createdAt], map: "ixAudioAssetStatusCreatedAt")
   @@index([organizationId], map: "ixAudioAssetOrganization")
-  @@index([reviewedBy], map: "ixAudioAssetReviewedBy")
 }
 
 /// E-18: dos índices parciales creados a mano (no representables en Prisma)
@@ -426,35 +417,35 @@ model progressEvent {
 /// de la misma versión de sala por usuario, B-16) — de los que dependen
 /// `user-data-rights-prisma-store.ts` y la dedupe de Stripe.
 model purchase {
-  id                    String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId                String
-  purchaseType          purchaseType
-  roomVersionId         String?        @db.Uuid
-  eventId               String?        @db.Uuid
-  resultingRoomId       String?        @db.Uuid
-  amountCents           Int
-  currency              String         @default("EUR") @db.Char(3)
-  platformFeeCents      Int            @default(0)
-  creatorShareCents     Int?
-  stripePaymentIntentId String?
-  stripeTransferId      String?
+  id                     String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId                 String
+  purchaseType           purchaseType
+  roomVersionId          String?        @db.Uuid
+  eventId                String?        @db.Uuid
+  resultingRoomId        String?        @db.Uuid
+  amountCents            Int
+  currency               String         @default("EUR") @db.Char(3)
+  platformFeeCents       Int            @default(0)
+  creatorShareCents      Int?
+  stripePaymentIntentId  String?
+  stripeTransferId       String?
   /// B-9: instante del último intento del barrido de payouts (`creator-payouts.ts`); `NULL` si nunca se ha intentado. Ordena la cola para que una compra bloqueada (creador sin onboarding) no acapare `limit` para siempre.
-  payoutAttemptAt       DateTime?      @db.Timestamptz(6)
-  status                purchaseStatus @default(pending)
+  payoutAttemptAt        DateTime?      @db.Timestamptz(6)
+  status                 purchaseStatus @default(pending)
   /// B-4 (bloque 3, auditoría 2026-09-24): instante en que `GameRoom.onCreate` reclamó la partida (escritura condicional). `NULL` = libre. Reclamada mucho antes de `PLAY_SESSION_STALE_AFTER_SECONDS` (desde el último latido, ver `playSessionHeartbeatAt`) sin `playSessionEndedAt` (servidor caído sin `onDispose`) se puede volver a reclamar.
-  playSessionStartedAt  DateTime?      @db.Timestamptz(6)
+  playSessionStartedAt   DateTime?      @db.Timestamptz(6)
   /// Ticket duración-salas: último latido de la `GameRoom` mientras la reclamación sigue viva (`heartbeatPlaySession`, cada `PLAY_SESSION_HEARTBEAT_INTERVAL_SECONDS`). `NULL` hasta el primer latido tras reclamar. Con duración de sala sin tope, sustituye a "cuánto hace que empezó" para decidir si una reclamación "en curso" está abandonada.
-  playSessionHeartbeatAt DateTime?     @db.Timestamptz(6)
-  playSessionColyseusId String?
+  playSessionHeartbeatAt DateTime?      @db.Timestamptz(6)
+  playSessionColyseusId  String?
   /// B-4: instante en que la partida TERMINÓ (victoria, derrota o tiempo agotado — hito `game_ended`). Consumo definitivo de la única partida (specs/02): a partir de aquí `playable` nunca vuelve a `true`. Si la room se cierra (`onDispose`) sin llegar aquí, `playSessionStartedAt`/`playSessionColyseusId` se liberan a `NULL` (se puede reintentar).
-  playSessionEndedAt    DateTime?      @db.Timestamptz(6)
-  createdAt             DateTime       @default(now()) @db.Timestamptz(6)
+  playSessionEndedAt     DateTime?      @db.Timestamptz(6)
+  createdAt              DateTime       @default(now()) @db.Timestamptz(6)
   /// E-11: marca de verdad del email de confirmación de compra (room/room_license); la pone el worker al entregarlo, no el webhook al encolarlo.
-  confirmationSentAt    DateTime?      @db.Timestamptz(6)
-  event                 event?         @relation(fields: [eventId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  room                  room?          @relation(fields: [resultingRoomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  roomVersion           roomVersion?   @relation(fields: [roomVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user                  user           @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  confirmationSentAt     DateTime?      @db.Timestamptz(6)
+  event                  event?         @relation(fields: [eventId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  room                   room?          @relation(fields: [resultingRoomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  roomVersion            roomVersion?   @relation(fields: [roomVersionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user                   user           @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([userId, createdAt(sort: Desc)], map: "ixPurchaseUser")
   @@index([eventId], map: "ixPurchaseEvent")
@@ -640,7 +631,6 @@ model user {
   termsAcceptedVersion                               String?
   account                                            account[]
   audioAsset_audioAsset_ownerIdTouser                audioAsset[]       @relation("audioAsset_ownerIdTouser")
-  audioAsset_audioAsset_reviewedByTouser             audioAsset[]       @relation("audioAsset_reviewedByTouser")
   contentReport_contentReport_reporterIdTouser       contentReport[]    @relation("contentReport_reporterIdTouser")
   contentReport_contentReport_reviewedByTouser       contentReport[]    @relation("contentReport_reviewedByTouser")
   contentReport_contentReport_targetUserIdTouser     contentReport[]    @relation("contentReport_targetUserIdTouser")

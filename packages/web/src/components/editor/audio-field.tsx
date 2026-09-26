@@ -32,7 +32,7 @@ const NONE = "__none__";
 export type AudioUploadSummary = {
   ref: string;
   originalFilename: string;
-  status: "pending" | "approved" | "rejected";
+  status: "approved" | "rejected";
   rejectionReason: string | null;
 };
 
@@ -49,7 +49,8 @@ export interface AudioSourceSelectProps {
 
 /**
  * Selector de la fuente de un audio: biblioteca incluida (agrupada por tipo,
- * con licencia) o subidas propias con su estado de moderación. Lo usan los
+ * con licencia) o subidas propias. Un audio rechazado en su día por la
+ * extinta cola de moderación queda inutilizable (histórico). Lo usan los
  * diálogos/pistas (por idioma) y los efectos de sonido.
  */
 export function AudioSourceSelect({
@@ -103,9 +104,7 @@ export function AudioSourceSelect({
                 >
                   {upload.status === "approved"
                     ? upload.originalFilename
-                    : t(upload.status === "pending" ? "optionPending" : "optionRejected", {
-                        name: upload.originalFilename,
-                      })}
+                    : t("optionRejected", { name: upload.originalFilename })}
                 </SelectItem>
               ))}
             </SelectGroup>
@@ -118,11 +117,6 @@ export function AudioSourceSelect({
             license: selectedTrack.license.spdx,
             author: selectedTrack.credits.author,
           })}
-        </p>
-      )}
-      {selectedUpload?.status === "pending" && (
-        <p role="status" className="text-xs text-amber-600 dark:text-amber-400">
-          {t("status.pending")}
         </p>
       )}
       {selectedUpload?.status === "rejected" && (
@@ -150,7 +144,10 @@ const ERROR_KEY: Record<string, "tooLarge" | "notMp3" | "rightsRequired"> = {
   UNSUPPORTED_MEDIA_TYPE: "notMp3",
 };
 
-/** Subida de un MP3 propio con declaración de derechos (specs/15 §4). */
+/**
+ * Subida de un MP3 propio con declaración de derechos (specs/15 §4).
+ * Disponible al instante, sin moderación previa (ADR-039).
+ */
 export function AudioUploadButton({
   onUpload,
   maxBytes,

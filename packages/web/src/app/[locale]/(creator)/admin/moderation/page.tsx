@@ -18,8 +18,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * Cola de moderación (ticket 6.1, specs/17 §4). Solo moderadores o
  * administradores (el mismo guard `isModerator | isAdmin` que la API): al
  * resto se le muestra un aviso sin cargar nada. Los datos vienen de
- * `/api/admin/reports`, `/api/admin/appeals` y `/api/admin/audio`, que
- * vuelven a comprobar el permiso en cada llamada.
+ * `/api/admin/reports` y `/api/admin/appeals`, que vuelven a comprobar el
+ * permiso en cada llamada. El audio ya no pasa por cola de moderación previa
+ * (ADR-039): no hay endpoint de admin para él.
  */
 export default async function ModerationPage({ params }: Props) {
   const { locale } = await params;

@@ -132,11 +132,10 @@ describe("referencias del borrador para publicar", () => {
     expect(collectAudioRefs(doc)).toHaveLength(2);
   });
 
-  it("un MP3 propio bloquea la publicación hasta que se aprueba", async () => {
+  it("un MP3 propio es publicable al instante, sin moderación previa", async () => {
     const creator: Actor = { userId: "user-ana", organizationId: null, role: "member" };
-    const moderator: Actor = { userId: "user-mod", organizationId: null, role: "member" };
     const service = createAudioAssetService({
-      store: createInMemoryAudioAssetStore({ moderatorIds: [moderator.userId] }),
+      store: createInMemoryAudioAssetStore(),
       blobs: createInMemoryAudioBlobStore(),
     });
     const asset = await service.uploadAudio(creator, {
@@ -152,10 +151,6 @@ describe("referencias del borrador para publicar", () => {
     setSoundEffect(doc, "fx-fuego", MUSIC);
 
     const refs = collectAudioRefs(doc, ["es", "en"]);
-    expect(await service.checkRefsForPublish(creator, refs)).toMatchObject([
-      { ref: audioAssetRef(asset), code: "AUDIO_PENDING_MODERATION" },
-    ]);
-    await service.reviewUpload(moderator, asset.id, { decision: "approved" });
     expect(await service.checkRefsForPublish(creator, refs)).toEqual([]);
   });
 });
