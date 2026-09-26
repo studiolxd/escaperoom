@@ -158,6 +158,14 @@ export type EventRoomVersionRef = {
    * prueba que no lo necesitan (nada usa esta ref fuera de create/update).
    */
   estimatedMinutes?: number;
+  /**
+   * `meta.timeLimitMinutes` de la sala (PR #169, cierre del punto parcial de
+   * los tokens de reconexión): la duración PROPIA de la sala, para cuando el
+   * evento no la sobrescribe. Mismos tres estados que en `RoomPackageMeta`:
+   * ausente = retrocompat 60 min, `null` = sin duración, número = minutos.
+   * Ausente aquí también cuando el `EventStore` de prueba no lo implementa.
+   */
+  timeLimitMinutes?: number | null;
 };
 
 /** Resumen del detalle (specs/13 §6.1): nº de sesiones y nº de claves por estado. */

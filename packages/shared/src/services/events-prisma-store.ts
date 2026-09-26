@@ -62,12 +62,21 @@ export function createPrismaEventStore(prisma: PrismaClient): EventStore {
       });
       if (!row) return null;
       const room = row.room_roomVersion_roomIdToroom;
-      // Solo lectura informativa (aviso de duración, ticket duración-salas):
-      // el paquete ya se validó al publicar, así que no hace falta el coste
-      // de `parseRoomPackage` completo aquí.
-      const meta = (row.package as { meta?: { estimatedMinutes?: unknown } } | null)?.meta;
+      // Solo lectura informativa (aviso de duración, TTL del joinToken —
+      // tickets duración-salas y PR #169): el paquete ya se validó al
+      // publicar, así que no hace falta el coste de `parseRoomPackage`
+      // completo aquí.
+      const meta = (
+        row.package as { meta?: { estimatedMinutes?: unknown; timeLimitMinutes?: unknown } } | null
+      )?.meta;
       const estimatedMinutes =
         typeof meta?.estimatedMinutes === "number" ? meta.estimatedMinutes : 0;
+      const timeLimitMinutes =
+        meta?.timeLimitMinutes === null
+          ? null
+          : typeof meta?.timeLimitMinutes === "number"
+            ? meta.timeLimitMinutes
+            : undefined;
       return {
         roomVersionId: row.id,
         roomId: room.id,
@@ -75,6 +84,7 @@ export function createPrismaEventStore(prisma: PrismaClient): EventStore {
         roomStatus: room.status,
         saleEvents: room.saleEvents,
         estimatedMinutes,
+        timeLimitMinutes,
       };
     },
     async insertEvent(event) {

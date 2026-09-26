@@ -274,14 +274,13 @@ Cliente                          Servidor (GameRoom)                Externo
     acortarlo con `JOIN_TOKEN_TTL_SECONDS`. Un token robado solo sirve para ocupar/heredar la MISMA
     plaza (`playerId`), nunca otra: no da más control que el que ya tenía esa plaza.
     - **Duración de partida sin tope** (ticket duración-salas, `04-runtime-juego-y-mundo.md` §6):
-      si el organizador fija un override de duración para el evento
-      (`event.config.timeLimitMinutes`), el `joinToken` de esa sesión dura al menos esa duración
-      más un margen de 30 min (`resolveEventJoinTokenTtlSeconds`), o un techo de 24 h si el
-      override es "sin duración" (`null`) — un `joinToken` no puede vivir de verdad para siempre,
-      así que 24 h es la aproximación práctica a "vale mientras la room exista". **Pendiente:** si
-      es la SALA la que declara `meta.timeLimitMinutes: null` sin que el evento la sobrescriba, el
-      canje no lo sabe hoy (no carga el `RoomPackage` de la sala) y el `joinToken` sigue con el
-      tope de 2 h — cerrarlo del todo necesita cargar también el paquete de la sala al canjear.
+      el TTL sale de la duración EFECTIVA de la partida — override del evento
+      (`event.config.timeLimitMinutes`) > duración propia de la sala (`meta.timeLimitMinutes` de
+      su `roomVersion`, cargada con `AccessKeyStore.findRoomTimeLimitMinutes`) > 60 min por
+      defecto, el mismo orden que `GameRoom.timeLimitSeconds()`. Sube a esa duración + 30 min de
+      margen, o a un techo de 24 h si el valor que gane la precedencia es "sin duración" (`null`)
+      — un `joinToken` no puede vivir de verdad para siempre, así que 24 h es la aproximación
+      práctica a "vale mientras la room exista" (`resolveEventJoinTokenTtlSeconds`).
     - **Compra B2C** (`GameRoom` desnuda, sin `joinToken`): la reclamación "en curso" de la compra
       (`02-modelo-de-negocio.md` §2.1) ya no depende de un plazo fijo por el mismo motivo — la
       `GameRoom` la renueva con un latido periódico mientras viva

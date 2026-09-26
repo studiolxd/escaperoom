@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { isDevFallbackAllowed } from "@escaperoom/env";
+import { DEFAULT_ROOM_TIME_LIMIT_MINUTES } from "../schemas/limits";
 
 /**
  * `joinToken` del canje (ticket 5.8, specs/02 §4.5, specs/13 §6.2, specs/11 §8).
@@ -43,38 +44,42 @@ export const DEFAULT_JOIN_TOKEN_TTL_SECONDS = MAX_JOIN_TOKEN_TTL_SECONDS;
 const JOIN_TOKEN_DURATION_MARGIN_SECONDS = 30 * 60;
 
 /**
- * Techo del `joinToken` para un evento "sin duración" (specs/11 §8: "vale
+ * Techo del `joinToken` para una partida "sin duración" (specs/11 §8: "vale
  * mientras la room exista"). Un JWT no puede vivir de verdad para siempre —
  * este techo es la aproximación práctica: generoso para cualquier jornada
- * real, pero acotado para no firmar tokens que vivan indefinidamente.
- *
- * **Pendiente** (anotado en la PR del ticket): esto solo se aplica cuando el
- * ORGANIZADOR fija el override "sin duración" en `event.config.timeLimitMinutes`
- * — si es la SALA la que declara `meta.timeLimitMinutes: null` sin que el
- * evento la sobrescriba, `redeem` no lo sabe hoy (no carga el `RoomPackage`)
- * y sigue cayendo en `ttlSeconds` por defecto (el tope de 2 h). Cerrarlo del
- * todo necesita que `redeem` cargue el paquete de la sala, no solo el evento.
+ * real (24 h cubre con margen cualquier evento de un día), pero acotado para
+ * no firmar tokens que vivan indefinidamente. La validez REAL más allá de
+ * este plazo la decide siempre el servidor de partidas (si la room sigue
+ * viva), no el propio JWT — igual que la reclamación de una compra B2C ya no
+ * depende de un plazo fijo, sino del latido de la `GameRoom`
+ * (`PLAY_SESSION_STALE_AFTER_SECONDS`, `game-access.ts`).
  */
 export const UNLIMITED_EVENT_JOIN_TOKEN_TTL_SECONDS = 24 * 60 * 60;
 
 /**
- * TTL del `joinToken` para ESTE evento (ticket duración-salas): si el
- * organizador fijó un override de duración (`event.config.timeLimitMinutes`),
- * el token tiene que durar al menos toda la partida + margen, no solo el
- * `ttlSeconds` por defecto (pensado para el límite de 1 h de antes de este
- * ticket). Sin override, `undefined`, se mantiene `defaultTtlSeconds` tal
- * cual (el caso de siempre).
+ * TTL del `joinToken` para ESTA sesión de evento (ticket duración-salas, PR
+ * #169): tiene que durar al menos toda la partida + margen, no solo el
+ * `defaultTtlSeconds` pensado para el límite fijo de 1 h de antes de este
+ * ticket. **Precedencia** (igual criterio que `GameRoom.timeLimitSeconds()`):
+ * override del evento (`event.config.timeLimitMinutes`) > duración propia de
+ * la sala (`meta.timeLimitMinutes` de su `roomVersion`) > 60 min por defecto
+ * (`DEFAULT_ROOM_TIME_LIMIT_MINUTES`, retrocompatible con salas/paquetes sin
+ * ninguno de los dos campos). `null` en el valor que gane la precedencia =
+ * sin duración → techo de 24 h (`UNLIMITED_EVENT_JOIN_TOKEN_TTL_SECONDS`).
  */
 export function resolveEventJoinTokenTtlSeconds(
   timeLimitOverrideMinutes: number | null | undefined,
+  roomTimeLimitMinutes: number | null | undefined,
   defaultTtlSeconds: number,
 ): number {
-  if (timeLimitOverrideMinutes === undefined) return defaultTtlSeconds;
-  if (timeLimitOverrideMinutes === null) return UNLIMITED_EVENT_JOIN_TOKEN_TTL_SECONDS;
-  return Math.max(
-    defaultTtlSeconds,
-    timeLimitOverrideMinutes * 60 + JOIN_TOKEN_DURATION_MARGIN_SECONDS,
-  );
+  const minutes =
+    timeLimitOverrideMinutes !== undefined
+      ? timeLimitOverrideMinutes
+      : roomTimeLimitMinutes !== undefined
+        ? roomTimeLimitMinutes
+        : DEFAULT_ROOM_TIME_LIMIT_MINUTES;
+  if (minutes === null) return UNLIMITED_EVENT_JOIN_TOKEN_TTL_SECONDS;
+  return Math.max(defaultTtlSeconds, minutes * 60 + JOIN_TOKEN_DURATION_MARGIN_SECONDS);
 }
 
 /** Audiencia del token: la room de evento de Colyseus. */

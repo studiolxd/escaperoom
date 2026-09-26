@@ -1122,9 +1122,26 @@ longitud (uso educativo: clases de 45–50 min, alumnado que necesita más tiemp
    (`heartbeatPlaySession`); la caducidad pasa a ser un margen corto sobre el ÚLTIMO latido (15
    min), no sobre cuándo empezó. Migración aditiva: `purchase.playSessionHeartbeatAt`.
 5. **TTL del `joinToken` según la duración real** (`resolveEventJoinTokenTtlSeconds`,
-   `join-token.ts`): con un override de evento, el TTL sube a la duración + 30 min de margen, o a
-   un techo de 24 h si es "sin duración" — el tope anterior de 2 h asumía partidas ≤1 h y podía
-   caducar el token de reconexión a mitad de una partida larga.
+   `join-token.ts`): el TTL sale de la duración EFECTIVA de la partida —**override del evento
+   (`event.config.timeLimitMinutes`) > duración propia de la sala (`meta.timeLimitMinutes` de su
+   `roomVersion`) > 60 min por defecto**, el mismo orden de precedencia que
+   `GameRoom.timeLimitSeconds()`— sube a esa duración + 30 min de margen, o a un techo de 24 h si
+   el valor que gane la precedencia es "sin duración" (`null`). `redeem` (`redeem.ts`) carga la
+   duración de la sala con un nuevo método ligero, `AccessKeyStore.findRoomTimeLimitMinutes`
+   (delegado en `EventStore.findRoomVersion`, ya extendido con `estimatedMinutes` para el aviso del
+   punto 2 — se le añade `timeLimitMinutes` con la misma lectura ligera del JSON del paquete, sin
+   `parseRoomPackage` completo). El tope anterior de 2 h asumía partidas ≤1 h y podía caducar el
+   token de reconexión a mitad de una partida larga, tanto si la duración larga/sin tope la
+   declaraba el EVENTO como, ahora, si la declaraba la propia SALA sin que ningún evento la
+   sobrescribiera (cierre del punto que había quedado ⚠️ Parcial en la revisión de la PR #169 —
+   justo el caso de uso que motivó el encargo: clases largas, alumnado que necesita más tiempo).
+   - **Otros tokens de la partida, revisados y descartados de este mismo problema:** el `gameToken`
+     B2C/sala gratis (`game-access-token.ts`, TTL de 15 min) solo autoriza el `create`/`join`
+     INICIAL, nunca la reconexión durante la partida — la reconexión de la `GameRoom` "desnuda" va
+     por el mecanismo nativo de Colyseus (`allowReconnection(client, "manual")` mientras
+     `phase === "playing"`, sin TTL fijo) o por el `seatKey` del cliente web
+     (`game-reconnect.ts`), ninguno de los dos ligado a una duración de partida. La reclamación de
+     compra B2C ya no depende de un plazo fijo (punto 4, el latido). No hace falta tocar nada ahí.
 6. **MCP**: `create_room` acepta `timeLimitMinutes`; nueva tool `set_room_duration` (no existía
    ninguna tool de edición de meta post-creación, solo `create_room` fijaba valores iniciales).
 
@@ -1132,14 +1149,13 @@ longitud (uso educativo: clases de 45–50 min, alumnado que necesita más tiemp
 a declarar `timeLimitMinutes: 60` explícito (antes quedaba implícito en la constante del servidor).
 El HUD (`game-session-shell.tsx`) no se retocó de estilo (decisión del usuario: lo tiene ajustado a
 mano) — solo se añadió una rama que muestra tiempo transcurrido (`elapsedMs`, nuevo helper junto a
-`remainingMs`) cuando no hay cuenta atrás, en vez de nada.
+`remainingMs`) cuando no hay cuenta atrás, en vez de nada. Un test preexistente de `redeem.ts` que
+asumía "sin override → `ttlSeconds` de `setup()` tal cual" pasó a reflejar el nuevo default
+retrocompatible (60 min + margen), que ahora domina sobre un `ttlSeconds` de configuración más
+corto (`Math.max`).
 
 **Pendiente, anotado explícitamente para no improvisarlo:**
 
-- El TTL del `joinToken` (punto 5) solo reacciona al override DEL EVENTO. Si es la SALA la que
-  declara `timeLimitMinutes: null` sin que ningún evento la sobrescriba, el canje no carga el
-  `RoomPackage` de la sala hoy y el token sigue con el tope de 2 h — cerrarlo del todo necesita esa
-  carga adicional en `redeem.ts`.
 - El ranking global por sala (specs/21 §5) sigue sin implementar (ya lo estaba antes de este
   ticket); este trabajo solo deja lista la marca que usará para excluir partidas de duración
   modificada, no el ranking en sí.
