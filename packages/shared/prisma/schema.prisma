@@ -528,6 +528,9 @@ model room {
   licensePriceCents                                 Int?
   forkedFromRoomId                                  String?            @db.Uuid
   forkedFromVersionId                               String?            @db.Uuid
+  /// Idiomas de la ÚLTIMA versión publicada (specs/14 §5, E-23): denormalizado
+  /// en el publish para filtrar el catálogo sin tocar `roomVersion.package`.
+  languages                                          String[]           @default([])
   createdAt                                         DateTime           @default(now()) @db.Timestamptz(6)
   updatedAt                                         DateTime           @default(now()) @db.Timestamptz(6)
   deletedAt                                         DateTime?          @db.Timestamptz(6)
@@ -546,6 +549,7 @@ model room {
 
   @@index([authorId], map: "ixRoomAuthor")
   @@index([title(ops: raw("gin_trgm_ops"))], map: "ixRoomTitleTrgm", type: Gin)
+  @@index([languages], map: "ixRoomLanguages", type: Gin)
 }
 
 model roomSnapshot {
@@ -589,7 +593,6 @@ model roomVersion {
   room_roomVersion_roomIdToroom              room            @relation("roomVersion_roomIdToroom", fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([roomId, semver])
-  @@index([package(ops: JsonbPathOps)], map: "ixRoomVersionPackage", type: Gin)
   @@index([roomId, publishedAt(sort: Desc)], map: "ixRoomVersionRoom")
 }
 

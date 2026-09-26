@@ -58,6 +58,12 @@ function txOps(db: Db): RoomPublishTx {
           publishedBy: version.publishedBy,
         },
       });
+      // Denormalizado para el catálogo (E-23): evita indexar/leer el `package`
+      // completo solo para filtrar por idioma.
+      await db.room.update({
+        where: { id: version.roomId },
+        data: { languages: version.package.meta.languages },
+      });
       return toRow(row);
     },
     async markPublished(roomId) {
