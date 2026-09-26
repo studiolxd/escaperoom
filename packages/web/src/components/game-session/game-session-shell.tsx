@@ -16,6 +16,7 @@ import { resolveIconFrame, type RuntimeModel, type RuntimePuzzle } from "@escape
 import type { RoomScenePack, WorldSceneEvent } from "@escaperoom/game-runtime/phaser";
 import {
   buildHintView,
+  elapsedMs,
   GAME_PROTOCOL_ERRORS,
   MOVE_OUT_OF_BOUNDS,
   remainingMs,
@@ -732,6 +733,10 @@ export function GameSessionShell({
     ? (views[combinePuzzleId] as CombineItemsPublicView | undefined)
     : undefined;
   const remaining = remainingMs(snapshot);
+  // Ticket duración-salas: sin cuenta atrás (sala sin duración), el HUD
+  // muestra el tiempo transcurrido — nunca "00:00" ni nada. Mismo estilo del
+  // badge, solo cambia el contenido.
+  const elapsed = remaining === null ? elapsedMs(snapshot) : null;
   const selectedObject = selected ? model.objectsById[selected] : undefined;
   const solvedCount = Object.values(snapshot.puzzles).filter((p) => p.state === "solved").length;
   const renderItemIcon = (itemId: string, size?: number) => (
@@ -777,6 +782,10 @@ export function GameSessionShell({
             {remaining !== null ? (
               <span className="font-mono text-xs text-amber-100" data-testid="game-timer">
                 ⏳ {formatDuration(Math.ceil(remaining / 1000))}
+              </span>
+            ) : elapsed !== null ? (
+              <span className="font-mono text-xs text-amber-100" data-testid="game-elapsed">
+                ⏱️ {formatDuration(Math.floor(elapsed / 1000))}
               </span>
             ) : null}
           </div>
