@@ -113,7 +113,9 @@ describe("validador — Rey Aldric", () => {
   });
 
   it("es solvable para todos los tamaños de grupo de players.min a players.max", () => {
-    expect(report.solvability.map((result) => result.playerCount)).toEqual([1, 2, 3, 4]);
+    expect(report.solvability.map((result) => result.playerCount)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8,
+    ]);
     expect(report.solvability.every((result) => result.solvable)).toBe(true);
     expect(report.solvability.every((result) => !result.searchTruncated)).toBe(true);
   });
@@ -255,7 +257,7 @@ describe("validador — dead ends artificiales", () => {
 
     const solvability = checkOf(report, "solvability");
     expect(solvability.status).toBe("error");
-    expect(solvability.summary).toBe("Solvabilidad: sin victoria posible con 1–4 jugadores");
+    expect(solvability.summary).toBe("Solvabilidad: sin victoria posible con 1–8 jugadores");
     const messages = solvability.issues.map((issue) => issue.message);
     expect(messages).toContain(
       "la puerta «reja-escalera» nunca se abre: depende de «p-sello-final», que nunca se resuelve",
@@ -278,6 +280,10 @@ describe("validador — dead ends artificiales", () => {
       [2, true],
       [3, true],
       [4, true],
+      [5, true],
+      [6, true],
+      [7, true],
+      [8, true],
     ]);
     const issue = checkOf(report, "solvability").issues.find((candidate) =>
       candidate.ids.includes("p-placas-estatuas"),

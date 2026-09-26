@@ -70,7 +70,7 @@ describe("validador incremental — compareValidationReports (4.4)", () => {
     pkg.objects.find((o) => o.id === "reja-escalera")!.lockedBy = "p-sello-final";
     const delta = compareValidationReports(before, validateRoomPackage(pkg));
 
-    expect(delta.lostSolvability).toEqual([1, 2, 3, 4]);
+    expect(delta.lostSolvability).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
     expect(delta.introducedErrors.some((f) => f.code === "unsolvable")).toBe(true);
     expect(delta.worsened).toBe(true);
   });

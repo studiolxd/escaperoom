@@ -33,7 +33,7 @@ describe("catalogService.getFeaturedRoom", () => {
     expect(room.title).toBe("La Maldición del Rey Aldric");
     expect(room.difficulty).toBe(2);
     expect(room.languages).toEqual(["es"]);
-    expect(room.players).toEqual({ min: 1, max: 4 });
+    expect(room.players).toEqual({ min: 1, max: 8 });
     expect(room.counts).toEqual({ rooms: 3, puzzles: 9 });
   });
 
