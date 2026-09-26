@@ -67,6 +67,37 @@
     "connectionError": "Error de conexión: {error}",
     "controls": "Muévete con WASD o flechas, o haz clic en una casilla. Servidor:"
   },
+  "RoomScene": {
+    "labels": {
+      "inspectHint": "Espacio / clic para inspeccionar",
+      "containerRemaining": "Queda dentro: {items}.",
+      "containerEmpty": "Está vacío.",
+      "containerReceived": "Recibes: {items}.",
+      "openPanel": "Abre el panel: {puzzleId}."
+    }
+  },
+  "WorldPreview": {
+    "loadingRuntime": "Cargando runtime…",
+    "hint": "Cursor sobre un objeto → brillo · Espacio o clic → inspeccionar · el cofre reparte su inventario",
+    "actions": "Acciones",
+    "action": {
+      "inspectCuadro": "Inspeccionar cuadro",
+      "inspectCofre": "Inspeccionar cofre",
+      "openCofre": "Abrir cofre (anim)",
+      "lightBrasero": "Encender brasero",
+      "palanca": "Palanca → panel React"
+    },
+    "events": "Eventos",
+    "log": {
+      "collect": "Recoges: {items}",
+      "state": "{object} → {state}"
+    },
+    "dialogTitle": "Diálogo (React)",
+    "clickToClose": "Clic para cerrar",
+    "panelMountedTitle": "Panel React montado desde Phaser",
+    "panelExplain": "El diálogo de la palanca abrió un panel: la escena emitió open-panel y React lo montó (specs/03 §3).",
+    "closePanel": "Cerrar panel"
+  },
   "RoomPreview": {
     "badge": "previsualización isométrica (1.2)",
     "loading": "Cargando habitaciones…",
@@ -200,6 +231,7 @@
   },
   "Playtest": {
     "badge": "playtest Rey Aldric (2.8)",
+    "loadingCastle": "Cargando el castillo…",
     "genericObject": "el objeto",
     "subtitle": "Las 3 salas con las 8 plantillas: Salón del Trono → Bodega → Catacumbas. Abre el relicario con el sello final.",
     "controls": "WASD/flechas para mover · Espacio o clic para interactuar · I inventario · ESC cerrar",
@@ -630,7 +662,8 @@
       "eraser": "Borra tiles de la capa activa.",
       "place": "Coloca objetos interactivos (llaves, candados, muebles…).",
       "decorate": "Añade decoración visual, sin lógica de juego.",
-      "torch": "Coloca antorchas que iluminan la habitación."
+      "torch": "Coloca antorchas que iluminan la habitación.",
+      "dismiss": "OK"
     }
   },
   "Inspector": {

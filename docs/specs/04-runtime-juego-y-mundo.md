@@ -61,6 +61,9 @@ interface WorldObject {
   type: string;                   // puerta | cajon | estatua | placa | escondite | mecanismo | decorativo
   position: { x: number; y: number };
   sprite: string;
+  name?: LocalizedText;            // nombre visible (auditoría F-27); sin él, el runtime lo
+                                    // deriva del diálogo de inspección o cae a un genérico
+                                    // traducido — nunca al `id` técnico
   states: Record<string, SpriteState>;  // "closed" → spriteA, "open" → spriteB + animación
   initialState: string;
   inventory?: string[];           // items que contiene (cajones, arcas)

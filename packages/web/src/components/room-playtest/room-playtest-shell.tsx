@@ -15,6 +15,18 @@ import {
   type RoomSession,
 } from "@escaperoom/shared/session";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTitle,
+} from "@/components/ui/popover";
 import { CodeLockPanel, type CodeLockFeedback } from "@/components/puzzles/code-lock-panel";
 import { HiddenKeyPanel, type HiddenKeyFeedback } from "@/components/puzzles/hidden-key-panel";
 import {
@@ -40,12 +52,17 @@ import type { RoomPlaytestHandle } from "./room-playtest-canvas";
 
 const RoomPlaytestCanvas = dynamic(() => import("./room-playtest-canvas"), {
   ssr: false,
-  loading: () => (
-    <div className="absolute inset-0 grid place-items-center text-sm text-white/60">
-      Cargando el castillo…
-    </div>
-  ),
+  loading: () => <RoomPlaytestCanvasLoading />,
 });
+
+function RoomPlaytestCanvasLoading() {
+  const t = useTranslations("Playtest");
+  return (
+    <div className="absolute inset-0 grid place-items-center text-sm text-white/60">
+      {t("loadingCastle")}
+    </div>
+  );
+}
 
 const PLAYER_ID = "p1";
 const COMBINE_PUZZLE = "p-combina";
@@ -136,20 +153,17 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
   /**
    * F-35: el listener global de teclado se registra una sola vez (más abajo)
    * y lee el estado más reciente desde estos refs, en vez de re-registrarse
-   * en cada cambio de `dialog`/`pickerFor`/`selected`/`inventoryOpen`/`panel`.
+   * en cada cambio de `dialog`/`panel`.
    */
   const dialogRef = useRef(dialog);
   dialogRef.current = dialog;
   const panelRef = useRef(panel);
   panelRef.current = panel;
-  const inventoryOpenRef = useRef(inventoryOpen);
-  inventoryOpenRef.current = inventoryOpen;
-  const selectedRef = useRef(selected);
-  selectedRef.current = selected;
-  const pickerForRef = useRef(pickerFor);
-  pickerForRef.current = pickerFor;
 
   const handleRef = useRef<RoomPlaytestHandle | null>(null);
+  /** F-17: contenedor de los `Dialog` (inventario, panel) — igual que en
+   * `game-session-shell.tsx`, para que su `absolute` siga anclado a la sección. */
+  const sectionRef = useRef<HTMLElement | null>(null);
   const now = useCallback(() => Date.now(), []);
   const rerender = useCallback(() => setVersion((value) => value + 1), []);
   const pushLog = useCallback((entry: string) => {
@@ -245,24 +259,21 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
 
   const closeInventory = useCallback(() => setInventoryOpen(false), []);
 
-  // ESC cierra el diálogo (y, en cascada, el inventario y los menús); I abre o
-  // cierra el inventario (specs/04 §8-UI).
-  // F-35: registrado una sola vez (deps vacías); lee el estado más reciente
-  // desde los refs — antes se re-registraba en cada cambio de
-  // `dialog`/`pickerFor`/`selected`/`inventoryOpen`/`panel`/`introOpen`.
+  /**
+   * F-17: el picker, el menú contextual, el inventario y el panel pasan a
+   * `Popover`/`Dialog` de shadcn — cada uno gestiona su propio ESC. Este
+   * listener global ya solo cubre el diálogo de inspección (`dialog`, un
+   * `Button` simple sin ese mecanismo) y la tecla `I`. `onEscapeKeyDown` en
+   * cada `Popover`/`Dialog` evita el doble cierre cuando el diálogo está
+   * encima (cascada: diálogo primero).
+   * F-35: registrado una sola vez (deps vacías); lee el estado más reciente
+   * desde los refs.
+   */
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         if (dialogRef.current) {
           setDialog(null);
-        } else if (pickerForRef.current) {
-          setPickerFor(null);
-        } else if (selectedRef.current) {
-          setSelected(null);
-        } else if (inventoryOpenRef.current) {
-          setInventoryOpen(false);
-        } else if (panelRef.current) {
-          setPanel(null);
         }
         return;
       }
@@ -275,6 +286,12 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  /** F-17: evita el doble cierre en cascada cuando el diálogo de inspección
+   * está por encima de un `Popover`/`Dialog` (ver comentario arriba). */
+  const preventEscapeIfDialogOpen = useCallback((event: { preventDefault: () => void }) => {
+    if (dialogRef.current) event.preventDefault();
   }, []);
 
   const puzzleById = useCallback(
@@ -371,7 +388,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
         return;
       }
       applyResult(result.engine);
-      pushLog(t("log.useItem", { item: labelForItem(model, itemId), object: objectId }));
+      pushLog(t("log.useItem", { item: labelForItem(model, itemId), object: labelForObject(model, objectId, t) }));
       rerender();
     },
     [session, model, introOpen, now, applyResult, pushLog, t, rerender],
@@ -539,7 +556,10 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
   const activePuzzle = panel ? puzzleById(panel) : undefined;
 
   return (
-    <section className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10 bg-slate-950">
+    <section
+      ref={sectionRef}
+      className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10 bg-slate-950"
+    >
       <RoomPlaytestCanvas
         model={model}
         roomId={startRoomId}
@@ -611,7 +631,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
                   disabled={introOpen}
                   onClick={() => setSelected(object.id)}
                 >
-                  {object.id}
+                  {labelForObject(model, object.id, t)}
                 </Button>
               ))}
               {openDoors.map((door) => (
@@ -699,84 +719,113 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
         </div>
       </div>
 
-      {selected ? (
-        <div className="absolute inset-x-4 bottom-52 z-20 mx-auto w-fit max-w-[min(92vw,26rem)] rounded-xl border border-amber-200/30 bg-slate-950/95 px-4 py-3 text-white shadow-xl">
-          <span className="block text-[0.65rem] uppercase tracking-wide text-amber-200/70">
-            {t("menu.title")}
-          </span>
-          <span className="block font-mono text-xs text-white/60">
-            {t("menu.object", { object: selected })}
-          </span>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {selectedActions.map((action) => (
-              <Button
-                key={action}
-                size="sm"
-                variant={action === "use_item" ? "default" : "overlay"}
-                onClick={() => {
-                  setSelected(null);
-                  if (action === "inspect") {
-                    inspect(selected);
-                  } else {
-                    setPickerFor(selected);
-                  }
-                }}
-              >
-                {t(ACTION_LABEL[action])}
-              </Button>
-            ))}
-            {selectedPanel ? (
-              <Button
-                size="sm"
-                variant="overlay"
-                onClick={() => {
-                  setSelected(null);
-                  openPanel(selectedPanel, selected);
-                }}
-              >
-                {t("menu.openPanel")}
-              </Button>
-            ) : null}
-            <Button size="sm" variant="overlayGhost" onClick={() => setSelected(null)}>
-              {t("menu.cancel")}
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      {pickerFor ? (
-        <div className="absolute inset-x-4 bottom-52 z-20 mx-auto w-fit max-w-[min(92vw,30rem)] rounded-xl border border-amber-200/30 bg-slate-950/95 px-4 py-3 text-white shadow-xl">
-          <span className="block text-[0.65rem] uppercase tracking-wide text-amber-200/70">
-            {t("menu.chooseItem", { object: pickerFor })}
-          </span>
-          <p className="mt-1 text-[0.7rem] text-white/50">{t("menu.dragHint")}</p>
-          {inventory.length === 0 ? (
-            <p className="mt-2 text-xs text-white/40">{t("menu.noItems")}</p>
-          ) : (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {inventory.map((itemId) => (
-                <Button key={itemId} size="sm" variant="overlay" onClick={() => chooseItem(itemId)}>
-                  <ItemIcon
-                    frame={resolveIconFrame(pack?.manifest, model.itemsById[itemId]?.icon ?? "")}
-                    baseUrl={pack?.baseUrl}
-                    name={labelForItem(model, itemId)}
-                    size={16}
-                  />
-                  {labelForItem(model, itemId)}
+      {/* F-17: menú contextual del objeto — `Popover` no modal (el jugador sigue
+          viendo el mundo), en vez de un `div` sin foco ni rol. */}
+      <Popover open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>
+        <PopoverAnchor asChild>
+          <span aria-hidden className="pointer-events-none absolute inset-x-4 bottom-52 mx-auto block h-px w-full max-w-[min(92vw,26rem)]" />
+        </PopoverAnchor>
+        <PopoverContent
+          side="top"
+          align="center"
+          sideOffset={8}
+          onEscapeKeyDown={preventEscapeIfDialogOpen}
+          className="w-fit max-w-[min(92vw,26rem)] rounded-xl border border-amber-200/30 bg-slate-950/95 px-4 py-3 text-white shadow-xl"
+        >
+          {selected ? (
+            <>
+              <PopoverTitle className="block text-[0.65rem] font-normal uppercase tracking-wide text-amber-200/70">
+                {t("menu.title")}
+              </PopoverTitle>
+              <span className="block font-mono text-xs text-white/60">
+                {t("menu.object", { object: labelForObject(model, selected, t) })}
+              </span>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {selectedActions.map((action) => (
+                  <Button
+                    key={action}
+                    size="sm"
+                    variant={action === "use_item" ? "default" : "overlay"}
+                    onClick={() => {
+                      setSelected(null);
+                      if (action === "inspect") {
+                        inspect(selected);
+                      } else {
+                        setPickerFor(selected);
+                      }
+                    }}
+                  >
+                    {t(ACTION_LABEL[action])}
+                  </Button>
+                ))}
+                {selectedPanel ? (
+                  <Button
+                    size="sm"
+                    variant="overlay"
+                    onClick={() => {
+                      setSelected(null);
+                      openPanel(selectedPanel, selected);
+                    }}
+                  >
+                    {t("menu.openPanel")}
+                  </Button>
+                ) : null}
+                <Button size="sm" variant="overlayGhost" onClick={() => setSelected(null)}>
+                  {t("menu.cancel")}
                 </Button>
-              ))}
-            </div>
-          )}
-          <Button
-            size="sm"
-            variant="overlayGhost"
-            className="mt-2"
-            onClick={() => setPickerFor(null)}
-          >
-            {t("menu.cancel")}
-          </Button>
-        </div>
-      ) : null}
+              </div>
+            </>
+          ) : null}
+        </PopoverContent>
+      </Popover>
+
+      {/* F-17: picker de objeto — mismo `Popover` no modal que el menú contextual. */}
+      <Popover open={pickerFor !== null} onOpenChange={(open) => !open && setPickerFor(null)}>
+        <PopoverAnchor asChild>
+          <span aria-hidden className="pointer-events-none absolute inset-x-4 bottom-52 mx-auto block h-px w-full max-w-[min(92vw,30rem)]" />
+        </PopoverAnchor>
+        <PopoverContent
+          side="top"
+          align="center"
+          sideOffset={8}
+          onEscapeKeyDown={preventEscapeIfDialogOpen}
+          className="w-fit max-w-[min(92vw,30rem)] rounded-xl border border-amber-200/30 bg-slate-950/95 px-4 py-3 text-white shadow-xl"
+        >
+          {pickerFor ? (
+            <>
+              <PopoverTitle className="block text-[0.65rem] font-normal uppercase tracking-wide text-amber-200/70">
+                {t("menu.chooseItem", { object: labelForObject(model, pickerFor, t) })}
+              </PopoverTitle>
+              <p className="mt-1 text-[0.7rem] text-white/50">{t("menu.dragHint")}</p>
+              {inventory.length === 0 ? (
+                <p className="mt-2 text-xs text-white/40">{t("menu.noItems")}</p>
+              ) : (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {inventory.map((itemId) => (
+                    <Button key={itemId} size="sm" variant="overlay" onClick={() => chooseItem(itemId)}>
+                      <ItemIcon
+                        frame={resolveIconFrame(pack?.manifest, model.itemsById[itemId]?.icon ?? "")}
+                        baseUrl={pack?.baseUrl}
+                        name={labelForItem(model, itemId)}
+                        size={16}
+                      />
+                      {labelForItem(model, itemId)}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              <Button
+                size="sm"
+                variant="overlayGhost"
+                className="mt-2"
+                onClick={() => setPickerFor(null)}
+              >
+                {t("menu.cancel")}
+              </Button>
+            </>
+          ) : null}
+        </PopoverContent>
+      </Popover>
 
       {dialog ? (
         <Button
@@ -795,11 +844,19 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
         </Button>
       ) : null}
 
-      {inventoryOpen ? (
-        <div
+      {/* F-17: inventario — `Dialog` modal (bloquea el resto del HUD y atrapa el
+          foco, como ya hacía el input del mundo al estar abierto). */}
+      <Dialog open={inventoryOpen} onOpenChange={(open) => !open && closeInventory()}>
+        <DialogContent
+          container={sectionRef.current}
+          showCloseButton={false}
+          overlayClassName="bg-transparent"
+          onEscapeKeyDown={preventEscapeIfDialogOpen}
           data-testid="playtest-inventory-overlay"
-          className="absolute inset-0 z-30 grid place-items-center overflow-auto bg-black/60 p-4"
+          className="absolute inset-0 top-auto left-auto z-30 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-black/60 p-4 ring-0"
         >
+          <DialogTitle className="sr-only">{t("inventory")}</DialogTitle>
+          <DialogDescription className="sr-only">{t("menu.dragHint")}</DialogDescription>
           <InventoryPanel
             view={session.combineItemsView(COMBINE_PUZZLE, PLAYER_ID)}
             items={model.items.map((item) => ({
@@ -818,11 +875,22 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
               />
             )}
           />
-        </div>
-      ) : null}
+        </DialogContent>
+      </Dialog>
 
-      {panel ? (
-        <div className="absolute inset-0 z-20 grid place-items-center overflow-auto bg-black/50 p-4">
+      {/* F-17: panel de puzzle/pistas — `Dialog` modal igual que el inventario. */}
+      <Dialog open={panel !== null} onOpenChange={(open) => !open && setPanel(null)}>
+        <DialogContent
+          container={sectionRef.current}
+          showCloseButton={false}
+          overlayClassName="bg-transparent"
+          onEscapeKeyDown={preventEscapeIfDialogOpen}
+          className="absolute inset-0 top-auto left-auto z-20 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-black/50 p-4 ring-0"
+        >
+          <DialogTitle className="sr-only">
+            {panel === "hints" ? t("action.hints") : t("menu.openPanel")}
+          </DialogTitle>
+          <DialogDescription className="sr-only">{t("close")}</DialogDescription>
           <div className="flex flex-col items-end gap-2">
             <Button size="sm" variant="overlayGhost" onClick={() => setPanel(null)}>
               {t("close")}
@@ -914,8 +982,8 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
               />
             ) : null}
           </div>
-        </div>
-      ) : null}
+        </DialogContent>
+      </Dialog>
 
       {summary ? <ResultsScreen summary={summary} /> : null}
 
@@ -936,4 +1004,13 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
 
 function labelForItem(model: RuntimeModel, itemId: string): string {
   return model.itemsById[itemId]?.name ?? itemId;
+}
+
+/**
+ * F-27: nombre visible del objeto — el que ya resolvió el loader (propio o
+ * derivado del diálogo de inspección) o un genérico traducido; nunca el `id`
+ * técnico (`armario`, `p-llave-cuadro`).
+ */
+function labelForObject(model: RuntimeModel, objectId: string, t: ReturnType<typeof useTranslations>): string {
+  return model.objectsById[objectId]?.name || t("genericObject");
 }
