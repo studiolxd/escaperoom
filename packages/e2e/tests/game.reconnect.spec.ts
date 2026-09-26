@@ -39,7 +39,7 @@ test("recargar la página a mitad de partida conserva inventario y personaje", a
 
   await a.markReady();
   await page.getByTestId("game-start").click();
-  await expect(a.session).toHaveAttribute("data-phase", "playing");
+  await a.enterMapAfterStart();
   await a.closeDialog();
 
   await a.inspect("cuadro-aurelio");
@@ -52,6 +52,8 @@ test("recargar la página a mitad de partida conserva inventario y personaje", a
   // `reconnectionToken` guardado en `localStorage` la recupera.
   await expect(a.session).toBeVisible({ timeout: 30_000 });
   await expect(a.session).toHaveAttribute("data-phase", "playing");
+  // Reconexión a mitad de partida: salta lobby, introducción y 3-2-1.
+  await expect(a.session).toHaveAttribute("data-stage", "map");
   await expect(page).toHaveURL(url);
   await a.expectItems("Llave de bronce");
   // Un solo jugador: si la plaza antigua no se hubiera liberado, aparecería
@@ -73,7 +75,7 @@ test("cerrar la pestaña y abrir otra a mitad de partida conserva inventario y p
 
   await a.markReady();
   await firstPage.getByTestId("game-start").click();
-  await expect(a.session).toHaveAttribute("data-phase", "playing");
+  await a.enterMapAfterStart();
   await a.closeDialog();
   await a.inspect("cuadro-aurelio");
   await a.expectItems("Llave de bronce");
@@ -91,4 +93,27 @@ test("cerrar la pestaña y abrir otra a mitad de partida conserva inventario y p
   await again.expectItems("Llave de bronce");
   const players = secondPage.getByTestId("game-players");
   await expect(players.locator("li")).toHaveCount(1);
+});
+
+test("entrada tardía: con el link de una partida ya empezada se pasa por el 3-2-1 y se entra al mapa", async ({
+  browser,
+}) => {
+  // Encargo lobby-diseño: hasta el máximo de jugadores, quien llega tarde
+  // entra (sala de espera → introducción si la hay → su 3-2-1 → mapa en curso).
+  const hostContext = await browser.newContext();
+  const a = new UiPlayer(await hostContext.newPage(), "Ana");
+  await a.page.goto("dev/game-room");
+  await a.enterName();
+  await expect(a.page).toHaveURL(/[?&]room=/u);
+  await a.markReady();
+  await a.page.getByTestId("game-start").click();
+  await a.enterMapAfterStart();
+
+  const lateContext = await browser.newContext();
+  const b = new UiPlayer(await lateContext.newPage(), "Bruno");
+  await b.page.goto(a.page.url());
+  await b.enterName();
+  await b.enterMapAfterStart();
+  await expect(b.page.getByTestId("game-players")).toContainText("Ana");
+  await expect(a.page.getByTestId("game-players")).toContainText("Bruno");
 });

@@ -108,13 +108,13 @@ test("evento: claves en lote, PDF, canje sin cuenta y progreso en el panel del o
     await player.page.getByRole("button", { name: "Entrar en la partida" }).click();
     await expect(player.page).toHaveURL(/\/play\/session\/[\w-]+#joinToken=/u);
     await expect(player.session).toBeVisible({ timeout: 30_000 });
-    await expect(player.page.getByTestId("game-players")).toContainText("Invitada");
+    await expect(player.page.getByTestId("lobby-players")).toContainText("Invitada");
   });
 
   await test.step("juega parcialmente (pasos 1–5 del Rey Aldric)", async () => {
     await player.markReady();
     await player.page.getByTestId("game-start").click();
-    await expect(player.session).toHaveAttribute("data-phase", "playing");
+    await player.enterMapAfterStart();
     await player.closeDialog();
     await player.dismissDialogsWhenBlocking();
     await player.inspect("cuadro-aurelio");

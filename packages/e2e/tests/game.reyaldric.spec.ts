@@ -43,8 +43,10 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
     await expect(a.page).toHaveURL(/[?&]room=/u);
     await b.page.goto(a.page.url());
     await b.enterName();
-    await expect(a.page.getByTestId("game-players")).toContainText("Bruno");
-    await expect(b.page.getByTestId("game-players")).toContainText("Ana");
+    // Encargo lobby-diseño: los dos esperan en la sala de espera.
+    await expect(a.page.getByTestId("lobby-players")).toContainText("Bruno");
+    await expect(b.page.getByTestId("lobby-players")).toContainText("Ana");
+    await expect(a.session).toHaveAttribute("data-stage", "lobby");
   });
 
   await test.step("la anfitriona empieza: intro y fase de juego para los dos", async () => {
@@ -54,7 +56,7 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
     await b.markReady();
     await a.page.getByTestId("game-start").click();
     for (const player of [a, b]) {
-      await expect(player.session).toHaveAttribute("data-phase", "playing");
+      await player.enterMapAfterStart();
       await expect(player.page.getByTestId("game-dialog")).toHaveAttribute("data-intro", "true");
       await player.closeDialog();
       await player.dismissDialogsWhenBlocking();
