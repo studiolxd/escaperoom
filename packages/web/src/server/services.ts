@@ -40,6 +40,12 @@ import {
   type AudioAssetService,
   type AudioBlobStore,
   createAudioPublishAssetSource,
+  createCompositePublishAssetSource,
+  createIntroMediaPublishAssetSource,
+  createIntroMediaService,
+  createPrismaIntroMediaStore,
+  type IntroMediaBlobStore,
+  type IntroMediaService,
   createCreditsService,
   createPrismaCreditAccountStore,
   type CreditsService,
@@ -147,6 +153,7 @@ let accessKeys: AccessKeyService | undefined;
 let redeem: RedeemService | null | undefined;
 let roomLicenses: RoomLicenseService | undefined;
 let roomCover: RoomCoverService | undefined;
+let introMedia: IntroMediaService | undefined;
 let me: MeService | undefined;
 let invitations: InvitationService | undefined;
 let accessKeyCards: AccessKeyCardsService | undefined;
@@ -175,7 +182,8 @@ function catalogCacheStore() {
   if (!redis) return null;
   return {
     get: (key: string) => redis.get(key),
-    set: (key: string, value: string, ttlSeconds: number) => redis.set(key, value, "EX", ttlSeconds),
+    set: (key: string, value: string, ttlSeconds: number) =>
+      redis.set(key, value, "EX", ttlSeconds),
   };
 }
 
@@ -279,6 +287,35 @@ export function getAudioAssetService(): AudioAssetService {
   return audioAssets;
 }
 
+/**
+ * Binarios de la introducción (vídeo + WebVTT) sobre el mismo bucket privado:
+ * el vídeo sube directo del navegador con un PUT presignado y se comprueba
+ * después con HEAD + GET por rango (sniff), sin pasar por este proceso.
+ */
+const introMediaBlobs: IntroMediaBlobStore = {
+  put: (key, bytes, contentType) =>
+    storage.putObject({ key, body: Buffer.from(bytes), contentType }),
+  delete: (key) => storage.deleteObject(key),
+  signedUploadUrl: (key, { contentType, contentLength }) =>
+    storage.getSignedUploadUrl(key, { contentType, contentLength }),
+  head: async (key) => {
+    const head = await storage.headObject(key);
+    return head ? { byteSize: head.contentLength, contentType: head.contentType } : null;
+  },
+  readRange: (key, start, end) => storage.getObjectRange(key, start, end),
+  signedReadUrl: (key, opts) =>
+    storage.getSignedReadUrl(key, { expiresIn: opts?.expiresIn ?? 600 }),
+};
+
+/** Vídeo y subtítulos de la introducción de una sala (encargo lobby-diseño). */
+export function getIntroMediaService(): IntroMediaService {
+  introMedia ??= createIntroMediaService({
+    store: createPrismaIntroMediaStore(prisma),
+    blobs: introMediaBlobs,
+  });
+  return introMedia;
+}
+
 /** Ledger de créditos de plataforma (ticket 4.9, specs/14 §4) sobre Postgres. */
 export function getCreditsService(): CreditsService {
   credits ??= createCreditsService({
@@ -331,6 +368,11 @@ export function getModerationService(): ModerationService {
   return moderation;
 }
 
+async function readStorageObject(key: string) {
+  const { buffer, contentType } = await storage.getObjectBuffer(key);
+  return { bytes: new Uint8Array(buffer), contentType };
+}
+
 /**
  * Publicación de salas (specs/08 §5, specs/13 §4) sobre Postgres y el bucket
  * (R2/S3 vía `@escaperoom/kit/storage`). El doc Yjs del draft se congela con
@@ -344,16 +386,23 @@ export function getRoomPublishService(): RoomPublishService {
       store: createPrismaRoomPublishStore(prisma),
       drafts: createPrismaRoomDraftStore(prisma),
       serializer: roomDocToPackage,
-      assets: createAudioPublishAssetSource({
-        audio: getAudioAssetService(),
-        readObject: async (key) => {
-          const { buffer, contentType } = await storage.getObjectBuffer(key);
-          return { bytes: new Uint8Array(buffer), contentType };
-        },
+      assets: createCompositePublishAssetSource({
+        audio: createAudioPublishAssetSource({
+          audio: getAudioAssetService(),
+          readObject: readStorageObject,
+        }),
+        // Vídeo y subtítulos de `meta.intro` (`media:<uuid>`): el vídeo se
+        // empaqueta con `digest` + `copy`, sin cargarlo en memoria.
+        introMedia: createIntroMediaPublishAssetSource({
+          introMedia: getIntroMediaService(),
+          readObject: readStorageObject,
+        }),
       }),
       storage: {
         put: (key, bytes, contentType) =>
           storage.putObject({ key, body: Buffer.from(bytes), contentType }),
+        digest: (key) => storage.digestObject(key),
+        copy: (fromKey, toKey, contentType) => storage.copyObject({ fromKey, toKey, contentType }),
       },
       moderation: getModerationService(),
       loadAssetManifest: loadAssetManifestFor,
@@ -415,7 +464,9 @@ export function getOrganizationService(): OrganizationService {
  */
 export function getUserDataRightsService(): UserDataRightsService {
   userDataRights ??= createUserDataRightsService({
-    store: createPrismaUserDataRightsStore(prisma, { deleteStorageObject: (key) => storage.deleteObject(key) }),
+    store: createPrismaUserDataRightsStore(prisma, {
+      deleteStorageObject: (key) => storage.deleteObject(key),
+    }),
   });
   return userDataRights;
 }
