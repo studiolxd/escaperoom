@@ -481,17 +481,15 @@
       "sfx": "Efectos",
       "voice": "Voces"
     },
-    "optionPending": "{name} (pendiente de moderación)",
     "optionRejected": "{name} (rechazado)",
     "credits": "Licencia {license} · {author}",
     "noAudioIn": "Sin audio en {language}",
     "status": {
-      "pending": "Pendiente de moderación: puedes probarlo en el borrador, pero no podrás publicar la sala hasta que se apruebe.",
       "rejected": "Rechazado en moderación: {reason}. Elige otro audio."
     },
     "upload": "Subir MP3",
     "uploading": "Subiendo…",
-    "uploadHint": "Solo MP3, hasta {maxMb} MB y {maxMinutes} min. Lo revisamos antes de que puedas publicar la sala con él.",
+    "uploadHint": "Solo MP3, hasta {maxMb} MB y {maxMinutes} min. Disponible al instante para usar y publicar.",
     "rightsDeclared": "Declaro que tengo los derechos de este audio y que no incluye voces de terceros sin su consentimiento.",
     "errors": {
       "tooLarge": "El fichero supera el máximo de {maxMb} MB.",
@@ -1143,7 +1141,7 @@
       "DRAFT_CHANGED": "El borrador ha cambiado desde que se pidió la publicación. Pide al asistente que valide y la solicite de nuevo.",
       "VERSION_CHANGED": "Ya se ha publicado una versión con esta solicitud (o después de ella). Pide una nueva si quieres volver a publicar.",
       "VALIDATION_FAILED": "La sala ya no pasa el validador: corrige los errores antes de publicar.",
-      "ASSETS_NOT_PUBLISHABLE": "Hay audios pendientes o rechazados en moderación: no se puede publicar todavía.",
+      "ASSETS_NOT_PUBLISHABLE": "Hay audios rechazados en moderación: no se puede publicar con ellos.",
       "ROOM_NOT_PUBLISHABLE": "La sala fue retirada por moderación y no se puede publicar.",
       "PUBLISH_CONFIRM_DISABLED": "La confirmación de publicaciones no está disponible en este entorno.",
       "UNKNOWN": "No se pudo publicar la sala. Inténtalo de nuevo.",

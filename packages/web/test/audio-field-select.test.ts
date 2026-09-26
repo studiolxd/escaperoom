@@ -30,7 +30,7 @@ const UPLOADS: AudioUploadSummary[] = [
   {
     ref: "upload:0f8fad5b-d9cb-469f-a165-70867728950e",
     originalFilename: "narrador.mp3",
-    status: "pending",
+    status: "approved",
     rejectionReason: null,
   },
   {
@@ -80,27 +80,13 @@ describe("<LocalizedAudioField> — selector de audio (Select de shadcn)", () =>
 });
 
 describe("<AudioSourceSelect>", () => {
-  it("avisa de que un audio pendiente no se puede publicar y muestra el motivo de un rechazo", () => {
-    const { rerender } = renderIntl(
+  it("muestra el motivo de un rechazo histórico", () => {
+    renderIntl(
       createElement(AudioSourceSelect, {
-        value: UPLOADS[0]!.ref,
+        value: UPLOADS[1]!.ref,
         onChange: () => undefined,
         library: AUDIO_LIBRARY,
         uploads: UPLOADS,
-      }),
-    );
-    expect(screen.getByRole("status")).toHaveTextContent("Pendiente de moderación");
-
-    rerender(
-      createElement(NextIntlClientProvider, {
-        locale: "es",
-        messages: es,
-        children: createElement(AudioSourceSelect, {
-          value: UPLOADS[1]!.ref,
-          onChange: () => undefined,
-          library: AUDIO_LIBRARY,
-          uploads: UPLOADS,
-        }),
       }),
     );
     expect(screen.getByRole("alert")).toHaveTextContent("Rechazado en moderación: Voz de un tercero");
