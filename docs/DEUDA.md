@@ -98,19 +98,17 @@ Tareas pendientes que no bloquean pero hay que resolver.
       PR #117); revisar también que los textos legales (`privacy.ts`,
       `cookies.ts`) describen la configuración real (dominio, retención de GA,
       transferencias internacionales de Google).
-- [ ] **Retirar la ruta de partida de prueba `/[locale]/play`.** Debe desaparecer
-      antes de pasar a producto. El flujo de **salas gratis jugables sin
-      cuenta** que la sustituye como forma de jugar una sala sin compra ya
-      existe (`GET /api/rooms/:roomId/free-access` + `/play/room/:roomId`,
-      cerrado en la PR del CTA de la ficha de sala, 2026-09-25) — falta
-      migrar lo que aún depende de `/[locale]/play`. Hoy ya responde 404 en
-      producción salvo con `ALLOW_DEV_SECRETS` (PR #140: firma `gameToken`
-      `dev_test`). Al retirarla, migrar lo que depende de ella: el e2e de
-      partida (`packages/e2e/tests/game.reyaldric.spec.ts`, smoke de CI) y el
-      de reconexión del bloque 4 deben usar el flujo de sala gratis (o un
-      endpoint de pruebas equivalente limitado a test); quitar el tipo de
-      token `dev_test` si ya no se usa; revisar enlaces internos y docs que la
-      mencionen.
+- [x] **Retirar la ruta de partida de prueba `/[locale]/play`.** Retirada:
+      `/es/play` da 404. El canje de eventos que compartía la página (`?session=`)
+      vive ahora en `/play/session/[sessionId]`. `game.reyaldric.spec.ts`
+      (mecánica de juego, dos jugadores) y `game.reconnect.spec.ts` (recargar/
+      cerrar y reabrir la pestaña) migraron a `/dev/game-room` — la "vía de
+      pruebas limitada a test" prevista aquí: firma un `gameToken`
+      `kind: "dev_test"` fresco en cada carga, `isDevFallbackAllowed`-gated
+      como `world-preview`/`room-preview`, nunca en un despliegue real sin
+      `ALLOW_DEV_SECRETS`. El tipo `dev_test` se queda (lo sigue usando la
+      suite de tests de `colyseus-server`); ya no lo firma ninguna página ni
+      endpoint. F-33 (lobby de pruebas) se retiró en el mismo encargo.
 - [x] **Formularios con server actions, React Hook Form y errores bajo cada
       campo.** Revisar todos los formularios para que usen **server actions** +
       **React Hook Form** (con el `Form`/`Field` de shadcn/ui y el resolver de
@@ -335,40 +333,34 @@ Tareas pendientes que no bloquean pero hay que resolver.
 - [ ] **E-23 (resto): configuración del worker centralizada.** Concurrencias, `everyMs`
       y crons de los ~14 workers sin variable de entorno; un `workerConfig` común
       (pospuesto en la #139 por solaparse con otros bloques). Al final de la cola.
-- [ ] **F-33: lobby de pruebas a 20 Hz.** `lobby-canvas.tsx`, `lobby-store.ts` y
-      `lobby-scene.ts` crean objetos nuevos en cada `onStateChange` y se suscriben sin
-      selector. Es una página de desarrollo: valorar retirarla junto con `/[locale]/play`.
-- [ ] **Tests de rate limit de `web` aún intermitentes bajo `pnpm verify:pr` (429).** La #161
-      dio a cada worktree su propio `REDIS_PREFIX`, pero ese prefijo **persiste entre
-      ejecuciones del mismo worktree**: las cuotas consumidas en una tirada de `verify:pr`
-      siguen vivas en el Redis compartido en la siguiente, y tests como
-      `room-license-api.test.ts` (`POST /api/rooms/:roomId/gift-copy`) reciben 429 (visto en
-      la #170, reproducible también en `main`). Corrección candidata: prefijo por ejecución
-      en `scripts/verify-pr.sh` (p. ej. `<prefijo-del-worktree>_<id-de-tirada>`) o limpieza
-      de las claves del prefijo al empezar. Se resuelve junto con el nightly E2E (misma tarea
-      de estabilidad de tests).
-- [ ] **Nightly E2E en rojo desde que existe (issue #115).** El job nocturno
-      `.github/workflows/e2e-nightly.yml` (2:30, suite completa de Playwright + paridad
-      MCP + carga) falla todas las noches desde el 2026-09-24 y nadie lo estaba mirando;
-      el PR solo corre `e2e:smoke`. Causas (ejecución del 2026-09-26):
-      1. **429 al iniciar sesión** (`event-flow`, `events-only-room`, `editor-publish`):
-         el rate limit propio de Better Auth corta el enlace mágico cuando la suite
-         completa hace varios logins seguidos. Hace falta un login de e2e que no gaste
-         ese cupo (sesión creada directamente o límite desactivado solo en el servidor
-         de e2e, nunca en producción).
-      2. **Test desactualizado** en `editor-publish` (regalar copia editable): espera la
-         respuesta antigua; el servidor ahora responde con un mensaje que no revela si
-         el email existe.
-      3. **Ruta larga de `game.reyaldric`** (pasos 7–11): busca el tablero de memoria con
-         `role="list"` y el componente usa `role="listbox"` (detectado en #164).
-      4. **Prueba de carga** (`packages/e2e/load/ten-sessions.ts`): falla con
-         `GAME_TOKEN_REQUIRED` desde que unirse exige token de partida (#140), y el paso
-         sale en verde porque su salida pasa por `| tee` y el código de salida se pierde.
-      Además, al arrancar aparece `relation "roomVersion" does not exist`: el servidor
-      consulta antes de que terminen las migraciones.
-      **Se resuelve junto con la retirada de `/[locale]/play`** (entrada de arriba), en
-      un único encargo tras integrar la duración de salas: los dos tocan los e2e de
-      partida y el acceso con token. Cerrar #115 al terminar.
+- [x] **F-33: lobby de pruebas a 20 Hz.** Retirada junto con `/[locale]/play`:
+      `lobby-canvas.tsx`/`lobby-store.ts`/`lobby-scene.ts`/`lobby-hud.tsx`/`lobby-shell.tsx`
+      (web) y la room `lobby_test` (`colyseus-server`) ya no existen. Nada de producción
+      dependía de ella; `ChatMessageState`/`RoomChat`/media, que compartía con la
+      `GameRoom` real, se quedan (los tests de integración de chat/media pasan a una
+      room de test mínima propia, `colyseus-server/test/helpers/chat-media-test-room.ts`).
+- [x] **Tests de rate limit de `web` aún intermitentes bajo `pnpm verify:pr` (429).**
+      Resuelto: `scripts/verify-pr.sh` añade un sufijo por EJECUCIÓN (PID + epoch) al
+      `REDIS_PREFIX` del worktree antes de exportarlo, así que cada tirada de
+      `pnpm verify:pr` empieza con un namespace de Redis limpio propio. Documentado en
+      `docs/reference/verify-pr.md`. Verificado con dos `pnpm verify:pr --all` seguidas.
+- [x] **Nightly E2E en rojo desde que existe (issue #115).** Resuelto, cinco causas
+      (ejecución del 2026-09-26), junto con la retirada de `/[locale]/play`:
+      1. **429 al iniciar sesión** (rate limit propio de Better Auth del enlace mágico
+         bajo `NODE_ENV=production`): `auth.ts` lo desactiva con `isDevFallbackAllowed`
+         (nunca en un despliegue real sin `ALLOW_DEV_SECRETS`).
+      2. **`editor-publish`** (regalar copia editable) actualizado a la respuesta
+         genérica de B-10 (202, nunca revela si el email existe); la sala forkeada se
+         busca por Postgres directo (`support/db.ts`).
+      3. **`game.reyaldric`** (pasos 7–11): el tablero de memoria usa `role="listbox"`,
+         ya corregido en `support/game.ts`.
+      4. **Prueba de carga** (`ten-sessions.ts`): firma un `gameToken` `kind: "dev_test"`
+         para la `GameRoom` sin Postgres detrás; `set -o pipefail` en el workflow para
+         que el `| tee` no oculte el código de salida.
+      5. `relation "roomVersion" does not exist` al arrancar: paso explícito de
+         migrar+sembrar antes de que Playwright arranque los servidores (mismo fix en
+         `e2e-smoke` de `ci.yml`).
+      Issue #115 cerrado.
 - [x] **404 de URLs que no existen.** Resuelto (auditoría 2026-09-24, B-27):
       `app/[locale]/(public)/[...rest]/page.tsx` (comodín, llama a `notFound()`) captura
       cualquier URL con locale válido que ninguna otra ruta capturó, y sale con la shell
