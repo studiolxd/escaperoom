@@ -12,6 +12,7 @@ import {
   RoomDocError,
   addLobbyRoom,
   addRoomLanguage,
+  defineSubRooms,
   findLobbyRoomId,
   getRoomIntroText,
   initRoomDoc,
@@ -234,5 +235,48 @@ describe("introducción (meta.intro)", () => {
     Y.applyUpdate(b, Y.encodeStateAsUpdate(a));
     expect(readRoomIntro(a)).toEqual(readRoomIntro(b));
     expect(readRoomIntro(a)).toMatchObject({ subtitles: { es: VTT_ES, en: VTT_EN } });
+  });
+});
+
+describe("defineSubRooms con kind (MCP define_subrooms)", () => {
+  it("crea lobby y habitación de juego en una sola llamada; el lobby recibe spawns y el juego el suyo", () => {
+    const doc = new Y.Doc();
+    initRoomDoc(doc, { id: "r", title: "Sala", language: "es" });
+    // Sala nueva sin spawns de juego: se vacía la inicial para comprobar el reparto.
+    const result = defineSubRooms(doc, [
+      { id: "espera", name: "Espera", grid: { cols: 6, rows: 5 }, kind: "lobby" },
+      { id: "cripta", name: "Cripta", grid: { cols: 8, rows: 8 } },
+    ]);
+    expect(result.created).toEqual(["espera", "cripta"]);
+    const rooms = roomDocToPackage(doc).map.rooms;
+    const lobby = rooms.find((room) => room.id === "espera")!;
+    expect(lobby.kind).toBe("lobby");
+    expect(lobby.spawnPoints.length).toBeGreaterThan(0);
+    expect(rooms.find((room) => room.id === "cripta")?.kind).toBeUndefined();
+  });
+
+  it("cambia el lobby de habitación en una sola llamada (null quita, lobby pone)", () => {
+    const doc = roomPackageToDoc(fixture);
+    setSubRoomKind(doc, "catacumbas", "lobby");
+    const catacumbas = fixture.map.rooms.find((room) => room.id === "catacumbas")!;
+    const bodega = fixture.map.rooms.find((room) => room.id === "bodega")!;
+    defineSubRooms(doc, [
+      { id: "bodega", name: bodega.name, grid: bodega.grid, kind: "lobby" },
+      { id: "catacumbas", name: catacumbas.name, grid: catacumbas.grid, kind: null },
+    ]);
+    expect(findLobbyRoomId(doc)).toBe("bodega");
+  });
+
+  it("rechaza dos lobbies en la misma llamada sin escribir nada", () => {
+    const doc = roomPackageToDoc(fixture);
+    expect(
+      code(() =>
+        defineSubRooms(doc, [
+          { id: "a", name: "A", grid: { cols: 4, rows: 4 }, kind: "lobby" },
+          { id: "b", name: "B", grid: { cols: 4, rows: 4 }, kind: "lobby" },
+        ]),
+      ),
+    ).toBe("LOBBY_CONFLICT");
+    expect(roomDocToPackage(doc)).toEqual(fixture);
   });
 });

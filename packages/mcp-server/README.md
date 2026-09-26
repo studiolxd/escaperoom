@@ -14,6 +14,7 @@ sobre un draft reciben `roomId` (el mismo `:roomId` de `/api/rooms/:roomId/draft
 | Fase | Tool | Estado |
 | --- | --- | --- |
 | A — Estructura | `create_room`, `set_map`, `paint_tiles`, `define_subrooms` | **implementadas** (4.2) |
+| A — Estructura | `set_room_intro`, `kind: "lobby"` en `define_subrooms` | **implementadas** (lobby-diseño): introducción (texto/vídeo) y sala de espera |
 | B — Contenido | `add_object`, `define_item`, `add_puzzle`, `add_dialog`, `add_hint` | **implementadas** (4.2) |
 | B — Contenido | `decorate_subroom` | **implementada** (paridad de 4.8): decoración e iluminación por habitación |
 | C — Lógica | `add_rule`, `get_room_graph` | **implementadas** (4.3) |
