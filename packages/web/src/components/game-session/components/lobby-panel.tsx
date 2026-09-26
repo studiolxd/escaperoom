@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { RuntimeMeta } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
@@ -133,7 +133,7 @@ export function LobbyPanel({
         </div>
         <h2 className="text-base font-semibold leading-tight">{meta.title}</h2>
         {meta.description ? (
-          <p className="text-xs text-white/70">{meta.description}</p>
+          <RoomDescription title={meta.title} description={meta.description} />
         ) : null}
       </header>
 
@@ -302,5 +302,49 @@ export function LobbyPanel({
         </DialogContent>
       </Dialog>
     </aside>
+  );
+}
+
+/**
+ * Descripción de la sala recortada a 4 líneas (`line-clamp-4`): sin una
+ * medida nativa de "¿se ha truncado?", comparamos `scrollHeight` contra
+ * `clientHeight` tras montar — solo entonces aparece "Leer más", que abre el
+ * texto completo en un `Dialog`.
+ */
+function RoomDescription({ title, description }: { title: string; description: string }) {
+  const t = useTranslations("Game");
+  const ref = useRef<HTMLParagraphElement | null>(null);
+  const [truncated, setTruncated] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (el) setTruncated(el.scrollHeight > el.clientHeight + 1);
+  }, [description]);
+
+  return (
+    <>
+      <p ref={ref} className="line-clamp-4 text-xs text-white/70">
+        {description}
+      </p>
+      {truncated ? (
+        <Button
+          variant="link"
+          className="h-auto self-start p-0 text-xs text-white underline-offset-2"
+          data-testid="lobby-description-more"
+          onClick={() => setOpen(true)}
+        >
+          {t("lobby.readMore")}
+        </Button>
+      ) : null}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="bg-neutral-900 text-white ring-white/10">
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+          </DialogHeader>
+          <p className="whitespace-pre-line text-sm text-white/80">{description}</p>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

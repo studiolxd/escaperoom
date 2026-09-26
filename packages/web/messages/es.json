@@ -1078,6 +1078,7 @@
     },
     "lobby": {
       "title": "Sala de espera",
+      "readMore": "Leer más",
       "chooseCharacter": "Elige tu personaje",
       "characterTaken": "ocupado",
       "players": "{count, plural, one {# jugador} other {# jugadores}}",
