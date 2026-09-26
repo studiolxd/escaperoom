@@ -2,13 +2,15 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Prisma, PrismaClient } from "../generated/client";
+import { Prisma } from "../generated/client/client";
+import { createPrismaClient } from "../src/db";
 
 // El seed escribe directo a Postgres (DIRECT_URL): tras `migrate reset` los
 // ENUMs se recrean con OIDs nuevos y el pooler (PgBouncer) puede tener planes
 // cacheados → "cache lookup failed for type".
-const prisma = new PrismaClient({
-  datasources: { db: { url: process.env.DIRECT_URL ?? process.env.DATABASE_URL } },
+const prisma = createPrismaClient({
+  connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
+  max: 1,
 });
 
 const here = path.dirname(fileURLToPath(import.meta.url));

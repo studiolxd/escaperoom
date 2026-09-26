@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "../../generated/client";
+import { Prisma, type PrismaClient } from "../../generated/client/client";
 
 /**
  * Idempotencia de `POST /api/stripe/webhook` (specs/13 §7): Stripe reintenta

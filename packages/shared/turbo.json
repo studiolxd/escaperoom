@@ -1,0 +1,49 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // Package Configuration (turbo): estas tres tareas SUSTITUYEN por completo
+    // a las de la raíz para este paquete (no se fusionan campo a campo), así
+    // que cada una repite aquí lo que ya tenía allí además del cambio real.
+    //
+    // El cambio real: `lint`/`typecheck`/`test` dependen también de "build"
+    // (sin `^`, el del PROPIO paquete), no solo de "^build" (el de sus
+    // dependencias). Solo hace falta en `@escaperoom/shared`: con Prisma 7
+    // (generador `prisma-client`), `build`, `typecheck` y `test` corren cada
+    // uno su propio `prisma generate` (ver los scripts de este package.json) y,
+    // al ser tareas turbo independientes entre sí, turbo las lanzaba en
+    // paralelo — dos `prisma generate` concurrentes escribiendo a la vez sobre
+    // `generated/client`, que el nuevo generador (a diferencia del anterior)
+    // no tolera («exists and is not empty but doesn't look like a generated
+    // Prisma Client»). Acotado aquí (en vez de en la raíz) para no frenar
+    // `@escaperoom/web`, donde `build` es `next build`: en la raíz, lint/
+    // typecheck/test de web habrían tenido que esperar a que terminase
+    // `next build` en vez de correr en paralelo con él.
+    "lint": {
+      "dependsOn": ["^build", "build"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build", "build"]
+    },
+    "test": {
+      "dependsOn": ["^build", "build"],
+      // Misma lista que en la raíz (turbo.json): los *.integration.test.ts
+      // (E-14) solo corren si estas variables están presentes y su resultado
+      // depende de contra qué Postgres/Redis apunten — declaradas aquí para
+      // que entren en el hash de caché de turbo.
+      "env": [
+        "DATABASE_URL",
+        "DIRECT_URL",
+        "REDIS_URL",
+        "REDIS_PREFIX",
+        "QUEUES_ENABLED",
+        "STORAGE_PROVIDER",
+        "STORAGE_BUCKET",
+        "STORAGE_REGION",
+        "STORAGE_ENDPOINT",
+        "STORAGE_ACCESS_KEY_ID",
+        "STORAGE_SECRET_ACCESS_KEY"
+      ]
+    }
+  }
+}

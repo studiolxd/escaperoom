@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "../../generated/client";
+import { Prisma, type PrismaClient } from "../../generated/client/client";
 import type { PurchaseConfirmationEmailJob } from "../mail";
 import type {
   PendingConfirmations,

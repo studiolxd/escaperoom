@@ -1,4 +1,4 @@
-import type { PrismaClient } from "../../generated/client";
+import type { PrismaClient } from "../../generated/client/client";
 import type { OrganizationDpaRow, OrganizationStore } from "./organizations";
 
 const DPA_SELECT = { id: true, dpaSignedAt: true, dpaVersion: true, dpaSignedBy: true } as const;

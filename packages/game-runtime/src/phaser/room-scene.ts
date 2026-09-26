@@ -613,14 +613,20 @@ export class RoomScene extends Phaser.Scene {
    * Escala un sprite al tamaño **lógico** (el del manifiesto), con
    * independencia de la resolución del pack (1× o 2×). Sin esto, un pack a 2×
    * se pintaría al doble. Devuelve el objeto para encadenar.
+   *
+   * v4: el defecto de `vertexRoundMode` ("safeAuto") solo redondea objetos sin
+   * escala/rotación; como aquí siempre se escala (pack 1×/2× vs tamaño
+   * lógico), se fuerza "fullAuto" para conservar la nitidez de v3 (sin
+   * rotación en ningún sprite del runtime, no hay riesgo de "wobble").
    */
   private fitToLogicalSize<
     T extends Phaser.GameObjects.Components.Transform & {
       setScale(x?: number, y?: number): T;
+      setVertexRoundMode(mode: string): T;
     },
   >(sprite: T, ref: FrameRef, size: { width: number; height: number }): T {
     const scale = this.resolver.displayScaleFor(ref, size);
-    return sprite.setScale(scale.x, scale.y);
+    return sprite.setScale(scale.x, scale.y).setVertexRoundMode("fullAuto");
   }
 
   /**

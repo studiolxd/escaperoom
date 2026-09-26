@@ -98,7 +98,9 @@ export class AvatarController {
     const originX = options.manifest.avatarOrigin?.[0] ?? DEFAULT_AVATAR_ORIGIN[0];
     this.sprite = this.scene.add.sprite(0, 0, first.key, first.frame).setOrigin(originX, originY);
     const scale = options.resolver.displayScaleFor(first, AVATAR_SIZE);
-    this.sprite.setScale(scale.x, scale.y);
+    // v4: "fullAuto" para conservar la nitidez de v3 pese al escalado 1×/2×
+    // del pack (ver `RoomScene.fitToLogicalSize`); el avatar nunca rota.
+    this.sprite.setScale(scale.x, scale.y).setVertexRoundMode("fullAuto");
 
     this.registerAnimations(options.resolver, options.manifest);
     this.container = this.scene.add.container(0, 0, [shadow, ring, this.sprite]);

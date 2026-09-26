@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "../../generated/client";
+import { Prisma, type PrismaClient } from "../../generated/client/client";
 import { LIVE_ACCESS_KEY_STATUSES, type AccessKeyRow } from "./access-keys";
 import type { AccessKeyCardStore, CardRoomMeta } from "./access-key-cards";
 import { createPrismaEventStore } from "./events-prisma-store";

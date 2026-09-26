@@ -46,6 +46,14 @@ minimumReleaseAgeExclude:
 # a la mínima parcheada (GHSA-gpj5-g38j-94v9) dentro del rango que exige el
 # adapter de esa versión (^0.45.2). lodash y deepmerge-ts también a sus
 # mínimas parcheadas (transitivos de @colyseus/core>@pm2/io y @prisma/config).
+#
+# mysql2 (PR de migración a Prisma 7): prisma@7.10.0 trae mysql2@3.15.3 como
+# dependencia directa (Studio/@prisma/dev, MySQL no se usa aquí — este repo
+# solo habla con Postgres) y pnpm dedupea a esa misma versión el mysql2 que ya
+# traía better-auth/drizzle-orm (peer opcional), de ahí que `pnpm audit --prod`
+# la reporte por las dos rutas. Vulnerable: GHSA-3f6p-5ww8-9rcr (<3.22.0, alta)
+# y GHSA-rgwj-5xj2-c3m3 (<=3.23.0, moderada). Se fuerza a la mínima parcheada
+# de ambas.
 overrides:
   typescript: ^6.0.3
   "@types/node": ^26.6.2
@@ -53,3 +61,4 @@ overrides:
   drizzle-orm: ^0.45.3
   lodash: ^4.18.1
   deepmerge-ts: ^8.0.2
+  mysql2: ^3.23.1

@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "../../generated/client";
+import { Prisma, type PrismaClient } from "../../generated/client/client";
 import { createPrismaAccessKeyStore } from "./access-keys-prisma-store";
 import type { InvitationStore } from "./invitations";
 

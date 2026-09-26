@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@escaperoom/shared": "workspace:*",
-    "phaser": "3.90.0",
+    "phaser": "4.2.1",
     "sharp": "^0.35.4",
     "zod": "^4.6.5"
   },

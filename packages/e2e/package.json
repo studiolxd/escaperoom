@@ -13,7 +13,7 @@
     "load": "tsx load/ten-sessions.ts"
   },
   "devDependencies": {
-    "@colyseus/sdk": "0.18.2",
+    "@colyseus/sdk": "0.18.4",
     "@escaperoom/colyseus-server": "workspace:*",
     "@escaperoom/config": "workspace:*",
     "@escaperoom/shared": "workspace:*",
