@@ -230,11 +230,11 @@ importers:
         version: 4.6.5
     devDependencies:
       '@colyseus/sdk':
-        specifier: 0.18.2
-        version: 0.18.2(@colyseus/core@0.18.16)(typescript@6.0.3)(zod@4.6.5)
+        specifier: 0.18.4
+        version: 0.18.4(@colyseus/core@0.18.16)(typescript@6.0.3)(zod@4.6.5)
       '@colyseus/testing':
         specifier: 0.18.5
-        version: 0.18.5(@colyseus/core@0.18.16)(@colyseus/sdk@0.18.2(@colyseus/core@0.18.16)(typescript@6.0.3)(zod@4.6.5))(@colyseus/tools@0.18.3(@colyseus/core@0.18.16)(@colyseus/ws-transport@0.18.2)(supports-color@10.2.2))
+        version: 0.18.5(@colyseus/core@0.18.16)(@colyseus/sdk@0.18.4(@colyseus/core@0.18.16)(typescript@6.0.3)(zod@4.6.5))(@colyseus/tools@0.18.3(@colyseus/core@0.18.16)(@colyseus/ws-transport@0.18.2)(supports-color@10.2.2))
       '@colyseus/tools':
         specifier: 0.18.3
         version: 0.18.3(@colyseus/core@0.18.16)(@colyseus/ws-transport@0.18.2)(supports-color@10.2.2)
@@ -293,8 +293,8 @@ importers:
   packages/e2e:
     devDependencies:
       '@colyseus/sdk':
-        specifier: 0.18.2
-        version: 0.18.2(@colyseus/core@0.18.14)(typescript@6.0.3)(zod@4.6.5)
+        specifier: 0.18.4
+        version: 0.18.4(@colyseus/core@0.18.14)(typescript@6.0.3)(zod@4.6.5)
       '@escaperoom/colyseus-server':
         specifier: workspace:*
         version: link:../colyseus-server
@@ -611,8 +611,8 @@ importers:
         specifier: ^4.0.17
         version: 4.0.17
       '@colyseus/sdk':
-        specifier: 0.18.2
-        version: 0.18.2(@colyseus/core@0.18.14)(typescript@6.0.3)(zod@4.6.5)
+        specifier: 0.18.4
+        version: 0.18.4(@colyseus/core@0.18.14)(typescript@6.0.3)(zod@4.6.5)
       '@escaperoom/config':
         specifier: workspace:*
         version: link:../config
@@ -1312,10 +1312,6 @@ packages:
       zod:
         optional: true
 
-  '@colyseus/greeting-banner@4.0.2':
-    resolution: {integrity: sha512-xjGxqX3bZqhE7BvsGl500zU01NTx7YbckGwCzFpOFsPwfcHRi/UIvwWS6wNp7JJFy2jlTSJhlbUUoQVAeCfcxQ==}
-    engines: {node: '>= 22.x'}
-
   '@colyseus/greeting-banner@4.0.3':
     resolution: {integrity: sha512-2Ned3SnWS2XoxG9I7zy2qbKsaev0aE9+VZrBgg3NrNBVcxJjRba7jscqWs89k7D7tsGCDAa5d17ac0DYviUACA==}
     engines: {node: '>= 22.x'}
@@ -1329,18 +1325,14 @@ packages:
       typescript:
         optional: true
 
-  '@colyseus/sdk@0.18.2':
-    resolution: {integrity: sha512-rM3xk0bk48i7fxIdVqCunPTEwI8dzyCYh/PwhYFeV4tabUiulKbg3qY8gvI0zoPCnwslmphMigM10xcGzZvmdA==}
+  '@colyseus/sdk@0.18.4':
+    resolution: {integrity: sha512-abCF8The7tACU5IM3yNKDnLfhqZQRBgw00OXxSHS0LuXfHJWFSc8mpDUJ40e0TEQPFPpKsZKzT+cnd5jQCQXvA==}
     engines: {node: '>= 12.x'}
     peerDependencies:
       '@colyseus/core': 0.18.x
     peerDependenciesMeta:
       '@colyseus/core':
         optional: true
-
-  '@colyseus/shared-types@0.18.2':
-    resolution: {integrity: sha512-z+r+4p3NYW3fDW9BJiBsqcepi/ulUTQXe0rJiKIuLWX3/cdzCVdkyRmLSnkMhulPl+moaHG7QdseqQixha5C3A==}
-    engines: {node: '>= 22.x'}
 
   '@colyseus/shared-types@0.18.3':
     resolution: {integrity: sha512-Kye6Lmpd4RXY52Ro8NawurUKMNagkNfAdV79Dx/cdWib1LrNW4e94JOtl9HIxy4QYVdHlkxc2m5ZjcwQXekWng==}
@@ -8184,9 +8176,9 @@ snapshots:
   '@colyseus/core@0.18.14(@colyseus/better-call@1.3.3(zod@4.6.5))(@colyseus/schema@5.0.33(typescript@6.0.3))(@colyseus/ws-transport@0.18.2)(@pm2/io@6.1.0(supports-color@10.2.2))(express@5.2.1(supports-color@10.2.2))(supports-color@10.2.2)(zod@4.6.5)':
     dependencies:
       '@colyseus/better-call': 1.3.3(zod@4.6.5)
-      '@colyseus/greeting-banner': 4.0.2
+      '@colyseus/greeting-banner': 4.0.3
       '@colyseus/schema': 5.0.33(typescript@6.0.3)
-      '@colyseus/shared-types': 0.18.2
+      '@colyseus/shared-types': 0.18.3
       '@colyseus/timer': 2.0.3
       '@standard-schema/spec': 1.1.0
       debug: 4.4.3(supports-color@10.2.2)
@@ -8220,20 +8212,17 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@colyseus/greeting-banner@4.0.2':
-    optional: true
-
   '@colyseus/greeting-banner@4.0.3': {}
 
   '@colyseus/schema@5.0.33(typescript@6.0.3)':
     optionalDependencies:
       typescript: 6.0.3
 
-  '@colyseus/sdk@0.18.2(@colyseus/core@0.18.14)(typescript@6.0.3)(zod@4.6.5)':
+  '@colyseus/sdk@0.18.4(@colyseus/core@0.18.14)(typescript@6.0.3)(zod@4.6.5)':
     dependencies:
       '@colyseus/better-call': 1.3.3(zod@4.6.5)
       '@colyseus/schema': 5.0.33(typescript@6.0.3)
-      '@colyseus/shared-types': 0.18.2
+      '@colyseus/shared-types': 0.18.3
       msgpackr: 2.1.0
       tslib: 2.8.1
       ws: 8.21.3
@@ -8245,11 +8234,11 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@colyseus/sdk@0.18.2(@colyseus/core@0.18.16)(typescript@6.0.3)(zod@4.6.5)':
+  '@colyseus/sdk@0.18.4(@colyseus/core@0.18.16)(typescript@6.0.3)(zod@4.6.5)':
     dependencies:
       '@colyseus/better-call': 1.3.3(zod@4.6.5)
       '@colyseus/schema': 5.0.33(typescript@6.0.3)
-      '@colyseus/shared-types': 0.18.2
+      '@colyseus/shared-types': 0.18.3
       msgpackr: 2.1.0
       tslib: 2.8.1
       ws: 8.21.3
@@ -8261,18 +8250,14 @@ snapshots:
       - utf-8-validate
       - zod
 
-  '@colyseus/shared-types@0.18.2':
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-
   '@colyseus/shared-types@0.18.3':
     dependencies:
       '@standard-schema/spec': 1.1.0
 
-  '@colyseus/testing@0.18.5(@colyseus/core@0.18.16)(@colyseus/sdk@0.18.2(@colyseus/core@0.18.16)(typescript@6.0.3)(zod@4.6.5))(@colyseus/tools@0.18.3(@colyseus/core@0.18.16)(@colyseus/ws-transport@0.18.2)(supports-color@10.2.2))':
+  '@colyseus/testing@0.18.5(@colyseus/core@0.18.16)(@colyseus/sdk@0.18.4(@colyseus/core@0.18.16)(typescript@6.0.3)(zod@4.6.5))(@colyseus/tools@0.18.3(@colyseus/core@0.18.16)(@colyseus/ws-transport@0.18.2)(supports-color@10.2.2))':
     dependencies:
       '@colyseus/core': 0.18.16(@colyseus/better-call@1.3.3(zod@4.6.5))(@colyseus/schema@5.0.33(typescript@6.0.3))(@colyseus/ws-transport@0.18.2)(@pm2/io@6.1.0(supports-color@10.2.2))(express@5.2.1(supports-color@10.2.2))(supports-color@10.2.2)(zod@4.6.5)
-      '@colyseus/sdk': 0.18.2(@colyseus/core@0.18.16)(typescript@6.0.3)(zod@4.6.5)
+      '@colyseus/sdk': 0.18.4(@colyseus/core@0.18.16)(typescript@6.0.3)(zod@4.6.5)
       '@colyseus/tools': 0.18.3(@colyseus/core@0.18.16)(@colyseus/ws-transport@0.18.2)(supports-color@10.2.2)
       httpie: 2.0.0-next.13
 
