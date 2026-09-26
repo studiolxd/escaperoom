@@ -270,6 +270,16 @@ export function RoomDetailView({
             {room.title}
           </h1>
           <RatingSummary ratingAvg={room.ratingAvg} ratingCount={room.ratingCount} />
+          <RoomPlayCta
+            room={room}
+            locale={locale}
+            isFree={isFree}
+            isPaid={isPaid}
+            isEventsOnly={isEventsOnly}
+            access={access}
+            isAnonymous={isAnonymous}
+            roomHref={roomHref}
+          />
         </div>
       </div>
 
