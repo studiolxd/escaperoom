@@ -49,6 +49,9 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
 
   await test.step("la anfitriona empieza: intro y fase de juego para los dos", async () => {
     await expect(b.page.getByTestId("game-start")).toHaveCount(0);
+    // C-13: "Empezar" exige que todos los conectados estén "Listo".
+    await a.markReady();
+    await b.markReady();
     await a.page.getByTestId("game-start").click();
     for (const player of [a, b]) {
       await expect(player.session).toHaveAttribute("data-phase", "playing");

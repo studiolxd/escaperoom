@@ -60,6 +60,11 @@ export class UiPlayer {
     await expect(this.session).toBeVisible({ timeout: 30_000 });
   }
 
+  /** Marca "Listo" en el lobby (C-13): lo exige `start_game` antes de dejar empezar. */
+  async markReady(): Promise<void> {
+    await this.page.getByTestId("lobby-ready").click();
+  }
+
   /** Cierra el diálogo abierto (intro, lore): mientras está, el mundo no acepta clics. */
   async closeDialog(): Promise<void> {
     const dialog = this.page.getByTestId("game-dialog");
