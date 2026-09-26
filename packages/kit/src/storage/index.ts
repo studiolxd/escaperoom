@@ -1,7 +1,10 @@
+import { createHash } from "node:crypto";
 import {
+  CopyObjectCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
@@ -39,6 +42,26 @@ export type Storage = {
     keys: readonly string[],
     opts?: { expiresIn?: number },
   ): Promise<Map<string, string>>;
+  /**
+   * PUT presignado para subir un objeto directamente desde el navegador (sin
+   * pasar los bytes por el servidor). Firma `content-type` y, si se da,
+   * `content-length`; aun así el tamaño real hay que comprobarlo después con
+   * `headObject` (R2 no admite condiciones de tamaño en un PUT presignado).
+   * `headers` son las cabeceras que el cliente DEBE enviar tal cual
+   * (`Content-Length` la pone el navegador a partir del cuerpo).
+   */
+  getSignedUploadUrl(
+    key: string,
+    opts: { contentType: string; contentLength?: number; expiresIn?: number },
+  ): Promise<{ url: string; headers: Record<string, string> }>;
+  /** Metadatos de un objeto (HEAD); `null` si no existe. */
+  headObject(key: string): Promise<{ contentLength: number; contentType: string } | null>;
+  /** Bytes `[start, end]` (ambos inclusive) de un objeto: GET con `Range`. */
+  getObjectRange(key: string, start: number, end: number): Promise<Uint8Array>;
+  /** Copia servidor-servidor dentro del bucket (sin descargar el objeto). */
+  copyObject(opts: { fromKey: string; toKey: string; contentType?: string }): Promise<void>;
+  /** SHA-256 (hex) y tamaño de un objeto, leyéndolo en streaming (sin cargarlo entero en memoria). */
+  digestObject(key: string): Promise<{ sha256: string; byteSize: number; contentType: string }>;
   /** Uploads an object directly to the bucket from the server. */
   putObject(opts: { key: string; body: Buffer; contentType: string }): Promise<void>;
   /** Downloads an object as a Buffer. */
@@ -55,6 +78,13 @@ export type Storage = {
 };
 
 const DEFAULT_READ_TTL_SECONDS = 3600;
+const DEFAULT_UPLOAD_TTL_SECONDS = 15 * 60;
+
+/** `NotFound`/404 del SDK (HEAD no trae cuerpo, así que el nombre varía). */
+function isNotFound(error: unknown): boolean {
+  const e = error as { name?: string; $metadata?: { httpStatusCode?: number } } | null;
+  return e?.name === "NotFound" || e?.name === "NoSuchKey" || e?.$metadata?.httpStatusCode === 404;
+}
 
 export function createStorage(env: KitStorageEnv): Storage {
   const bucket = env.STORAGE_BUCKET;
@@ -117,6 +147,95 @@ export function createStorage(env: KitStorageEnv): Storage {
       ContentType: opts.contentType,
     });
     await getClient().send(command);
+  }
+
+  async function getSignedUploadUrl(
+    key: string,
+    opts: { contentType: string; contentLength?: number; expiresIn?: number },
+  ): Promise<{ url: string; headers: Record<string, string> }> {
+    const command = new PutObjectCommand({
+      Bucket: requireBucket(),
+      Key: key,
+      ContentType: opts.contentType,
+      ...(opts.contentLength !== undefined ? { ContentLength: opts.contentLength } : {}),
+    });
+    const signableHeaders = new Set(["content-type"]);
+    if (opts.contentLength !== undefined) signableHeaders.add("content-length");
+    const url = await getSignedUrl(getClient(), command, {
+      expiresIn: opts.expiresIn ?? DEFAULT_UPLOAD_TTL_SECONDS,
+      signableHeaders,
+    });
+    return { url, headers: { "Content-Type": opts.contentType } };
+  }
+
+  async function headObject(
+    key: string,
+  ): Promise<{ contentLength: number; contentType: string } | null> {
+    try {
+      const response = await getClient().send(
+        new HeadObjectCommand({ Bucket: requireBucket(), Key: key }),
+      );
+      return {
+        contentLength: response.ContentLength ?? 0,
+        contentType: response.ContentType ?? "application/octet-stream",
+      };
+    } catch (error) {
+      if (isNotFound(error)) return null;
+      throw error;
+    }
+  }
+
+  async function getObjectRange(key: string, start: number, end: number): Promise<Uint8Array> {
+    if (!(start >= 0 && end >= start)) throw new Error(`Rango no válido: ${start}-${end}`);
+    const response: GetObjectCommandOutput = await getClient().send(
+      new GetObjectCommand({ Bucket: requireBucket(), Key: key, Range: `bytes=${start}-${end}` }),
+    );
+    if (!response.Body) throw new Error("Empty response body from storage");
+    const bytes = await response.Body.transformToByteArray();
+    // Un servidor que ignore `Range` devolvería el objeto entero: se recorta.
+    return bytes.byteLength > end - start + 1 ? bytes.slice(0, end - start + 1) : bytes;
+  }
+
+  async function copyObject(opts: {
+    fromKey: string;
+    toKey: string;
+    contentType?: string;
+  }): Promise<void> {
+    const b = requireBucket();
+    await getClient().send(
+      new CopyObjectCommand({
+        Bucket: b,
+        Key: opts.toKey,
+        CopySource: `${b}/${opts.fromKey.split("/").map(encodeURIComponent).join("/")}`,
+        ...(opts.contentType
+          ? { ContentType: opts.contentType, MetadataDirective: "REPLACE" as const }
+          : {}),
+      }),
+    );
+  }
+
+  async function digestObject(
+    key: string,
+  ): Promise<{ sha256: string; byteSize: number; contentType: string }> {
+    const response: GetObjectCommandOutput = await getClient().send(
+      new GetObjectCommand({ Bucket: requireBucket(), Key: key }),
+    );
+    if (!response.Body) throw new Error("Empty response body from storage");
+    const hash = createHash("sha256");
+    let byteSize = 0;
+    const stream = response.Body.transformToWebStream();
+    const reader = stream.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      hash.update(value);
+      byteSize += value.byteLength;
+    }
+    return {
+      sha256: hash.digest("hex"),
+      byteSize,
+      contentType: response.ContentType ?? "application/octet-stream",
+    };
   }
 
   async function getObjectBuffer(key: string): Promise<{ buffer: Buffer; contentType: string }> {
@@ -187,6 +306,11 @@ export function createStorage(env: KitStorageEnv): Storage {
     endpoint: env.STORAGE_ENDPOINT || undefined,
     getSignedReadUrl,
     getSignedReadUrls,
+    getSignedUploadUrl,
+    headObject,
+    getObjectRange,
+    copyObject,
+    digestObject,
     putObject,
     getObjectBuffer,
     deleteObject,
