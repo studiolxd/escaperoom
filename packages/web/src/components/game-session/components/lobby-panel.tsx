@@ -161,7 +161,7 @@ export function LobbyPanel({
               </span>
               {player.isSelf ? (
                 <Button
-                  size="xs"
+                  size="default"
                   variant={player.ready ? "secondary" : "default"}
                   data-testid="lobby-ready"
                   aria-pressed={player.ready}
@@ -180,7 +180,7 @@ export function LobbyPanel({
               {isHost && !player.isSelf && player.connected && onKick ? (
                 pendingKickId === player.id ? (
                   <Button
-                    size="xs"
+                    size="default"
                     variant="destructive"
                     data-testid={`game-kick-confirm-${player.id}`}
                     onClick={() => {
@@ -192,7 +192,7 @@ export function LobbyPanel({
                   </Button>
                 ) : (
                   <Button
-                    size="xs"
+                    size="default"
                     variant="destructive"
                     data-testid={`game-kick-${player.id}`}
                     onClick={() => setPendingKickId(player.id)}

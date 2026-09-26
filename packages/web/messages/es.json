@@ -1088,7 +1088,7 @@
       "confirmForceTitle": "¿Empezar sin que todos estén listos?",
       "confirmForceConfirm": "Sí, empezar igualmente",
       "confirmForceCancel": "Esperar",
-      "markReady": "Marcarme como listo",
+      "markReady": "¡Estoy listo!",
       "ready": "Listo ✓",
       "waitingHost": "Esperando a que el anfitrión empiece…",
       "waitingOrganizer": "Esperando a que el organizador inicie la partida…",
@@ -1109,6 +1109,8 @@
       "playersRange": "{min}–{max} jugadores",
       "belowMinimum": "Hacen falta al menos {min} jugadores conectados para empezar.",
       "deviceCheck": {
+        "open": "Probar micrófono",
+        "openWithCamera": "Probar cámara y micrófono",
         "title": "Prueba tu micrófono",
         "titleWithCamera": "Prueba tu micrófono y tu cámara",
         "preview": "Vista previa de tu cámara",
