@@ -435,7 +435,7 @@ pantallas, **REST `/api/v1`** para terceros y webhooks, `/internal/*` para serve
   créditos…), siempre con un `actor` explícito.
 - **tRPC (v11)** para la UI de web y editor (infraestructura tRPC de `@slxd/kit`).
 - **REST** para lo público/anónimo, terceros y webhooks (API pública bajo `/api/*`, catálogo anónimo,
-  `/api/webhooks/stripe`).
+  `/api/stripe/webhook`).
 - **MCP** sobre los mismos servicios (`@slxd/mcp-server` / `mcp-auth`), en `/mcp/creator`.
 - **Colyseus** consume también los servicios/reglas de dominio.
 

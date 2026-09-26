@@ -77,8 +77,8 @@ Razonamiento de los números:
 **Fuera de este limitador**, a propósito:
 
 - **MCP**: el ticket 4.7 aplica su propio límite por token; no se duplica.
-- **`POST /api/webhooks/stripe`**: specs/13 §11 pide limitarlo por firma válida, no por IP; aún no
-  existe la ruta (la verificación de firma ya descarta lo ajeno).
+- **`POST /api/stripe/webhook`**: specs/13 §11 pide limitarlo por firma válida, no por IP; la
+  verificación de firma ya descarta lo ajeno, así que no lleva `withRateLimit`.
 - **`/api/auth/*`** (Better Auth 1.7): trae su propio rate limit, encendido en producción (100 peticiones / 10 s y reglas más duras en el login), pero **en memoria por proceso**. Llevarlo a Redis (`secondaryStorage`) queda como mejora.
 - **`POST /api/analytics/collect`**: pertenece al ticket 6.11.
 

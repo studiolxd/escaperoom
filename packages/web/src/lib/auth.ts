@@ -1,5 +1,10 @@
 import { prisma } from "@escaperoom/shared/db";
-import { createMailTransportFromEnv, sendMagicLinkEmail } from "@escaperoom/shared/mail";
+import {
+  createMailTransportFromEnv,
+  resolveMailLocale,
+  sendMagicLinkEmail,
+  sendOrganizationInvitationEmail,
+} from "@escaperoom/shared/mail";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { bearer, magicLink, organization } from "better-auth/plugins";
@@ -19,6 +24,17 @@ const magicLinkTransport = createMailTransportFromEnv();
 /** Idioma del email a partir de `Accept-Language`; sin cabecera, `es` (ADR-018). */
 function localeFromHeaders(headers: Headers | undefined | null): unknown {
   return headers?.get("accept-language")?.split(",")[0]?.split("-")[0];
+}
+
+/**
+ * Origen público de la app para construir enlaces en emails (F-13): igual que
+ * `server/mcp-oauth.ts#publicOrigin`, pero copiado en vez de importado —
+ * importar ese módulo desde aquí crearía un ciclo (`mcp-oauth.ts` importa
+ * `server/context.ts`, que importa este archivo).
+ */
+function publicOrigin(requestUrl: string | URL): string {
+  const configured = process.env.BETTER_AUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+  return new URL(configured || requestUrl).origin;
 }
 
 const googleSocialProviders = resolveGoogleSocialProviders();
@@ -46,9 +62,37 @@ export const auth = betterAuth({
         }
       },
     }),
-    organization(),
+    organization({
+      // A-8: sin esto, Better Auth crea la `invitation` en base de datos pero
+      // nunca avisa a la persona invitada. Mismo transporte que el enlace
+      // mágico; la URL lleva a la página propia de aceptación (no a una ruta
+      // de Better Auth: `accept-invitation` exige sesión y solo devuelve el
+      // detalle a quien ya está autenticado como el email invitado).
+      sendInvitationEmail: async (data, request) => {
+        const locale = resolveMailLocale(localeFromHeaders(request?.headers));
+        const origin = publicOrigin(request?.url ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000");
+        const url = `${origin}/${locale}/invitations/organization/${data.id}/accept`;
+        await sendOrganizationInvitationEmail(
+          { transport: magicLinkTransport },
+          {
+            email: data.email,
+            url,
+            organizationName: data.organization.name,
+            inviterEmail: data.inviter.user.email,
+            locale,
+          },
+        );
+      },
+    }),
     bearer(),
   ],
+  // A-8: sin esto, un miembro podría machacar la cuota por defecto de
+  // Better Auth (por ruta, no por organización) reinvitando en bucle.
+  rateLimit: {
+    customRules: {
+      "/organization/invite-member": { window: 3600, max: 20 },
+    },
+  },
 });
 
 export type Session = typeof auth.$Infer.Session;

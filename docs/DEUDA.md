@@ -305,3 +305,17 @@ Tareas pendientes que no bloquean pero hay que resolver.
       defensa adicional para que ningún test dependa del estado que deje otro. También E-22
       (auditoría): `RedisSlidingWindowStore` ya no falla abierto si Redis cae, cae a un
       `MemorySlidingWindowStore` por proceso (`docs/reference/seguridad.md` §1).
+- [ ] **API pública para terceros (auditoría 2026-09-24, A-8).** `specs/13` describe una superficie
+      REST también pensada para integradores externos (Bearer/API key, `Idempotency-Key`,
+      `/api/me/purchases`, `/api/me/rooms`, alta de organización y miembros por REST, CRUD de salas
+      por REST, grupos de sesión por REST, grabaciones, progreso de sesión por REST) que hoy no
+      consume nadie: la UI usa tRPC y el creador el MCP (ADR-022). Decidido (2026-09-26): no se
+      implementa hasta tener una versión chequeada del proyecto; se diseñará con el primer
+      integrador real, probablemente un LMS vía LTI (también agencias de eventos o revendedores).
+      Piezas que faltan cuando se retome:
+      - Emisión y revocación de API keys por organización (hoy no hay ningún modelo de API key).
+      - Cuotas por cliente (rate limiting propio, distinto del de sesión de usuario).
+      - Idempotencia real vía cabecera `Idempotency-Key` (persistir la respuesta 24 h).
+      - Documentación pública del contrato (OpenAPI o similar) y un compromiso de estabilidad
+        (`specs/13` "el contrato evoluciona de forma aditiva" ya lo anticipa).
+      - Las rutas en sí, marcadas "API pública — futura" en `specs/13`.
