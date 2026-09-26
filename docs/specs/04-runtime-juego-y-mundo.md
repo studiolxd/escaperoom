@@ -153,14 +153,18 @@ contenido pasa a la "zona de descubrimiento". Comportamiento configurable con `d
 ## 5. Fases de la partida
 
 ```
-created ──> lobby ──> playing ──> ended
-                │         │
-                │         └── paused (pausa de organizador, máx 5 min acumulados)
+created ──> lobby ──> starting ──> playing ──> ended
+                │                     │
+                │                     └── paused (pausa de organizador, máx 5 min acumulados)
                 └── aborted (todos salen antes de empezar)
 ```
 
-- `created → lobby`: al crear la sesión (comprador u organizador).
-- `lobby → playing`: cuando el host pulsa "Comenzar" (o auto-arranque tras X min configurado).
+- `created → lobby`: al crear la sesión (comprador u organizador). Los jugadores esperan en la
+  **sala de espera** del mapa (§10), moviéndose con su avatar.
+- `lobby → starting`: cuando el host pulsa «Empezar» (C-13). Cada jugador ve la introducción de la
+  sala (§10) y su 3-2-1; el reloj aún no corre.
+- `starting → playing`: cuando el **primer** jugador entra al mapa (encargo lobby-diseño): ahí
+  arranca el cronómetro de §6.
 - El estado de fase vive en `GameState.phase` y se sincroniza como cualquier otro campo.
 - El detalle de mensajes y permisos está en `specs/11-protocolo-multijugador.md`.
 
@@ -255,7 +259,46 @@ encargable como un único pack. El **brief y contrato de entrega** completo est�
 - `specs/08-formato-roompackage.md` — de dónde sale cada definición del mundo.
 - `specs/11-protocolo-multijugador.md` — mensajes `interact`, `move`, broadcasts de estado.
 
-## 10. Introducción: vídeo y subtítulos
+## 10. Sala de espera, introducción y 3-2-1 (encargo lobby-diseño, 2026-09-26)
+
+### 10.1 Sala de espera (lobby)
+
+- Es una habitación más del mapa con `kind: "lobby"` (`specs/08` §2.1), diseñada por el creador
+  en el editor (sección «Lobby e introducción», `specs/09` §8) o por MCP (`define_subrooms` con
+  `kind: "lobby"`, `specs/10`): tamaño, suelo/muros y todos los assets decorativos del pack que
+  quiera, **sin pruebas, sin puertas/`leadsTo` (ni hacia ella) y sin objetos que den ítems**, ni
+  reglas que la usen — el validador lo impide con mensajes claros (`checkLobbyRoom`). Como mucho
+  una por sala, y no puede ser la única habitación.
+- **Lobby por defecto**: una sala sin lobby diseñado (todas las anteriores a este campo, Rey
+  Aldric incluido) juega con uno generado de 10×8 celdas con el suelo y los muros dominantes de su
+  habitación inicial, su luz ambiente y un punto de aparición por jugador (`buildDefaultLobbyRoom`
+  / `withLobbyRoom`). El paquete guardado/publicado no cambia: se genera al jugar.
+- La **habitación inicial** de la partida es la primera del mapa que no es el lobby
+  (`initialRoomOf`): ahí aparece cada jugador al entrar al mapa, y es el punto de partida del
+  validador.
+
+### 10.2 Introducción (texto o vídeo)
+
+- Campo opcional `meta.intro` del `RoomPackage` (`specs/08` §2): **texto** multiidioma
+  (`LocalizedText`, hasta `MAX_INTRO_TEXT_LENGTH` = 4000 caracteres por idioma, solo idiomas
+  declarados) **o vídeo** (§10.3) con subtítulos WebVTT opcionales por idioma. Editable en el
+  editor y por MCP (`set_room_intro`).
+- Tras «Empezar» (o al llegar tarde) cada jugador la ve y la cierra **cuando quiere, sin límite de
+  tiempo**; no se puede volver a ver durante la partida. El vídeo se reproduce con el `<video>`
+  nativo, controles accesibles del navegador y **sin autoplay** (nunca suena solo); los
+  subtítulos llegan como pistas del mismo origen (`blob:`), con la del idioma del jugador por
+  defecto. Sin introducción: directo al 3-2-1.
+
+### 10.3 Cuenta atrás 3-2-1 y reloj
+
+- Tras la introducción, cada jugador ve **su** cuenta atrás de **3 s** (`LOBBY_COUNTDOWN_SECONDS`,
+  sin botón de saltar — tampoco en el playtest) y entra al mapa (`enter_map`, `specs/11` §4.1).
+- **El reloj de la partida arranca cuando el PRIMER jugador entra al mapa** (`startedAt`/`endsAt`
+  del servidor, y `on_game_start`); los que sigan leyendo la introducción ya consumen tiempo.
+- Reconexión a mitad de partida: salta lobby, introducción y 3-2-1. Entrada tardía: pasa por los
+  tres (`specs/11` §2.1).
+
+### 10.4 Vídeo y subtítulos: límites y flujo
 
 La introducción de vídeo (`meta.intro = { type: "video", video, subtitles? }`, encargo
 lobby-diseño) es un fichero del creador, no del pack gráfico. Límites y flujo:

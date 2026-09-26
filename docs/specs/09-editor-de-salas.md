@@ -217,7 +217,7 @@ solvabilidad está en `specs/22-qa-y-pruebas.md` §2.
 
 ## 8. Lobby e introducción
 
-Encargo lobby-diseño (specs/04 §7, specs/08 §2.1, specs/11 §4.1). Botón **«Lobby e
+Encargo lobby-diseño (specs/04 §10, specs/08 §2.1, specs/11 §4.1). Botón **«Lobby e
 introducción»** de la cabecera del editor (`room-lobby-intro-dialog.tsx`); todo escribe con los
 comandos de `room-doc/lobby-intro.ts`, los mismos que usa el MCP (`define_subrooms` con `kind`,
 `set_room_intro`).

@@ -78,7 +78,7 @@ Organizado por fase de creación, con esquemas Zod (compartidos desde `packages/
 | `set_room_duration({roomId, timeLimitMinutes})` | Cambia la duración de partida de un draft ya creado (ticket duración-salas; única tool que edita `meta` post-creación) |
 | `paint_tiles({layer, cells})` | Pinta celdas (el "brush" del agente) |
 | `define_subrooms([{id, name, bounds, kind?}])` | Habitaciones internas (Salón, Bodega, Catacumbas). `kind: "lobby"` marca la **sala de espera** (encargo lobby-diseño; como mucho una, nunca la única habitación, solo decoración: sin pruebas, puertas `leadsTo` ni objetos que den ítems — lo explica el validador); `kind: null` le quita el tipo. Se pinta (`paint_tiles`) y decora (`decorate_subroom`) como cualquier otra. Sin lobby diseñado, la partida usa uno generado |
-| `set_room_intro({roomId, intro})` | Introducción que cada jugador ve antes de su 3-2-1 (encargo lobby-diseño, specs/04 §7): `{type: "text", text: LocalizedText}` en idiomas declarados, o `{type: "video", video: "media:<uuid>", subtitles?: {<idioma>: "media:<uuid>"}}` con las refs que devuelve `upload`; `null` la quita. Sustituye la anterior entera |
+| `set_room_intro({roomId, intro})` | Introducción que cada jugador ve antes de su 3-2-1 (encargo lobby-diseño, specs/04 §10): `{type: "text", text: LocalizedText}` en idiomas declarados, o `{type: "video", video: "media:<uuid>", subtitles?: {<idioma>: "media:<uuid>"}}` con las refs que devuelve `upload`; `null` la quita. Sustituye la anterior entera |
 
 ### Fase B — Contenido
 

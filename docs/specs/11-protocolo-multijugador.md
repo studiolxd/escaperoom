@@ -44,16 +44,58 @@ Colyseus Server (Node.js)
 ## 2. Fases de la partida
 
 ```
-created ──> lobby ──> playing ──> ended
-                │         │
-                │         └── paused (pausa de organizador, máx 5 min acumulados)
+created ──> lobby ──> starting ──> playing ──> ended
+                │                     │
+                │                     └── paused (pausa de organizador, máx 5 min acumulados)
                 └── aborted (todos salen antes de empezar)
 ```
 
 - `created → lobby`: al crear la sesión (comprador u organizador). Los jugadores entran con
-  compra/clave/invitación.
-- `lobby → playing`: cuando el host pulsa "Comenzar" (o auto-arranque tras X min configurado).
+  compra/clave/invitación y **aparecen en la sala de espera** (§2.1).
+- `lobby → starting`: cuando el host pulsa «Empezar» (`start_game`) o se invoca
+  `GameRoom.startFromLobby({ force })` desde fuera de la room (inicio conjunto de un evento,
+  encargo siguiente). **El reloj NO corre todavía**: cada jugador ve la introducción de la sala
+  (si la hay) y su propio 3-2-1.
+- `starting → playing`: cuando el **PRIMER** jugador entra al mapa (`enter_map`, tras su
+  introducción y su 3-2-1). Ahí se fijan `startedAt`/`endsAt` (y se dispara `on_game_start`): los
+  que sigan leyendo la introducción ya consumen tiempo.
 - El estado de fase vive en `GameState.phase` y se sincroniza como cualquier otro campo.
+
+### 2.1 Sala de espera (lobby), introducción y 3-2-1 (encargo lobby-diseño, 2026-09-26)
+
+- **Sala de espera jugable.** El lobby es una habitación del mapa de tipo `lobby`
+  (`SubRoom.kind`, `specs/08` §2.1): el creador la diseña en el editor (tamaño, suelo/muros y
+  decoración; sin pruebas, puertas ni objetos que den ítems — lo impide el validador) o, si no,
+  la partida usa una **generada** con el suelo y los muros de su habitación inicial
+  (`withLobbyRoom`, `@escaperoom/shared/schemas`; retrocompatible: ninguna sala publicada deja de
+  funcionar). Todo jugador que entra aparece en ella (`spawnPoints` del lobby), se mueve con su
+  avatar (`move` dentro del lobby; cruzar a otra habitación → `ROOM_LOCKED`) y ve a los demás.
+  Interactuar, usar ítems o abrir puzzles se rechaza (`INVALID_STATE`) mientras no haya entrado
+  al mapa. El chat funciona en cualquier fase.
+- **Interfaz** (web, sobre el mapa del lobby): cabecera (portada, título, descripción,
+  dificultad, duración o «sin límite», jugadores mín.–máx.), jugadores (personaje, conexión,
+  «Listo», anfitrión), selector de personaje (cambiarlo quita el «Listo»), prueba de micrófono y
+  cámara si la partida usa voz/vídeo, «Copiar invitación» y, solo el anfitrión, expulsar y
+  «Empezar» / «Empezar igualmente» (C-13, §4.1/§4.5).
+- **Tras «Empezar»**: cada jugador ve la introducción (texto o vídeo, `specs/04` §7) y la cierra
+  **cuando quiere, sin límite de tiempo** (no se puede volver a ver durante la partida); sin
+  introducción, directo al 3-2-1. Luego su **cuenta atrás 3-2-1** (3 s, sin botón de saltar, ni en
+  el playtest) y el cliente manda `enter_map`: el servidor lo saca del lobby y lo coloca en un
+  punto de aparición de la **habitación inicial** (la primera del mapa que no es el lobby). El
+  primero que entra arranca el reloj. Los diálogos que dispare `on_game_start` mientras un
+  jugador aún está en su introducción se le muestran al entrar.
+- **Entrada tardía** (también fuera de eventos, p. ej. con el enlace de invitación): SÍ se entra a
+  una partida ya empezada, hasta el máximo de jugadores — sala de espera → introducción (si la hay)
+  → su 3-2-1 → `enter_map` al mapa en curso (el reloj no se reinicia).
+- **Reconexión a mitad de partida**: salta lobby e introducción — el servidor conserva
+  `PlayerState.inMap` en la plaza reservada (token nativo, `seatKey` o `joinToken`).
+- **Sala de 1 jugador**: también pasa por el lobby; «Empezar» es inmediato (basta su «Listo»).
+- **Playtest** (local en `/room-playtest` y en red `playtest/[token]`): mismo lobby (elegir
+  personaje, «Listo», «Empezar»), introducción y 3-2-1 que la partida real.
+- **Eventos**: cada grupo su lobby y su anfitrión. El inicio conjunto de todos los grupos lo
+  dispara quien orqueste el evento con `startFromLobby` (método público de `GameRoom`, heredado
+  por `EventRoom`; devuelve `{ ok }` o `{ ok: false, code, message }` con los mismos códigos que
+  `start_game`).
 
 ## 3. Estado sincronizado (room state)
 
@@ -61,7 +103,7 @@ Lo que Colyseus sincroniza automáticamente (schema). Los clientes **solo recibe
 
 ```typescript
 class GameState extends Schema {
-  phase: 'lobby' | 'playing' | 'paused' | 'ended';
+  phase: 'lobby' | 'starting' | 'playing' | 'paused' | 'ended';
   roomPackageVersion: string;       // versión congelada de la sala
   startedAt: number;
   endsAt: number;                   // startedAt + timeLimit (o 0 = sin límite)
@@ -87,6 +129,8 @@ class PlayerState extends Schema {
   roomId: string;                   // subroom actual
   role: 'host' | 'player' | 'observer';
   connected: boolean;
+  ready: boolean;                   // «Listo» en el lobby (C-13)
+  inMap: boolean;                   // ya entró al mapa (tras introducción + 3-2-1); false en el lobby
   voiceMuted: boolean; camOff: boolean;
 }
 ```
@@ -115,7 +159,8 @@ Envoltura: `{type, payload, clientTime?}` — `clientTime` para corrección de r
 | `join` | `{sessionId, joinToken, accessKey?, characterId?}` | cualquiera | Valida compra/clave/joinToken → asigna role. Error si clave inválida/caducada/usada. `characterId` es opcional: sin él (o si está ocupado/no existe), el servidor asigna el primer libre, o el maniquí de reserva |
 | `select_character` | `{characterId}` | jugador | Lobby o en partida. El servidor valida unicidad contra `manifest.avatars`; rechaza (`NOT_AVAILABLE`) si ya está en uso por otro jugador |
 | `set_ready` | `{ready: bool}` | jugador | Lobby. Se resetea a `false` al cambiar de personaje (`select_character`) o al reconectar. Sin efecto fuera del lobby (`INVALID_STATE`) |
-| `start_game` | `{force?: bool}` | host | `lobby → playing` si todos los conectados están "Listo" **y** hay al menos `meta.players.min` conectados; rechaza con `PLAYERS_NOT_READY` si no (C-13). `force: true` ("Empezar igualmente") salta el requisito de "Listo" pero NUNCA el mínimo (`MIN_PLAYERS_NOT_MET` igualmente). Inicia cronómetro, dispara regla `on_game_start` |
+| `start_game` | `{force?: bool}` | host | `lobby → starting` si todos los conectados están "Listo" **y** hay al menos `meta.players.min` conectados; rechaza con `PLAYERS_NOT_READY` si no (C-13). `force: true` ("Empezar igualmente") salta el requisito de "Listo" pero NUNCA el mínimo (`MIN_PLAYERS_NOT_MET` igualmente). **No** inicia el cronómetro (§2.1). Misma lógica que `GameRoom.startFromLobby({ force })` |
+| `enter_map` | `{}` | jugador | Tras su introducción y su 3-2-1 (encargo lobby-diseño, §2.1): sale del lobby y aparece en la habitación inicial. El PRIMERO que entra pasa la fase a `playing`, fija `startedAt`/`endsAt` y dispara `on_game_start`. `INVALID_STATE` antes de «Empezar» o con la partida terminada; idempotente si ya está en el mapa |
 | `leave` | `{}` | cualquiera | Sale de la partida (**no implementado**: hoy solo se sale cerrando la conexión, C-13) |
 
 ### 4.2 Movimiento y mundo
@@ -267,8 +312,8 @@ Cliente                          Servidor (GameRoom)                Externo
 - **Reconexión** (C-1/C-2, auditoría 2026-09-24 — sustituye la redacción anterior de 60 s fijos):
   - **Desconexión sin consentir** (caída de red, pestaña cerrada): la plaza —posición, inventario,
     `characterId`— se reserva con `allowReconnection()`. En el **lobby** (aún sin empezar), la
-    gracia es de **60 s**: pasado ese tiempo se purga la plaza (no queda cupo fantasma). **En
-    juego** (`playing`), la plaza se reserva **hasta que la partida termina**, no solo 60 s: quien
+    gracia es de **60 s**: pasado ese tiempo se purga la plaza (no queda cupo fantasma). **Con la
+    partida lanzada** (`starting` o `playing`), la plaza se reserva **hasta que la partida termina**, no solo 60 s: quien
     vuelve —con el SDK de Colyseus (token de reconexión nativo) o con el mismo `joinToken`/
     `gameToken` desde otra pestaña (`EventRoom`, C-1: mismo `playerId`, hereda la plaza y expulsa
     el socket anterior sin gracia)— recupera exactamente su jugador.
