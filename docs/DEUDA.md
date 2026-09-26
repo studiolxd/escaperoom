@@ -248,6 +248,12 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `phaser/room-scene.ts`) y el inspector del editor (`inspector-model.ts`,
       `schema-form.ts`). Aplazado en el bloque 10 (#163) por ser un cambio de tipos y
       arquitectura del modelo, no un ajuste puntual.
+- [ ] **E2E fuera del smoke rotos sin que nadie lo vea.** CI solo ejecuta `e2e:smoke`;
+      el resto de specs de `packages/e2e` no corren en ningún sitio y se han roto en
+      silencio. Detectado en #164: `event-flow.spec.ts` falla, y la ruta larga de
+      `game.reyaldric.spec.ts` busca el tablero de memoria con `role="list"` cuando el
+      componente usa `role="listbox"`. Arreglarlos y decidir cómo se ejecutan
+      periódicamente (job nocturno o manual en CI) para que no vuelvan a pudrirse.
 - [x] **404 de URLs que no existen.** Resuelto (auditoría 2026-09-24, B-27):
       `app/[locale]/(public)/[...rest]/page.tsx` (comodín, llama a `notFound()`) captura
       cualquier URL con locale válido que ninguna otra ruta capturó, y sale con la shell
