@@ -64,6 +64,8 @@ async function setup(
     sessions?: number;
     players?: number;
     keyPlan?: KeyPlan;
+    /** Ticket duración-salas: override de duración fijado ANTES de activar (solo se admite en `draft`). */
+    timeLimitMinutes?: number | null;
   } = {},
 ) {
   let clock = new Date("2026-06-01T10:00:00Z");
@@ -111,6 +113,9 @@ async function setup(
     expiryRules: [],
     playersPlanned: opts.players ?? 30,
   });
+  if (opts.timeLimitMinutes !== undefined) {
+    await events.updateEvent(author, event.id, { timeLimitMinutes: opts.timeLimitMinutes });
+  }
   const activation = await keys.activateEvent(
     author,
     event.id,
@@ -220,6 +225,30 @@ describe("joinToken", () => {
       readJoinTokenConfig({ NODE_ENV: "development", JOIN_TOKEN_TTL_SECONDS: "999999" })
         ?.ttlSeconds,
     ).toBe(7200);
+  });
+});
+
+describe("redeem — ticket duración-salas: el joinToken dura toda la partida con override", () => {
+  it("sin override, el joinToken usa el ttlSeconds por defecto", async () => {
+    const ctx = await setup();
+    const before = ctx.now().getTime();
+    const result = await ctx.redeem.redeem(ANONYMOUS_ACTOR, { code: ctx.codes[0]! });
+    expect(result.expiresAt.getTime() - before).toBe(900 * 1000);
+  });
+
+  it("override en minutos: el joinToken dura al menos esa duración + margen", async () => {
+    const ctx = await setup({ timeLimitMinutes: 180 });
+    const before = ctx.now().getTime();
+    const result = await ctx.redeem.redeem(ANONYMOUS_ACTOR, { code: ctx.codes[0]! });
+    // 180 min + 30 min de margen = 210 min, muy por encima del ttlSeconds (900 s) de setup().
+    expect(result.expiresAt.getTime() - before).toBe(210 * 60 * 1000);
+  });
+
+  it("override 'sin duración' (null): el joinToken usa el techo de 24 h", async () => {
+    const ctx = await setup({ timeLimitMinutes: null });
+    const before = ctx.now().getTime();
+    const result = await ctx.redeem.redeem(ANONYMOUS_ACTOR, { code: ctx.codes[0]! });
+    expect(result.expiresAt.getTime() - before).toBe(24 * 60 * 60 * 1000);
   });
 });
 

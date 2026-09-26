@@ -15,7 +15,7 @@ import {
 import { isAnonymous, type Actor } from "./actor";
 import { UUID_RE } from "./common";
 import type { EventRow } from "./events";
-import { signJoinToken } from "./join-token";
+import { resolveEventJoinTokenTtlSeconds, signJoinToken } from "./join-token";
 
 /**
  * Canje de claves y agrupación (ticket 5.8, specs/02 §3.3 y §4.5, specs/13 §6.2).
@@ -232,7 +232,11 @@ export function createRedeemService(deps: {
         guest,
       };
       const issuedAt = now().getTime();
-      const expiresAt = issuedAt + deps.joinToken.ttlSeconds * 1000;
+      const ttlSeconds = resolveEventJoinTokenTtlSeconds(
+        event.config.timeLimitMinutes,
+        deps.joinToken.ttlSeconds,
+      );
+      const expiresAt = issuedAt + ttlSeconds * 1000;
       const sessionId = redeemed.sessionId!;
       const joinToken = signJoinToken(
         deps.joinToken.secret,

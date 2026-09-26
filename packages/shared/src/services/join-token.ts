@@ -34,6 +34,49 @@ export const MAX_JOIN_TOKEN_TTL_SECONDS = 2 * 60 * 60;
  */
 export const DEFAULT_JOIN_TOKEN_TTL_SECONDS = MAX_JOIN_TOKEN_TTL_SECONDS;
 
+/**
+ * Ticket duración-salas: margen sobre la duración de la partida para el
+ * lobby (antes de `start_game`) y la pantalla de resultados
+ * (`RESULTS_ROOM_LIFETIME_SEC` de `colyseus-server`, 5 min) — igual criterio
+ * que `PLAY_SESSION_STALE_AFTER_SECONDS` documentaba antes de este ticket.
+ */
+const JOIN_TOKEN_DURATION_MARGIN_SECONDS = 30 * 60;
+
+/**
+ * Techo del `joinToken` para un evento "sin duración" (specs/11 §8: "vale
+ * mientras la room exista"). Un JWT no puede vivir de verdad para siempre —
+ * este techo es la aproximación práctica: generoso para cualquier jornada
+ * real, pero acotado para no firmar tokens que vivan indefinidamente.
+ *
+ * **Pendiente** (anotado en la PR del ticket): esto solo se aplica cuando el
+ * ORGANIZADOR fija el override "sin duración" en `event.config.timeLimitMinutes`
+ * — si es la SALA la que declara `meta.timeLimitMinutes: null` sin que el
+ * evento la sobrescriba, `redeem` no lo sabe hoy (no carga el `RoomPackage`)
+ * y sigue cayendo en `ttlSeconds` por defecto (el tope de 2 h). Cerrarlo del
+ * todo necesita que `redeem` cargue el paquete de la sala, no solo el evento.
+ */
+export const UNLIMITED_EVENT_JOIN_TOKEN_TTL_SECONDS = 24 * 60 * 60;
+
+/**
+ * TTL del `joinToken` para ESTE evento (ticket duración-salas): si el
+ * organizador fijó un override de duración (`event.config.timeLimitMinutes`),
+ * el token tiene que durar al menos toda la partida + margen, no solo el
+ * `ttlSeconds` por defecto (pensado para el límite de 1 h de antes de este
+ * ticket). Sin override, `undefined`, se mantiene `defaultTtlSeconds` tal
+ * cual (el caso de siempre).
+ */
+export function resolveEventJoinTokenTtlSeconds(
+  timeLimitOverrideMinutes: number | null | undefined,
+  defaultTtlSeconds: number,
+): number {
+  if (timeLimitOverrideMinutes === undefined) return defaultTtlSeconds;
+  if (timeLimitOverrideMinutes === null) return UNLIMITED_EVENT_JOIN_TOKEN_TTL_SECONDS;
+  return Math.max(
+    defaultTtlSeconds,
+    timeLimitOverrideMinutes * 60 + JOIN_TOKEN_DURATION_MARGIN_SECONDS,
+  );
+}
+
 /** Audiencia del token: la room de evento de Colyseus. */
 export const JOIN_TOKEN_AUDIENCE = "escaperoom:event-room";
 const ISSUER = "escaperoom:web";
