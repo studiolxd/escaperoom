@@ -215,7 +215,41 @@ solvabilidad está en `specs/22-qa-y-pruebas.md` §2.
 | Playtest | ✅ Solo + link de prueba | Playtest con amigos (room temporal) |
 | Validador | ✅ Reglas básicas + dead ends | Simulador de solvabilidad completo |
 
-## 8. Dependencias
+## 8. Lobby e introducción
+
+Encargo lobby-diseño (specs/04 §7, specs/08 §2.1, specs/11 §4.1). Botón **«Lobby e
+introducción»** de la cabecera del editor (`room-lobby-intro-dialog.tsx`); todo escribe con los
+comandos de `room-doc/lobby-intro.ts`, los mismos que usa el MCP (`define_subrooms` con `kind`,
+`set_room_intro`).
+
+**Sala de espera (lobby).** Es una habitación más del mapa con `kind: "lobby"` (en el doc Yjs,
+la clave `kind` de su entrada en `subrooms`):
+
+- **Diseñado:** el creador la crea con su tamaño (`addLobbyRoom`: suelo y muros de la habitación
+  inicial, muros arriba e izquierda, luz ambiente y un punto de aparición por jugador) o marca una
+  habitación existente (`setSubRoomKind`). Aparece en la navegación de habitaciones con la marca
+  «lobby» y se pinta (suelo/muros) y decora con los assets del pack en el propio lienzo, como
+  cualquier otra. Solo decoración: el validador (`checkLobbyRoom`) rechaza pruebas, puertas
+  (`leadsTo` desde o hacia ella), objetos que den ítems y reglas que la usen, con mensajes
+  accionables. Como mucho una (los comandos rechazan la segunda con `LOBBY_CONFLICT`) y nunca la
+  única habitación. «Quitar tipo lobby» la devuelve a habitación normal.
+- **Por defecto:** sin lobby diseñado (todas las salas anteriores, Rey Aldric incluido) la
+  partida usa el generado por `withLobbyRoom`/`buildDefaultLobbyRoom`; no se guarda en la sala.
+- **Previsualización:** «Previsualizar lobby» pinta con el runtime de la previsualización
+  (`toRuntimeModel(withLobbyRoom(sala))`) el lobby diseñado o el generado.
+
+**Introducción** (`meta.intro`, en el doc `meta.intro: Y.Map`): ninguna, **texto** multiidioma
+(un `YLocalizedText` como el de diálogos, editado con el campo localizado del editor; hasta
+`MAX_INTRO_TEXT_LENGTH` caracteres por idioma) o **vídeo** mp4/webm (≤ 200 MB) con subtítulos
+WebVTT opcionales por idioma declarado (≤ 512 KB; `subtitles: Y.Map<idioma, ref>`, un idioma no
+pisa a otro). El vídeo se sube directo al bucket con PUT presignado y barra de progreso
+(`POST /api/rooms/:roomId/intro-media/video` → PUT → `…/video/:assetId/complete` → `{ref}`); los
+subtítulos con `POST …/intro-media/subtitles?lang=xx`; la vista previa usa `<video>` nativo sin
+autoplay con un `<track>` por idioma (URLs firmadas de `GET …/intro-media/url?ref=`). Cambiar de
+tipo sustituye la introducción entera. Como los demás textos, lo de un idioma retirado se queda en
+el borrador pero no se empaqueta. En el modo local (sin servidor) la subida está deshabilitada.
+
+## 9. Dependencias
 
 - `specs/10-mcp-del-creador.md` — paridad editor/MCP.
 - `specs/22-qa-y-pruebas.md` — validador y test de solvabilidad.

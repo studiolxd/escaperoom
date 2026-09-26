@@ -600,7 +600,69 @@
       "decor": "Decoración"
     },
     "rooms": {
-      "label": "Habitaciones"
+      "label": "Habitaciones",
+      "lobbyBadge": "lobby"
+    },
+    "lobbyIntro": {
+      "button": "Lobby e introducción",
+      "title": "Lobby e introducción",
+      "description": "La sala de espera donde los jugadores aguardan al anfitrión y lo que ve cada uno tras «Empezar», antes de su cuenta atrás 3-2-1.",
+      "lobby": {
+        "heading": "Sala de espera (lobby)",
+        "designed": "Diseñado",
+        "default": "Por defecto",
+        "designedHint": "«{name}» ({cols}×{rows}) es la sala de espera: píntala y decórala en el lienzo como cualquier habitación. No admite pruebas, puertas ni objetos que den ítems.",
+        "defaultHint": "Esta sala usa un lobby generado con el suelo y los muros de su habitación inicial. Puedes diseñar el tuyo: crea una sala de espera nueva o marca una habitación existente.",
+        "edit": "Editar en el lienzo",
+        "unmark": "Quitar tipo lobby",
+        "name": "Nombre",
+        "cols": "Ancho (celdas)",
+        "rows": "Alto (celdas)",
+        "create": "Crear sala de espera",
+        "markLabel": "O usa una habitación existente",
+        "markPlaceholder": "Elige una habitación",
+        "mark": "Usar como sala de espera",
+        "preview": "Previsualizar lobby",
+        "hidePreview": "Ocultar previsualización",
+        "previewError": "No se puede previsualizar el lobby con el estado actual de la sala.",
+        "sizeInvalid": "El ancho y el alto deben ser números enteros entre {min} y {max}."
+      },
+      "intro": {
+        "heading": "Introducción",
+        "hint": "Cada jugador la ve tras «Empezar» (y al llegar tarde), antes de su cuenta atrás; la cierra cuando quiere y no puede volver a verla.",
+        "type": "Tipo de introducción",
+        "none": "Sin introducción",
+        "text": "Texto",
+        "video": "Vídeo",
+        "textLabel": "Texto de la introducción",
+        "textLimit": "Hasta {max} caracteres por idioma.",
+        "videoFile": "Vídeo (mp4 o webm, hasta 200 MB)",
+        "replaceVideo": "Sustituir vídeo (mp4 o webm, hasta 200 MB)",
+        "uploadingLabel": "Progreso de la subida del vídeo",
+        "uploading": "Subiendo vídeo… {percent} %",
+        "uploadError": "No se pudo subir el fichero. Inténtalo de nuevo.",
+        "uploadsDisabled": "La subida de medios no está disponible en este modo (sin servidor).",
+        "noVideo": "Aún no hay vídeo: sube uno para usar esta introducción.",
+        "previewLabel": "Vista previa del vídeo de introducción",
+        "previewUnavailable": "No se pudo cargar la vista previa del vídeo.",
+        "subtitles": "Subtítulos (WebVTT)",
+        "subtitlesFor": "Subtítulos en {language}",
+        "subtitlesMissing": "Sin subtítulos",
+        "subtitlesUploaded": "Subidos",
+        "removeSubtitles": "Quitar subtítulos en {language}",
+        "problems": {
+          "videoType": "El vídeo debe ser mp4 o webm.",
+          "videoTooLarge": "El vídeo supera el máximo de 200 MB.",
+          "subtitlesType": "Los subtítulos deben ser un fichero WebVTT (.vtt).",
+          "subtitlesTooLarge": "Los subtítulos superan el máximo de 512 KB."
+        }
+      },
+      "errors": {
+        "LOBBY_CONFLICT": "Solo puede haber una sala de espera y no puede ser la única habitación.",
+        "INVALID_VALUE": "Valor no válido.",
+        "DUPLICATE_ID": "Ya hay algo con ese ID.",
+        "INVALID_ID": "Usa solo minúsculas, números y guiones (p. ej. sala-espera)."
+      }
     },
     "palette": {
       "title": "Palette",
