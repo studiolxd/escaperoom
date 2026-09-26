@@ -236,7 +236,7 @@ export function RoomDetailView({
       </Link>
 
       <div
-        className="relative isolate flex aspect-[21/9] w-full flex-col justify-end overflow-hidden rounded-xl bg-muted"
+        className="relative isolate flex aspect-[4/5] w-full flex-col justify-end overflow-hidden rounded-xl bg-muted sm:aspect-[21/9]"
         data-slot="room-cover"
       >
         {coverImageUrl ? (
@@ -274,7 +274,7 @@ export function RoomDetailView({
               </span>
             ) : null}
           </div>
-          <h1 className="text-3xl font-semibold" lang={room.defaultLanguage}>
+          <h1 className="text-2xl font-semibold sm:text-3xl" lang={room.defaultLanguage}>
             {room.title}
           </h1>
           <RatingSummary ratingAvg={room.ratingAvg} ratingCount={room.ratingCount} />

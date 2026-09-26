@@ -20,7 +20,7 @@ export default async function RoomDetailLoading() {
     >
       <Skeleton className="h-4 w-24" />
 
-      <Skeleton className="aspect-[21/9] w-full rounded-xl" />
+      <Skeleton className="aspect-[4/5] w-full rounded-xl sm:aspect-[21/9]" />
 
       <div className="flex flex-col gap-2">
         <Skeleton className="h-4 w-full" />
