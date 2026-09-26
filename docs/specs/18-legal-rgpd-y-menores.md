@@ -136,6 +136,7 @@ firmado y debe listarse en la política de privacidad:
 | ElevenLabs | Texto → audio | Confirmar ubicación de procesamiento y garantías si es fuera del EEE |
 | Resend/Postmark | Emails transaccionales | Confirmar ubicación de servidores |
 | Cloudflare R2 | Almacenamiento de assets y grabaciones | — |
+| Magnific (Freepik Company, S.L.U.) | Prompts e imágenes de referencia del creador (generación de assets visuales) | Sede en la UE; sus subencargados de IA/nube pueden tratar datos fuera del EEE (CCT). Confirmar su lista de subencargados en su DPA |
 
 ## 4. Protección de menores — síntesis y lo que falta
 

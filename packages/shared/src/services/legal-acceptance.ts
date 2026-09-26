@@ -19,8 +19,11 @@
  * 2026-09-23: versión inicial, coincide con el `draftDate` de `terms.ts`/
  * `privacy.ts` en el momento de introducir este mecanismo — ningún usuario
  * existente queda bloqueado de partida.
+ *
+ * 2026-09-26: Política de Privacidad — Magnific puede tratar datos fuera del
+ * EEE a través de sus subencargados (proveedores de IA y nube), con CCT.
  */
-export const CURRENT_TERMS_VERSION = "2026-09-23";
+export const CURRENT_TERMS_VERSION = "2026-09-26";
 
 // ── Tipos de dominio ────────────────────────────────────────────────────────
 

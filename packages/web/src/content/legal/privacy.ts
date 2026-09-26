@@ -11,7 +11,7 @@ import { legalLink, type LegalDocument } from "./types";
  * plataforma ya hace y no estaban descritos.
  */
 export const privacyPolicy: LegalDocument = {
-  versionDate: "2026-09-23",
+  versionDate: "2026-09-26",
   sections: [
     {
       heading: "1. Roles según el flujo de datos",
@@ -209,8 +209,12 @@ export const privacyPolicy: LegalDocument = {
           "RGPD.",
         "Magnific (Freepik Company, S.L.U.) — generación y edición de assets visuales " +
           "(imágenes) con IA para el editor. Recibe los prompts y las imágenes de referencia que " +
-          "el creador decida subir. Sede en Málaga, España, Unión Europea; no supone una " +
-          "transferencia internacional.",
+          "el creador decida subir. Sede en Málaga, España, Unión Europea. Para generar las " +
+          "imágenes, Magnific puede recurrir a subencargados propios (proveedores de modelos de IA " +
+          "y de infraestructura en la nube) que tratan los datos fuera del Espacio Económico " +
+          "Europeo; en ese caso, la transferencia se ampara en las Cláusulas Contractuales Tipo " +
+          "aprobadas por la Comisión Europea u otro mecanismo de transferencia válido conforme al " +
+          "RGPD.",
         [
           "Plausible — analítica de producto agregada, sin cookies ni identificación individual. " +
             "Empresa y servidores en la Unión Europea; no supone una transferencia internacional " +
