@@ -97,7 +97,7 @@ describe("POST /api/audio/generate/preview", () => {
 });
 
 describe("POST /api/audio/generate/confirm", () => {
-  it("cobra créditos y da de alta el audio pendiente de moderación", async () => {
+  it("cobra créditos y da de alta el audio, disponible al instante", async () => {
     const { creditStore, handlers, request } = setup();
     const account = await creditStore.ensureAccountForActor(ana);
     account.balanceCredits = 5n;
@@ -112,7 +112,7 @@ describe("POST /api/audio/generate/confirm", () => {
     const body = (await res.json()) as ConfirmJson;
     expect(body.costCredits).toBe(1);
     expect(body.balanceAfter).toBe(4);
-    expect(body.asset.status).toBe("pending");
+    expect(body.asset.status).toBe("approved");
     expect(body.ref).toMatch(/^upload:/);
   });
 

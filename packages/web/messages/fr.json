@@ -355,17 +355,15 @@
       "sfx": "Effets sonores",
       "voice": "Voix"
     },
-    "optionPending": "{name} (en attente de modération)",
     "optionRejected": "{name} (refusé)",
     "credits": "Licence {license} · {author}",
     "noAudioIn": "Pas d'audio en {language}",
     "status": {
-      "pending": "En attente de modération : vous pouvez l'essayer dans le brouillon, mais vous ne pourrez pas publier la salle avant son approbation.",
       "rejected": "Refusé en modération : {reason}. Choisissez un autre audio."
     },
     "upload": "Envoyer un MP3",
     "uploading": "Envoi…",
-    "uploadHint": "MP3 uniquement, jusqu'à {maxMb} Mo et {maxMinutes} min. Nous le vérifions avant que vous puissiez publier la salle avec.",
+    "uploadHint": "MP3 uniquement, jusqu'à {maxMb} Mo et {maxMinutes} min. Disponible instantanément pour l'utiliser et publier.",
     "rightsDeclared": "Je déclare détenir les droits de cet audio et qu'il ne contient pas de voix de tiers sans leur consentement.",
     "errors": {
       "tooLarge": "Le fichier dépasse la limite de {maxMb} Mo.",
@@ -1013,7 +1011,7 @@
       "DRAFT_CHANGED": "Le brouillon a changé depuis la demande de publication. Demandez à l'assistant de valider et de refaire la demande.",
       "VERSION_CHANGED": "Une version a déjà été publiée avec cette demande (ou après). Faites une nouvelle demande pour republier.",
       "VALIDATION_FAILED": "La salle ne passe plus le validateur : corrigez les erreurs avant de publier.",
-      "ASSETS_NOT_PUBLISHABLE": "Des audios sont en attente ou refusés en modération : impossible de publier pour l'instant.",
+      "ASSETS_NOT_PUBLISHABLE": "Des audios sont refusés en modération : impossible de publier avec eux.",
       "ROOM_NOT_PUBLISHABLE": "La salle a été retirée par la modération et ne peut pas être publiée.",
       "PUBLISH_CONFIRM_DISABLED": "La confirmation des publications n'est pas disponible dans cet environnement.",
       "UNKNOWN": "Impossible de publier la salle. Réessayez.",
@@ -1243,14 +1241,13 @@
   "Moderation": {
     "metaTitle": "File de modération",
     "title": "File de modération",
-    "intro": "Signalements triés par gravité et SLA, recours en attente et audios importés à examiner.",
+    "intro": "Signalements triés par gravité et SLA, et recours en attente.",
     "forbidden": "Seuls les modérateurs ou administrateurs peuvent voir la file de modération.",
     "loading": "Chargement de la file…",
     "empty": "Rien en attente.",
     "tabs": {
       "reports": "Signalements ({count})",
-      "appeals": "Recours ({count})",
-      "audio": "Audio ({count})"
+      "appeals": "Recours ({count})"
     },
     "severity": {
       "critical": "Critique",
@@ -1276,7 +1273,6 @@
     },
     "meta": "À examiner avant {due} · créé {created} · {count, plural, one {# signalement} other {# signalements}} sur ce contenu",
     "note": "Note de résolution (motif visible par le créateur)",
-    "rejectNeedsNote": "Pour refuser un audio, indiquez le motif dans la note",
     "appeal": {
       "room": "Recours sur une salle",
       "account": "Recours sur le compte (suspension ou bannissement)"
@@ -1287,9 +1283,7 @@
       "dismiss": "Classer sans suite",
       "restore": "Rétablir (faux positif)",
       "uphold": "Maintenir la décision",
-      "overturn": "Annuler l'action",
-      "approve": "Approuver",
-      "reject": "Refuser"
+      "overturn": "Annuler l'action"
     },
     "errors": {
       "UNAUTHORIZED": "Connectez-vous pour modérer.",

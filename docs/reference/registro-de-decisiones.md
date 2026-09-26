@@ -1191,3 +1191,89 @@ corto (`Math.max`).
   detectar un servidor caído RÁPIDO, no solo "algún día"; 3× el intervalo de latido (15 min) es
   generoso para tolerar un latido perdido sin dejar una partida "abandonada" reclamable durante
   horas mientras el jugador original sigue conectado.
+
+---
+
+## ADR-039 — Se retira la moderación previa de audio: disponible al instante, responsabilidad de creador y organizador (2026-09-26)
+
+**Contexto:** desde el ticket 3.11 (specs/15 §1 y §4, specs/17 §1), un audio subido o generado por
+IA nacía `pending` y quedaba bloqueado para publicar (`AUDIO_PENDING_MODERATION`) hasta que un
+moderador humano lo aprobaba o lo rechazaba — la única excepción a la regla general de moderación
+post-publicación por reportes (ADR-013) que ya rige el resto del contenido (textos, diálogos,
+reseñas). El usuario decidió eliminar esa excepción: la plataforma **no revisa antes de publicar**
+ni audios ni vídeos; el responsable del contenido es el creador, y el organizador de un evento es
+quien decide si una sala es adecuada para su grupo (menores incluidos). La moderación **posterior**
+que ya existe para todo el contenido (reportes, severidad, despublicación inmediata en reportes
+críticos, strikes, apelaciones) no cambia.
+
+**Decisión:**
+
+1. **Disponibilidad instantánea**: `AudioAssetService.uploadAudio` y
+   `AudioGenerationService.confirm` ya no llaman a ningún pre-filtro; un audio nuevo (subido o
+   generado) queda `approved` desde el alta, usable en el borrador y publicable de inmediato.
+   `AudioUsePurpose` (`"draft"` vs `"publish"`) desaparece de `resolveAudioRef`: ya no hay ninguna
+   diferencia de comportamiento entre ambos casos.
+2. **Se retira toda la maquinaria de la cola humana**: `listModerationQueue`, `reviewUpload`,
+   `authorizeModeration`, `AudioReviewInput`, `AudioQueueQuery` (`audio-assets.ts`); las rutas
+   `GET/PATCH /api/admin/audio*` y sus handlers (`server/rest/audio.ts`); la pestaña "Audio" de
+   `ModerationQueueView` (`components/moderation/moderation-queue.tsx`) y su tipo `QueueAudio`.
+3. **Se retira el pre-filtro automático `AudioModerationProvider`** (interfaz + `precheck` +
+   `createManualAudioModeration`): su única implementación real (`audio-assets.ts` antes de este
+   cambio) era un fake que siempre devolvía `allow` — nunca hubo un proveedor externo cableado — y,
+   sin cola humana a la que alimentar un `flag`, no tenía a quién servir. Si en el futuro se
+   implementa detección automática (voces de terceros, copyright, hash de contenido ilegal), specs/17
+   §3 documenta que alimentaría un reporte automático (`source: "precheck"`) sobre la sala ya
+   publicada, no un bloqueo previo.
+4. **`AudioAssetStatus` pasa de `"pending" | "approved" | "rejected"` a `"approved" | "rejected"`**.
+   `rejected` es histórico: solo puede existir por una decisión humana ya tomada por la extinta cola
+   antes de esta fecha; no hay ninguna forma nueva de llegar a ese estado (`store.rows` en los tests
+   se siembra directamente para simularlo). Sigue bloqueando el uso del audio (`AUDIO_REJECTED`, con
+   `rejectionReason`) — no se libera, es una decisión humana ya tomada, no un artefacto del mecanismo
+   retirado.
+5. **Migración de datos** (`_audio_asset_drop_pending` + `_audio_asset_status_index_drop`, en su
+   propio fichero por el mismo motivo que la migración de 0011→2026-09-25 de `ixAudioAssetPending`:
+   `DROP INDEX CONCURRENTLY` no puede compartir fichero con `ALTER TABLE`): los `audioAsset.status
+   = 'pending'` existentes pasan a `'approved'` (quedan utilizables, coherente con la nueva regla);
+   los `'rejected'` se conservan tal cual. Se eliminan las columnas `moderationFlags` (señales de un
+   pre-filtro que nunca llegó a implementarse), `reviewedBy` y `reviewedAt` (sin cola de revisión
+   humana activa no aportan información que no esté ya en `rejectionReason`, que sí se conserva
+   porque es lo que ve el creador) y el índice `ixAudioAssetStatusCreatedAt` (existía solo para las
+   tres colas de `listModerationQueue`; sin ellas, ninguna consulta filtra `audioAsset` por
+   `status`).
+6. **Términos de Servicio, reaceptación exigida** (`packages/web/src/content/legal/terms.ts`,
+   `CURRENT_TERMS_VERSION`): sección 3 (rol de Organizador) añade el deber de revisar el contenido
+   de una sala antes de usarla con su grupo; sección 6 (licencia UGC) hace explícito que el creador
+   responde de todo el contenido de su sala, lo haya subido o generado con las herramientas de la
+   plataforma, y que la plataforma no lo revisa ni verifica la declaración de derechos antes de
+   publicar; sección 10 (limitación de responsabilidad) declara que la plataforma no revisa textos,
+   imágenes, audios ni vídeos antes de publicar y que los reportes por contenido ilegal o que
+   comprometa la seguridad de menores se atienden con prioridad. `CURRENT_TERMS_VERSION` sube a
+   `"2026-09-26-2"` — sufijo `-2` porque cambia el mismo día que la versión anterior (privacidad,
+   `"2026-09-26"`), y una reaceptación exige que el valor sea distinto; no hay validación de formato
+   en `legal-acceptance.ts` (es un string comparado por igualdad), así que el sufijo es válido sin
+   tocar código.
+7. **specs/15 §1 y §4 y specs/17 §1–§3** se actualizan para quitar la excepción de audio: audio y
+   vídeo se moderan igual que el resto del contenido, por reportes. specs/13 §4.1 y §10 (rutas REST)
+   y specs/14 §10.1 (modelo de datos) documentan el estado final y enlazan a este ADR.
+
+**Consecuencias:** un creador puede publicar con audio propio (subido o generado) sin esperar a
+revisión humana — coherente con la promesa "de registro a sala publicada en <30 minutos" que ya
+regía el resto del contenido desde ADR-013. El riesgo de contenido de audio inapropiado en una sala
+publicada se traslada por completo al mecanismo de reportes ya existente (con su SLA por severidad
+y la vía crítica de retirada inmediata para contenido ilegal o que comprometa la seguridad de
+menores). La responsabilidad legal del contenido se reparte explícitamente entre creador
+(licitud/coherencia) y organizador (idoneidad para su grupo), reflejado en los Términos.
+
+**Alternativas descartadas:**
+
+- **Mantener la cola humana solo para audio generado por IA** (no para subidas): descartada — la
+  decisión del usuario es que ni audio ni vídeo se revisen antes de publicar, sin distinguir por
+  origen; mantener una cola parcial solo añadiría inconsistencia entre `uploadAudio` y
+  `AudioGenerationService.confirm`, que ya comparten la misma tabla y el mismo estado.
+- **Conservar `moderationFlags`/`reviewedBy`/`reviewedAt` "por si acaso"**: descartada — son
+  columnas que solo tenían sentido para alimentar una cola humana y un pre-filtro que dejan de
+  existir; conservarlas sin ningún código que las escriba o lea es deuda muerta, no información útil.
+- **Liberar también los `rejected` existentes**: descartada — fueron decisiones humanas ya tomadas
+  sobre contenido concreto (algunas por voces de terceros sin consentimiento, incumplimiento de
+  TOS); revertirlas retroactivamente sin revisión no es equivalente a "ya no hay cola para casos
+  nuevos".

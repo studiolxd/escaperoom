@@ -30,7 +30,7 @@ import type { AssetManifestInput } from "../src/validator";
 
 const ROOM_ID = "11111111-1111-4111-8111-111111111111";
 const AUDIO_OK = "upload:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const AUDIO_PENDING = "upload:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const AUDIO_REJECTED_ASSET = "upload:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
 const author: Actor = { userId: "autora", organizationId: null, role: "member" };
 const intruder: Actor = { userId: "otro", organizationId: null, role: "member" };
@@ -51,7 +51,7 @@ const jsonSerializer: RoomPackageSerializer = (doc) => {
   return json === undefined ? {} : (JSON.parse(json) as unknown);
 };
 
-type FakeAsset = { status: "approved" | "pending" | "rejected"; bytes: Uint8Array };
+type FakeAsset = { status: "approved" | "rejected"; bytes: Uint8Array };
 
 /** Fuente de assets con moderación simulada (misma forma que `AudioAssetService` de 3.11). */
 function fakeAssetSource(assets: Map<string, FakeAsset>): PublishAssetSource & { loads: string[] } {
@@ -63,16 +63,6 @@ function fakeAssetSource(assets: Map<string, FakeAsset>): PublishAssetSource & {
         const asset = assets.get(ref);
         if (!asset)
           return [{ ref, code: "NOT_FOUND", message: "no existe", rejectionReason: null }];
-        if (asset.status === "pending") {
-          return [
-            {
-              ref,
-              code: "AUDIO_PENDING_MODERATION",
-              message: "pendiente de moderación",
-              rejectionReason: null,
-            },
-          ];
-        }
         if (asset.status === "rejected") {
           return [{ ref, code: "AUDIO_REJECTED", message: "rechazado", rejectionReason: "ruido" }];
         }
@@ -102,7 +92,7 @@ function setup(
   const storage = createInMemoryPublishedAssetStorage();
   const audio = new Map<string, FakeAsset>([
     [AUDIO_OK, { status: "approved", bytes: new Uint8Array([1, 2, 3]) }],
-    [AUDIO_PENDING, { status: "pending", bytes: new Uint8Array([9]) }],
+    [AUDIO_REJECTED_ASSET, { status: "rejected", bytes: new Uint8Array([9]) }],
   ]);
   const assets = fakeAssetSource(audio);
   const service = createRoomPublishService({
@@ -317,16 +307,16 @@ describe("publicación — assets y moderación", () => {
     expect(version.assetsHash).toMatch(/^sha256:[0-9a-f]{64}$/);
   });
 
-  it("un audio pendiente de moderación bloquea la publicación (y no se sube nada)", async () => {
+  it("un audio rechazado bloquea la publicación (y no se sube nada)", async () => {
     const { service, storage, assets, writeDraft } = setup();
     const pkg = withDialogAudio(clone(), AUDIO_OK);
-    pkg.hints[0]!.text.es!.audioUrl = AUDIO_PENDING;
+    pkg.hints[0]!.text.es!.audioUrl = AUDIO_REJECTED_ASSET;
     await writeDraft(pkg);
 
     const err = await publishError(service.publish(author, ROOM_ID));
     expect(err.code).toBe("ASSETS_NOT_PUBLISHABLE");
     expect(err.details.problems).toEqual([
-      expect.objectContaining({ ref: AUDIO_PENDING, code: "AUDIO_PENDING_MODERATION" }),
+      expect.objectContaining({ ref: AUDIO_REJECTED_ASSET, code: "AUDIO_REJECTED" }),
     ]);
     expect(assets.loads).toEqual([]);
     expect(storage.objects.size).toBe(0);
@@ -383,12 +373,11 @@ describe("publicación — assets y moderación", () => {
 });
 
 describe("publicación — integración con el servicio de audio (3.11)", () => {
-  const moderator: Actor = { userId: "moderadora", organizationId: null, role: "member" };
-
   function setupWithAudio() {
     const blobs = createInMemoryAudioBlobStore();
+    const store = createInMemoryAudioAssetStore();
     const audio = createAudioAssetService({
-      store: createInMemoryAudioAssetStore({ moderatorIds: [moderator.userId] }),
+      store,
       blobs,
       newId: () => "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     });
@@ -408,6 +397,7 @@ describe("publicación — integración con el servicio de audio (3.11)", () => 
     });
     return {
       audio,
+      store,
       service,
       storage,
       setDraft(pkg: RoomPackage) {
@@ -416,7 +406,7 @@ describe("publicación — integración con el servicio de audio (3.11)", () => 
     };
   }
 
-  it("un MP3 subido bloquea hasta que moderación lo aprueba; luego se empaqueta", async () => {
+  it("un MP3 subido queda disponible al instante y se empaqueta sin moderación previa", async () => {
     const { audio, service, storage, setDraft } = setupWithAudio();
     const bytes = createSilentMp3(1000);
     const upload = await audio.uploadAudio(author, {
@@ -427,28 +417,25 @@ describe("publicación — integración con el servicio de audio (3.11)", () => 
     });
     setDraft(withDialogAudio(clone(), audioAssetRef(upload)));
 
-    const blocked = await publishError(service.publish(author, ROOM_ID));
-    expect(blocked.code).toBe("ASSETS_NOT_PUBLISHABLE");
-    expect(blocked.details.problems?.[0]?.code).toBe("AUDIO_PENDING_MODERATION");
-    expect(storage.objects.size).toBe(0);
-
-    await audio.reviewUpload(moderator, upload.id, { decision: "approved" });
     const { assets } = await service.publish(author, ROOM_ID);
     expect(assets).toHaveLength(1);
     expect(storage.objects.get(assets[0]!.key)?.bytes).toEqual(bytes);
   });
 
-  it("un audio rechazado bloquea con el motivo de moderación", async () => {
-    const { audio, service, setDraft } = setupWithAudio();
+  it("un audio rechazado (histórico) bloquea con el motivo de moderación", async () => {
+    const { audio, store, service, setDraft } = setupWithAudio();
     const upload = await audio.uploadAudio(author, {
       filename: "grito.mp3",
       contentType: "audio/mpeg",
       bytes: createSilentMp3(500),
       rightsDeclared: true,
     });
-    await audio.reviewUpload(moderator, upload.id, {
-      decision: "rejected",
-      reason: "Contenido inapropiado",
+    // No hay cola de moderación: un "rejected" solo viene de una decisión
+    // humana histórica ya congelada en la fila.
+    store.rows.set(upload.id, {
+      ...upload,
+      status: "rejected",
+      rejectionReason: "Contenido inapropiado",
     });
     setDraft(withDialogAudio(clone(), audioAssetRef(upload)));
     const err = await publishError(service.publish(author, ROOM_ID));

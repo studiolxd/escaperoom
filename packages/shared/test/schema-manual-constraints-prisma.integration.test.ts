@@ -131,11 +131,9 @@ describe.skipIf(!process.env.DATABASE_URL)(
       expect(await constraintExists("chkPurchasePaidNeedsStripe")).toBe(true);
     });
 
-    it("ixAudioAssetStatusCreatedAt sustituye al parcial ixAudioAssetPending y cubre los 3 status (E-18)", async () => {
+    it("ixAudioAssetPending e ixAudioAssetStatusCreatedAt ya no existen: sin cola de moderación no hay consultas por status (ADR-039)", async () => {
       expect(await indexDef("ixAudioAssetPending")).toBeNull();
-      const statusCreatedAt = await indexDef("ixAudioAssetStatusCreatedAt");
-      expect(statusCreatedAt).toMatch(/USING btree \(status, "createdAt"\)/);
-      expect(statusCreatedAt).not.toMatch(/WHERE/);
+      expect(await indexDef("ixAudioAssetStatusCreatedAt")).toBeNull();
     });
 
     it("los parciales de purga RGPD de #139 siguen ahí (E-7/E-18)", async () => {

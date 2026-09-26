@@ -15,7 +15,7 @@ import { readReyAldricRoomPackageJson } from "../../src/lib/room-preview-fixture
  * `game-session-shell.tsx`, convertido igual a `Dialog` de shadcn.
  */
 
-vi.mock("../../src/components/room-playtest/room-playtest-canvas", () => ({
+vi.mock("../../src/components/game-session/game-session-canvas", () => ({
   default: () => null,
 }));
 
@@ -42,7 +42,7 @@ describe("<RoomPlaytestShell> — F-17", () => {
     renderIntl(createElement(RoomPlaytestShell, { model, roomPackage }));
 
     // La intro bloquea el juego al montar: la cierra antes de abrir el inventario.
-    await user.click(screen.getByTestId("playtest-dialog"));
+    await user.click(screen.getByTestId("game-dialog"));
 
     await user.click(screen.getByRole("button", { name: /abrir \(i\)/i }));
 

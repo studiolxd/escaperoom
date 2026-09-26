@@ -14,7 +14,7 @@ export type ToolErrorCode =
   | "INVALID_INPUT"
   /** La mutación introduce errores nuevos en el validador (4.4): no se escribe. */
   | "VALIDATION_FAILED"
-  /** La sala pasa el validador pero no se puede publicar (audios en moderación, retirada…). */
+  /** La sala pasa el validador pero no se puede publicar (audio rechazado, retirada…). */
   | "NOT_PUBLISHABLE"
   /** La respuesta supera el tope de tamaño (4.7): usar las vistas filtradas. */
   | "RESPONSE_TOO_LARGE"
@@ -22,8 +22,6 @@ export type ToolErrorCode =
   | "PAYLOAD_TOO_LARGE"
   /** El fichero de `upload` no es del tipo declarado o no está admitido. */
   | "UNSUPPORTED_MEDIA_TYPE"
-  /** `upload` de audio bloqueado por el pre-filtro de moderación (specs/17 §3). */
-  | "UPLOAD_BLOCKED"
   /**
    * Cuota de `upload` agotada (revisión de la PR #168): la MISMA política de
    * rate-limit que la ruta web equivalente, no el límite genérico por token

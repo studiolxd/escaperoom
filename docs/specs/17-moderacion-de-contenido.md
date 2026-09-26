@@ -21,9 +21,11 @@ instantánea (mataría la promesa "de registro a sala publicada en <30 minutos")
   creadores) más un **muestreo aleatorio continuo** de baja intensidad sobre salas nuevas —
   necesario porque el público objetivo incluye aulas, donde el primer "reporte" real sería un
   profesor delante de sus alumnos.
-- **Las subidas de assets custom (audio propio, imágenes v2)** son la excepción: pasan por cola
-  humana **antes** de quedar disponibles para usar en una sala publicada (contenido nuevo sin
-  historial, coste de revisión bajo).
+- **Audio y vídeo tampoco se revisan antes de publicarse** (decisión de 2026-09-26, ADR-039, que
+  retira la excepción original de este documento): el creador es responsable de todo el contenido
+  de su sala y el organizador de un evento debe revisar el contenido (textos, imágenes, audios y
+  vídeos) antes de usarla con su grupo, en especial si hay menores (Términos de Servicio §3 y §6).
+  El control sobre audio y vídeo es el mismo que sobre el resto: posterior, por reportes.
 
 ## 2. Qué se modera (superficies)
 
@@ -31,8 +33,7 @@ instantánea (mataría la promesa "de registro a sala publicada en <30 minutos")
 |---|---|---|
 | Metadata de sala (título, descripción) | Pre-check al publicar + reportes | Automático + humano |
 | Diálogos y textos del RoomPackage (`dialogs`, pistas) | Pre-check al publicar + reportes | Automático + humano |
-| Audio/imágenes subidos por el creador | Antes de estar disponibles en el editor | Humano (con pre-filtro automático) |
-| Audio generado por IA (ElevenLabs) | Al generar, antes de guardar | Automático (mismo pipeline que subida propia) |
+| Audio/vídeo subidos o generados por el creador | Post-publicación + reportes | Humano (por reporte, sin pre-check previo) |
 | Reseñas de jugadores | Post-publicación + reportes | Automático + humano |
 | Chat de texto en partida | En vivo | Automático (filtro), sin cola humana (§7) |
 | Nombre de usuario / perfil de creador | Al registrarse/editar | Automático |
@@ -47,12 +48,16 @@ No bloqueante salvo en los casos marcados 🛑:
 | Hash matching contra bases de contenido ilegal conocido (CSAM y similares) | Toda imagen/audio subido | 🛑 bloquea la subida y dispara el flujo de §5.1 (severidad máxima), no un ticket normal |
 | Detección de PII (emails, teléfonos, direcciones) | Chat de partida, diálogos | 🟡 flag — en chat con menores es alerta prioritaria (§7) |
 | Clasificador de imagen (violencia gráfica, contenido sexual) — v2 | Imágenes subidas | 🛑 bloquea la subida si supera umbral |
-| Detección de voces de terceros sin consentimiento | Audio subido y generado | 🟡 flag para revisión humana |
-| Coincidencia de assets con copyright conocido | Imagen/audio subido | 🟡 flag (no bloquea: falsos positivos frecuentes) |
 
 El pre-check corre **de forma síncrona y rápida (<2 s)** en `POST /api/rooms/:roomId/publish` y en
 la subida de assets — es un paso más del pipeline de validación, junto al validador de
 solvabilidad, no un sistema aparte.
+
+> **2026-09-26 (ADR-039):** se retira la detección de voces de terceros y la coincidencia de
+> copyright como pre-check con cola humana previa — nunca llegaron a implementarse (la única
+> implementación real era un pre-filtro manual que siempre dejaba pasar) y, sin cola de audio,
+> no tenían a quién alimentar. Si en el futuro se implementan, alimentan reportes automáticos
+> (`source: "precheck"`, §2) sobre la sala ya publicada, no un bloqueo previo.
 
 ## 4. Cola de revisión humana
 
@@ -184,6 +189,6 @@ Medidas de moderación añadidas:
 
 ## 10. Dependencias
 
-- `specs/15-audio-y-creditos-ia.md` — moderación de audio.
+- `specs/15-audio-y-creditos-ia.md` — audio y vídeo, sin moderación previa (ADR-039).
 - `specs/18-legal-rgpd-y-menores.md` — menores, PII, retención.
 - `specs/13-api-rest.md` §10 — endpoints admin.

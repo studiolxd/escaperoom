@@ -118,19 +118,21 @@ alrededor de la edición:
 
 ### 4.1 Audio del creador (ticket 3.11)
 
-Biblioteca incluida + subida propia de MP3 con **moderación previa** (`specs/15` §1, `specs/17` §1).
-En el borrador, `LocalizedText.audioUrl` y los efectos (`play_sound`) guardan una referencia estable
+Biblioteca incluida + subida propia de MP3, **disponible al instante, sin moderación previa**
+(decisión de 2026-09-26, ADR-039; `specs/15` §1 y §4, `specs/17` §1). En el borrador,
+`LocalizedText.audioUrl` y los efectos (`play_sound`) guardan una referencia estable
 (`library:<trackId>` o `upload:<uuid>`), no una URL firmada; la publicación la resuelve a R2.
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
 | GET | `/api/audio/library` | público | Biblioteca incluida (`?kind=music\|sfx\|voice`), con licencia, créditos y `ref` |
-| GET | `/api/audio/uploads` | usuario | Subidas propias con `status` (`pending`/`approved`/`rejected`) y `rejectionReason` |
-| POST | `/api/audio/uploads` | usuario | Multipart: `file` (MP3) + `rightsDeclared=true`. Valida el contenido real, tamaño y duración → 201 `pending`. `415 UNSUPPORTED_MEDIA_TYPE`, `413 PAYLOAD_TOO_LARGE`, `422 VALIDATION_ERROR`/`UPLOAD_BLOCKED` |
-| GET | `/api/audio/uploads/:id` | dueño o moderador | Metadatos + `previewUrl` firmada (nula si está rechazado); 404 para cualquier otro usuario |
+| GET | `/api/audio/uploads` | usuario | Subidas propias con `status` (`approved`/`rejected`) y `rejectionReason` |
+| POST | `/api/audio/uploads` | usuario | Multipart: `file` (MP3) + `rightsDeclared=true`. Valida el contenido real, tamaño y duración → 201 `approved`, usable de inmediato. `415 UNSUPPORTED_MEDIA_TYPE`, `413 PAYLOAD_TOO_LARGE`, `422 VALIDATION_ERROR` |
+| GET | `/api/audio/uploads/:id` | dueño | Metadatos + `previewUrl` firmada (nula si está rechazado); 404 para cualquier otro usuario |
 
-Un audio subido solo lo puede usar su dueño; `pending` sirve en el borrador pero bloquea
-publicar (`AUDIO_PENDING_MODERATION`) y `rejected` no es usable (`AUDIO_REJECTED`, con motivo).
+Un audio subido solo lo puede usar su dueño. `rejected` es histórico (decisiones humanas ya
+tomadas antes de esta fecha por la extinta cola de moderación) y sigue sin ser usable
+(`AUDIO_REJECTED`, con motivo); no hay forma nueva de llegar a ese estado.
 
 ### 4.2 Licencias entre creadores (ticket 5.10)
 
@@ -310,6 +312,9 @@ de terminar el job; la ruta de descarga lee el objeto del bucket y lo sirve. Sin
 
 ## 10. Moderación y apelaciones (admin/moderador)
 
+Desde 2026-09-26 (ADR-039) el audio del creador ya no tiene cola de admin propia
+(`/api/admin/audio*` retirada): se modera igual que el resto de contenido, por reportes.
+
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
 | GET | `/api/admin/reports` | `is_admin \| is_moderator` | Listado de `contentReport`, filtrable por `status` (por defecto `pending`)/`severity`, priorizado (severidad → evento activo → nº de reportes sobre el mismo contenido → antigüedad) con `slaDueAt` y `overdue` |
@@ -319,8 +324,6 @@ de terminar el job; la ruta de descarga lee el objeto del bucket y lo sirve. Sin
 | GET | `/api/me/moderation` | usuario | Estado del creador: `status` (`good\|warned\|suspended\|banned`), `suspendedUntil`, `activeStrikes`, `frozen` |
 | GET | `/api/admin/appeals` | `is_admin \| is_moderator` | Cola de apelaciones pendientes |
 | PATCH | `/api/admin/appeals/:id` | `is_admin \| is_moderator` | Resuelve: `upheld` u `overturned` |
-| GET | `/api/admin/audio` | `is_admin \| is_moderator` | Cola de audio subido (`?status=pending` por defecto, las más antiguas primero) |
-| PATCH | `/api/admin/audio/:id` | `is_admin \| is_moderator` | `{ decision: 'approved' \| 'rejected', reason? }` (motivo obligatorio al rechazar); `409 ALREADY_REVIEWED` si ya se revisó |
 | GET/POST/PATCH | `/api/admin/pricing-tiers` | `isAdmin` | Gestión de tramos de precio editables |
 | GET/PATCH | `/api/admin/settings/:key` | `isAdmin` | Ajustes de plataforma (p. ej. `maxPlayersPerRoom`) |
 

@@ -14,20 +14,20 @@ import { type Actor } from "./actor";
 import { requireUser } from "./common";
 
 /**
- * Audio del creador (ticket 3.11, specs/15 §1 y §4, specs/17 §1): biblioteca
- * incluida + subida propia de MP3 con **moderación previa**. Una subida nace
- * `pending`; solo un moderador la aprueba (`approved`, usable al publicar) o la
- * rechaza con motivo (`rejected`, no usable en ningún sitio). Mientras está
- * pendiente su dueño puede colocarla en el borrador y escucharla, pero la sala
- * no se puede publicar con ella (specs/17 §1: excepción a la moderación
- * post-publicación).
+ * Audio del creador (ticket 3.11, specs/15 §1, specs/17 §1): biblioteca
+ * incluida + subida propia de MP3. Desde la decisión de 2026-09-26 (ADR-039)
+ * un audio nuevo (subido o generado con IA) queda `approved` y disponible al
+ * instante, sin cola de revisión previa: el creador es responsable de su
+ * contenido y el organizador de un evento decide si es adecuado para su
+ * grupo (Términos de Servicio §3 y §6). El control es posterior, por
+ * reportes (specs/17), igual que el resto del contenido de una sala.
  *
- * El proveedor de moderación automática (pre-filtro, specs/17 §3) va detrás de
- * `AudioModerationProvider`: aquí solo hay implementación manual/fake, nunca se
- * llama a un servicio externo.
+ * `rejected` solo existe como estado histórico de decisiones humanas ya
+ * tomadas antes de ese cambio (audios rechazados por la extinta cola de
+ * moderación): se conservan inutilizables, no se liberan.
  */
 
-export type AudioAssetStatus = "pending" | "approved" | "rejected";
+export type AudioAssetStatus = "approved" | "rejected";
 
 /** De dónde viene el fichero (ticket 4.9, migración 0017): subida propia o generación IA. */
 export type AudioAssetSource = "upload" | "ai_generated";
@@ -43,15 +43,12 @@ export type AudioAssetRow = {
   byteSize: number;
   durationMs: number;
   status: AudioAssetStatus;
-  /** Señales del pre-filtro automático (🟡 flag, specs/17 §3). */
-  moderationFlags: string[];
+  /** Motivo del rechazo humano (solo histórico: ya no hay cola que lo produzca). */
   rejectionReason: string | null;
-  reviewedBy: string | null;
-  reviewedAt: Date | null;
   rightsDeclaredAt: Date;
   createdAt: Date;
   source: AudioAssetSource;
-  /** Solo `ai_generated`: el texto sintetizado (contexto para moderación) y la voz usada. */
+  /** Solo `ai_generated`: el texto sintetizado y la voz usada. */
   generationText: string | null;
   generationVoiceId: string | null;
   /** Solo `ai_generated`: créditos cobrados por esta generación (ya descontados al confirmar). */
@@ -63,8 +60,6 @@ export type NewAudioAsset = Omit<
   | "createdAt"
   | "status"
   | "rejectionReason"
-  | "reviewedBy"
-  | "reviewedAt"
   | "source"
   | "generationText"
   | "generationVoiceId"
@@ -77,26 +72,11 @@ export type NewAudioAsset = Omit<
   generationCreditsCost?: number | null;
 };
 
-export type AudioReview = {
-  status: Exclude<AudioAssetStatus, "pending">;
-  rejectionReason: string | null;
-  reviewedBy: string;
-  reviewedAt: Date;
-};
-
 /** Puerto de persistencia de `audioAsset` (ADR-022). */
 export interface AudioAssetStore {
-  /** `user.isModerator || user.isAdmin`, consultado en cada llamada. */
-  canModerate(userId: string): Promise<boolean>;
   insertAsset(asset: NewAudioAsset): Promise<AudioAssetRow>;
   findAsset(id: string): Promise<AudioAssetRow | null>;
   listByOwner(ownerId: string): Promise<AudioAssetRow[]>;
-  listByStatus(status: AudioAssetStatus, limit: number): Promise<AudioAssetRow[]>;
-  /**
-   * Resuelve la revisión SOLO si la fila sigue `pending` (actualización
-   * condicional); `null` si otro moderador se adelantó.
-   */
-  reviewIfPending(id: string, review: AudioReview): Promise<AudioAssetRow | null>;
   /** Deshace un alta (ticket 4.9: la generación se cobra después de insertar; si el cobro falla, no debe quedar disponible). */
   deleteAsset(id: string): Promise<void>;
 }
@@ -109,36 +89,6 @@ export interface AudioBlobStore {
   signedReadUrl(key: string): Promise<string>;
 }
 
-/** Resultado del pre-filtro automático (specs/17 §3). */
-export type AudioPrecheckResult =
-  | { action: "allow"; flags?: string[] }
-  | { action: "flag"; flags: string[] }
-  | { action: "block"; reason: string };
-
-/**
- * Pre-filtro automático de una subida (hash de contenido ilegal, voces de
- * terceros, copyright…). `block` rechaza la subida sin almacenarla; `flag` la
- * deja pendiente con señales para el moderador humano. Nunca aprueba: la
- * aprobación es siempre humana.
- */
-export interface AudioModerationProvider {
-  precheck(input: {
-    ownerId: string;
-    filename: string;
-    bytes: Uint8Array;
-    durationMs: number;
-  }): Promise<AudioPrecheckResult>;
-}
-
-/** Pre-filtro manual: no marca nada; todo queda para la cola humana. */
-export function createManualAudioModeration(): AudioModerationProvider {
-  return {
-    async precheck() {
-      return { action: "allow" };
-    },
-  };
-}
-
 export type AudioErrorCode =
   | "UNAUTHORIZED"
   | "FORBIDDEN"
@@ -146,16 +96,13 @@ export type AudioErrorCode =
   | "VALIDATION_ERROR"
   | "UNSUPPORTED_MEDIA_TYPE"
   | "PAYLOAD_TOO_LARGE"
-  | "UPLOAD_BLOCKED"
-  | "ALREADY_REVIEWED"
-  | "AUDIO_PENDING_MODERATION"
   | "AUDIO_REJECTED";
 
 /** Error de dominio del audio; los adaptadores lo traducen a HTTP/tRPC/MCP. */
 export class AudioError extends Error {
   readonly code: AudioErrorCode;
   readonly issues: ReadableIssue[];
-  /** Motivo del rechazo del moderador (`AUDIO_REJECTED`). */
+  /** Motivo del rechazo histórico (`AUDIO_REJECTED`). */
   readonly rejectionReason: string | null;
   constructor(
     code: AudioErrorCode,
@@ -191,25 +138,7 @@ export type AudioUploadInput = {
   rightsDeclared: boolean;
 };
 
-export const AudioReviewInput = z
-  .object({
-    decision: z.enum(["approved", "rejected"]),
-    reason: z.string().trim().max(1000).optional(),
-  })
-  .strict()
-  .refine((r) => r.decision !== "rejected" || (r.reason?.length ?? 0) > 0, {
-    message: "Un rechazo exige motivo (se muestra al creador)",
-    path: ["reason"],
-  });
-
 export const AudioLibraryQuery = z.object({ kind: z.enum(AUDIO_KINDS).optional() });
-export const AudioQueueQuery = z.object({
-  status: z.enum(["pending", "approved", "rejected"]).default("pending"),
-  limit: z.coerce.number().int().min(1).max(200).default(50),
-});
-
-/** Para qué se va a usar la referencia: el borrador tolera `pending`; publicar, no. */
-export type AudioUsePurpose = "draft" | "publish";
 
 export type ResolvedAudio =
   | { source: "library"; ref: string; track: AudioLibraryTrack; storageKey: string }
@@ -265,30 +194,21 @@ function cleanFilename(name: string): string {
 export function createAudioAssetService(deps: {
   store: AudioAssetStore;
   blobs: AudioBlobStore;
-  moderation?: AudioModerationProvider;
   limits?: Partial<AudioUploadLimits>;
   now?: () => Date;
   newId?: () => string;
 }) {
   const { store, blobs } = deps;
-  const moderation = deps.moderation ?? createManualAudioModeration();
   const limits = { ...DEFAULT_AUDIO_UPLOAD_LIMITS, ...deps.limits };
   const now = deps.now ?? (() => new Date());
   const newId = deps.newId ?? (() => globalThis.crypto.randomUUID());
 
-  async function requireModerator(actor: Actor): Promise<void> {
-    requireSession(actor);
-    if (!(await store.canModerate(actor.userId))) {
-      throw new AudioError("FORBIDDEN", "Solo moderadores o administradores");
-    }
-  }
-
-  /** La subida existe y es del actor (o el actor modera). */
+  /** La subida existe y es del actor. */
   async function requireReadable(actor: Actor, id: string): Promise<AudioAssetRow> {
     requireSession(actor);
     const asset = z.uuid().safeParse(id).success ? await store.findAsset(id) : null;
     if (!asset) throw new AudioError("NOT_FOUND", "Audio no encontrado");
-    if (asset.ownerId !== actor.userId && !(await store.canModerate(actor.userId))) {
+    if (asset.ownerId !== actor.userId) {
       // Mismo error que "no existe": no se revela qué ids tienen otros usuarios.
       throw new AudioError("NOT_FOUND", "Audio no encontrado");
     }
@@ -335,12 +255,8 @@ export function createAudioAssetService(deps: {
     return { durationMs: info.durationMs };
   }
 
-  /** Resuelve una referencia para `purpose`, o lanza el motivo por el que no es usable. */
-  async function resolveRef(
-    actor: Actor,
-    value: string,
-    purpose: AudioUsePurpose,
-  ): Promise<ResolvedAudio> {
+  /** Resuelve una referencia, o lanza el motivo por el que no es usable. */
+  async function resolveRef(actor: Actor, value: string): Promise<ResolvedAudio> {
     const ref = parseAudioRef(value);
     if (!ref) throw new AudioError("VALIDATION_ERROR", `Referencia de audio no válida: "${value}"`);
     if (ref.source === "library") {
@@ -359,12 +275,6 @@ export function createAudioAssetService(deps: {
         "AUDIO_REJECTED",
         `El audio "${asset.originalFilename}" fue rechazado en moderación: ${asset.rejectionReason ?? "sin motivo"}`,
         { rejectionReason: asset.rejectionReason },
-      );
-    }
-    if (asset.status === "pending" && purpose === "publish") {
-      throw new AudioError(
-        "AUDIO_PENDING_MODERATION",
-        `El audio "${asset.originalFilename}" está pendiente de moderación; no se puede publicar hasta que se apruebe`,
       );
     }
     return {
@@ -391,23 +301,13 @@ export function createAudioAssetService(deps: {
     },
 
     /**
-     * Sube un MP3 propio: valida tipo real, tamaño y duración, pasa el
-     * pre-filtro automático y queda `pending` hasta la revisión humana.
+     * Sube un MP3 propio: valida tipo real, tamaño y duración y queda
+     * `approved`, disponible al instante (decisión de 2026-09-26, ADR-039).
      */
     async uploadAudio(actor: Actor, input: AudioUploadInput): Promise<AudioAssetRow> {
       requireSession(actor);
       const { durationMs } = validateUpload(input);
       const filename = cleanFilename(input.filename);
-      const verdict = await moderation.precheck({
-        ownerId: actor.userId,
-        filename,
-        bytes: input.bytes,
-        durationMs,
-      });
-      if (verdict.action === "block") {
-        // 🛑 No se almacena nada (specs/17 §3).
-        throw new AudioError("UPLOAD_BLOCKED", `Subida bloqueada: ${verdict.reason}`);
-      }
 
       const id = newId();
       const storageKey = `uploads/audio/${actor.userId}/${id}.mp3`;
@@ -422,7 +322,6 @@ export function createAudioAssetService(deps: {
           contentType: STORED_MIME,
           byteSize: input.bytes.byteLength,
           durationMs,
-          moderationFlags: verdict.flags ?? [],
           rightsDeclaredAt: now(),
         });
       } catch (err) {
@@ -439,7 +338,7 @@ export function createAudioAssetService(deps: {
       return [...rows].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     },
 
-    /** Metadatos + URL de escucha firmada (dueño o moderador). */
+    /** Metadatos + URL de escucha firmada (solo el dueño). */
     async getUpload(
       actor: Actor,
       id: string,
@@ -451,40 +350,10 @@ export function createAudioAssetService(deps: {
       return { asset, previewUrl };
     },
 
-    /** Cola de moderación (`pending` por defecto, las más antiguas primero). */
-    async listModerationQueue(actor: Actor, query: unknown = {}): Promise<AudioAssetRow[]> {
-      await requireModerator(actor);
-      const { status, limit } = parseOrThrow(AudioQueueQuery, query);
-      const rows = await store.listByStatus(status, limit);
-      return [...rows].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
-    },
-
-    authorizeModeration(actor: Actor): Promise<void> {
-      return requireModerator(actor);
-    },
-
-    /** Revisión humana: `approved` (usable) o `rejected` con motivo (no usable). */
-    async reviewUpload(actor: Actor, id: string, input: unknown): Promise<AudioAssetRow> {
-      await requireModerator(actor);
-      const { decision, reason } = parseOrThrow(AudioReviewInput, input);
-      const asset = z.uuid().safeParse(id).success ? await store.findAsset(id) : null;
-      if (!asset) throw new AudioError("NOT_FOUND", "Audio no encontrado");
-      const reviewed = await store.reviewIfPending(id, {
-        status: decision,
-        rejectionReason: decision === "rejected" ? (reason ?? null) : null,
-        reviewedBy: actor.userId,
-        reviewedAt: now(),
-      });
-      if (!reviewed) {
-        throw new AudioError("ALREADY_REVIEWED", "Este audio ya se revisó");
-      }
-      return reviewed;
-    },
-
     /**
-     * Comprueba que el actor puede usar una referencia (`library:`/`upload:`)
-     * para `purpose`. Lanza `FORBIDDEN` (audio de otro usuario),
-     * `AUDIO_REJECTED` (con motivo) o, al publicar, `AUDIO_PENDING_MODERATION`.
+     * Comprueba que el actor puede usar una referencia (`library:`/`upload:`).
+     * Lanza `FORBIDDEN` (audio de otro usuario) o `AUDIO_REJECTED` (con motivo,
+     * solo audios rechazados por la extinta cola de moderación).
      */
     resolveAudioRef: resolveRef,
 
@@ -499,7 +368,7 @@ export function createAudioAssetService(deps: {
       const problems: AudioUsabilityProblem[] = [];
       for (const ref of new Set(refs)) {
         try {
-          await resolveRef(actor, ref, "publish");
+          await resolveRef(actor, ref);
         } catch (err) {
           if (!(err instanceof AudioError)) throw err;
           problems.push({
@@ -522,16 +391,12 @@ export const audioAssetRef = (asset: Pick<AudioAssetRow, "id">): string => uploa
 
 /** Store en memoria (tests y superficies sin base de datos). */
 export function createInMemoryAudioAssetStore(
-  opts: { moderatorIds?: Iterable<string>; now?: () => Date } = {},
+  opts: { now?: () => Date } = {},
 ): AudioAssetStore & { rows: Map<string, AudioAssetRow> } {
-  const moderators = new Set(opts.moderatorIds ?? []);
   const now = opts.now ?? (() => new Date());
   const rows = new Map<string, AudioAssetRow>();
   return {
     rows,
-    async canModerate(userId) {
-      return moderators.has(userId);
-    },
     async insertAsset(asset) {
       const row: AudioAssetRow = {
         ...asset,
@@ -539,10 +404,8 @@ export function createInMemoryAudioAssetStore(
         generationText: asset.generationText ?? null,
         generationVoiceId: asset.generationVoiceId ?? null,
         generationCreditsCost: asset.generationCreditsCost ?? null,
-        status: "pending",
+        status: "approved",
         rejectionReason: null,
-        reviewedBy: null,
-        reviewedAt: null,
         createdAt: now(),
       };
       rows.set(row.id, row);
@@ -554,19 +417,6 @@ export function createInMemoryAudioAssetStore(
     },
     async listByOwner(ownerId) {
       return [...rows.values()].filter((r) => r.ownerId === ownerId).map((r) => ({ ...r }));
-    },
-    async listByStatus(status, limit) {
-      return [...rows.values()]
-        .filter((r) => r.status === status)
-        .slice(0, limit)
-        .map((r) => ({ ...r }));
-    },
-    async reviewIfPending(id, review) {
-      const row = rows.get(id);
-      if (!row || row.status !== "pending") return null;
-      const next = { ...row, ...review };
-      rows.set(id, next);
-      return { ...next };
     },
     async deleteAsset(id) {
       rows.delete(id);

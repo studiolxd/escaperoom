@@ -20,7 +20,9 @@
     "@escaperoom/shared": "workspace:*",
     "@sentry/node": "^10.69.0",
     "bullmq": "^6.3.8",
-    "ioredis": "^6.0.0"
+    "cron-parser": "5.10.1",
+    "ioredis": "^6.0.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@escaperoom/config": "workspace:*",
