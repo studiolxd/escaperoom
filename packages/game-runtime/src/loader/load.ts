@@ -1,5 +1,7 @@
 import {
   RoomPackageSchema,
+  initialRoomOf,
+  lobbyRoomOf,
   formatRoomPackageError,
   toReadableIssues,
   type PuzzleDefinition,
@@ -193,6 +195,8 @@ export function toRuntimeModel(
       players: meta.players,
     },
     locale,
+    initialRoomId: initialRoomOf(map)?.id ?? subrooms[0]?.id ?? "",
+    ...(lobbyRoomOf(map) ? { lobbyRoomId: lobbyRoomOf(map)!.id } : {}),
     subrooms,
     subroomsById,
     objects,
@@ -331,6 +335,7 @@ function toRuntimeSubRoom(room: SubRoom): RuntimeSubRoom {
   return {
     id: room.id,
     name: room.name,
+    ...(room.kind ? { kind: room.kind } : {}),
     width: cols,
     height: rows,
     layers,

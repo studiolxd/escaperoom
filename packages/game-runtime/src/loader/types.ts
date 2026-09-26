@@ -171,6 +171,8 @@ export interface RuntimeHint {
 export interface RuntimeSubRoom {
   id: string;
   name: string;
+  /** `"lobby"` = sala de espera (encargo lobby-diseño); ausente = habitación de juego. */
+  kind?: "lobby";
   /** `grid.cols`. */
   width: number;
   /** `grid.rows`. */
@@ -198,6 +200,17 @@ export interface RuntimeModel {
   meta: RuntimeMeta;
   /** Idioma con el que se resolvieron los textos (`meta.defaultLanguage` o el pedido). */
   locale: string;
+  /**
+   * Habitación inicial de la partida (la primera que no es la sala de
+   * espera, `initialRoomOf`): donde se aparece al entrar al mapa.
+   */
+  initialRoomId: string;
+  /**
+   * Sala de espera (encargo lobby-diseño), si el paquete la trae — la
+   * diseñada, o la generada si se proyectó `withLobbyRoom(pkg)` (partida y
+   * playtest). `undefined` en el editor para una sala sin lobby diseñado.
+   */
+  lobbyRoomId?: string;
   subrooms: RuntimeSubRoom[];
   subroomsById: Record<string, RuntimeSubRoom>;
   objects: RuntimeObject[];
