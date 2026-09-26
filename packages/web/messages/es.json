@@ -1063,6 +1063,32 @@
       "UNKNOWN": "No se pudo confirmar. Inténtalo de nuevo en unos minutos."
     }
   },
+  "OrganizationInvitation": {
+    "title": "Invitación a organización",
+    "intro": "Inicia sesión para ver esta invitación.",
+    "login": {
+      "intro": "Inicia sesión para continuar.",
+      "google": "Continuar con Google",
+      "emailInvalid": "Introduce un email válido",
+      "emailLabel": "O recibe un enlace de acceso por email",
+      "emailSubmit": "Enviar enlace",
+      "emailSent": "Te hemos enviado un enlace. Ábrelo en este navegador para continuar.",
+      "error": "No se ha podido iniciar sesión. Inténtalo de nuevo."
+    },
+    "signedInAs": "Sesión iniciada como {email}",
+    "details": "{inviter} te ha invitado a unirte a «{organization}» como {role}.",
+    "accept": "Aceptar invitación",
+    "accepting": "Aceptando…",
+    "accepted": "Te has unido a la organización.",
+    "reject": "Rechazar",
+    "rejecting": "Rechazando…",
+    "rejected": "Has rechazado la invitación.",
+    "goHome": "Ir al inicio",
+    "notFound": "Esta invitación no existe, ha caducado o ya se ha usado.",
+    "wrongRecipient": "Esta invitación es para otro email. Has iniciado sesión como {current}.",
+    "signOutCta": "Cerrar sesión y usar otro email",
+    "genericError": "No se ha podido procesar la invitación. Inténtalo de nuevo en unos minutos."
+  },
   "Redeem": {
     "title": "Canjea tu clave",
     "intro": "Introduce la clave de tu tarjeta o invitación para entrar en la partida de tu grupo.",
@@ -1205,7 +1231,7 @@
     "pricingLoading": "Cargando tramos de precio…",
     "pricingUnavailable": "No se han podido cargar los tramos de precio.",
     "pricingRangeOpen": "{min}+ jugadores:",
-    "pricingRangeCapped": "{min}\u2013{max} jugadores:",
+    "pricingRangeCapped": "{min}–{max} jugadores:",
     "submitError": "No se ha podido crear el evento. Inténtalo de nuevo.",
     "submit": "Crear evento",
     "errors": {
