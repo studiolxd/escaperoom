@@ -56,6 +56,14 @@ Tareas pendientes que no bloquean pero hay que resolver.
       canje, playtest, admin), URLs amigables (¿slug en la ficha de sala en vez del UUID?), 404/410 de salas
       retiradas, rendimiento y Core Web Vitals de catálogo y ficha, y textos alternativos de imágenes. Depende
       de decidir el dominio de producción (entrada de abajo) para las URLs absolutas.
+- [ ] **Reiniciar las versiones de las páginas legales antes de producción.** Como aún no hay usuarios reales,
+      antes del primer despliegue se pueden devolver todas las páginas legales a su **primera versión**: una
+      única fecha de versión común (la de publicación) en `versionDate` de `packages/web/src/content/legal/*.ts`
+      (términos, privacidad, cookies, aviso legal, DPA) y en las constantes de reaceptación
+      (`CURRENT_TERMS_VERSION` en `legal-acceptance.ts`, `CURRENT_DPA_VERSION`), quitando el historial de
+      versiones intermedias de dev (p. ej. `2026-09-26-2`) y sus comentarios. Con la base de producción vacía no
+      hay aceptaciones previas que invalidar. Hacerlo junto con el resto de textos legales definitivos (incluido
+      el dominio, entrada de abajo).
 - [ ] **Decidir el dominio de producción.** Pendiente operativo, sin fecha. El Aviso
       Legal (`packages/web/src/content/legal/legal-notice.ts`) lleva un `[PENDIENTE]`
       con el dominio; al decidirlo, sustituirlo y revisar el resto de sitios que lo
