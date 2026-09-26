@@ -48,6 +48,46 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `packages/shared/test/catalog-filters.test.ts` (rango + compatibilidad),
       `packages/editor/test/room-doc-players.test.ts` (aviso al revés) y
       `packages/web/test/components/room-players-dialog.test.tsx` (UI).
+- [ ] **Salas en 3D, además de 2D (muy largo plazo).** Permitir crear y jugar salas en
+      3D, además de las 2D isométricas actuales, tanto en el creador (editor y MCP) como
+      en el juego. Implica también una etiqueta **2D/3D** en cada sala y un **filtro
+      2D/3D en el catálogo**. Antes de implementar: spec propia (motor de render 3D —
+      Phaser 4 no trae 3D real, ADR-001 —, formato de la sala en el `RoomPackage`,
+      assets y pipeline de `tools/assets-generator`, rendimiento en equipos modestos
+      de colegios, paridad editor↔MCP y compatibilidad con las mecánicas y plantillas
+      de puzzles existentes).
+- [ ] **Extraer el motor de creación y de juego a un paquete compartido `@studiolxd` (muy
+      largo plazo).** Sacar a un paquete propio de `@studiolxd` todo el motor de creación
+      y de juego, para consumirlo desde aquí y desde una futura aplicación de la suite
+      slxd:
+      - **Aquí** se queda solo lo propio del SaaS (catálogo, compras y pagos, eventos y
+        claves, organizaciones, reseñas, moderación, cuentas, páginas públicas y legales).
+      - **En slxd**, un producto nuevo que consume el mismo paquete y permite crear escape
+        rooms exportables a **SCORM** y con **xAPI** dentro de la suite.
+      Antes de implementar: decidir qué entra en el paquete (candidatos: esquemas del
+      `RoomPackage`, motor de reglas y sesión de `shared`, `game-runtime`, `editor` y
+      plantillas de puzzles, validador, packs gráficos y, en parte, el toolset MCP y el
+      protocolo de partida), cómo se publica y versiona (registro privado, semver, ADR-035),
+      qué queda acoplado hoy a Prisma, Next o Colyseus y hay que abstraer, y cómo se
+      empaqueta una partida para SCORM/xAPI (jugar sin servidor en red, con
+      `createLocalGameClient`, y reportar progreso y resultado al LMS).
+- [ ] **Usar los motores 2D/3D para otros géneros: RPG educativo (muy largo plazo).**
+      Aprovechar el motor 2D actual (y el 3D, cuando exista) para crear, además de escape
+      rooms, juegos tipo **RPG** como el onboarding de Studio LXD
+      (`/Users/suvi/Dev/apps/onboarding`: Phaser + React, diálogos, paneles de
+      información, pantallas interactivas y SCORM con `@studiolxd/scorm`): **NPC** con
+      los que hablar, **diálogos** ramificados, **objetivos/misiones** y su seguimiento,
+      progreso guardado y resultado reportable. Encaja con el paquete compartido
+      `@studiolxd` (entrada de arriba): el motor sería común y cada producto (escape room,
+      RPG) aportaría sus mecánicas. Antes de implementar: spec del modelo de juego
+      genérico (qué es común — mapa, objetos, inventario, reglas, diálogos, sesión — y qué
+      es propio de cada género), cómo se amplían el editor y el MCP, y si el catálogo y
+      los eventos del SaaS admiten otros tipos de experiencia además de salas.
+- [ ] **Decidir el dominio de producción.** Pendiente operativo, sin fecha. El Aviso
+      Legal (`packages/web/src/content/legal/legal-notice.ts`) lleva un `[PENDIENTE]`
+      con el dominio; al decidirlo, sustituirlo y revisar el resto de sitios que lo
+      necesiten (`BETTER_AUTH_URL`/`NEXT_PUBLIC_APP_URL`, CSP, Plausible, emails, OAuth
+      de Google y del MCP, Stripe).
 - [ ] **Claves reales de analítica antes de desplegar en producción.** En
       desarrollo se activan Plausible y Google Analytics con valores de prueba
       (para ver el banner de consentimiento de cookies). Antes del primer
@@ -248,6 +288,25 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `phaser/room-scene.ts`) y el inspector del editor (`inspector-model.ts`,
       `schema-form.ts`). Aplazado en el bloque 10 (#163) por ser un cambio de tipos y
       arquitectura del modelo, no un ajuste puntual.
+- [ ] **Mutaciones con `fetch` que quedaron fuera de la migración a server actions (#162).**
+      Diez pantallas siguen enviando con `fetch` a mano: `room-cover-upload`,
+      `event-dashboard`, `spectator-game`, `confirm-attendance`, `accept-terms-button`,
+      `moderation-queue`, `onboarding-wizard`, `payouts-panel`, `confirm-publish` y
+      `playtest-button`. Revisar cuáles encajan como server action + RHF (mismo patrón
+      que la #162, `server/actions/action-result.ts`) y migrarlas. Encolado detrás de la
+      limpieza de frontend (F-34/F-43..47), que toca los mismos componentes.
+- [ ] **F-5: partir `GameSessionShell` y `RoomPlaytestShell` (auditoría 2026-09-24, ALTA).**
+      1 053 y 920 líneas casi duplicadas: extraer hooks (`useSceneSync`,
+      `useServerEvents`, `usePanelState`, `useHudHotkeys`) y subcomponentes del HUD, y que
+      el playtest monte `GameSessionShell` con `createLocalGameClient`. Aplazado en el
+      bloque 10; va al final de la cola (después de C-13 y D-26, que tocan el HUD) y sin
+      cambiar el aspecto.
+- [ ] **E-23 (resto): configuración del worker centralizada.** Concurrencias, `everyMs`
+      y crons de los ~14 workers sin variable de entorno; un `workerConfig` común
+      (pospuesto en la #139 por solaparse con otros bloques). Al final de la cola.
+- [ ] **F-33: lobby de pruebas a 20 Hz.** `lobby-canvas.tsx`, `lobby-store.ts` y
+      `lobby-scene.ts` crean objetos nuevos en cada `onStateChange` y se suscriben sin
+      selector. Es una página de desarrollo: valorar retirarla junto con `/[locale]/play`.
 - [ ] **Nightly E2E en rojo desde que existe (issue #115).** El job nocturno
       `.github/workflows/e2e-nightly.yml` (2:30, suite completa de Playwright + paridad
       MCP + carga) falla todas las noches desde el 2026-09-24 y nadie lo estaba mirando;
