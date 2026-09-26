@@ -52,6 +52,7 @@ const version = (
   authorId: author.userId,
   roomStatus: "published",
   saleEvents: true,
+  estimatedMinutes: 30,
   ...over,
 });
 
@@ -544,6 +545,48 @@ describe("eventos — permisos y lectura", () => {
       "VALIDATION_ERROR",
     );
     await rejects(events.updateEvent(organizer, event.id, {}), "VALIDATION_ERROR");
+  });
+
+  it("ticket duración-salas: override de duración por evento, con aviso si acorta bajo estimatedMinutes", async () => {
+    const { events } = setup();
+    const event = await events.createEvent(
+      organizer,
+      baseInput({ timeLimitMinutes: 90 }),
+    );
+    expect(event.config.timeLimitMinutes).toBe(90);
+    // `version(VERSION, { estimatedMinutes: 30 })` — ver helper `version()` de este archivo.
+    expect(event.timeLimitBelowEstimate).toBe(false);
+
+    const shortened = await events.updateEvent(organizer, event.id, { timeLimitMinutes: 10 });
+    expect(shortened.config.timeLimitMinutes).toBe(10);
+    expect(shortened.timeLimitBelowEstimate).toBe(true);
+
+    const unlimited = await events.updateEvent(organizer, event.id, { timeLimitMinutes: null });
+    expect(unlimited.config.timeLimitMinutes).toBeNull();
+    expect(unlimited.timeLimitBelowEstimate).toBe(false);
+
+    const cleared = await events.updateEvent(organizer, event.id, {
+      clearTimeLimitOverride: true,
+    });
+    expect(cleared.config.timeLimitMinutes).toBeUndefined();
+  });
+
+  it("timeLimitMinutes rechaza 0, negativos y no enteros; clearTimeLimitOverride no combina con timeLimitMinutes", async () => {
+    const { events } = setup();
+    const event = await events.createEvent(organizer, baseInput());
+    for (const value of [0, -1, 1.5]) {
+      await rejects(
+        events.updateEvent(organizer, event.id, { timeLimitMinutes: value }),
+        "VALIDATION_ERROR",
+      );
+    }
+    await rejects(
+      events.updateEvent(organizer, event.id, {
+        timeLimitMinutes: 30,
+        clearTimeLimitOverride: true,
+      }),
+      "VALIDATION_ERROR",
+    );
   });
 
   it("listMyEvents pagina por cursor solo los eventos propios, más recientes primero", async () => {

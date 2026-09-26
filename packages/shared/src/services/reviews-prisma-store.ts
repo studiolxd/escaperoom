@@ -7,6 +7,7 @@ type ReviewRow = {
   roomId: string;
   rating: number;
   text: string | null;
+  durationOverridden: boolean;
   createdAt: Date;
   updatedAt: Date;
   user: { name: string };
@@ -22,6 +23,7 @@ function toReview(row: ReviewRow): Review {
     authorDisplayName: row.user.name,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    durationOverridden: row.durationOverridden,
   };
 }
 
@@ -30,6 +32,7 @@ const REVIEW_SELECT = {
   roomId: true,
   rating: true,
   text: true,
+  durationOverridden: true,
   createdAt: true,
   updatedAt: true,
   user: { select: { name: true } },
@@ -66,16 +69,33 @@ export function createPrismaReviewStore(prisma: PrismaClient): ReviewStore {
       return rows[0]?.eligible === true;
     },
 
-    async upsert({ userId, roomId, rating, text }) {
+    async hasPlayedWithOverriddenDuration(userId, roomId) {
+      // Ticket duración-salas: alguna partida de un evento de esta sala con
+      // duración modificada por el organizador (`event.config` tiene la
+      // clave `timeLimitMinutes`, ausente cuando no hay override).
+      const rows = await prisma.$queryRaw<Array<{ overridden: boolean }>>`
+        SELECT EXISTS (
+                 SELECT 1 FROM "progressEvent" pe
+                   JOIN "gameSession" gs ON gs.id = pe."sessionId"
+                   JOIN "event" e ON e.id = gs."eventId"
+                   JOIN "roomVersion" v ON v.id = e."roomVersionId"
+                  WHERE pe."playerId" = ${userId} AND v."roomId" = ${roomId}::uuid
+                    AND e.config ? 'timeLimitMinutes'
+               ) AS overridden`;
+      return rows[0]?.overridden === true;
+    },
+
+    async upsert({ userId, roomId, rating, text, durationOverridden }) {
       // `xmax = 0` distingue la fila recién insertada de la actualizada por el
       // ON CONFLICT, en una sola sentencia atómica sobre UNIQUE(userId, roomId).
       // `rating` llega en escala 1–5 (medios puntos); se dobla para la BD.
       const doubled = Math.round(rating * 2);
       const rows = await prisma.$queryRaw<Array<{ id: string; created: boolean }>>`
-        INSERT INTO "review" ("userId", "roomId", rating, text)
-        VALUES (${userId}, ${roomId}::uuid, ${doubled}, ${text})
+        INSERT INTO "review" ("userId", "roomId", rating, text, "durationOverridden")
+        VALUES (${userId}, ${roomId}::uuid, ${doubled}, ${text}, ${durationOverridden})
         ON CONFLICT ("userId", "roomId")
-        DO UPDATE SET rating = EXCLUDED.rating, text = EXCLUDED.text
+        DO UPDATE SET rating = EXCLUDED.rating, text = EXCLUDED.text,
+                       "durationOverridden" = EXCLUDED."durationOverridden"
         RETURNING id, (xmax = 0) AS created`;
       const row = rows[0];
       if (!row) throw new Error("upsert de reseña sin fila devuelta");

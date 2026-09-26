@@ -19,6 +19,7 @@ import { previewTool } from "./preview";
 import { publishTool } from "./publish";
 import { runToolTool } from "./run-tool";
 import { setMapTool } from "./set-map";
+import { setRoomDurationTool } from "./set-room-duration";
 import { toolSchemaTool } from "./tool-schema";
 import { uploadTool } from "./upload";
 import { validateTool } from "./validate";
@@ -36,6 +37,7 @@ export const CONTENT_TOOLSET: readonly CreatorTool[] = [
   // Fase A — Estructura
   createRoomTool,
   setMapTool,
+  setRoomDurationTool,
   paintTilesTool,
   defineSubroomsTool,
   // Fase B — Contenido

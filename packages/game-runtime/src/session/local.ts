@@ -1,7 +1,7 @@
 import { filterChatText } from "@escaperoom/shared/chat";
 import type { EngineResult } from "@escaperoom/shared/engine";
 import { resolveLocalizedText } from "@escaperoom/shared/hints";
-import type { PuzzleDefinition, RoomPackage } from "@escaperoom/shared/schemas";
+import { resolveRoomTimeLimitSec, type PuzzleDefinition, type RoomPackage } from "@escaperoom/shared/schemas";
 import {
   createRoomSession,
   type RoomPuzzleActionResult,
@@ -28,7 +28,13 @@ export interface LocalGameClientOptions {
   name?: string;
   tint?: string;
   characterId?: string;
-  /** Límite de la partida en segundos (por defecto 3600, como la `GameRoom`). */
+  /**
+   * Límite de la partida en segundos: por defecto, el de la propia sala
+   * (`meta.timeLimitMinutes`, ticket duración-salas — `null` ahí es "sin
+   * duración"), igual que la `GameRoom`. Este override solo sirve para
+   * forzar OTRO valor en tests; para "sin duración" hay que marcarla en el
+   * `roomPackage`, no aquí.
+   */
   timeLimitSec?: number;
   /** Idioma de los textos de pista. */
   locale?: string;
@@ -81,7 +87,7 @@ export function createLocalGameClient(
   const session: RoomSession = createRoomSession(roomPackage, {
     playerId: selfId,
     playerIds: [selfId],
-    timeLimitSec: options.timeLimitSec ?? 3600,
+    timeLimitSec: options.timeLimitSec ?? resolveRoomTimeLimitSec(roomPackage.meta),
     now: logicalNow(),
   });
   session.spawnPlayer(selfId, logicalNow());

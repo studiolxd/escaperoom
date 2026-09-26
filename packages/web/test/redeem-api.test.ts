@@ -124,7 +124,10 @@ describe("POST /api/access-keys/redeem", () => {
       groupId: null,
       colyseusEndpoint: "wss://colyseus.example",
       roomName: "event",
-      expiresAt: "2026-06-01T10:10:00.000Z",
+      // Ticket duración-salas (PR #169): sin override de evento ni duración
+      // propia de la sala, el TTL sale del default retrocompatible (60 min +
+      // 30 min de margen = 90 min), no del `ttlSeconds` de 600 s de `setup()`.
+      expiresAt: "2026-06-01T11:30:00.000Z",
       player: { displayName: "Leo", guest: true },
     });
     expect(body.player.id).toMatch(/^guest:/u);

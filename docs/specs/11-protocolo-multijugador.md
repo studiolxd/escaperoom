@@ -273,6 +273,18 @@ Cliente                          Servidor (GameRoom)                Externo
     configurable (`MAX_JOIN_TOKEN_TTL_SECONDS`, 2 h); un operador con salas más cortas puede
     acortarlo con `JOIN_TOKEN_TTL_SECONDS`. Un token robado solo sirve para ocupar/heredar la MISMA
     plaza (`playerId`), nunca otra: no da más control que el que ya tenía esa plaza.
+    - **Duración de partida sin tope** (ticket duración-salas, `04-runtime-juego-y-mundo.md` §6):
+      el TTL sale de la duración EFECTIVA de la partida — override del evento
+      (`event.config.timeLimitMinutes`) > duración propia de la sala (`meta.timeLimitMinutes` de
+      su `roomVersion`, cargada con `AccessKeyStore.findRoomTimeLimitMinutes`) > 60 min por
+      defecto, el mismo orden que `GameRoom.timeLimitSeconds()`. Sube a esa duración + 30 min de
+      margen, o a un techo de 24 h si el valor que gane la precedencia es "sin duración" (`null`)
+      — un `joinToken` no puede vivir de verdad para siempre, así que 24 h es la aproximación
+      práctica a "vale mientras la room exista" (`resolveEventJoinTokenTtlSeconds`).
+    - **Compra B2C** (`GameRoom` desnuda, sin `joinToken`): la reclamación "en curso" de la compra
+      (`02-modelo-de-negocio.md` §2.1) ya no depende de un plazo fijo por el mismo motivo — la
+      `GameRoom` la renueva con un latido periódico mientras viva
+      (`heartbeatPlaySession`/`PLAY_SESSION_STALE_AFTER_SECONDS`, `game-access.ts`).
   - LiveKit reconecta con su propio token (independiente del de Colyseus).
   - **`GameRoom` desnuda — mecanismo del CLIENTE web** (ajuste 2026-09-25, revisión de la
     coordinadora sobre la PR #146): a diferencia de `EventRoom`, la `GameRoom` no tiene un

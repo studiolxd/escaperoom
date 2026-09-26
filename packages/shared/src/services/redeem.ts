@@ -15,7 +15,7 @@ import {
 import { isAnonymous, type Actor } from "./actor";
 import { UUID_RE } from "./common";
 import type { EventRow } from "./events";
-import { signJoinToken } from "./join-token";
+import { resolveEventJoinTokenTtlSeconds, signJoinToken } from "./join-token";
 
 /**
  * Canje de claves y agrupación (ticket 5.8, specs/02 §3.3 y §4.5, specs/13 §6.2).
@@ -129,7 +129,10 @@ function sessionFull(): AccessKeyError {
 }
 
 export function createRedeemService(deps: {
-  store: Pick<AccessKeyStore, "findKey" | "findEvent" | "listSessionSeats" | "listGroupSeats">;
+  store: Pick<
+    AccessKeyStore,
+    "findKey" | "findEvent" | "listSessionSeats" | "listGroupSeats" | "findRoomTimeLimitMinutes"
+  >;
   accessKeys: Pick<AccessKeyService, "consumeSeat">;
   /** Firma del `joinToken` (`JOIN_TOKEN_SECRET`) y su vida en segundos. */
   joinToken: { secret: string; ttlSeconds: number };
@@ -232,7 +235,16 @@ export function createRedeemService(deps: {
         guest,
       };
       const issuedAt = now().getTime();
-      const expiresAt = issuedAt + deps.joinToken.ttlSeconds * 1000;
+      // PR #169 (cierre del punto parcial): sin override de evento, el
+      // joinToken tiene que respetar igualmente la duración PROPIA de la
+      // sala (por eso se carga aquí, no solo `event.config`).
+      const roomTimeLimitMinutes = await store.findRoomTimeLimitMinutes(event.roomVersionId);
+      const ttlSeconds = resolveEventJoinTokenTtlSeconds(
+        event.config.timeLimitMinutes,
+        roomTimeLimitMinutes,
+        deps.joinToken.ttlSeconds,
+      );
+      const expiresAt = issuedAt + ttlSeconds * 1000;
       const sessionId = redeemed.sessionId!;
       const joinToken = signJoinToken(
         deps.joinToken.secret,

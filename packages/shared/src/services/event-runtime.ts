@@ -70,6 +70,13 @@ export type EventPackage = {
   roomPackage: RoomPackage;
   /** `event.config.allowVideo` (C-3, specs/12 §4): techo de vídeo del token LiveKit; default `false`. */
   allowVideo: boolean;
+  /**
+   * `event.config.timeLimitMinutes` (ticket duración-salas): override del
+   * organizador por encima de la duración propia de la sala. Mismos tres
+   * estados que `meta.timeLimitMinutes`: **ausente** = sin override (usa la
+   * de la sala), `null` = override a "sin duración", número = minutos.
+   */
+  timeLimitOverrideMinutes?: number | null;
 };
 
 /** Puerto de persistencia del runtime de eventos (Postgres o memoria). */
@@ -254,6 +261,9 @@ export function createInMemoryEventRuntimeStore(opts: {
             roomVersionId: event.roomVersionId,
             roomPackage: structuredClone(roomPackage),
             allowVideo: event.config.allowVideo,
+            ...(("timeLimitMinutes" in event.config)
+              ? { timeLimitOverrideMinutes: event.config.timeLimitMinutes }
+              : {}),
           }
         : null;
     },

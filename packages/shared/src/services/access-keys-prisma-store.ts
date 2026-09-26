@@ -82,6 +82,10 @@ export function createPrismaAccessKeyStore(prisma: PrismaClient): AccessKeyStore
   return {
     findEvent: (id) => events.findEvent(id),
 
+    async findRoomTimeLimitMinutes(roomVersionId) {
+      return (await events.findRoomVersion(roomVersionId))?.timeLimitMinutes;
+    },
+
     async listSessions(eventId) {
       const rows = await prisma.gameSession.findMany({
         where: { eventId },

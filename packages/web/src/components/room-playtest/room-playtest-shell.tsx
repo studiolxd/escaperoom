@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { resolveIconFrame, type RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack, WorldSceneEvent } from "@escaperoom/game-runtime/phaser";
-import type { PuzzleDefinition, RoomPackage } from "@escaperoom/shared/schemas";
+import { resolveRoomTimeLimitSec, type PuzzleDefinition, type RoomPackage } from "@escaperoom/shared/schemas";
 import type { HintRequestErrorCode } from "@escaperoom/shared/hints";
 import type { EngineEffect, EngineResult } from "@escaperoom/shared/engine";
 import {
@@ -129,7 +129,11 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
   const locale = useLocale();
 
   const [session] = useState<RoomSession>(() =>
-    createRoomSession(roomPackage, { playerIds: [PLAYER_ID], timeLimitSec: 3600, now: Date.now() }),
+    createRoomSession(roomPackage, {
+      playerIds: [PLAYER_ID],
+      timeLimitSec: resolveRoomTimeLimitSec(roomPackage.meta),
+      now: Date.now(),
+    }),
   );
   const [startRoomId] = useState(() => roomPackage.map.rooms[0]?.id ?? "");
   const [roomId, setRoomId] = useState(startRoomId);

@@ -21,18 +21,34 @@ export function createPrismaGameAccessStore(prisma: PrismaClient): GameAccessSto
       // tras emitirse) aunque la compra se reembolse justo después. Sin este
       // filtro, esa compra reembolsada todavía podía reclamar y arrancar una
       // partida con la misma `purchaseId`.
+      //
+      // Ticket duración-salas: "en curso pero caducada" se decide por el
+      // último latido (`playSessionHeartbeatAt`), no por cuándo empezó — con
+      // duración de sala sin tope, una partida legítima de varias horas no
+      // puede considerarse abandonada solo por su antigüedad.
       const updated = await prisma.$executeRaw`
         UPDATE "purchase"
            SET "playSessionStartedAt" = now(),
+               "playSessionHeartbeatAt" = NULL,
                "playSessionColyseusId" = ${colyseusRoomId}
          WHERE id = ${purchaseId}::uuid
            AND status = 'succeeded'
            AND "playSessionEndedAt" IS NULL
            AND (
              "playSessionStartedAt" IS NULL
-             OR "playSessionStartedAt" < now() - (${PLAY_SESSION_STALE_AFTER_SECONDS} * interval '1 second')
+             OR COALESCE("playSessionHeartbeatAt", "playSessionStartedAt")
+                < now() - (${PLAY_SESSION_STALE_AFTER_SECONDS} * interval '1 second')
            )`;
       return updated > 0;
+    },
+
+    async heartbeatPlaySession(purchaseId, colyseusRoomId): Promise<void> {
+      await prisma.$executeRaw`
+        UPDATE "purchase"
+           SET "playSessionHeartbeatAt" = now()
+         WHERE id = ${purchaseId}::uuid
+           AND "playSessionEndedAt" IS NULL
+           AND "playSessionColyseusId" = ${colyseusRoomId}`;
     },
 
     async markPlaySessionEnded(purchaseId): Promise<void> {
@@ -47,6 +63,7 @@ export function createPrismaGameAccessStore(prisma: PrismaClient): GameAccessSto
       await prisma.$executeRaw`
         UPDATE "purchase"
            SET "playSessionStartedAt" = NULL,
+               "playSessionHeartbeatAt" = NULL,
                "playSessionColyseusId" = NULL
          WHERE id = ${purchaseId}::uuid
            AND "playSessionEndedAt" IS NULL

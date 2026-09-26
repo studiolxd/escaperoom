@@ -1,5 +1,6 @@
 import * as Y from "yjs";
 import {
+  DEFAULT_ROOM_TIME_LIMIT_MINUTES,
   type DialogDef,
   type Difficulty,
   type HintDef,
@@ -129,6 +130,12 @@ export function roomPackageToDoc(pkg: RoomPackage, doc: Y.Doc = new Y.Doc()): Y.
     meta.clear();
     for (const key of META_SCALARS) meta.set(key, pkg.meta[key]);
     meta.set("players", plain(pkg.meta.players));
+    meta.set(
+      "timeLimitMinutes",
+      pkg.meta.timeLimitMinutes === undefined
+        ? DEFAULT_ROOM_TIME_LIMIT_MINUTES
+        : pkg.meta.timeLimitMinutes,
+    );
     initRoomLanguages(doc, pkg.meta.languages, pkg.meta.defaultLanguage);
     writeRoomDocFormat(doc);
 
@@ -179,6 +186,12 @@ function num(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
+/** `timeLimitMinutes`: `null` (sin duración) se conserva; ausente/inválido → `undefined` (retrocompat). */
+function numOrNull(value: unknown): number | null | undefined {
+  if (value === null) return null;
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
 function readMeta(doc: Y.Doc): RoomPackageMeta {
   const meta = doc.getMap<unknown>(ROOM_DOC_KEYS.meta);
   const { languages, defaultLanguage } = getRoomLanguages(doc);
@@ -195,6 +208,7 @@ function readMeta(doc: Y.Doc): RoomPackageMeta {
     languages,
     defaultLanguage: defaultLanguage ?? languages[0] ?? "",
     estimatedMinutes: num(meta.get("estimatedMinutes")),
+    timeLimitMinutes: numOrNull(meta.get("timeLimitMinutes")),
     difficulty: (difficulty === 1 || difficulty === 3 ? difficulty : 2) as Difficulty,
     players: { min: num(players?.min, 1), max: num(players?.max, 1) },
     assetsManifest: str(meta.get("assetsManifest")),

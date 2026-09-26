@@ -43,11 +43,16 @@ tiempo agotado), nunca por crear la sesión ni por una caída de conexión. Tres
   `gameToken` de la compra, cubierto por el protocolo).
 - **Consumida** (`play_session_ended_at` fijado): definitivo. `playable` nunca vuelve a `true`.
 
-**Caída del servidor sin `onDispose`:** una reclamación "en curso" mucho más vieja que la
-duración máxima de una partida (`GAME_TIME_LIMIT_SEC`, 1 h) más un margen —
-`PLAY_SESSION_STALE_AFTER_SECONDS` = 2 h, `packages/shared/src/services/game-access.ts`— se trata
-como libre y se puede volver a reclamar. Vive en la propia condición de la escritura, no en un
-job de limpieza.
+**Caída del servidor sin `onDispose`:** una reclamación "en curso" se trata como libre (se puede
+volver a reclamar) si lleva demasiado sin señales de vida. **Sustituye a la redacción anterior**
+(margen fijo de 2 h sobre `GAME_TIME_LIMIT_SEC` = 1 h): con la duración de sala ahora sin tope
+(`04-runtime-juego-y-mundo.md` §6), ese supuesto de "máximo 1 h" ya no vale — una partida legítima
+de varias horas (o sin duración) se marcaría "abandonada" a mitad de partida. En su lugar, la
+`GameRoom` renueva la reclamación con un **latido** (`heartbeatPlaySession`, cada
+`PLAY_SESSION_HEARTBEAT_INTERVAL_SECONDS` = 5 min) mientras la room viva; `claimPlaySession` la da
+por abandonada si el último latido (o el inicio, si aún no hubo ninguno) es más viejo que
+`PLAY_SESSION_STALE_AFTER_SECONDS` = 15 min (`packages/shared/src/services/game-access.ts`). Vive
+en la propia condición de la escritura, no en un job de limpieza.
 
 - `GET /api/rooms/:roomId/access` devuelve `{ owned, playable, gameToken?, roomId? }`: libre y en
   curso son ambas `playable: true` (en curso además lleva `roomId`, para que el cliente se UNA a
@@ -253,6 +258,13 @@ Definición funcional (el diseño de pantalla está en `19-ux-pantallas-clave.md
   (estadísticas puras: % resolución, media de tiempo por puzzle; **sin** etiquetado de objetivos
   didácticos).
 - Claves: enviadas / confirmadas / usadas / caducadas; reenvío y regeneración individual o en lote.
+- **Duración de partida del evento** (ticket duración-salas): el organizador puede fijar
+  cualquier duración para SUS sesiones —más corta, más larga o sin límite—, por encima de la de
+  la sala (`event.config.timeLimitMinutes`). Solo editable mientras el evento está en `draft`
+  (antes de activarlo). Aviso (no bloqueo) si acorta por debajo del `estimatedMinutes` de la sala.
+  Mitigaciones obligatorias (`21-ranking-y-clasificaciones.md` §2.1): las partidas con esta
+  duración modificada no cuentan en el ranking público, y las reseñas de quien las jugó quedan
+  marcadas (dato de moderación/visualización).
 - Ranking entre grupos del evento (opcionalmente no público, lo decide el profe).
 - Modos del organizador en partida:
 

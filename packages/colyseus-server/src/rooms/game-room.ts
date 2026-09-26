@@ -12,13 +12,14 @@ import { logger } from "@escaperoom/kit/logger";
 import { sanitizeChatText } from "@escaperoom/shared/chat";
 import type { EngineResult } from "@escaperoom/shared/engine";
 import { resolveLocalizedText } from "@escaperoom/shared/hints";
+import { PLAY_SESSION_HEARTBEAT_INTERVAL_SECONDS } from "@escaperoom/shared/game-access";
 import {
   readGameAccessTokenConfig,
   verifyGameAccessToken,
   type GameAccessClaims,
   type GameAccessTokenError,
 } from "@escaperoom/shared/game-access-token";
-import type { PuzzleDefinition, RoomPackage } from "@escaperoom/shared/schemas";
+import { resolveRoomTimeLimitSec, type PuzzleDefinition, type RoomPackage } from "@escaperoom/shared/schemas";
 import { LIVE_PHASES, type LivePhase } from "@escaperoom/shared/event-progress";
 import {
   createRoomSession,
@@ -37,7 +38,6 @@ import {
   GAME_MAX_STEP,
   GAME_MESSAGES,
   GAME_TICK_MS,
-  GAME_TIME_LIMIT_SEC,
   HOST_REASSIGN_GRACE_SEC,
   LOBBY_RECONNECT_GRACE_SEC,
   MAX_PLAYERS,
@@ -302,6 +302,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   protected gameAccess?: GameAccessClaims;
   /** Paquete resuelto por una compra B2C (B-4): pisa `resolveRoomPackage(options.packageId)`. */
   private purchasedRoomPackage?: RoomPackage;
+  /** Latido de la reclamación de compra (ticket duración-salas); solo si `gameAccess.kind === "purchase"`. */
+  private heartbeatInterval?: Delayed;
 
   override async onCreate(options: GameRoomOptions = {}): Promise<void> {
     if (this.requiresGameAccessToken()) {
@@ -414,6 +416,24 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     });
 
     this.setTimestep(() => this.handleTick(), GAME_TICK_MS);
+
+    // Ticket duración-salas: renueva la reclamación de la compra mientras la
+    // room viva, para que una partida larga (o sin duración) nunca se
+    // considere abandonada solo por cuánto hace que empezó (ver
+    // `PLAY_SESSION_STALE_AFTER_SECONDS`).
+    if (this.gameAccess?.kind === "purchase") {
+      const purchaseId = this.gameAccess.purchaseId;
+      this.heartbeatInterval = this.clock.setInterval(() => {
+        getGameAccessRuntime()
+          ?.heartbeatPlaySession(purchaseId, this.roomId)
+          .catch((err: unknown) => {
+            logger.warn(
+              { err, roomId: this.roomId, purchaseId },
+              "game-access: fallo al renovar el latido",
+            );
+          });
+      }, PLAY_SESSION_HEARTBEAT_INTERVAL_SECONDS * 1000);
+    }
   }
 
   /**
@@ -887,6 +907,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
    * llama a `super`.
    */
   onDispose(): Promise<void> | void {
+    this.heartbeatInterval?.clear();
     if (this.ended || this.gameAccess?.kind !== "purchase") return;
     const purchaseId = this.gameAccess.purchaseId;
     return getGameAccessRuntime()
@@ -1291,12 +1312,23 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.session ??= createRoomSession(this.roomPackage, {
       playerId: firstPlayerId,
       playerIds: [firstPlayerId],
-      timeLimitSec: GAME_TIME_LIMIT_SEC,
+      timeLimitSec: this.timeLimitSeconds(),
       now: this.logicalNow(),
       // Reparto del `memory` (y mezclas `random`) distinto en cada partida.
       rng: (puzzleId) => createSlidingRng(this.seed ^ hashId(puzzleId)),
     });
     return this.session;
+  }
+
+  /**
+   * Límite de partida en segundos, `undefined` = sin duración (ticket
+   * duración-salas, specs/04 §6): resuelto de `meta.timeLimitMinutes` de la
+   * sala (retrocompatible: ausente → `DEFAULT_ROOM_TIME_LIMIT_MINUTES`,
+   * `null` → sin duración). `EventRoom` lo sobrescribe para aplicar el
+   * override del organizador por encima de este valor.
+   */
+  protected timeLimitSeconds(): number | undefined {
+    return resolveRoomTimeLimitSec(this.roomPackage.meta);
   }
 
   /**
