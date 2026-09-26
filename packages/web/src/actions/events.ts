@@ -1,10 +1,16 @@
 "use server";
 
 import { headers } from "next/headers";
-import { EventError } from "@escaperoom/shared/services";
+import { AccessKeyError, EventError, type EnqueueResult } from "@escaperoom/shared/services";
 import { resolveActorFromHeaders } from "@/server/context";
-import { getEventService } from "@/server/services";
-import { actionError, actionOk, type ActionResult } from "@/server/actions/action-result";
+import { getEventService, getInvitationService } from "@/server/services";
+import {
+  actionError,
+  actionOk,
+  consumeActionRateLimit,
+  rateLimitedActionError,
+  type ActionResult,
+} from "@/server/actions/action-result";
 
 export type CreateMinimalEventInput = { roomVersionId: string; title: string; playersPlanned: number };
 
@@ -36,6 +42,28 @@ export async function createMinimalEvent(
     return actionOk({ id: event.id });
   } catch (err) {
     if (err instanceof EventError) return actionError(err.code, err.message, err.issues);
+    throw err;
+  }
+}
+
+/**
+ * Server action del botón "reenviar pendientes" de `EventDashboardView`
+ * (ticket 5.9): mismo `InvitationService.resendPending` que `POST
+ * /api/events/:id/invitations/resend` (`server/rest/access-keys.ts`, que
+ * sigue existiendo). Cuota `invitation-resend-pending`, igual que la ruta REST.
+ */
+export async function resendPendingInvitations(eventId: string): Promise<ActionResult<EnqueueResult>> {
+  const rateLimit = await consumeActionRateLimit("invitation-resend-pending");
+  if (!rateLimit.ok) return rateLimitedActionError();
+
+  const hdrs = await headers();
+  const actor = await resolveActorFromHeaders(hdrs);
+
+  try {
+    const result = await getInvitationService().resendPending(actor, eventId);
+    return actionOk(result);
+  } catch (err) {
+    if (err instanceof AccessKeyError) return actionError(err.code, err.message, err.issues);
     throw err;
   }
 }

@@ -7,6 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import es from "../messages/es.json";
 import { PlaytestButton } from "../src/components/room-editor/playtest-button";
 
+const mocks = vi.hoisted(() => ({ createPlaytest: vi.fn() }));
+vi.mock("@/actions/playtest", () => ({ createPlaytest: mocks.createPlaytest }));
+
 /**
  * F-42: `window.open("about:blank")` conservaba `window.opener` en la
  * pestaña nueva (podía redirigir la de origen, "reverse tabnabbing") y se
@@ -25,14 +28,10 @@ describe("PlaytestButton — pestaña nueva sin opener y con aviso de carga (F-4
       "open",
       vi.fn(() => fakeTab),
     );
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(
-        () =>
-          new Promise(() => {
-            /* nunca resuelve: solo interesa el estado inmediato tras el clic */
-          }),
-      ),
+    mocks.createPlaytest.mockReset().mockReturnValue(
+      new Promise(() => {
+        /* nunca resuelve: solo interesa el estado inmediato tras el clic */
+      }),
     );
   });
 
