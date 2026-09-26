@@ -280,7 +280,7 @@ Tareas pendientes que no bloquean pero hay que resolver.
       también el almacenamiento definitivo de los binarios de la herramienta (`fuentes/`,
       `entregas/`, `referencias/`, hoy solo en local y con copia en `pipeline-assets`).
 - [x] **No enviar al cliente de red el contenido oculto de los objetos (auditoría D-26).**
-      Resuelto (#173). `PublicRuntimeModel`/`PublicRuntimeObject`
+      Resuelto (#174). `PublicRuntimeModel`/`PublicRuntimeObject`
       (`game-runtime` `loader/types.ts`) proyectan el `RuntimeModel` completo
       sin `inventory` ni `hidingSpot.contains` (`hasHidingSpot`/`inventoryCount`
       en su lugar, sin decir qué hay) — `hasHidingSpot`/`inventoryCount` son
