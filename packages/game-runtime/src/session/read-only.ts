@@ -18,6 +18,8 @@ export function createReadOnlyGameClient(client: NetworkGameClient): NetworkGame
     leave: () => client.leave(),
     dispose: () => client.dispose(),
     startGame: noop,
+    setReady: noop,
+    kick: noop,
     move: noop,
     interact: noop,
     useItem: noop,

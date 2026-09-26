@@ -416,6 +416,9 @@ describe("E2E de protocolo — Rey Aldric con 2 clientes de Colyseus", () => {
     const a = await joinPlayer(room, "Ana");
     const b = await joinPlayer(room, "Bruno");
 
+    a.client.send(GAME_MESSAGES.setReady, { ready: true });
+    b.client.send(GAME_MESSAGES.setReady, { ready: true });
+    await expect.poll(() => room.state.players.get(b.client.sessionId)?.ready).toBe(true);
     const intro = next(b, GAME_MESSAGES.dialogShow);
     a.client.send(GAME_MESSAGES.startGame, {});
     expect(await intro).toEqual({ dialogId: "d-intro" });

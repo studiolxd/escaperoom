@@ -231,6 +231,7 @@ describe("cliente de red contra una GameRoom real", () => {
     expect(guest.room.name).toBe(EVENT_ROOM);
     expect(guest.client.getSnapshot().self).toMatchObject({ name: "Invitada", isHost: true });
     const intro = nextEvent(guest, "dialog_show");
+    guest.client.setReady(true);
     guest.client.startGame();
     expect((await intro).dialogId).toBe("d-intro");
 
@@ -268,6 +269,7 @@ describe("cliente de red contra una GameRoom real", () => {
     const guest = await join({ kind: "event", sessionId: "sesion-2", joinToken }, "");
     await until(guest, (snapshot) => snapshot.self !== null);
     const intro = nextEvent(guest, "dialog_show");
+    guest.client.setReady(true);
     guest.client.startGame();
     await intro;
 
@@ -335,6 +337,7 @@ describe("cliente de red contra una GameRoom real", () => {
     expect((await rejected).code).toBe(GAME_PROTOCOL_ERRORS.invalidState);
 
     const intro = nextEvent(ana, "dialog_show");
+    ana.client.setReady(true);
     ana.client.startGame();
     expect(await intro).toEqual({ type: "dialog_show", dialogId: "d-intro" });
     await until(ana, (snapshot) => snapshot.phase === "playing" && snapshot.endsAt > 0);
@@ -380,7 +383,15 @@ describe("cliente de red contra una GameRoom real", () => {
     const denied = nextEvent(bruno, "error");
     bruno.client.startGame();
     expect((await denied).code).toBe(GAME_PROTOCOL_ERRORS.permissionDenied);
+
+    // C-13: sin que todos estén "Listo", ni el propio anfitrión puede empezar…
+    const notReady = nextEvent(ana, "error");
     ana.client.startGame();
+    expect((await notReady).code).toBe(GAME_PROTOCOL_ERRORS.playersNotReady);
+    // …pero SÍ puede forzarlo ("Empezar igualmente", nunca por debajo del mínimo).
+    const forcedStart = nextEvent(ana, "dialog_show");
+    ana.client.startGame(true);
+    await forcedStart;
     await Promise.all([
       until(ana, (snapshot) => snapshot.phase === "playing"),
       until(bruno, (snapshot) => snapshot.phase === "playing"),

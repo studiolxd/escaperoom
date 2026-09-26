@@ -1001,19 +1001,30 @@
       "characterTaken": "ocupado",
       "players": "{count, plural, one {# jugador} other {# jugadores}}",
       "start": "Empezar partida",
+      "startForce": "Empezar igualmente",
+      "startNotReady": "Todavía hay jugadores que no están listos.",
+      "confirmForceTitle": "¿Empezar sin que todos estén listos?",
+      "confirmForceConfirm": "Sí, empezar igualmente",
+      "confirmForceCancel": "Esperar",
+      "markReady": "Marcarme como listo",
+      "ready": "Listo ✓",
       "waitingHost": "Esperando a que el anfitrión empiece…",
       "invite": "Copiar link de invitación",
       "copied": "¡Link copiado!",
       "you": "tú",
       "host": "anfitrión",
-      "offline": "desconectado"
+      "offline": "desconectado",
+      "kick": "Expulsar",
+      "kickConfirm": "¿Expulsar a {player}? No podrá volver a esta partida."
     },
     "hud": {
       "loadingPanel": "Cargando…"
     },
     "log": {
       "itemGranted": "Recibes {item}",
-      "itemGrantedOther": "{player} recibe {item}"
+      "itemGrantedOther": "{player} recibe {item}",
+      "playerLeft": "{player} ha salido",
+      "playerKicked": "{player} ha sido expulsado"
     },
     "errors": {
       "NOT_AVAILABLE": "Aún no se puede hacer eso",
@@ -1022,6 +1033,9 @@
       "MOVE_TOO_FAST": "Movimiento corregido por el servidor",
       "OUT_OF_BOUNDS": "No puedes salir de la sala",
       "ROOM_LOCKED": "La puerta está cerrada o lejos",
+      "PLAYERS_NOT_READY": "Todavía hay jugadores que no están «Listo»",
+      "MIN_PLAYERS_NOT_MET": "Hacen falta más jugadores conectados",
+      "KICK_TARGET_INVALID": "Ese jugador no se puede expulsar",
       "RATE_LIMITED": "Demasiados mensajes: espera un momento",
       "generic": "El servidor rechazó la acción"
     },

@@ -76,6 +76,8 @@ async function startPurchasedGame(roomPackage: RoomPackage) {
   const token = purchaseToken("purchase-1");
   const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, { gameToken: token });
   const client = await colyseus.connectTo(room, { gameToken: token });
+  client.send(GAME_MESSAGES.setReady, { ready: true });
+  await expect.poll(() => room.state.players.get(client.sessionId)?.ready).toBe(true);
   client.send(GAME_MESSAGES.startGame, {});
   await expect.poll(() => client.state.phase).toBe("playing");
   return { room, client };

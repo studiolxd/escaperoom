@@ -27,6 +27,8 @@ export interface GameRoomStateLike {
     tint: string;
     characterId: string;
     connected: boolean;
+    /** C-13: "Listo" en el lobby; sin efecto fuera de `phase === "lobby"`. */
+    ready: boolean;
   }>;
   objects: Each<string>;
   puzzles: Each<{ state: string; attempts: number; solvedBy: string }>;
@@ -93,6 +95,7 @@ function buildPlayers(
       tint: player.tint,
       characterId: player.characterId,
       connected: player.connected,
+      ready: player.ready,
       isHost: player.id === state.hostId,
       isSelf: player.id === selfId,
     };

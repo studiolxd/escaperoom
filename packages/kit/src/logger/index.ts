@@ -32,40 +32,63 @@ const pinoLogger = isEdge
     });
 
 function write(
+  target: pino.Logger | null,
   level: "debug" | "info" | "warn" | "error" | "fatal",
   obj: LogObj | Error | string,
   msg?: string,
 ) {
-  if (isEdge || !pinoLogger) {
+  if (isEdge || !target) {
     writeToConsole(level, obj, msg);
     return;
   }
   // Un `Error` suelto se loguea tal cual: pino lo serializa con su stack.
-  pinoLogger[level](obj as LogObj, msg);
+  target[level](obj as LogObj, msg);
+}
+
+export interface Logger {
+  debug(obj: LogObj | string, msg?: string): void;
+  info(obj: LogObj | string, msg?: string): void;
+  warn(obj: LogObj | string, msg?: string): void;
+  error(obj: LogObj | Error | string, msg?: string): void;
+  fatal(obj: LogObj | Error | string, msg?: string): void;
+  /**
+   * Logger hijo con `bindings` ya fijos en cada línea (p. ej. `{ roomId }` en
+   * `colyseus-server`, C-20): evita repetirlos en cada llamada. En edge (sin
+   * pino) cae al mismo `writeToConsole`, mezclando `bindings` a mano.
+   */
+  child(bindings: Record<string, unknown>): Logger;
+}
+
+function createLogger(target: pino.Logger | null, bindings: Record<string, unknown> = {}): Logger {
+  // Un `target` real de pino ya lleva `bindings` fijados por `.child()`
+  // (`write` los serializa solo); sin pino (edge/consola) no hay tal cosa, así
+  // que `writeToConsole` necesita que se los mezclemos aquí a mano.
+  const merge = (obj: LogObj | Error | string): LogObj | Error | string =>
+    target || obj instanceof Error || typeof obj === "string" ? obj : { ...bindings, ...obj };
+  return {
+    debug(obj, msg) {
+      write(target, "debug", merge(obj), msg);
+    },
+    info(obj, msg) {
+      write(target, "info", merge(obj), msg);
+    },
+    warn(obj, msg) {
+      write(target, "warn", merge(obj), msg);
+    },
+    error(obj, msg) {
+      write(target, "error", merge(obj), msg);
+    },
+    fatal(obj, msg) {
+      write(target, "fatal", merge(obj), msg);
+    },
+    child(childBindings) {
+      return createLogger(target?.child(childBindings) ?? null, { ...bindings, ...childBindings });
+    },
+  };
 }
 
 /**
  * Logger estructurado de servidor. Nivel por `LOG_LEVEL` (default: `debug` en
  * desarrollo, `info` en el resto). Redacta claves sensibles.
  */
-export const logger = {
-  debug(obj: LogObj | string, msg?: string) {
-    write("debug", obj, msg);
-  },
-
-  info(obj: LogObj | string, msg?: string) {
-    write("info", obj, msg);
-  },
-
-  warn(obj: LogObj | string, msg?: string) {
-    write("warn", obj, msg);
-  },
-
-  error(obj: LogObj | Error | string, msg?: string) {
-    write("error", obj, msg);
-  },
-
-  fatal(obj: LogObj | Error | string, msg?: string) {
-    write("fatal", obj, msg);
-  },
-};
+export const logger: Logger = createLogger(pinoLogger);

@@ -21,6 +21,12 @@ export const GamePlayerState = schema(
     /** Personaje jugable (`manifest.avatars[].id`, o el de reserva, A1/B4). */
     characterId: t.string(),
     connected: t.boolean(),
+    /**
+     * "Listo" en el lobby (C-13, `set_ready`): se resetea a `false` al
+     * cambiar de personaje o al reconectar. Sin efecto fuera de `phase ===
+     * "lobby"`.
+     */
+    ready: t.boolean(),
   },
   "GamePlayerState",
 );

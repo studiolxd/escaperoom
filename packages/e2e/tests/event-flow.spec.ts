@@ -112,6 +112,7 @@ test("evento: claves en lote, PDF, canje sin cuenta y progreso en el panel del o
   });
 
   await test.step("juega parcialmente (pasos 1–5 del Rey Aldric)", async () => {
+    await player.markReady();
     await player.page.getByTestId("game-start").click();
     await expect(player.session).toHaveAttribute("data-phase", "playing");
     await player.closeDialog();

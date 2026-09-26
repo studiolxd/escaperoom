@@ -8,6 +8,7 @@ import {
   type Delayed,
 } from "@colyseus/core";
 import { z } from "zod";
+import * as Sentry from "@sentry/node";
 import { logger } from "@escaperoom/kit/logger";
 import { sanitizeChatText } from "@escaperoom/shared/chat";
 import type { EngineResult } from "@escaperoom/shared/engine";
@@ -93,6 +94,8 @@ export const GAME_ACCESS_ERRORS = {
   unavailable: "GAME_UNAVAILABLE",
   /** La compra ya está consumida (terminó) o "en curso" en otra room, sin caducar. */
   playSessionUsed: "PLAY_SESSION_ALREADY_USED",
+  /** C-13: identidad expulsada de esta partida (`kick`); no puede volver a entrar. */
+  kicked: "PLAYER_KICKED",
 } as const;
 
 const GAME_ACCESS_ERROR_BY_TOKEN_ERROR: Record<GameAccessTokenError, string> = {
@@ -160,7 +163,13 @@ export type GameMilestone =
   | { kind: "game_started"; at: number }
   | ({ kind: "solved" | "hint_used"; puzzleId: string; actorId: string | null } & GameMilestoneClock)
   | ({ kind: "door_opened"; objectId: string; actorId: string | null } & GameMilestoneClock)
-  | ({ kind: "game_ended"; result: SessionResult } & GameMilestoneClock);
+  | ({ kind: "game_ended"; result: SessionResult } & GameMilestoneClock)
+  | ({
+      kind: "player_left";
+      playerId: string;
+      reason: "left" | "kicked";
+      actorId: string | null;
+    } & GameMilestoneClock);
 
 const movePayload = z.object({
   x: z.number(),
@@ -180,6 +189,10 @@ const puzzlePayload = z.object({ puzzleId: z.string().min(1).max(64) });
 const optionalPuzzlePayload = z.object({ puzzleId: z.string().min(1).max(64).optional() });
 const attemptPayload = z.object({ puzzleId: z.string().min(1).max(64), attempt: z.unknown() });
 const selectCharacterPayload = z.object({ characterId: z.string().min(1).max(64) });
+/** `start_game` (C-13): `force` es "Empezar igualmente" (nunca por debajo del mínimo). */
+const startGamePayload = z.object({ force: z.boolean().optional() });
+const setReadyPayload = z.object({ ready: z.boolean() });
+const kickPayload = z.object({ playerId: z.string().min(1).max(64) });
 const platePayload = z.object({
   puzzleId: z.string().min(1).max(64).optional(),
   plateId: z.string().min(1).max(64),
@@ -296,6 +309,16 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
    * `EventRoom`, pero para la `GameRoom` desnuda (sin `playerId`).
    */
   private readonly activeSeatByKey = new Map<string, string>();
+  /**
+   * C-13: identidades expulsadas (`kick`) durante la vida de esta room — no
+   * pueden volver a entrar ni con el enlace de invitación ni (en `EventRoom`)
+   * con su clave de evento. En la `GameRoom` desnuda la identidad es el
+   * `seatKey` del navegador (lo único estable que ya existía, C-2); en
+   * `EventRoom` es el `playerId` del `joinToken` (identidad real de evento).
+   */
+  protected readonly kickedIdentities = new Set<string>();
+  /** `sessionId` expulsado cuyo `onLeave` aún no ha llegado (para difundir `reason: "kicked"`). */
+  private readonly pendingKickReasons = new Set<string>();
   /** Inverso de `activeSeatByKey`, para poder limpiarlo al purgar una plaza. */
   private readonly seatKeyBySession = new Map<string, string>();
   /** Claims del `gameToken` que autorizó crear esta room (C-4/B-4); ausente en Playtest/Event. */
@@ -305,7 +328,23 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   /** Latido de la reclamación de compra (ticket duración-salas); solo si `gameAccess.kind === "purchase"`. */
   private heartbeatInterval?: Delayed;
 
+  /**
+   * C-20 (auditoría 2026-09-24): envuelve la creación real (`setupRoom`) para
+   * registrar y capturar en Sentry cualquier fallo de `onCreate` (token
+   * inválido, paquete desconocido…) antes de dejarlo seguir su curso
+   * (Colyseus lo convierte en un rechazo de matchmaking al cliente).
+   */
   override async onCreate(options: GameRoomOptions = {}): Promise<void> {
+    try {
+      await this.setupRoom(options);
+    } catch (err) {
+      this.roomLogger.error({ err }, "game-room: fallo en onCreate");
+      Sentry.captureException(err);
+      throw err;
+    }
+  }
+
+  private async setupRoom(options: GameRoomOptions): Promise<void> {
     if (this.requiresGameAccessToken()) {
       await this.authorizeGameAccessCreate(options);
     }
@@ -352,9 +391,25 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
           this.notePermissionDenied(client);
           return;
         }
-        handler(client, payload);
+        // C-20 (auditoría 2026-09-24): un handler que lanza no debe tumbar la
+        // room entera (Colyseus no atrapa nada aquí) ni desaparecer sin
+        // rastro — se registra con el tipo de mensaje y se captura en Sentry.
+        try {
+          handler(client, payload);
+        } catch (err) {
+          this.roomLogger.error({ err, sessionId: client.sessionId, messageType: type }, "game-room: fallo en un handler");
+          Sentry.captureException(err, { extra: { roomId: this.roomId, messageType: type } });
+        }
       });
-    on(GAME_MESSAGES.startGame, (client) => this.handleStart(client));
+    on(GAME_MESSAGES.startGame, (client, payload) =>
+      this.withPayload(client, startGamePayload, payload ?? {}, (data) => this.handleStart(client, data)),
+    );
+    on(GAME_MESSAGES.setReady, (client, payload) =>
+      this.withPayload(client, setReadyPayload, payload, (data) => this.handleSetReady(client, data)),
+    );
+    on(GAME_MESSAGES.kick, (client, payload) =>
+      this.withPayload(client, kickPayload, payload, (data) => this.handleKick(client, data)),
+    );
     on(GAME_MESSAGES.move, (client, payload) =>
       this.withPayload(client, movePayload, payload, (data) => this.handleMove(client, data)),
     );
@@ -551,7 +606,21 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
    * cuele en esta partida). `EventRoom`/`PlaytestRoom` sobrescriben `onAuth`
    * entero y nunca llaman a `super`.
    */
-  override onAuth(_client: Client, options: GameRoomOptions = {}): unknown {
+  override onAuth(_client: Client, options: GameRoomOptions & { seatKey?: string } = {}): unknown {
+    try {
+      return this.authorizeJoin(_client, options);
+    } catch (err) {
+      if (err instanceof ServerError) {
+        this.roomLogger.warn({ code: err.code, message: err.message }, "game-room: token de acceso rechazado");
+      }
+      throw err;
+    }
+  }
+
+  private authorizeJoin(_client: Client, options: GameRoomOptions & { seatKey?: string }): unknown {
+    if (options.seatKey && this.kickedIdentities.has(options.seatKey)) {
+      throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.kicked);
+    }
     if (!this.requiresGameAccessToken()) return true;
     const config = readGameAccessTokenConfig();
     if (!config) throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.missing);
@@ -620,7 +689,13 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
    * README: se gasta al terminar, no al crear). Se llama de forma síncrona
    * desde el bucle de juego: la escritura es asíncrona y no bloquea.
    */
+  /** C-20: logger con `roomId` ya en el contexto, en vez de repetirlo en cada log. */
+  protected get roomLogger() {
+    return logger.child({ roomId: this.roomId });
+  }
+
   protected onMilestone(milestone: GameMilestone): void {
+    this.recordAnalytics(milestone);
     if (milestone.kind !== "game_ended" || this.gameAccess?.kind !== "purchase") return;
     const purchaseId = this.gameAccess.purchaseId;
     getGameAccessRuntime()
@@ -628,6 +703,19 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       .catch((err: unknown) => {
         logger.warn({ err, roomId: this.roomId, purchaseId }, "game-access: fallo al consumir la compra");
       });
+  }
+
+  /**
+   * Analítica de partida (C-13, auditoría 2026-09-24: "hoy Colyseus no emite
+   * ninguna"): cada hito (`onMilestone`) queda como un log estructurado
+   * (`roomLogger`, C-20) — sin backend propio todavía, pero YA enganchado a
+   * un sumidero real (nunca a `console.log` suelto), listo para que un
+   * consumidor de logs o un backend de analítica dedicado lo recoja sin tocar
+   * este punto. `EventRoom.onMilestone` lo llama explícitamente (sobrescribe
+   * el método entero y no llama a `super`).
+   */
+  protected recordAnalytics(milestone: GameMilestone): void {
+    this.roomLogger.info({ milestone }, `analytics: ${milestone.kind}`);
   }
 
   /** Reloj de un hito: ahora, tiempo jugado y pistas acumuladas. */
@@ -763,14 +851,29 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   /**
-   * Salida EFECTIVA (specs/11 §8.1): consentida (botón «salir») o porque la
-   * reconexión de `onDrop` se agotó/rechazó (grace vencida o fin de
-   * partida). En ambos casos ya no vuelve: purga la plaza y, si aún era
-   * anfitrión (nunca llegó a reasignarse), lo reasigna ya mismo.
+   * Salida EFECTIVA (specs/11 §8.1): consentida (botón «salir»), por `kick`
+   * (C-13), o porque la reconexión de `onDrop` se agotó/rechazó (grace
+   * vencida o fin de partida). En todos los casos ya no vuelve: difunde
+   * `player_left` (C-13: "X ha salido"/"X ha sido expulsado", lo traduce el
+   * cliente por `reason`), registra el hito y purga la plaza (y, si aún era
+   * anfitrión, lo reasigna ya mismo).
    */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars -- firma exigida por Colyseus (`code`, subclases lo usan)
   override onLeave(client: Client, code?: number): void {
     this.pendingReconnections.delete(client.sessionId);
+    const player = this.state.players.get(client.sessionId);
+    const wasKicked = this.pendingKickReasons.delete(client.sessionId);
+    if (player) {
+      const reason = wasKicked ? "kicked" : "left";
+      this.broadcast(GAME_MESSAGES.playerLeft, { playerId: client.sessionId, name: player.name, reason });
+      this.onMilestone({
+        kind: "player_left",
+        playerId: client.sessionId,
+        reason,
+        actorId: wasKicked ? this.state.hostId || null : client.sessionId,
+        ...this.milestoneClock(),
+      });
+    }
     this.purgePlayer(client.sessionId);
   }
 
@@ -950,9 +1053,27 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       return;
     }
     player.characterId = data.characterId;
+    // C-13 (decisión del usuario): cambiar de personaje quita el "Listo".
+    player.ready = false;
   }
 
-  private handleStart(client: Client): void {
+  /** C-13 (specs/11 §4.1): marca/desmarca "Listo" en el lobby; sin efecto fuera de él. */
+  private handleSetReady(client: Client, data: { ready: boolean }): void {
+    if (this.state.phase !== "lobby") {
+      this.fail(client, GAME_ERRORS.invalidState, "La partida ya ha empezado.");
+      return;
+    }
+    const player = this.state.players.get(client.sessionId);
+    if (!player) return;
+    player.ready = data.ready;
+  }
+
+  /**
+   * C-13 (decisiones del usuario): "Empezar" exige que TODOS los conectados
+   * estén "Listo"; "Empezar igualmente" (`force`) se salta eso pero NUNCA
+   * arranca por debajo de `meta.players.min` conectados — ni con `force`.
+   */
+  private handleStart(client: Client, data: { force?: boolean }): void {
     if (client.sessionId !== this.state.hostId) {
       this.fail(
         client,
@@ -965,11 +1086,58 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       this.fail(client, GAME_ERRORS.invalidState, "La partida ya ha empezado.");
       return;
     }
+    const connected: GamePlayerState[] = [];
+    this.state.players.forEach((player) => {
+      if (player.connected) connected.push(player);
+    });
+    if (connected.length < this.roomPackage.meta.players.min) {
+      this.fail(
+        client,
+        GAME_ERRORS.minPlayersNotMet,
+        `Hacen falta al menos ${this.roomPackage.meta.players.min} jugadores conectados.`,
+      );
+      return;
+    }
+    if (!data.force && connected.some((player) => !player.ready)) {
+      this.fail(client, GAME_ERRORS.playersNotReady, "Todavía hay jugadores que no están «Listo».");
+      return;
+    }
     const started = this.session.start(this.logicalNow());
     if (this.session.state.flags.game_started) {
       this.onMilestone({ kind: "game_started", at: this.createdAt + this.session.state.startedAt });
     }
     this.publish(started);
+  }
+
+  /** C-13 (solo anfitrión, specs/11 §4.5): expulsa a otro jugador; no puede volver a esta room. */
+  private handleKick(client: Client, data: { playerId: string }): void {
+    if (client.sessionId !== this.state.hostId) {
+      this.fail(client, GAME_ERRORS.permissionDenied, "Solo el anfitrión puede expulsar.");
+      return;
+    }
+    if (data.playerId === client.sessionId) {
+      this.fail(client, GAME_ERRORS.kickTargetInvalid, "No puedes expulsarte a ti mismo.");
+      return;
+    }
+    const target = this.state.players.get(data.playerId);
+    if (!target || !target.connected) {
+      this.fail(client, GAME_ERRORS.kickTargetInvalid, "Ese jugador no está conectado.");
+      return;
+    }
+    const identity = this.identityFor(data.playerId);
+    if (identity) this.kickedIdentities.add(identity);
+    this.pendingKickReasons.add(data.playerId);
+    this.clients.get(data.playerId)?.leave(CloseCode.CONSENTED, "kicked");
+  }
+
+  /**
+   * Identidad estable de `sessionId` para el bloqueo de reingreso de `kick`
+   * (C-13): el `seatKey` del navegador en la `GameRoom` desnuda (único id
+   * estable que ya existía, C-2); `EventRoom` la resuelve por `playerId` del
+   * `joinToken` (sobrescribe este método).
+   */
+  protected identityFor(sessionId: string): string | undefined {
+    return this.seatKeyBySession.get(sessionId);
   }
 
   private handleMove(client: Client, payload: z.infer<typeof movePayload>): void {

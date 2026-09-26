@@ -135,6 +135,9 @@ describe("GameRoom — un cliente que inunda mensajes", () => {
     const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, { gameToken: devTestGameToken() });
     const flooder = await colyseus.connectTo(room, { gameToken: devTestGameToken(), name: "Ana" });
     const other = await colyseus.connectTo(room, { gameToken: devTestGameToken(), name: "Bruno" });
+    flooder.send(GAME_MESSAGES.setReady, { ready: true });
+    other.send(GAME_MESSAGES.setReady, { ready: true });
+    await expect.poll(() => room.state.players.get(other.sessionId)?.ready).toBe(true);
     flooder.send(GAME_MESSAGES.startGame, {});
     await expect.poll(() => other.state.phase).toBe("playing");
 

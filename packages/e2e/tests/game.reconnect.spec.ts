@@ -37,6 +37,7 @@ test("recargar la página a mitad de partida conserva inventario y personaje", a
   await expect(page).toHaveURL(/[?&]room=/u);
   const url = page.url();
 
+  await a.markReady();
   await page.getByTestId("game-start").click();
   await expect(a.session).toHaveAttribute("data-phase", "playing");
   await a.closeDialog();
@@ -70,6 +71,7 @@ test("cerrar la pestaña y abrir otra a mitad de partida conserva inventario y p
   await expect(firstPage).toHaveURL(/[?&]room=/u);
   const url = firstPage.url();
 
+  await a.markReady();
   await firstPage.getByTestId("game-start").click();
   await expect(a.session).toHaveAttribute("data-phase", "playing");
   await a.closeDialog();

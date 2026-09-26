@@ -84,8 +84,18 @@ function join(room: FastGameRoom, options: object = {}) {
   return colyseus.connectTo(room, { gameToken: devTestGameToken(), ...options });
 }
 
+type TestClient = Awaited<ReturnType<typeof join>>;
+
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** C-13: marca a ambos "Listo" antes de que `a` (anfitrión) empiece. */
+async function readyAndStart(room: FastGameRoom, a: TestClient, b: TestClient): Promise<void> {
+  a.send(GAME_MESSAGES.setReady, { ready: true });
+  b.send(GAME_MESSAGES.setReady, { ready: true });
+  await expect.poll(() => room.state.players.get(b.sessionId)?.ready).toBe(true);
+  a.send(GAME_MESSAGES.startGame, {});
 }
 
 describe("GameRoom — reconexión con gracia (C-2)", () => {
@@ -93,7 +103,7 @@ describe("GameRoom — reconexión con gracia (C-2)", () => {
     const room = await createFastRoom();
     const a = await join(room, { name: "Ana" });
     const b = await join(room, { name: "Bruno" });
-    a.send(GAME_MESSAGES.startGame, {});
+    await readyAndStart(room, a, b);
     await expect.poll(() => b.state.phase).toBe("playing");
 
     const granted = b.waitForMessage(GAME_MESSAGES.itemGranted);
@@ -122,7 +132,7 @@ describe("GameRoom — reconexión con gracia (C-2)", () => {
     const room = await createFastRoom();
     const a = await join(room, { name: "Ana", seatKey: "seat-a" });
     const b = await join(room, { name: "Bruno" });
-    a.send(GAME_MESSAGES.startGame, {});
+    await readyAndStart(room, a, b);
     await expect.poll(() => b.state.phase).toBe("playing");
 
     const granted = b.waitForMessage(GAME_MESSAGES.itemGranted);
@@ -175,7 +185,7 @@ describe("GameRoom — reconexión con gracia (C-2)", () => {
     const room = await createFastRoom();
     const a = await join(room, { name: "Ana" });
     const b = await join(room, { name: "Bruno" });
-    a.send(GAME_MESSAGES.startGame, {});
+    await readyAndStart(room, a, b);
     await expect.poll(() => b.state.phase).toBe("playing");
     expect(room.state.hostId).toBe(a.sessionId);
 
@@ -197,6 +207,8 @@ describe("GameRoom — fin de partida y cierre (specs/11 §8.1)", () => {
     });
     const a = await colyseus.connectTo(room, { gameToken: devTestGameToken(), name: "Ana" });
     const token = a.reconnectionToken;
+    a.send(GAME_MESSAGES.setReady, { ready: true });
+    await expect.poll(() => room.state.players.get(a.sessionId)?.ready).toBe(true);
     const ended = a.waitForMessage(GAME_MESSAGES.gameEnded);
     a.send(GAME_MESSAGES.startGame, {});
     expect(await ended).toMatchObject({ result: "victory" });
