@@ -856,7 +856,6 @@
       "players": "{count, plural, one {# Spieler} other {# Spieler}}",
       "start": "Spiel starten",
       "waitingHost": "Warte darauf, dass der Host startet…",
-      "waitingOrganizer": "Warte darauf, dass der Veranstalter das Spiel startet…",
       "invite": "Einladungslink kopieren",
       "copied": "Link kopiert!",
       "you": "du",
@@ -1237,22 +1236,6 @@
       "split_clue": "Geteilter Hinweis",
       "pipes": "Rohre",
       "combine_items": "Gegenstände kombinieren"
-    },
-    "allGroupsStart": {
-      "label": "Alle Gruppen starten gemeinsam",
-      "hint": "Der Host jeder Gruppe kann nicht mehr allein starten: nur du, von hier aus.",
-      "lockedHint": "Es spielen bereits Gruppen: diese Einstellung lässt sich nicht mehr ändern."
-    },
-    "startAll": {
-      "button": "Alle starten",
-      "starting": "Wird gestartet…",
-      "notReadyTitle": "Noch nicht alle Gruppen sind bereit",
-      "notReadyDescription": "Diese Gruppen erfüllen das Minimum oder „Bereit“ noch nicht:",
-      "detailMinNotMet": "{name}: {connected}/{min} Spieler",
-      "detailNotReady": "{name}: {missing} nicht bereit",
-      "wait": "Warten",
-      "refresh": "Status aktualisieren",
-      "forceButton": "Trotzdem starten"
     }
   },
   "Moderation": {

@@ -856,7 +856,6 @@
       "players": "{count, plural, one {# joueur} other {# joueurs}}",
       "start": "Commencer la partie",
       "waitingHost": "En attente du lancement par l'hôte…",
-      "waitingOrganizer": "En attente du lancement par l'organisateur…",
       "invite": "Copier le lien d'invitation",
       "copied": "Lien copié !",
       "you": "vous",
@@ -1237,22 +1236,6 @@
       "split_clue": "Indice partagé",
       "pipes": "Tuyaux",
       "combine_items": "Combiner des objets"
-    },
-    "allGroupsStart": {
-      "label": "Tous les groupes commencent ensemble",
-      "hint": "L'hôte de chaque groupe ne pourra pas lancer seul la partie : seulement vous, depuis ici.",
-      "lockedHint": "Des groupes jouent déjà : ce réglage ne peut plus changer."
-    },
-    "startAll": {
-      "button": "Tout lancer",
-      "starting": "Lancement…",
-      "notReadyTitle": "Tous les groupes ne sont pas prêts",
-      "notReadyDescription": "Ces groupes n'atteignent pas encore le minimum ou « Prêt » :",
-      "detailMinNotMet": "{name} : {connected}/{min} joueurs",
-      "detailNotReady": "{name} : {missing} pas prêt(s)",
-      "wait": "Attendre",
-      "refresh": "Actualiser l'état",
-      "forceButton": "Lancer quand même"
     }
   },
   "Moderation": {

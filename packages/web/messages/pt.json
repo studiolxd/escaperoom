@@ -856,7 +856,6 @@
       "players": "{count, plural, one {# jogador} other {# jogadores}}",
       "start": "Começar jogo",
       "waitingHost": "À espera que o anfitrião comece…",
-      "waitingOrganizer": "À espera que o organizador inicie a partida…",
       "invite": "Copiar link de convite",
       "copied": "Link copiado!",
       "you": "tu",
@@ -1237,22 +1236,6 @@
       "split_clue": "Pista repartida",
       "pipes": "Canos",
       "combine_items": "Combinar objetos"
-    },
-    "allGroupsStart": {
-      "label": "Todos os grupos começam juntos",
-      "hint": "O anfitrião de cada grupo não vai poder começar sozinho: só tu, a partir daqui.",
-      "lockedHint": "Já há grupos a jogar: esta opção já não se pode alterar."
-    },
-    "startAll": {
-      "button": "Começar todos",
-      "starting": "A começar…",
-      "notReadyTitle": "Nem todos os grupos estão prontos",
-      "notReadyDescription": "Estes grupos ainda não cumprem o mínimo ou «Pronto»:",
-      "detailMinNotMet": "{name}: {connected}/{min} jogadores",
-      "detailNotReady": "{name}: {missing} sem estar pronto",
-      "wait": "Esperar",
-      "refresh": "Atualizar estado",
-      "forceButton": "Começar na mesma"
     }
   },
   "Moderation": {
