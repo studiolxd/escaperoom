@@ -55,7 +55,9 @@ export default function LobbyCanvas() {
         width: "100%",
         height: "100%",
       },
-      render: { antialias: true, pixelArt: false },
+      // v4 cambia el defecto de `roundPixels` a `false`; lo fijamos explícito
+      // para conservar la nitidez de v3 (specs de migración a Phaser 4).
+      render: { antialias: true, pixelArt: false, roundPixels: true },
       scene: [LobbyTestScene],
     });
     gameRef.current = game;
