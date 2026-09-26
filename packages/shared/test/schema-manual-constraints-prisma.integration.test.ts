@@ -1,7 +1,8 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PrismaClient } from "../generated/client";
+import type { PrismaClient } from "../generated/client";
+import { createPrismaClient } from "../src/db";
 
 // ---------------------------------------------------------------------------
 // Integración GATEADA por entorno: en CI hay Postgres (ver E-14), así que
@@ -30,7 +31,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
     let prisma: PrismaClient;
 
     beforeAll(() => {
-      prisma = new PrismaClient();
+      prisma = createPrismaClient();
     });
 
     afterAll(async () => {

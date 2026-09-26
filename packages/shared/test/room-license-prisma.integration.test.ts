@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import { PrismaClient } from "../generated/client";
+import type { PrismaClient } from "../generated/client";
+import { createPrismaClient } from "../src/db";
 import type { RoomPackage } from "../src/schemas";
 import {
   buildDraftDoc,
@@ -66,7 +67,7 @@ describe.skipIf(!process.env.DATABASE_URL)("licencias sobre Postgres (integraciÃ
   }
 
   beforeAll(async () => {
-    prisma = new PrismaClient();
+    prisma = createPrismaClient();
     await prisma.user.createMany({
       data: Object.entries(userIds).map(([name, id]) => ({
         id,

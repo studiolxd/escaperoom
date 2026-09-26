@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PrismaClient } from "../generated/client";
+import type { PrismaClient } from "../generated/client";
+import { createPrismaClient } from "../src/db";
 import { createPrismaAccessKeyEmailPurgeStore } from "../src/services/access-key-email-purge-prisma-store";
 import { hashPurgedEmail, isPurgedEmail } from "../src/services/access-key-email-purge";
 
@@ -80,7 +81,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
     }
 
     beforeAll(async () => {
-      prisma = new PrismaClient();
+      prisma = createPrismaClient();
       await prisma.user.create({ data: { id: organizerId, name: organizerId, email: `${organizerId}@test.local` } });
       const room = await prisma.room.create({ data: { authorId: organizerId, title: TAG, status: "published" } });
       const version = await prisma.roomVersion.create({
