@@ -297,10 +297,14 @@ Tareas pendientes que no bloquean pero hay que resolver.
       los guardas 4.5/4.7 — rechazo de `Authorization` y `Sec-Fetch-Site: same-origin`,
       el chequeo Origin/Host de las Server Actions no basta por sí solo),
       `onboarding-wizard` paso 2 (`createOnboardingRoomAction`), `playtest-button`
-      (`createPlaytest`) y `moderation-queue` (`resolveModerationReport`,
-      `resolveModerationAppeal`, `reviewModerationAudio` — sin cuota, como las rutas
-      REST: `ModerationService`/`AudioAssetService` ya exigen `isModerator|isAdmin` en
-      el propio servicio). `event-dashboard` migró solo su mutación simple
+      (`createPlaytest`) y las pestañas de reportes/apelaciones de
+      `moderation-queue` (`resolveModerationReport`, `resolveModerationAppeal` — sin
+      cuota, como las rutas REST: `ModerationService` ya exige `isModerator|isAdmin`
+      en el propio servicio). La pestaña de audio de `moderation-queue`
+      (`PATCH /api/admin/audio/:id`) se deja explícitamente sin migrar: otro agente
+      va a retirar la moderación previa de audio (la pestaña y las rutas
+      `/api/admin/audio*`), así que invertir ahí sería trabajo tirado. `event-dashboard`
+      migró solo su mutación simple
       (`resendPendingInvitations`, cuota `invitation-resend-pending`); ninguna tenía
       campos de entrada que validar, así que ninguna necesitó React Hook Form (los
       botones no tienen formulario; la plantilla del wizard ya viene acotada por el

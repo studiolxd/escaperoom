@@ -3,11 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import type { ModerationErrorCode } from "@escaperoom/shared/error-codes";
-import {
-  resolveModerationAppeal,
-  resolveModerationReport,
-  reviewModerationAudio,
-} from "@/actions/moderation";
+import { resolveModerationAppeal, resolveModerationReport } from "@/actions/moderation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -149,13 +145,19 @@ export function ModerationQueueView() {
     }
   };
 
+  // La pestaña de audio se va a retirar (otro agente elimina la moderación
+  // previa de audio y las rutas /api/admin/audio*): se deja en fetch, sin
+  // invertir en una server action que se borraría con ella.
   const decideAudio = async (id: string, decision: "approved" | "rejected", reason?: string) => {
     setBusy(id);
     try {
-      const result = await reviewModerationAudio(
-        decision === "approved" ? { id, decision } : { id, decision, reason: reason ?? "" },
-      );
-      setError(result.ok ? null : result.error.code);
+      const res = await fetch(`/api/admin/audio/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(decision === "approved" ? { decision } : { decision, reason }),
+      });
+      if (!res.ok) setError(await readApiError(res));
+      else setError(null);
       await load();
     } catch {
       setError("UNKNOWN");

@@ -4,15 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   resolveActorFromHeaders: vi.fn(),
   getModerationService: vi.fn(),
-  getAudioAssetService: vi.fn(),
 }));
 
 vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
 vi.mock("@/server/context", () => ({ resolveActorFromHeaders: mocks.resolveActorFromHeaders }));
-vi.mock("@/server/services", () => ({
-  getModerationService: mocks.getModerationService,
-  getAudioAssetService: mocks.getAudioAssetService,
-}));
+vi.mock("@/server/services", () => ({ getModerationService: mocks.getModerationService }));
 
 const MODERATOR = { userId: "mod-1", organizationId: null, role: "admin" as const };
 
@@ -20,7 +16,6 @@ describe("acciones de moderación (server actions)", () => {
   beforeEach(() => {
     mocks.resolveActorFromHeaders.mockReset().mockResolvedValue(MODERATOR);
     mocks.getModerationService.mockReset();
-    mocks.getAudioAssetService.mockReset();
   });
 
   describe("resolveModerationReport", () => {
@@ -79,50 +74,7 @@ describe("acciones de moderación (server actions)", () => {
     });
   });
 
-  describe("reviewModerationAudio", () => {
-    it("aprueba un audio comprobando autorización antes de revisar", async () => {
-      const authorizeModeration = vi.fn().mockResolvedValue(undefined);
-      const reviewUpload = vi.fn().mockResolvedValue({ id: "au1", status: "approved" });
-      mocks.getAudioAssetService.mockReturnValue({ authorizeModeration, reviewUpload });
-      const { reviewModerationAudio } = await import("@/actions/moderation");
-
-      const result = await reviewModerationAudio({ id: "au1", decision: "approved" });
-
-      expect(result.ok).toBe(true);
-      expect(authorizeModeration).toHaveBeenCalledWith(MODERATOR);
-      expect(reviewUpload).toHaveBeenCalledWith(MODERATOR, "au1", { decision: "approved" });
-    });
-
-    it("rechaza un audio con motivo", async () => {
-      const authorizeModeration = vi.fn().mockResolvedValue(undefined);
-      const reviewUpload = vi.fn().mockResolvedValue({ id: "au1", status: "rejected" });
-      mocks.getAudioAssetService.mockReturnValue({ authorizeModeration, reviewUpload });
-      const { reviewModerationAudio } = await import("@/actions/moderation");
-
-      const result = await reviewModerationAudio({
-        id: "au1",
-        decision: "rejected",
-        reason: "voz identificable",
-      });
-
-      expect(result.ok).toBe(true);
-      expect(reviewUpload).toHaveBeenCalledWith(MODERATOR, "au1", {
-        decision: "rejected",
-        reason: "voz identificable",
-      });
-    });
-
-    it("traduce `AudioError` (p. ej. FORBIDDEN) al contrato de error", async () => {
-      const { AudioError } = await import("@escaperoom/shared/services");
-      const authorizeModeration = vi
-        .fn()
-        .mockRejectedValue(new AudioError("FORBIDDEN", "Solo moderadores"));
-      mocks.getAudioAssetService.mockReturnValue({ authorizeModeration, reviewUpload: vi.fn() });
-      const { reviewModerationAudio } = await import("@/actions/moderation");
-
-      const result = await reviewModerationAudio({ id: "au1", decision: "approved" });
-
-      expect(result).toEqual({ ok: false, error: { code: "FORBIDDEN", message: "Solo moderadores" } });
-    });
-  });
+  // La pestaña de audio (`reviewModerationAudio`) no se migra: otro agente
+  // va a retirar la moderación previa de audio y las rutas
+  // /api/admin/audio*, así que no hay action que testear aquí.
 });
