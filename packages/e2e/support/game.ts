@@ -106,9 +106,13 @@ export class UiPlayer {
     await this.page.removeLocatorHandler(this.page.getByTestId("game-image-panel"));
   }
 
-  /** Botón del objeto en la lista «Objetos» (su texto es el id del objeto). */
+  /**
+   * Botón del objeto en la lista «Objetos». Localizado por `data-testid`, no
+   * por su texto visible: desde F-27 (auditoría 2026-09-24) el texto es el
+   * nombre localizado del objeto (o un genérico), nunca su id técnico.
+   */
   private objectButton(objectId: string): Locator {
-    return this.page.getByRole("button", { name: objectId, exact: true });
+    return this.page.getByTestId(`game-object-${objectId}`);
   }
 
   /** Clic en el objeto → acción del menú contextual. */

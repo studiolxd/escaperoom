@@ -95,7 +95,7 @@ test("Rey Aldric: 2 jugadores se unen y abren la bodega por clics (pasos 1–6) 
   const b = await newPlayer(browser, "Bruno");
   await playThroneRoom(a, b);
   for (const player of [a, b]) {
-    await expect(player.page.getByRole("button", { name: "mural-vendimia" })).toBeVisible();
+    await expect(player.page.getByTestId("game-object-mural-vendimia")).toBeVisible();
   }
 });
 

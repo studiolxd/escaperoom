@@ -626,6 +626,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
               {roomObjects.map((object) => (
                 <Button
                   key={object.id}
+                  data-testid={`playtest-object-${object.id}`}
                   size="xs"
                   variant="overlay"
                   disabled={introOpen}
@@ -850,7 +851,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
         <DialogContent
           container={sectionRef.current}
           showCloseButton={false}
-          overlayClassName="bg-transparent"
+          overlayClassName="hidden"
           onEscapeKeyDown={preventEscapeIfDialogOpen}
           data-testid="playtest-inventory-overlay"
           className="absolute inset-0 top-auto left-auto z-30 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-black/60 p-4 ring-0"
@@ -883,7 +884,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
         <DialogContent
           container={sectionRef.current}
           showCloseButton={false}
-          overlayClassName="bg-transparent"
+          overlayClassName="hidden"
           onEscapeKeyDown={preventEscapeIfDialogOpen}
           className="absolute inset-0 top-auto left-auto z-20 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-black/50 p-4 ring-0"
         >
