@@ -212,8 +212,10 @@ describe("página /[locale]/dev/game-room (SSR) — GameRoom desnuda de pruebas"
 describe("GameSessionShell a partir del estado sincronizado", () => {
   it("lobby: el anfitrión ve «Empezar», jugadores, conexión e invitación", () => {
     const client = createLocalGameClient(roomPackage, { tickMs: false, name: "Ana" });
+    client.setReady(true);
     const html = shell(client);
     expect(html).toContain('data-phase="lobby"');
+    expect(html).toContain('data-stage="lobby"');
     expect(html).toContain('data-testid="game-start"');
     expect(html).toContain(tr("es", "lobby.start"));
     expect(html).toContain("Ana (" + tr("es", "lobby.you") + ")");
@@ -224,7 +226,8 @@ describe("GameSessionShell a partir del estado sincronizado", () => {
 
   it("en juego: sala, cronómetro, inventario e indicador de desconexión con reintento", () => {
     const client = createLocalGameClient(roomPackage, { tickMs: false, name: "Ana" });
-    client.startGame();
+    client.startGame(true);
+    client.enterMap();
     client.interact("cuadro-aurelio");
     const html = shell(client, "en", "disconnected");
     expect(html).toContain('data-phase="playing"');
@@ -241,7 +244,8 @@ describe("GameSessionShell a partir del estado sincronizado", () => {
   it("sala sin duración: el HUD muestra tiempo transcurrido, nunca cuenta atrás (ticket duración-salas)", () => {
     const unlimitedPackage = { ...roomPackage, meta: { ...roomPackage.meta, timeLimitMinutes: null } };
     const client = createLocalGameClient(unlimitedPackage, { tickMs: false, name: "Ana" });
-    client.startGame();
+    client.startGame(true);
+    client.enterMap();
     const { model, pack } = buildGameModel(unlimitedPackage, "es");
     const html = render(
       createElement(GameSessionShell, {

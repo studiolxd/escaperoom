@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   EditToolController,
+  addLobbyRoom,
   placeObject,
   roomDocToPackage,
   roomPackageToDoc,
@@ -161,6 +162,31 @@ describe("<RoomEditorWorkspace> — render", () => {
     expect(canvas?.model.objectsById["arca-trono"]?.position).toEqual({ x: 4, y: 4 });
     expect(canvas?.selectedObjectId).toBe("arca-trono");
     expect(html).toContain("Local (sin sincronizar)");
+  });
+
+  it("el lobby diseñado es una habitación más del lienzo, marcada en la navegación", () => {
+    const { doc, palette } = setup();
+    const lobbyId = addLobbyRoom(doc, { cols: 6, rows: 5 });
+    const controller = new EditToolController(doc, { roomId: lobbyId });
+    let canvas: RoomEditorCanvasProps | undefined;
+    const html = render(
+      createElement(RoomEditorWorkspace, {
+        doc,
+        controller,
+        palette,
+        status: "local",
+        renderCanvas: (props: RoomEditorCanvasProps) => {
+          canvas = props;
+          return createElement("div", { "data-canvas": props.roomId });
+        },
+        headerActions: HEADER_ACTIONS,
+        inspector: INSPECTOR_PLACEHOLDER,
+      }),
+    );
+    expect(html).toContain(`data-canvas="${lobbyId}"`);
+    expect(canvas?.model.subroomsById[lobbyId]).toBeDefined();
+    expect(count(html, "data-lobby-room")).toBe(1);
+    expect(html).toContain(">lobby<");
   });
 
   it("los eventos del lienzo llegan a la capa de comandos y cambian el doc", () => {

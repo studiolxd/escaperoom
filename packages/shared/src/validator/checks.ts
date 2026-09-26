@@ -1,5 +1,14 @@
 import { assertNever } from "../exhaustive";
-import type { Grid, PuzzleDefinition, RoomPackage, Rule, RuleAction, RuleCondition } from "../schemas";
+import type {
+  Grid,
+  PuzzleDefinition,
+  RoomPackage,
+  Rule,
+  RuleAction,
+  RuleCondition,
+} from "../schemas";
+import { MAX_INTRO_TEXT_LENGTH } from "../schemas/limits";
+import { isLobbyRoom } from "../schemas/lobby";
 import { flattenActions, puzzleGrants, type RoomIndex } from "./model";
 import type { DoubleUseItem, ValidationIssue } from "./types";
 
@@ -493,7 +502,10 @@ export function cooperativeRequirement(puzzle: PuzzleDefinition): CooperativeReq
   switch (puzzle.type) {
     case "simultaneous_plates":
       return puzzle.plates.length >= 2
-        ? { count: puzzle.plates.length, description: `pisar ${puzzle.plates.length} placas a la vez` }
+        ? {
+            count: puzzle.plates.length,
+            description: `pisar ${puzzle.plates.length} placas a la vez`,
+          }
         : null;
     case "split_clue": {
       const count = Math.max(2, puzzle.viewpoints.length);
@@ -506,7 +518,8 @@ export function cooperativeRequirement(puzzle: PuzzleDefinition): CooperativeReq
 
 /** "1 jugador" / "2, 3 jugadores". */
 function formatPlayerCounts(counts: readonly number[]): string {
-  const label = counts.length === 1 && counts[0] === 1 ? "1 jugador" : `${counts.join(", ")} jugadores`;
+  const label =
+    counts.length === 1 && counts[0] === 1 ? "1 jugador" : `${counts.join(", ")} jugadores`;
   return label;
 }
 
@@ -577,7 +590,13 @@ export function checkGeometry(pkg: RoomPackage): ValidationIssue[] {
       at(room.id, spawn.x, spawn.y, `el spawnPoint «${spawn.id}»`, spawn.id);
     }
     for (const decoration of room.decorations) {
-      at(room.id, decoration.x, decoration.y, `la decoración «${decoration.sprite}»`, decoration.sprite);
+      at(
+        room.id,
+        decoration.x,
+        decoration.y,
+        `la decoración «${decoration.sprite}»`,
+        decoration.sprite,
+      );
     }
     for (const light of room.lighting) {
       if (light.type === "torch") {
@@ -595,12 +614,24 @@ export function checkGeometry(pkg: RoomPackage): ValidationIssue[] {
 
   for (const puzzle of pkg.puzzles) {
     if (puzzle.position) {
-      at(puzzle.roomId, puzzle.position.x, puzzle.position.y, `el puzzle «${puzzle.id}»`, puzzle.id);
+      at(
+        puzzle.roomId,
+        puzzle.position.x,
+        puzzle.position.y,
+        `el puzzle «${puzzle.id}»`,
+        puzzle.id,
+      );
     }
     switch (puzzle.type) {
       case "hidden_key":
         if (puzzle.hidingSpot.x !== undefined && puzzle.hidingSpot.y !== undefined) {
-          at(puzzle.roomId, puzzle.hidingSpot.x, puzzle.hidingSpot.y, `el escondite de «${puzzle.id}»`, puzzle.id);
+          at(
+            puzzle.roomId,
+            puzzle.hidingSpot.x,
+            puzzle.hidingSpot.y,
+            `el escondite de «${puzzle.id}»`,
+            puzzle.id,
+          );
         }
         break;
       case "simultaneous_plates":
@@ -678,7 +709,8 @@ export function checkStructuralInvariants(pkg: RoomPackage): ValidationIssue[] {
   for (const puzzle of pkg.puzzles) {
     if (puzzle.type === "memory") {
       const symbols = new Map<string, number>();
-      for (const pair of puzzle.pairs) symbols.set(pair.symbol, (symbols.get(pair.symbol) ?? 0) + 1);
+      for (const pair of puzzle.pairs)
+        symbols.set(pair.symbol, (symbols.get(pair.symbol) ?? 0) + 1);
       for (const [symbol, count] of symbols) {
         if (count > 1) {
           issues.push({
@@ -698,6 +730,133 @@ export function checkStructuralInvariants(pkg: RoomPackage): ValidationIssue[] {
     }
   }
 
+  issues.push(...checkLobbyRoom(pkg), ...checkIntro(pkg));
+  return issues;
+}
+
+/**
+ * Sala de espera (`kind: "lobby"`, encargo lobby-diseño): como mucho una, no
+ * puede ser la única habitación y es solo decoración — sin pruebas, sin
+ * puertas (ni desde ella ni hacia ella), sin objetos que den ítems
+ * (contenedores, escondites, reparto, candados) y sin reglas que la
+ * referencien a ella o a sus objetos (una regla `on_interact` podría dar un
+ * ítem). Mensajes accionables para el editor y el MCP.
+ */
+export function checkLobbyRoom(pkg: RoomPackage): ValidationIssue[] {
+  const lobbies = pkg.map.rooms.filter(isLobbyRoom);
+  if (lobbies.length === 0) return [];
+  const issues: ValidationIssue[] = [];
+  if (lobbies.length > 1) {
+    issues.push({
+      code: "multiple_lobby_rooms",
+      message: `Solo puede haber una sala de espera (lobby) y hay ${lobbies.length}: ${lobbies.map((room) => `«${room.id}»`).join(", ")}. Quita el tipo «lobby» de las demás.`,
+      ids: lobbies.map((room) => room.id),
+    });
+  }
+  if (lobbies.length === pkg.map.rooms.length) {
+    issues.push({
+      code: "lobby_without_game_room",
+      message:
+        "La sala de espera no puede ser la única habitación: añade al menos una habitación de juego.",
+      ids: lobbies.map((room) => room.id),
+    });
+  }
+  const lobbyIds = new Set(lobbies.map((room) => room.id));
+  const lobbyObjectIds = new Set(
+    pkg.objects.filter((object) => lobbyIds.has(object.roomId)).map((object) => object.id),
+  );
+
+  for (const puzzle of pkg.puzzles) {
+    if (lobbyIds.has(puzzle.roomId)) {
+      issues.push({
+        code: "lobby_has_puzzle",
+        message: `La sala de espera «${puzzle.roomId}» no puede tener pruebas: mueve el puzzle «${puzzle.id}» a una habitación de juego.`,
+        ids: [puzzle.id],
+      });
+    }
+  }
+  for (const object of pkg.objects) {
+    if (
+      object.leadsTo !== undefined &&
+      (lobbyIds.has(object.roomId) || lobbyIds.has(object.leadsTo))
+    ) {
+      issues.push({
+        code: "lobby_has_door",
+        message: `La sala de espera no se conecta con puertas: «${object.id}» lleva de «${object.roomId}» a «${object.leadsTo}». Quita su «leadsTo» (del lobby se entra al mapa tras la cuenta atrás).`,
+        ids: [object.id],
+      });
+      continue;
+    }
+    if (!lobbyIds.has(object.roomId)) continue;
+    const givesItems =
+      (object.inventory?.length ?? 0) > 0 ||
+      object.hidingSpot !== undefined ||
+      object.distribution !== undefined ||
+      object.lockedBy !== undefined;
+    if (givesItems) {
+      issues.push({
+        code: "lobby_object_gives_items",
+        message: `«${object.id}» está en la sala de espera y da ítems o está bloqueado (inventario, escondite, reparto o candado): en el lobby solo se admite decoración.`,
+        ids: [object.id],
+      });
+    }
+  }
+  for (const rule of pkg.rules) {
+    const touches = ruleReferences(rule).filter(
+      (ref) =>
+        (ref.kind === "room" && lobbyIds.has(ref.id)) ||
+        (ref.kind === "object" && lobbyObjectIds.has(ref.id)),
+    );
+    if (touches.length > 0) {
+      issues.push({
+        code: "lobby_referenced_by_rule",
+        message: `La regla «${rule.id}» usa la sala de espera o un objeto suyo (${touches.map((ref) => `«${ref.id}»`).join(", ")}): el lobby no tiene lógica de juego.`,
+        ids: [rule.id],
+      });
+    }
+  }
+  return issues;
+}
+
+/**
+ * Introducción de la sala (`meta.intro`, encargo lobby-diseño): textos dentro
+ * de `MAX_INTRO_TEXT_LENGTH`, no vacía, y solo en idiomas declarados de la
+ * sala (también los subtítulos del vídeo).
+ */
+export function checkIntro(pkg: RoomPackage): ValidationIssue[] {
+  const intro = pkg.meta.intro;
+  if (!intro) return [];
+  const issues: ValidationIssue[] = [];
+  const declared = new Set(pkg.meta.languages);
+  const locales =
+    intro.type === "text" ? Object.keys(intro.text) : Object.keys(intro.subtitles ?? {});
+  const undeclared = locales.filter((locale) => !declared.has(locale));
+  if (undeclared.length > 0) {
+    issues.push({
+      code: "intro_language_not_declared",
+      message: `La introducción usa idiomas no declarados en la sala (${undeclared.join(", ")}); idiomas de la sala: ${pkg.meta.languages.join(", ")}`,
+      ids: [],
+    });
+  }
+  if (intro.type === "text") {
+    const entries = Object.entries(intro.text);
+    if (entries.every(([, entry]) => entry.text.trim().length === 0)) {
+      issues.push({
+        code: "intro_text_empty",
+        message: "La introducción de texto está vacía: escribe el texto o quita la introducción.",
+        ids: [],
+      });
+    }
+    for (const [locale, entry] of entries) {
+      if (entry.text.length > MAX_INTRO_TEXT_LENGTH) {
+        issues.push({
+          code: "intro_text_too_long",
+          message: `La introducción (${locale}) tiene ${entry.text.length} caracteres; el máximo es ${MAX_INTRO_TEXT_LENGTH}.`,
+          ids: [],
+        });
+      }
+    }
+  }
   return issues;
 }
 

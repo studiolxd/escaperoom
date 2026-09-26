@@ -12,6 +12,7 @@ comandos de las herramientas del modo edición (`docs/specs/09-editor-de-salas.m
 | `content.ts`          | Estructura y contenido (4.2, MCP): `defineSubRooms`, `setSubRoomGrid`, `setTileset`, `defineItem`, `addPuzzle`, `addDialog`, `addHint`. |
 | `decor.ts`            | Decoración e iluminación de una habitación (`addDecoration`, `moveDecoration`, `addTorch`, `updateTorch`, `setAmbientLight`…) y las declarativas `setDecorations`/`setLighting` (MCP `decorate_subroom`). |
 | `logic.ts`            | Lógica (4.3, MCP): `addRule` (referencias comprobadas, sobre el mapa `rules` de 3.6), `proposeRuleId`. |
+| `lobby-intro.ts`      | Sala de espera e introducción (lobby-diseño; editor y MCP `define_subrooms`/`set_room_intro`): `addLobbyRoom`, `setSubRoomKind`, `findLobbyRoomId`, `setRoomIntro`, `setRoomIntroSubtitles`, `getRoomIntroText`, `readRoomIntro`. |
 | `tool-controller.ts`  | `EditToolController`: eventos de puntero del runtime (`mode: 'edit'`) → comandos sobre el doc.       |
 | `use-room-package.ts` | `useRoomPackage(doc)`: la sala como `RoomPackage` en estado React.                                   |
 

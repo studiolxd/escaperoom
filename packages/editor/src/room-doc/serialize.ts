@@ -1,12 +1,14 @@
 import * as Y from "yjs";
 import {
   DEFAULT_ROOM_TIME_LIMIT_MINUTES,
+  LOBBY_ROOM_KIND,
   type DialogDef,
   type Difficulty,
   type HintDef,
   type ItemDef,
   type LocalizedText,
   type PuzzleDefinition,
+  type RoomIntro,
   type RoomPackage,
   type RoomPackageMeta,
   type SubRoom,
@@ -79,6 +81,9 @@ export function buildSubRoomRecord(room: SubRoom, order: number): RecordMap {
   const record = new Y.Map<unknown>();
   record.set("id", room.id);
   record.set("name", room.name);
+  // Ausente = habitación de juego normal (el Rey Aldric no lo lleva: ida y
+  // vuelta byte a byte); `"lobby"` = sala de espera (encargo lobby-diseño).
+  if (room.kind !== undefined) record.set("kind", room.kind);
   record.set(ORDER_KEY, order);
   record.set("cols", room.grid.cols);
   record.set("rows", room.grid.rows);
@@ -105,6 +110,71 @@ export function buildSubRoomRecord(room: SubRoom, order: number): RecordMap {
     record.set(key, list);
   }
   return record;
+}
+
+/** Clave de la introducción (`meta.intro`) dentro de la raíz `meta` del doc. */
+export const INTRO_KEY = "intro";
+
+/**
+ * Tipo Yjs de la introducción de la sala (`meta.intro`, encargo lobby-diseño):
+ * `Y.Map { type: "text", text: YLocalizedText }` o `Y.Map { type: "video",
+ * video: string, subtitles: Y.Map<idioma, ref> }`. El texto es un
+ * `YLocalizedText` como el de diálogos/items (coedición carácter a carácter,
+ * un idioma por entrada) y los subtítulos un `Y.Map` por idioma, para que dos
+ * creadores que suben subtítulos de idiomas distintos a la vez no se pisen.
+ */
+export function buildIntroRecord(intro: RoomIntro): Y.Map<unknown> {
+  const record = new Y.Map<unknown>();
+  record.set("type", intro.type);
+  if (intro.type === "text") {
+    record.set("text", createYLocalizedText(intro.text));
+    return record;
+  }
+  record.set("video", intro.video);
+  const subtitles = new Y.Map<string>();
+  for (const [lang, ref] of Object.entries(intro.subtitles ?? {})) subtitles.set(lang, ref);
+  record.set("subtitles", subtitles);
+  return record;
+}
+
+/**
+ * Inversa de `buildIntroRecord`, limitada a los idiomas declarados (como el
+ * resto de textos: las traducciones y subtítulos de un idioma retirado se
+ * quedan en el borrador pero no se empaquetan). `undefined` si no hay
+ * introducción o está incompleta (vídeo sin referencia).
+ */
+export function readIntroRecord(
+  value: unknown,
+  languages: readonly string[],
+): RoomIntro | undefined {
+  if (!(value instanceof Y.Map)) return undefined;
+  const record = value as Y.Map<unknown>;
+  const type = record.get("type");
+  if (type === "text") {
+    const text = record.get("text");
+    return {
+      type: "text",
+      text: text instanceof Y.Map ? yLocalizedTextToJSON(text as YLocalizedText, languages) : {},
+    };
+  }
+  if (type === "video") {
+    const video = record.get("video");
+    if (typeof video !== "string" || video.length === 0) return undefined;
+    const raw = record.get("subtitles");
+    const subtitles: Record<string, string> = {};
+    if (raw instanceof Y.Map) {
+      for (const lang of languages) {
+        const ref = (raw as Y.Map<unknown>).get(lang);
+        if (typeof ref === "string" && ref.length > 0) subtitles[lang] = ref;
+      }
+    }
+    return {
+      type: "video",
+      video,
+      ...(Object.keys(subtitles).length > 0 ? { subtitles } : {}),
+    };
+  }
+  return undefined;
 }
 
 /** Entrada plana con un campo localizado (`YLocalizedText`): items, diálogos y pistas. */
@@ -137,6 +207,7 @@ export function roomPackageToDoc(pkg: RoomPackage, doc: Y.Doc = new Y.Doc()): Y.
         : pkg.meta.timeLimitMinutes,
     );
     initRoomLanguages(doc, pkg.meta.languages, pkg.meta.defaultLanguage);
+    if (pkg.meta.intro) meta.set(INTRO_KEY, buildIntroRecord(pkg.meta.intro));
     writeRoomDocFormat(doc);
 
     const map = doc.getMap<unknown>(ROOM_DOC_KEYS.map);
@@ -197,6 +268,7 @@ function readMeta(doc: Y.Doc): RoomPackageMeta {
   const { languages, defaultLanguage } = getRoomLanguages(doc);
   const players = meta.get("players") as { min?: unknown; max?: unknown } | undefined;
   const difficulty = meta.get("difficulty");
+  const intro = readIntroRecord(meta.get(INTRO_KEY), languages);
   return {
     id: str(meta.get("id")),
     title: str(meta.get("title")),
@@ -212,6 +284,8 @@ function readMeta(doc: Y.Doc): RoomPackageMeta {
     difficulty: (difficulty === 1 || difficulty === 3 ? difficulty : 2) as Difficulty,
     players: { min: num(players?.min, 1), max: num(players?.max, 1) },
     assetsManifest: str(meta.get("assetsManifest")),
+    // Solo si la hay: una sala sin introducción no lleva la clave (ida y vuelta exacta).
+    ...(intro ? { intro } : {}),
   };
 }
 
@@ -244,9 +318,11 @@ export function readLayerTiles(record: RecordMap, layer: string): number[] {
 function readSubRoom(record: RecordMap): SubRoom {
   const cols = num(record.get("cols"), 1);
   const rows = num(record.get("rows"), 1);
+  const kind = record.get("kind");
   return {
     id: str(record.get("id")),
     name: str(record.get("name")),
+    ...(kind === LOBBY_ROOM_KIND ? { kind } : {}),
     grid: { cols, rows },
     layers: subRoomLayerNames(record).map((name) => ({
       name,

@@ -10,6 +10,7 @@ export * from "./commands";
 export * from "./decor";
 export * from "./content";
 export * from "./logic";
+export * from "./lobby-intro";
 export * from "./tool-controller";
 /** Errores de idiomas que pueden lanzar `writeRoomMeta` y los comandos de contenido. */
 export { RoomLanguageError } from "../i18n-fields/room-languages";

@@ -23,6 +23,8 @@ export * from "./pricing-tiers";
 export * from "./admin-prisma-store";
 export * from "./audio-assets";
 export * from "./audio-assets-prisma-store";
+export * from "./intro-media";
+export * from "./intro-media-prisma-store";
 export * from "./credits";
 export * from "./credits-prisma-store";
 export * from "./elevenlabs-client";

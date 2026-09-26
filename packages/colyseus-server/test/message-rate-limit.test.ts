@@ -73,9 +73,13 @@ describe("MessageRateLimiter", () => {
     };
     const limiter = new MessageRateLimiter(limits, c.now);
     // Agota `interact` (4/s) sin acercarse al total (100/s).
-    for (let i = 0; i < 4; i += 1) expect(limiter.check("a", GAME_MESSAGES.interact, {}).ok).toBe(true);
+    for (let i = 0; i < 4; i += 1)
+      expect(limiter.check("a", GAME_MESSAGES.interact, {}).ok).toBe(true);
     for (let i = 0; i < 50; i += 1) {
-      expect(limiter.check("a", GAME_MESSAGES.interact, {})).toMatchObject({ ok: false, bucket: "interact" });
+      expect(limiter.check("a", GAME_MESSAGES.interact, {})).toMatchObject({
+        ok: false,
+        bucket: "interact",
+      });
     }
     // El total solo descontó los 4 `interact` aceptados, no los 50 rechazados.
     for (let i = 0; i < 96; i += 1) expect(limiter.check("a", CHAT_MESSAGE, {}).ok).toBe(true);
@@ -132,14 +136,20 @@ describe("GameRoom — un cliente que inunda mensajes", () => {
   });
 
   it("se le descarta lo que excede su cuota (un solo aviso) y el otro jugador juega igual", async () => {
-    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, { gameToken: devTestGameToken() });
+    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {
+      gameToken: devTestGameToken(),
+    });
     const flooder = await colyseus.connectTo(room, { gameToken: devTestGameToken(), name: "Ana" });
     const other = await colyseus.connectTo(room, { gameToken: devTestGameToken(), name: "Bruno" });
     flooder.send(GAME_MESSAGES.setReady, { ready: true });
     other.send(GAME_MESSAGES.setReady, { ready: true });
     await expect.poll(() => room.state.players.get(other.sessionId)?.ready).toBe(true);
     flooder.send(GAME_MESSAGES.startGame, {});
+    await expect.poll(() => other.state.phase).toBe("starting");
+    flooder.send(GAME_MESSAGES.enterMap, {});
+    other.send(GAME_MESSAGES.enterMap, {});
     await expect.poll(() => other.state.phase).toBe("playing");
+    await expect.poll(() => room.state.players.get(other.sessionId)?.inMap).toBe(true);
 
     const errors: Array<{ code: string; messageType?: string; retryAfterMs?: number }> = [];
     flooder.onMessage(ERROR_MESSAGE, (error) => errors.push(error));

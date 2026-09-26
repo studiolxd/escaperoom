@@ -127,7 +127,10 @@ export function createPlaytestRouter(): Router {
       fail(res, 404, "PLAYTEST_NOT_FOUND", "El playtest no existe o ha caducado.");
       return;
     }
-    res.status(200).json({ roomPackage });
+    // `draftRoomId` (encargo lobby-diseño): la página del link resuelve con
+    // él los medios de la introducción del borrador (`media:<uuid>` del autor).
+    const draftRoomId = playtestRegistry.get(req.params.playtestId)?.draftRoomId ?? null;
+    res.status(200).json({ roomPackage, draftRoomId });
   });
   return router;
 }

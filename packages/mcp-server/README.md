@@ -14,6 +14,7 @@ sobre un draft reciben `roomId` (el mismo `:roomId` de `/api/rooms/:roomId/draft
 | Fase | Tool | Estado |
 | --- | --- | --- |
 | A — Estructura | `create_room`, `set_map`, `paint_tiles`, `define_subrooms` | **implementadas** (4.2) |
+| A — Estructura | `set_room_intro`, `kind: "lobby"` en `define_subrooms` | **implementadas** (lobby-diseño): introducción (texto/vídeo) y sala de espera |
 | B — Contenido | `add_object`, `define_item`, `add_puzzle`, `add_dialog`, `add_hint` | **implementadas** (4.2) |
 | B — Contenido | `decorate_subroom` | **implementada** (paridad de 4.8): decoración e iluminación por habitación |
 | C — Lógica | `add_rule`, `get_room_graph` | **implementadas** (4.3) |
@@ -41,17 +42,21 @@ de cada tool (identidad, traducción de errores, tope de tamaño): no es un ataj
 tools de `CONTENT_TOOLSET`, que por construcción no incluye a las meta-tools — así `run_tool` no
 puede alcanzarse a sí misma ni a las otras tres, sin necesitar una lista de bloqueo aparte.
 
-`upload({kind: "cover_image" | "audio", roomId?, filename, contentType, data, rightsDeclared?})` sube
-un asset en base64 (MCP no transporta binarios por streaming) reutilizando los mismos servicios de
-dominio que la web: `RoomCoverService.uploadCoverImage` (portada de sala, A-12: autorización + magic
-bytes + 5 MB) o `AudioAssetService.uploadAudio` (biblioteca del creador, 3.11: tipo real + duración +
-pre-filtro de moderación + 10 MB). Sin `deps.roomCover`/`deps.audio` inyectados (p. ej. el proceso
-stdio, sin bucket), responde `NOT_AVAILABLE` para ese `kind`.
+`upload({kind: "cover_image" | "audio" | "intro_video" | "intro_subtitles", roomId?, lang?, filename,
+contentType, data, rightsDeclared?})` sube un asset en base64 (MCP no transporta binarios por
+streaming) reutilizando los mismos servicios de dominio que la web: `RoomCoverService.uploadCoverImage`
+(portada de sala, A-12: autorización + magic bytes + 5 MB), `AudioAssetService.uploadAudio`
+(biblioteca del creador, 3.11: tipo real + duración + 10 MB) o
+`IntroMediaService.uploadVideoBytes`/`uploadSubtitles` (introducción de la sala: autor, sniff
+mp4/webm, WebVTT UTF-8 ≤ 512 KB; devuelven `ref: "media:<uuid>"` para `set_room_intro`). El vídeo
+por aquí se queda en el tope de transporte (10 MB decodificados); los de hasta 200 MB se suben desde
+el editor web con PUT presignado. Sin `deps.roomCover`/`deps.audio`/`deps.introMedia` inyectados
+(p. ej. el proceso stdio, sin bucket), responde `NOT_AVAILABLE` para ese `kind`.
 
 **Cuota de `upload` (revisión de la PR #168).** El límite genérico de llamadas del MCP (por token,
 ver más abajo) no basta por sí solo: permitiría subir ficheros de hasta 10 MB al mismo ritmo que
 cualquier tool barata, saltándose la cuota de almacenamiento/moderación de la web. `upload` consume
-además la MISMA política que su ruta REST equivalente (`room-cover-write`/`audio-upload`,
+además la MISMA política que su ruta REST equivalente (`room-cover-write`/`audio-upload`/`intro-media-upload`,
 `docs/reference/seguridad.md` §1) con la MISMA clave (`<política>:user:<userId>`) sobre el mismo
 `slidingRateLimiter` (`@escaperoom/kit/rate-limit`) — comparten cupo de verdad. El número vive en
 `RATE_LIMIT_POLICIES` de `packages/web` (que el MCP no importa, para no invertir la dependencia) y

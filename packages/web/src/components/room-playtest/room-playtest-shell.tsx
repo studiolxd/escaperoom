@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
@@ -8,6 +8,7 @@ import { createLocalGameClient } from "@escaperoom/game-runtime/session";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { Button } from "@/components/ui/button";
 import { GameSessionShell } from "@/components/game-session/game-session-shell";
+import type { IntroModel } from "@/lib/intro-model";
 import { reyAldricSteps } from "@/lib/rey-aldric-route";
 
 export interface RoomPlaytestShellProps {
@@ -21,6 +22,8 @@ export interface RoomPlaytestShellProps {
    */
   roomPackage: RoomPackage;
   pack?: RoomScenePack;
+  /** Introducción de la sala ya resuelta (texto o vídeo), si la tiene. */
+  intro?: IntroModel | null;
 }
 
 const PLAYER_ID = "p1";
@@ -33,26 +36,18 @@ const PLAYER_ID = "p1";
  * corrección del HUD (paneles, inventario, pistas…) vale para la partida y
  * el playtest a la vez, sin dos máquinas de estados paralelas.
  *
- * Lo propio del playtest —arrancar sin lobby, el checklist de la ruta
+ * Lo propio del playtest —el checklist de la ruta
  * crítica, el botón de reinicio, el registro de depuración— entra por los
  * slots de `GameSessionShell` (`variant="playtest"`, `objectsBarHeader`,
  * `objectsBarFooter`), nunca reimplementado.
  */
-export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShellProps) {
+export function RoomPlaytestShell({ model, roomPackage, pack, intro }: RoomPlaytestShellProps) {
   const t = useTranslations("Playtest");
 
+  // Encargo lobby-diseño: el playtest pasa por el MISMO lobby que la
+  // partida real (elegir personaje, «Listo», «Empezar»), luego la
+  // introducción (si la hay) y el 3-2-1 — ya no arranca solo al montar.
   const [client] = useState(() => createLocalGameClient(roomPackage, { playerId: PLAYER_ID }));
-
-  // El playtest no tiene lobby (nunca se pinta el panel de lobby de la
-  // partida en red, `variant="playtest"`): arranca en cuanto `GameSessionShell`
-  // ya está suscrita a los eventos del cliente — si se arrancara antes de
-  // montar, el `dialog_show` de la intro se perdería (nadie escuchando
-  // todavía). Los efectos de los hijos se disparan antes que los del padre,
-  // así que este efecto llega después de que `useGameHud` (dentro de
-  // `GameSessionShell`) ya esté suscrito.
-  useEffect(() => {
-    client.startGame();
-  }, [client]);
 
   // Fuerza el re-render en cada cambio de estado de la sesión local: el
   // checklist y el badge de "completado" leen `client.session` directamente
@@ -68,6 +63,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack }: RoomPlaytestShel
       model={model}
       pack={pack}
       client={client}
+      intro={intro}
       variant="playtest"
       showChat={false}
       objectsBarHeader={

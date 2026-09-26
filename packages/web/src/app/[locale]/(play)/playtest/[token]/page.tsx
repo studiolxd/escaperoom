@@ -3,6 +3,9 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { NetworkGame } from "@/components/game-session/network-game";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { buildGameModel, type GameModelPayload } from "@/lib/game-model";
+import type { IntroModel } from "@/lib/intro-model";
+import { buildGameIntro } from "@/server/game-intro";
+import { introMediaUrlResolver } from "@/server/intro-media-url";
 import { isPlaytestExpired, readPlaytestToken } from "@/lib/playtest-link";
 import { getPlaytestPackageReader } from "@/server/playtest-launcher";
 
@@ -14,16 +17,27 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 type Loaded =
-  { ok: true; payload: GameModelPayload } | { ok: false; reason: "gone" | "unavailable" };
+  | { ok: true; payload: GameModelPayload; intro: IntroModel | null }
+  | { ok: false; reason: "gone" | "unavailable" };
 
 /** Modelo del runtime del borrador congelado, calculado en servidor (sin soluciones). */
 async function loadPlaytestModel(playtestId: string, locale: string): Promise<Loaded> {
   const reader = getPlaytestPackageReader();
   if (!reader) return { ok: false, reason: "unavailable" };
   try {
-    const roomPackage = await reader.read(playtestId);
-    if (!roomPackage) return { ok: false, reason: "gone" };
-    return { ok: true, payload: buildGameModel(roomPackage, locale) };
+    const entry = await reader.readEntry(playtestId);
+    if (!entry) return { ok: false, reason: "gone" };
+    const { roomPackage, draftRoomId } = entry;
+    // Encargo lobby-diseño: el playtest en red pasa por el mismo lobby,
+    // introducción y 3-2-1 que la partida real; el vídeo del borrador
+    // (`media:<uuid>` del autor) se sirve con URL firmada. El acceso ya lo
+    // acredita el token del link (lo verifica el servidor de partidas).
+    const intro = await buildGameIntro(
+      roomPackage,
+      locale,
+      draftRoomId ? introMediaUrlResolver({ kind: "draft", roomId: draftRoomId }) : undefined,
+    );
+    return { ok: true, payload: buildGameModel(roomPackage, locale), intro };
   } catch {
     return { ok: false, reason: "unavailable" };
   }
@@ -74,6 +88,7 @@ export default async function PlaytestPage({ params }: Props) {
           target={{ kind: "playtest", playtestId: payload.playtestId, token }}
           title={`${t("page.title")} · ${loaded.payload.model.meta.title}`}
           subtitle={t("page.subtitle")}
+          intro={loaded.intro}
         />
       )}
       <div className="absolute right-4 top-4 z-50">

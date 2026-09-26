@@ -9,6 +9,7 @@ import {
   toRuntimeModel,
   type RoomPackage,
 } from "../src/loader";
+import { withLobbyRoom } from "@escaperoom/shared/schemas";
 
 const fixturePath = fileURLToPath(
   new URL("../../../docs/reference/roompackage-rey-aldric.v1.json", import.meta.url),
@@ -282,5 +283,40 @@ describe("toPublicRuntimeModel", () => {
     const serialized = JSON.stringify(publicModel);
     expect(serialized).not.toContain("item-espia-1");
     expect(serialized).not.toContain("item-espia-2");
+  });
+});
+
+describe("toRuntimeModel — sala de espera (encargo lobby-diseño)", () => {
+  it("sin lobby: habitación inicial la primera y sin lobbyRoomId", () => {
+    const model = toRuntimeModel(loadValidPackage());
+    expect(model.initialRoomId).toBe("salon-trono");
+    expect(model.lobbyRoomId).toBeUndefined();
+  });
+
+  it("con el lobby generado (withLobbyRoom) lo pinta como una habitación más", () => {
+    const model = toRuntimeModel(withLobbyRoom(loadValidPackage()));
+    expect(model.lobbyRoomId).toBe("lobby");
+    expect(model.initialRoomId).toBe("salon-trono");
+    const lobby = model.subroomsById.lobby!;
+    expect(lobby.kind).toBe("lobby");
+    expect(lobby.layers.length).toBeGreaterThan(0);
+    expect(lobby.spawns.length).toBeGreaterThan(0);
+  });
+
+  it("un lobby diseñado en primera posición no es la habitación inicial", () => {
+    const pkg = loadValidPackage();
+    pkg.map.rooms.unshift({
+      id: "vestibulo",
+      name: "Vestíbulo",
+      kind: "lobby",
+      grid: { cols: 4, rows: 4 },
+      layers: [],
+      decorations: [],
+      spawnPoints: [{ id: "s1", x: 1, y: 1 }],
+      lighting: [],
+    });
+    const model = toRuntimeModel(pkg);
+    expect(model.lobbyRoomId).toBe("vestibulo");
+    expect(model.initialRoomId).toBe("salon-trono");
   });
 });

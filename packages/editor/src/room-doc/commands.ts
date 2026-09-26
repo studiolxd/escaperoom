@@ -35,7 +35,9 @@ export type RoomDocErrorCode =
   | "UNKNOWN_LANGUAGE"
   | "UNKNOWN_DECORATION"
   | "UNKNOWN_LIGHT"
-  | "INVALID_VALUE";
+  | "INVALID_VALUE"
+  /** Segundo lobby, o lobby como única habitación (encargo lobby-diseño). */
+  | "LOBBY_CONFLICT";
 
 export class RoomDocError extends Error {
   readonly code: RoomDocErrorCode;

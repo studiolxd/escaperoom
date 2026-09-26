@@ -302,6 +302,11 @@ async function playSession(endpoint: string, index: number, metrics: Metrics): P
     a.room.send(GAME_MESSAGES.setReady, { ready: true });
     b.room.send(GAME_MESSAGES.setReady, { ready: true });
     a.room.send(GAME_MESSAGES.startGame, {});
+    // Encargo lobby-diseño: tras «Empezar», cada uno entra al mapa (el
+    // cliente real lo hace al acabar su introducción y su 3-2-1).
+    await b.until((state) => state.phase === "starting", "starting");
+    a.room.send(GAME_MESSAGES.enterMap, {});
+    b.room.send(GAME_MESSAGES.enterMap, {});
     await b.until((state) => state.phase === "playing", "playing");
 
     // Salón del Trono (1–6)

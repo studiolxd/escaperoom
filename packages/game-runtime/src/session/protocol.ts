@@ -28,6 +28,8 @@ export const GAME_PROTOCOL = {
   setReady: "set_ready",
   /** C-13: solo anfitrión, expulsa a otro jugador. */
   kick: "kick",
+  /** Encargo lobby-diseño: tras la introducción y el 3-2-1, entra al mapa. */
+  enterMap: "enter_map",
   move: "move",
   interact: "interact",
   useItem: "use_item",

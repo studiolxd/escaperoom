@@ -86,4 +86,35 @@ describe.skipIf(!hasStorage)("storage (integración con SeaweedFS local)", () =>
     await storage.deleteObject(key);
     await expect(storage.deleteObjectsByPrefix("kit-tests/")).resolves.toBeGreaterThanOrEqual(0);
   });
+
+  it("sube por PUT presignado, lee cabecera y rango, copia y calcula el digest", async () => {
+    const key = `kit-tests/${randomUUID()}.bin`;
+    const copyKey = `kit-tests/${randomUUID()}-copia.bin`;
+    const bytes = new Uint8Array([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 1, 2, 3]);
+
+    const { url, headers } = await storage.getSignedUploadUrl(key, {
+      contentType: "video/mp4",
+      contentLength: bytes.byteLength,
+    });
+    const put = await fetch(url, { method: "PUT", headers, body: bytes });
+    expect(put.ok).toBe(true);
+
+    await expect(storage.headObject(key)).resolves.toEqual({
+      contentLength: bytes.byteLength,
+      contentType: "video/mp4",
+    });
+    await expect(storage.getObjectRange(key, 4, 7)).resolves.toEqual(bytes.slice(4, 8));
+
+    await storage.copyObject({ fromKey: key, toKey: copyKey, contentType: "video/mp4" });
+    const { createHash } = await import("node:crypto");
+    await expect(storage.digestObject(copyKey)).resolves.toEqual({
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+      byteSize: bytes.byteLength,
+      contentType: "video/mp4",
+    });
+
+    await storage.deleteObject(key);
+    await storage.deleteObject(copyKey);
+    await expect(storage.headObject(key)).resolves.toBeNull();
+  });
 });

@@ -48,8 +48,14 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `packages/shared/test/catalog-filters.test.ts` (rango + compatibilidad),
       `packages/editor/test/room-doc-players.test.ts` (aviso al revés) y
       `packages/web/test/components/room-players-dialog.test.tsx` (UI).
-- [ ] **Lobby como pantalla propia: diseño en el editor, introducción (texto/vídeo) y
-      3-2-1.** Encargo `lobby-c13` (decisiones del usuario 2026-09-26): esta PR entrega
+- [x] **Lobby como pantalla propia: diseño en el editor, introducción (texto/vídeo) y
+      3-2-1.** Resuelto en el encargo lobby-diseño (ADR-040): sala de espera `kind: "lobby"`
+      diseñable (editor y MCP) con lobby por defecto generado, introducción de texto o vídeo
+      con subtítulos, 3-2-1 y reloj al primer jugador en el mapa, playtest con lobby, entrada
+      tardía y `GameRoom.startFromLobby` para el inicio conjunto. Pendiente menor: el texto de
+      la introducción aún no entra en `findMissingTranslations`/`purgeLanguageTranslations` del
+      editor, y los vídeos subidos que nunca se completan (`pending`) no tienen limpieza
+      periódica (specs/14 §10.2). Redacción original: Encargo `lobby-c13` (decisiones del usuario 2026-09-26): esta PR entrega
       solo la parte de C-13 (`set_ready`, `kick`, `player_left`, mínimo/"Empezar
       igualmente", analítica mínima por `onMilestone`) y C-20 (logging estructurado en
       `colyseus-server`), reutilizando el panel de lobby actual (overlay sobre el mapa,

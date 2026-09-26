@@ -16,7 +16,8 @@ import {
   type EditorPalette,
   type RuntimeModel,
 } from "@escaperoom/game-runtime";
-import type { RoomPackage } from "@escaperoom/shared/schemas";
+import { isLobbyRoom, type RoomPackage } from "@escaperoom/shared/schemas";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -232,8 +233,14 @@ export function RoomEditorWorkspace({
                   variant={room.id === activeRoomId ? "secondary" : "ghost"}
                   aria-current={room.id === activeRoomId ? "page" : undefined}
                   onClick={() => controller.setRoom(room.id)}
+                  data-lobby-room={isLobbyRoom(room) ? "" : undefined}
                 >
                   {room.name || room.id}
+                  {isLobbyRoom(room) && (
+                    <Badge variant="outline" className="border-white/30 text-white/70">
+                      {t("rooms.lobbyBadge")}
+                    </Badge>
+                  )}
                 </Button>
               ))}
             </nav>

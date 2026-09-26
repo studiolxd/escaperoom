@@ -51,7 +51,9 @@ export const AnalyticsEventTypeSchema = z.enum(ANALYTICS_EVENT_TYPES);
  * worker) con la cabecera `x-analytics-server-secret`: sin ella, esos ids
  * los podría rellenar cualquiera con los de otro usuario.
  */
-export const BROWSER_ANALYTICS_EVENT_TYPES = ["onboarding_step"] as const satisfies readonly AnalyticsEventType[];
+export const BROWSER_ANALYTICS_EVENT_TYPES = [
+  "onboarding_step",
+] as const satisfies readonly AnalyticsEventType[];
 
 export function isBrowserEmittableAnalyticsEventType(
   eventType: AnalyticsEventType,
