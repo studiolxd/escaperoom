@@ -473,3 +473,29 @@ export async function invalidatePublishedRoomListingCache(
     );
   }
 }
+
+/**
+ * Envuelve un método que puede cambiar lo que ve el catálogo público
+ * (publicar, retirar/restaurar por moderación, cambiar portada…): tras una
+ * llamada que termina bien, invalida el cache (`invalidatePublishedRoomListingCache`)
+ * para que ninguna consulta al catálogo en vuelo ANTES de esa llamada pueda
+ * escribir (fire-and-forget) una foto vieja DESPUÉS de que otra petición ya
+ * hubiera cacheado el estado correcto — dejaba el catálogo desactualizado
+ * hasta que expirase el TTL (deuda "sala duplicada en el catálogo justo tras
+ * publicar"). Punto único, pensado para envolver los servicios en el
+ * composition root (`packages/web/src/server/services.ts`): cualquier
+ * mutación nueva que toque `CatalogRoom` (status, `deletedAt`, comercial,
+ * portada…) debe envolverse con esto en vez de reintroducir su propia
+ * llamada a `invalidatePublishedRoomListingCache`.
+ */
+export function withCatalogCacheInvalidation<Args extends unknown[], R>(
+  store: CatalogCacheStore | null,
+  prefix: string,
+  fn: (...args: Args) => Promise<R>,
+): (...args: Args) => Promise<R> {
+  return async (...args: Args) => {
+    const result = await fn(...args);
+    await invalidatePublishedRoomListingCache(store, prefix);
+    return result;
+  };
+}
