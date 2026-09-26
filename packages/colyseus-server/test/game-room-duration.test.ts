@@ -84,8 +84,12 @@ async function startPurchasedGame(roomPackage: RoomPackage) {
 describe("GameRoom — duración de partida (meta.timeLimitMinutes)", () => {
   it("ausente: cae al valor por defecto retrocompatible (60 min)", async () => {
     const fixture = loadReyAldricRoomPackage();
+    const { timeLimitMinutes: _omitted, ...metaWithoutTimeLimit } = fixture.meta;
     const { room, client } = await startPurchasedGame(
-      parseRoomPackage({ ...fixture, meta: { ...fixture.meta, id: "sala-duracion" } } as unknown),
+      parseRoomPackage({
+        ...fixture,
+        meta: { ...metaWithoutTimeLimit, id: "sala-duracion" },
+      } as unknown),
     );
     expect(client.state.endsAt - client.state.startedAt).toBe(60 * 60 * 1000);
     await room.disconnect();
