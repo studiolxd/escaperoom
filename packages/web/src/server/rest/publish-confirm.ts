@@ -1,4 +1,5 @@
 import {
+  PUBLISH_CONFIRM_DISABLED_ERROR,
   PublishConfirmationError,
   RoomPublishError,
   type Actor,
@@ -59,7 +60,7 @@ export function createPublishConfirmHandlers(deps: PublishConfirmHandlerDeps) {
       }
       if (!deps.confirmations) {
         return errorResponse(
-          "PUBLISH_CONFIRM_DISABLED",
+          PUBLISH_CONFIRM_DISABLED_ERROR,
           "La confirmación de publicaciones no está configurada en este entorno",
           503,
         );

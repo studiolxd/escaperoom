@@ -46,15 +46,8 @@ export const REDEEM_PAGE_PATH = "redeem";
 
 // ── Errores ────────────────────────────────────────────────────────────────
 
-export type AccessKeyCardsErrorCode =
-  | "UNAUTHORIZED"
-  | "FORBIDDEN"
-  | "NOT_FOUND"
-  | "VALIDATION_ERROR"
-  | "NO_PRINTABLE_KEYS"
-  | "EXPORT_UNAVAILABLE"
-  | "EXPORT_LINK_INVALID"
-  | "EXPORT_LINK_EXPIRED";
+export { ACCESS_KEY_CARDS_ERROR_CODES, type AccessKeyCardsErrorCode } from "./error-codes";
+import type { AccessKeyCardsErrorCode } from "./error-codes";
 
 /** Error de dominio del export; los adaptadores lo traducen a HTTP. */
 export class AccessKeyCardsError extends Error {

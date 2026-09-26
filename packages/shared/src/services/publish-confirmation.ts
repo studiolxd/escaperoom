@@ -98,8 +98,8 @@ type TokenPayload = {
   exp: number;
 };
 
-export type PublishConfirmationErrorCode =
-  "UNAUTHORIZED" | "FORBIDDEN" | "INVALID_TOKEN" | "EXPIRED" | "VALIDATION_ERROR";
+export { PUBLISH_CONFIRMATION_ERROR_CODES, type PublishConfirmationErrorCode } from "./error-codes";
+import type { PublishConfirmationErrorCode } from "./error-codes";
 
 /** Error del token o de quién confirma (los de la sala son `RoomPublishError`). */
 export class PublishConfirmationError extends Error {

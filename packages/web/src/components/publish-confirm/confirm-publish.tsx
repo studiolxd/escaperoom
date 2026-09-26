@@ -2,25 +2,35 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import {
+  PUBLISH_CONFIRM_DISABLED_ERROR,
+  type PublishConfirmationErrorCode,
+  type RoomPublishErrorCode,
+} from "@escaperoom/shared/error-codes";
 import { Button } from "@/components/ui/button";
 
-/** Códigos de error de `POST /api/publish-confirm` con mensaje propio. */
-const KNOWN_ERRORS = new Set([
-  "UNAUTHORIZED",
-  "FORBIDDEN",
-  "INVALID_TOKEN",
-  "EXPIRED",
-  "NOT_FOUND",
-  "DRAFT_CHANGED",
-  "VERSION_CHANGED",
-  "VALIDATION_FAILED",
-  "ASSETS_NOT_PUBLISHABLE",
-  "ROOM_NOT_PUBLISHABLE",
-  "CONTENT_BLOCKED",
-  "ACCOUNT_FROZEN",
-  "CREATOR_SUSPENDED",
-  "CREATOR_BANNED",
-  "PUBLISH_CONFIRM_DISABLED",
+/**
+ * Códigos de error de `POST /api/publish-confirm` con mensaje propio: mismo
+ * conjunto que `publish-confirm/page.tsx` (fuente: `PublishConfirm.errors` en
+ * `messages/es.json`). Antes le faltaba `NOTHING_TO_PUBLISH` (ADR-035) por
+ * copiar la lista a mano; ya la traducción existía sin usarse aquí.
+ */
+export const KNOWN_ERRORS: ReadonlySet<string> = new Set([
+  ...(["UNAUTHORIZED", "FORBIDDEN", "INVALID_TOKEN", "EXPIRED"] satisfies readonly PublishConfirmationErrorCode[]),
+  ...([
+    "NOT_FOUND",
+    "DRAFT_CHANGED",
+    "VERSION_CHANGED",
+    "VALIDATION_FAILED",
+    "ASSETS_NOT_PUBLISHABLE",
+    "ROOM_NOT_PUBLISHABLE",
+    "CONTENT_BLOCKED",
+    "ACCOUNT_FROZEN",
+    "CREATOR_SUSPENDED",
+    "CREATOR_BANNED",
+    "NOTHING_TO_PUBLISH",
+  ] satisfies readonly RoomPublishErrorCode[]),
+  PUBLISH_CONFIRM_DISABLED_ERROR,
 ]);
 
 type State =

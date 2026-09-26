@@ -5,6 +5,7 @@
  */
 export * from "./actor";
 export * from "./common";
+export * from "./error-codes";
 export * from "./me";
 export * from "./me-prisma-store";
 export * from "./room-cover";

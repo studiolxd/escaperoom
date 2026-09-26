@@ -83,6 +83,20 @@ export function NetworkGame({
     }
   }, [target]);
 
+  useEffect(() => {
+    // F-43..47 punto 2 (auditoría 2026-09-24): mientras el jugador rellena el
+    // nombre, precarga en segundo plano los chunks de Phaser y de
+    // `livekit-client` (vía `MediaOverlay`) que se montarán justo después,
+    // para que la partida arranque antes al pulsar entrar.
+    const idle = window.requestIdleCallback ?? ((cb: IdleRequestCallback) => window.setTimeout(cb, 200));
+    const cancelIdle = window.cancelIdleCallback ?? window.clearTimeout;
+    const id = idle(() => {
+      void import("./game-session-canvas");
+      void import("@/components/game/media-overlay");
+    });
+    return () => cancelIdle(id as number);
+  }, []);
+
   const onJoined = useCallback(
     (roomId: string) => {
       if (!invite) return;

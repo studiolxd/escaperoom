@@ -269,16 +269,8 @@ export interface ModerationStore extends ModerationTx {
 
 // ── Errores ────────────────────────────────────────────────────────────────
 
-export type ModerationErrorCode =
-  | "UNAUTHORIZED"
-  | "FORBIDDEN"
-  | "NOT_FOUND"
-  | "VALIDATION_ERROR"
-  | "REPORT_REASON_REQUIRED"
-  | "ALREADY_REVIEWED"
-  | "APPEAL_NOT_ALLOWED"
-  | "APPEAL_ALREADY_PENDING"
-  | "NOTHING_TO_APPEAL";
+export { MODERATION_ERROR_CODES, type ModerationErrorCode } from "./error-codes";
+import type { ModerationErrorCode } from "./error-codes";
 
 /** Error de dominio de la moderación; los adaptadores lo traducen a HTTP/tRPC/MCP. */
 export class ModerationError extends Error {

@@ -234,27 +234,8 @@ export interface AccessKeyStore {
 
 // ── Errores ────────────────────────────────────────────────────────────────
 
-export type AccessKeyErrorCode =
-  | "UNAUTHORIZED"
-  | "FORBIDDEN"
-  | "NOT_FOUND"
-  | "VALIDATION_ERROR"
-  | "EVENT_NOT_ACTIVE"
-  | "EVENT_EXPIRED"
-  | "SEAT_LIMIT_EXCEEDED"
-  | "ACCESS_KEY_NOT_ROTATING"
-  | "ACCESS_KEY_INVALID"
-  | "ACCESS_KEY_USED"
-  | "ACCESS_KEY_EXPIRED"
-  | "ACCESS_KEY_NOT_CONFIRMED"
-  | "SESSION_FULL"
-  | "SESSION_REQUIRED"
-  | "ACCESS_KEY_NO_EMAIL"
-  | "DPA_REQUIRED"
-  | "CONFIRMATION_INVALID"
-  | "CONFIRMATION_EXPIRED"
-  | "CONFIRMATION_UNAVAILABLE"
-  | "CONFLICT";
+export { ACCESS_KEY_ERROR_CODES, type AccessKeyErrorCode } from "./error-codes";
+import type { AccessKeyErrorCode } from "./error-codes";
 
 /** Error de dominio de claves; los adaptadores lo traducen a HTTP/tRPC/MCP. */
 export class AccessKeyError extends Error {

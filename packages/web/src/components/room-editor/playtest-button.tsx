@@ -2,19 +2,15 @@
 
 import { useState } from "react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
+import { ROOM_PLAYTEST_ERROR_CODES, type RoomDraftErrorCode } from "@escaperoom/shared/error-codes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { RoomPlaytestResponse } from "@/server/rest/room-playtest";
 
 /** Códigos de error de `POST /api/rooms/:roomId/playtest` con mensaje propio. */
-const KNOWN_ERRORS = new Set([
-  "UNAUTHORIZED",
-  "FORBIDDEN",
-  "NOT_FOUND",
-  "INVALID_DRAFT",
-  "PLAYTEST_UNPLAYABLE",
-  "PLAYTEST_DISABLED",
-  "PLAYTEST_UNAVAILABLE",
+export const KNOWN_ERRORS: ReadonlySet<string> = new Set([
+  ...(["UNAUTHORIZED", "FORBIDDEN", "NOT_FOUND"] satisfies readonly RoomDraftErrorCode[]),
+  ...ROOM_PLAYTEST_ERROR_CODES,
 ]);
 
 type State =
