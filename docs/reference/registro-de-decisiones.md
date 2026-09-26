@@ -53,6 +53,16 @@ para toda la UI (HUD, inventario, diálogos, chat, webcam) y para los puzzles qu
   pared. **Descartado *stills* estilo *Myst*** (imágenes pre-renderizadas + hotspots) como núcleo:
   gran acabado pero mata el UGC/IA y debilita el co-op; solo valdría para salas oficiales premium.
 
+**Revisión (2026-09-26) — sube a Phaser 4.** Migración con el mismo aspecto (sustituye a la PR de
+Dependabot #127, que solo probaba que compilaba): `roundPixels: true` y `type: Phaser.AUTO`
+explícitos en todo `new Phaser.Game` (el defecto de `roundPixels` pasa a `false` en v4) y
+`vertexRoundMode: "fullAuto"` en los game objects con textura que se escalan (tiles, sprites de
+objetos/decoración, avatar) para conservar la nitidez de v3, cuyo `roundPixels` global no distinguía
+por escala. Sin cambios de arquitectura ni de las decisiones de este ADR: sigue siendo Phaser para
+el mundo y React para la UI. Pendiente como tarea visual aparte: aprovechar filtros/iluminación v4
+(halo de antorchas con `Phaser.Actions.AddEffectBloom` en vez del `Graphics` con `blendMode: ADD`
+actual; canal de agua como `ImageLight`/filtro en vez de rombos animados).
+
 ---
 
 ## ADR-002 — Regla para decidir capa de un puzzle (mundo vs. panel)
