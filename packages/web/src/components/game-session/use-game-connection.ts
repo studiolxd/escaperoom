@@ -11,6 +11,7 @@ import {
   Client,
   isConsentedClose,
   isExpiredClose,
+  isRoomFullError,
   joinGameRoom,
   type GameJoinTarget,
   type GameRoomHandle,
@@ -195,7 +196,7 @@ export function useGameConnection({
       } catch (reason: unknown) {
         if (disposed) return;
         setStatus("error");
-        setError(reason instanceof Error ? reason.message : String(reason));
+        setError(isRoomFullError(reason) ? "room_full" : reason instanceof Error ? reason.message : String(reason));
       }
     })();
 

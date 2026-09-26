@@ -47,6 +47,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { EVENT_ROOM_NAME as WEB_EVENT_ROOM_NAME } from "../src/lib/colyseus";
 import {
   eventPlayPath,
+  isRoomFullError,
   joinGameRoom,
   joinOptions,
   readJoinTokenFromHash,
@@ -373,6 +374,28 @@ describe("cliente de red contra una GameRoom real", () => {
     ana.client.closePuzzle("p-candado-arca");
 
     expect(JSON.stringify(ana.events)).not.toMatch(new RegExp(LOCK_CODES.join("|")));
+  });
+
+  it("una room con players.max jugadores rechaza al siguiente con isRoomFullError", async () => {
+    const host = await join(
+      { kind: "game", packageId: "room-rey-aldric", gameToken: devGameToken() },
+      "Anfitrión",
+    );
+    await until(host, (snapshot) => snapshot.self !== null);
+    for (let i = 1; i < roomPackage.meta.players.max; i += 1) {
+      const guest = await join(
+        { kind: "game", roomId: host.room.roomId, gameToken: devGameToken() },
+        `Jugador ${i}`,
+      );
+      await until(guest, (snapshot) => snapshot.self !== null);
+    }
+    await until(host, (snapshot) => snapshot.players.length === roomPackage.meta.players.max);
+
+    const reason = await joinGameRoom(
+      new Client(url),
+      { kind: "game", roomId: host.room.roomId, gameToken: devGameToken() },
+    ).catch((error: unknown) => error);
+    expect(isRoomFullError(reason)).toBe(true);
   });
 
   it("dos clientes ven el mismo estado tras una acción de uno (inventario, objetos, chat, posición)", async () => {

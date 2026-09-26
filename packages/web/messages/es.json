@@ -18,27 +18,37 @@
   },
   "Media": {
     "status": {
-      "idle": "medios: esperando",
-      "connecting": "conectando medios…",
-      "connected": "medios en directo",
-      "disconnected": "medios desconectados",
-      "error": "error de medios",
-      "unavailable": "sin medios"
+      "idle": "Sin conectar",
+      "connecting": "Conectando…",
+      "connected": "Conectado",
+      "disconnected": "Desconectado",
+      "error": "Error de conexión",
+      "unavailable": "No disponible"
+    },
+    "connectionError": {
+      "ServerUnreachable": "No se pudo conectar con el servidor de audio y vídeo.",
+      "Timeout": "El servidor de audio y vídeo ha tardado demasiado en responder.",
+      "WebSocket": "Se ha perdido la conexión de audio y vídeo.",
+      "InternalError": "Ha fallado la conexión de audio y vídeo.",
+      "ServiceNotFound": "El servidor de audio y vídeo no está disponible.",
+      "NotAllowed": "No tienes permiso para conectarte a audio y vídeo.",
+      "LeaveRequest": "Te han desconectado de la sala de audio y vídeo.",
+      "Cancelled": "Se ha cancelado la conexión de audio y vídeo."
     },
     "genericError": "No se pudo conectar a LiveKit",
-    "notConfigured": "LiveKit no configurado: la partida sigue sin voz ni webcam.",
+    "notConfigured": "LiveKit no configurado: la partida sigue sin audio ni vídeo.",
     "retry": "Reintentar",
     "tiles": {
-      "title": "Voz y cámara",
+      "title": "Audio y vídeo",
       "empty": "Sin participantes…",
       "you": "Tú",
       "mic": {
-        "on": "Silenciar mic",
-        "off": "Activar mic"
+        "on": "Micrófono activado",
+        "off": "Micrófono desactivado"
       },
       "camera": {
-        "on": "Apagar cámara",
-        "off": "Encender cámara"
+        "on": "Cámara activada",
+        "off": "Cámara desactivada"
       },
       "videoNotAllowed": "Vídeo no permitido",
       "observer": "Observador: solo suscripción, no publica.",
@@ -549,6 +559,8 @@
   },
   "RoomEditor": {
     "untitledRoom": "Sala sin título",
+    "canvasErrorTitle": "No se pudo cargar el editor",
+    "canvasErrorDescription": "Ha fallado el lienzo del editor. Puedes reintentar o recargar la página.",
     "loading": "Cargando el lienzo…",
     "connecting": "Conectando con el borrador…",
     "status": {
@@ -1036,6 +1048,8 @@
     }
   },
   "Game": {
+    "errorTitle": "No se pudo cargar el juego",
+    "errorDescription": "Ha fallado el motor del juego. Puedes reintentar o recargar la página.",
     "page": {
       "subtitle": "Partida cooperativa en red: invita a tu grupo con el link."
     },
@@ -1055,11 +1069,13 @@
       "disconnected": "Desconectado",
       "expired": "Partida cerrada",
       "error": "Sin conexión",
+      "roomFull": "Sala llena",
       "retry": "Reintentar"
     },
     "status": {
       "connecting": "Conectando con la partida…",
       "error": "No se pudo conectar con el servidor de partidas.",
+      "roomFull": "Esta sala ya tiene el número máximo de jugadores.",
       "expired": "Esta partida se ha cerrado."
     },
     "lobby": {
@@ -1807,6 +1823,7 @@
   "ErrorBoundary": {
     "title": "Ha ocurrido un error",
     "description": "Este panel no se ha podido cargar. Puedes reintentarlo.",
+    "reload": "Recargar página",
     "retry": "Reintentar"
   },
   "NotFound": {

@@ -176,7 +176,9 @@ export function NetworkGame({
       connection.status === "expired"
         ? t("status.expired")
         : connection.status === "error"
-          ? t("status.error")
+          ? connection.error === "room_full"
+            ? t("status.roomFull")
+            : t("status.error")
           : t("status.connecting");
     return (
       <StatusOverlay>
@@ -189,7 +191,9 @@ export function NetworkGame({
           ) : (
             <>
               <p role="alert" className="text-2xl font-bold">
-                {t(`connection.${connection.status}`)}
+                {connection.status === "error" && connection.error === "room_full"
+                  ? t("connection.roomFull")
+                  : t(`connection.${connection.status}`)}
               </p>
               <p className="text-sm text-muted-foreground">{description}</p>
             </>
@@ -232,9 +236,7 @@ export function NetworkGame({
           {t("status.expired")}
         </p>
       ) : null}
-      <ErrorBoundary>
-        <MediaOverlay />
-      </ErrorBoundary>
+      <MediaOverlay />
     </GameSessionShell>
   );
 }
