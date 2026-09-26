@@ -53,13 +53,17 @@ export function DeviceCheck({ withCamera }: DeviceCheckProps) {
 
     let frame = 0;
     let context: AudioContext | null = null;
+    let source: MediaStreamAudioSourceNode | null = null;
+    let analyser: AnalyserNode | null = null;
     try {
       context = new AudioContext();
-      const analyser = context.createAnalyser();
+      analyser = context.createAnalyser();
       analyser.fftSize = 256;
-      context.createMediaStreamSource(stream).connect(analyser);
+      source = context.createMediaStreamSource(stream);
+      source.connect(analyser);
       const samples = new Uint8Array(analyser.frequencyBinCount);
       const tick = () => {
+        if (!analyser) return;
         analyser.getByteFrequencyData(samples);
         const peak = samples.reduce((max, value) => Math.max(max, value), 0);
         setLevel(Math.round((peak / 255) * 100));
@@ -71,7 +75,14 @@ export function DeviceCheck({ withCamera }: DeviceCheckProps) {
     }
     stopRef.current = () => {
       window.cancelAnimationFrame(frame);
-      void context?.close().catch(() => undefined);
+      // Desconectar antes de cerrar (y no cerrar dos veces): reduce, sin
+      // eliminarlo del todo, el margen para que el auto-suspend interno del
+      // navegador (pestaña en segundo plano) choque con nuestro close() —
+      // ver InvalidStateError "Cannot suspend a closed AudioContext",
+      // filtrado también en Sentry (`sentry-nextjs-client.ts`).
+      source?.disconnect();
+      analyser?.disconnect();
+      if (context && context.state !== "closed") void context.close().catch(() => undefined);
       for (const track of stream.getTracks()) track.stop();
       if (videoRef.current) videoRef.current.srcObject = null;
       streamRef.current = null;

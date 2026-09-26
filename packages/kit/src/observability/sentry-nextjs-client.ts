@@ -20,5 +20,13 @@ export function initNextjsSentryClient(): void {
     enabled: !!dsn,
     tracesSampleRate: process.env.NODE_ENV === "production" ? 0.2 : 1,
     sendDefaultPii: false,
+    ignoreErrors: [
+      // El auto-suspend interno del navegador (pestaña en segundo plano)
+      // puede chocar con nuestro `AudioContext.close()` en `device-check.tsx`
+      // (prueba de mic/cámara del lobby): no es un error de la app, no hay
+      // try/catch posible desde JS (lo lanza el propio navegador, fuera de
+      // nuestra cadena de promesas) y no afecta a la partida.
+      /Cannot suspend a closed AudioContext/,
+    ],
   });
 }
