@@ -111,6 +111,7 @@ export function RoomPlayCta({
   isAnonymous,
   roomHref,
   size = "lg",
+  className,
 }: {
   room: CatalogRoom;
   locale: string;
@@ -121,36 +122,40 @@ export function RoomPlayCta({
   isAnonymous: boolean;
   roomHref: string;
   size?: VariantProps<typeof buttonVariants>["size"];
+  /** Envuelve el CTA para poder ajustar su espaciado desde fuera. */
+  className?: string;
 }) {
   const t = useTranslations("RoomDetail");
+  const wrap = (content: React.ReactNode) =>
+    className ? <div className={className}>{content}</div> : content;
 
   // Punto h: solo para eventos, con venta para eventos activa. Sin ningún
   // modo de venta, no hay botón (cae al `return null` final).
   if (isEventsOnly) {
-    return (
+    return wrap(
       <Button asChild size={size} className="w-fit">
         <Link href={{ pathname: "/events/new", query: { roomVersionId: room.latestVersion.id } }}>
           {t("organizeEventCta")}
         </Link>
-      </Button>
+      </Button>,
     );
   }
 
   // Punto i: sala gratis, sin cuenta, sin distinguir `isAnonymous`.
   if (isFree) {
-    return <FreeRoomPlayButton roomId={room.id} size={size} />;
+    return wrap(<FreeRoomPlayButton roomId={room.id} size={size} />);
   }
 
   if (isPaid) {
     // Punto c: sin sesión, el CTA lleva primero a login/registro (con
     // retorno a esta sala), nunca lanza el checkout directamente.
     if (isAnonymous) {
-      return (
+      return wrap(
         <Button asChild size={size} className="w-fit">
           <Link href={`/login?callbackURL=${encodeURIComponent(roomHref)}`}>
             {t("loginToBuyCta")}
           </Link>
-        </Button>
+        </Button>,
       );
     }
     // Punto f: acceso "libre" o "en curso" → Jugar/Reanudar con el
@@ -158,22 +163,22 @@ export function RoomPlayCta({
     // (`access.roomId`) en vez de crear otra.
     if (access?.owned && access.playable && access.gameToken) {
       const gameHref = `/${locale}${roomGamePlayPath(room.id, access.gameToken, access.roomId)}`;
-      return (
+      return wrap(
         <Button asChild size={size} className="w-fit">
           <a href={gameHref}>{t(access.roomId ? "resumeCta" : "playCta")}</a>
-        </Button>
+        </Button>,
       );
     }
     // Punto f: compra consumida → ya se jugó, ofrecer volver a comprar.
     if (access?.owned && !access.playable) {
-      return (
+      return wrap(
         <div className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">{t("alreadyPlayed")}</p>
           <BuyRoomButton roomVersionId={room.latestVersion.id} size={size} />
-        </div>
+        </div>,
       );
     }
-    return <BuyRoomButton roomVersionId={room.latestVersion.id} size={size} />;
+    return wrap(<BuyRoomButton roomVersionId={room.latestVersion.id} size={size} />);
   }
 
   // Ni venta individual ni para eventos: sin botón (punto h).
@@ -282,6 +287,8 @@ export function RoomDetailView({
             access={access}
             isAnonymous={isAnonymous}
             roomHref={roomHref}
+            size="xl"
+            className="mt-2"
           />
         </div>
       </div>
@@ -308,10 +315,9 @@ export function RoomDetailView({
         access={access}
         isAnonymous={isAnonymous}
         roomHref={roomHref}
-        size="xl"
       />
 
-      <section aria-labelledby="reviews-heading" className="mt-4 flex flex-col gap-3">
+      <section aria-labelledby="reviews-heading" className="flex flex-col gap-3">
         <h2 id="reviews-heading" className="text-xl font-semibold">
           {t("reviewsHeading")}
         </h2>
