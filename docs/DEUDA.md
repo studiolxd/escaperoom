@@ -45,6 +45,17 @@ Tareas pendientes que no bloquean pero hay que resolver.
       introducción que se reservan pero nunca se completan (`introMediaAsset` en `pending`, #180)
       no tienen limpieza periódica (specs/14 §10.2): falta un job del worker que borre el
       registro y el objeto del bucket pasado un plazo.
+- [ ] **Revisar todo el SEO.** Auditoría completa de SEO de la web pública antes de producción. Hoy existe:
+      `app/robots.ts`, `app/sitemap.ts` (salas × 6 idiomas), metadatos por página
+      (`lib/catalog-seo.ts` → `buildPageMetadata`, ~11 páginas con `generateMetadata`), JSON-LD en la ficha de
+      sala (con hasta 5 reseñas) y `noindex` en páginas legales y de desarrollo. Revisar: títulos y descripciones
+      de todas las páginas públicas e idiomas, `canonical` y `hreflang`/`alternates` entre los 6 idiomas,
+      Open Graph y Twitter cards (imagen de portada por sala), datos estructurados (sala, reseñas, organización,
+      breadcrumbs) validados con las herramientas de Google, sitemap (paginación, `lastModified`, solo salas
+      publicadas e indexables, caché — ver F-39), robots, páginas que no deben indexarse (juego, editor, panel,
+      canje, playtest, admin), URLs amigables (¿slug en la ficha de sala en vez del UUID?), 404/410 de salas
+      retiradas, rendimiento y Core Web Vitals de catálogo y ficha, y textos alternativos de imágenes. Depende
+      de decidir el dominio de producción (entrada de abajo) para las URLs absolutas.
 - [ ] **Decidir el dominio de producción.** Pendiente operativo, sin fecha. El Aviso
       Legal (`packages/web/src/content/legal/legal-notice.ts`) lleva un `[PENDIENTE]`
       con el dominio; al decidirlo, sustituirlo y revisar el resto de sitios que lo
