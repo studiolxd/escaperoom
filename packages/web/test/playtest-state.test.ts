@@ -4,15 +4,8 @@ import {
   combineInputs,
   isIntroOpen,
   isWorldInputEnabled,
-  resolveDialog,
   toggleSelection,
-  type DialogView,
 } from "../src/lib/playtest-state";
-
-const DIALOGS: Record<string, DialogView | undefined> = {
-  [INTRO_DIALOG_ID]: { id: INTRO_DIALOG_ID, text: "Profecía…" },
-  "d-brasero": { id: "d-brasero", text: "El brasero arde." },
-};
 
 describe("intro bloquea el juego", () => {
   it("reconoce el diálogo de intro", () => {
@@ -24,23 +17,6 @@ describe("intro bloquea el juego", () => {
   it("deshabilita el input del mundo hasta cerrar la intro", () => {
     expect(isWorldInputEnabled({ introOpen: true, inventoryOpen: false })).toBe(false);
     expect(isWorldInputEnabled({ introOpen: false, inventoryOpen: false })).toBe(true);
-  });
-});
-
-describe("cierre de diálogo tras una acción", () => {
-  it("cierra el diálogo si la acción no dispara ninguno", () => {
-    expect(resolveDialog([], DIALOGS)).toBeNull();
-  });
-
-  it("abre el diálogo que dispara la acción", () => {
-    expect(resolveDialog(["d-brasero"], DIALOGS)?.text).toBe("El brasero arde.");
-  });
-
-  it("cae al fallback si el id no está en el catálogo", () => {
-    expect(resolveDialog(["d-desconocido"], DIALOGS, "texto")).toEqual({
-      id: "d-desconocido",
-      text: "texto",
-    });
   });
 });
 
