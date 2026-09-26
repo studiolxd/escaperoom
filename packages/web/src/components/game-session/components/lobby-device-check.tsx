@@ -36,13 +36,13 @@ export function LobbyDeviceCheck() {
           {t(withCamera ? "lobby.deviceCheck.openWithCamera" : "lobby.deviceCheck.open")}
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-black/80 text-white ring-white/10">
+      <DialogContent className="bg-neutral-900 text-white ring-white/10">
         <DialogHeader>
           <DialogTitle className="sr-only">
             {t(withCamera ? "lobby.deviceCheck.titleWithCamera" : "lobby.deviceCheck.title")}
           </DialogTitle>
         </DialogHeader>
-        <DeviceCheck withCamera={withCamera} />
+        <DeviceCheck withCamera={withCamera} autoStart />
       </DialogContent>
     </Dialog>
   );

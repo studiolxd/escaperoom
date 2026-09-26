@@ -1114,10 +1114,10 @@
         "title": "Prueba tu micrófono",
         "titleWithCamera": "Prueba tu micrófono y tu cámara",
         "preview": "Vista previa de tu cámara",
+        "loading": "Pidiendo acceso al micrófono…",
+        "loadingWithCamera": "Pidiendo acceso al micrófono y a la cámara…",
         "micLevel": "Nivel del micrófono",
-        "denied": "No se ha podido acceder al micrófono o a la cámara. Revisa los permisos del navegador.",
-        "start": "Probar",
-        "stop": "Parar la prueba"
+        "denied": "No se ha podido acceder al micrófono o a la cámara. Revisa los permisos del navegador."
       }
     },
     "intro": {

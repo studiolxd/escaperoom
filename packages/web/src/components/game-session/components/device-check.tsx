@@ -2,15 +2,22 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 export interface DeviceCheckProps {
   /** La sala permite publicar vídeo (si no, solo se prueba el micrófono). */
   withCamera: boolean;
+  /**
+   * Arranca la prueba al montar, sin el paso intermedio de pulsar "Probar"
+   * (p. ej. dentro de un `Dialog` que el jugador ya abrió a propósito): el
+   * estado inicial es "loading", no "idle", para que no se vea el botón
+   * "Probar" ni un instante antes de pedir permiso de mic/cámara.
+   */
+  autoStart?: boolean;
 }
 
-type CheckState = "idle" | "running" | "denied";
+type CheckState = "idle" | "loading" | "running" | "denied";
 
 /**
  * Prueba de micrófono y cámara del lobby (encargo lobby-diseño), solo si la
@@ -19,24 +26,21 @@ type CheckState = "idle" | "running" | "denied";
  * la vista previa de la cámara (silenciada) y el nivel del micrófono, y lo
  * suelta todo al parar o al salir del lobby.
  */
-export function DeviceCheck({ withCamera }: DeviceCheckProps) {
+export function DeviceCheck({ withCamera, autoStart }: DeviceCheckProps) {
   const t = useTranslations("Game");
-  const [state, setState] = useState<CheckState>("idle");
+  const [state, setState] = useState<CheckState>(autoStart ? "loading" : "idle");
   const [level, setLevel] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const stopRef = useRef<(() => void) | null>(null);
 
-  const stop = useCallback(() => {
-    stopRef.current?.();
-    stopRef.current = null;
-    setLevel(0);
-    setState("idle");
-  }, []);
-
   useEffect(() => () => stopRef.current?.(), []);
 
   const start = useCallback(async () => {
+    // Reentrada: `autoStart` no debe relanzar `getUserMedia` sobre una prueba
+    // ya en marcha (p. ej. si `withCamera` cambiara y reejecutara el efecto).
+    if (stopRef.current) return;
+    setState("loading");
     if (!navigator.mediaDevices?.getUserMedia) {
       setState("denied");
       return;
@@ -90,11 +94,13 @@ export function DeviceCheck({ withCamera }: DeviceCheckProps) {
     setState("running");
   }, [withCamera]);
 
+  useEffect(() => {
+    if (autoStart) void start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar, no en cada `start` nuevo por cambio de `withCamera`.
+  }, [autoStart]);
+
   return (
     <div className="flex flex-col gap-2" data-testid="lobby-device-check">
-      <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
-        {withCamera ? t("lobby.deviceCheck.titleWithCamera") : t("lobby.deviceCheck.title")}
-      </span>
       {withCamera ? (
         <video
           ref={videoRef}
@@ -115,19 +121,17 @@ export function DeviceCheck({ withCamera }: DeviceCheckProps) {
           />
         </div>
       ) : null}
+      {state === "loading" ? (
+        <p className="flex items-center gap-2 text-xs text-white/60">
+          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          {withCamera ? t("lobby.deviceCheck.loadingWithCamera") : t("lobby.deviceCheck.loading")}
+        </p>
+      ) : null}
       {state === "denied" ? (
         <p role="alert" className="text-xs text-amber-200">
           {t("lobby.deviceCheck.denied")}
         </p>
       ) : null}
-      <Button
-        size="xs"
-        variant="overlayGhost"
-        onClick={state === "running" ? stop : () => void start()}
-        data-testid="lobby-device-check-toggle"
-      >
-        {state === "running" ? t("lobby.deviceCheck.stop") : t("lobby.deviceCheck.start")}
-      </Button>
     </div>
   );
 }
