@@ -932,7 +932,6 @@
       "createSubtitle": "Create a game and share the link with your group (up to 4 players).",
       "joinSubtitle": "You have been invited to a game in progress.",
       "nameLabel": "Your name",
-      "namePlaceholder": "e.g. Ana",
       "create": "Create game",
       "join": "Join"
     },
@@ -1115,10 +1114,10 @@
     "titleLabel": "Event title",
     "playersLabel": "Planned players",
     "pricingTitle": "Price per player",
-    "pricingLoading": "Loading pricing tiers\u2026",
+    "pricingLoading": "Loading pricing tiers…",
     "pricingUnavailable": "Could not load the pricing tiers.",
     "pricingRangeOpen": "{min}+ players:",
-    "pricingRangeCapped": "{min}\u2013{max} players:",
+    "pricingRangeCapped": "{min}–{max} players:",
     "submitError": "Could not create the event. Please try again.",
     "submit": "Create event",
     "errors": {

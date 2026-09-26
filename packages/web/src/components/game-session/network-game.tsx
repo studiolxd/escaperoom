@@ -156,7 +156,6 @@ export function NetworkGame({
               value={draftName}
               onChange={(event) => setDraftName(event.target.value)}
               maxLength={32}
-              placeholder={t("join.namePlaceholder")}
               className="h-auto px-2 py-1.5 text-sm"
             />
           </Label>

@@ -830,7 +830,6 @@
       "createSubtitle": "Maak een spel aan en deel de link met je groep (tot 4 spelers).",
       "joinSubtitle": "Je bent uitgenodigd voor een lopend spel.",
       "nameLabel": "Je naam",
-      "namePlaceholder": "bijv. Ana",
       "create": "Spel aanmaken",
       "join": "Meedoen"
     },
@@ -1104,10 +1103,10 @@
     "titleLabel": "Titel van het evenement",
     "playersLabel": "Geplande spelers",
     "pricingTitle": "Prijs per speler",
-    "pricingLoading": "Prijsschijven laden\u2026",
+    "pricingLoading": "Prijsschijven laden…",
     "pricingUnavailable": "Kon de prijsschijven niet laden.",
     "pricingRangeOpen": "{min}+ spelers:",
-    "pricingRangeCapped": "{min}\u2013{max} spelers:",
+    "pricingRangeCapped": "{min}–{max} spelers:",
     "submitError": "Kon het evenement niet aanmaken. Probeer het opnieuw.",
     "submit": "Evenement aanmaken",
     "errors": {

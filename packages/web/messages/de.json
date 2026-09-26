@@ -830,7 +830,6 @@
       "createSubtitle": "Erstelle ein Spiel und teile den Link mit deiner Gruppe (bis zu 4 Spieler).",
       "joinSubtitle": "Du wurdest zu einem laufenden Spiel eingeladen.",
       "nameLabel": "Dein Name",
-      "namePlaceholder": "z. B. Ana",
       "create": "Spiel erstellen",
       "join": "Beitreten"
     },
@@ -1104,10 +1103,10 @@
     "titleLabel": "Eventtitel",
     "playersLabel": "Geplante Spieler",
     "pricingTitle": "Preis pro Spieler",
-    "pricingLoading": "Preisstufen werden geladen\u2026",
+    "pricingLoading": "Preisstufen werden geladen…",
     "pricingUnavailable": "Die Preisstufen konnten nicht geladen werden.",
     "pricingRangeOpen": "{min}+ Spieler:",
-    "pricingRangeCapped": "{min}\u2013{max} Spieler:",
+    "pricingRangeCapped": "{min}–{max} Spieler:",
     "submitError": "Das Event konnte nicht erstellt werden. Bitte erneut versuchen.",
     "submit": "Event erstellen",
     "errors": {

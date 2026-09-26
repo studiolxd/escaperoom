@@ -830,7 +830,6 @@
       "createSubtitle": "Cria um jogo e partilha o link com o teu grupo (até 4 jogadores).",
       "joinSubtitle": "Foste convidado para um jogo em curso.",
       "nameLabel": "O teu nome",
-      "namePlaceholder": "ex. Ana",
       "create": "Criar jogo",
       "join": "Entrar"
     },
