@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import { expect, type APIRequestContext, type BrowserContext } from "@playwright/test";
+import { CURRENT_TERMS_VERSION } from "@escaperoom/shared/legal-acceptance";
 import { LOCALE, WEB_URL, databaseUrl } from "./env";
 
 /** Cabeceras de una petición «del propio sitio» (Better Auth comprueba el Origin). */
@@ -88,6 +89,24 @@ export async function signInRequest(request: APIRequestContext, email: string): 
   );
   const me = await request.get(`${WEB_URL}/api/me`);
   expect(me.ok(), `/api/me tras iniciar sesión → ${me.status()}`).toBe(true);
+  await acceptCurrentTerms(email);
+}
+
+/**
+ * `(creator)`/`(play)` bloquean con un gate de reaceptación (`/legal/reaccept`)
+ * a cualquier sesión cuyo `termsAcceptedVersion` no sea el vigente
+ * (`CURRENT_TERMS_VERSION`) — nunca lo es recién sembrado o recién creado por
+ * enlace mágico (`termsAcceptedVersion` nace `null`). La suite no prueba ese
+ * gate (no hay ningún spec de reaceptación): todo `signIn` lo deja al día por
+ * Postgres directo, para no tener que hacer clic en «Aceptar y continuar» en
+ * cada test que entra en esas dos áreas.
+ */
+async function acceptCurrentTerms(email: string): Promise<void> {
+  const db = verificationPool();
+  await db.query('update "user" set "termsAcceptedVersion" = $1 where email = $2', [
+    CURRENT_TERMS_VERSION,
+    email,
+  ]);
 }
 
 /** Fija la organización activa de la sesión (el actor de los servicios la lee de ahí). */

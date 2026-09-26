@@ -20,6 +20,7 @@
     "./event-runtime": "./src/services/event-runtime.ts",
     "./event-runtime-prisma": "./src/services/event-runtime-prisma-store.ts",
     "./game-access-token": "./src/services/game-access-token.ts",
+    "./legal-acceptance": "./src/services/legal-acceptance.ts",
     "./game-access": "./src/services/game-access.ts",
     "./game-access-prisma": "./src/services/game-access-prisma-store.ts",
     "./mail": "./src/mail/index.ts",
