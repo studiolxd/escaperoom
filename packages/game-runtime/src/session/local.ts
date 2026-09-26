@@ -48,6 +48,15 @@ export interface LocalGameClient extends GameClient {
   /** Avanza el reloj lógico (timers, `delay` de la victoria). */
   tick(): void;
   dispose(): void;
+  /**
+   * `RoomSession` interna (F-5): vía de escape de solo lectura para
+   * herramientas de desarrollo (p. ej. el checklist de la ruta crítica del
+   * Rey Aldric, `rey-aldric-route.ts`) que necesitan datos que el
+   * `GameSnapshot` público no expone (contadores de regla, recetas
+   * aplicadas). No sustituye al `GameClient`: ninguna acción del jugador debe
+   * pasar por aquí.
+   */
+  readonly session: RoomSession;
 }
 
 const LOCAL_TICK_MS = 250;
@@ -304,6 +313,7 @@ export function createLocalGameClient(
 
   return {
     selfId,
+    session,
     getSnapshot: () => snapshot,
     subscribe: (listener) => snapshots.on(listener),
     onEvent: (listener) => events.on(listener),
