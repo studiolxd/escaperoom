@@ -1387,14 +1387,13 @@
   "Moderation": {
     "metaTitle": "Cola de moderación",
     "title": "Cola de moderación",
-    "intro": "Reportes ordenados por severidad y SLA, apelaciones pendientes y audio subido pendiente de revisión.",
+    "intro": "Reportes ordenados por severidad y SLA, y apelaciones pendientes.",
     "forbidden": "Solo moderadores o administradores pueden ver la cola de moderación.",
     "loading": "Cargando la cola…",
     "empty": "No hay nada pendiente.",
     "tabs": {
       "reports": "Reportes ({count})",
-      "appeals": "Apelaciones ({count})",
-      "audio": "Audio ({count})"
+      "appeals": "Apelaciones ({count})"
     },
     "severity": {
       "critical": "Crítica",
@@ -1420,7 +1419,6 @@
     },
     "meta": "Revisar antes de {due} · creado {created} · {count, plural, one {# reporte} other {# reportes}} sobre este contenido",
     "note": "Nota de resolución (motivo que verá el creador)",
-    "rejectNeedsNote": "Para rechazar un audio escribe el motivo en la nota",
     "appeal": {
       "room": "Apelación sobre una sala",
       "account": "Apelación de cuenta (suspensión o ban)"
@@ -1431,9 +1429,7 @@
       "dismiss": "Descartar",
       "restore": "Restaurar (falso positivo)",
       "uphold": "Mantener la decisión",
-      "overturn": "Revertir la acción",
-      "approve": "Aprobar",
-      "reject": "Rechazar"
+      "overturn": "Revertir la acción"
     },
     "errors": {
       "UNAUTHORIZED": "Inicia sesión para moderar.",
