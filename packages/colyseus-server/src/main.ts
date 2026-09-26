@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { requireInProduction } from "@escaperoom/env";
+import { logger } from "@escaperoom/kit/logger";
 import { initNodeSentry } from "@escaperoom/kit/observability/sentry-node";
 import { EVENT_ROOM_NAME, GAME_ROOM_NAME, PLAYTEST_ROOM_NAME } from "./constants.js";
 import { configureGameAccessRuntime } from "./game/access-runtime.js";
@@ -70,14 +71,17 @@ requireInProduction(process.env, [
   "GAME_ACCESS_TOKEN_SECRET",
   "PLAYTEST_SECRET",
 ]);
-console.info(`[env] NODE_ENV=${process.env.NODE_ENV ?? "development"} validado`);
+logger.info(
+  { nodeEnv: process.env.NODE_ENV ?? "development" },
+  "[env] NODE_ENV validado",
+);
 // Sentry (ticket 6.4): sin SENTRY_DSN queda deshabilitado, sin romper nada.
 initNodeSentry({ dsn: process.env.SENTRY_DSN });
 const events = await configureEvents();
 const gameAccess = await configureGameAccess();
 const port = resolvePort();
 await startGameServer(port);
-console.log(
-  `[colyseus] rooms «${GAME_ROOM_NAME}», «${PLAYTEST_ROOM_NAME}» y «${EVENT_ROOM_NAME}» ` +
-    `(eventos: ${events}, compras: ${gameAccess}) escuchando en ws://localhost:${port}`,
+logger.info(
+  { rooms: [GAME_ROOM_NAME, PLAYTEST_ROOM_NAME, EVENT_ROOM_NAME], events, gameAccess, port },
+  "[colyseus] servidor de rooms escuchando",
 );

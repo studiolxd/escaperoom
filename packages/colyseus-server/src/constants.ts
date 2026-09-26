@@ -88,6 +88,10 @@ export const RESULTS_ROOM_LIFETIME_SEC = 5 * 60;
  */
 export const GAME_MESSAGES = {
   startGame: "start_game",
+  /** Cliente → servidor (C-13, specs/11 §4.1): marca/desmarca "Listo" en el lobby. */
+  setReady: "set_ready",
+  /** Cliente → servidor (C-13, solo anfitrión, specs/11 §4.5): expulsa a otro jugador. */
+  kick: "kick",
   move: "move",
   interact: "interact",
   useItem: "use_item",
@@ -110,6 +114,8 @@ export const GAME_MESSAGES = {
   itemGranted: "item_granted",
   puzzleSolved: "puzzle_solved",
   gameEnded: "game_ended",
+  /** Servidor → cliente (C-13, specs/11 §4.5): alguien salió o fue expulsado del lobby/partida. */
+  playerLeft: "player_left",
 } as const;
 
 /** Códigos de error de protocolo de la `GameRoom` (specs/11 §7). */
@@ -119,6 +125,12 @@ export const GAME_ERRORS = {
   permissionDenied: "PERMISSION_DENIED",
   moveTooFast: "MOVE_TOO_FAST",
   roomLocked: "ROOM_LOCKED",
+  /** `start_game` sin `force`: hay conectados que aún no están "Listo" (C-13). */
+  playersNotReady: "PLAYERS_NOT_READY",
+  /** `start_game` (con o sin `force`): conectados por debajo de `meta.players.min` (C-13). */
+  minPlayersNotMet: "MIN_PLAYERS_NOT_MET",
+  /** `kick`: el objetivo no existe o ya no está conectado (C-13). */
+  kickTargetInvalid: "KICK_TARGET_INVALID",
 } as const;
 
 /** Room temporal del playtest del editor (ticket 3.8, specs/09 §3). */

@@ -957,19 +957,30 @@
       "characterTaken": "taken",
       "players": "{count, plural, one {# player} other {# players}}",
       "start": "Start game",
+      "startForce": "Start anyway",
+      "startNotReady": "Some players are not ready yet.",
+      "confirmForceTitle": "Start without everyone ready?",
+      "confirmForceConfirm": "Yes, start anyway",
+      "confirmForceCancel": "Wait",
+      "markReady": "Mark myself ready",
+      "ready": "Ready ✓",
       "waitingHost": "Waiting for the host to start…",
       "invite": "Copy invite link",
       "copied": "Link copied!",
       "you": "you",
       "host": "host",
-      "offline": "offline"
+      "offline": "offline",
+      "kick": "Kick",
+      "kickConfirm": "Kick {player}? They won't be able to rejoin this game."
     },
     "hud": {
       "loadingPanel": "Loading…"
     },
     "log": {
       "itemGranted": "You receive {item}",
-      "itemGrantedOther": "{player} receives {item}"
+      "itemGrantedOther": "{player} receives {item}",
+      "playerLeft": "{player} left",
+      "playerKicked": "{player} was kicked"
     },
     "errors": {
       "NOT_AVAILABLE": "You can't do that yet",

@@ -267,6 +267,7 @@ describe("playtest de punta a punta (web → Colyseus real)", () => {
       .toBe((received[0]!.roomPackage as RoomPackage).meta.id);
 
     const intro = new Promise((resolve) => room.onMessage(GAME_PROTOCOL.dialogShow, resolve));
+    room.send(GAME_PROTOCOL.setReady, { ready: true });
     room.send(GAME_PROTOCOL.startGame, {});
     expect(await intro).toEqual({ dialogId: "d-intro" });
     await expect.poll(() => room.state.phase).toBe("playing");

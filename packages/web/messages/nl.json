@@ -855,19 +855,30 @@
       "characterTaken": "bezet",
       "players": "{count, plural, one {# speler} other {# spelers}}",
       "start": "Spel starten",
+      "startForce": "Toch starten",
+      "startNotReady": "Niet iedereen is al klaar.",
+      "confirmForceTitle": "Starten zonder dat iedereen klaar is?",
+      "confirmForceConfirm": "Ja, toch starten",
+      "confirmForceCancel": "Wachten",
+      "markReady": "Mezelf klaarmelden",
+      "ready": "Klaar ✓",
       "waitingHost": "Wachten tot de host start…",
       "invite": "Uitnodigingslink kopiëren",
       "copied": "Link gekopieerd!",
       "you": "jij",
       "host": "host",
-      "offline": "offline"
+      "offline": "offline",
+      "kick": "Verwijderen",
+      "kickConfirm": "{player} verwijderen? Kan niet opnieuw meedoen aan dit spel."
     },
     "hud": {
       "loadingPanel": "Laden…"
     },
     "log": {
       "itemGranted": "Je ontvangt {item}",
-      "itemGrantedOther": "{player} ontvangt {item}"
+      "itemGrantedOther": "{player} ontvangt {item}",
+      "playerLeft": "{player} is vertrokken",
+      "playerKicked": "{player} is verwijderd"
     },
     "errors": {
       "NOT_AVAILABLE": "Dat kan nog niet",

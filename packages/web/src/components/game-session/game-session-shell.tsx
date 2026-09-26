@@ -277,6 +277,9 @@ export function GameSessionShell({
       ) : (
         <PlayersAside
           players={snapshot.players}
+          phase={snapshot.phase}
+          isHost={hud.isHost}
+          onKick={(playerId) => client.kick(playerId)}
           log={hud.log}
           inviteUrl={inviteUrl}
           copied={hud.copied}
@@ -287,6 +290,8 @@ export function GameSessionShell({
           offlineSuffix={hud.t("lobby.offline")}
           inviteLabel={hud.t("lobby.invite")}
           copiedLabel={hud.t("lobby.copied")}
+          kickLabel={hud.t("lobby.kick")}
+          kickConfirmLabel={(player) => hud.t("lobby.kickConfirm", { player })}
           logTitle={hud.tp("log.title")}
         />
       )}
@@ -304,13 +309,23 @@ export function GameSessionShell({
           selectedCharacterId={snapshot.self.characterId}
           onSelectCharacter={(characterId) => client.selectCharacter(characterId)}
           isHost={hud.isHost}
-          onStart={() => client.startGame()}
+          allReady={snapshot.players.every((player) => !player.connected || player.ready)}
+          isReady={snapshot.self.ready}
+          onToggleReady={(ready) => client.setReady(ready)}
+          onStart={(force) => client.startGame(force)}
           inviteUrl={inviteUrl}
           copied={hud.copied}
           onCopyInvite={() => void hud.copyInvite(inviteUrl)}
           titleLabel={hud.t("lobby.title")}
           playersLabel={hud.t("lobby.players", { count: snapshot.players.length })}
           startLabel={hud.t("lobby.start")}
+          startForceLabel={hud.t("lobby.startForce")}
+          startNotReadyLabel={hud.t("lobby.startNotReady")}
+          confirmForceTitleLabel={hud.t("lobby.confirmForceTitle")}
+          confirmForceConfirmLabel={hud.t("lobby.confirmForceConfirm")}
+          confirmForceCancelLabel={hud.t("lobby.confirmForceCancel")}
+          markReadyLabel={hud.t("lobby.markReady")}
+          readyLabel={hud.t("lobby.ready")}
           waitingHostLabel={hud.t("lobby.waitingHost")}
           inviteLabel={hud.t("lobby.invite")}
           copiedLabel={hud.t("lobby.copied")}

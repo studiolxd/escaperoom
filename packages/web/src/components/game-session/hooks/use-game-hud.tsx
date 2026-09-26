@@ -199,6 +199,14 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
         }
         case "object_state_changed":
           break;
+        case "player_left": {
+          pushLog(
+            event.reason === "kicked"
+              ? t("log.playerKicked", { player: event.name })
+              : t("log.playerLeft", { player: event.name }),
+          );
+          break;
+        }
         case "item_granted": {
           const mine = event.playerId === snapshotRef.current.selfId;
           const who = snapshotRef.current.players.find((p) => p.id === event.playerId)?.name;

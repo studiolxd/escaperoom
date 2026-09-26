@@ -855,19 +855,30 @@
       "characterTaken": "vergeben",
       "players": "{count, plural, one {# Spieler} other {# Spieler}}",
       "start": "Spiel starten",
+      "startForce": "Trotzdem starten",
+      "startNotReady": "Noch nicht alle Spieler sind bereit.",
+      "confirmForceTitle": "Starten, obwohl nicht alle bereit sind?",
+      "confirmForceConfirm": "Ja, trotzdem starten",
+      "confirmForceCancel": "Warten",
+      "markReady": "Mich als bereit markieren",
+      "ready": "Bereit ✓",
       "waitingHost": "Warte darauf, dass der Host startet…",
       "invite": "Einladungslink kopieren",
       "copied": "Link kopiert!",
       "you": "du",
       "host": "Host",
-      "offline": "offline"
+      "offline": "offline",
+      "kick": "Rauswerfen",
+      "kickConfirm": "{player} rauswerfen? Kann dieser Partie nicht wieder beitreten."
     },
     "hud": {
       "loadingPanel": "Lädt…"
     },
     "log": {
       "itemGranted": "Du erhältst {item}",
-      "itemGrantedOther": "{player} erhält {item}"
+      "itemGrantedOther": "{player} erhält {item}",
+      "playerLeft": "{player} hat verlassen",
+      "playerKicked": "{player} wurde rausgeworfen"
     },
     "errors": {
       "NOT_AVAILABLE": "Das geht noch nicht",

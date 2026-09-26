@@ -122,6 +122,7 @@ export function createLocalGameClient(
       tint: options.tint ?? "#38bdf8",
       characterId,
       connected: true,
+      ready: true,
       isHost: true,
       isSelf: true,
     };
@@ -321,12 +322,22 @@ export function createLocalGameClient(
     dispose,
     leave: async () => dispose(),
 
+    // C-13: el playtest local es de un solo jugador (siempre "el anfitrión,
+    // solo") — sin gate de mínimo/"Listo" que tenga sentido aquí (eso es
+    // multijugador); `force` se acepta por compatibilidad de interfaz mas no
+    // se usa.
     startGame() {
       if (session.state.phase !== "lobby") {
         fail(GAME_PROTOCOL_ERRORS.invalidState, "La partida ya ha empezado.");
         return;
       }
       publish(session.start(logicalNow()));
+    },
+    setReady() {
+      // No-op: un solo jugador, sin nadie más a quien esperar.
+    },
+    kick() {
+      // No-op: no hay a quien expulsar en un playtest de un jugador.
     },
 
     move(x, y, roomId) {

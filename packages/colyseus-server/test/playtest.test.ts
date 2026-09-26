@@ -320,6 +320,8 @@ describe("POST /internal/playtests", () => {
     expect(client.state.roomPackageId).toBe("draft-sala-de-prueba");
     expect(client.state.roomPackageVersion).toBe("0.0.1-draft");
 
+    client.send(GAME_MESSAGES.setReady, { ready: true });
+    await expect.poll(() => client.state.players.get(client.sessionId)?.ready).toBe(true);
     const intro = client.waitForMessage(GAME_MESSAGES.dialogShow);
     client.send(GAME_MESSAGES.startGame, {});
     expect(await intro).toEqual({ dialogId: "d-intro" });
@@ -358,6 +360,8 @@ describe("POST /internal/playtests", () => {
     await expect.poll(() => second.state.hostId).toBe(first.sessionId);
     await first.leave();
     await expect.poll(() => second.state.hostId).toBe(second.sessionId);
+    second.send(GAME_MESSAGES.setReady, { ready: true });
+    await expect.poll(() => second.state.players.get(second.sessionId)?.ready).toBe(true);
     const intro = second.waitForMessage(GAME_MESSAGES.dialogShow);
     second.send(GAME_MESSAGES.startGame, {});
     expect(await intro).toEqual({ dialogId: "d-intro" });

@@ -83,6 +83,9 @@ async function startGame(): Promise<{ room: GameRoom; a: TestClient; b: TestClie
   const room = await createGameRoom();
   const a = await join(room, { name: "Ana" });
   const b = await join(room, { name: "Bruno" });
+  a.send(GAME_MESSAGES.setReady, { ready: true });
+  b.send(GAME_MESSAGES.setReady, { ready: true });
+  await expect.poll(() => room.state.players.get(b.sessionId)?.ready).toBe(true);
   const intro = a.waitForMessage(GAME_MESSAGES.dialogShow);
   a.send(GAME_MESSAGES.startGame, {});
   expect(await intro).toEqual({ dialogId: "d-intro" });
@@ -183,6 +186,9 @@ describe("GameRoom — Rey Aldric sobre Colyseus", () => {
     a.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
     expect((await blocked).code).toBe(GAME_ERRORS.invalidState);
 
+    a.send(GAME_MESSAGES.setReady, { ready: true });
+    b.send(GAME_MESSAGES.setReady, { ready: true });
+    await expect.poll(() => room.state.players.get(b.sessionId)?.ready).toBe(true);
     a.send(GAME_MESSAGES.startGame, {});
     await expect.poll(() => b.state.phase).toBe("playing");
     expect(b.state.endsAt - b.state.startedAt).toBe(3600 * 1000);

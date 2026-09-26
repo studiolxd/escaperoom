@@ -23,6 +23,12 @@ Colyseus Server (Node.js)
    └── SpectatorRoom      ── observadores (organizador): suscripción de solo lectura a N GameRooms
 ```
 
+> **Corrección (C-13, auditoría 2026-09-24): no existe una clase `SpectatorRoom` separada.**
+> El diagrama de arriba es el diseño original; lo que hay implementado es el **modo observador de
+> la propia `EventRoom`** (ver §11, "Implementación v1") — más simple, sin una room ni un
+> matchmaking aparte. Para el token LiveKit del observador (de solo suscripción), `specs/12` §1.1
+> es la fuente autoritativa; este documento (§11) solo cubre el protocolo de Colyseus.
+
 - Una `Session` (de la BD) ≈ una instancia de `GameRoom` con `sessionId` persistente en PostgreSQL.
 - El room state de Colyseus es la **única fuente de verdad en vivo**; Postgres guarda el
   resultado final y el histórico.
@@ -108,9 +114,9 @@ Envoltura: `{type, payload, clientTime?}` — `clientTime` para corrección de r
 |---|---|---|---|
 | `join` | `{sessionId, joinToken, accessKey?, characterId?}` | cualquiera | Valida compra/clave/joinToken → asigna role. Error si clave inválida/caducada/usada. `characterId` es opcional: sin él (o si está ocupado/no existe), el servidor asigna el primer libre, o el maniquí de reserva |
 | `select_character` | `{characterId}` | jugador | Lobby o en partida. El servidor valida unicidad contra `manifest.avatars`; rechaza (`NOT_AVAILABLE`) si ya está en uso por otro jugador |
-| `set_ready` | `{ready: bool}` | jugador | Lobby. Cuando todos ready → host puede empezar |
-| `start_game` | `{}` | host | `lobby → playing`. Inicia cronómetro, dispara regla `on_game_start` |
-| `leave` | `{}` | cualquiera | Sale de la partida |
+| `set_ready` | `{ready: bool}` | jugador | Lobby. Se resetea a `false` al cambiar de personaje (`select_character`) o al reconectar. Sin efecto fuera del lobby (`INVALID_STATE`) |
+| `start_game` | `{force?: bool}` | host | `lobby → playing` si todos los conectados están "Listo" **y** hay al menos `meta.players.min` conectados; rechaza con `PLAYERS_NOT_READY` si no (C-13). `force: true` ("Empezar igualmente") salta el requisito de "Listo" pero NUNCA el mínimo (`MIN_PLAYERS_NOT_MET` igualmente). Inicia cronómetro, dispara regla `on_game_start` |
+| `leave` | `{}` | cualquiera | Sale de la partida (**no implementado**: hoy solo se sale cerrando la conexión, C-13) |
 
 ### 4.2 Movimiento y mundo
 
@@ -142,9 +148,9 @@ Envoltura: `{type, payload, clientTime?}` — `clientTime` para corrección de r
 
 | Mensaje | Payload | Quién | Efecto |
 |---|---|---|---|
-| `pause` / `resume` | `{}` | host u observador-organizador | Pausa global (congela timers server-side). Máx. 5 min |
-| `kick` | `{playerId}` | host | Expulsa jugador (libera su asiento en eventos) |
-| `observer_join_rooms` | `{sessionIds: []}` | observador | (SpectatorRoom) suscripción a múltiples GameRooms |
+| `pause` / `resume` | `{}` | host u observador-organizador | **No implementado** (auditoría 2026-09-24, C-13): queda para otra decisión de producto |
+| `kick` | `{playerId}` | host | Expulsa jugador (C-13): no puede volver a esta partida (bloqueo por identidad — `seatKey` en `GameRoom`, `playerId` del `joinToken` en `EventRoom` — durante la vida de la room; en eventos, el organizador puede darle otra clave). Difunde `player_left {playerId, name, reason: "kicked"}`. Rechaza (`KICK_TARGET_INVALID`) si el objetivo no existe/no está conectado, o si el host se expulsa a sí mismo |
+| `observer_join_rooms` | `{sessionIds: []}` | observador | (SpectatorRoom) suscripción a múltiples GameRooms. **No implementado** — ver §11 |
 
 ## 5. Respuestas del servidor a `puzzle_attempt`
 
@@ -204,13 +210,12 @@ piezas la una a la otra, que es justamente el punto de un escape room multijugad
 
 | Mensaje | Destinatarios | Cuándo |
 |---|---|---|
-| `player_joined` / `player_left` | todos | Cambios en lobby/jugadores |
-| `phase_changed {phase}` | todos | Transiciones de fase |
+| `player_left {playerId, name, reason}` | todos | Alguien sale (`reason: "left"`) o es expulsado (`reason: "kicked"`, C-13). `player_joined` no existe como mensaje aparte: el propio room state (`players`) ya refleja las altas |
+| `phase_changed {phase}` | — | **No implementado**: el cliente deriva la fase de `state.phase`, ya sincronizado |
 | `object_state_changed {objectId, state}` | todos | Reglas/puzzles mutan objetos (Phaser anima) |
 | `item_granted {playerId, itemId}` | todos (configurable `privateInventory` por sala) | Recetas, reglas, puzzles |
 | `dialog_show {dialogId, actorName?}` | todos | Reglas con `show_dialog` |
 | `puzzle_solved` | todos | Ver §5 |
-| `timer_update {timers}` | todos | Cada segundo (solo timers visibles) |
 | `game_ended {result, stats}` | todos | `victory \| timeout \| abandoned` + stats |
 | `chat_message {message}` | todos | — |
 | `hint_delivered {puzzleId, tier, text}` | emisor | Consumo de pista |
@@ -224,6 +229,9 @@ ROOM_VERSION_MISMATCH  (el cliente pide versión distinta a la congelada en la s
 NOT_AVAILABLE         ALREADY_SOLVED       LOCKED_OUT           COOLDOWN
 RATE_LIMITED          MOVE_TOO_FAST        INVALID_STATE        PERMISSION_DENIED
 RULE_EXECUTION_ERROR  (una regla abortó; se registra y se notifica como warn)
+PLAYERS_NOT_READY     (C-13: `start_game` sin `force`, con conectados que no están "Listo")
+MIN_PLAYERS_NOT_MET   (C-13: `start_game`, con o sin `force`, por debajo de `meta.players.min`)
+KICK_TARGET_INVALID   (C-13: `kick` a un objetivo inexistente/desconectado, o a uno mismo)
 ```
 
 Convención: los errores de negocio van en `attempt_result`/`error`; los de protocolo cierran el
@@ -345,16 +353,23 @@ Al terminar la partida (`game_ended`: victoria, derrota o tiempo agotado):
 | `dialog_read` | al cerrar `dialog_show` |
 | `session_ended` | `game_ended` |
 | `key_redeemed` | join con clave |
+| `player_left` | `kick` o salida (voluntaria o por gracia agotada), C-13 |
 
-Emisión: cola en Redis → worker → tabla `analyticsEvent` (append-only). Nunca bloquea el game
-loop; si la cola cae, se pierde analítica, nunca gameplay. Taxonomía completa en `specs/16-analitica.md`.
+**Implementación actual (C-13):** no hay cola en Redis ni tabla `analyticsEvent` todavía — cada
+hito (`onMilestone`, incluido `player_left`) se registra como log estructurado
+(`GameRoom.recordAnalytics`, `@escaperoom/kit/logger`, C-20), un sumidero real y ya desacoplado del
+punto de emisión, listo para que un backend de analítica dedicado lo consuma sin tocar la room. La
+taxonomía completa (cola en Redis → worker → `analyticsEvent`) sigue siendo el diseño de
+`specs/16-analitica.md`, pendiente de construir.
 
 ## 11. Matriz de permisos
 
 | Acción | Jugador | Host | Observador |
 |---|---|---|---|
 | moverse, interactuar, puzzles, chat | ✅ | ✅ | ❌ |
-| start_game, pause, kick | ❌ | ✅ | pause ✅ |
+| `set_ready` | ✅ | ✅ | ❌ |
+| `start_game`, `kick` | ❌ | ✅ | ❌ |
+| `pause`/`resume` | — | — | — (no implementado, C-13) |
 | ver estado de partida | ✅ | ✅ | ✅ (solo lectura) |
 | ver fragmentos `split_clue` | ✅ (los suyos) | ✅ | ❌ (anti-filtrado) |
 | recibir soluciones/pesos/códigos | ❌ | ❌ | ❌ |

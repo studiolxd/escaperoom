@@ -111,6 +111,7 @@ describe("toGameSnapshot", () => {
           tint: "#38bdf8",
           characterId: "caballero-m",
           connected: true,
+          ready: true,
         },
         b: {
           id: "b",
@@ -121,6 +122,7 @@ describe("toGameSnapshot", () => {
           tint: "#f472b6",
           characterId: "maniqui",
           connected: true,
+          ready: true,
         },
       }),
       objects: each({ armario: "open" }),
@@ -149,8 +151,8 @@ describe("toGameSnapshot", () => {
       clock: 5000,
       hostId: "a",
       players: each({
-        a: { id: "a", name: "Ana", x: 10, y: 12, roomId: "salon-trono", tint: "#38bdf8", characterId: "caballero-m", connected: true },
-        b: { id: "b", name: "Bruno", x: 9, y: 12, roomId: "salon-trono", tint: "#f472b6", characterId: "maniqui", connected: true },
+        a: { id: "a", name: "Ana", x: 10, y: 12, roomId: "salon-trono", tint: "#38bdf8", characterId: "caballero-m", connected: true, ready: true },
+        b: { id: "b", name: "Bruno", x: 9, y: 12, roomId: "salon-trono", tint: "#f472b6", characterId: "maniqui", connected: true, ready: true },
       }),
       objects: each({ armario: "open" }),
       puzzles: each({ "p-candado-arca": { state: "available", attempts: 2, solvedBy: "" } }),
@@ -178,8 +180,8 @@ describe("toGameSnapshot", () => {
       ...state,
       clock: 5500,
       players: each({
-        a: { id: "a", name: "Ana", x: 11, y: 12, roomId: "salon-trono", tint: "#38bdf8", characterId: "caballero-m", connected: true },
-        b: { id: "b", name: "Bruno", x: 9, y: 12, roomId: "salon-trono", tint: "#f472b6", characterId: "maniqui", connected: true },
+        a: { id: "a", name: "Ana", x: 11, y: 12, roomId: "salon-trono", tint: "#38bdf8", characterId: "caballero-m", connected: true, ready: true },
+        b: { id: "b", name: "Bruno", x: 9, y: 12, roomId: "salon-trono", tint: "#f472b6", characterId: "maniqui", connected: true, ready: true },
       }),
     };
     const third = toGameSnapshot(moved, "b", second);

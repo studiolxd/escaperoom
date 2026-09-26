@@ -161,6 +161,8 @@ describe("room de evento con joinToken", () => {
     await expect.poll(() => client.state.players.get(client.sessionId)?.name).toBe("Ana");
 
     // Juega con el mismo protocolo que la GameRoom.
+    client.send(GAME_MESSAGES.setReady, { ready: true });
+    await expect.poll(() => client.state.players.get(client.sessionId)?.ready).toBe(true);
     const intro = client.waitForMessage(GAME_MESSAGES.dialogShow);
     client.send(GAME_MESSAGES.startGame, {});
     expect(await intro).toEqual({ dialogId: "d-intro" });

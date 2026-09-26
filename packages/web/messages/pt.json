@@ -855,19 +855,30 @@
       "characterTaken": "ocupado",
       "players": "{count, plural, one {# jogador} other {# jogadores}}",
       "start": "Começar jogo",
+      "startForce": "Começar na mesma",
+      "startNotReady": "Ainda há jogadores que não estão prontos.",
+      "confirmForceTitle": "Começar sem todos estarem prontos?",
+      "confirmForceConfirm": "Sim, começar na mesma",
+      "confirmForceCancel": "Esperar",
+      "markReady": "Marcar-me como pronto",
+      "ready": "Pronto ✓",
       "waitingHost": "À espera que o anfitrião comece…",
       "invite": "Copiar link de convite",
       "copied": "Link copiado!",
       "you": "tu",
       "host": "anfitrião",
-      "offline": "desligado"
+      "offline": "desligado",
+      "kick": "Expulsar",
+      "kickConfirm": "Expulsar {player}? Não vai poder voltar a este jogo."
     },
     "hud": {
       "loadingPanel": "A carregar…"
     },
     "log": {
       "itemGranted": "Recebes {item}",
-      "itemGrantedOther": "{player} recebe {item}"
+      "itemGrantedOther": "{player} recebe {item}",
+      "playerLeft": "{player} saiu",
+      "playerKicked": "{player} foi expulso"
     },
     "errors": {
       "NOT_AVAILABLE": "Ainda não podes fazer isso",

@@ -196,6 +196,8 @@ function until(client: TestClient, predicate: (state: GameRoomState) => boolean)
 }
 
 async function start(client: TestClient): Promise<void> {
+  client.send(GAME_MESSAGES.setReady, { ready: true });
+  await until(client, (state) => state.players.get(client.sessionId)?.ready === true);
   client.send(GAME_MESSAGES.startGame, {});
   await until(client, (state) => state.phase === "playing");
 }

@@ -28,6 +28,8 @@ export interface GamePlayerSnapshot {
   /** Personaje jugable (`manifest.avatars[].id`, o el de reserva, A1/B4). */
   characterId: string;
   connected: boolean;
+  /** C-13: "Listo" en el lobby; sin efecto fuera de `phase === "lobby"`. */
+  ready: boolean;
   isHost: boolean;
   isSelf: boolean;
 }
@@ -116,7 +118,8 @@ export type GameEvent =
       /** Mensaje rechazado por el rate limit del servidor (`RATE_LIMITED`, specs/11 §9). */
       messageType?: string;
     }
-  | { type: "media_token"; payload: unknown };
+  | { type: "media_token"; payload: unknown }
+  | { type: "player_left"; playerId: string; name: string; reason: "left" | "kicked" };
 
 export type GameEventType = GameEvent["type"];
 
@@ -132,7 +135,12 @@ export type GameAttempt =
 
 /** Comandos cliente → servidor (specs/11 §4). */
 export interface GameActions {
-  startGame(): void;
+  /** `force` = "Empezar igualmente" (C-13): salta el requisito de "Listo", nunca el mínimo. */
+  startGame(force?: boolean): void;
+  /** C-13: marca/desmarca "Listo" en el lobby. */
+  setReady(ready: boolean): void;
+  /** C-13: solo anfitrión, expulsa a otro jugador (no puede volver a esta partida). */
+  kick(playerId: string): void;
   /** Posición deseada; con `roomId` distinto al actual, cruce de habitación. */
   move(x: number, y: number, roomId?: string): void;
   interact(objectId: string): void;

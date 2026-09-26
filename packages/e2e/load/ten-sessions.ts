@@ -298,6 +298,9 @@ async function playSession(endpoint: string, index: number, metrics: Metrics): P
   const a = new ProtocolPlayer(`sesión ${index}/Ana`, hostRoom, metrics);
   const b = new ProtocolPlayer(`sesión ${index}/Bruno`, guestRoom, metrics);
   try {
+    // C-13: "Empezar" exige que todos los conectados estén "Listo".
+    a.room.send(GAME_MESSAGES.setReady, { ready: true });
+    b.room.send(GAME_MESSAGES.setReady, { ready: true });
     a.room.send(GAME_MESSAGES.startGame, {});
     await b.until((state) => state.phase === "playing", "playing");
 

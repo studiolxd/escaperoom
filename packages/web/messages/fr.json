@@ -855,19 +855,30 @@
       "characterTaken": "pris",
       "players": "{count, plural, one {# joueur} other {# joueurs}}",
       "start": "Commencer la partie",
+      "startForce": "Commencer quand même",
+      "startNotReady": "Certains joueurs ne sont pas encore prêts.",
+      "confirmForceTitle": "Commencer sans que tout le monde soit prêt ?",
+      "confirmForceConfirm": "Oui, commencer quand même",
+      "confirmForceCancel": "Attendre",
+      "markReady": "Me marquer comme prêt",
+      "ready": "Prêt ✓",
       "waitingHost": "En attente du lancement par l'hôte…",
       "invite": "Copier le lien d'invitation",
       "copied": "Lien copié !",
       "you": "vous",
       "host": "hôte",
-      "offline": "déconnecté"
+      "offline": "déconnecté",
+      "kick": "Expulser",
+      "kickConfirm": "Expulser {player} ? Il ne pourra pas revenir dans cette partie."
     },
     "hud": {
       "loadingPanel": "Chargement…"
     },
     "log": {
       "itemGranted": "Vous recevez {item}",
-      "itemGrantedOther": "{player} reçoit {item}"
+      "itemGrantedOther": "{player} reçoit {item}",
+      "playerLeft": "{player} est parti",
+      "playerKicked": "{player} a été expulsé"
     },
     "errors": {
       "NOT_AVAILABLE": "Impossible pour l'instant",

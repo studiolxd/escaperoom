@@ -24,6 +24,10 @@ export const PLAYTEST_EXPIRED_CLOSE = 4410;
 /** Mensajes de la `GameRoom` (`GAME_MESSAGES` del servidor). */
 export const GAME_PROTOCOL = {
   startGame: "start_game",
+  /** C-13: marca/desmarca "Listo" en el lobby. */
+  setReady: "set_ready",
+  /** C-13: solo anfitrión, expulsa a otro jugador. */
+  kick: "kick",
   move: "move",
   interact: "interact",
   useItem: "use_item",
@@ -47,6 +51,8 @@ export const GAME_PROTOCOL = {
   itemGranted: "item_granted",
   puzzleSolved: "puzzle_solved",
   gameEnded: "game_ended",
+  /** C-13: alguien salió o fue expulsado del lobby/partida. */
+  playerLeft: "player_left",
 } as const;
 
 /** Rechazos de protocolo (`GAME_ERRORS` del servidor, specs/11 §7). */
@@ -56,6 +62,12 @@ export const GAME_PROTOCOL_ERRORS = {
   permissionDenied: "PERMISSION_DENIED",
   moveTooFast: "MOVE_TOO_FAST",
   roomLocked: "ROOM_LOCKED",
+  /** C-13: `start_game` sin `force`, con conectados que no están "Listo". */
+  playersNotReady: "PLAYERS_NOT_READY",
+  /** C-13: `start_game` por debajo de `meta.players.min` conectados. */
+  minPlayersNotMet: "MIN_PLAYERS_NOT_MET",
+  /** C-13: `kick` con un objetivo inválido o ya desconectado. */
+  kickTargetInvalid: "KICK_TARGET_INVALID",
 } as const;
 
 /** Movimiento fuera del grid (`OUT_OF_BOUNDS` de `movement.ts`). */

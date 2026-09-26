@@ -140,6 +140,12 @@ export function createNetworkGameClient(
     ...(typeof p.messageType === "string" ? { messageType: p.messageType } : {}),
   }));
   listen(MEDIA_PROTOCOL.token, (p) => ({ type: "media_token", payload: p }));
+  listen(GAME_PROTOCOL.playerLeft, (p) => ({
+    type: "player_left",
+    playerId: str(p.playerId),
+    name: str(p.name),
+    reason: p.reason === "kicked" ? "kicked" : "left",
+  }));
 
   const send = (type: string, payload: object = {}) => room.send(type, payload);
 
@@ -155,7 +161,9 @@ export function createNetworkGameClient(
     getSnapshot: () => snapshot,
     subscribe: (listener) => snapshots.on(listener),
     onEvent: (listener) => events.on(listener),
-    startGame: () => send(GAME_PROTOCOL.startGame),
+    startGame: (force) => send(GAME_PROTOCOL.startGame, force ? { force } : {}),
+    setReady: (ready) => send(GAME_PROTOCOL.setReady, { ready }),
+    kick: (playerId) => send(GAME_PROTOCOL.kick, { playerId }),
     move: (x, y, roomId) => send(GAME_PROTOCOL.move, roomId ? { x, y, roomId } : { x, y }),
     interact: (objectId) => send(GAME_PROTOCOL.interact, { objectId }),
     useItem: (itemId, objectId) => send(GAME_PROTOCOL.useItem, { itemId, objectId }),

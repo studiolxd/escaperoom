@@ -18,7 +18,7 @@ import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { MAX_EVENT_SPECTATORS } from "../constants.js";
 import { getEventRuntime } from "../events/runtime.js";
 import type { MediaRole } from "../media/index.js";
-import { GameRoom, type GameMilestone, type GameRoomOptions } from "./game-room.js";
+import { GAME_ACCESS_ERRORS, GameRoom, type GameMilestone, type GameRoomOptions } from "./game-room.js";
 
 /**
  * Opciones de la room de evento: la sesión del evento (para el `filterBy` del
@@ -195,10 +195,20 @@ export class EventRoom extends GameRoom {
     return this.recorder?.flush() ?? Promise.resolve();
   }
 
+  /** C-13: identidad estable del `joinToken` — el `playerId` de evento, no el `seatKey`. */
+  protected override identityFor(sessionId: string): string | undefined {
+    return this.playerClaims.get(sessionId)?.playerId;
+  }
+
   protected override onMilestone(milestone: GameMilestone): void {
+    this.recordAnalytics(milestone);
     const recorder = this.recorder;
     if (!recorder) return;
     switch (milestone.kind) {
+      // C-13: sin tabla de persistencia propia todavía (fuera de alcance de
+      // esta entrega); ya queda en la analítica estructurada de arriba.
+      case "player_left":
+        return;
       case "game_started":
         recorder.record({ kind: "game_started", at: milestone.at, roomId: this.roomId });
         return;
@@ -223,6 +233,17 @@ export class EventRoom extends GameRoom {
   }
 
   override onAuth(_client: Client, options: EventRoomOptions = {}): EventClientAuth {
+    try {
+      return this.authorizeEventJoin(_client, options);
+    } catch (err) {
+      if (err instanceof ServerError) {
+        this.roomLogger.warn({ code: err.code, message: err.message }, "event-room: token de acceso rechazado");
+      }
+      throw err;
+    }
+  }
+
+  private authorizeEventJoin(_client: Client, options: EventRoomOptions): EventClientAuth {
     if (options.spectatorToken !== undefined) {
       const claims = authorizeSpectator(options);
       if (claims.sessionId !== this.eventSessionId || claims.eventId !== this.eventId) {
@@ -236,6 +257,13 @@ export class EventRoom extends GameRoom {
     const claims = authorize(options);
     if (claims.sessionId !== this.eventSessionId) {
       throw new ServerError(EVENT_JOIN_FORBIDDEN_CODE, JOIN_TOKEN_ERRORS.wrongSession);
+    }
+    // C-13: expulsado de esta partida — ni con el enlace de invitación ni con
+    // otra clave de acceso del MISMO `playerId` (identidad estable del
+    // evento). El organizador puede darle otra clave a otra persona, pero no
+    // a esta identidad para esta sesión.
+    if (this.kickedIdentities.has(claims.playerId)) {
+      throw new ServerError(EVENT_JOIN_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.kicked);
     }
     // C-1: si ya hay una plaza para este `playerId` (misma persona, otra
     // pestaña abierta o una reconexión que llega sin el token nativo de
