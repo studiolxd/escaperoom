@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
@@ -51,6 +51,12 @@ export function EventGame({
     }
   }, [sessionId]);
 
+  // F-36: objeto estable por `(sessionId, token)` — ver `room-game.tsx`.
+  const target = useMemo(
+    () => ({ kind: "event" as const, sessionId, joinToken: token ?? "" }),
+    [sessionId, token],
+  );
+
   if (token === undefined) {
     return <p className="p-4 text-sm text-white/70">{t("status.connecting")}</p>;
   }
@@ -61,12 +67,5 @@ export function EventGame({
       </p>
     );
   }
-  return (
-    <NetworkGame
-      model={model}
-      pack={pack}
-      target={{ kind: "event", sessionId, joinToken: token }}
-      subtitle={subtitle}
-    />
-  );
+  return <NetworkGame model={model} pack={pack} target={target} subtitle={subtitle} />;
 }

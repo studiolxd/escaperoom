@@ -47,7 +47,10 @@ export function createNetworkGameClient(
   let snapshot = toGameSnapshot(room.state, selfId);
 
   const onState = (state: GameRoomStateLike) => {
-    snapshot = toGameSnapshot(state, selfId);
+    // F-4: pasa el snapshot anterior para que `toGameSnapshot` reutilice cada
+    // colección (jugadores, objetos, puzzles, inventarios, flags, chat) que
+    // no cambió de verdad, en vez de reconstruirla entera en cada patch.
+    snapshot = toGameSnapshot(state, selfId, snapshot);
     snapshots.emit(snapshot);
   };
   room.onStateChange(onState);

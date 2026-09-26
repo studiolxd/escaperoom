@@ -8,6 +8,7 @@ import {
   stepsBetween,
   toGameSnapshot,
   toSessionSummary,
+  walkSteps,
   type GameEvent,
   type GameRoomStateLike,
 } from "../src/session";
@@ -136,6 +137,60 @@ describe("toGameSnapshot", () => {
     expect(snapshot.puzzles["p-candado-arca"]?.attempts).toBe(2);
     expect(snapshot.chat.map((entry) => entry.text)).toEqual(["hola"]);
   });
+
+  it("F-4: reutiliza cada colección (y cada entrada) que no cambió, para no invalidar memos aguas abajo", () => {
+    const state: GameRoomStateLike = {
+      phase: "playing",
+      result: "",
+      roomPackageId: "room-rey-aldric",
+      roomPackageVersion: "1.0.0",
+      startedAt: 1000,
+      endsAt: 3_601_000,
+      clock: 5000,
+      hostId: "a",
+      players: each({
+        a: { id: "a", name: "Ana", x: 10, y: 12, roomId: "salon-trono", tint: "#38bdf8", characterId: "caballero-m", connected: true },
+        b: { id: "b", name: "Bruno", x: 9, y: 12, roomId: "salon-trono", tint: "#f472b6", characterId: "maniqui", connected: true },
+      }),
+      objects: each({ armario: "open" }),
+      puzzles: each({ "p-candado-arca": { state: "available", attempts: 2, solvedBy: "" } }),
+      inventories: each({ a: { items: ["vela"] }, b: { items: ["llave-bronce"] } }),
+      flags: each({ digito3: "3" }),
+      chat: [{ id: "1", authorId: "b", authorName: "Bruno", text: "hola", ts: 1, filtered: false }],
+    };
+    const first = toGameSnapshot(state, "b");
+    // Mismo contenido, pero `state.clock` cambió (como en cada tick de 250 ms
+    // del servidor): antes esto reconstruía players/objects/puzzles/
+    // inventories/flags/chat enteros; ahora deben conservar su referencia.
+    const second = toGameSnapshot({ ...state, clock: 5250 }, "b", first);
+    expect(second.players).toBe(first.players);
+    expect(second.self).toBe(first.self);
+    expect(second.objects).toBe(first.objects);
+    expect(second.puzzles).toBe(first.puzzles);
+    expect(second.inventories).toBe(first.inventories);
+    expect(second.inventory).toBe(first.inventory);
+    expect(second.flags).toBe(first.flags);
+    expect(second.chat).toBe(first.chat);
+
+    // Solo Ana se mueve: la lista cambia, pero el jugador "b" (sin tocar) y
+    // el resto de colecciones conservan su referencia.
+    const moved: GameRoomStateLike = {
+      ...state,
+      clock: 5500,
+      players: each({
+        a: { id: "a", name: "Ana", x: 11, y: 12, roomId: "salon-trono", tint: "#38bdf8", characterId: "caballero-m", connected: true },
+        b: { id: "b", name: "Bruno", x: 9, y: 12, roomId: "salon-trono", tint: "#f472b6", characterId: "maniqui", connected: true },
+      }),
+    };
+    const third = toGameSnapshot(moved, "b", second);
+    expect(third.players).not.toBe(second.players);
+    expect(third.players.find((player) => player.id === "b")).toBe(
+      second.players.find((player) => player.id === "b"),
+    );
+    expect(third.self).toBe(second.self);
+    expect(third.objects).toBe(second.objects);
+    expect(third.chat).toBe(second.chat);
+  });
 });
 
 describe("createLocalGameClient (misma interfaz que la red)", () => {
@@ -228,6 +283,81 @@ describe("proyecciones de la UI", () => {
       from = step;
     }
     expect(stepsBetween({ x: 1, y: 1 }, { x: 1, y: 1 })).toEqual([]);
+  });
+
+  it("F-23: walkSteps manda un paso por intervalo, nunca todos de golpe (evita RATE_LIMITED)", () => {
+    const steps = stepsBetween({ x: 0, y: 0 }, { x: 10, y: 0 });
+    expect(steps.length).toBeGreaterThan(3); // varios pasos: es lo que reproduce el bug.
+    const emitted: Array<{ x: number; y: number }> = [];
+    const scheduled: Array<() => void> = [];
+    walkSteps(steps, (step) => emitted.push(step), {
+      intervalMs: 100,
+      schedule: (callback) => {
+        scheduled.push(callback);
+      },
+    });
+    // El primer paso sale de inmediato; el resto queda pendiente de que el
+    // caller dispare el temporizador — nunca en el mismo tick.
+    expect(emitted).toEqual([steps[0]]);
+    expect(scheduled).toHaveLength(1);
+
+    while (scheduled.length > 0) {
+      const next = scheduled.shift()!;
+      next();
+    }
+    expect(emitted).toEqual(steps);
+  });
+
+  it("F-23: walkSteps se puede cancelar (una nueva orden de caminar corta la anterior)", () => {
+    const steps = stepsBetween({ x: 0, y: 0 }, { x: 10, y: 0 });
+    const emitted: Array<{ x: number; y: number }> = [];
+    const pendingRef: { current: (() => void) | null } = { current: null };
+    const { cancel } = walkSteps(steps, (step) => emitted.push(step), {
+      schedule: (callback) => {
+        pendingRef.current = callback;
+      },
+    });
+    expect(emitted).toHaveLength(1);
+    cancel();
+    pendingRef.current?.(); // el temporizador ya programado no debe emitir tras cancelar.
+    expect(emitted).toHaveLength(1);
+  });
+
+  it("F-23: walkSteps llama a onDone cuando manda el último paso (sin cancelar antes)", () => {
+    const steps = stepsBetween({ x: 0, y: 0 }, { x: 10, y: 0 });
+    expect(steps.length).toBeGreaterThan(1);
+    const scheduled: Array<() => void> = [];
+    let done = false;
+    walkSteps(steps, () => undefined, {
+      schedule: (callback) => scheduled.push(callback),
+      onDone: () => {
+        done = true;
+      },
+    });
+    expect(done).toBe(false); // aún quedan pasos por mandar.
+    while (scheduled.length > 0) scheduled.shift()!();
+    expect(done).toBe(true);
+  });
+
+  it("F-23: walkSteps llama a onDone de inmediato si ya está en el destino (sin pasos)", () => {
+    let done = false;
+    walkSteps([], () => undefined, { onDone: () => (done = true) });
+    expect(done).toBe(true);
+  });
+
+  it("F-23: onDone NO se llama si se cancela antes de mandar el último paso (enterRoom no cruza de golpe)", () => {
+    const steps = stepsBetween({ x: 0, y: 0 }, { x: 10, y: 0 });
+    const scheduled: Array<() => void> = [];
+    let done = false;
+    const { cancel } = walkSteps(steps, () => undefined, {
+      schedule: (callback) => scheduled.push(callback),
+      onDone: () => {
+        done = true;
+      },
+    });
+    cancel();
+    while (scheduled.length > 0) scheduled.shift()!();
+    expect(done).toBe(false);
   });
 
   it("toSessionSummary usa las stats del servidor y el resultado", () => {

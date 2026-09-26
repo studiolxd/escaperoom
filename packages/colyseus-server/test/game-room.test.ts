@@ -8,6 +8,7 @@ import {
   GAME_ERRORS,
   GAME_MESSAGES,
   GAME_ROOM_NAME,
+  GAME_TICK_MS,
 } from "../src/constants";
 import { MEDIA_TOKEN_MESSAGE, MEDIA_TOKEN_REQUEST_MESSAGE } from "../src/media/index";
 import { GameRoom } from "../src/rooms/game-room";
@@ -100,6 +101,72 @@ async function enterBodega(room: GameRoom, client: TestClient): Promise<void> {
   await walk(room, client, { x: 10, y: 12 });
   client.send(GAME_MESSAGES.move, { x: 0, y: 0, roomId: "bodega" });
   await expect.poll(() => room.state.players.get(client.sessionId)?.roomId).toBe("bodega");
+}
+
+/** Vecino del hueco (índice movible) de un `sliding_puzzle`, excluyendo los indicados. */
+function slidingNeighbor(
+  blankIndex: number,
+  cols: number,
+  rows: number,
+  exclude: readonly number[] = [],
+): number {
+  const blankRow = Math.floor(blankIndex / cols);
+  const candidates = [blankIndex - 1, blankIndex + 1, blankIndex - cols, blankIndex + cols].filter(
+    (candidate) => {
+      if (candidate < 0 || candidate >= cols * rows || exclude.includes(candidate)) return false;
+      if (candidate === blankIndex - 1 || candidate === blankIndex + 1) {
+        return Math.floor(candidate / cols) === blankRow;
+      }
+      return true;
+    },
+  );
+  const neighbor = candidates[0];
+  if (neighbor === undefined) throw new Error("sin vecino movible");
+  return neighbor;
+}
+
+/** Par ya conocido (mismo símbolo) entre los ids restantes de un `memory`. */
+function knownMemoryPair(ids: readonly string[], known: ReadonlyMap<string, string>): [string, string] | undefined {
+  for (let i = 0; i < ids.length; i += 1) {
+    for (let j = i + 1; j < ids.length; j += 1) {
+      const s1 = known.get(ids[i]!);
+      const s2 = known.get(ids[j]!);
+      if (s1 !== undefined && s1 === s2) return [ids[i]!, ids[j]!];
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Resuelve `p-copas-memoria` (turnMode "shared": un solo cliente puede
+ * voltear todas las cartas) recordando los símbolos ya vistos, como jugaría
+ * un grupo real con memoria perfecta.
+ */
+async function solveMemoria(client: TestClient, cardIds: readonly string[]): Promise<void> {
+  const known = new Map<string, string>();
+  let remaining = [...cardIds];
+  for (let guard = 0; guard < 20 && remaining.length > 0; guard += 1) {
+    const pair =
+      knownMemoryPair(remaining, known) ??
+      (() => {
+        const unknown = remaining.filter((id) => !known.has(id));
+        const first = unknown[0] ?? remaining[0]!;
+        const second = unknown.find((id) => id !== first) ?? remaining.find((id) => id !== first)!;
+        return [first, second] as [string, string];
+      })();
+    for (const cardId of pair) {
+      // `puzzleAttempt` está limitado a 2/s (specs/11 §9): sin esperar entre
+      // volteos, la ráfaga dispara `RATE_LIMITED` en vez de `attemptResult`.
+      const attempted = client.waitForMessage(GAME_MESSAGES.attemptResult);
+      client.send(GAME_MESSAGES.puzzleAttempt, { puzzleId: "p-copas-memoria", attempt: { flip: cardId } });
+      const { revealedSymbol } = (await attempted) as { revealedSymbol?: string };
+      if (revealedSymbol) known.set(cardId, revealedSymbol);
+      await new Promise((resolve) => setTimeout(resolve, 550));
+    }
+    if (known.get(pair[0]) === known.get(pair[1])) {
+      remaining = remaining.filter((id) => id !== pair[0] && id !== pair[1]);
+    }
+  }
 }
 
 describe("GameRoom — Rey Aldric sobre Colyseus", () => {
@@ -251,6 +318,134 @@ describe("GameRoom — Rey Aldric sobre Colyseus", () => {
     });
     expect(await early).toMatchObject({ ok: false, error: "not_available" });
     expect(room.state.objects.get("reja-escalera")).toBe("closed");
+  });
+
+  it("C-9: un panel abierto no se reenvía en cada tick si no cambió", async () => {
+    const { room, a, b } = await startGame();
+    await solvePlates(room, a, b);
+    await enterBodega(room, a);
+    await enterBodega(room, b);
+
+    const opened = a.waitForMessage(GAME_MESSAGES.puzzleView);
+    a.send(GAME_MESSAGES.puzzleOpen, { puzzleId: "p-copas-memoria" });
+    await opened;
+
+    let resent = 0;
+    const off = a.onMessage(GAME_MESSAGES.puzzleView, () => {
+      resent += 1;
+    });
+    // Deja pasar varios ticks (250 ms) sin tocar el puzzle: no debe reenviarse.
+    await new Promise((resolve) => setTimeout(resolve, GAME_TICK_MS * 6));
+    off();
+    expect(resent).toBe(0);
+  });
+
+  it("C-9 (revisión #163): sliding_puzzle — un movimiento sin resolver actualiza el panel abierto del otro jugador", async () => {
+    const { room, a, b } = await startGame();
+    await solvePlates(room, a, b);
+    await enterBodega(room, a);
+    await enterBodega(room, b);
+
+    const openedA = a.waitForMessage(GAME_MESSAGES.puzzleView);
+    a.send(GAME_MESSAGES.puzzleOpen, { puzzleId: "p-mural-vendimia" });
+    const initialA = (await openedA) as {
+      view: { tiles: number[]; blankIndex: number; grid: { cols: number; rows: number } };
+    };
+    const openedB = b.waitForMessage(GAME_MESSAGES.puzzleView);
+    b.send(GAME_MESSAGES.puzzleOpen, { puzzleId: "p-mural-vendimia" });
+    await openedB;
+
+    const { grid } = initialA.view;
+    // Primer movimiento: el propio `state` pasa de "available" a "in_progress"
+    // — con eso solo, el bug de la revisión no se detectaría (la versión
+    // derivada de `state` ya lo capturaba). Lo que hace falta comprobar es un
+    // SEGUNDO movimiento, con `state` ya estable en "in_progress".
+    const move1 = slidingNeighbor(initialA.view.blankIndex, grid.cols, grid.rows);
+    const afterMove1 = b.waitForMessage(GAME_MESSAGES.puzzleView);
+    a.send(GAME_MESSAGES.puzzleAttempt, { puzzleId: "p-mural-vendimia", attempt: { move: move1 } });
+    const viewAfterMove1 = (await afterMove1) as { view: { tiles: number[]; blankIndex: number } };
+    await expect.poll(() => room.state.puzzles.get("p-mural-vendimia")?.state).toBe("in_progress");
+
+    const move2 = slidingNeighbor(viewAfterMove1.view.blankIndex, grid.cols, grid.rows, [
+      initialA.view.blankIndex,
+    ]);
+    const afterMove2 = b.waitForMessage(GAME_MESSAGES.puzzleView);
+    a.send(GAME_MESSAGES.puzzleAttempt, { puzzleId: "p-mural-vendimia", attempt: { move: move2 } });
+    const viewAfterMove2 = (await afterMove2) as { view: { tiles: number[] } };
+
+    expect(viewAfterMove2.view.tiles).not.toEqual(viewAfterMove1.view.tiles);
+    // `state`/`attempts` no cambiaron entre ambos envíos: sin la corrección
+    // de contenido, este segundo mensaje no se habría mandado.
+    expect(room.state.puzzles.get("p-mural-vendimia")?.state).toBe("in_progress");
+  });
+
+  it("C-9 (revisión #163): split_clue — el panel abierto refleja la mirilla según la posición del jugador", async () => {
+    const { room, a, b } = await startGame();
+    await solvePlates(room, a, b);
+    await enterBodega(room, a);
+    await enterBodega(room, b);
+
+    const openedMemory = a.waitForMessage(GAME_MESSAGES.puzzleView);
+    a.send(GAME_MESSAGES.puzzleOpen, { puzzleId: "p-copas-memoria" });
+    const memoryView = (await openedMemory) as { view: { cards: { id: string }[] } };
+    await solveMemoria(
+      a,
+      memoryView.view.cards.map((card) => card.id),
+    );
+    await expect.poll(() => room.state.puzzles.get("p-copas-memoria")?.state).toBe("solved");
+
+    // Fuera de cualquier mirilla: el panel no trae fragmento.
+    const openedSplit = b.waitForMessage(GAME_MESSAGES.puzzleView);
+    b.send(GAME_MESSAGES.puzzleOpen, { puzzleId: "p-reja-mirillas" });
+    const outside = (await openedSplit) as { view: { viewpointId: string } };
+    expect(outside.view.viewpointId).toBe("");
+
+    // `puzzleState`/`attempts` de p-reja-mirillas no cambian al andar: sin la
+    // corrección de contenido, este mensaje no se habría mandado.
+    const entered = b.waitForMessage(GAME_MESSAGES.puzzleView);
+    await walk(room, b, { x: 9, y: 10 });
+    expect(((await entered) as { view: { viewpointId: string } }).view.viewpointId).toBe("mirilla-a");
+
+    const exited = b.waitForMessage(GAME_MESSAGES.puzzleView);
+    await walk(room, b, { x: 9, y: 2 }); // spawn-1 de la bodega: lejos de ambas mirillas.
+    expect(((await exited) as { view: { viewpointId: string } }).view.viewpointId).toBe("");
+  });
+
+  it("C-9 (revisión #163): simultaneous_plates — pisar una placa actualiza el panel abierto sin resolver el puzzle", async () => {
+    const { room, a, b } = await startGame();
+
+    const opened = a.waitForMessage(GAME_MESSAGES.puzzleView);
+    a.send(GAME_MESSAGES.puzzleOpen, { puzzleId: "p-placas-estatuas" });
+    const initial = (await opened) as { view: { activeCount: number } };
+    expect(initial.view.activeCount).toBe(0);
+
+    // Solo Ana pisa su placa: el puzzle NO se resuelve (hacen falta las dos a
+    // la vez), así que `state`/`attempts` no cambian — solo el contenido de
+    // la vista (qué placas están activas).
+    const oneActive = a.waitForMessage(GAME_MESSAGES.puzzleView);
+    await walk(room, a, { x: 6, y: 11 });
+    const afterOne = (await oneActive) as { view: { activeCount: number } };
+    expect(afterOne.view.activeCount).toBe(1);
+    expect(room.state.puzzles.get("p-placas-estatuas")?.state).not.toBe("solved");
+
+    const solved = a.waitForMessage(GAME_MESSAGES.puzzleView);
+    await walk(room, b, { x: 14, y: 11 });
+    const afterBoth = (await solved) as { view: { activeCount: number } };
+    expect(afterBoth.view.activeCount).toBe(2);
+    await expect.poll(() => room.state.puzzles.get("p-placas-estatuas")?.state).toBe("solved");
+  });
+
+  it("C-9: `state.clock` no se sincroniza en cada tick de simulación (como mucho 1 vez/s)", async () => {
+    const { a } = await startGame();
+    const clockPatches: number[] = [];
+    a.onStateChange((state) => {
+      clockPatches.push(state.clock);
+    });
+    await new Promise((resolve) => setTimeout(resolve, GAME_TICK_MS * 8)); // 2 s de ticks
+    // Con 8 ticks de 250 ms (2 s) y una sincronización como mucho por segundo,
+    // el reloj no debería avanzar más de un par de veces (frente a 8 antes).
+    const distinctClocks = new Set(clockPatches).size;
+    expect(distinctClocks).toBeLessThanOrEqual(3);
   });
 
   it("chat de la partida (specs/11 §4.4): desde el lobby, con autor y rate limit", async () => {

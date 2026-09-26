@@ -21,6 +21,7 @@ import {
   remainingMs,
   stepsBetween,
   toSessionSummary,
+  walkSteps,
   type DeliveredHint,
   type GameClient,
   type GameEvent,
@@ -208,6 +209,20 @@ export function GameSessionShell({
   const panelRef = useRef<string | null>(null);
   panelRef.current = panel;
   const logIdRef = useRef(0);
+  /**
+   * F-35: el listener global de teclado se registra una sola vez (más abajo)
+   * y lee estos refs al pulsar, en vez de re-registrarse en cada cambio de
+   * `dialog`/`pickerFor`/`selected`/`inventoryOpen` (varias veces por
+   * interacción).
+   */
+  const dialogRef = useRef(dialog);
+  dialogRef.current = dialog;
+  const pickerForRef = useRef(pickerFor);
+  pickerForRef.current = pickerFor;
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+  const inventoryOpenRef = useRef(inventoryOpen);
+  inventoryOpenRef.current = inventoryOpen;
 
   const combinePuzzleId = useMemo(
     () => model.puzzles.find((puzzle) => puzzle.type === "combine_items")?.id,
@@ -452,16 +467,43 @@ export function GameSessionShell({
 
   // — Intenciones del jugador ————————————————————————————————————————
 
+  /**
+   * F-23: `walkSteps` manda los pasos al ritmo `AVATAR_MOVE_EMIT_MS` (100 ms
+   * = el límite de `move` del servidor, 10/s) en vez de un bucle síncrono que
+   * los mandaba todos de golpe — eso disparaba `RATE_LIMITED` y el "rebote"
+   * del avatar (el cliente lo colocaba en el destino antes de que el
+   * servidor aceptara los pasos intermedios).
+   */
+  const walkCancelRef = useRef<(() => void) | null>(null);
+
+  const stopWalking = useCallback(() => {
+    walkCancelRef.current?.();
+    walkCancelRef.current = null;
+  }, []);
+
+  useEffect(() => stopWalking, [stopWalking]);
+
   /** Camina en pasos válidos hasta `target` (placas, mirillas, puertas). */
   const walkTo = useCallback(
-    (target: { x: number; y: number }) => {
+    (target: { x: number; y: number }, onArrive?: () => void) => {
       const me = snapshotRef.current.self;
-      if (!me) return;
+      if (!me) {
+        onArrive?.();
+        return;
+      }
       const from = handleRef.current?.avatarCell() ?? { x: me.x, y: me.y };
-      for (const step of stepsBetween(from, target)) client.move(step.x, step.y);
-      handleRef.current?.placeAvatar(target.x, target.y);
+      stopWalking();
+      const { cancel } = walkSteps(
+        stepsBetween(from, target),
+        (step) => {
+          client.move(step.x, step.y);
+          handleRef.current?.placeAvatar(step.x, step.y);
+        },
+        { onDone: onArrive },
+      );
+      walkCancelRef.current = cancel;
     },
-    [client],
+    [client, stopWalking],
   );
 
   const openPanel = useCallback(
@@ -506,11 +548,20 @@ export function GameSessionShell({
 
   const enterRoom = useCallback(
     (targetRoomId: string, doorPosition?: { x: number; y: number }) => {
-      if (doorPosition) walkTo(doorPosition);
-      client.move(0, 0, targetRoomId);
-      pushLog(
-        tp("log.enterRoom", { room: model.subroomsById[targetRoomId]?.name ?? targetRoomId }),
-      );
+      // F-23: el `move` de cruce solo se manda cuando el avatar ha llegado
+      // de verdad a la puerta — `walkTo` ahora paga los pasos intermedios en
+      // el tiempo (antes, un bucle síncrono los mandaba todos antes de que
+      // esta función siguiera, así que mandar el cruce justo después ya
+      // llegaba en orden; con el ritmo nuevo, mandarlo antes de que termine
+      // de andar llegaba al servidor con el jugador aún lejos de la puerta).
+      const crossDoor = () => {
+        client.move(0, 0, targetRoomId);
+        pushLog(
+          tp("log.enterRoom", { room: model.subroomsById[targetRoomId]?.name ?? targetRoomId }),
+        );
+      };
+      if (doorPosition) walkTo(doorPosition, crossDoor);
+      else crossDoor();
     },
     [client, model, walkTo, pushLog, tp],
   );
@@ -582,36 +633,50 @@ export function GameSessionShell({
     if (combinePuzzleId) client.closePuzzle(combinePuzzleId);
   }, [client, combinePuzzleId]);
 
-  // ESC cierra en cascada (diálogo → selector → menú → inventario → panel); I, inventario.
+  /** F-4: referencia estable — junto al `messages` incremental, evita repintar `ChatWindow` (memoizada). */
+  const sendChat = useCallback(
+    (text: string) => {
+      setChatError(null);
+      client.sendChat(text);
+    },
+    [client],
+  );
+
+  // F-35: refs para las funciones que el listener global de teclado necesita
+  // en su versión más reciente, sin tener que re-registrarse cuando cambian
+  // (misma técnica que los refs de estado, arriba).
+  const openInventoryRef = useRef(openInventory);
+  openInventoryRef.current = openInventory;
+  const closeInventoryRef = useRef(closeInventory);
+  closeInventoryRef.current = closeInventory;
+  const closePanelRef = useRef(closePanel);
+  closePanelRef.current = closePanel;
+
+  // ESC cierra en cascada (diálogo → selector → menú → inventario → panel); I,
+  // inventario. F-35: el listener se registra UNA VEZ (deps vacías) y lee el
+  // estado más reciente desde refs — antes se re-registraba en cada cambio de
+  // `dialog`/`pickerFor`/`selected`/`inventoryOpen`/`panel`, varias veces por
+  // interacción del jugador.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target && ["INPUT", "TEXTAREA"].includes(target.tagName)) return;
       if (event.key === "Escape") {
-        if (dialog) setDialog(null);
-        else if (pickerFor) setPickerFor(null);
-        else if (selected) setSelected(null);
-        else if (inventoryOpen) closeInventory();
-        else if (panel) closePanel();
+        if (dialogRef.current) setDialog(null);
+        else if (pickerForRef.current) setPickerFor(null);
+        else if (selectedRef.current) setSelected(null);
+        else if (inventoryOpenRef.current) closeInventoryRef.current();
+        else if (panelRef.current) closePanelRef.current();
         return;
       }
       if (event.key === "i" || event.key === "I") {
-        if (inventoryOpen) closeInventory();
-        else if (panel === null) openInventory();
+        if (inventoryOpenRef.current) closeInventoryRef.current();
+        else if (panelRef.current === null) openInventoryRef.current();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [
-    dialog,
-    pickerFor,
-    selected,
-    inventoryOpen,
-    panel,
-    openInventory,
-    closeInventory,
-    closePanel,
-  ]);
+  }, []);
 
   const copyInvite = useCallback(async () => {
     if (!inviteUrl) return;
@@ -741,10 +806,7 @@ export function GameSessionShell({
             selfId={snapshot.selfId || null}
             connected={connection ? connection.status === "connected" : true}
             error={chatError}
-            onSend={(text) => {
-              setChatError(null);
-              client.sendChat(text);
-            }}
+            onSend={sendChat}
           />
 
           <div className="flex w-64 flex-col gap-2 rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-white backdrop-blur">

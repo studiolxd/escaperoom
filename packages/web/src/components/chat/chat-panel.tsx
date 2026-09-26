@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { memo, useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
 import { CHAT_HISTORY_LIMIT, CHAT_MAX_LENGTH } from "@escaperoom/shared/chat";
@@ -46,7 +46,13 @@ export interface ChatWindowProps {
  * `onSend`, que escribe en esa room. El servidor es autoritativo: aquí solo se
  * pinta lo que llega; los rechazos (rate limit) se muestran con su mensaje.
  */
-export function ChatWindow({
+/**
+ * F-4: memoizado — con `toGameSnapshot` incremental (`session/snapshot.ts`),
+ * `messages` mantiene la misma referencia entre patches de Colyseus que no
+ * tocan el chat (~20 Hz), así que `React.memo` evita repintar la ventana
+ * completa (lista, formulario) en cada uno de esos patches.
+ */
+export const ChatWindow = memo(function ChatWindow({
   messages,
   selfId,
   connected,
@@ -146,4 +152,4 @@ export function ChatWindow({
       )}
     </section>
   );
-}
+});

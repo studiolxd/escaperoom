@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createNetworkGameClient,
   createReadOnlyGameClient,
@@ -92,7 +92,10 @@ export function useGameConnection({
   /** Room activa; la usa `leaveGame` (salida explícita, fuera del efecto). */
   const roomRef = useRef<GameRoomHandle | null>(null);
 
-  const targetKey = JSON.stringify(target);
+  // F-36: `target` lleva el token de acceso (`gameToken`/`joinToken`); sin
+  // memoizar, `JSON.stringify` se repetía en cada render (también los que no
+  // tocan la conexión, p. ej. el HUD reflejando el estado de la partida).
+  const targetKey = useMemo(() => JSON.stringify(target), [target]);
 
   useEffect(() => {
     if (!enabled) return;
