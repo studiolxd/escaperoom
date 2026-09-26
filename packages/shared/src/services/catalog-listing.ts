@@ -164,11 +164,7 @@ const ORDER_BY: Record<CatalogSort, Prisma.Sql> = {
 
 function whereClause(filter: CatalogListFilter): Prisma.Sql {
   const meta = Prisma.sql`latest.package -> 'meta'`;
-  // `languages @> ARRAY[...]` como contención JSONB: usa el índice GIN
-  // `jsonb_path_ops` (`ixRoomVersionPackage`); con la lista vacía casa todo.
-  const conditions: Prisma.Sql[] = [
-    Prisma.sql`latest.package @> ${JSON.stringify({ meta: { languages: filter.languages } })}::jsonb`,
-  ];
+  const conditions: Prisma.Sql[] = [];
   if (filter.difficulties.length > 0) {
     conditions.push(
       Prisma.sql`(${meta} ->> 'difficulty')::int IN (${Prisma.join(filter.difficulties)})`,
@@ -191,22 +187,38 @@ function whereClause(filter: CatalogListFilter): Prisma.Sql {
       Prisma.sql`${meta} ->> 'title' ILIKE ${`%${escapeLikePattern(filter.q)}%`} ESCAPE '\\'`,
     );
   }
-  return Prisma.join(conditions, " AND ");
+  return conditions.length > 0 ? Prisma.join(conditions, " AND ") : Prisma.sql`TRUE`;
+}
+
+/**
+ * Filtro de idiomas: la sala incluye TODOS los pedidos (contención de array,
+ * `@>`; la lista vacía casa con cualquier sala, incluso sin idiomas). Se aplica
+ * sobre `room.languages` — denormalizado del `meta.languages` de la ÚLTIMA
+ * versión al publicar (E-23) — y DENTRO del `DISTINCT ON` de `catalogSelect`,
+ * para descartar salas que no casan antes de calcular su última versión, no
+ * después: `room` tiene una fila por sala (el índice GIN `ixRoomLanguages` es
+ * minúsculo), mientras que aplicar el filtro sobre `roomVersion.package` tras
+ * el `DISTINCT ON` nunca podía usar un índice (la fila ya está materializada).
+ */
+function languagesCondition(languages: readonly string[]): Prisma.Sql {
+  return Prisma.sql`r."languages" @> ${languages}::text[]`;
 }
 
 /**
  * SELECT común a listado y detalle: última versión de cada sala `published`
  * no borrada (`DISTINCT ON`), columnas comerciales de `room`, nombre del autor
- * y rating agregado de `review`. `onlyRoomId` acota el detalle a una sala.
+ * y rating agregado de `review`. `onlyRoomId` acota el detalle a una sala;
+ * `languages` filtra por idioma (lista vacía = todas).
  */
-function catalogSelect(onlyRoomId: string | null): Prisma.Sql {
+function catalogSelect(onlyRoomId: string | null, languages: readonly string[]): Prisma.Sql {
   const roomScope = onlyRoomId === null ? Prisma.empty : Prisma.sql`AND r.id = ${onlyRoomId}::uuid`;
   return Prisma.sql`
     WITH latest AS (
       SELECT DISTINCT ON (v."roomId") v.id, v."roomId", v.semver, v."publishedAt", v.package
         FROM "roomVersion" v
         JOIN "room" r ON r.id = v."roomId"
-       WHERE r.status = 'published' AND r."deletedAt" IS NULL ${roomScope}
+       WHERE r.status = 'published' AND r."deletedAt" IS NULL
+         AND ${languagesCondition(languages)} ${roomScope}
        ORDER BY v."roomId", v."publishedAt" DESC
     ), s AS (
       -- rating en BD está en escala doblada (2-10, medios puntos): se divide
@@ -253,14 +265,15 @@ function toRoom(row: CatalogRow): CatalogRoom | null {
 /**
  * Implementación Prisma. Todos los filtros y el orden se resuelven en Postgres
  * sobre la ÚLTIMA versión de cada sala: una sala que retiró un idioma en su
- * versión actual deja de salir al filtrar por él. Sin columnas ni migraciones
- * nuevas: la metadata vive en `roomVersion.package -> 'meta'`.
+ * versión actual deja de salir al filtrar por él, porque `room.languages` se
+ * reescribe en cada publish (E-23). El resto de la metadata sigue viviendo
+ * sin denormalizar en `roomVersion.package -> 'meta'`.
  */
 export function createPrismaPublishedRoomListing(prisma: PrismaClient): PublishedRoomListing {
   return {
     async listPublished(filter, page) {
       const rows = await prisma.$queryRaw<CatalogRow[]>`
-        ${catalogSelect(null)}
+        ${catalogSelect(null, filter.languages)}
          WHERE ${whereClause(filter)}
          ORDER BY ${ORDER_BY[filter.sort]}
         OFFSET ${page.offset} LIMIT ${page.limit}`;
@@ -268,7 +281,7 @@ export function createPrismaPublishedRoomListing(prisma: PrismaClient): Publishe
     },
     async getPublished(roomId) {
       if (!isUuid(roomId)) return null;
-      const rows = await prisma.$queryRaw<CatalogRow[]>`${catalogSelect(roomId)}`;
+      const rows = await prisma.$queryRaw<CatalogRow[]>`${catalogSelect(roomId, [])}`;
       const row = rows[0];
       return row ? toRoom(row) : null;
     },
@@ -279,6 +292,7 @@ export function createPrismaPublishedRoomListing(prisma: PrismaClient): Publishe
             FROM "roomVersion" v
             JOIN "room" r ON r.id = v."roomId"
            WHERE r.status = 'published' AND r."deletedAt" IS NULL
+             AND ${languagesCondition(filter.languages)}
            ORDER BY v."roomId", v."publishedAt" DESC
         )
         SELECT COUNT(*)::int AS count

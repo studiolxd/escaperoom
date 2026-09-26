@@ -64,6 +64,11 @@ describe.skipIf(!process.env.DATABASE_URL)(
           title,
           status: spec.status ?? "published",
           priceCents: spec.priceCents,
+          // El filtro de idiomas del catálogo lee `room.languages` (E-23),
+          // denormalizado en el publish real (`room-publish-prisma-store.ts`);
+          // este seed crea la `roomVersion` directo por Prisma, así que hay
+          // que fijarlo a mano para que case con el `meta.languages` sembrado.
+          languages: spec.languages,
         },
       });
       const version = await prisma.roomVersion.create({
