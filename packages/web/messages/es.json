@@ -1033,6 +1033,9 @@
       "MOVE_TOO_FAST": "Movimiento corregido por el servidor",
       "OUT_OF_BOUNDS": "No puedes salir de la sala",
       "ROOM_LOCKED": "La puerta está cerrada o lejos",
+      "PLAYERS_NOT_READY": "Todavía hay jugadores que no están «Listo»",
+      "MIN_PLAYERS_NOT_MET": "Hacen falta más jugadores conectados",
+      "KICK_TARGET_INVALID": "Ese jugador no se puede expulsar",
       "RATE_LIMITED": "Demasiados mensajes: espera un momento",
       "generic": "El servidor rechazó la acción"
     },

@@ -989,6 +989,9 @@
       "MOVE_TOO_FAST": "Movement corrected by the server",
       "OUT_OF_BOUNDS": "You can't leave the room",
       "ROOM_LOCKED": "The door is closed or too far away",
+      "PLAYERS_NOT_READY": "Some players are still not ready",
+      "MIN_PLAYERS_NOT_MET": "More connected players are needed",
+      "KICK_TARGET_INVALID": "That player can't be kicked",
       "RATE_LIMITED": "Too many messages: wait a moment",
       "generic": "The server rejected the action"
     },

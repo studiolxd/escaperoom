@@ -887,6 +887,9 @@
       "MOVE_TOO_FAST": "Beweging gecorrigeerd door de server",
       "OUT_OF_BOUNDS": "Je kunt de kamer niet verlaten",
       "ROOM_LOCKED": "De deur is dicht of te ver weg",
+      "PLAYERS_NOT_READY": "Niet iedereen is al klaar",
+      "MIN_PLAYERS_NOT_MET": "Er zijn meer verbonden spelers nodig",
+      "KICK_TARGET_INVALID": "Die speler kan niet verwijderd worden",
       "RATE_LIMITED": "Te veel berichten: wacht even",
       "generic": "De server heeft de actie geweigerd"
     },

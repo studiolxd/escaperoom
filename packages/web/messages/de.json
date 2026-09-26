@@ -887,6 +887,9 @@
       "MOVE_TOO_FAST": "Bewegung vom Server korrigiert",
       "OUT_OF_BOUNDS": "Du kannst den Raum nicht verlassen",
       "ROOM_LOCKED": "Die Tür ist verschlossen oder zu weit weg",
+      "PLAYERS_NOT_READY": "Noch nicht alle Spieler sind bereit",
+      "MIN_PLAYERS_NOT_MET": "Es werden mehr verbundene Spieler benötigt",
+      "KICK_TARGET_INVALID": "Dieser Spieler kann nicht rausgeworfen werden",
       "RATE_LIMITED": "Zu viele Nachrichten: warte kurz",
       "generic": "Der Server hat die Aktion abgelehnt"
     },
