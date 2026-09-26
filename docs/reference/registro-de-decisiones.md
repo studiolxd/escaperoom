@@ -1324,3 +1324,63 @@ jugador, no desde «Empezar».
 - **Subir el vídeo por el servidor web** (como el audio): descartado — 200 MB en memoria por
   petición y el tope de cuerpo de las rutas; R2 no admite presigned POST con condiciones, así que se
   usa PUT presignado + comprobación posterior (HEAD + sniff por rango).
+
+## ADR-041 — "Todos los grupos comienzan juntos": inicio conjunto de un evento (2026-09-26)
+
+**Contexto:** en un evento con varios grupos (una `EventRoom` por sesión), cada anfitrión decide
+cuándo empieza su propio grupo (C-13, #179). Algunos organizadores (clases, jornadas) necesitan que
+todos arranquen a la vez — por ejemplo, para dar una introducción en directo antes. ADR-040 (#180)
+dejó `GameRoom.startFromLobby({ force })` público justo para esto.
+
+**Decisión:**
+
+1. **Ajuste del evento** (`event.config.allGroupsStartTogether`, apagado por defecto), activable en
+   el panel del organizador (`Switch` de shadcn/ui). A diferencia de la duración de partida
+   (ADR-038, solo editable en `draft`), este ajuste es editable en `draft` Y en `active` — pero se
+   bloquea (`EVENT_NOT_EDITABLE`) en cuanto **algún grupo del evento** ha empezado a jugar
+   (`EventStore.hasStartedSession`, `gameSession.status !== 'pending'`).
+2. **El anfitrión de cada grupo pierde «Empezar»**: con la opción activa, `EventRoom` sincroniza
+   `state.organizerControlsStart = true`; el cliente le muestra «Esperando a que el organizador
+   inicie la partida» y el servidor rechaza igualmente su `start_game` (`PERMISSION_DENIED`,
+   defensa en profundidad). Un grupo que nace **después** de que el organizador ya haya arrancado
+   otros (vacío en el momento de "Comenzar todos", con alguien llegando más tarde) nace SIN este
+   bloqueo (`EventPackage.anyGroupAlreadyStarted`, comprobado una vez al crear la room): su
+   anfitrión puede empezar él mismo, para que nadie quede esperando un segundo "Comenzar todos" que
+   quizá no llegue.
+3. **`EventRoom.organizerStartGroup({ force })`** reutiliza `readiness()` y `startFromLobby()` de
+   `GameRoom` (nunca duplica la lógica de mínimo/"Listo"). Reglas propias frente a un `start_game`
+   normal: un grupo vacío nunca arranca, ni con `force`; con `force` ("Comenzar igualmente") SÍ
+   salta el mínimo de la sala (`startFromLobby({ force, skipMinimum: true })`, parámetro nuevo) —
+   decisión explícita del organizador sobre TODOS los grupos, a diferencia del "Empezar igualmente"
+   de un anfitrión (nunca baja del mínimo, específicamente en el SUYO).
+4. **Ruta interna nueva** `POST /internal/events/:eventId/start-all` (mismo patrón que
+   `GET /internal/events/:eventId/progress`: `matchMaker.remoteRoomCall`, credencial derivada de
+   `JOIN_TOKEN_SECRET`). Sin `force`, todo o nada: primero lee el progreso de cada room
+   (`progressSnapshot`, sin mutar) y solo si TODAS las no vacías están listas manda
+   `organizerStartGroup` a esas mismas; si alguna falla, no arranca ninguna y devuelve el detalle.
+   Con `force`, lo manda a toda room con algún conectado.
+5. **Panel del organizador**: estado en vivo por grupo (conectados/mínimo/"Listos" —
+   `SessionLiveProgress` gana `minPlayers`/`readyCount`, ya en `progressCounters` de `GameRoom` y
+   reutilizados por el propio `organizerStartGroup`) y el botón "Comenzar todos"; si falla sin
+   `force`, el mismo aviso que ve un anfitrión pero con el detalle por grupo y tres opciones
+   (`Dialog` de shadcn/ui): Esperar, Refrescar estado, Comenzar igualmente. Cuota `event-start-all`
+   (`docs/reference/seguridad.md`).
+
+**Consecuencias:** `GameRoomState` gana `organizerControlsStart` (sincronizado); `EventPackage`
+(runtime de eventos) gana `allGroupsStartTogether`/`anyGroupAlreadyStarted`. El "Comenzar igualmente"
+del organizador es la única vía del protocolo que salta `meta.players.min` — documentado
+explícitamente en specs/11 §2.2 para que no se confunda con el `force` de un anfitrión.
+
+**Alternativas descartadas:**
+
+- **Bloquear el ajuste solo en `draft`** (como la duración de partida): descartado — un organizador
+  necesita poder activarlo/desactivarlo mientras el evento ya está `active` y los grupos aún están
+  en su lobby (antes de que nadie empiece), no solo antes de activar el evento.
+- **Que un grupo vacío al "Comenzar todos" quede bloqueado hasta el siguiente "Comenzar todos"**:
+  descartado — dejaría a un grupo que llega tarde sin forma de empezar si el organizador no vuelve a
+  pulsar el botón; comprobar `anyGroupAlreadyStarted` al crear la room es una consulta barata y ya
+  reutiliza el mismo dato (`gameSession.status`) que bloquea la edición del ajuste (punto 1).
+- **Un segundo canal de Redis pub/sub (`kit/room-sync`) para el aviso a las rooms**: descartado —
+  `matchMaker.remoteRoomCall` (usado ya por el progreso del panel, ticket 5.9) resuelve exactamente
+  esto sin inventar un mecanismo nuevo; `kit/room-sync` es específico de `editor-sync` (borradores
+  Yjs), no de Colyseus.

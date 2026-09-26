@@ -1237,6 +1237,22 @@
       "split_clue": "Gedeelde aanwijzing",
       "pipes": "Buizen",
       "combine_items": "Voorwerpen combineren"
+    },
+    "allGroupsStart": {
+      "label": "Alle groepen starten samen",
+      "hint": "De host van elke groep kan niet meer zelf starten: alleen jij, vanaf hier.",
+      "lockedHint": "Er spelen al groepen: deze instelling kan niet meer wijzigen."
+    },
+    "startAll": {
+      "button": "Alles starten",
+      "starting": "Starten…",
+      "notReadyTitle": "Nog niet alle groepen zijn klaar",
+      "notReadyDescription": "Deze groepen halen het minimum of \"Klaar\" nog niet:",
+      "detailMinNotMet": "{name}: {connected}/{min} spelers",
+      "detailNotReady": "{name}: {missing} niet klaar",
+      "wait": "Wachten",
+      "refresh": "Status vernieuwen",
+      "forceButton": "Toch starten"
     }
   },
   "Moderation": {

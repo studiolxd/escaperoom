@@ -1248,6 +1248,22 @@
       "split_clue": "Split clue",
       "pipes": "Pipes",
       "combine_items": "Combine items"
+    },
+    "allGroupsStart": {
+      "label": "All groups start together",
+      "hint": "Each group's host won't be able to start on their own: only you, from here.",
+      "lockedHint": "Some groups are already playing: this setting can no longer change."
+    },
+    "startAll": {
+      "button": "Start all",
+      "starting": "Starting…",
+      "notReadyTitle": "Not every group is ready",
+      "notReadyDescription": "These groups don't meet the minimum or \"Ready\" yet:",
+      "detailMinNotMet": "{name}: {connected}/{min} players",
+      "detailNotReady": "{name}: {missing} not ready",
+      "wait": "Wait",
+      "refresh": "Refresh status",
+      "forceButton": "Start anyway"
     }
   },
   "Moderation": {

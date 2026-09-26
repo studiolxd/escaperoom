@@ -1489,6 +1489,22 @@
       "split_clue": "Pista repartida",
       "pipes": "Tuberías",
       "combine_items": "Combinar objetos"
+    },
+    "allGroupsStart": {
+      "label": "Todos los grupos comienzan juntos",
+      "hint": "El anfitrión de cada grupo no podrá empezar por su cuenta: solo tú, desde aquí.",
+      "lockedHint": "Ya hay grupos jugando: no se puede cambiar esta opción."
+    },
+    "startAll": {
+      "button": "Comenzar todos",
+      "starting": "Comenzando…",
+      "notReadyTitle": "No todos los grupos están listos",
+      "notReadyDescription": "Estos grupos no cumplen el mínimo o «Listo» todavía:",
+      "detailMinNotMet": "{name}: {connected}/{min} jugadores",
+      "detailNotReady": "{name}: {missing} sin listo",
+      "wait": "Esperar",
+      "refresh": "Refrescar estado",
+      "forceButton": "Comenzar igualmente"
     }
   },
   "Moderation": {

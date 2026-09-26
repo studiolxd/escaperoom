@@ -217,6 +217,7 @@ El reparto 70/30 se calcula al liquidar el pago en el webhook (§7), no en la cr
 | GET | `/api/events/:id/dashboard` | organizador | Resumen en vivo: estado del evento, claves (generadas/enviadas/confirmadas/canjeadas), sesiones con su progreso y el ranking del evento |
 | GET | `/api/events/:id/progress/export?locale=` | organizador | Progreso y ranking en CSV (adjunto, UTF-8 con BOM, cabeceras en el idioma pedido o el del evento) |
 | POST | `/api/events/:id/sessions/:sessionId/spectate` | organizador | Token de observador (5 min) para entrar en la room `event` de una sesión en curso en solo lectura: `{ sessionId, spectatorToken, expiresAt, colyseus: { endpoint, roomName } }` |
+| POST | `/api/events/:id/start-all` | organizador | "Comenzar todos"/"Comenzar igualmente" (ticket "inicio conjunto", solo con `allGroupsStartTogether` activo): `{ force? }` → `{ groups: [{ sessionId, status, connected, ready, min }] }`. Sin `force`, todo o nada — `NOT_APPLICABLE` si la opción no está activa |
 
 **Códigos de error de claves:** `ACCESS_KEY_INVALID`, `ACCESS_KEY_USED`, `ACCESS_KEY_EXPIRED`,
 `ACCESS_KEY_NOT_CONFIRMED` (si `requireConfirmation = true` y aún no confirmó), `SESSION_FULL` —
