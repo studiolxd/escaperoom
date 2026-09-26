@@ -36,6 +36,14 @@ export interface NetworkGameProps {
   exitHref?: string;
   /** Sala gratis sin cuenta (punto i, "CTA Jugar"): CTA de login en `ResultsScreen`. */
   signInHref?: string;
+  /**
+   * Tras crear/unirse a la `GameRoom` (el id de Colyseus). Ningún flujo real
+   * lo usa hoy (`RoomGame`/`EventGame` ya saben a qué room unirse por la
+   * URL); lo usa la página de pruebas de reconexión E2E de `GameRoom` desnuda
+   * (`(play)/dev/game-room`, DEUDA) para reflejar el id en la URL y así poder
+   * recargar/reabrir la pestaña sin perder la partida.
+   */
+  onJoined?: (roomId: string) => void;
 }
 
 /**
@@ -52,6 +60,7 @@ export function NetworkGame({
   subtitle,
   exitHref,
   signInHref,
+  onJoined,
 }: NetworkGameProps) {
   const t = useTranslations("Game");
   const [draftName, setDraftName] = useState("");
@@ -95,6 +104,7 @@ export function NetworkGame({
     target,
     name: name ?? undefined,
     enabled: name !== null,
+    onJoined,
   });
 
   const enter = (event: FormEvent<HTMLFormElement>) => {

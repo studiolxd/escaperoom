@@ -106,7 +106,7 @@ test("evento: claves en lote, PDF, canje sin cuenta y progreso en el panel del o
     await expect(player.page.getByLabel("Clave")).toHaveValue(codes[0]!);
     await player.page.getByLabel("Tu nombre").fill("Invitada");
     await player.page.getByRole("button", { name: "Entrar en la partida" }).click();
-    await expect(player.page).toHaveURL(/\/play\?session=[\w-]+#joinToken=/u);
+    await expect(player.page).toHaveURL(/\/play\/session\/[\w-]+#joinToken=/u);
     await expect(player.session).toBeVisible({ timeout: 30_000 });
     await expect(player.page.getByTestId("game-players")).toContainText("Invitada");
   });

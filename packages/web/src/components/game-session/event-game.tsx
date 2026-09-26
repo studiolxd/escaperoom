@@ -12,7 +12,7 @@ const tokenKey = (sessionId: string) => `escaperoom:join-token:${sessionId}`;
 
 /**
  * Entrada a una sesión de evento (ticket 5.8): el canje deja el `joinToken` en
- * el fragmento de la URL (`/play?session=<id>#joinToken=…`); aquí se recoge, se
+ * el fragmento de la URL (`/play/session/<id>#joinToken=…`); aquí se recoge, se
  * quita de la barra de direcciones y se usa para unirse a la room `event`. El
  * nombre visible lo fija el token, así que no se pregunta.
  */

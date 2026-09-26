@@ -13,10 +13,13 @@ import {
  * `game.reyaldric.spec.ts` (specs/22 §3.3): contraparte con navegador del E2E
  * de protocolo (`colyseus-server/test/e2e.reyaldric.spec.ts`). Dos
  * `BrowserContext` — dos jugadores reales — se unen a la misma partida de
- * `/play` y completan la ruta crítica de 14 pasos
+ * `/dev/game-room` (`GameRoom` desnuda de pruebas, retirada `/[locale]/play`
+ * — DEUDA) y completan la ruta crítica de 14 pasos
  * (`docs/reference/rey-aldric-notas-diseno.md`) **solo con clics** en la UI:
  * lista de objetos, menú de acciones, inventario y paneles de puzle. Termina
- * con la pantalla de resultados «¡Victoria!» en ambos navegadores.
+ * con la pantalla de resultados «¡Victoria!» en ambos navegadores. Prueba
+ * mecánica de juego pura (protocolo, puzzles, paneles); el acceso sin cuenta
+ * a una sala real ya lo cubre `free-room-play.spec.ts`.
  *
  * Dos tests:
  * - `@smoke` (subset de PR, §3.4; un fallo bloquea el merge): unirse por el
@@ -35,7 +38,7 @@ async function newPlayer(browser: Browser, name: string): Promise<UiPlayer> {
 /** Pasos comunes: partida por invitación, inicio y Salón del Trono (pasos 1–6) → Bodega. */
 async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
   await test.step("Ana crea la partida y Bruno entra con el link de invitación", async () => {
-    await a.page.goto("play");
+    await a.page.goto("dev/game-room");
     await a.enterName();
     await expect(a.page).toHaveURL(/[?&]room=/u);
     await b.page.goto(a.page.url());

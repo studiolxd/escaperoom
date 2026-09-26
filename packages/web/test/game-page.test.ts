@@ -65,6 +65,7 @@ vi.mock("@/i18n/navigation", () => ({
 const { default: EventSessionPage } = await import(
   "../src/app/[locale]/(play)/play/session/[sessionId]/page"
 );
+const { default: DevGameRoomPage } = await import("../src/app/[locale]/(play)/dev/game-room/page");
 
 const roomPackage = loadRoomPackage(readReyAldricRoomPackageJson());
 const LOCK_CODES = roomPackage.puzzles.flatMap((puzzle) =>
@@ -158,6 +159,52 @@ describe("página /[locale]/play/session/[sessionId] (SSR)", () => {
     for (const code of LOCK_CODES) expect(serialized).not.toContain(`"${code}"`);
     for (const key of ["solution", "seed", "pairs", "recipes", "fragments", "witness"]) {
       expect(serialized).not.toContain(`"${key}"`);
+    }
+  });
+});
+
+describe("página /[locale]/dev/game-room (SSR) — GameRoom desnuda de pruebas", () => {
+  it("renderiza el formulario de entrada traducido (%s)", async () => {
+    const element = await DevGameRoomPage({
+      params: Promise.resolve({ locale: "es" }),
+      searchParams: Promise.resolve({}),
+    });
+    const html = render(element, "es");
+    expect(html).toContain('data-testid="game-join"');
+    expect(html).toContain(tr("es", "join.create"));
+  });
+
+  it("con ?room=<id> ofrece unirse a esa partida; un id raro se ignora", async () => {
+    const join = render(
+      await DevGameRoomPage({
+        params: Promise.resolve({ locale: "es" }),
+        searchParams: Promise.resolve({ room: "AbC123_x" }),
+      }),
+    );
+    expect(join).toContain(tr("es", "join.join"));
+    const weird = render(
+      await DevGameRoomPage({
+        params: Promise.resolve({ locale: "es" }),
+        searchParams: Promise.resolve({ room: "../../etc" }),
+      }),
+    );
+    expect(weird).toContain(tr("es", "join.create"));
+  });
+
+  it("en producción real (sin ALLOW_DEV_SECRETS) no existe (404)", async () => {
+    const savedNodeEnv = process.env.NODE_ENV;
+    const savedAllow = process.env.ALLOW_DEV_SECRETS;
+    // @ts-expect-error -- NODE_ENV es de solo lectura en el tipo, no en runtime
+    process.env.NODE_ENV = "production";
+    delete process.env.ALLOW_DEV_SECRETS;
+    try {
+      await expect(
+        DevGameRoomPage({ params: Promise.resolve({ locale: "es" }), searchParams: Promise.resolve({}) }),
+      ).rejects.toThrow();
+    } finally {
+      // @ts-expect-error -- idem
+      process.env.NODE_ENV = savedNodeEnv;
+      if (savedAllow !== undefined) process.env.ALLOW_DEV_SECRETS = savedAllow;
     }
   });
 });
