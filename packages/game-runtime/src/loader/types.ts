@@ -212,6 +212,36 @@ export interface RuntimeModel {
   hints?: RuntimeHint[];
 }
 
+/**
+ * `RuntimeObject` sin lo que decide y entrega el SERVIDOR en partida en red
+ * (auditoría D-26): ni `inventory` (qué contiene un contenedor) ni
+ * `hidingSpot.contains` (qué esconde un escondite de `hidden_key`). En su
+ * lugar, solo lo que la escena necesita para dibujar y ofrecer la acción —
+ * `hasHidingSpot`/`inventoryCount` son **obligatorios** (a diferencia de los
+ * campos que sustituyen) precisamente para que el compilador impida pasar un
+ * `RuntimeObject` completo donde se espera uno público.
+ */
+export interface PublicRuntimeObject extends Omit<RuntimeObject, "inventory" | "hidingSpot"> {
+  /** `true` si el objeto es el escondite de un `hidden_key`, sin decir qué esconde. */
+  hasHidingSpot: boolean;
+  /** Nº de ítems que contiene el objeto si es un contenedor, sin decir cuáles. */
+  inventoryCount: number;
+}
+
+/** `RuntimeSubRoom` con sus objetos proyectados a `PublicRuntimeObject` (D-26). */
+export interface PublicRuntimeSubRoom extends Omit<RuntimeSubRoom, "objects"> {
+  objects: PublicRuntimeObject[];
+}
+
+/** `RuntimeModel` proyectado para la partida en red (D-26): ver `PublicRuntimeObject`. */
+export interface PublicRuntimeModel
+  extends Omit<RuntimeModel, "objects" | "objectsById" | "subrooms" | "subroomsById"> {
+  subrooms: PublicRuntimeSubRoom[];
+  subroomsById: Record<string, PublicRuntimeSubRoom>;
+  objects: PublicRuntimeObject[];
+  objectsById: Record<string, PublicRuntimeObject>;
+}
+
 export type {
   SubRoom,
   WorldObject,

@@ -87,6 +87,95 @@ function formatLabel(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (match, key: string) => vars[key] ?? match);
 }
 
+/**
+ * Atlas ya descargados una vez, por URL de la imagen (F-43..47 punto 5): cada
+ * `Phaser.Game` nuevo trae su propio `TextureManager` vacío, así que remontar
+ * el juego (reintento de conexión, cambio de `key` en React) volvía a pedir a
+ * la red todos los atlas del pack (~1 MB) aunque el contenido no hubiera
+ * cambiado. La caché vive a nivel de módulo (fuera de la instancia de
+ * `RoomScene`) para sobrevivir a ese remontaje dentro de la misma pestaña; un
+ * `HTMLImageElement` ya decodificado no depende del `Phaser.Game` que lo creó.
+ */
+const loadedAtlases = new Map<string, { image: unknown; json: unknown }>();
+
+/** Solo para tests: vacía la caché de atlas de módulo entre casos. */
+export function clearLoadedAtlasCacheForTests(): void {
+  loadedAtlases.clear();
+}
+
+interface AtlasManifestEntry {
+  key: string;
+  image: string;
+  data: string;
+}
+
+/**
+ * Puerto mínimo sobre `Phaser.Loader.LoaderPlugin`/`TextureManager` que
+ * necesita `planAtlasPreload` (F-43..47 punto 5): así se puede probar la
+ * decisión de red-vs-caché sin arrancar un `Phaser.Game` real.
+ */
+export interface AtlasPreloadPort {
+  textureExists(key: string): boolean;
+  addAtlas(key: string, image: unknown, json: unknown): void;
+  loadAtlas(key: string, imageUrl: string, dataUrl: string): void;
+}
+
+/**
+ * Decide, por cada atlas del manifiesto, si hace falta pedirlo a la red o si
+ * ya está en la caché de módulo de un `Phaser.Game` anterior de esta pestaña:
+ * remontar el juego (reintento, cambio de `key` en React) no debe volver a
+ * descargar atlas que no han cambiado.
+ */
+export function planAtlasPreload(
+  atlases: readonly AtlasManifestEntry[],
+  baseUrl: string,
+  port: AtlasPreloadPort,
+): void {
+  for (const atlas of atlases) {
+    const imageUrl = `${baseUrl}/${atlas.image}`;
+    const cached = loadedAtlases.get(imageUrl);
+    if (cached) {
+      if (!port.textureExists(atlas.key)) {
+        port.addAtlas(atlas.key, cached.image, cached.json);
+      }
+      continue;
+    }
+    port.loadAtlas(atlas.key, imageUrl, `${baseUrl}/${atlas.data}`);
+  }
+}
+
+/** Puerto mínimo para `captureLoadedAtlases`: ver `planAtlasPreload`. */
+export interface AtlasCachePort {
+  textureExists(key: string): boolean;
+  getTextureImageSource(key: string): unknown;
+  getJson(key: string): unknown;
+}
+
+/**
+ * Guarda en la caché de módulo los atlas que `preload()` acaba de descargar
+ * de la red: Phaser garantiza que todo lo encolado en `preload()` ya está en
+ * `textures`/`cache.json` cuando se llama a `create()` (documentado en
+ * `Loader.LoaderPlugin#atlas`). Los que ya venían de la caché (`preload()` los
+ * registró con `addAtlas` directamente) se saltan: no hay nada nuevo.
+ */
+export function captureLoadedAtlases(
+  atlases: readonly Omit<AtlasManifestEntry, "data">[],
+  baseUrl: string,
+  port: AtlasCachePort,
+): void {
+  for (const atlas of atlases) {
+    const imageUrl = `${baseUrl}/${atlas.image}`;
+    if (loadedAtlases.has(imageUrl) || !port.textureExists(atlas.key)) {
+      continue;
+    }
+    const image = port.getTextureImageSource(atlas.key);
+    const json = port.getJson(atlas.key);
+    if (image != null && json != null) {
+      loadedAtlases.set(imageUrl, { image, json });
+    }
+  }
+}
+
 export interface RoomSceneOptions {
   model: RuntimeModel;
   /** Habitación inicial; por defecto la primera de `map.rooms`. */
@@ -329,15 +418,19 @@ export class RoomScene extends Phaser.Scene {
       return;
     }
     const baseUrl = this.pack.baseUrl.replace(/\/$/, "");
-    for (const atlas of this.pack.manifest.atlases) {
-      this.load.atlas(atlas.key, `${baseUrl}/${atlas.image}`, `${baseUrl}/${atlas.data}`);
-    }
+    planAtlasPreload(this.pack.manifest.atlases, baseUrl, {
+      textureExists: (key) => this.textures.exists(key),
+      addAtlas: (key, image, json) =>
+        this.textures.addAtlas(key, image as HTMLImageElement, json as object),
+      loadAtlas: (key, imageUrl, dataUrl) => this.load.atlas(key, imageUrl, dataUrl),
+    });
   }
 
   create(): void {
     this.resolver = new PackFrameResolver(this, this.pack?.manifest);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.teardown());
+    this.cacheLoadedAtlases();
 
     this.objectState = createObjectStateMap(this.model);
     for (const [objectId, state] of this.earlyObjectStates) {
@@ -350,6 +443,26 @@ export class RoomScene extends Phaser.Scene {
     this.setupInput();
     this.buildRoom();
     this.cameras.main.fadeIn(200, 11, 17, 32);
+  }
+
+  /**
+   * Guarda en la caché de módulo (`loadedAtlases`) los atlas que `preload()`
+   * acaba de descargar de la red (F-43..47 punto 5): al terminar `create()`,
+   * Phaser garantiza que todo lo encolado en `preload()` ya está en
+   * `this.textures`/`this.cache.json` (documentado en `Loader.LoaderPlugin#atlas`).
+   * Los que ya venían de la caché (`preload()` los registró con `addAtlas`
+   * directamente) se saltan: no hay nada nuevo que guardar.
+   */
+  private cacheLoadedAtlases(): void {
+    if (!this.pack) {
+      return;
+    }
+    const baseUrl = this.pack.baseUrl.replace(/\/$/, "");
+    captureLoadedAtlases(this.pack.manifest.atlases, baseUrl, {
+      textureExists: (key) => this.textures.exists(key),
+      getTextureImageSource: (key) => this.textures.get(key).source[0]?.source,
+      getJson: (key) => this.cache.json.get(key),
+    });
   }
 
   update(time: number, delta: number): void {

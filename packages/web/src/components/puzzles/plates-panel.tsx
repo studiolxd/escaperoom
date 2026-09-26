@@ -21,6 +21,15 @@ export interface PlatesPanelProps {
   /** Último resultado del servidor para pintar el feedback. */
   feedback?: PlatesFeedback;
   className?: string;
+  /**
+   * Reloj que se consulta cada 250 ms para la cuenta atrás (F-43..47 punto 1).
+   * Por defecto `Date.now`, correcto en local/preview (sin servidor con el que
+   * desincronizarse). En partida en red, quien monta el panel debe pasar el
+   * reloj del servidor (`snapshot.clock`) compensado con el desfase del
+   * jugador: con el reloj del ordenador adelantado o atrasado, `Date.now()` a
+   * secas no coincidiría con la ventana real que resuelve el servidor.
+   */
+  getNow?: () => number;
 }
 
 /**
@@ -37,9 +46,10 @@ export function PlatesPanel({
   pending = false,
   feedback = null,
   className,
+  getNow = Date.now,
 }: PlatesPanelProps) {
   const t = useTranslations("SimultaneousPlates");
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(getNow);
 
   const solved = view.state === "solved";
   const unavailable = view.state === "locked" || view.state === "failed";
@@ -52,9 +62,9 @@ export function PlatesPanel({
 
   useEffect(() => {
     if (solved || view.windowEndsAt === null) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
+    const timer = window.setInterval(() => setNow(getNow()), 250);
     return () => window.clearInterval(timer);
-  }, [solved, view.windowEndsAt]);
+  }, [solved, view.windowEndsAt, getNow]);
 
   const seconds = Math.ceil(remainingMs / 1_000);
   let status = t("prompt");

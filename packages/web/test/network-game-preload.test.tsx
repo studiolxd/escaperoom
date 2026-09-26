@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { loadRuntimeModel } from "@escaperoom/game-runtime";
+import { loadRuntimeModel, toPublicRuntimeModel } from "@escaperoom/game-runtime";
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { createElement } from "react";
@@ -44,7 +44,7 @@ afterEach(() => {
   mediaOverlayLoaded.mockClear();
 });
 
-const model = loadRuntimeModel(readReyAldricRoomPackageJson());
+const model = toPublicRuntimeModel(loadRuntimeModel(readReyAldricRoomPackageJson()));
 
 describe("NetworkGame: precarga de Phaser y livekit-client", () => {
   it("dispara la carga de los dos chunks mientras se muestra el formulario de nombre", async () => {

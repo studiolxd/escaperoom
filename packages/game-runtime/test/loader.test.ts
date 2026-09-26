@@ -5,6 +5,7 @@ import {
   RoomPackageLoadError,
   loadRoomPackage,
   loadRuntimeModel,
+  toPublicRuntimeModel,
   toRuntimeModel,
   type RoomPackage,
 } from "../src/loader";
@@ -222,5 +223,64 @@ describe("toRuntimeModel", () => {
 
     expect(sinDialogo).toBeDefined();
     expect(sinDialogo?.name).toBeUndefined();
+  });
+});
+
+describe("toPublicRuntimeModel", () => {
+  it("el Rey Aldric completo sí revela qué esconde cada escondite (control)", () => {
+    const model = toRuntimeModel(loadValidPackage());
+    const hidingObjects = model.objects.filter((object) => object.hidingSpot);
+
+    expect(hidingObjects.length).toBeGreaterThan(0);
+    for (const object of hidingObjects) {
+      expect(object.hidingSpot?.contains).toEqual(expect.any(String));
+    }
+  });
+
+  it("D-26: la proyección pública del Rey Aldric no manda `inventory` ni `hidingSpot.contains`", () => {
+    const model = toRuntimeModel(loadValidPackage());
+    const publicModel = toPublicRuntimeModel(model);
+
+    // Ningún objeto de la proyección pública lleva las claves prohibidas.
+    for (const object of publicModel.objects) {
+      expect(object).not.toHaveProperty("inventory");
+      expect(object).not.toHaveProperty("hidingSpot");
+    }
+
+    // Ni siquiera serializado: nada de contenido de escondites o inventario
+    // en el JSON que viajaría a la partida en red.
+    const serialized = JSON.stringify(publicModel);
+    expect(serialized).not.toMatch(/"inventory"/);
+    expect(serialized).not.toMatch(/"hidingSpot"/);
+    expect(serialized).not.toMatch(/"contains"/);
+
+    // Y sigue exponiendo lo que la escena necesita sin decir qué hay dentro.
+    const hidingObjects = model.objects.filter((object) => object.hidingSpot);
+    expect(hidingObjects.length).toBeGreaterThan(0);
+    for (const object of hidingObjects) {
+      expect(publicModel.objectsById[object.id]?.hasHidingSpot).toBe(true);
+    }
+    for (const object of publicModel.objects.filter((candidate) => !candidate.hasHidingSpot)) {
+      expect(model.objectsById[object.id]?.hidingSpot).toBeUndefined();
+    }
+  });
+
+  it("D-26: proyecta `inventoryCount` sin revelar los ítems de un contenedor", () => {
+    const roomPackage = loadValidPackage();
+    const container = roomPackage.objects.find((candidate) => candidate.id === "cuadro-aurelio");
+    if (!container) throw new Error("el fixture no tiene cuadro-aurelio");
+    // Ids inventados (no forman parte del catálogo de ítems del fixture) para
+    // comprobar que no aparecen en ningún sitio de la proyección pública.
+    container.inventory = ["item-espia-1", "item-espia-2"];
+
+    const model = toRuntimeModel(roomPackage);
+    const publicModel = toPublicRuntimeModel(model);
+    const publicObject = publicModel.objectsById["cuadro-aurelio"];
+
+    expect(publicObject).not.toHaveProperty("inventory");
+    expect(publicObject?.inventoryCount).toBe(2);
+    const serialized = JSON.stringify(publicModel);
+    expect(serialized).not.toContain("item-espia-1");
+    expect(serialized).not.toContain("item-espia-2");
   });
 });

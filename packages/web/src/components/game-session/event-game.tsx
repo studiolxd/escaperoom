@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import type { RuntimeModel } from "@escaperoom/game-runtime";
+import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import { readJoinTokenFromHash } from "@/lib/game-net";
 import { NetworkGame } from "./network-game";
@@ -22,7 +22,7 @@ export function EventGame({
   sessionId,
   subtitle,
 }: {
-  model: RuntimeModel;
+  model: PublicRuntimeModel;
   pack?: RoomScenePack;
   sessionId: string;
   subtitle?: string;

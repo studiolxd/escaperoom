@@ -300,10 +300,18 @@ export function remainingMs(snapshot: GameSnapshot): number | null {
 /**
  * Tiempo jugado en ms (ticket duración-salas, specs/04 §6): el HUD lo usa
  * como presentación mínima cuando la sala no tiene cuenta atrás
- * (`remainingMs` devuelve `null`) — nunca "00:00". `null` antes de empezar
- * (`startedAt` sin fijar).
+ * (`remainingMs` devuelve `null`) — nunca "00:00". `null` antes de empezar.
+ *
+ * "Antes de empezar" se decide por `phase` (`"lobby"`), no por si
+ * `startedAt` es *truthy*: en el cliente local (`createLocalGameClient`),
+ * `startedAt` es tiempo lógico relativo a la creación del cliente
+ * (`session/local.ts`), así que una partida iniciada en el mismo instante en
+ * que se crea el cliente (habitual en tests síncronos, y visto de forma
+ * intermitente en CI) tiene legítimamente `startedAt === 0` — antes se leía
+ * como "sin empezar" y el HUD no pintaba ni el cronómetro ni el tiempo
+ * transcurrido.
  */
 export function elapsedMs(snapshot: GameSnapshot): number | null {
-  if (!snapshot.startedAt) return null;
+  if (snapshot.phase === "lobby") return null;
   return Math.max(0, snapshot.clock - snapshot.startedAt);
 }

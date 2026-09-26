@@ -44,6 +44,12 @@ export interface PanelHostProps {
   onTogglePlate: (puzzleId: string, objectId: string, active: boolean) => void;
   onPlacePlatesBridge: (puzzleId: string) => void;
   onPlaceMirror: (puzzleId: string) => void;
+  /**
+   * Reloj para la cuenta atrás de `PlatesPanel` (F-43..47 punto 1): el reloj
+   * del servidor compensado con el desfase del jugador, nunca `Date.now()` a
+   * secas (ver `PlatesPanel.getNow`).
+   */
+  platesGetNow: () => number;
   panelTitle: (panel: string | null) => string;
   closeLabel: string;
   loadingLabel: string;
@@ -70,6 +76,7 @@ export function PanelHost({
   onTogglePlate,
   onPlacePlatesBridge,
   onPlaceMirror,
+  platesGetNow,
   panelTitle,
   closeLabel,
   loadingLabel,
@@ -119,6 +126,7 @@ export function PanelHost({
               onTogglePlate={(objectId, active) => onTogglePlate(activePuzzle.id, objectId, active)}
               onPlaceBridge={() => onPlacePlatesBridge(activePuzzle.id)}
               feedback={feedback.plates as PlatesFeedback}
+              getNow={platesGetNow}
             />
           ) : null}
           {activePuzzle?.type === "sliding_puzzle" && activeView ? (
