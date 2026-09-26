@@ -134,6 +134,26 @@ Un audio subido solo lo puede usar su dueño. `rejected` es histórico (decision
 tomadas antes de esta fecha por la extinta cola de moderación) y sigue sin ser usable
 (`AUDIO_REJECTED`, con motivo); no hay forma nueva de llegar a ese estado.
 
+### 4.1b Medios de la introducción (encargo lobby-diseño)
+
+Vídeo (mp4/webm, hasta 200 MB, sin límite de duración) y subtítulos WebVTT por idioma de
+`meta.intro` (`specs/04` §10). **Solo el autor de la sala**; sin moderación previa. El borrador
+guarda la referencia `media:<uuid>` que devuelven estas rutas; la publicación la reescribe a la
+clave direccionada por contenido. Servicio: `IntroMediaService` (`@escaperoom/shared/services`),
+adaptador `server/rest/intro-media.ts`.
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| POST | `/api/rooms/:roomId/intro-media/video` | autor | `{ filename, contentType, byteSize }` (`video/mp4`\|`video/webm`; `application/octet-stream` se decide por la extensión) → 201 `{ assetId, uploadUrl, headers }`. El vídeo **no pasa por el servidor**: el navegador hace `PUT uploadUrl` con el fichero y exactamente esas `headers` (firma `content-type` y `content-length`; caduca en 15 min). `415`, `413` (declarado > 200 MB), `422` |
+| POST | `/api/rooms/:roomId/intro-media/video/:assetId/complete` | autor | Comprueba el objeto subido (HEAD: tamaño ≤ 200 MB; GET por rango: magic bytes, `ftyp` en el offset 4 = mp4, EBML `1A 45 DF A3` = webm, y deben coincidir con el tipo declarado) → 200 `{ ref: "media:<uuid>" }`. Idempotente. `409 UPLOAD_INCOMPLETE` si el PUT aún no ha terminado; `415`/`413` si no cuadra (el objeto y el asset se **borran**: hay que empezar otra subida) |
+| POST | `/api/rooms/:roomId/intro-media/subtitles?lang=xx` | autor | Cuerpo = el `.vtt` tal cual (`Content-Type: text/vtt`, UTF-8, empieza por `WEBVTT`, ≤ 512 KB) → 201 `{ ref: "media:<uuid>" }`. `422` (sin `lang` o idioma inválido), `415`, `413` |
+| GET | `/api/rooms/:roomId/intro-media/url?ref=…` | autor | `{ url }`: URL firmada (1 h) de un `media:` propio y listo, o de una clave publicada, para previsualizar en el editor. `409 NOT_READY` (vídeo sin completar), `403`, `404` |
+
+Cuotas (`docs/reference/seguridad.md` §1): `intro-media-upload` (vídeo y subtítulos, compartida
+con la meta-tool `upload` del MCP), `intro-media-complete` e `intro-media-read`. En partida y
+playtest las URLs (6 h) las firma el servidor al montar la página (`introMediaUrlResolver`,
+`server/intro-media-url.ts`); no hay ruta pública para ello.
+
 ### 4.2 Licencias entre creadores (ticket 5.10)
 
 Reglas en `specs/02` §5. El fork es una sala **nueva** en `draft` del comprador/receptor, con

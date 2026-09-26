@@ -52,11 +52,16 @@ Se copia el patrón de SLXD (ADR-017/022):
   (esquema de entrada completo de una tool concreta) → `run_tool` (la ejecuta por nombre con sus
   argumentos, por el MISMO pipeline que una llamada directa — identidad, validación, autorización,
   límite de tamaño de respuesta; no puede ejecutarse a sí misma ni a las otras meta-tools). `upload`
-  sube un asset (imagen de portada o audio) en base64 — MCP no transporta binarios por streaming —
-  reutilizando los servicios de subida que ya existen en la web (`RoomCoverService`,
-  `AudioAssetService`), con los mismos límites de tipo, tamaño y cuota (`docs/reference/seguridad.md`
-  §1): el límite genérico de llamadas del MCP no basta por sí solo para una tool que sube ficheros de
-  hasta 10 MB.
+  sube un asset (imagen de portada, audio, o vídeo/subtítulos WebVTT de la introducción) en base64 —
+  MCP no transporta binarios por streaming — reutilizando los servicios de subida que ya existen en
+  la web (`RoomCoverService`, `AudioAssetService`, `IntroMediaService`), con los mismos límites de
+  tipo, tamaño y cuota (`docs/reference/seguridad.md` §1): el límite genérico de llamadas del MCP no
+  basta por sí solo para una tool que sube ficheros de hasta 10 MB. `kind: "intro_video"` (exige
+  `roomId`; mp4/webm por magic bytes) y `kind: "intro_subtitles"` (exige `roomId` y `lang`; WebVTT
+  UTF-8 ≤ 512 KB) devuelven `ref: "media:<uuid>"` para `set_room_intro` y comparten la cuota
+  `intro-media-upload` con la web. El vídeo por MCP se queda en el tope de transporte (10 MB
+  decodificados; 200 MB en base64 serían ~267 MB de JSON-RPC en una sola llamada): los vídeos de
+  hasta 200 MB se suben desde el editor web (PUT presignado directo al bucket).
 - **La costura:** cada tool llama a un **servicio de dominio** con un `actor`; no reimplementa el
   router tRPC (ADR-010).
 
@@ -116,7 +121,7 @@ Organizado por fase de creación, con esquemas Zod (compartidos desde `packages/
 | `find_tools({query?, phase?})` | Busca por texto y/o fase sobre el catálogo de tools de contenido; devuelve nombre + descripción |
 | `tool_schema({name})` | Esquema de entrada completo de una tool concreta |
 | `run_tool({name, arguments?})` | La ejecuta por su nombre, por el mismo pipeline que una llamada directa |
-| `upload({kind, roomId?, filename, contentType, data, rightsDeclared?})` | Sube una imagen de portada o un audio (base64) y devuelve su referencia |
+| `upload({kind, roomId?, lang?, filename, contentType, data, rightsDeclared?})` | Sube (base64) una imagen de portada (`cover_image`), un audio (`audio`), o el vídeo (`intro_video`) o los subtítulos WebVTT de un idioma (`intro_subtitles`) de la introducción, y devuelve su referencia (`media:<uuid>` para `set_room_intro`) |
 
 ## 3. Patrón clave: validación + dry-run en cada tool
 

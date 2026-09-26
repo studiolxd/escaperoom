@@ -254,3 +254,48 @@ encargable como un único pack. El **brief y contrato de entrega** completo est�
 - `specs/05-motor-de-reglas-y-estado.md` — cómo las interacciones mutan el estado.
 - `specs/08-formato-roompackage.md` — de dónde sale cada definición del mundo.
 - `specs/11-protocolo-multijugador.md` — mensajes `interact`, `move`, broadcasts de estado.
+
+## 10. Introducción: vídeo y subtítulos
+
+La introducción de vídeo (`meta.intro = { type: "video", video, subtitles? }`, encargo
+lobby-diseño) es un fichero del creador, no del pack gráfico. Límites y flujo:
+
+**Formatos y límites** (`packages/shared/src/schemas/limits.ts`):
+
+- Vídeo **MP4 (H.264) o WebM**, hasta **200 MB** (`MAX_INTRO_VIDEO_BYTES`). **Sin límite de
+  duración y sin moderación previa** (decisión del usuario, igual que el audio en ADR-039): el
+  control es posterior, por reportes.
+- Subtítulos **WebVTT** opcionales, uno por idioma declarado de la sala, en UTF-8 y empezando por
+  `WEBVTT`, hasta **512 KB** cada uno (`MAX_INTRO_SUBTITLES_BYTES`).
+- El tipo real se comprueba por **magic bytes**, nunca por el MIME declarado: `ftyp` en el offset 4
+  = mp4; cabecera EBML `1A 45 DF A3` = webm (y debe coincidir con el tipo declarado).
+
+**Subida** (solo el autor de la sala; rutas en `specs/13` §4.1b, servicio `IntroMediaService`):
+
+1. El editor pide `POST /api/rooms/:roomId/intro-media/video` con `{ filename, contentType,
+   byteSize }` y recibe un **PUT presignado** (15 min) directo al bucket privado: 200 MB no pasan
+   por el servidor web. (R2 no admite presigned POST con condiciones de tamaño; el PUT firma
+   `content-type` y `content-length`, y el tamaño real se vuelve a comprobar después.)
+2. El navegador sube el fichero con ese PUT y llama a `…/video/:assetId/complete`: el servidor hace
+   **HEAD** (tamaño ≤ 200 MB) y **GET por rango** de los primeros bytes (sniff). Si no cuadra, borra
+   el objeto y el asset. Si cuadra, el asset (`introMediaAsset`, `specs/14` §10.2) queda `ready` y
+   se devuelve la referencia `media:<uuid>` que se guarda en el borrador.
+3. Los subtítulos se suben en el cuerpo (`POST …/intro-media/subtitles?lang=xx`) y devuelven su
+   propia `media:<uuid>`.
+4. Desde el MCP, la meta-tool `upload` (`kind: "intro_video"`/`"intro_subtitles"`) hace lo mismo
+   con el binario en base64, con el tope de transporte del MCP (10 MB) para el vídeo.
+
+**Publicación** (`room-publish`): las referencias `media:` de `meta.intro` se empaquetan como los
+audios `upload:` — bloquean la publicación (`ASSETS_NOT_PUBLISHABLE`) si el asset no existe, no es
+del autor o su subida no se completó (`NOT_READY`); si no, se copian a una clave direccionada por
+contenido (`assets/rooms/<roomId>/<sha256>.<mp4|webm|vtt>`) y el paquete congelado guarda
+`r2://<clave>`. El vídeo se empaqueta **sin cargarlo en memoria**: SHA-256 en streaming y copia
+dentro del bucket.
+
+**Reproducción** (partida y playtest): la página resuelve `meta.intro` en el servidor con
+`resolveIntroModel` + `introMediaUrlResolver` (`packages/web/src/server/intro-media-url.ts`) a
+URLs firmadas de **6 h** (el jugador puede pasar mucho rato en la sala de espera antes de
+«Empezar»). En una versión publicada solo se sirven claves `r2://assets/rooms/…`; en el playtest de
+un borrador, además, los `media:<uuid>` listos subidos por el autor de esa sala. Un medio que no se
+puede servir no rompe la partida: sin vídeo, directo al 3-2-1; sin una pista de subtítulos, el
+vídeo sin ella.
