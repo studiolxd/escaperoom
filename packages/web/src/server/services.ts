@@ -25,6 +25,7 @@ import {
   createCatalogService,
   createCachedPublishedRoomListing,
   createPrismaPublishedRoomListing,
+  withCatalogCacheInvalidation,
   createPrismaReviewStore,
   createReviewService,
   type ReviewService,
@@ -179,6 +180,18 @@ function catalogCacheStore() {
 }
 
 /**
+ * Envuelve un método que puede cambiar lo que ve el catálogo público
+ * (publicar, retirar/restaurar por moderación, cambiar portada…) con
+ * `withCatalogCacheInvalidation` (ADR-027, `catalog-listing.ts`): punto único
+ * para no olvidar invalidar el cache en una mutación nueva.
+ */
+function invalidatingCatalogCache<Args extends unknown[], R>(
+  fn: (...args: Args) => Promise<R>,
+): (...args: Args) => Promise<R> {
+  return withCatalogCacheInvalidation(catalogCacheStore(), redisPrefix(), fn);
+}
+
+/**
  * Composition root de los servicios de dominio en web. tRPC, REST y MCP
  * comparten esta MISMA instancia (ADR-022): no hay lógica en los adaptadores.
  */
@@ -304,7 +317,17 @@ export function getAudioGenerationService(): AudioGenerationService | null {
  * lenguaje + PII, sin proveedores externos).
  */
 export function getModerationService(): ModerationService {
-  moderation ??= createModerationService({ store: createPrismaModerationStore(prisma) });
+  if (!moderation) {
+    const inner = createModerationService({ store: createPrismaModerationStore(prisma) });
+    moderation = {
+      ...inner,
+      // `resolveReport` puede retirar la sala en el acto (acción "unpublish")
+      // o restaurarla (reporte desestimado tras una retirada); `resolveAppeal`
+      // también puede restaurarla (decisión "overturned").
+      resolveReport: invalidatingCatalogCache(inner.resolveReport),
+      resolveAppeal: invalidatingCatalogCache(inner.resolveAppeal),
+    };
+  }
   return moderation;
 }
 
@@ -317,7 +340,7 @@ export function getModerationService(): ModerationService {
  */
 export function getRoomPublishService(): RoomPublishService {
   if (!roomPublish) {
-    roomPublish = createRoomPublishService({
+    const inner = createRoomPublishService({
       store: createPrismaRoomPublishStore(prisma),
       drafts: createPrismaRoomDraftStore(prisma),
       serializer: roomDocToPackage,
@@ -338,6 +361,7 @@ export function getRoomPublishService(): RoomPublishService {
         toRuntimeModel(pkg);
       },
     });
+    roomPublish = { ...inner, publish: invalidatingCatalogCache(inner.publish) };
   }
   return roomPublish;
 }
@@ -448,10 +472,13 @@ export function getMeService(): MeService {
 
 /** Portada de sala (A-12): mismo adaptador de storage que el audio del creador. */
 export function getRoomCoverService(): RoomCoverService {
-  roomCover ??= createRoomCoverService({
-    store: createPrismaRoomCoverStore(prisma),
-    blobs: audioBlobs,
-  });
+  if (!roomCover) {
+    const inner = createRoomCoverService({
+      store: createPrismaRoomCoverStore(prisma),
+      blobs: audioBlobs,
+    });
+    roomCover = { ...inner, uploadCoverImage: invalidatingCatalogCache(inner.uploadCoverImage) };
+  }
   return roomCover;
 }
 
