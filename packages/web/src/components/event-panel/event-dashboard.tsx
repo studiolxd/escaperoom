@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import type { EventDashboard, EventSessionRow } from "@escaperoom/shared/services";
 import { Button } from "@/components/ui/button";
+import { EventTimeLimitDialog } from "./event-time-limit-dialog";
 import { Link } from "@/i18n/navigation";
 import { formatDuration } from "@/lib/session-format";
 import { eventApiPath, observePath, readApiError } from "@/lib/event-panel";
@@ -180,6 +181,19 @@ export function EventDashboardView({ eventId }: { eventId: string }) {
             })}
           </span>
         </p>
+        {event.status === "draft" ? (
+          <p>
+            <EventTimeLimitDialog
+              eventId={event.id}
+              timeLimitMinutes={event.timeLimitMinutes}
+              onSaved={(timeLimitMinutes) =>
+                setDashboard((prev) =>
+                  prev ? { ...prev, event: { ...prev.event, timeLimitMinutes } } : prev,
+                )
+              }
+            />
+          </p>
+        ) : null}
         {!dashboard.liveAvailable ? (
           <p role="status" className="text-sm text-amber-200">
             {t("liveUnavailable")}

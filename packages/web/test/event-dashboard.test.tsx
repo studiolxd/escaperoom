@@ -46,6 +46,42 @@ function renderDashboard() {
   );
 }
 
+describe("EventDashboardView — duración del evento (ticket duración-salas)", () => {
+  beforeEach(() => {
+    Object.defineProperty(document, "hidden", { configurable: true, value: false });
+  });
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("muestra el ajuste de duración solo mientras el evento está en borrador", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify(DASHBOARD), { status: 200 })),
+    );
+    renderDashboard();
+    await waitFor(() => expect(screen.getByTestId("event-dashboard")).toBeInTheDocument());
+    expect(screen.queryByText(/duración del evento/i)).not.toBeInTheDocument();
+  });
+
+  it("con el evento en borrador, aparece el botón de duración", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({ ...DASHBOARD, event: { ...DASHBOARD.event, status: "draft" } }),
+            { status: 200 },
+          ),
+      ),
+    );
+    renderDashboard();
+    await waitFor(() => expect(screen.getByTestId("event-dashboard")).toBeInTheDocument());
+    expect(await screen.findByText(/duración del evento/i)).toBeVisible();
+  });
+});
+
 describe("EventDashboardView — pausa el polling con la pestaña oculta (F-32)", () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });

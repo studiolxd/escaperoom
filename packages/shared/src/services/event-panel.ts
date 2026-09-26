@@ -132,6 +132,11 @@ export type EventDashboard = {
     roomVersionId: string;
     requireConfirmation: boolean;
     playersPlanned: number;
+    /**
+     * Ticket duración-salas: override de duración de ESTE evento. `undefined`
+     * = sin override (usa la de la sala); solo editable mientras `draft`.
+     */
+    timeLimitMinutes?: number | null;
   };
   keys: EventKeyCounts;
   invitations: InvitationStats;
@@ -468,6 +473,9 @@ export function createEventPanelService(deps: EventPanelDeps) {
         roomVersionId: event.roomVersionId,
         requireConfirmation: event.requireConfirmation,
         playersPlanned: event.playersPurchased,
+        ...("timeLimitMinutes" in event.config
+          ? { timeLimitMinutes: event.config.timeLimitMinutes }
+          : {}),
       },
       keys: {
         generated: Object.values(byStatus).reduce((sum, n) => sum + n, 0),

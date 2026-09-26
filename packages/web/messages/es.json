@@ -1264,6 +1264,19 @@
       "closed": "Cerrado"
     },
     "activeSessions": "{count, plural, one {# sesión activa} other {# sesiones activas}}",
+    "duration": {
+      "button": "Duración del evento: {minutes} min",
+      "buttonDefault": "Duración del evento: la de la sala",
+      "buttonUnlimited": "Duración del evento: sin límite",
+      "title": "Duración de partida de este evento",
+      "description": "Por encima de la duración de la sala: más corta, más larga o sin límite. Las partidas con esta duración modificada no cuentan en el ranking público y sus reseñas quedan marcadas.",
+      "unlimited": "Sin duración (sin límite de tiempo)",
+      "minutes": "Minutos",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "errorInvalid": "La duración debe ser un número entero de minutos mayor que 0",
+      "warningBelowEstimate": "Esta duración es más corta que el tiempo estimado de la sala."
+    },
     "metrics": {
       "title": "Resumen",
       "keys": "Claves generadas",
