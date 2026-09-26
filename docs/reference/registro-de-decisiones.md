@@ -1080,3 +1080,84 @@ loader ESM estricto de Playwright.
   cacheados del pooler.
 
 ---
+
+## ADR-038 — Duración de partida configurable por sala, sin tope, con override de evento (2026-09-26)
+
+**Contexto:** toda partida duraba como máximo 1 h fija (`GAME_TIME_LIMIT_SEC = 3600` en
+`colyseus-server`), hardcodeada en `GameRoom.ensureSession`, el playtest del editor y el cliente
+local de `game-runtime`. El usuario quiso que cada sala declare su propia duración (opcional, sin
+tope, marcable como "sin duración") y que el organizador de un evento pueda ponerle a SU evento
+cualquier duración por encima de la de la sala — decisión de producto para salas de distinta
+longitud (uso educativo: clases de 45–50 min, alumnado que necesita más tiempo).
+
+**Decisión:**
+
+1. **`meta.timeLimitMinutes`** (`RoomPackageMetaSchema`, `packages/shared/src/schemas/roompackage.ts`):
+   opcional, sin tope; `null` = sin duración explícita, ausente = retrocompatible con
+   `DEFAULT_ROOM_TIME_LIMIT_MINUTES` (60 min, el límite fijo que ya tenían todas las salas
+   publicadas antes de este campo). `resolveRoomTimeLimitSec(meta)` lo resuelve a segundos (o
+   `undefined` = sin límite) en un único sitio; `GameRoom.timeLimitSeconds()` (protegido, en vez de
+   la constante fija), el playtest y el cliente local de `game-runtime` lo llaman en vez de
+   hardcodear 3600. El motor y el protocolo YA soportaban "sin límite" (`endsAt = 0` →
+   `remainingMs` devuelve `null`) desde antes de este ticket — solo faltaba dejar de forzar siempre
+   el valor fijo.
+2. **Override por evento** (`event.config.timeLimitMinutes`, mismo patrón que `allowVideo`): el
+   organizador fija cualquier duración para SU evento —más corta, más larga o sin límite—, editable
+   solo en `draft`. `EventRoom.timeLimitSeconds()` lo aplica por encima del de la sala. Aviso (no
+   bloqueo) si acorta por debajo del `estimatedMinutes` de la sala
+   (`EventView.timeLimitBelowEstimate`, calculado en `createEvent`/`updateEvent`, los únicos sitios
+   que cargan el `estimatedMinutes` de la sala).
+3. **Marca de "duración modificada" para ranking/reseñas** (specs/21 §2.1): la presencia de la
+   clave `timeLimitMinutes` en `event.config` (JSONB) ES la marca — no hace falta una columna
+   nueva ni tocar `progressEvent`; una futura implementación del ranking público por sala la excluye
+   con `event.config ? 'timeLimitMinutes'`. Las reseñas SÍ llevan una columna nueva
+   (`review.durationOverridden`, migración aditiva) porque el dato tiene que sobrevivir a que el
+   usuario juegue otras partidas después — se calcula al escribir/editar la reseña
+   (`hasPlayedWithOverriddenDuration`, cruce `progressEvent`→`gameSession`→`event` con esa marca).
+4. **Reclamación de compra B2C sin plazo fijo** (sustituye la redacción de ADR previo/specs/02
+   §2.1): con duración sin tope, `PLAY_SESSION_STALE_AFTER_SECONDS` (2 h, pensado para partidas
+   ≤1 h) ya no es correcto — una partida legítima de varias horas se marcaría "abandonada" a mitad
+   de partida. Se sustituye por un **latido**: la `GameRoom` renueva la reclamación cada
+   `PLAY_SESSION_HEARTBEAT_INTERVAL_SECONDS` (5 min) mientras la room viva
+   (`heartbeatPlaySession`); la caducidad pasa a ser un margen corto sobre el ÚLTIMO latido (15
+   min), no sobre cuándo empezó. Migración aditiva: `purchase.playSessionHeartbeatAt`.
+5. **TTL del `joinToken` según la duración real** (`resolveEventJoinTokenTtlSeconds`,
+   `join-token.ts`): con un override de evento, el TTL sube a la duración + 30 min de margen, o a
+   un techo de 24 h si es "sin duración" — el tope anterior de 2 h asumía partidas ≤1 h y podía
+   caducar el token de reconexión a mitad de una partida larga.
+6. **MCP**: `create_room` acepta `timeLimitMinutes`; nueva tool `set_room_duration` (no existía
+   ninguna tool de edición de meta post-creación, solo `create_room` fijaba valores iniciales).
+
+**Consecuencias:** el fixture de referencia (`docs/reference/roompackage-rey-aldric.v1.json`) pasa
+a declarar `timeLimitMinutes: 60` explícito (antes quedaba implícito en la constante del servidor).
+El HUD (`game-session-shell.tsx`) no se retocó de estilo (decisión del usuario: lo tiene ajustado a
+mano) — solo se añadió una rama que muestra tiempo transcurrido (`elapsedMs`, nuevo helper junto a
+`remainingMs`) cuando no hay cuenta atrás, en vez de nada.
+
+**Pendiente, anotado explícitamente para no improvisarlo:**
+
+- El TTL del `joinToken` (punto 5) solo reacciona al override DEL EVENTO. Si es la SALA la que
+  declara `timeLimitMinutes: null` sin que ningún evento la sobrescriba, el canje no carga el
+  `RoomPackage` de la sala hoy y el token sigue con el tope de 2 h — cerrarlo del todo necesita esa
+  carga adicional en `redeem.ts`.
+- El ranking global por sala (specs/21 §5) sigue sin implementar (ya lo estaba antes de este
+  ticket); este trabajo solo deja lista la marca que usará para excluir partidas de duración
+  modificada, no el ranking en sí.
+- No se añadió una validación cruzada en el validador (`validate.ts`) entre `timeLimitMinutes` y
+  `estimatedMinutes`/la estimación de solvabilidad — el brief no la pedía y son conceptos
+  independientes (uno es el límite duro, el otro la duración esperada de cara al catálogo).
+
+**Alternativas descartadas:**
+
+- **Guardar la duración de partida como columna SQL de `room`/`roomVersion`**: descartada — todo lo
+  demás de `meta` (incluido `estimatedMinutes`, el precedente más cercano) vive solo dentro del
+  `RoomPackage` JSON versionado (specs/14 §1); una columna aparte duplicaría la fuente de verdad sin
+  necesidad, ya que nada necesita filtrar/indexar por duración en SQL.
+- **Marcar "duración modificada" con una columna en `progressEvent`/`group`**: descartada frente a
+  la consulta sobre `event.config` — el ranking (cuando exista) siempre puede unir con `event` por
+  `gameSession.eventId`, así que duplicar la marca en cada fila de progreso solo añade superficie de
+  escritura sin necesidad.
+- **Umbral de latido igual al margen fijo anterior (2 h)**: descartado — el sentido del latido es
+  detectar un servidor caído RÁPIDO, no solo "algún día"; 3× el intervalo de latido (15 min) es
+  generoso para tolerar un latido perdido sin dejar una partida "abandonada" reclamable durante
+  horas mientras el jugador original sigue conectado.

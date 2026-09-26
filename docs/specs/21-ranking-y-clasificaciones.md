@@ -22,6 +22,23 @@ y `16-analitica.md`.
 - Cualquier partida con pistas usadas queda fuera del ranking competitivo (pero sigue disponible
   para el ranking "Cualquier grupo" con normalización, si el creador lo permite).
 
+### 2.1 Duración modificada (ticket duración-salas)
+
+Igual que las pistas usadas, una partida jugada con la **duración de partida modificada** por el
+organizador de su evento (`event.config.timeLimitMinutes`, `02-modelo-de-negocio.md` §7) queda
+fuera del ranking competitivo por sala: el "tiempo de finalización" (§1) de esa partida no es
+comparable con el de una jugada con la duración propia de la sala.
+
+- **Marca** (para cuando el ranking global por sala se implemente, hoy fuera de alcance — ver §5):
+  presencia de la clave `timeLimitMinutes` en `event.config` (ausente = sin override = cuenta;
+  presente, aunque sea `null`, = duración modificada = se excluye). No hace falta una columna
+  nueva: es una consulta `event.config ? 'timeLimitMinutes'` (JSONB) al construir el ranking.
+- **Reseñas**: si el usuario jugó la sala en algún evento con esta marca, su reseña queda marcada
+  (`review.durationOverridden`, calculado al escribir/editar la reseña) — dato de
+  moderación/visualización, no cambia el aspecto de la reseña ni la excluye de la media pública.
+- El ranking **interno del evento** (§4) SÍ usa la duración modificada con normalidad: todos sus
+  grupos juegan con el mismo límite, así que siguen siendo comparables entre ellos.
+
 ## 3. Anti-cheat
 
 - Partida verificada por servidor: bitácora de eventos de puzzle (`progressEvent`) con tiempos
