@@ -38,6 +38,7 @@ import {
 } from "@escaperoom/shared/session";
 import { createSlidingRng, visibleFragmentsByIndex } from "@escaperoom/shared/templates";
 import {
+  ABANDONED_GAME_TIMEOUT_SEC,
   CHAT_MESSAGE,
   ERROR_MESSAGE,
   GAME_DOOR_REACH,
@@ -322,6 +323,22 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   /** C-2: temporizador de reasignación de anfitrión (60 s), por `sessionId` desconectado. */
   protected readonly hostReassignTimers = new Map<string, Delayed>();
   /**
+   * Partidas abandonadas (decisión 2026-09-26): temporizador armado mientras
+   * la partida está lanzada (`starting`/`playing`) y NADIE está conectado.
+   * Se cancela en cuanto alguien reconecta o entra tarde; `undefined` si no
+   * hay ninguna cuenta atrás en curso (siempre hay al menos un conectado, o
+   * la partida no está lanzada/ya terminó).
+   */
+  private abandonedGameTimer?: Delayed;
+  /**
+   * `true` si el cierre en curso es por abandono (temporizador de arriba, no
+   * un `game_ended` normal): `onMilestone` lo usa para LIBERAR la compra
+   * (`releasePlaySession`) en vez de consumirla (`markPlaySessionEnded`) —
+   * decisión del usuario: una partida abandonada no debe gastar la única
+   * partida de una compra B2C, para poder volver a jugarla.
+   */
+  private closedAsAbandoned = false;
+  /**
    * C-2 (ajuste de producto): anfitrión ORIGINAL mientras un anfitrión
    * PROVISIONAL ocupa el puesto (se reasignó a los `HOST_REASSIGN_GRACE_SEC`
    * de una desconexión). Si el original vuelve antes de que termine la
@@ -556,6 +573,11 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     return RESULTS_ROOM_LIFETIME_SEC;
   }
 
+  /** Partidas abandonadas: segundos sin nadie conectado antes de cerrarla (decisión 2026-09-26). */
+  protected abandonedGameTimeoutSeconds(): number {
+    return ABANDONED_GAME_TIMEOUT_SEC;
+  }
+
   /**
    * Resuelve el paquete de la partida en servidor (el cliente solo elige el id).
    * `this.purchasedRoomPackage` (B-4) pisa `packageId`: una compra siempre
@@ -740,6 +762,12 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
    * DEFINITIVO de la única partida de la compra (specs/02, decisión del
    * README: se gasta al terminar, no al crear). Se llama de forma síncrona
    * desde el bucle de juego: la escritura es asíncrona y no bloquea.
+   *
+   * Excepción (decisión 2026-09-26, partidas abandonadas): si el cierre lo
+   * disparó `closeAbandonedGame` (`this.closedAsAbandoned`), en vez de
+   * consumirla se LIBERA (`releasePlaySession`) — una partida abandonada
+   * (nadie volvió en 60 min) no debe gastar la única partida de la compra;
+   * el usuario tiene que poder reclamarla de nuevo.
    */
   /** C-20: logger con `roomId` ya en el contexto, en vez de repetirlo en cada log. */
   protected get roomLogger() {
@@ -750,14 +778,22 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.recordAnalytics(milestone);
     if (milestone.kind !== "game_ended" || this.gameAccess?.kind !== "purchase") return;
     const purchaseId = this.gameAccess.purchaseId;
-    getGameAccessRuntime()
-      ?.markPlaySessionEnded(purchaseId)
-      .catch((err: unknown) => {
+    const runtime = getGameAccessRuntime();
+    if (this.closedAsAbandoned) {
+      runtime?.releasePlaySession(purchaseId, this.roomId).catch((err: unknown) => {
         logger.warn(
           { err, roomId: this.roomId, purchaseId },
-          "game-access: fallo al consumir la compra",
+          "game-access: fallo al liberar la compra tras un abandono",
         );
       });
+      return;
+    }
+    runtime?.markPlaySessionEnded(purchaseId).catch((err: unknown) => {
+      logger.warn(
+        { err, roomId: this.roomId, purchaseId },
+        "game-access: fallo al consumir la compra",
+      );
+    });
   }
 
   /**
@@ -872,6 +908,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     if (!this.state.hostId) this.state.hostId = client.sessionId;
     this.openPanels.set(client.sessionId, new Set());
     this.chat.join(client.sessionId);
+    this.cancelAbandonedGameCheck();
 
     this.publish(moved.engine);
   }
@@ -897,6 +934,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     const reservation = this.allowReconnection(client, seconds);
     reservation.catch(() => undefined); // evita "unhandled rejection"; `onLeave` hace la purga real.
     this.pendingReconnections.set(client.sessionId, reservation);
+    this.scheduleAbandonedGameCheck();
   }
 
   /** La reconexión de `onDrop` tuvo éxito (specs/11 §8.1): recupera plaza y, si tocaba, anfitrión. */
@@ -912,6 +950,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     }
     this.openPanels.set(client.sessionId, new Set());
     this.chat.join(client.sessionId);
+    this.cancelAbandonedGameCheck();
   }
 
   /**
@@ -943,6 +982,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       });
     }
     this.purgePlayer(client.sessionId);
+    this.scheduleAbandonedGameCheck();
   }
 
   /**
@@ -1016,6 +1056,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.pendingReconnections.get(previousSessionId)?.reject(new Error("duplicate_session"));
     this.pendingReconnections.delete(previousSessionId);
     this.clients.get(previousSessionId)?.leave(CloseCode.CONSENTED, "duplicate_session");
+    this.cancelAbandonedGameCheck();
   }
 
   /** Libera por completo la plaza de `sessionId` (purga tras la gracia, o salida consentida). */
@@ -1068,6 +1109,61 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       if (next === "" && candidate.connected && sessionId !== current) next = sessionId;
     });
     this.state.hostId = next;
+  }
+
+  /** Conectados ahora mismo (`GamePlayerState.connected`); no incluye observadores. */
+  private connectedPlayerCount(): number {
+    let connected = 0;
+    this.state.players.forEach((player) => {
+      if (player.connected) connected += 1;
+    });
+    return connected;
+  }
+
+  /**
+   * Partidas abandonadas (decisión 2026-09-26): arma (o rearma) la cuenta
+   * atrás cuando, con la partida lanzada (`starting`/`playing`) y sin
+   * terminar, deja de haber NADIE conectado. Se llama tras cada `onDrop`/
+   * `onLeave` — los únicos eventos que pueden dejar la room a cero
+   * conectados, porque en juego la plaza se reserva indefinidamente
+   * (`onDrop`, C-2) y por tanto `onLeave` no llega por sí solo (specs/11
+   * §8.1). Sin efecto si ya hay una cuenta atrás en curso o si sigue habiendo
+   * alguien conectado (`cancelAbandonedGameCheck` la limpia).
+   */
+  private scheduleAbandonedGameCheck(): void {
+    if (!this.launched || this.ended) return;
+    if (this.abandonedGameTimer || this.connectedPlayerCount() > 0) return;
+    this.abandonedGameTimer = this.clock.setTimeout(() => {
+      this.abandonedGameTimer = undefined;
+      this.closeAbandonedGame();
+    }, this.abandonedGameTimeoutSeconds() * 1000);
+  }
+
+  /** Cancela la cuenta atrás de abandono (alguien reconectó o entró tarde). */
+  private cancelAbandonedGameCheck(): void {
+    this.abandonedGameTimer?.clear();
+    this.abandonedGameTimer = undefined;
+  }
+
+  /**
+   * Cierra la partida como abandonada (decisión 2026-09-26): nadie conectado
+   * durante `abandonedGameTimeoutSeconds()`. Fuerza el resultado `aborted`
+   * (`RoomSession.abort`, idempotente) y reutiliza `announceEnd` —difunde
+   * `game_ended`, registra el hito, rechaza las reconexiones pendientes y
+   * programa el cierre de la room— para no duplicar ese camino. `EventRoom`
+   * no necesita sobrescribir nada: su `onMilestone` ya persiste cualquier
+   * `game_ended` con el resultado que traiga, y el panel del organizador
+   * muestra el grupo con el estado que ya tenga para partidas terminadas.
+   */
+  private closeAbandonedGame(): void {
+    if (this.ended || !this.session) return;
+    this.roomLogger.warn(
+      { timeoutSec: this.abandonedGameTimeoutSeconds() },
+      "game-room: cierre por abandono (sin jugadores conectados)",
+    );
+    this.closedAsAbandoned = true;
+    this.session.abort(this.logicalNow());
+    this.announceEnd();
   }
 
   /**

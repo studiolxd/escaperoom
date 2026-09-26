@@ -80,6 +80,17 @@ export const HOST_REASSIGN_GRACE_SEC = 60;
 export const RESULTS_ROOM_LIFETIME_SEC = 5 * 60;
 
 /**
+ * Partidas abandonadas (decisión del usuario 2026-09-26, specs/11 §8.1): en
+ * juego (`starting`/`playing`) la plaza se reserva indefinidamente
+ * (`onDrop` → `allowReconnection(client, "manual")`, C-2), así que sin
+ * duración (#169) nada cerraba la room si TODOS se iban — quedaba zombi para
+ * siempre. Si la partida lanzada se queda sin ningún jugador conectado
+ * durante este tiempo, se cierra como abandonada (`aborted`); cualquier
+ * reconexión o entrada tardía antes cancela la cuenta atrás.
+ */
+export const ABANDONED_GAME_TIMEOUT_SEC = 60 * 60;
+
+/**
  * Mensajes de la `GameRoom` (specs/11 §4–6). Cliente → servidor: comandos; el
  * servidor responde al emisor (`attempt_result`, `puzzle_view`,
  * `split_fragments`, `hint_delivered`, `error`) o difunde a todos
