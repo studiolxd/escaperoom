@@ -62,13 +62,13 @@ export function IntroOverlay({ intro, onClose }: IntroOverlayProps) {
 
   return (
     <div
-      className="pointer-events-auto absolute inset-0 z-40 grid place-items-center overflow-y-auto bg-slate-950/90 p-4 text-white backdrop-blur-sm"
+      className="pointer-events-auto absolute inset-0 z-40 grid place-items-center overflow-y-auto p-4 text-white backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       data-testid="game-intro"
     >
-      <div className="flex max-h-full w-full max-w-2xl flex-col gap-4 rounded-xl border border-white/10 bg-slate-950 p-6 shadow-xl">
+      <div className="flex max-h-full w-full max-w-2xl flex-col gap-4 rounded-xl border border-white/10 p-6 shadow-xl">
         <h2 id={titleId} className="text-lg font-semibold">
           {t("intro.title")}
         </h2>

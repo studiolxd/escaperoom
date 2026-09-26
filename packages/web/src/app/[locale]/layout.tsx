@@ -8,6 +8,7 @@ import { connection } from "next/server";
 import { cn } from "cn";
 import { routing } from "@/i18n/routing";
 import { ConsentProvider } from "@/components/consent/consent-provider";
+import { InlineScript } from "@/components/inline-script";
 import { CookieBanner, CookiePreferencesDialog } from "@/components/consent/cookie-consent-ui";
 import { PlausibleScript } from "@/components/analytics/plausible-script";
 import { GoogleAnalyticsScript } from "@/components/analytics/google-analytics-script";
@@ -72,7 +73,7 @@ export default async function LocaleLayout({ children, params }: Props) {
       suppressHydrationWarning
     >
       <head>
-        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <InlineScript html={THEME_INIT_SCRIPT} nonce={nonce} />
       </head>
       <body>
         <NextIntlClientProvider messages={messages}>

@@ -62,16 +62,14 @@ export function ResultsScreen({
       <DialogContent
         showCloseButton={false}
         className={cn(
-          "flex w-[min(92vw,26rem)] max-w-none flex-col items-center gap-5 rounded-2xl border-white/15 bg-slate-950/95 px-6 py-7 text-center text-white shadow-2xl sm:max-w-none",
+          "flex w-[min(92vw,26rem)] max-w-none flex-col items-center gap-5 rounded-2xl border-white/15 px-6 py-7 text-center text-white shadow-2xl sm:max-w-none",
           className,
         )}
       >
         <Icon className={cn("size-12", RESULT_TONE[summary.result])} aria-hidden="true" />
 
         <DialogTitle className="sr-only">{t("title")}</DialogTitle>
-        <DialogDescription className="sr-only">
-          {t(`result.${summary.result}`)}
-        </DialogDescription>
+        <DialogDescription className="sr-only">{t(`result.${summary.result}`)}</DialogDescription>
 
         <header className="flex flex-col gap-1">
           <p className="text-[0.65rem] uppercase tracking-[0.2em] text-white/50">{t("title")}</p>

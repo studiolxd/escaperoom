@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
+import { Loader2 } from "lucide-react";
 import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import { Button } from "@/components/ui/button";
@@ -13,8 +14,9 @@ import { sanitizePlayerName, type GameJoinTarget } from "@/lib/game-net";
 import { readGameReconnect } from "@/lib/game-reconnect";
 import type { IntroModel } from "@/lib/intro-model";
 import { LobbyDeviceCheck } from "./components/lobby-device-check";
-import { ConnectionBadge } from "./connection-badge";
+import { StatusOverlay } from "./components/status-overlay";
 import { GameSessionShell } from "./game-session-shell";
+import { useSetPlayPhase } from "./play-phase-context";
 import { useGameConnection } from "./use-game-connection";
 
 /**
@@ -102,7 +104,8 @@ export function NetworkGame({
     // nombre, precarga en segundo plano los chunks de Phaser y de
     // `livekit-client` (vía `MediaOverlay`) que se montarán justo después,
     // para que la partida arranque antes al pulsar entrar.
-    const idle = window.requestIdleCallback ?? ((cb: IdleRequestCallback) => window.setTimeout(cb, 200));
+    const idle =
+      window.requestIdleCallback ?? ((cb: IdleRequestCallback) => window.setTimeout(cb, 200));
     const cancelIdle = window.cancelIdleCallback ?? window.clearTimeout;
     const id = idle(() => {
       void import("./game-session-canvas");
@@ -118,6 +121,14 @@ export function NetworkGame({
     onJoined,
   });
 
+  // Header/footer públicos y padding de `main` solo antes de entrar a jugar
+  // de verdad (`PlayRoomShell`, `play/room/[roomId]/page.tsx`).
+  const setPlayPhase = useSetPlayPhase();
+  useEffect(() => {
+    setPlayPhase(Boolean(connection.client));
+    return () => setPlayPhase(false);
+  }, [connection.client, setPlayPhase]);
+
   const enter = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const clean = sanitizePlayerName(draftName) ?? "";
@@ -132,54 +143,64 @@ export function NetworkGame({
   if (name === null) {
     const joining = target.kind !== "game" || Boolean(target.roomId);
     return (
-      <div className="grid min-h-[calc(100dvh-2rem)] place-items-center" data-testid="game-join">
+      <StatusOverlay data-testid="game-join">
         <form
           onSubmit={enter}
-          className="flex w-full max-w-sm flex-col gap-3 rounded-xl border border-white/10 bg-slate-950/90 p-6 text-white shadow-xl"
+          className="flex w-full max-w-sm flex-col gap-3 rounded-xl bg-card p-6 text-card-foreground ring-1 ring-foreground/10"
         >
-          <h1 className="text-lg font-semibold">{title ?? model.meta.title}</h1>
-          <p className="text-sm text-white/60">
+          <h1 className="text-2xl font-bold">{title ?? model.meta.title}</h1>
+          <p className="text-sm text-muted-foreground">
             {joining ? t("join.joinSubtitle") : t("join.createSubtitle")}
           </p>
           <Label className="flex-col items-start gap-1 text-sm">
-            <span className="text-white/80">{t("join.nameLabel")}</span>
+            <span>{t("join.nameLabel")}</span>
             <Input
               value={draftName}
               onChange={(event) => setDraftName(event.target.value)}
               maxLength={32}
               placeholder={t("join.namePlaceholder")}
-              className="h-auto border-white/15 bg-white/5 px-2 py-1.5 text-sm text-white placeholder:text-white/40 focus-visible:border-white/30 focus-visible:ring-1 focus-visible:ring-white/30"
+              className="h-auto px-2 py-1.5 text-sm"
             />
           </Label>
           <Button type="submit" data-testid="game-enter">
             {joining ? t("join.join") : t("join.create")}
           </Button>
         </form>
-      </div>
+      </StatusOverlay>
     );
   }
 
   if (!connection.client) {
-    const message =
+    const connecting = connection.status === "connecting" || connection.status === "reconnecting";
+    const description =
       connection.status === "expired"
         ? t("status.expired")
         : connection.status === "error"
           ? t("status.error")
           : t("status.connecting");
     return (
-      <div className="grid min-h-[calc(100dvh-2rem)] place-items-center text-white">
+      <StatusOverlay>
         <div className="flex flex-col items-center gap-3 text-center">
-          <ConnectionBadge status={connection.status} />
-          <p role={connection.status === "connecting" ? undefined : "alert"} className="text-sm">
-            {message}
-          </p>
+          {connecting ? (
+            <>
+              <Loader2 className="size-8 animate-spin text-muted-foreground" aria-hidden />
+              <p className="text-sm">{description}</p>
+            </>
+          ) : (
+            <>
+              <p role="alert" className="text-2xl font-bold">
+                {t(`connection.${connection.status}`)}
+              </p>
+              <p className="text-sm text-muted-foreground">{description}</p>
+            </>
+          )}
           {connection.status === "error" ? (
-            <Button size="sm" variant="overlay" onClick={connection.retry}>
+            <Button variant="overlay" onClick={connection.retry}>
               {t("connection.retry")}
             </Button>
           ) : null}
         </div>
-      </div>
+      </StatusOverlay>
     );
   }
 
@@ -206,7 +227,7 @@ export function NetworkGame({
       {connection.status === "expired" ? (
         <p
           role="alert"
-          className="absolute inset-x-4 top-4 z-50 mx-auto w-fit rounded-lg border border-amber-300/40 bg-slate-950/95 px-4 py-2 text-sm text-amber-100"
+          className="absolute inset-x-4 top-4 z-50 mx-auto w-fit rounded-lg border border-amber-300/40 px-4 py-2 text-sm text-amber-100"
         >
           {t("status.expired")}
         </p>

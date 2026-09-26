@@ -10,9 +10,9 @@ import { ChatWindow } from "@/components/chat/chat-panel";
 import { ResultsScreen } from "@/components/game/results-screen";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { INTRO_DIALOG_ID } from "@/lib/playtest-state";
+import { ConnectionBadge } from "./connection-badge";
 import { ContextMenuPopover } from "./components/context-menu-popover";
 import { DialogButton, ImageDialog } from "./components/dialog-and-image";
-import { HudHeader } from "./components/hud-header";
 import { HudLogCorner } from "./components/hud-log-corner";
 import { InventoryDialog } from "./components/inventory-dialog";
 import { ItemPickerPopover } from "./components/item-picker-popover";
@@ -31,7 +31,7 @@ import type { GameConnectionStatus } from "./use-game-connection";
 
 const GameSessionCanvas = dynamic(() => import("./game-session-canvas"), {
   ssr: false,
-  loading: () => <div className="absolute inset-0 bg-slate-950" />,
+  loading: () => <div className="absolute inset-0" />,
 });
 
 export { KNOWN_ERRORS } from "./hooks/use-game-hud";
@@ -101,8 +101,6 @@ export function GameSessionShell({
   client,
   connection,
   inviteUrl,
-  title,
-  subtitle,
   exitHref,
   signInHref,
   children,
@@ -173,7 +171,7 @@ export function GameSessionShell({
   return (
     <section
       ref={sectionRef}
-      className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10 bg-slate-950"
+      className="absolute inset-0 overflow-hidden"
       data-testid="game-session"
       data-phase={snapshot.phase}
       data-stage={lobby.stage}
@@ -190,24 +188,21 @@ export function GameSessionShell({
       </ErrorBoundary>
 
       {hud.draggingItem ? (
-        <div className="pointer-events-none absolute inset-x-4 top-24 z-30 mx-auto w-fit rounded-full border border-amber-200/40 bg-slate-950/90 px-4 py-1.5 text-xs text-amber-100 shadow-lg">
+        <div className="pointer-events-none absolute inset-x-4 top-24 z-30 mx-auto w-fit rounded-full border border-amber-200/40 px-4 py-1.5 text-xs text-amber-100 shadow-lg">
           {hud.tp("menu.dropHint", { item: hud.itemName(hud.draggingItem) })}
         </div>
       ) : null}
 
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4">
-        <HudHeader
-          variant={variant}
-          title={title ?? model.meta.title}
-          subtitle={variant === "playtest" ? (subtitle ?? hud.tp("subtitle")) : subtitle}
-          roomName={hud.currentRoom?.name ?? hud.roomId}
-          controlsText={hud.tp("controls")}
-          remaining={hud.remaining}
-          elapsed={hud.elapsed}
-          connection={variant === "game" ? connection : undefined}
-          badgeText={variant === "playtest" ? hud.tp("badge") : undefined}
-          roomLabel={(room) => hud.tp("room", { room })}
-        />
+        {connection ? (
+          <header className="pointer-events-auto flex w-fit rounded-xl border border-white/10 bg-black/50 px-4 py-2 text-white backdrop-blur">
+            <ConnectionBadge status={connection.status} onRetry={connection.onRetry} />
+          </header>
+        ) : (
+          // Espaciador: sin cabecera de conexión (playtest), mantiene el
+          // chat/inventario pegados abajo (justify-between).
+          <div />
+        )}
 
         <div className="pointer-events-auto flex w-full flex-wrap items-end justify-between gap-4">
           {/* En la sala de espera (y durante la introducción/3-2-1) no hay

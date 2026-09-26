@@ -36,7 +36,7 @@ export function RoomPreviewShell({ model, pack }: { model: RuntimeModel; pack?: 
   const activeRoom = model.subroomsById[activeRoomId] ?? model.subrooms[0];
 
   return (
-    <section className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10 bg-slate-950">
+    <section className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10">
       <RoomPreviewCanvas model={model} roomId={activeRoomId} pack={pack} />
 
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4">

@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { isDevFallbackAllowed } from "@escaperoom/env";
 import { loadRoomPackage } from "@escaperoom/game-runtime";
-import { readGameAccessTokenConfig, signGameAccessToken } from "@escaperoom/shared/game-access-token";
+import {
+  readGameAccessTokenConfig,
+  signGameAccessToken,
+} from "@escaperoom/shared/game-access-token";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { NetworkGameDev } from "@/components/game-session/network-game-dev";
@@ -46,7 +49,7 @@ export default async function DevGameRoomPage({ params, searchParams }: Props) {
   const gameToken = signDevTestGameToken();
 
   return (
-    <main className="relative min-h-dvh bg-slate-950 p-4">
+    <main className="relative min-h-dvh p-4">
       <NetworkGameDev
         model={model}
         pack={pack}

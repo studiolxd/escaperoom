@@ -41,7 +41,9 @@ export function WorldPreviewShell({ model }: { model: RuntimeModel }) {
       } else if (event.type === "open-panel") {
         setPanel(event.puzzleId);
       } else if (event.type === "collect") {
-        setLog((prev) => [t("log.collect", { items: event.items.join(", ") }), ...prev].slice(0, 8));
+        setLog((prev) =>
+          [t("log.collect", { items: event.items.join(", ") }), ...prev].slice(0, 8),
+        );
       } else if (event.type === "state") {
         setLog((prev) =>
           [t("log.state", { object: event.objectId, state: event.state }), ...prev].slice(0, 8),
@@ -56,7 +58,7 @@ export function WorldPreviewShell({ model }: { model: RuntimeModel }) {
   }, []);
 
   return (
-    <section className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10 bg-slate-950">
+    <section className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10">
       <WorldPreviewCanvas model={model} onEvent={onEvent} onReady={onReady} />
 
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4">
@@ -125,7 +127,7 @@ export function WorldPreviewShell({ model }: { model: RuntimeModel }) {
           type="button"
           variant="ghost"
           onClick={() => setDialog(null)}
-          className="absolute inset-x-4 bottom-4 mx-auto block h-auto max-w-2xl cursor-pointer rounded-xl border border-amber-200/40 bg-slate-950/90 px-5 py-4 text-left text-sm whitespace-normal text-white shadow-lg backdrop-blur hover:bg-slate-950/90"
+          className="absolute inset-x-4 bottom-4 mx-auto block h-auto max-w-2xl cursor-pointer rounded-xl border border-amber-200/40 px-5 py-4 text-left text-sm whitespace-normal text-white shadow-lg backdrop-blur"
         >
           <span className="block text-[0.65rem] uppercase tracking-wide text-amber-200/70">
             {t("dialogTitle")}
@@ -137,7 +139,7 @@ export function WorldPreviewShell({ model }: { model: RuntimeModel }) {
 
       {panel ? (
         <div className="absolute inset-0 grid place-items-center bg-black/40">
-          <div className="flex w-fit flex-col gap-3 rounded-xl border border-white/15 bg-slate-950/95 px-6 py-5 text-white shadow-xl">
+          <div className="flex w-fit flex-col gap-3 rounded-xl border border-white/15 px-6 py-5 text-white shadow-xl">
             <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
               {t("panelMountedTitle")}
             </span>

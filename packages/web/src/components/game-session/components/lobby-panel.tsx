@@ -92,7 +92,7 @@ export function LobbyPanel({
 
   return (
     <aside
-      className="pointer-events-auto absolute bottom-4 left-4 top-20 z-20 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 overflow-y-auto rounded-xl border border-white/10 bg-slate-950/90 p-4 text-white shadow-xl backdrop-blur"
+      className="pointer-events-auto absolute bottom-4 left-4 top-20 z-20 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 overflow-y-auto rounded-xl border border-white/10 p-4 text-white shadow-xl backdrop-blur"
       data-testid="game-lobby"
       aria-label={t("lobby.title")}
     >

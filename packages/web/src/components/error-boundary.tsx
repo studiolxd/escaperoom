@@ -26,7 +26,7 @@ function Fallback(_props: object, { error, retry }: ErrorInfo) {
   return (
     <div
       role="alert"
-      className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-950/95 p-6 text-center text-white"
+      className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center text-white"
     >
       <p className="text-sm font-medium">{t("title")}</p>
       <p className="max-w-sm text-xs text-white/60">{t("description")}</p>

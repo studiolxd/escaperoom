@@ -5,7 +5,9 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { RoomGame } from "@/components/game-session/room-game";
-import { PublicShell } from "@/components/layout/public-shell";
+import { PlayRoomShell } from "@/components/layout/play-room-shell";
+import { PublicFooter } from "@/components/layout/public-footer";
+import { PublicHeader } from "@/components/layout/public-header";
 import { roomPath } from "@/lib/catalog-seo";
 import { buildGameModel } from "@/lib/game-model";
 import { resolveActorFromHeaders } from "@/server/context";
@@ -66,19 +68,17 @@ export default async function RoomGamePage({ params, searchParams }: Props) {
     : undefined;
 
   return (
-    <PublicShell>
-      <main className="relative flex-1 bg-slate-950 p-4">
-        <RoomGame
-          model={model}
-          pack={pack}
-          roomId={room.id}
-          joinRoomId={joinRoomId}
-          subtitle={t("page.subtitle")}
-          signInHref={signInHref}
-          intro={intro}
-          coverUrl={coverUrl}
-        />
-      </main>
-    </PublicShell>
+    <PlayRoomShell header={<PublicHeader />} footer={<PublicFooter />}>
+      <RoomGame
+        model={model}
+        pack={pack}
+        roomId={room.id}
+        joinRoomId={joinRoomId}
+        subtitle={t("page.subtitle")}
+        signInHref={signInHref}
+        intro={intro}
+        coverUrl={coverUrl}
+      />
+    </PlayRoomShell>
   );
 }

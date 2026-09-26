@@ -50,7 +50,7 @@ export function ItemPickerPopover({
         align="center"
         sideOffset={8}
         onEscapeKeyDown={onEscapeKeyDown}
-        className="w-fit max-w-[min(92vw,30rem)] rounded-xl border border-amber-200/30 bg-slate-950/95 px-4 py-3 text-white shadow-xl"
+        className="w-fit max-w-[min(92vw,30rem)] rounded-xl border border-amber-200/30 px-4 py-3 text-white shadow-xl"
       >
         {objectId ? (
           <>

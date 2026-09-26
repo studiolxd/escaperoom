@@ -33,7 +33,7 @@ export default async function EventSessionPage({ params }: Props) {
   const { model, pack } = buildGameModel(roomPackage, locale);
 
   return (
-    <main className="relative min-h-dvh bg-slate-950 p-4">
+    <main className="relative min-h-dvh p-4">
       <EventGame model={model} pack={pack} sessionId={sessionId} subtitle={t("page.subtitle")} />
       <div className="absolute right-4 top-4 z-50">
         <LocaleSwitcher />

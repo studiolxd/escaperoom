@@ -140,7 +140,7 @@ export function RoomEditorWorkspace({
   const onPointer = (event: EditPointerEvent) => controller.pointer(event);
 
   return (
-    <div className="flex h-dvh flex-col bg-slate-950 text-slate-100" data-testid="room-editor">
+    <div className="flex h-dvh flex-col text-slate-100" data-testid="room-editor">
       <header className="flex items-center gap-3 border-b border-white/10 px-4 py-2">
         <h1 className="truncate text-base font-semibold">{pkg.meta.title || t("untitledRoom")}</h1>
         <span className="rounded bg-white/10 px-2 py-0.5 text-xs text-white/70">
