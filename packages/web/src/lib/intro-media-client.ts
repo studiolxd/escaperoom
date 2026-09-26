@@ -147,3 +147,12 @@ export async function resolveIntroMediaUrl(roomId: string, ref: string): Promise
   );
   return url;
 }
+
+/**
+ * Ruta del MISMO origen que sirve un WebVTT para un `<track>` de la vista
+ * previa (`GET …/intro-media/subtitles?ref=`): la URL firmada del bucket es
+ * de otro origen y un `<track>` no la carga sin CORS.
+ */
+export function introSubtitlesUrl(roomId: string, ref: string): string {
+  return `${base(roomId)}/subtitles?ref=${encodeURIComponent(ref)}`;
+}

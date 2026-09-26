@@ -53,6 +53,7 @@ import {
   uploadIntroSubtitles,
   uploadIntroVideo,
   type IntroFileProblem,
+  introSubtitlesUrl,
 } from "@/lib/intro-media-client";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
 
@@ -605,12 +606,9 @@ function IntroVideoPreview({
     const entries = Object.entries(JSON.parse(subtitlesKey) as Record<string, string>);
     Promise.all([
       resolveIntroMediaUrl(roomId, video),
-      Promise.all(
-        entries.map(async ([lang, ref]) => ({
-          lang,
-          url: await resolveIntroMediaUrl(roomId, ref).catch(() => ""),
-        })),
-      ),
+      // Subtítulos desde el mismo origen (un `<track>` a la URL firmada del
+      // bucket no carga sin CORS): ver `introSubtitlesUrl`.
+      Promise.resolve(entries.map(([lang, ref]) => ({ lang, url: introSubtitlesUrl(roomId, ref) }))),
     ])
       .then(([url, tracks]) => {
         if (!cancelled) setState({ status: "ready", url, tracks: tracks.filter((tr) => tr.url) });

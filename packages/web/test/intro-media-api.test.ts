@@ -171,6 +171,37 @@ describe("REST /api/rooms/:roomId/intro-media", () => {
     expect((await t.getUrl("ana", null)).status).toBe(422);
   });
 
+  it("subtítulos del mismo origen para el <track> de la vista previa (solo el autor)", async () => {
+    const t = setup();
+    const { ref } = (await (await t.postSubtitles("ana", "es", VTT)).json()) as { ref: string };
+    const read: string[] = [];
+    const handlers = createIntroMediaHandlers({
+      introMedia: t.introMedia,
+      resolveActor: async (req) =>
+        ({ ana, bruno })[req.headers.get("x-test-user") as "ana" | "bruno"] ?? ANONYMOUS_ACTOR,
+      readText: async (url) => {
+        read.push(url);
+        return VTT;
+      },
+    });
+    const get = (user: string | undefined, value: string | null) =>
+      handlers.getSubtitles(
+        new Request(
+          `http://localhost/api/rooms/${ROOM_ID}/intro-media/subtitles${value === null ? "" : `?ref=${encodeURIComponent(value)}`}`,
+          { headers: user ? { "x-test-user": user } : {} },
+        ),
+        t.ctx,
+      );
+    const res = await get("ana", ref);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe("text/vtt; charset=utf-8");
+    expect(await res.text()).toBe(VTT);
+    expect(read).toHaveLength(1);
+    expect((await get("bruno", ref)).status).toBe(403);
+    expect((await get(undefined, ref)).status).toBe(401);
+    expect((await get("ana", null)).status).toBe(422);
+  });
+
   it("las rutas tienen cuota propia en RATE_LIMIT_POLICIES", () => {
     expect(RATE_LIMIT_POLICIES["intro-media-upload"].user).toBeDefined();
     expect(RATE_LIMIT_POLICIES["intro-media-complete"].user).toBeDefined();

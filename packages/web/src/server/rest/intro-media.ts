@@ -10,7 +10,17 @@ import { handleDomainErrors, NO_STORE, readJson } from "./_http";
 export type IntroMediaHandlerDeps = {
   introMedia: IntroMediaService;
   resolveActor: (request: Request) => Promise<Actor>;
+  /** Lee un WebVTT por su URL firmada (servidor a servidor); inyectable en tests. */
+  readText?: (url: string, maxBytes: number) => Promise<string | null>;
 };
+
+/** `fetch` del WebVTT sin pasar de `maxBytes`; `null` si no se puede leer. */
+async function defaultReadText(url: string, maxBytes: number): Promise<string | null> {
+  const response = await fetch(url, { cache: "no-store" }).catch(() => null);
+  if (!response?.ok) return null;
+  const text = await response.text();
+  return new TextEncoder().encode(text).byteLength > maxBytes ? null : text;
+}
 
 export type IntroMediaRouteContext = { params: Promise<{ roomId: string }> };
 export type IntroMediaAssetRouteContext = { params: Promise<{ roomId: string; assetId: string }> };
@@ -158,6 +168,36 @@ export function createIntroMediaHandlers(deps: IntroMediaHandlerDeps) {
         const bytes = await readBodyCapped(request, max);
         const result = await deps.introMedia.uploadSubtitles(actor, roomId, { lang, bytes });
         return Response.json(result, { status: 201, headers: NO_STORE });
+      });
+    },
+
+    /**
+     * `GET /api/rooms/:roomId/intro-media/subtitles?ref=…` → el WebVTT tal
+     * cual (`text/vtt`), servido desde el MISMO origen: un `<track>` que apunta
+     * a la URL firmada del bucket (otro origen) no carga sin CORS en el bucket
+     * y `crossorigin` en el `<video>`. Solo el autor (vista previa del editor);
+     * en partida los subtítulos viajan ya resueltos (`IntroModel`).
+     */
+    async getSubtitles(request: Request, ctx: IntroMediaRouteContext): Promise<Response> {
+      return handle(async () => {
+        const { roomId } = await ctx.params;
+        const actor = await deps.resolveActor(request);
+        deps.introMedia.authorize(actor);
+        const ref = new URL(request.url).searchParams.get("ref");
+        if (!ref) {
+          throw new IntroMediaError("VALIDATION_ERROR", "Falta la referencia (`?ref=`)", {
+            issues: [{ path: "ref", message: "Obligatorio" }],
+          });
+        }
+        const url = await deps.introMedia.previewUrl(actor, roomId, ref, { expiresIn: 60 });
+        const readText = deps.readText ?? defaultReadText;
+        const vtt = await readText(url, deps.introMedia.limits.maxSubtitlesBytes);
+        if (vtt === null || !/^\uFEFF?WEBVTT/u.test(vtt)) {
+          throw new IntroMediaError("NOT_FOUND", "Esos subtítulos no están disponibles");
+        }
+        return new Response(vtt, {
+          headers: { ...NO_STORE, "content-type": "text/vtt; charset=utf-8" },
+        });
       });
     },
 
