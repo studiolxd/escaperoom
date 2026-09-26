@@ -1,7 +1,10 @@
 import {
   isAnonymous,
+  PUBLISH_CONFIRM_DISABLED_ERROR,
   PublishConfirmationError,
+  type PublishConfirmationErrorCode,
   type PublishConfirmationState,
+  type RoomPublishErrorCode,
 } from "@escaperoom/shared/services";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
@@ -19,25 +22,28 @@ type Props = {
 /** Enlace personal del creador: nunca se indexa. */
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 
-/** Códigos con mensaje propio en `PublishConfirm.errors` (el resto: `UNKNOWN`). */
-const KNOWN_ERRORS = new Set([
-  "UNAUTHORIZED",
-  "FORBIDDEN",
-  "INVALID_TOKEN",
-  "EXPIRED",
-  "NOT_FOUND",
-  "DRAFT_CHANGED",
-  "VERSION_CHANGED",
-  "VALIDATION_FAILED",
-  "ASSETS_NOT_PUBLISHABLE",
-  "ROOM_NOT_PUBLISHABLE",
-  "CONTENT_BLOCKED",
-  "ACCOUNT_FROZEN",
-  "CREATOR_SUSPENDED",
-  "CREATOR_BANNED",
-  "PUBLISH_CONFIRM_DISABLED",
-  // ADR-035: el draft es idéntico a la última versión publicada.
-  "NOTHING_TO_PUBLISH",
+/**
+ * Códigos con mensaje propio en `PublishConfirm.errors` (el resto: `UNKNOWN`):
+ * subconjunto de `PublishConfirmationErrorCode` (token/actor) y de
+ * `RoomPublishErrorCode` (sala), más `PUBLISH_CONFIRM_DISABLED_ERROR`.
+ */
+export const KNOWN_ERRORS: ReadonlySet<string> = new Set([
+  ...(["UNAUTHORIZED", "FORBIDDEN", "INVALID_TOKEN", "EXPIRED"] satisfies readonly PublishConfirmationErrorCode[]),
+  ...([
+    "NOT_FOUND",
+    "DRAFT_CHANGED",
+    "VERSION_CHANGED",
+    "VALIDATION_FAILED",
+    "ASSETS_NOT_PUBLISHABLE",
+    "ROOM_NOT_PUBLISHABLE",
+    "CONTENT_BLOCKED",
+    "ACCOUNT_FROZEN",
+    "CREATOR_SUSPENDED",
+    "CREATOR_BANNED",
+    // ADR-035: el draft es idéntico a la última versión publicada.
+    "NOTHING_TO_PUBLISH",
+  ] satisfies readonly RoomPublishErrorCode[]),
+  PUBLISH_CONFIRM_DISABLED_ERROR,
 ]);
 
 type View = { kind: "error"; code: string } | { kind: "state"; state: PublishConfirmationState };
@@ -45,7 +51,7 @@ type View = { kind: "error"; code: string } | { kind: "state"; state: PublishCon
 async function loadView(token: string | undefined): Promise<View> {
   if (!token) return { kind: "error", code: "INVALID_TOKEN" };
   const confirmations = getPublishConfirmationService();
-  if (!confirmations) return { kind: "error", code: "PUBLISH_CONFIRM_DISABLED" };
+  if (!confirmations) return { kind: "error", code: PUBLISH_CONFIRM_DISABLED_ERROR };
   const actor = await resolveBrowserActorFromHeaders(await headers());
   if (isAnonymous(actor)) return { kind: "error", code: "UNAUTHORIZED" };
   try {

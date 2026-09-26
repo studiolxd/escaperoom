@@ -1,6 +1,10 @@
 import { docToRoomPackage, type RoomPackageSerializer } from "@escaperoom/editor/validation";
 import {
   buildDraftDoc,
+  INVALID_DRAFT_ERROR,
+  PLAYTEST_DISABLED_ERROR,
+  PLAYTEST_UNAVAILABLE_ERROR,
+  PLAYTEST_UNPLAYABLE_ERROR,
   RoomDraftError,
   type Actor,
   type RoomDraftErrorCode,
@@ -62,14 +66,14 @@ export function createRoomPlaytestHandlers(deps: RoomPlaytestHandlerDeps) {
         }
         if (!deps.launcher) {
           return errorResponse(
-            "PLAYTEST_DISABLED",
+            PLAYTEST_DISABLED_ERROR,
             "El playtest no está configurado en este entorno",
             503,
           );
         }
         const converted = docToRoomPackage(buildDraftDoc(draft), deps.serialize);
         if (!converted.ok) {
-          return errorResponse("INVALID_DRAFT", "El draft aún no forma un RoomPackage válido", 422, {
+          return errorResponse(INVALID_DRAFT_ERROR, "El draft aún no forma un RoomPackage válido", 422, {
             details: converted.errors,
           });
         }
@@ -91,8 +95,8 @@ export function createRoomPlaytestHandlers(deps: RoomPlaytestHandlerDeps) {
         }
         if (err instanceof PlaytestLaunchError) {
           return err.code === "UNPLAYABLE"
-            ? errorResponse("PLAYTEST_UNPLAYABLE", err.message, 422, { details: err.details })
-            : errorResponse("PLAYTEST_UNAVAILABLE", err.message, 502);
+            ? errorResponse(PLAYTEST_UNPLAYABLE_ERROR, err.message, 422, { details: err.details })
+            : errorResponse(PLAYTEST_UNAVAILABLE_ERROR, err.message, 502);
         }
         throw err;
       }

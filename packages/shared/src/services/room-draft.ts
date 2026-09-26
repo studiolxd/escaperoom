@@ -75,8 +75,8 @@ export interface RoomDraftStore extends RoomDraftTx {
   withRoomLock<T>(roomId: string, fn: (tx: RoomDraftTx) => Promise<T>): Promise<T>;
 }
 
-export type RoomDraftErrorCode =
-  "UNAUTHORIZED" | "FORBIDDEN" | "NOT_FOUND" | "INVALID_UPDATE" | "PAYLOAD_TOO_LARGE";
+export { ROOM_DRAFT_ERROR_CODES, type RoomDraftErrorCode } from "./error-codes";
+import type { RoomDraftErrorCode } from "./error-codes";
 
 /** Error de dominio del draft; los adaptadores lo traducen a HTTP/tRPC/MCP. */
 export class RoomDraftError extends Error {

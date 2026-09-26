@@ -56,13 +56,8 @@ export type EventPanelDeps = {
 
 // ── Errores ────────────────────────────────────────────────────────────────
 
-export type EventPanelErrorCode =
-  | "UNAUTHORIZED"
-  | "FORBIDDEN"
-  | "NOT_FOUND"
-  | "SESSION_NOT_FOUND"
-  | "SESSION_NOT_LIVE"
-  | "SPECTATOR_UNAVAILABLE";
+export { EVENT_PANEL_ERROR_CODES, type EventPanelErrorCode } from "./error-codes";
+import type { EventPanelErrorCode } from "./error-codes";
 
 export class EventPanelError extends Error {
   readonly code: EventPanelErrorCode;

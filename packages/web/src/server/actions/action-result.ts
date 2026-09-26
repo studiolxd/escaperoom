@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { RATE_LIMITED_ERROR } from "@escaperoom/shared/services";
 import type { ReadableIssue } from "@escaperoom/shared/schemas";
 import { resolveActorFromHeaders } from "@/server/context";
 import { consumeRateLimit, userIdOf, type RateLimitPolicyName } from "@/server/rate-limit";
@@ -45,5 +46,5 @@ export async function consumeActionRateLimit(policyName: RateLimitPolicyName) {
 
 /** Resultado de error listo para devolver cuando `consumeActionRateLimit` deniega. */
 export function rateLimitedActionError(): ActionResult<never> {
-  return actionError("RATE_LIMITED", RATE_LIMITED_MESSAGE);
+  return actionError(RATE_LIMITED_ERROR, RATE_LIMITED_MESSAGE);
 }

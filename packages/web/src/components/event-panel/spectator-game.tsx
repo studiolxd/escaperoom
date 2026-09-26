@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties 
 import { useTranslations } from "next-intl";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import { remainingMs, type GameClient } from "@escaperoom/game-runtime/session";
+import { EVENT_PANEL_ERROR_CODES } from "@escaperoom/shared/error-codes";
 import { ConnectionBadge } from "@/components/game-session/connection-badge";
 import { useGameConnection } from "@/components/game-session/use-game-connection";
 import { Button } from "@/components/ui/button";
@@ -11,14 +12,7 @@ import { Link } from "@/i18n/navigation";
 import { dashboardPath, eventApiPath, readApiError } from "@/lib/event-panel";
 import { formatDuration } from "@/lib/session-format";
 
-const KNOWN_ERRORS = new Set([
-  "UNAUTHORIZED",
-  "FORBIDDEN",
-  "NOT_FOUND",
-  "SESSION_NOT_FOUND",
-  "SESSION_NOT_LIVE",
-  "SPECTATOR_UNAVAILABLE",
-]);
+export const KNOWN_ERRORS: ReadonlySet<string> = new Set(EVENT_PANEL_ERROR_CODES);
 
 type Ticket = { sessionId: string; spectatorToken: string };
 
