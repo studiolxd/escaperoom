@@ -17,7 +17,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@colyseus/core": "0.18.14",
+    "@colyseus/core": "0.18.16",
     "@colyseus/schema": "5.0.33",
     "@colyseus/ws-transport": "0.18.2",
     "@escaperoom/env": "workspace:*",
