@@ -115,3 +115,15 @@ Tareas pendientes que no bloquean pero hay que resolver.
       - Documentación pública del contrato (OpenAPI o similar) y un compromiso de estabilidad
         (`specs/13` "el contrato evoluciona de forma aditiva" ya lo anticipa).
       - Las rutas en sí, marcadas "API pública — futura" en `specs/13`.
+- [ ] **Sustituir los 7 personajes provisionales del pack `medieval-v1` por los reales.** Para
+      poder probar la elección de los 8 personajes del reparto (`tools/assets-generator/packs/medieval-v1/docs/personajes.md`)
+      mientras solo existe `caballero-m`, `caballero-f`, `arquero-m`, `arquero-f`, `mago-m`,
+      `mago-f`, `campesino-m` y `campesina-f` son **el mismo personaje**: reutilizan los frames
+      y el retrato de `caballero-m` mediante enlaces simbólicos (`avatar/<id>/*.png` del pack en
+      `packages/web/public/packs/medieval-v1/`, generados con
+      `tools/assets-generator/scripts/empaquetar/empaquetar_avatar_alias.py`; su
+      `pack.config.fragment.json` en `entregas/` lleva `"alias_de": "caballero-m"`). Cuando cada
+      personaje real tenga su master + render (pipeline de `tools/assets-generator/CLAUDE.md`
+      §"Pipeline de personajes jugables"), sustituir su carpeta de enlaces por la entrega real
+      (`empaquetar_avatar.py` + `empaquetar_retrato.py`) y quitar la entrada correspondiente de
+      `tools/assets-generator/packs/medieval-v1/entregas/avatares/`.
