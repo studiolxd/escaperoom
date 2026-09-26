@@ -2,7 +2,7 @@ import { MAX_INTRO_SUBTITLES_BYTES, MAX_INTRO_VIDEO_BYTES } from "@escaperoom/sh
 
 /**
  * Cliente del navegador para los medios de la introducción de la sala
- * (encargo lobby-diseño, specs/04 §7): vídeo (subida directa al bucket con
+ * (encargo lobby-diseño, specs/04 §10): vídeo (subida directa al bucket con
  * PUT presignado, con progreso) y subtítulos WebVTT por idioma. Contrato REST:
  *
  * - `POST /api/rooms/:roomId/intro-media/video` `{filename, contentType, byteSize}`

@@ -45,7 +45,7 @@ const PlayersRangeSchema = z.object({
 });
 
 /**
- * Introducción opcional de la sala (encargo lobby-diseño, specs/04 §7): se
+ * Introducción opcional de la sala (encargo lobby-diseño, specs/04 §10): se
  * muestra a cada jugador tras «Empezar» (y a quien llega tarde), antes de su
  * cuenta atrás 3-2-1; cada uno la cierra cuando quiere y no se puede volver a
  * ver durante la partida. **Texto** multiidioma **o vídeo**:

@@ -40,7 +40,7 @@ function useSubtitleUrls(subtitles: readonly { lang: string; vtt: string }[]) {
 }
 
 /**
- * Introducción de la sala (encargo lobby-diseño, specs/04 §7): tras «Empezar»
+ * Introducción de la sala (encargo lobby-diseño, specs/04 §10): tras «Empezar»
  * (o al llegar tarde), antes del 3-2-1. Texto o vídeo; el jugador la cierra
  * cuando quiere, sin límite de tiempo, y no se puede volver a ver durante la
  * partida.

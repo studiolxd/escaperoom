@@ -38,7 +38,7 @@ const IntroInputSchema = z.discriminatedUnion("type", [
 ]);
 
 /**
- * Introducción de la sala (`meta.intro`, encargo lobby-diseño, specs/04 §7):
+ * Introducción de la sala (`meta.intro`, encargo lobby-diseño, specs/04 §10):
  * texto multiidioma o vídeo con subtítulos, que cada jugador ve tras «Empezar»
  * y antes de su cuenta atrás 3-2-1. Los binarios se suben antes con `upload`
  * (`kind: "intro_video"` / `"intro_subtitles"`); aquí solo se guardan sus

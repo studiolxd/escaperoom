@@ -3,7 +3,7 @@ import { MAX_INTRO_SUBTITLES_BYTES, type RoomIntro } from "@escaperoom/shared/sc
 
 /**
  * Introducción de la sala lista para mostrar (encargo lobby-diseño, specs/04
- * §7): lo que la página de partida/playtest manda al navegador junto al
+ * §10): lo que la página de partida/playtest manda al navegador junto al
  * modelo del runtime. Se resuelve en el servidor: el texto al idioma activo y
  * el vídeo/subtítulos (referencias `media:<uuid>` del borrador o claves del
  * bucket de una versión publicada) a URLs firmadas de vida corta.

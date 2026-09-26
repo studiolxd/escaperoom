@@ -58,7 +58,7 @@ export const MAX_SPLIT_CLUE_VIEWPOINTS_FOR_SUBSET = 12;
 export const DEFAULT_ROOM_TIME_LIMIT_MINUTES = 60;
 
 /**
- * Introducción de la sala (`meta.intro`, encargo lobby-diseño, specs/04 §7):
+ * Introducción de la sala (`meta.intro`, encargo lobby-diseño, specs/04 §10):
  * caracteres máximos del texto por idioma. Por debajo del tope genérico de
  * `LocalizedText` (`MAX_CONTENT_STRING_LENGTH`): es una pantalla de lectura
  * antes de jugar, no un documento.
