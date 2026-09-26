@@ -56,3 +56,23 @@ export const MAX_SPLIT_CLUE_VIEWPOINTS_FOR_SUBSET = 12;
  * para conseguir el mismo efecto.
  */
 export const DEFAULT_ROOM_TIME_LIMIT_MINUTES = 60;
+
+/**
+ * Introducción de la sala (`meta.intro`, encargo lobby-diseño, specs/04 §7):
+ * caracteres máximos del texto por idioma. Por debajo del tope genérico de
+ * `LocalizedText` (`MAX_CONTENT_STRING_LENGTH`): es una pantalla de lectura
+ * antes de jugar, no un documento.
+ */
+export const MAX_INTRO_TEXT_LENGTH = 4000;
+
+/** Vídeo de introducción: tamaño máximo del fichero (200 MB, sin límite de duración). */
+export const MAX_INTRO_VIDEO_BYTES = 200 * 1024 * 1024;
+
+/** Subtítulos WebVTT de la introducción: tamaño máximo por idioma. */
+export const MAX_INTRO_SUBTITLES_BYTES = 512 * 1024;
+
+/** Longitud máxima de una referencia de medio de la introducción (`media:<uuid>` o clave del bucket). */
+export const MAX_INTRO_MEDIA_REF_LENGTH = 512;
+
+/** Cuenta atrás antes de entrar al mapa (3-2-1, sin botón de saltar), en segundos. */
+export const LOBBY_COUNTDOWN_SECONDS = 3;

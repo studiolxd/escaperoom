@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { LocalizedTextSchema } from "./common";
+import { isLanguageCode } from "./localized-text";
 import {
   DEFAULT_ROOM_TIME_LIMIT_MINUTES,
+  MAX_INTRO_MEDIA_REF_LENGTH,
   MAX_CONTENT_ARRAY_ITEMS,
   MAX_CONTENT_STRING_LENGTH,
   MAX_PLAYERS_PER_ROOM_CEILING,
@@ -42,6 +44,35 @@ const PlayersRangeSchema = z.object({
   max: z.number().int().min(1).max(MAX_PLAYERS_PER_ROOM_CEILING),
 });
 
+/**
+ * Introducción opcional de la sala (encargo lobby-diseño, specs/04 §7): se
+ * muestra a cada jugador tras «Empezar» (y a quien llega tarde), antes de su
+ * cuenta atrás 3-2-1; cada uno la cierra cuando quiere y no se puede volver a
+ * ver durante la partida. **Texto** multiidioma **o vídeo**:
+ *
+ * - `video`: referencia estable al fichero (`media:<uuid>` en el borrador,
+ *   clave del bucket en una versión publicada — la publicación la reescribe
+ *   igual que los `audioUrl`), mp4 (H.264) o webm, hasta
+ *   `MAX_INTRO_VIDEO_BYTES`. Sin moderación previa (decisión del usuario).
+ * - `subtitles`: WebVTT opcional por idioma (misma forma de referencia).
+ *
+ * Los límites de longitud y la coherencia con los idiomas de la sala los
+ * comprueba el validador (`checkIntro`), no este schema: `RoomPackageMetaSchema`
+ * debe seguir siendo un `z.object` liso (ver `PlayersRangeSchema`).
+ */
+const MediaRefSchema = z.string().min(1).max(MAX_INTRO_MEDIA_REF_LENGTH);
+
+export const RoomIntroSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("text"), text: LocalizedTextSchema }),
+  z.object({
+    type: z.literal("video"),
+    video: MediaRefSchema,
+    subtitles: z
+      .record(z.string().refine(isLanguageCode, "Código de idioma inválido"), MediaRefSchema)
+      .optional(),
+  }),
+]);
+
 export const RoomPackageMetaSchema = z.object({
   id: z.string(),
   title: z.string().min(1).max(MAX_CONTENT_STRING_LENGTH),
@@ -69,6 +100,8 @@ export const RoomPackageMetaSchema = z.object({
   difficulty: DifficultySchema,
   players: PlayersRangeSchema,
   assetsManifest: z.string(),
+  /** Introducción opcional (texto o vídeo) antes de la cuenta atrás — ver `RoomIntroSchema`. */
+  intro: RoomIntroSchema.optional(),
 });
 
 /** Diálogo localizado, opcionalmente condicionado — specs/08 §2.3. */
@@ -103,6 +136,7 @@ export const RoomPackageSchema = z.object({
 });
 
 export type Difficulty = z.infer<typeof DifficultySchema>;
+export type RoomIntro = z.infer<typeof RoomIntroSchema>;
 export type RoomPackageMeta = z.infer<typeof RoomPackageMetaSchema>;
 export type DialogDef = z.infer<typeof DialogDefSchema>;
 export type HintDef = z.infer<typeof HintDefSchema>;

@@ -44,10 +44,24 @@ export const LightConfigSchema = z.discriminatedUnion("type", [
   }),
 ]);
 
+/**
+ * Tipo especial de habitación (encargo lobby-diseño, specs/08 §2.1): `lobby`
+ * es la **sala de espera** de la partida — los jugadores aparecen en ella al
+ * entrar, se mueven con su avatar y se ven entre sí mientras el anfitrión
+ * espera a los demás. Solo decoración: el validador rechaza pruebas,
+ * puertas y objetos que den ítems en ella (`checkLobbyRoom`). Como mucho
+ * una por sala; sin ninguna, el runtime genera una por defecto
+ * (`withLobbyRoom`, `schemas/lobby.ts`).
+ */
+export const SUBROOM_KINDS = ["lobby"] as const;
+export const SubRoomKindSchema = z.enum(SUBROOM_KINDS);
+
 /** División interna del mapa (Salón, Bodega, Catacumbas…) — specs/08 §2.1. */
 export const SubRoomSchema = z.object({
   id: z.string(),
   name: z.string(),
+  /** Ausente = habitación de juego normal; `"lobby"` = sala de espera (ver `SubRoomKindSchema`). */
+  kind: SubRoomKindSchema.optional(),
   grid: GridSchema,
   layers: z.array(TileLayerSchema).max(MAX_CONTENT_ARRAY_ITEMS),
   decorations: z.array(DecorationSchema).max(MAX_CONTENT_ARRAY_ITEMS),
@@ -119,6 +133,7 @@ export type Decoration = z.infer<typeof DecorationSchema>;
 export type SpawnPoint = z.infer<typeof SpawnPointSchema>;
 export type LightConfig = z.infer<typeof LightConfigSchema>;
 export type SubRoom = z.infer<typeof SubRoomSchema>;
+export type SubRoomKind = z.infer<typeof SubRoomKindSchema>;
 export type RoomMap = z.infer<typeof MapSchema>;
 export type SpriteState = z.infer<typeof SpriteStateSchema>;
 export type WorldObject = z.infer<typeof WorldObjectSchema>;
