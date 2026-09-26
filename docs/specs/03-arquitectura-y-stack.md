@@ -171,7 +171,7 @@ Next.js (web/editor UI)
   ├── WebSocket partida ────────► Colyseus GameRoom ───────────────────► GameState (en vivo) + Postgres
   └── WebRTC ───────────────────► LiveKit SFU (+ coturn) ──────────────► audio/vídeo en tránsito
 MCP /mcp/creator (OAuth) ───────► tools ──────────────────────────────► servicios de dominio
-Webhook Stripe ─────────────────► /api/webhooks/stripe ──► cola Redis ──► transfers / activaciones
+Webhook Stripe ─────────────────► /api/stripe/webhook ──► cola Redis ──► transfers / activaciones
 ```
 
 - tRPC, REST, el MCP y Colyseus invocan los **mismos servicios de dominio** (`shared/services`);

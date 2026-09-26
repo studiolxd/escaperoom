@@ -249,7 +249,7 @@ menos pistas, menos tiempo); las sesiones sin empezar no tienen puesto. `spectat
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| POST | `/api/webhooks/stripe` | firma Stripe (`Stripe-Signature`, sin sesión) | Único punto de entrada de eventos de Stripe |
+| POST | `/api/stripe/webhook` | firma Stripe (`Stripe-Signature`, sin sesión) | Único punto de entrada de eventos de Stripe |
 
 | Evento Stripe | Efecto |
 |---|---|
@@ -316,7 +316,7 @@ de terminar el job; la ruta de descarga lee el objeto del bucket y lo sirve. Sin
 
 - Redis para rate limiting por IP + ruta; límites más estrictos en rutas públicas sensibles:
   `POST /api/access-keys/redeem` (fuerza bruta de códigos), `POST /api/rooms/:roomId/reviews`,
-  `POST /api/webhooks/stripe` (excepción: se limita por firma válida, no por IP).
+  `POST /api/stripe/webhook` (excepción: se limita por firma válida, no por IP).
 - CSP estricta en el frontend. Ninguna ruta REST devuelve soluciones/pesos/melodías (eso es
   exclusivo del protocolo de Colyseus, ya filtrado en su `GameState`).
 - Auditoría de endpoints administrativos: log de quién hizo qué.
