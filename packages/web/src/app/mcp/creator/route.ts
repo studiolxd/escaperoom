@@ -12,6 +12,7 @@ import { RATE_LIMIT_POLICIES } from "@/server/rate-limit";
 import {
   getAudioAssetService,
   getCatalogService,
+  getIntroMediaService,
   getPublishConfirmationService,
   getRoomCoverService,
   getRoomDraftService,
@@ -47,6 +48,7 @@ function handler(request: Request): Promise<Response> {
       // subida (A-12, 3.11), sin lógica paralela.
       roomCover: getRoomCoverService(),
       audio: getAudioAssetService(),
+      introMedia: getIntroMediaService(),
       // Misma cuota que esas rutas (revisión de la PR #168): el MCP no puede
       // importar `RATE_LIMIT_POLICIES` sin invertir la dependencia, así que
       // solo el número viaja por `deps`; la consume `slidingRateLimiter`
@@ -57,6 +59,10 @@ function handler(request: Request): Promise<Response> {
           user: RATE_LIMIT_POLICIES["room-cover-write"].user,
         },
         audio: { policyName: "audio-upload", user: RATE_LIMIT_POLICIES["audio-upload"].user },
+        introMedia: {
+          policyName: "intro-media-upload",
+          user: RATE_LIMIT_POLICIES["intro-media-upload"].user,
+        },
       },
     }),
   });

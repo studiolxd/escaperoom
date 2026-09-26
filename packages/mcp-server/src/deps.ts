@@ -3,6 +3,7 @@ import type {
   Actor,
   AudioAssetService,
   CatalogService,
+  IntroMediaService,
   PublishConfirmationService,
   RoomCoverService,
   RoomDraftService,
@@ -95,6 +96,14 @@ export type CreatorMcpDeps = {
    */
   audio?: Pick<AudioAssetService, "uploadAudio"> | null;
   /**
+   * Vídeo y subtítulos de la introducción (meta-tool `upload` con `kind:
+   * "intro_video"`/`"intro_subtitles"`, encargo lobby-diseño): el MISMO
+   * servicio que `POST /api/rooms/:roomId/intro-media/*` — solo el autor de la
+   * sala, sniff de magic bytes (mp4/webm), WebVTT UTF-8 y los mismos límites.
+   * `undefined`/`null` → `upload` responde `NOT_AVAILABLE` para esos `kind`.
+   */
+  introMedia?: Pick<IntroMediaService, "uploadVideoBytes" | "uploadSubtitles"> | null;
+  /**
    * Cuotas de `upload` por `kind` (revisión de la PR #168). `undefined`/`null`
    * (por `kind`, o el objeto entero) = sin cuota propia además del límite
    * genérico de llamadas del MCP — solo aceptable en tests o en un despliegue
@@ -103,5 +112,7 @@ export type CreatorMcpDeps = {
   uploadQuota?: {
     coverImage?: UploadQuotaPolicy | null;
     audio?: UploadQuotaPolicy | null;
+    /** `intro_video` e `intro_subtitles` (cuota `intro-media-upload` de la web). */
+    introMedia?: UploadQuotaPolicy | null;
   } | null;
 };
