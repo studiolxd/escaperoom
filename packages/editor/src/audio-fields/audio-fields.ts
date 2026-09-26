@@ -16,7 +16,7 @@ import { getRoomLanguages } from "../i18n-fields/room-languages";
  *
  * Lo que se guarda es una referencia estable (`library:<id>` / `upload:<uuid>`,
  * ver `@escaperoom/shared/audio`), nunca una URL firmada. Si el audio subido es
- * usable (dueño, moderación) lo decide el servicio `createAudioAssetService`.
+ * usable (dueño, no rechazado) lo decide el servicio `createAudioAssetService`.
  */
 
 export const AUDIO_COLLECTIONS = ["dialogs", "hints"] as const;

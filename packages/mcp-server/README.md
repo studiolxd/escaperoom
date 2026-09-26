@@ -28,7 +28,7 @@ Con 4.5 todo el toolset está implementado; una tool sin `run` respondería con 
 texto `❌ <tool>: no implementado todavía (ticket 4.x)…` y `structuredContent.error.code =
 "NOT_IMPLEMENTED"`. Los errores usan los mismos códigos (`UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`,
 `INVALID_DRAFT`, `INVALID_INPUT`, `VALIDATION_FAILED`, `NOT_PUBLISHABLE`, `RESPONSE_TOO_LARGE`,
-`PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`, `UPLOAD_BLOCKED`, `RATE_LIMITED`, `NOT_AVAILABLE`,
+`PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`, `RATE_LIMITED`, `NOT_AVAILABLE`,
 `INTERNAL`); los de
 una referencia inexistente llevan además `reason` y los ids `available` (specs/10 §3).
 
