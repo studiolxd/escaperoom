@@ -855,30 +855,19 @@
       "characterTaken": "bezet",
       "players": "{count, plural, one {# speler} other {# spelers}}",
       "start": "Spel starten",
-      "startForce": "Toch starten",
-      "startNotReady": "Niet iedereen is al klaar.",
-      "confirmForceTitle": "Starten zonder dat iedereen klaar is?",
-      "confirmForceConfirm": "Ja, toch starten",
-      "confirmForceCancel": "Wachten",
-      "markReady": "Mezelf klaarmelden",
-      "ready": "Klaar ✓",
       "waitingHost": "Wachten tot de host start…",
       "invite": "Uitnodigingslink kopiëren",
       "copied": "Link gekopieerd!",
       "you": "jij",
       "host": "host",
-      "offline": "offline",
-      "kick": "Verwijderen",
-      "kickConfirm": "{player} verwijderen? Kan niet opnieuw meedoen aan dit spel."
+      "offline": "offline"
     },
     "hud": {
       "loadingPanel": "Laden…"
     },
     "log": {
       "itemGranted": "Je ontvangt {item}",
-      "itemGrantedOther": "{player} ontvangt {item}",
-      "playerLeft": "{player} is vertrokken",
-      "playerKicked": "{player} is verwijderd"
+      "itemGrantedOther": "{player} ontvangt {item}"
     },
     "errors": {
       "NOT_AVAILABLE": "Dat kan nog niet",
@@ -887,9 +876,6 @@
       "MOVE_TOO_FAST": "Beweging gecorrigeerd door de server",
       "OUT_OF_BOUNDS": "Je kunt de kamer niet verlaten",
       "ROOM_LOCKED": "De deur is dicht of te ver weg",
-      "PLAYERS_NOT_READY": "Niet iedereen is al klaar",
-      "MIN_PLAYERS_NOT_MET": "Er zijn meer verbonden spelers nodig",
-      "KICK_TARGET_INVALID": "Die speler kan niet verwijderd worden",
       "RATE_LIMITED": "Te veel berichten: wacht even",
       "generic": "De server heeft de actie geweigerd"
     },

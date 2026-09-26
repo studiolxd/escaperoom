@@ -855,30 +855,19 @@
       "characterTaken": "ocupado",
       "players": "{count, plural, one {# jogador} other {# jogadores}}",
       "start": "Começar jogo",
-      "startForce": "Começar na mesma",
-      "startNotReady": "Ainda há jogadores que não estão prontos.",
-      "confirmForceTitle": "Começar sem todos estarem prontos?",
-      "confirmForceConfirm": "Sim, começar na mesma",
-      "confirmForceCancel": "Esperar",
-      "markReady": "Marcar-me como pronto",
-      "ready": "Pronto ✓",
       "waitingHost": "À espera que o anfitrião comece…",
       "invite": "Copiar link de convite",
       "copied": "Link copiado!",
       "you": "tu",
       "host": "anfitrião",
-      "offline": "desligado",
-      "kick": "Expulsar",
-      "kickConfirm": "Expulsar {player}? Não vai poder voltar a este jogo."
+      "offline": "desligado"
     },
     "hud": {
       "loadingPanel": "A carregar…"
     },
     "log": {
       "itemGranted": "Recebes {item}",
-      "itemGrantedOther": "{player} recebe {item}",
-      "playerLeft": "{player} saiu",
-      "playerKicked": "{player} foi expulso"
+      "itemGrantedOther": "{player} recebe {item}"
     },
     "errors": {
       "NOT_AVAILABLE": "Ainda não podes fazer isso",
@@ -887,9 +876,6 @@
       "MOVE_TOO_FAST": "Movimento corrigido pelo servidor",
       "OUT_OF_BOUNDS": "Não podes sair da sala",
       "ROOM_LOCKED": "A porta está fechada ou longe",
-      "PLAYERS_NOT_READY": "Ainda há jogadores que não estão prontos",
-      "MIN_PLAYERS_NOT_MET": "São precisos mais jogadores ligados",
-      "KICK_TARGET_INVALID": "Esse jogador não pode ser expulso",
       "RATE_LIMITED": "Demasiadas mensagens: espera um momento",
       "generic": "O servidor rejeitou a ação"
     },

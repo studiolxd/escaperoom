@@ -855,30 +855,19 @@
       "characterTaken": "pris",
       "players": "{count, plural, one {# joueur} other {# joueurs}}",
       "start": "Commencer la partie",
-      "startForce": "Commencer quand même",
-      "startNotReady": "Certains joueurs ne sont pas encore prêts.",
-      "confirmForceTitle": "Commencer sans que tout le monde soit prêt ?",
-      "confirmForceConfirm": "Oui, commencer quand même",
-      "confirmForceCancel": "Attendre",
-      "markReady": "Me marquer comme prêt",
-      "ready": "Prêt ✓",
       "waitingHost": "En attente du lancement par l'hôte…",
       "invite": "Copier le lien d'invitation",
       "copied": "Lien copié !",
       "you": "vous",
       "host": "hôte",
-      "offline": "déconnecté",
-      "kick": "Expulser",
-      "kickConfirm": "Expulser {player} ? Il ne pourra pas revenir dans cette partie."
+      "offline": "déconnecté"
     },
     "hud": {
       "loadingPanel": "Chargement…"
     },
     "log": {
       "itemGranted": "Vous recevez {item}",
-      "itemGrantedOther": "{player} reçoit {item}",
-      "playerLeft": "{player} est parti",
-      "playerKicked": "{player} a été expulsé"
+      "itemGrantedOther": "{player} reçoit {item}"
     },
     "errors": {
       "NOT_AVAILABLE": "Impossible pour l'instant",
@@ -887,9 +876,6 @@
       "MOVE_TOO_FAST": "Déplacement corrigé par le serveur",
       "OUT_OF_BOUNDS": "Vous ne pouvez pas sortir de la salle",
       "ROOM_LOCKED": "La porte est fermée ou trop loin",
-      "PLAYERS_NOT_READY": "Certains joueurs ne sont pas encore prêts",
-      "MIN_PLAYERS_NOT_MET": "Il faut plus de joueurs connectés",
-      "KICK_TARGET_INVALID": "Ce joueur ne peut pas être expulsé",
       "RATE_LIMITED": "Trop de messages : patientez un instant",
       "generic": "Le serveur a refusé l'action"
     },

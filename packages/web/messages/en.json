@@ -957,30 +957,19 @@
       "characterTaken": "taken",
       "players": "{count, plural, one {# player} other {# players}}",
       "start": "Start game",
-      "startForce": "Start anyway",
-      "startNotReady": "Some players are not ready yet.",
-      "confirmForceTitle": "Start without everyone ready?",
-      "confirmForceConfirm": "Yes, start anyway",
-      "confirmForceCancel": "Wait",
-      "markReady": "Mark myself ready",
-      "ready": "Ready ✓",
       "waitingHost": "Waiting for the host to start…",
       "invite": "Copy invite link",
       "copied": "Link copied!",
       "you": "you",
       "host": "host",
-      "offline": "offline",
-      "kick": "Kick",
-      "kickConfirm": "Kick {player}? They won't be able to rejoin this game."
+      "offline": "offline"
     },
     "hud": {
       "loadingPanel": "Loading…"
     },
     "log": {
       "itemGranted": "You receive {item}",
-      "itemGrantedOther": "{player} receives {item}",
-      "playerLeft": "{player} left",
-      "playerKicked": "{player} was kicked"
+      "itemGrantedOther": "{player} receives {item}"
     },
     "errors": {
       "NOT_AVAILABLE": "You can't do that yet",
@@ -989,9 +978,6 @@
       "MOVE_TOO_FAST": "Movement corrected by the server",
       "OUT_OF_BOUNDS": "You can't leave the room",
       "ROOM_LOCKED": "The door is closed or too far away",
-      "PLAYERS_NOT_READY": "Some players are still not ready",
-      "MIN_PLAYERS_NOT_MET": "More connected players are needed",
-      "KICK_TARGET_INVALID": "That player can't be kicked",
       "RATE_LIMITED": "Too many messages: wait a moment",
       "generic": "The server rejected the action"
     },
