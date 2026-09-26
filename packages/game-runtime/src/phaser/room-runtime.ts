@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { EDIT_EVENT, type EditCell, type EditSceneEvent } from "../edit";
 import type { RuntimeModel } from "../loader";
-import { RoomScene, type RoomScenePack, type ScenePlayer } from "./room-scene";
+import { RoomScene, type RoomScenePack, type RoomSceneLabels, type ScenePlayer } from "./room-scene";
 import { WORLD_EVENT, type WorldSceneEvent } from "./world-events";
 
 export interface RoomRuntimeOptions {
@@ -31,6 +31,8 @@ export interface RoomRuntimeOptions {
   mode?: "play" | "edit";
   /** Emite `avatar-move` con la posición del avatar local (cliente de red). */
   emitAvatarMoves?: boolean;
+  /** Textos in-canvas (F-10); sin ellos, el castellano de siempre. */
+  labels?: Partial<RoomSceneLabels>;
 }
 
 /**
@@ -59,6 +61,7 @@ export class RoomRuntime {
       localCharacterId: options.localCharacterId,
       mode: options.mode,
       emitAvatarMoves: options.emitAvatarMoves,
+      labels: options.labels,
     });
 
     this.game = new Phaser.Game({

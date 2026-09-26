@@ -123,6 +123,10 @@ export function toRuntimeModel(
   const objectsById: Record<string, RuntimeObject> = {};
   const inspections = buildInspectionIndex(roomPackage.rules, locale);
   const actions = buildActionIndex(roomPackage.rules);
+  const dialogTextById: Record<string, string> = {};
+  for (const dialog of roomPackage.dialogs) {
+    dialogTextById[dialog.id] = resolveLocalizedText(dialog.text, locale);
+  }
 
   for (const object of roomPackage.objects) {
     const room = subroomsById[object.roomId];
@@ -138,8 +142,14 @@ export function toRuntimeModel(
       );
     }
 
+    const inspection = inspections[object.id];
+    const ownName = object.name ? resolveLocalizedText(object.name, locale) : "";
+    const dialogName = inspection?.dialogId ? (dialogTextById[inspection.dialogId] ?? "") : "";
+    const name = ownName || dialogName || undefined;
+
     const runtimeObject: RuntimeObject = {
-      ...toRuntimeObject(object, inspections[object.id]),
+      ...toRuntimeObject(object, inspection),
+      ...(name ? { name } : {}),
       actions: actions[object.id] ?? ["inspect", "use_item"],
     };
     const panelPuzzleId = panelForObject(roomPackage, object);

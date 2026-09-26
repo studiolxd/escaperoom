@@ -86,6 +86,12 @@ export const WorldObjectSchema = z.object({
   sprite: z.string().regex(ID_PATTERN),
   states: z.record(z.string(), SpriteStateSchema),
   initialState: z.string(),
+  /**
+   * Nombre visible del objeto (auditoría F-27): si el creador no lo declara,
+   * el runtime lo deriva del diálogo de inspección asociado y, en su defecto,
+   * usa un genérico traducido — nunca el `id` técnico.
+   */
+  name: LocalizedTextSchema.optional(),
   inventory: z.array(z.string()).max(MAX_CONTENT_ARRAY_ITEMS).optional(),
   lockedBy: z.string().optional(),
   interactable: z.boolean(),

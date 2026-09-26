@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -62,6 +63,7 @@ export interface EditorToolHintProps {
  * pointer events: es puramente informativo (specs/20 §4).
  */
 export function EditorToolHint({ id, text, children }: EditorToolHintProps) {
+  const t = useTranslations("RoomEditor.toolHints");
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -89,7 +91,7 @@ export function EditorToolHint({ id, text, children }: EditorToolHintProps) {
             onClick={dismiss}
             className="mt-1 h-auto p-0 text-[0.65rem] font-medium text-amber-300"
           >
-            OK
+            {t("dismiss")}
           </Button>
         </span>
       )}

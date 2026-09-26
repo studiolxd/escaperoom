@@ -55,6 +55,38 @@ export interface RoomScenePack {
   baseUrl: string;
 }
 
+/**
+ * Textos in-canvas de la escena (F-10, auditoría 2026-09-24): `packages/
+ * game-runtime` no depende de next-intl, así que quien monta el componente
+ * los pasa (en `packages/web` salen del namespace `RoomScene.labels`, ver el
+ * README del pack de textos de `RulesGraph` para el mismo patrón). Todo es
+ * opcional: sin un texto, cae al castellano actual (mismo comportamiento que
+ * antes de F-10, no una traducción nueva — ADR-018 exige claves nuevas solo
+ * en `es.json`).
+ */
+export interface RoomSceneLabels {
+  /** Pie del diálogo de inspección dibujado por Phaser (solo si `dialogOverlay`). */
+  inspectHint: string;
+  /** `{items}` ya llega unido con ", ". */
+  containerRemaining: string;
+  containerEmpty: string;
+  containerReceived: string;
+  openPanel: string;
+}
+
+const DEFAULT_LABELS: RoomSceneLabels = {
+  inspectHint: "Espacio / clic para inspeccionar",
+  containerRemaining: "Queda dentro: {items}.",
+  containerEmpty: "Está vacío.",
+  containerReceived: "Recibes: {items}.",
+  openPanel: "Abre el panel: {puzzleId}.",
+};
+
+/** Sustituye `{clave}` por su valor en `vars`. */
+function formatLabel(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) => vars[key] ?? match);
+}
+
 export interface RoomSceneOptions {
   model: RuntimeModel;
   /** Habitación inicial; por defecto la primera de `map.rooms`. */
@@ -105,6 +137,8 @@ export interface RoomSceneOptions {
    * (como mucho cada `AVATAR_MOVE_EMIT_MS`). Lo activa el cliente de red.
    */
   emitAvatarMoves?: boolean;
+  /** Textos in-canvas (F-10); sin ellos, el castellano de siempre. */
+  labels?: Partial<RoomSceneLabels>;
 }
 
 /** Otro jugador de la partida, tal como lo sincroniza el servidor (fase 2). */
@@ -246,6 +280,7 @@ export class RoomScene extends Phaser.Scene {
   private editSelection?: Phaser.GameObjects.Graphics;
   // — Multijugador (fase 2) —
   private readonly emitAvatarMoves: boolean;
+  private readonly labels: RoomSceneLabels;
   private lastEmittedMove?: { roomId: string; x: number; y: number; at: number };
   /** Posición autoritativa pendiente de aplicar al avatar local (tras reconstruir la sala). */
   private pendingAvatarCell?: { x: number; y: number };
@@ -271,6 +306,7 @@ export class RoomScene extends Phaser.Scene {
     this.localInputEnabled = options.inputEnabled ?? true;
     this.localPlayerId = options.localPlayerId ?? "p0";
     this.emitAvatarMoves = options.emitAvatarMoves ?? false;
+    this.labels = { ...DEFAULT_LABELS, ...options.labels };
     this.manifest = options.pack?.manifest ?? buildPlaceholderManifest(options.model);
     this.localCharacterId =
       options.localCharacterId ?? this.manifest.avatars?.[0]?.id ?? PLACEHOLDER_CHARACTER_ID;
@@ -1064,20 +1100,26 @@ export class RoomScene extends Phaser.Scene {
         const remaining = containerContents(this.containers, object.id);
         parts.push(
           remaining.length > 0
-            ? `Queda dentro: ${remaining.map((id) => this.itemName(id)).join(", ")}.`
-            : "Está vacío.",
+            ? formatLabel(this.labels.containerRemaining, {
+                items: remaining.map((id) => this.itemName(id)).join(", "),
+              })
+            : this.labels.containerEmpty,
         );
       } else {
         this.containers = collect.map;
         collected = collect.grants[this.localPlayerId] ?? [];
         if (collected.length > 0) {
-          parts.push(`Recibes: ${collected.map((id) => this.itemName(id)).join(", ")}.`);
+          parts.push(
+            formatLabel(this.labels.containerReceived, {
+              items: collected.map((id) => this.itemName(id)).join(", "),
+            }),
+          );
         }
       }
     }
 
     if (parts.length === 0 && result?.panelPuzzleId) {
-      parts.push(`Abre el panel: ${result.panelPuzzleId}.`);
+      parts.push(formatLabel(this.labels.openPanel, { puzzleId: result.panelPuzzleId }));
     }
 
     return { ...(parts.length > 0 ? { text: parts.join(" ") } : {}), collected };
@@ -1156,7 +1198,7 @@ export class RoomScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     const hint = this.add
-      .text(0, height / 2 - 14, "Espacio / clic para inspeccionar", {
+      .text(0, height / 2 - 14, this.labels.inspectHint, {
         fontFamily: "ui-monospace, monospace",
         fontSize: "10px",
         color: "#94a3b8",

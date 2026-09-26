@@ -84,6 +84,7 @@ describe("generador de formularios desde los esquemas Zod", () => {
       "sprite",
       "states",
       "initialState",
+      "name",
       "inventory",
       "lockedBy",
       "interactable",
@@ -99,6 +100,7 @@ describe("generador de formularios desde los esquemas Zod", () => {
       ["x", "number"],
       ["y", "number"],
     ]);
+    expect(field("name")).toMatchObject({ kind: "localizedText", optional: true });
     expect(field("states")?.kind).toBe("record");
     // SpriteState = string | { sprite?, animation? }: unión sin discriminador.
     expect(field("states.*")?.variants?.map((v) => v.value)).toEqual(["text", "object"]);

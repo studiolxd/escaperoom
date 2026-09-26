@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useTranslations } from "next-intl";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
-import { RoomRuntime, type WorldSceneEvent } from "@escaperoom/game-runtime/phaser";
+import { RoomRuntime, type RoomSceneLabels, type WorldSceneEvent } from "@escaperoom/game-runtime/phaser";
 
 /** Handle imperativo para disparar interacciones desde el overlay React. */
 export interface WorldPreviewHandle {
@@ -24,6 +25,22 @@ export default function WorldPreviewCanvas({
   onEvent: (event: WorldSceneEvent) => void;
   onReady?: (handle: WorldPreviewHandle) => void;
 }) {
+  const t = useTranslations("RoomScene.labels");
+  const containerRemaining = t("containerRemaining");
+  const containerEmpty = t("containerEmpty");
+  const containerReceived = t("containerReceived");
+  const openPanelLabel = t("openPanel");
+  // `useMemo` (no un objeto literal): un `RoomRuntime` nuevo por render
+  // reconstruiría la sala entera (F-21/F-22); solo cambia si cambia el texto.
+  const labels: Partial<RoomSceneLabels> = useMemo(
+    () => ({
+      containerRemaining,
+      containerEmpty,
+      containerReceived,
+      openPanel: openPanelLabel,
+    }),
+    [containerRemaining, containerEmpty, containerReceived, openPanelLabel],
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<RoomRuntime | null>(null);
   const onEventRef = useRef(onEvent);
@@ -40,6 +57,7 @@ export default function WorldPreviewCanvas({
     const runtime = new RoomRuntime(container, model, {
       dialogOverlay: false,
       localPlayerId: "p1",
+      labels,
     });
     runtimeRef.current = runtime;
     const off = runtime.onWorldEvent((event) => onEventRef.current(event));
@@ -53,7 +71,7 @@ export default function WorldPreviewCanvas({
       runtime.destroy();
       runtimeRef.current = null;
     };
-  }, [model]);
+  }, [model, labels]);
 
   return <div ref={containerRef} className="absolute inset-0" aria-hidden />;
 }

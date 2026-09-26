@@ -69,6 +69,13 @@ export interface RuntimeObject {
   type: string;
   position: Position;
   sprite: string;
+  /**
+   * Nombre visible resuelto al idioma activo (F-27): el propio del objeto o,
+   * si no lo declara, el del diálogo de inspección asociado. Sin ninguno de
+   * los dos, `undefined` — quien lo muestra cae a un genérico traducido,
+   * nunca al `id`.
+   */
+  name?: string;
   /** Estados declarados, en orden de aparición (`Object.keys(states)`). */
   states: string[];
   spriteByState: Record<string, string>;

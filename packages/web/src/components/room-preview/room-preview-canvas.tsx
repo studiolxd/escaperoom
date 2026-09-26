@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useTranslations } from "next-intl";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
-import { RoomRuntime, type RoomScenePack } from "@escaperoom/game-runtime/phaser";
+import { RoomRuntime, type RoomScenePack, type RoomSceneLabels } from "@escaperoom/game-runtime/phaser";
 
 /**
  * Monta el runtime Phaser de producto (`RoomRuntime`) en un contenedor React y
@@ -22,6 +23,24 @@ export default function RoomPreviewCanvas({
   roomId: string;
   pack?: RoomScenePack;
 }) {
+  const t = useTranslations("RoomScene.labels");
+  const inspectHint = t("inspectHint");
+  const containerRemaining = t("containerRemaining");
+  const containerEmpty = t("containerEmpty");
+  const containerReceived = t("containerReceived");
+  const openPanelLabel = t("openPanel");
+  // `useMemo` (no un objeto literal): un `RoomRuntime` nuevo por render
+  // reconstruiría la sala entera (F-21/F-22); solo cambia si cambia el texto.
+  const labels: Partial<RoomSceneLabels> = useMemo(
+    () => ({
+      inspectHint,
+      containerRemaining,
+      containerEmpty,
+      containerReceived,
+      openPanel: openPanelLabel,
+    }),
+    [inspectHint, containerRemaining, containerEmpty, containerReceived, openPanelLabel],
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const runtimeRef = useRef<RoomRuntime | null>(null);
   const roomIdRef = useRef(roomId);
@@ -35,6 +54,7 @@ export default function RoomPreviewCanvas({
     const runtime = new RoomRuntime(container, model, {
       initialRoomId: roomIdRef.current,
       pack,
+      labels,
     });
     runtimeRef.current = runtime;
 
@@ -42,7 +62,7 @@ export default function RoomPreviewCanvas({
       runtime.destroy();
       runtimeRef.current = null;
     };
-  }, [model, pack]);
+  }, [model, pack, labels]);
 
   useEffect(() => {
     roomIdRef.current = roomId;

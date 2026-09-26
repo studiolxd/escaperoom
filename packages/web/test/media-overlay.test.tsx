@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { act, cleanup, render } from "@testing-library/react";
+import { NextIntlClientProvider } from "next-intl";
+import { createElement, type ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import es from "../messages/es.json";
+
+function renderIntl(element: ReactElement) {
+  return render(createElement(NextIntlClientProvider, { locale: "es", messages: es, children: element }));
+}
 
 /**
  * F-3 (auditoría 2026-09-24): `LiveKitRoom` publicaba mic/cámara al conectar
@@ -50,7 +57,7 @@ describe("MediaOverlay — no publica mic/cámara al conectar (F-3)", () => {
       canPublishVideo: true,
     });
 
-    render(<MediaOverlay />);
+    renderIntl(createElement(MediaOverlay));
 
     expect(liveKitRoomProps).toHaveBeenCalled();
     const props = liveKitRoomProps.mock.calls.at(-1)![0] as { audio: unknown; video: unknown };
@@ -93,7 +100,7 @@ describe("MediaOverlay — callbacks estables para LiveKitRoom", () => {
       canPublishVideo: true,
     });
 
-    render(<MediaOverlay />);
+    renderIntl(createElement(MediaOverlay));
     type Callbacks = { onConnected: unknown; onDisconnected: unknown; onError: unknown };
     const first = liveKitRoomProps.mock.calls.at(-1)![0] as Callbacks;
 

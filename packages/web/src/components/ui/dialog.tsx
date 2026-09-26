@@ -49,15 +49,25 @@ function DialogOverlay({
 
 function DialogContent({
   className,
+  overlayClassName,
+  container,
   children,
   showCloseButton = true,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  /** Sobrescribe el color/blur del fondo (por defecto, el de `DialogOverlay`). */
+  overlayClassName?: string
+  /**
+   * Nodo del portal (por defecto `document.body`, vía Radix): úsalo para que
+   * un `className` con `absolute` (en vez de `fixed`) se posicione respecto a
+   * un contenedor propio, no la ventana entera.
+   */
+  container?: React.ComponentProps<typeof DialogPortal>["container"]
 }) {
   return (
-    <DialogPortal>
-      <DialogOverlay />
+    <DialogPortal container={container}>
+      <DialogOverlay className={overlayClassName} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
