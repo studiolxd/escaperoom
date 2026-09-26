@@ -234,6 +234,7 @@ CREATE TABLE "room" (
   "licensePriceCents"    int CHECK ("licensePriceCents" IS NULL OR "licensePriceCents" >= 0),
   "forkedFromRoomId"     uuid REFERENCES "room"(id),
   "forkedFromVersionId"  uuid,
+  "languages"            text[] NOT NULL DEFAULT '{}',  -- meta.languages de la ÚLTIMA versión publicada (E-23, denormalizado en el publish)
   "createdAt"            timestamptz NOT NULL DEFAULT now(),
   "updatedAt"            timestamptz NOT NULL DEFAULT now(),
   "deletedAt"            timestamptz
@@ -241,6 +242,7 @@ CREATE TABLE "room" (
 CREATE INDEX "ixRoomAuthor" ON "room"("authorId");
 CREATE INDEX "ixRoomCatalog" ON "room"(status) WHERE status = 'published' AND "deletedAt" IS NULL;
 CREATE INDEX "ixRoomTitleTrgm" ON "room" USING gin (title gin_trgm_ops);
+CREATE INDEX "ixRoomLanguages" ON "room" USING gin ("languages");
 CREATE TRIGGER "trgRoomUpdatedAt" BEFORE UPDATE ON "room"
   FOR EACH ROW EXECUTE FUNCTION "setUpdatedAt"();
 
@@ -274,7 +276,8 @@ CREATE TABLE "roomVersion" (
   UNIQUE ("roomId", semver)
 );
 CREATE INDEX "ixRoomVersionRoom" ON "roomVersion"("roomId", "publishedAt" DESC);
-CREATE INDEX "ixRoomVersionPackage" ON "roomVersion" USING gin (package jsonb_path_ops);
+-- (sin índice GIN sobre `package`: el catálogo filtra por idioma vía
+-- `room.languages`/`ixRoomLanguages`, no por contención JSONB — E-23)
 
 ALTER TABLE "room"
   ADD CONSTRAINT "fkRoomForkedFromVersion"

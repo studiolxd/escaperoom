@@ -513,7 +513,11 @@ model review {
 /// `ixRoomCatalog` sobre `status` WHERE status = 'published' AND `deletedAt`
 /// IS NULL (0005_rooms), para el listado del catálogo. `trgRoomUpdatedAt`
 /// (trigger `setUpdatedAt`, 0005_rooms) pone `updatedAt` en cada UPDATE — por
-/// eso el campo no lleva `@updatedAt` aquí.
+/// eso el campo no lleva `@updatedAt` aquí. `languages` (E-23, 20260926180000)
+/// nunca se escribe a mano desde la aplicación: la recalcula el trigger
+/// `trgRoomVersionSyncLanguages` sobre `roomVersion` (20260926190000) en cada
+/// INSERT/UPDATE de `package`, así que ninguna vía de escritura (publish,
+/// seed, fixtures de e2e, MCP…) puede olvidarse de rellenarla.
 model room {
   id                                                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   authorId                                          String
@@ -528,6 +532,9 @@ model room {
   licensePriceCents                                 Int?
   forkedFromRoomId                                  String?            @db.Uuid
   forkedFromVersionId                               String?            @db.Uuid
+  /// Idiomas de la ÚLTIMA versión publicada (specs/14 §5, E-23): denormalizado
+  /// en el publish para filtrar el catálogo sin tocar `roomVersion.package`.
+  languages                                          String[]           @default([])
   createdAt                                         DateTime           @default(now()) @db.Timestamptz(6)
   updatedAt                                         DateTime           @default(now()) @db.Timestamptz(6)
   deletedAt                                         DateTime?          @db.Timestamptz(6)
@@ -546,6 +553,7 @@ model room {
 
   @@index([authorId], map: "ixRoomAuthor")
   @@index([title(ops: raw("gin_trgm_ops"))], map: "ixRoomTitleTrgm", type: Gin)
+  @@index([languages], map: "ixRoomLanguages", type: Gin)
 }
 
 model roomSnapshot {
@@ -572,6 +580,9 @@ model roomUpdate {
   @@index([authorId], map: "ixRoomUpdateAuthor")
 }
 
+/// E-23 (20260926190000): `trgRoomVersionSyncLanguages` (trigger
+/// `syncRoomLanguagesFromVersion`) recalcula `room.languages` en cada
+/// INSERT/UPDATE de `package` — no representable en Prisma.
 model roomVersion {
   id                                         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   roomId                                     String          @db.Uuid
@@ -589,7 +600,6 @@ model roomVersion {
   room_roomVersion_roomIdToroom              room            @relation("roomVersion_roomIdToroom", fields: [roomId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([roomId, semver])
-  @@index([package(ops: JsonbPathOps)], map: "ixRoomVersionPackage", type: Gin)
   @@index([roomId, publishedAt(sort: Desc)], map: "ixRoomVersionRoom")
 }
 

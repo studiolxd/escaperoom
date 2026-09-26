@@ -243,8 +243,8 @@ descarta en esta ronda porque:
   de repetirse en cada petición es la consulta cara a Postgres, no la respuesta al navegador.
 
 **Medición aproximada** (Postgres y Redis locales de `docker compose`, una sala publicada en la
-base): la consulta SQL del listado (CTE `latest` + `s`, joins con `room`/`user`, filtro JSONB) tarda
-~7 ms en caliente; un `GET` a Redis sobre una conexión persistente tarda ~1–1.5 ms (p50, medido con
+base): la consulta SQL del listado (CTE `latest` + `s`, joins con `room`/`user`, filtro de idiomas
+sobre `room.languages` — E-23) tarda ~7 ms en caliente; un `GET` a Redis sobre una conexión persistente tarda ~1–1.5 ms (p50, medido con
 `redis-benchmark -t get`). Con una tabla pequeña la diferencia ya es de un orden de magnitud; con más
 salas y filtros de texto (`ILIKE`) sin poder usar el índice GIN al 100%, la consulta a Postgres crece
 mientras la lectura de Redis se mantiene plana, así que el ahorro relativo aumenta con el catálogo. El

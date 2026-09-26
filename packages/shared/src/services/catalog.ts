@@ -134,8 +134,9 @@ export type CatalogPage = { offset: number; limit: number };
 
 /**
  * Puerto de lectura del catálogo público. La implementación Prisma filtra y
- * ordena en Postgres (`package @> {"meta":{"languages":[...]}}` sobre el índice
- * GIN de `roomVersion.package`); la de memoria replica la misma semántica.
+ * ordena en Postgres (`languages @> [...]` sobre el índice GIN de
+ * `room.languages`, denormalizado en cada publish — E-23); la de memoria
+ * replica la misma semántica.
  */
 export interface PublishedRoomListing {
   listPublished(filter: CatalogListFilter, page: CatalogPage): Promise<CatalogRoom[]>;
