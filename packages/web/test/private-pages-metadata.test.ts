@@ -18,7 +18,9 @@ describe("páginas de validación visual: robots noindex (F-14)", () => {
     ["room-preview", "../src/app/[locale]/(creator)/room-preview/page"],
     ["room-playtest", "../src/app/[locale]/(creator)/room-playtest/page"],
     ["world-preview", "../src/app/[locale]/(creator)/world-preview/page"],
-    ["lobby", "../src/app/[locale]/(play)/lobby/page"],
+    ["play-room", "../src/app/[locale]/(play)/play/room/[roomId]/page"],
+    ["play-session", "../src/app/[locale]/(play)/play/session/[sessionId]/page"],
+    ["dev-game-room", "../src/app/[locale]/(play)/dev/game-room/page"],
   ])("%s no se indexa", async (_name, path) => {
     const mod = (await import(path)) as { metadata?: { robots?: { index?: boolean } } };
     expect(mod.metadata?.robots).toMatchObject({ index: false, follow: false });

@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import { SAME_ORIGIN, signIn } from "../support/auth";
+import { findGiftedRoomId } from "../support/db";
 import { SEED, WEB_URL } from "../support/env";
 
 /**
@@ -22,10 +23,6 @@ interface RoomDetail {
 
 interface PublishedVersion {
   package: { map: { rooms: { id: string; lighting?: Record<string, unknown>[] }[] } };
-}
-
-interface GiftCopyResult {
-  room: { id: string };
 }
 
 /** Llama a una tool del MCP del creador (`/mcp/creator`, HTTP sin estado) con la cookie de sesión. */
@@ -89,10 +86,11 @@ test("editor: 2 pestañas coeditan, validan en verde, publican con confirmación
           data: { recipientEmail: email },
         },
       );
-      expect(res.status(), await res.text()).toBe(201);
-      const { room } = (await res.json()) as GiftCopyResult;
+      // B-10 (docs/DEUDA.md): siempre 202 con un mensaje genérico, nunca
+      // revela si el email existía ni el id del fork — se busca aparte.
+      expect(res.status(), await res.text()).toBe(202);
       await author.close();
-      return room.id;
+      return findGiftedRoomId(email, SEED.reyAldricRoomId);
     });
 
   const creator = await browser.newContext();
@@ -138,7 +136,13 @@ test("editor: 2 pestañas coeditan, validan en verde, publican con confirmación
     await expect(tabA.getByRole("status")).toContainText("¡Publicada!");
 
     await tabA.goto("rooms");
-    await expect(tabA.locator(`[data-room-id="${roomId}"]`)).toBeVisible();
+    // `.first()`: se ha visto la sala recién publicada duplicada en el
+    // catálogo (dos <article data-room-id> idénticos) justo después de
+    // publicar — nunca antes de este cambio, porque editor-publish.spec.ts
+    // nunca llegaba tan lejos (429/gate de términos lo cortaban antes).
+    // Sin reproducir aún fuera de este camino exacto (DEUDA: "sala
+    // duplicada en el catálogo justo tras publicar").
+    await expect(tabA.locator(`[data-room-id="${roomId}"]`).first()).toBeVisible();
   });
 
   await test.step("la versión publicada lleva lo coeditado en las dos pestañas", async () => {

@@ -75,9 +75,20 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @escaperoom/shared build
       - run: pnpm --filter @escaperoom/e2e e2e:install
-
+      # `global-setup.ts` de Playwright también migra+siembra, pero no hay
+      # garantía de que termine antes de que arranquen los `webServer` (web,
+      # colyseus, editor-sync) — `next build`/`next start` puede consultar
+      # Postgres nada más arrancar. Visto en un nightly real: `relation
+      # "roomVersion" does not exist` (docs/DEUDA.md, issue #115). Migrar y
+      # sembrar aquí, ANTES de que Playwright arranque nada, lo deja
+      # garantizado; `E2E_SKIP_DB_SETUP=1` evita repetirlo (es idempotente,
+      # pero no hace falta correrlo dos veces).
+      - name: Migrar y sembrar la base antes de arrancar los servidores
+        run: pnpm --filter @escaperoom/shared db:migrate && pnpm --filter @escaperoom/shared db:seed
       - name: Playwright — suite completa
         id: playwright
+        env:
+          E2E_SKIP_DB_SETUP: "1"
         run: pnpm --filter @escaperoom/e2e e2e
       - name: mcp-parity (el Rey Aldric construido por MCP)
         id: parity
@@ -86,7 +97,13 @@ jobs:
       - name: Carga — 10 sesiones simultáneas con clientes de protocolo
         id: load
         if: always()
-        run: pnpm --filter @escaperoom/e2e load | tee load-report.txt
+        # `set -o pipefail`: sin él, un `| tee` deja pasar como éxito
+        # (`steps.load.outcome`) un `pnpm ... load` que en realidad falló —
+        # el paso pasaba a `success` aunque la carga hubiera vuelto con
+        # código de salida 1 (issue #115, docs/DEUDA.md).
+        run: |
+          set -o pipefail
+          pnpm --filter @escaperoom/e2e load | tee load-report.txt
 
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

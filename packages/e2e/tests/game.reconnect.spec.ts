@@ -4,12 +4,21 @@ import { UiPlayer } from "../support/game";
 /**
  * `game.reconnect.spec.ts` (C-2, ajuste 2026-09-25 — revisión de la
  * coordinadora sobre la PR #146): la reconexión de la `GameRoom` desnuda
- * (`/play`, compras B2C) tiene que sobrevivir no solo a una caída de red
- * dentro de la misma pestaña (ya cubierto por `game-room-reconnection.test.ts`
- * en `colyseus-server`, sin navegador), sino también a que el JUGADOR recargue
- * la página o cierre y reabra la pestaña — el caso en que se pierden los
- * objetos JS en memoria (`use-game-connection.ts`) y solo queda lo que
- * persiste el propio navegador (`lib/game-reconnect.ts`, `localStorage`).
+ * tiene que sobrevivir no solo a una caída de red dentro de la misma pestaña
+ * (ya cubierto por `game-room-reconnection.test.ts` en `colyseus-server`, sin
+ * navegador), sino también a que el JUGADOR recargue la página o cierre y
+ * reabra la pestaña — el caso en que se pierden los objetos JS en memoria
+ * (`use-game-connection.ts`) y solo queda lo que persiste el propio navegador
+ * (`lib/game-reconnect.ts`, `localStorage`).
+ *
+ * Usa `/dev/game-room` (retirada `/[locale]/play`, DEUDA) y no el flujo real
+ * de sala gratis (`/play/room/:roomId`): cada emisión de `free-access`
+ * corresponde a una `GameRoom` NUEVA (specs/13), así que ese flujo no tiene
+ * forma de recuperar la partida si se pierde el `gameToken` de la pestaña —
+ * justo lo que este test necesita poner a prueba. `/dev/game-room` firma un
+ * `gameToken` `kind: "dev_test"` fresco en cada carga (nunca en un despliegue
+ * real sin `ALLOW_DEV_SECRETS`, `isDevFallbackAllowed`), así que no depende
+ * de nada persistido en el cliente para poder reconectar.
  *
  * Con un solo jugador (el motor admite partidas en solitario, specs/26):
  * anfitrión, sin depender de un segundo navegador para la aserción principal.
@@ -23,7 +32,7 @@ test("recargar la página a mitad de partida conserva inventario y personaje", a
   page,
 }) => {
   const a = new UiPlayer(page, "Ana");
-  await page.goto("play");
+  await page.goto("dev/game-room");
   await a.enterName();
   await expect(page).toHaveURL(/[?&]room=/u);
   const url = page.url();
@@ -56,7 +65,7 @@ test("cerrar la pestaña y abrir otra a mitad de partida conserva inventario y p
 }) => {
   const firstPage = await context.newPage();
   const a = new UiPlayer(firstPage, "Ana");
-  await firstPage.goto("play");
+  await firstPage.goto("dev/game-room");
   await a.enterName();
   await expect(firstPage).toHaveURL(/[?&]room=/u);
   const url = firstPage.url();

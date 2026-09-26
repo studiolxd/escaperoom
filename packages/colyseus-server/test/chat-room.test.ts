@@ -6,16 +6,15 @@ import {
   CHAT_MESSAGE,
   CHAT_RATE_LIMITED_ERROR,
   ERROR_MESSAGE,
-  LOBBY_ROOM_NAME,
 } from "../src/constants";
-import { LobbyTestRoom } from "../src/rooms/lobby-test-room";
+import { CHAT_MEDIA_TEST_ROOM_NAME, ChatMediaTestRoom } from "./helpers/chat-media-test-room";
 import { getFreePort } from "./helpers/free-port";
 
 let colyseus: ColyseusTestServer;
 
 const config = defineConfig({
   initializeGameServer: (server) => {
-    server.define(LOBBY_ROOM_NAME, LobbyTestRoom);
+    server.define(CHAT_MEDIA_TEST_ROOM_NAME, ChatMediaTestRoom);
   },
 });
 
@@ -32,9 +31,9 @@ afterAll(async () => {
   await colyseus.shutdown();
 });
 
-describe("chat del lobby_test (integración con @colyseus/testing)", () => {
+describe("chat de la room (integración con @colyseus/testing)", () => {
   it("dos clientes chatean y ambos ven los mensajes en el state", async () => {
-    const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
+    const room = await colyseus.createRoom<ChatMediaTestRoom>(CHAT_MEDIA_TEST_ROOM_NAME, {});
     const clientA = await colyseus.connectTo(room);
     const clientB = await colyseus.connectTo(room);
 
@@ -54,7 +53,7 @@ describe("chat del lobby_test (integración con @colyseus/testing)", () => {
   });
 
   it("un jugador que se une después recibe el historial", async () => {
-    const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
+    const room = await colyseus.createRoom<ChatMediaTestRoom>(CHAT_MEDIA_TEST_ROOM_NAME, {});
     const clientA = await colyseus.connectTo(room);
 
     // Esperamos al estado del servidor y no a `waitForNextPatch`: el primer
@@ -71,7 +70,7 @@ describe("chat del lobby_test (integración con @colyseus/testing)", () => {
   });
 
   it("rechaza el tercer mensaje en menos de un segundo", async () => {
-    const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
+    const room = await colyseus.createRoom<ChatMediaTestRoom>(CHAT_MEDIA_TEST_ROOM_NAME, {});
     const clientA = await colyseus.connectTo(room);
 
     const errorPromise = clientA.waitForMessage(ERROR_MESSAGE);
@@ -87,7 +86,7 @@ describe("chat del lobby_test (integración con @colyseus/testing)", () => {
   });
 
   it("censura un término tóxico y marca el mensaje como filtrado", async () => {
-    const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
+    const room = await colyseus.createRoom<ChatMediaTestRoom>(CHAT_MEDIA_TEST_ROOM_NAME, {});
     const clientA = await colyseus.connectTo(room);
 
     clientA.send(CHAT_MESSAGE, { text: "eres un tonto" });
@@ -100,7 +99,7 @@ describe("chat del lobby_test (integración con @colyseus/testing)", () => {
   });
 
   it("rechaza un payload inválido (vacío o demasiado largo)", async () => {
-    const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
+    const room = await colyseus.createRoom<ChatMediaTestRoom>(CHAT_MEDIA_TEST_ROOM_NAME, {});
     const clientA = await colyseus.connectTo(room);
 
     const emptyError = clientA.waitForMessage(ERROR_MESSAGE);

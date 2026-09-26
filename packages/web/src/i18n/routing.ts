@@ -4,7 +4,7 @@ import { defineRouting } from "next-intl/routing";
 /**
  * Routing de locales (ADR-018, specs/03 §1): la lista vive en
  * `@escaperoom/config` para no duplicarla. `es` es el idioma por defecto y el
- * prefijo se mantiene siempre (`/es`, `/es/lobby`).
+ * prefijo se mantiene siempre (`/es`, `/es/rooms`).
  */
 export const routing = defineRouting({
   locales: LOCALES,

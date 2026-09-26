@@ -15,8 +15,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * Modo observador de una sesión de evento (ticket 5.9). Como `/play?session=`
- * (5.8), la room `event` ejecuta hoy el paquete del Rey Aldric, así que el
+ * Modo observador de una sesión de evento (ticket 5.9). Como
+ * `/play/session/:sessionId` (5.8), la room `event` ejecuta hoy el paquete
+ * del Rey Aldric, así que el
  * modelo público del runtime (sin soluciones) se calcula de ese fixture en
  * servidor. El token de observador lo pide el cliente (solo el organizador lo
  * obtiene) y la room rechaza cualquier acción suya.

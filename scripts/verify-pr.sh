@@ -348,8 +348,17 @@ fi
 if [ -z "${REDIS_PREFIX:-}" ] && [ -f "$SHARED_ENV_FILE" ]; then
   REDIS_PREFIX=$(sed -n 's/^REDIS_PREFIX=//p' "$SHARED_ENV_FILE" | head -1)
 fi
-: "${REDIS_URL:=redis://:redis_dev_only@localhost:56380}"
 : "${REDIS_PREFIX:=escaperoom}"
+# El prefijo del worktree por sí solo no basta: persiste en el Redis
+# compartido entre TIRADAS de `pnpm verify:pr` del mismo worktree, no solo
+# entre worktrees (#170, docs/DEUDA.md "Tests de rate limit de `web` aún
+# intermitentes"): las cuotas consumidas en una tirada seguían vivas en la
+# siguiente y provocaban 429 que no dependían del test que corría, sino de lo
+# que quedó pendiente de expirar. Un sufijo por TIRADA (PID + epoch, nunca
+# reutilizado) aísla cada ejecución sin tocar el prefijo por worktree que ya
+# usa `pnpm dev:env` para separar Redis entre worktrees.
+REDIS_PREFIX="${REDIS_PREFIX}_run$$_$(date +%s)"
+: "${REDIS_URL:=redis://:redis_dev_only@localhost:56380}"
 : "${QUEUES_ENABLED:=true}"
 : "${STORAGE_PROVIDER:=s3}"
 : "${STORAGE_BUCKET:=escaperoom-assets}"

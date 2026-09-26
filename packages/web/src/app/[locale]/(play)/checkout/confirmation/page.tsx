@@ -9,7 +9,7 @@ import { Link } from "@/i18n/navigation";
 type PurchaseKind = "room" | "room_license" | "event_credits";
 const PURCHASE_KINDS: ReadonlySet<string> = new Set(["room", "room_license", "event_credits"]);
 
-/** Mismo patrón que `(play)/play/page.tsx` para `room`/`session` de la URL. */
+/** Mismo patrón que `(play)/play/room/[roomId]/page.tsx` para ids de la URL. */
 const ID_RE = /^[\w-]{1,64}$/u;
 
 function validId(value: string | undefined): string | undefined {

@@ -48,7 +48,7 @@ export interface RedeemFormProps {
 /**
  * Formulario de canje: clave + nombre visible → server action
  * `redeemAccessKey` (mismo `RedeemService` que la ruta REST) →
- * `/play?session=…#joinToken=…`. El `joinToken` viaja en el fragmento para
+ * `/play/session/…#joinToken=…`. El `joinToken` viaja en el fragmento para
  * que no llegue a logs ni a `Referer`.
  */
 export function RedeemForm({ initialCode }: RedeemFormProps) {

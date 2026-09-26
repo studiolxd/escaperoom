@@ -1,18 +1,10 @@
 import { matchMaker, Server } from "@colyseus/core";
 import { WebSocketTransport } from "@colyseus/ws-transport";
-import {
-  DEFAULT_PORT,
-  EVENT_ROOM_NAME,
-  GAME_ROOM_NAME,
-  LOBBY_ROOM_NAME,
-  PLAYTEST_ROOM_NAME,
-} from "./constants.js";
+import { DEFAULT_PORT, EVENT_ROOM_NAME, GAME_ROOM_NAME, PLAYTEST_ROOM_NAME } from "./constants.js";
 import { createEventProgressRouter } from "./events/http.js";
-import { devTestGameTokenAllowed } from "./game/access-runtime.js";
 import { createPlaytestRouter } from "./playtest/http.js";
 import { EventRoom } from "./rooms/event-room.js";
 import { GameRoom } from "./rooms/game-room.js";
-import { LobbyTestRoom } from "./rooms/lobby-test-room.js";
 import { PlaytestRoom } from "./rooms/playtest-room.js";
 
 /**
@@ -39,14 +31,11 @@ export function restrictMatchmakerCors(env: Record<string, string | undefined> =
  * Crea el servidor Colyseus con las rooms `game` (partida del Rey Aldric,
  * ticket 2.8), `playtest` (borrador del editor, ticket 3.8) y `event` (sesión
  * de evento con `joinToken`, ticket 5.8) registradas, sin arrancarlo. La room
- * `lobby_test` (ticket 0.5) solo se registra fuera de producción (C-4): es una
- * room de prueba sin ningún gate, y en un despliegue real dejaría crear rooms
- * ilimitadas con tokens LiveKit de publicación gratis. La room de playtest se
- * empareja por `playtestId` (quien entra con el link se une a la partida de
- * ese playtest o la recrea desde el paquete congelado si se había vaciado), y
- * la ruta interna `POST /internal/playtests` la usa web para crear playtests;
- * `GET /internal/events/:eventId/progress` alimenta el panel del organizador
- * (ticket 5.9).
+ * de playtest se empareja por `playtestId` (quien entra con el link se une a
+ * la partida de ese playtest o la recrea desde el paquete congelado si se
+ * había vaciado), y la ruta interna `POST /internal/playtests` la usa web
+ * para crear playtests; `GET /internal/events/:eventId/progress` alimenta el
+ * panel del organizador (ticket 5.9).
  */
 export function createGameServer(): Server {
   restrictMatchmakerCors();
@@ -57,9 +46,6 @@ export function createGameServer(): Server {
       app.use(createEventProgressRouter());
     },
   });
-  if (devTestGameTokenAllowed()) {
-    server.define(LOBBY_ROOM_NAME, LobbyTestRoom);
-  }
   server.define(GAME_ROOM_NAME, GameRoom);
   definePlaytestRoom(server);
   defineEventRoom(server);

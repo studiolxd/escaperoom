@@ -1,3 +1,4 @@
+import { isDevFallbackAllowed } from "@escaperoom/env";
 import { prisma } from "@escaperoom/shared/db";
 import {
   createMailTransportFromEnv,
@@ -86,9 +87,20 @@ export const auth = betterAuth({
     }),
     bearer(),
   ],
-  // A-8: sin esto, un miembro podría machacar la cuota por defecto de
-  // Better Auth (por ruta, no por organización) reinvitando en bucle.
   rateLimit: {
+    // Better Auth activa su rate limit por defecto solo con
+    // `NODE_ENV=production` (su propio default, `enabled ?? isProduction`).
+    // El E2E nocturno arranca así a propósito (paridad de arranque real,
+    // `ALLOW_DEV_SECRETS=1` — `packages/e2e/support/env.ts`), así que sin
+    // este `enabled` heredaba la cuota de producción del enlace mágico
+    // (`magic-link`, 5/60s por defecto) y la suite completa, con logins de
+    // varios specs en la misma ventana, caía en 429 (issue #115, DEUDA).
+    // `isDevFallbackAllowed` es el mismo criterio que ya usan los demás
+    // secretos/atajos de desarrollo: nunca da `true` en un despliegue real
+    // que no active `ALLOW_DEV_SECRETS` explícitamente.
+    enabled: !isDevFallbackAllowed(),
+    // A-8: sin esto, un miembro podría machacar la cuota por defecto de
+    // Better Auth (por ruta, no por organización) reinvitando en bucle.
     customRules: {
       "/organization/invite-member": { window: 3600, max: 20 },
     },

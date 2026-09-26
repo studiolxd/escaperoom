@@ -194,7 +194,18 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @escaperoom/shared build
       - run: pnpm --filter @escaperoom/e2e e2e:install
+      # `global-setup.ts` de Playwright también migra+siembra, pero no hay
+      # garantía de que termine antes de que arranquen los `webServer` (web,
+      # colyseus) — `next build`/`next start` puede consultar Postgres nada
+      # más arrancar (visto en un nightly real: `relation "roomVersion" does
+      # not exist`, docs/DEUDA.md, issue #115). Migrar y sembrar aquí, ANTES
+      # de que Playwright arranque nada, lo deja garantizado también sobre el
+      # Postgres efímero de este job (a diferencia de `pnpm verify:pr`, que
+      # corre contra la base ya migrada del worktree).
+      - run: pnpm --filter @escaperoom/shared db:migrate && pnpm --filter @escaperoom/shared db:seed
       - run: pnpm --filter @escaperoom/e2e e2e:smoke
+        env:
+          E2E_SKIP_DB_SETUP: "1"
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

@@ -205,7 +205,7 @@ describe("protocolo espejo del runtime = constantes del servidor", () => {
 
   it("el link de evento lleva el joinToken en el fragmento (no llega al servidor web)", () => {
     const path = eventPlayPath("s-1", "a.b.c");
-    expect(path).toBe("/play?session=s-1#joinToken=a.b.c");
+    expect(path).toBe("/play/session/s-1#joinToken=a.b.c");
     expect(readJoinTokenFromHash(new URL(`https://x${path}`).hash)).toBe("a.b.c");
     expect(readJoinTokenFromHash("")).toBeNull();
     expect(readJoinTokenFromHash(`#joinToken=${"x".repeat(3000)}`)).toBeNull();

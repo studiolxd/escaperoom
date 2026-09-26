@@ -1,15 +1,15 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useState, type FormEvent } from "react";
+import { useTranslations } from "next-intl";
 import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { invitePath, sanitizePlayerName, type GameJoinTarget } from "@/lib/game-net";
+import { sanitizePlayerName, type GameJoinTarget } from "@/lib/game-net";
 import { readGameReconnect } from "@/lib/game-reconnect";
 import { ConnectionBadge } from "./connection-badge";
 import { GameSessionShell } from "./game-session-shell";
@@ -34,10 +34,16 @@ export interface NetworkGameProps {
   title?: string;
   subtitle?: string;
   exitHref?: string;
-  /** Añade `?room=<id>` a la URL al crear la partida y ofrece el link de invitación. */
-  invite?: boolean;
   /** Sala gratis sin cuenta (punto i, "CTA Jugar"): CTA de login en `ResultsScreen`. */
   signInHref?: string;
+  /**
+   * Tras crear/unirse a la `GameRoom` (el id de Colyseus). Ningún flujo real
+   * lo usa hoy (`RoomGame`/`EventGame` ya saben a qué room unirse por la
+   * URL); lo usa la página de pruebas de reconexión E2E de `GameRoom` desnuda
+   * (`(play)/dev/game-room`, DEUDA) para reflejar el id en la URL y así poder
+   * recargar/reabrir la pestaña sin perder la partida.
+   */
+  onJoined?: (roomId: string) => void;
 }
 
 /**
@@ -53,18 +59,15 @@ export function NetworkGame({
   title,
   subtitle,
   exitHref,
-  invite = false,
   signInHref,
+  onJoined,
 }: NetworkGameProps) {
   const t = useTranslations("Game");
-  const locale = useLocale();
   const [draftName, setDraftName] = useState("");
   // En una sesión de evento el nombre lo fija el `joinToken` del canje.
   const [name, setName] = useState<string | null>(target.kind === "event" ? "" : null);
-  const [origin, setOrigin] = useState("");
 
   useEffect(() => {
-    setOrigin(window.location.origin);
     let stored = "";
     try {
       stored = window.localStorage.getItem(NAME_STORAGE_KEY) ?? "";
@@ -96,17 +99,6 @@ export function NetworkGame({
     });
     return () => cancelIdle(id as number);
   }, []);
-
-  const onJoined = useCallback(
-    (roomId: string) => {
-      if (!invite) return;
-      const url = new URL(window.location.href);
-      if (url.searchParams.get("room") === roomId) return;
-      url.searchParams.set("room", roomId);
-      window.history.replaceState(window.history.state, "", url);
-    },
-    [invite],
-  );
 
   const connection = useGameConnection({
     target,
@@ -180,11 +172,6 @@ export function NetworkGame({
     );
   }
 
-  const inviteUrl =
-    invite && connection.roomId && origin
-      ? `${origin}/${locale}${invitePath(connection.roomId)}`
-      : null;
-
   return (
     <GameSessionShell
       key={connection.client.selfId}
@@ -192,7 +179,6 @@ export function NetworkGame({
       pack={pack}
       client={connection.client}
       connection={{ status: connection.status, onRetry: connection.retry }}
-      inviteUrl={inviteUrl}
       title={title}
       subtitle={subtitle}
       exitHref={exitHref}
