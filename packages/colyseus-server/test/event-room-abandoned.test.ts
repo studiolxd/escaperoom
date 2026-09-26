@@ -147,46 +147,57 @@ async function eventWithOneSession() {
   };
 }
 
+/** Timeout de test generoso (docs/reference/verify-pr.md, "Timeouts de CI": el
+ * default de vitest, 5000 ms, es ajustado bajo CI cargado). */
+const TEST_TIMEOUT_MS = 20_000;
+/** Igual de generoso para cada `expect.poll` suelto: su default (sin `timeout`
+ * explícito) no basta bajo CI cargado — mismo criterio que game-room-abandoned.test.ts. */
+const POLL_OPTS = { timeout: 5000 };
+
 describe("EventRoom — partidas abandonadas (specs/11 §8.2, ADR-043)", () => {
-  it("el grupo sin nadie conectado se cierra como abandonado (session.status, sin completedAt)", async () => {
-    const { redeem, keyStore, codes } = await eventWithOneSession();
-    const ana = await redeem.redeem(ANONYMOUS_ACTOR, { code: codes[0]!, displayName: "Ana" });
-    const bruno = await redeem.redeem(ANONYMOUS_ACTOR, { code: codes[1]!, displayName: "Bruno" });
-    expect(ana.sessionId).toBe(bruno.sessionId); // misma sesión (grupo).
+  it(
+    "el grupo sin nadie conectado se cierra como abandonado (session.status, sin completedAt)",
+    async () => {
+      const { redeem, keyStore, codes } = await eventWithOneSession();
+      const ana = await redeem.redeem(ANONYMOUS_ACTOR, { code: codes[0]!, displayName: "Ana" });
+      const bruno = await redeem.redeem(ANONYMOUS_ACTOR, { code: codes[1]!, displayName: "Bruno" });
+      expect(ana.sessionId).toBe(bruno.sessionId); // misma sesión (grupo).
 
-    // `a` crea la room (matchmaking por `sessionId`); `b` se une con
-    // `colyseus.connectTo` (join directo por `roomId` + `waitForInitialState`
-    // en la misma llamada) — con `sdk.joinOrCreate` para el segundo cliente,
-    // el estado inicial puede llegar antes de engancharse a `onStateChange`
-    // (la room ya existe, sin el retraso de su propio `onCreate`) y
-    // `waitForInitialState()` se queda esperando un evento que ya pasó.
-    const a = await colyseus.sdk.joinOrCreate<GameRoomState>(FAST_EVENT_ROOM_NAME, {
-      sessionId: ana.sessionId,
-      joinToken: ana.joinToken,
-    });
-    await a.waitForInitialState();
-    const room = colyseus.getRoomById<EventRoom>(a.roomId);
-    const b = await colyseus.connectTo(room, {
-      sessionId: bruno.sessionId,
-      joinToken: bruno.joinToken,
-    });
+      // `a` crea la room (matchmaking por `sessionId`); `b` se une con
+      // `colyseus.connectTo` (join directo por `roomId` + `waitForInitialState`
+      // en la misma llamada) — con `sdk.joinOrCreate` para el segundo cliente,
+      // el estado inicial puede llegar antes de engancharse a `onStateChange`
+      // (la room ya existe, sin el retraso de su propio `onCreate`) y
+      // `waitForInitialState()` se queda esperando un evento que ya pasó.
+      const a = await colyseus.sdk.joinOrCreate<GameRoomState>(FAST_EVENT_ROOM_NAME, {
+        sessionId: ana.sessionId,
+        joinToken: ana.joinToken,
+      });
+      await a.waitForInitialState();
+      const room = colyseus.getRoomById<EventRoom>(a.roomId);
+      const b = await colyseus.connectTo(room, {
+        sessionId: bruno.sessionId,
+        joinToken: bruno.joinToken,
+      });
 
-    a.send(GAME_MESSAGES.setReady, { ready: true });
-    b.send(GAME_MESSAGES.setReady, { ready: true });
-    await expect.poll(() => a.state.players.get(b.sessionId)?.ready).toBe(true);
-    a.send(GAME_MESSAGES.startGame, {});
-    await expect.poll(() => a.state.phase).toBe("starting");
-    a.send(GAME_MESSAGES.enterMap, {});
-    b.send(GAME_MESSAGES.enterMap, {});
-    await expect.poll(() => a.state.phase).toBe("playing");
+      a.send(GAME_MESSAGES.setReady, { ready: true });
+      b.send(GAME_MESSAGES.setReady, { ready: true });
+      await expect.poll(() => a.state.players.get(b.sessionId)?.ready, POLL_OPTS).toBe(true);
+      a.send(GAME_MESSAGES.startGame, {});
+      await expect.poll(() => a.state.phase, POLL_OPTS).toBe("starting");
+      a.send(GAME_MESSAGES.enterMap, {});
+      b.send(GAME_MESSAGES.enterMap, {});
+      await expect.poll(() => a.state.phase, POLL_OPTS).toBe("playing");
 
-    await a.leave(false);
-    await b.leave(false);
+      await a.leave(false);
+      await b.leave(false);
 
-    const session = () => keyStore.sessions.find((s) => s.id === ana.sessionId)!;
-    const group = () => keyStore.groups.find((g) => g.sessionId === ana.sessionId)!;
-    await expect.poll(() => session().status, { timeout: 3000 }).toBe("aborted");
-    // Abandonar no cierra el grupo (`completesGroup`: solo victoria/tiempo, event-runtime.ts).
-    expect(group()?.completedAt ?? null).toBeNull();
-  });
+      const session = () => keyStore.sessions.find((s) => s.id === ana.sessionId)!;
+      const group = () => keyStore.groups.find((g) => g.sessionId === ana.sessionId)!;
+      await expect.poll(() => session().status, POLL_OPTS).toBe("aborted");
+      // Abandonar no cierra el grupo (`completesGroup`: solo victoria/tiempo, event-runtime.ts).
+      expect(group()?.completedAt ?? null).toBeNull();
+    },
+    TEST_TIMEOUT_MS,
+  );
 });
