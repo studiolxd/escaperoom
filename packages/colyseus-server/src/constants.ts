@@ -92,6 +92,12 @@ export const GAME_MESSAGES = {
   setReady: "set_ready",
   /** Cliente → servidor (C-13, solo anfitrión, specs/11 §4.5): expulsa a otro jugador. */
   kick: "kick",
+  /**
+   * Cliente → servidor (encargo lobby-diseño, specs/11 §4.1): el jugador
+   * terminó su introducción y su 3-2-1 y entra al mapa. El primero que entra
+   * arranca el reloj de la partida.
+   */
+  enterMap: "enter_map",
   move: "move",
   interact: "interact",
   useItem: "use_item",

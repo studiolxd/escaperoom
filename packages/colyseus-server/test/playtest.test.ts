@@ -324,6 +324,8 @@ describe("POST /internal/playtests", () => {
     await expect.poll(() => client.state.players.get(client.sessionId)?.ready).toBe(true);
     const intro = client.waitForMessage(GAME_MESSAGES.dialogShow);
     client.send(GAME_MESSAGES.startGame, {});
+    await expect.poll(() => client.state.phase).toBe("starting");
+    client.send(GAME_MESSAGES.enterMap, {});
     expect(await intro).toEqual({ dialogId: "d-intro" });
 
     const granted = client.waitForMessage(GAME_MESSAGES.itemGranted);
@@ -364,6 +366,8 @@ describe("POST /internal/playtests", () => {
     await expect.poll(() => second.state.players.get(second.sessionId)?.ready).toBe(true);
     const intro = second.waitForMessage(GAME_MESSAGES.dialogShow);
     second.send(GAME_MESSAGES.startGame, {});
+    await expect.poll(() => second.state.phase).toBe("starting");
+    second.send(GAME_MESSAGES.enterMap, {});
     expect(await intro).toEqual({ dialogId: "d-intro" });
   });
 

@@ -96,6 +96,9 @@ async function readyAndStart(room: FastGameRoom, a: TestClient, b: TestClient): 
   b.send(GAME_MESSAGES.setReady, { ready: true });
   await expect.poll(() => room.state.players.get(b.sessionId)?.ready).toBe(true);
   a.send(GAME_MESSAGES.startGame, {});
+  await expect.poll(() => room.state.phase).toBe("starting");
+  a.send(GAME_MESSAGES.enterMap, {});
+  b.send(GAME_MESSAGES.enterMap, {});
 }
 
 describe("GameRoom — reconexión con gracia (C-2)", () => {
@@ -125,7 +128,9 @@ describe("GameRoom — reconexión con gracia (C-2)", () => {
     expect(reconnected.sessionId).toBe(beforeSessionId);
     await expect.poll(() => room.state.players.get(beforeSessionId)?.connected).toBe(true);
     expect(room.state.players.get(beforeSessionId)!.characterId).toBe(beforeCharacter);
-    expect([...(room.state.inventories.get(beforeSessionId)?.items ?? [])]).toEqual(["llave-bronce"]);
+    expect([...(room.state.inventories.get(beforeSessionId)?.items ?? [])]).toEqual([
+      "llave-bronce",
+    ]);
   });
 
   it("sin el token de reconexión, el mismo seatKey recupera la plaza (recarga/pestaña reabierta)", async () => {
@@ -211,6 +216,8 @@ describe("GameRoom — fin de partida y cierre (specs/11 §8.1)", () => {
     await expect.poll(() => room.state.players.get(a.sessionId)?.ready).toBe(true);
     const ended = a.waitForMessage(GAME_MESSAGES.gameEnded);
     a.send(GAME_MESSAGES.startGame, {});
+    await expect.poll(() => room.state.phase).toBe("starting");
+    a.send(GAME_MESSAGES.enterMap, {});
     expect(await ended).toMatchObject({ result: "victory" });
 
     // Aunque caiga justo tras el fin, no hay ventana de reconexión.

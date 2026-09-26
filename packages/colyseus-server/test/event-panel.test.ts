@@ -199,6 +199,8 @@ async function start(client: TestClient): Promise<void> {
   client.send(GAME_MESSAGES.setReady, { ready: true });
   await until(client, (state) => state.players.get(client.sessionId)?.ready === true);
   client.send(GAME_MESSAGES.startGame, {});
+  await until(client, (state) => state.phase === "starting");
+  client.send(GAME_MESSAGES.enterMap, {});
   await until(client, (state) => state.phase === "playing");
 }
 
@@ -312,7 +314,10 @@ describe("panel del organizador con 2 grupos jugando", () => {
 
     // Export CSV con las dos filas en el orden del ranking.
     const { csv } = await panel.exportProgressCsv(organizer, event.id, { locale: "es" });
-    const lines = csv.replace(/^\uFEFF/u, "").trim().split("\r\n");
+    const lines = csv
+      .replace(/^\uFEFF/u, "")
+      .trim()
+      .split("\r\n");
     expect(lines).toHaveLength(3);
     expect(lines[1]).toMatch(new RegExp(`^1,${sessions[0]!.name},Jugando,,`, "u"));
     expect(lines[2]).toMatch(new RegExp(`^2,${sessions[1]!.name},Jugando,,1,`, "u"));

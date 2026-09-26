@@ -116,7 +116,10 @@ interface Point {
 }
 
 async function joinPlayer(room: GameRoom, name: string): Promise<Player> {
-  const client = (await colyseus.connectTo(room, { gameToken: devTestGameToken(), name })) as TestClient;
+  const client = (await colyseus.connectTo(room, {
+    gameToken: devTestGameToken(),
+    name,
+  })) as TestClient;
   const player: Player = { name, client, messages: [], states: [] };
   client.onMessage("*", (type, payload) => {
     player.messages.push({ type: String(type), payload });
@@ -412,7 +415,9 @@ function findLeaks(player: Player): string[] {
 
 describe("E2E de protocolo — Rey Aldric con 2 clientes de Colyseus", () => {
   it("la ruta crítica de 14 pasos termina en victoria sin filtrar soluciones", async () => {
-    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, { gameToken: devTestGameToken() });
+    const room = await colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {
+      gameToken: devTestGameToken(),
+    });
     const a = await joinPlayer(room, "Ana");
     const b = await joinPlayer(room, "Bruno");
 
@@ -421,6 +426,9 @@ describe("E2E de protocolo — Rey Aldric con 2 clientes de Colyseus", () => {
     await expect.poll(() => room.state.players.get(b.client.sessionId)?.ready).toBe(true);
     const intro = next(b, GAME_MESSAGES.dialogShow);
     a.client.send(GAME_MESSAGES.startGame, {});
+    await until(b, (state) => state.phase === "starting");
+    a.client.send(GAME_MESSAGES.enterMap, {});
+    b.client.send(GAME_MESSAGES.enterMap, {});
     expect(await intro).toEqual({ dialogId: "d-intro" });
     await until(b, (state) => state.phase === "playing");
 
