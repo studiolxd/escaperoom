@@ -1,8 +1,10 @@
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import type {
   Actor,
+  AudioAssetService,
   CatalogService,
   PublishConfirmationService,
+  RoomCoverService,
   RoomDraftService,
 } from "@escaperoom/shared/services";
 import type { AssetManifestInput } from "@escaperoom/shared/validator";
@@ -10,6 +12,24 @@ import type { BeforeDraftCommit, LiveDraftSync } from "./draft-writer";
 import type { DraftSnapshotCache } from "./mutation-validation";
 import type { PreviewPlaytestLauncher } from "./links";
 import type { RoomDocToPackage } from "./room-draft-reader";
+
+/** Regla de cuota: mismo shape que `RateLimitRule` de `packages/web/src/server/rate-limit.ts`. */
+export type UploadQuotaRule = { limit: number; windowSeconds: number };
+
+/**
+ * Cuota de `upload` por usuario, una por `kind` (revisión de la PR #168,
+ * D-12): la política vive en `RATE_LIMIT_POLICIES` de `packages/web` (que el
+ * MCP no puede importar sin invertir la dependencia — web depende de
+ * `mcp-server`, no al revés), así que solo el NÚMERO se inyecta; `upload` la
+ * consume él mismo con `slidingRateLimiter` de `@escaperoom/kit/rate-limit`
+ * (ya es dependencia del paquete, D-25) y la MISMA clave que usaría
+ * `withRateLimit` en la ruta REST equivalente
+ * (`${policyName}:user:${actor.userId}`) — así comparten cupo de verdad, no
+ * dos contadores parecidos. El límite genérico de llamadas del MCP (4.7) no
+ * basta por sí solo: es por token y pensado para tools baratas, no para una
+ * que sube ficheros de hasta 10 MB.
+ */
+export type UploadQuotaPolicy = { policyName: string; user: UploadQuotaRule };
 
 /**
  * Dependencias inyectables del MCP: los MISMOS servicios de dominio que usan
@@ -59,4 +79,29 @@ export type CreatorMcpDeps = {
    * assets referenciados. `undefined` degrada el check a aviso, no bloquea.
    */
   loadAssetManifest?: (pkg: RoomPackage) => Promise<AssetManifestInput | undefined>;
+  /**
+   * Subida de portada de sala (meta-tool `upload`, D-12): el MISMO servicio
+   * de dominio que `POST /api/rooms/:roomId/cover-image` (A-12) — comprueba
+   * que el actor es el autor de la sala, sniffea los magic bytes y aplica el
+   * mismo límite de tamaño. `undefined`/`null` → `upload` responde
+   * `NOT_AVAILABLE` para `kind: "cover_image"` (p. ej. por stdio, sin bucket).
+   */
+  roomCover?: Pick<RoomCoverService, "uploadCoverImage"> | null;
+  /**
+   * Subida de audio a la biblioteca del creador (meta-tool `upload`, D-12): el
+   * MISMO servicio que `POST /api/audio/uploads` (3.11) — tipo real, tamaño,
+   * duración y pre-filtro de moderación antes de quedar `pending`.
+   * `undefined`/`null` → `upload` responde `NOT_AVAILABLE` para `kind: "audio"`.
+   */
+  audio?: Pick<AudioAssetService, "uploadAudio"> | null;
+  /**
+   * Cuotas de `upload` por `kind` (revisión de la PR #168). `undefined`/`null`
+   * (por `kind`, o el objeto entero) = sin cuota propia además del límite
+   * genérico de llamadas del MCP — solo aceptable en tests o en un despliegue
+   * sin `packages/web` delante (stdio de desarrollo).
+   */
+  uploadQuota?: {
+    coverImage?: UploadQuotaPolicy | null;
+    audio?: UploadQuotaPolicy | null;
+  } | null;
 };

@@ -8,9 +8,12 @@ import {
 } from "@/server/mcp-oauth";
 import { loadAssetManifestFor } from "@/server/asset-manifest";
 import { getPlaytestLauncher } from "@/server/playtest-launcher";
+import { RATE_LIMIT_POLICIES } from "@/server/rate-limit";
 import {
+  getAudioAssetService,
   getCatalogService,
   getPublishConfirmationService,
+  getRoomCoverService,
   getRoomDraftService,
 } from "@/server/services";
 
@@ -40,6 +43,21 @@ function handler(request: Request): Promise<Response> {
       playtests: getPlaytestLauncher(),
       publishRequests: getPublishConfirmationService(),
       loadAssetManifest: loadAssetManifestFor,
+      // Meta-tool `upload` (D-12): mismos servicios que las rutas REST de
+      // subida (A-12, 3.11), sin lógica paralela.
+      roomCover: getRoomCoverService(),
+      audio: getAudioAssetService(),
+      // Misma cuota que esas rutas (revisión de la PR #168): el MCP no puede
+      // importar `RATE_LIMIT_POLICIES` sin invertir la dependencia, así que
+      // solo el número viaja por `deps`; la consume `slidingRateLimiter`
+      // compartido con la MISMA clave que usaría `withRateLimit` aquí.
+      uploadQuota: {
+        coverImage: {
+          policyName: "room-cover-write",
+          user: RATE_LIMIT_POLICIES["room-cover-write"].user,
+        },
+        audio: { policyName: "audio-upload", user: RATE_LIMIT_POLICIES["audio-upload"].user },
+      },
     }),
   });
 }

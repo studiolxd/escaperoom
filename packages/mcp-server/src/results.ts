@@ -18,6 +18,18 @@ export type ToolErrorCode =
   | "NOT_PUBLISHABLE"
   /** La respuesta supera el tope de tamaño (4.7): usar las vistas filtradas. */
   | "RESPONSE_TOO_LARGE"
+  /** El fichero de `upload` supera el límite de tamaño (imagen o audio). */
+  | "PAYLOAD_TOO_LARGE"
+  /** El fichero de `upload` no es del tipo declarado o no está admitido. */
+  | "UNSUPPORTED_MEDIA_TYPE"
+  /** `upload` de audio bloqueado por el pre-filtro de moderación (specs/17 §3). */
+  | "UPLOAD_BLOCKED"
+  /**
+   * Cuota de `upload` agotada (revisión de la PR #168): la MISMA política de
+   * rate-limit que la ruta web equivalente, no el límite genérico por token
+   * del MCP (4.7).
+   */
+  | "RATE_LIMITED"
   | "INTERNAL";
 
 /** Error de dominio que una tool traduce a resultado MCP con `isError`. */

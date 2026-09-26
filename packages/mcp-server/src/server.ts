@@ -72,8 +72,12 @@ function oversizeResult(tool: CreatorTool, result: CallToolResult, bytes: number
  * consultas públicas), "no implementado" para el esqueleto, traducción de
  * errores de dominio a resultados legibles con `isError` y tope de tamaño de
  * la respuesta (4.7).
+ *
+ * Exportada para que la meta-tool `run_tool` (D-12) delegue en el MISMO
+ * pipeline que una llamada directa del cliente MCP — nunca un atajo que se
+ * salte la identidad, la traducción de errores o el tope de tamaño.
  */
-async function runTool(
+export async function runTool(
   tool: CreatorTool,
   input: unknown,
   deps: CreatorMcpDeps,
