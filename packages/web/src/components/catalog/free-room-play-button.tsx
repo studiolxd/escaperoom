@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import type { VariantProps } from "class-variance-authority";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { roomGamePlayPath } from "@/lib/game-net";
+
+type ButtonSize = VariantProps<typeof buttonVariants>["size"];
 
 type State = "idle" | "loading" | "error";
 
@@ -16,7 +19,13 @@ type FreeAccess = { eligible: true; gameToken: string } | { eligible: false };
  * `free-room-play`) emite el `gameToken` `kind: "free"`; con él, navega a
  * `/play/room/:roomId` (el token viaja en el fragmento, nunca al servidor).
  */
-export function FreeRoomPlayButton({ roomId }: { roomId: string }) {
+export function FreeRoomPlayButton({
+  roomId,
+  size = "lg",
+}: {
+  roomId: string;
+  size?: ButtonSize;
+}) {
   const t = useTranslations("RoomDetail");
   const [state, setState] = useState<State>("idle");
 
@@ -47,7 +56,7 @@ export function FreeRoomPlayButton({ roomId }: { roomId: string }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <Button size="lg" className="w-fit" onClick={startFreeGame} disabled={state === "loading"}>
+      <Button size={size} className="w-fit" onClick={startFreeGame} disabled={state === "loading"}>
         {state === "loading" && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />}
         {t("playFreeCta")}
       </Button>

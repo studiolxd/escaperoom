@@ -6,12 +6,13 @@ import type {
   RoomAccessResult,
 } from "@escaperoom/shared/services";
 import { Suspense } from "react";
+import type { VariantProps } from "class-variance-authority";
 import { useFormatter, useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { CATALOG_PATH, roomPath } from "@/lib/catalog-seo";
 import { roomGamePlayPath } from "@/lib/game-net";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BuyRoomButton } from "./buy-room-button";
 import { FreeRoomPlayButton } from "./free-room-play-button";
@@ -109,6 +110,7 @@ export function RoomPlayCta({
   access,
   isAnonymous,
   roomHref,
+  size = "lg",
 }: {
   room: CatalogRoom;
   locale: string;
@@ -118,6 +120,7 @@ export function RoomPlayCta({
   access: RoomAccessResult | null;
   isAnonymous: boolean;
   roomHref: string;
+  size?: VariantProps<typeof buttonVariants>["size"];
 }) {
   const t = useTranslations("RoomDetail");
 
@@ -125,7 +128,7 @@ export function RoomPlayCta({
   // modo de venta, no hay botón (cae al `return null` final).
   if (isEventsOnly) {
     return (
-      <Button asChild size="lg" className="w-fit">
+      <Button asChild size={size} className="w-fit">
         <Link href={{ pathname: "/events/new", query: { roomVersionId: room.latestVersion.id } }}>
           {t("organizeEventCta")}
         </Link>
@@ -135,7 +138,7 @@ export function RoomPlayCta({
 
   // Punto i: sala gratis, sin cuenta, sin distinguir `isAnonymous`.
   if (isFree) {
-    return <FreeRoomPlayButton roomId={room.id} />;
+    return <FreeRoomPlayButton roomId={room.id} size={size} />;
   }
 
   if (isPaid) {
@@ -143,7 +146,7 @@ export function RoomPlayCta({
     // retorno a esta sala), nunca lanza el checkout directamente.
     if (isAnonymous) {
       return (
-        <Button asChild size="lg" className="w-fit">
+        <Button asChild size={size} className="w-fit">
           <Link href={`/login?callbackURL=${encodeURIComponent(roomHref)}`}>
             {t("loginToBuyCta")}
           </Link>
@@ -156,7 +159,7 @@ export function RoomPlayCta({
     if (access?.owned && access.playable && access.gameToken) {
       const gameHref = `/${locale}${roomGamePlayPath(room.id, access.gameToken, access.roomId)}`;
       return (
-        <Button asChild size="lg" className="w-fit">
+        <Button asChild size={size} className="w-fit">
           <a href={gameHref}>{t(access.roomId ? "resumeCta" : "playCta")}</a>
         </Button>
       );
@@ -166,11 +169,11 @@ export function RoomPlayCta({
       return (
         <div className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">{t("alreadyPlayed")}</p>
-          <BuyRoomButton roomVersionId={room.latestVersion.id} />
+          <BuyRoomButton roomVersionId={room.latestVersion.id} size={size} />
         </div>
       );
     }
-    return <BuyRoomButton roomVersionId={room.latestVersion.id} />;
+    return <BuyRoomButton roomVersionId={room.latestVersion.id} size={size} />;
   }
 
   // Ni venta individual ni para eventos: sin botón (punto h).
@@ -305,9 +308,10 @@ export function RoomDetailView({
         access={access}
         isAnonymous={isAnonymous}
         roomHref={roomHref}
+        size="xl"
       />
 
-      <section aria-labelledby="reviews-heading" className="flex flex-col gap-3">
+      <section aria-labelledby="reviews-heading" className="mt-4 flex flex-col gap-3">
         <h2 id="reviews-heading" className="text-xl font-semibold">
           {t("reviewsHeading")}
         </h2>
