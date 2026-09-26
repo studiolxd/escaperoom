@@ -32,6 +32,7 @@ function makeSnapshot(overrides: Partial<GameSnapshot> = {}): GameSnapshot {
     roomPackageId: model.meta.id,
     roomPackageVersion: "1",
     hostId: "p1",
+    organizerControlsStart: false,
     clock: 0,
     startedAt: 0,
     endsAt: 0,

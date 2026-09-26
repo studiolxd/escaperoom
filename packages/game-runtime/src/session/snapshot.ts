@@ -18,6 +18,7 @@ export interface GameRoomStateLike {
   endsAt: number;
   clock: number;
   hostId: string;
+  organizerControlsStart: boolean;
   players: Each<{
     id: string;
     name: string;
@@ -47,6 +48,7 @@ export function emptyGameSnapshot(selfId = ""): GameSnapshot {
     roomPackageId: "",
     roomPackageVersion: "",
     hostId: "",
+    organizerControlsStart: false,
     clock: 0,
     startedAt: 0,
     endsAt: 0,
@@ -266,6 +268,7 @@ export function toGameSnapshot(
     roomPackageId: state.roomPackageId,
     roomPackageVersion: state.roomPackageVersion,
     hostId: state.hostId,
+    organizerControlsStart: state.organizerControlsStart,
     clock: state.clock,
     startedAt: state.startedAt,
     endsAt: state.endsAt,

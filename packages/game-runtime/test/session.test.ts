@@ -101,6 +101,7 @@ describe("toGameSnapshot", () => {
       endsAt: 3_601_000,
       clock: 5000,
       hostId: "a",
+      organizerControlsStart: false,
       players: each({
         a: {
           id: "a",
@@ -150,6 +151,7 @@ describe("toGameSnapshot", () => {
       endsAt: 3_601_000,
       clock: 5000,
       hostId: "a",
+      organizerControlsStart: false,
       players: each({
         a: { id: "a", name: "Ana", x: 10, y: 12, roomId: "salon-trono", tint: "#38bdf8", characterId: "caballero-m", connected: true, ready: true },
         b: { id: "b", name: "Bruno", x: 9, y: 12, roomId: "salon-trono", tint: "#f472b6", characterId: "maniqui", connected: true, ready: true },

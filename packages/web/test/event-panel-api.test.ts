@@ -106,6 +106,8 @@ async function setup(opts: { spectator?: boolean } = {}) {
     puzzlesTotal: 9,
     hintsUsed: 0,
     players: 3,
+    minPlayers: 1,
+    readyCount: 3,
     startedAt: T0.getTime(),
     endedAt: null,
     elapsedMs: 120_000,

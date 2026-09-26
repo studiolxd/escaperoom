@@ -958,6 +958,7 @@
       "players": "{count, plural, one {# player} other {# players}}",
       "start": "Start game",
       "waitingHost": "Waiting for the host to start…",
+      "waitingOrganizer": "Waiting for the organizer to start the game…",
       "invite": "Copy invite link",
       "copied": "Link copied!",
       "you": "you",

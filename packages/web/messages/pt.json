@@ -856,6 +856,7 @@
       "players": "{count, plural, one {# jogador} other {# jogadores}}",
       "start": "Começar jogo",
       "waitingHost": "À espera que o anfitrião comece…",
+      "waitingOrganizer": "À espera que o organizador inicie a partida…",
       "invite": "Copiar link de convite",
       "copied": "Link copiado!",
       "you": "tu",

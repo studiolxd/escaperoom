@@ -9,6 +9,12 @@ export interface LobbyPanelProps {
   selectedCharacterId: string | undefined;
   onSelectCharacter: (characterId: string) => void;
   isHost: boolean;
+  /**
+   * "Todos los grupos comienzan juntos" (evento, ticket "inicio conjunto"):
+   * con la opción activa, el anfitrión no ve "Empezar" — solo el organizador
+   * puede arrancar la partida desde su panel.
+   */
+  organizerControlsStart: boolean;
   /** C-13: todos los conectados están "Listo" (el propio anfitrión incluido). */
   allReady: boolean;
   /** "Listo" del jugador local (C-13). */
@@ -30,6 +36,8 @@ export interface LobbyPanelProps {
   markReadyLabel: string;
   readyLabel: string;
   waitingHostLabel: string;
+  /** "Esperando a que el organizador inicie la partida" (lo ve el propio anfitrión). */
+  waitingOrganizerLabel: string;
   inviteLabel: string;
   copiedLabel: string;
 }
@@ -38,6 +46,10 @@ export interface LobbyPanelProps {
  * Lobby de la partida en red: elección de personaje, "Listo" (C-13) y botón
  * de empezar (solo el anfitrión, que exige a todos "Listo" salvo que fuerce
  * "Empezar igualmente" — nunca por debajo del mínimo, lo valida el servidor).
+ * Con "Todos los grupos comienzan juntos" activo en el evento
+ * (`organizerControlsStart`, ticket "inicio conjunto"), el anfitrión no ve
+ * "Empezar" en absoluto: solo el mensaje de que espera al organizador
+ * (`start_game` del anfitrión se rechaza igualmente en el servidor).
  * El playtest arranca ya en juego (sin lobby) — se salta este punto de
  * montaje sin más (F-5: fácil de sustituir cuando el lobby pase a ser una
  * pantalla propia, encargo del rediseño completo, fuera de esta entrega).
@@ -48,6 +60,7 @@ export function LobbyPanel({
   selectedCharacterId,
   onSelectCharacter,
   isHost,
+  organizerControlsStart,
   allReady,
   isReady,
   onToggleReady,
@@ -66,6 +79,7 @@ export function LobbyPanel({
   markReadyLabel,
   readyLabel,
   waitingHostLabel,
+  waitingOrganizerLabel,
   inviteLabel,
   copiedLabel,
 }: LobbyPanelProps) {
@@ -95,7 +109,11 @@ export function LobbyPanel({
         >
           {isReady ? readyLabel : markReadyLabel}
         </Button>
-        {isHost ? (
+        {isHost && organizerControlsStart ? (
+          <p className="text-sm text-white/60" data-testid="lobby-waiting-organizer">
+            {waitingOrganizerLabel}
+          </p>
+        ) : isHost ? (
           confirmingForce ? (
             <div className="flex flex-col items-center gap-2 text-sm">
               <p>{confirmForceTitleLabel}</p>

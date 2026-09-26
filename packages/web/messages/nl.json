@@ -856,6 +856,7 @@
       "players": "{count, plural, one {# speler} other {# spelers}}",
       "start": "Spel starten",
       "waitingHost": "Wachten tot de host start…",
+      "waitingOrganizer": "Wachten tot de organisator het spel start…",
       "invite": "Uitnodigingslink kopiëren",
       "copied": "Link gekopieerd!",
       "you": "jij",

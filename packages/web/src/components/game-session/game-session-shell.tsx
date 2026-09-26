@@ -309,6 +309,7 @@ export function GameSessionShell({
           selectedCharacterId={snapshot.self.characterId}
           onSelectCharacter={(characterId) => client.selectCharacter(characterId)}
           isHost={hud.isHost}
+          organizerControlsStart={snapshot.organizerControlsStart}
           allReady={snapshot.players.every((player) => !player.connected || player.ready)}
           isReady={snapshot.self.ready}
           onToggleReady={(ready) => client.setReady(ready)}
@@ -327,6 +328,7 @@ export function GameSessionShell({
           markReadyLabel={hud.t("lobby.markReady")}
           readyLabel={hud.t("lobby.ready")}
           waitingHostLabel={hud.t("lobby.waitingHost")}
+          waitingOrganizerLabel={hud.t("lobby.waitingOrganizer")}
           inviteLabel={hud.t("lobby.invite")}
           copiedLabel={hud.t("lobby.copied")}
         />
