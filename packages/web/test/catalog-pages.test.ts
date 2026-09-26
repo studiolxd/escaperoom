@@ -90,12 +90,10 @@ vi.mock("next-intl/server", () => ({
     createTranslator({ locale, messages: MESSAGES[locale] ?? es, namespace: namespace as never }),
 }));
 
-const { default: RoomDetailPage, generateMetadata: roomMetadata } = await import(
-  "../src/app/[locale]/(public)/rooms/[roomId]/page"
-);
-const { default: CatalogPage, generateMetadata: catalogMetadata } = await import(
-  "../src/app/[locale]/(public)/rooms/page"
-);
+const { default: RoomDetailPage, generateMetadata: roomMetadata } =
+  await import("../src/app/[locale]/(public)/rooms/[roomId]/page");
+const { default: CatalogPage, generateMetadata: catalogMetadata } =
+  await import("../src/app/[locale]/(public)/rooms/(catalog)/page");
 
 const member = (userId: string): Actor => ({ userId, organizationId: null, role: "member" });
 
@@ -140,7 +138,13 @@ beforeEach(async () => {
     text: "Brutal </script>",
     durationOverridden: false,
   });
-  await store.upsert({ userId: "bruno", roomId: ROOM_ID, rating: 4, text: null, durationOverridden: false });
+  await store.upsert({
+    userId: "bruno",
+    roomId: ROOM_ID,
+    rating: 4,
+    text: null,
+    durationOverridden: false,
+  });
 });
 
 /**
@@ -213,7 +217,7 @@ describe("detalle de sala — render SSR", () => {
     expect(html).toContain("La Maldición del Rey Aldric");
     expect(html).toContain("4,5 de 5 (2 reseñas)");
     expect(html).toContain("Media");
-    expect(html).toContain("1–4 jugadores");
+    expect(html).toContain("1–8 jugadores");
     expect(html).toContain("Español, Inglés");
     expect(html).toContain("2,99");
     // La reseña del visitante precarga el formulario de edición.
@@ -228,7 +232,7 @@ describe("detalle de sala — render SSR", () => {
       url: `https://escape.example/es/rooms/${ROOM_ID}`,
       name: "La Maldición del Rey Aldric",
       inLanguage: ["es", "en"],
-      numberOfPlayers: { "@type": "QuantitativeValue", minValue: 1, maxValue: 4 },
+      numberOfPlayers: { "@type": "QuantitativeValue", minValue: 1, maxValue: 8 },
       timeRequired: "PT55M",
       offers: { "@type": "Offer", price: "2.99", priceCurrency: "EUR" },
       aggregateRating: {

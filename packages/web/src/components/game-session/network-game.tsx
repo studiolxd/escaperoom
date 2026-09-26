@@ -9,11 +9,9 @@ import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ErrorBoundary } from "@/components/error-boundary";
 import { sanitizePlayerName, type GameJoinTarget } from "@/lib/game-net";
 import { readGameReconnect } from "@/lib/game-reconnect";
 import type { IntroModel } from "@/lib/intro-model";
-import { LobbyDeviceCheck } from "./components/lobby-device-check";
 import { StatusOverlay } from "./components/status-overlay";
 import { GameSessionShell } from "./game-session-shell";
 import { useSetPlayPhase } from "./play-phase-context";
@@ -222,11 +220,6 @@ export function NetworkGame({
       intro={intro}
       coverUrl={coverUrl}
       inviteUrl={inviteUrl}
-      deviceCheck={
-        <ErrorBoundary>
-          <LobbyDeviceCheck />
-        </ErrorBoundary>
-      }
     >
       {connection.status === "expired" ? (
         <p

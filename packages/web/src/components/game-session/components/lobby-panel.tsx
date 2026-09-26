@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties } from "react";
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { resolveLocalizedText, type RuntimeMeta } from "@escaperoom/game-runtime";
@@ -34,8 +34,6 @@ export interface LobbyPanelProps {
   inviteUrl?: string | null;
   copied: boolean;
   onCopyInvite: () => void;
-  /** Prueba de micrófono/cámara (solo si la partida usa voz/vídeo). */
-  deviceCheck?: ReactNode;
 }
 
 /**
@@ -45,10 +43,11 @@ export interface LobbyPanelProps {
  * mueven con su avatar. Reúne la cabecera de la sala (portada, título,
  * descripción, dificultad, duración o "sin límite", jugadores mín.–máx.), la
  * lista de jugadores (personaje, conexión, «Listo», anfitrión, expulsar), el
- * selector de personaje (cambiarlo quita el «Listo»), la prueba de
- * micrófono/cámara, "Copiar invitación" y, solo para el anfitrión,
- * «Empezar» / «Empezar igualmente» (C-13, el servidor manda). La partida y
- * el playtest (red y local) pasan por aquí igual.
+ * selector de personaje (cambiarlo quita el «Listo»), "Copiar invitación" y,
+ * solo para el anfitrión, «Empezar» / «Empezar igualmente» (C-13, el
+ * servidor manda). La prueba de micrófono/cámara vive en el panel de "Audio
+ * y vídeo" (`MediaOverlay`), no aquí. La partida y el playtest (red y local)
+ * pasan por aquí igual.
  *
  * "Todos los grupos comienzan juntos" (evento, ticket "inicio conjunto"):
  * con `organizerControlsStart` activo, el anfitrión no ve "Empezar" en
@@ -70,7 +69,6 @@ export function LobbyPanel({
   inviteUrl,
   copied,
   onCopyInvite,
-  deviceCheck,
 }: LobbyPanelProps) {
   const t = useTranslations("Game");
   const locale = useLocale();
@@ -92,7 +90,7 @@ export function LobbyPanel({
 
   return (
     <aside
-      className="pointer-events-auto absolute bottom-4 left-4 top-20 z-20 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 overflow-y-auto rounded-xl border border-white/10 p-4 text-white shadow-xl backdrop-blur"
+      className="pointer-events-auto absolute bottom-4 left-4 top-20 z-20 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 overflow-y-auto rounded-md border border-white/10 p-4 text-white shadow-xl backdrop-blur"
       data-testid="game-lobby"
       aria-label={t("lobby.title")}
     >
@@ -161,7 +159,17 @@ export function LobbyPanel({
                   {characterName(player.characterId)}
                 </span>
               </span>
-              {player.connected && player.ready ? (
+              {player.isSelf ? (
+                <Button
+                  size="xs"
+                  variant={player.ready ? "secondary" : "default"}
+                  data-testid="lobby-ready"
+                  aria-pressed={player.ready}
+                  onClick={() => onToggleReady(!player.ready)}
+                >
+                  {player.ready ? t("lobby.ready") : t("lobby.markReady")}
+                </Button>
+              ) : player.connected && player.ready ? (
                 <Badge
                   className="bg-emerald-400/20 text-emerald-100"
                   data-testid={`lobby-ready-${player.id}`}
@@ -207,20 +215,9 @@ export function LobbyPanel({
         />
       ) : null}
 
-      {deviceCheck}
-
       <Separator className="bg-white/10" />
 
       <div className="flex flex-col items-stretch gap-2 text-center">
-        <Button
-          size="sm"
-          variant={self.ready ? "secondary" : "default"}
-          data-testid="lobby-ready"
-          aria-pressed={self.ready}
-          onClick={() => onToggleReady(!self.ready)}
-        >
-          {self.ready ? t("lobby.ready") : t("lobby.markReady")}
-        </Button>
         {isHost && organizerControlsStart ? (
           <p className="text-sm text-white/60" data-testid="lobby-waiting-organizer">
             {t("lobby.waitingOrganizer")}

@@ -10,6 +10,7 @@ import { ChatWindow } from "@/components/chat/chat-panel";
 import { ResultsScreen } from "@/components/game/results-screen";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { INTRO_DIALOG_ID } from "@/lib/playtest-state";
+import { formatDuration } from "@/lib/session-format";
 import { ConnectionBadge } from "./connection-badge";
 import { ContextMenuPopover } from "./components/context-menu-popover";
 import { DialogButton, ImageDialog } from "./components/dialog-and-image";
@@ -62,8 +63,6 @@ export interface GameSessionShellProps {
   intro?: IntroModel | null;
   /** Portada de la sala para la cabecera del lobby (URL firmada). */
   coverUrl?: string | null;
-  /** Prueba de micrófono/cámara del lobby, si la partida usa voz/vídeo. */
-  deviceCheck?: ReactNode;
 
   // — Puntos de extensión propios del playtest (F-5) —————————————
   /**
@@ -106,7 +105,6 @@ export function GameSessionShell({
   children,
   intro,
   coverUrl,
-  deviceCheck,
   variant = "game",
   showChat = true,
   objectsBarHeader,
@@ -123,6 +121,23 @@ export function GameSessionShell({
     sceneRoomRef,
     debugLog: variant === "playtest",
   });
+
+  const timer =
+    hud.remaining !== null ? (
+      <span
+        className="rounded-md border border-white/10 bg-black/40 px-4 py-1.5 font-mono text-xs text-white"
+        data-testid="game-timer"
+      >
+        {formatDuration(Math.ceil(hud.remaining / 1000))}
+      </span>
+    ) : hud.elapsed !== null ? (
+      <span
+        className="rounded-md border border-white/10 bg-black/40 px-4 py-1.5 font-mono text-xs text-white"
+        data-testid="game-elapsed"
+      >
+        {formatDuration(Math.floor(hud.elapsed / 1000))}
+      </span>
+    ) : null;
 
   const lobby = useLobbyFlow({ snapshot, client, hasIntro: Boolean(intro) });
   const inMapStage = lobby.stage === "map";
@@ -176,7 +191,11 @@ export function GameSessionShell({
       data-phase={snapshot.phase}
       data-stage={lobby.stage}
     >
-      <ErrorBoundary>
+      <ErrorBoundary
+        layout="overlay"
+        title={hud.t("errorTitle")}
+        description={hud.t("errorDescription")}
+      >
         <GameSessionCanvas
           model={model}
           roomId={hud.roomId}
@@ -194,13 +213,23 @@ export function GameSessionShell({
       ) : null}
 
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4">
-        {connection ? (
-          <header className="pointer-events-auto flex w-fit rounded-xl border border-white/10 bg-black/50 px-4 py-2 text-white backdrop-blur">
-            <ConnectionBadge status={connection.status} onRetry={connection.onRetry} />
+        {connection || timer ? (
+          <header className="pointer-events-auto flex w-full items-center justify-between text-white">
+            {connection ? (
+              <ConnectionBadge
+                status={connection.status}
+                onRetry={connection.onRetry}
+                className="rounded-md px-4 py-1.5"
+              />
+            ) : (
+              <span />
+            )}
+            {timer}
           </header>
         ) : (
-          // Espaciador: sin cabecera de conexión (playtest), mantiene el
-          // chat/inventario pegados abajo (justify-between).
+          // Espaciador: sin conexión ni cronómetro (p. ej. playtest en sala
+          // sin duración), mantiene el chat/inventario pegados abajo
+          // (justify-between).
           <div />
         )}
 
@@ -335,7 +364,6 @@ export function GameSessionShell({
           inviteUrl={inviteUrl}
           copied={hud.copied}
           onCopyInvite={() => void hud.copyInvite(inviteUrl)}
-          deviceCheck={deviceCheck}
         />
       ) : null}
 

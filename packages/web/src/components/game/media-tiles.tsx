@@ -9,13 +9,27 @@ import {
   useTracks,
   type TrackReference,
 } from "@livekit/components-react";
+import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import type { MediaRole } from "@/lib/media";
+import type { MediaStatus } from "@/store/media-store";
+
+const STATUS_DOT: Record<MediaStatus, string> = {
+  idle: "bg-slate-400",
+  connecting: "bg-amber-400",
+  connected: "bg-emerald-400",
+  disconnected: "bg-slate-400",
+  error: "bg-rose-500",
+  unavailable: "bg-amber-400",
+};
 
 export interface MediaTilesProps {
   role: MediaRole;
   canPublishVideo: boolean;
+  status: MediaStatus;
+  statusLabel: string;
+  errorText: string | null;
 }
 
 /**
@@ -23,7 +37,13 @@ export interface MediaTilesProps {
  * `LiveKitRoom` para leer el contexto de la room. En modo observador no se
  * muestra ningún control de publicación: el token no lo permite (specs/12 §1.1).
  */
-export function MediaTiles({ role, canPublishVideo }: MediaTilesProps) {
+export function MediaTiles({
+  role,
+  canPublishVideo,
+  status,
+  statusLabel,
+  errorText,
+}: MediaTilesProps) {
   const t = useTranslations("Media");
   const participants = useParticipants();
   const cameraTracks = useTracks([Track.Source.Camera]);
@@ -32,62 +52,71 @@ export function MediaTiles({ role, canPublishVideo }: MediaTilesProps) {
   );
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
 
-  const ordered = [...participants].sort((a, b) => {
-    if (a.isLocal !== b.isLocal) {
-      return a.isLocal ? -1 : 1;
-    }
-    return a.identity.localeCompare(b.identity);
-  });
+  const localTile = participants.find((participant) => participant.isLocal);
+  const others = [...participants]
+    .filter((participant) => !participant.isLocal)
+    .sort((a, b) => a.identity.localeCompare(b.identity));
 
   return (
-    <div className="pointer-events-auto flex w-64 flex-col gap-2 rounded-xl border border-white/10 bg-black/50 px-3 py-3 text-white backdrop-blur">
-      <div className="flex items-center justify-between">
-        <span className="text-xs uppercase tracking-wide text-white/50">{t("tiles.title")}</span>
-        <span className="text-xs text-white/60">{ordered.length}</span>
+    <>
+      <span className="text-xs uppercase tracking-wide text-white/50">{t("tiles.title")}</span>
+
+      <div className="flex flex-col gap-0.5">
+        <span className="flex items-center gap-1 text-xs text-white">
+          <span aria-hidden className={`size-2 rounded-full ${STATUS_DOT[status]}`} />
+          {statusLabel}
+        </span>
+        {errorText ? <span className="text-[0.7rem] text-rose-300">{errorText}</span> : null}
       </div>
 
-      <div className="grid grid-cols-2 gap-2" data-testid="media-tiles">
-        {ordered.length === 0 ? (
-          <p className="col-span-2 text-[0.7rem] text-white/40">{t("tiles.empty")}</p>
-        ) : null}
-        {ordered.map((participant) => (
-          <MediaTile
-            key={participant.identity}
-            participant={participant}
-            track={tracksByIdentity.get(participant.identity)}
-          />
-        ))}
-      </div>
+      {localTile ? (
+        <div className="mt-1.5">
+          <MediaTile participant={localTile} track={tracksByIdentity.get(localTile.identity)} />
+        </div>
+      ) : null}
 
       {role === "player" ? (
-        <div className="flex flex-wrap gap-2 border-t border-white/10 pt-2">
+        <div className="flex items-center gap-2">
           <Button
-            size="sm"
-            variant={isMicrophoneEnabled ? "overlay" : "default"}
+            size="icon-sm"
+            variant="overlayGhost"
+            aria-label={isMicrophoneEnabled ? t("tiles.mic.on") : t("tiles.mic.off")}
             onClick={() => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
           >
-            {isMicrophoneEnabled ? t("tiles.mic.on") : t("tiles.mic.off")}
+            {isMicrophoneEnabled ? <Mic /> : <MicOff />}
           </Button>
           {canPublishVideo ? (
             <Button
-              size="sm"
-              variant={isCameraEnabled ? "overlay" : "default"}
+              size="icon-sm"
+              variant="overlayGhost"
+              aria-label={isCameraEnabled ? t("tiles.camera.on") : t("tiles.camera.off")}
               onClick={() => void localParticipant.setCameraEnabled(!isCameraEnabled)}
             >
-              {isCameraEnabled ? t("tiles.camera.on") : t("tiles.camera.off")}
+              {isCameraEnabled ? <Video /> : <VideoOff />}
             </Button>
           ) : (
-            <span className="self-center text-[0.7rem] text-white/50">
-              {t("tiles.videoNotAllowed")}
-            </span>
+            <span className="text-[0.7rem] text-white/50">{t("tiles.videoNotAllowed")}</span>
           )}
         </div>
       ) : (
-        <p className="border-t border-white/10 pt-2 text-[0.7rem] text-white/50">
-          {t("tiles.observer")}
-        </p>
+        <p className="text-[0.7rem] text-white/50">{t("tiles.observer")}</p>
       )}
-    </div>
+
+      {others.length > 0 ? (
+        <div
+          className="mt-2 flex flex-col gap-2 border-t border-white/10 py-2"
+          data-testid="media-tiles"
+        >
+          {others.map((participant) => (
+            <MediaTile
+              key={participant.identity}
+              participant={participant}
+              track={tracksByIdentity.get(participant.identity)}
+            />
+          ))}
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -100,8 +129,11 @@ function MediaTile({ participant, track }: MediaTileProps) {
   const t = useTranslations("Media");
   const speaking = useIsSpeaking(participant);
   const label =
-    participant.name?.trim() || (participant.isLocal ? t("tiles.you") : participant.identity.slice(0, 8));
-  const micLabel = participant.isMicrophoneEnabled ? t("tiles.micStatus.on") : t("tiles.micStatus.off");
+    participant.name?.trim() ||
+    (participant.isLocal ? t("tiles.you") : participant.identity.slice(0, 8));
+  const micLabel = participant.isMicrophoneEnabled
+    ? t("tiles.micStatus.on")
+    : t("tiles.micStatus.off");
 
   return (
     <div
@@ -122,7 +154,11 @@ function MediaTile({ participant, track }: MediaTileProps) {
       <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/60 px-1.5 py-0.5 text-[0.6rem]">
         <span className="truncate">{label}</span>
         <span aria-hidden title={micLabel}>
-          {participant.isMicrophoneEnabled ? "🎤" : "🔇"}
+          {participant.isMicrophoneEnabled ? (
+            <Mic className="size-3" />
+          ) : (
+            <MicOff className="size-3" />
+          )}
         </span>
         <span className="sr-only">{micLabel}</span>
       </span>

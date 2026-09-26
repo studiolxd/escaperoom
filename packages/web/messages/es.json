@@ -40,7 +40,6 @@
     "retry": "Reintentar",
     "tiles": {
       "title": "Audio y vídeo",
-      "empty": "Sin participantes…",
       "you": "Tú",
       "mic": {
         "on": "Micrófono activado",

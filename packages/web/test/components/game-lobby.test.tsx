@@ -157,7 +157,7 @@ describe("<LobbyPanel>", () => {
     expect(screen.getByText(model.meta.title)).toBeInTheDocument();
     expect(screen.getByText("Dificultad media")).toBeInTheDocument();
     expect(screen.getByTestId("lobby-duration")).toHaveTextContent("60 min");
-    expect(screen.getByText("1–4 jugadores")).toBeInTheDocument();
+    expect(screen.getByText("1–8 jugadores")).toBeInTheDocument();
   });
 
   it("sala sin duración: «Sin límite de tiempo»", () => {
