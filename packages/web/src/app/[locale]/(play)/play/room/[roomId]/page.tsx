@@ -5,7 +5,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { RoomGame } from "@/components/game-session/room-game";
-import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
+import { PublicShell } from "@/components/layout/public-shell";
 import { roomPath } from "@/lib/catalog-seo";
 import { buildGameModel } from "@/lib/game-model";
 import { resolveActorFromHeaders } from "@/server/context";
@@ -66,20 +66,19 @@ export default async function RoomGamePage({ params, searchParams }: Props) {
     : undefined;
 
   return (
-    <main className="relative min-h-dvh bg-slate-950 p-4">
-      <RoomGame
-        model={model}
-        pack={pack}
-        roomId={room.id}
-        joinRoomId={joinRoomId}
-        subtitle={t("page.subtitle")}
-        signInHref={signInHref}
-        intro={intro}
-        coverUrl={coverUrl}
-      />
-      <div className="absolute right-4 top-4 z-50">
-        <LocaleSwitcher />
-      </div>
-    </main>
+    <PublicShell>
+      <main className="relative flex-1 bg-slate-950 p-4">
+        <RoomGame
+          model={model}
+          pack={pack}
+          roomId={room.id}
+          joinRoomId={joinRoomId}
+          subtitle={t("page.subtitle")}
+          signInHref={signInHref}
+          intro={intro}
+          coverUrl={coverUrl}
+        />
+      </main>
+    </PublicShell>
   );
 }

@@ -45,12 +45,24 @@ export function RoomCard({ room, locale }: { room: CatalogRoom; locale: string }
       <p className="line-clamp-3 text-sm" lang={room.defaultLanguage}>
         {room.description}
       </p>
-      <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <li>{t(`difficulty${room.difficulty}`)}</li>
-        <li>{t("playersRange", { min: room.players.min, max: room.players.max })}</li>
-        <li>{t("minutes", { minutes: room.estimatedMinutes })}</li>
-        <li>{room.languages.map((code) => languageName(code, locale)).join(", ")}</li>
-      </ul>
+      <dl className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <div className="flex gap-1">
+          <dt className="font-medium">{t("difficulty")}</dt>
+          <dd>{t(`difficulty${room.difficulty}`)}</dd>
+        </div>
+        <div className="flex gap-1">
+          <dt className="font-medium">{t("players")}</dt>
+          <dd>{t("playersRange", { min: room.players.min, max: room.players.max })}</dd>
+        </div>
+        <div className="flex gap-1">
+          <dt className="font-medium">{t("time")}</dt>
+          <dd>{t("minutes", { minutes: room.estimatedMinutes })}</dd>
+        </div>
+        <div className="flex gap-1">
+          <dt className="font-medium">{t("language")}</dt>
+          <dd>{room.languages.map((code) => languageName(code, locale)).join(", ")}</dd>
+        </div>
+      </dl>
       <div className="mt-auto flex items-center justify-between gap-2 text-sm">
         <RatingSummary ratingAvg={room.ratingAvg} ratingCount={room.ratingCount} />
         <span className="font-medium">

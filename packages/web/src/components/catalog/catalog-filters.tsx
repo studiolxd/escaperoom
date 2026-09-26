@@ -143,9 +143,9 @@ export function CatalogFilters({
     <div
       role="group"
       aria-label={t("filtersLabel")}
-      className="grid gap-3 rounded-xl border border-border bg-muted/40 p-4 sm:grid-cols-2 lg:grid-cols-4"
+      className="grid gap-3 rounded-xl border border-border bg-muted/40 p-4 sm:grid-cols-2 lg:grid-cols-3"
     >
-      <div className="flex flex-col gap-1 text-sm sm:col-span-2 lg:col-span-4">
+      <div className="flex flex-col gap-1 text-sm sm:col-span-2 lg:col-span-3">
         <Label htmlFor={`${id}-q`}>{t("search")}</Label>
         <Input
           id={`${id}-q`}
@@ -196,7 +196,7 @@ export function CatalogFilters({
         </Select>
       </div>
 
-      <div className="flex flex-col gap-1 text-sm sm:col-span-2">
+      <div className="flex flex-col gap-1 text-sm sm:col-span-2 lg:col-span-1">
         <Label id={`${id}-players-label`}>{t("players")}</Label>
         <div className="grid grid-cols-2 items-center gap-2" role="group" aria-labelledby={`${id}-players-label`}>
           <Select
