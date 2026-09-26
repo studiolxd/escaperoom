@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import type { ModerationErrorCode } from "@escaperoom/shared/error-codes";
+import {
+  resolveModerationAppeal,
+  resolveModerationReport,
+  reviewModerationAudio,
+} from "@/actions/moderation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -118,16 +123,39 @@ export function ModerationQueueView() {
     void load();
   }, [load]);
 
-  const decide = async (key: string, url: string, body: Record<string, unknown>) => {
-    setBusy(key);
+  const decideReport = async (id: string, body: Omit<Parameters<typeof resolveModerationReport>[0], "id">) => {
+    setBusy(id);
     try {
-      const res = await fetch(url, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) setError(await readApiError(res));
-      else setError(null);
+      const result = await resolveModerationReport({ id, ...body });
+      setError(result.ok ? null : result.error.code);
+      await load();
+    } catch {
+      setError("UNKNOWN");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const decideAppeal = async (id: string, body: Omit<Parameters<typeof resolveModerationAppeal>[0], "id">) => {
+    setBusy(id);
+    try {
+      const result = await resolveModerationAppeal({ id, ...body });
+      setError(result.ok ? null : result.error.code);
+      await load();
+    } catch {
+      setError("UNKNOWN");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const decideAudio = async (id: string, decision: "approved" | "rejected", reason?: string) => {
+    setBusy(id);
+    try {
+      const result = await reviewModerationAudio(
+        decision === "approved" ? { id, decision } : { id, decision, reason: reason ?? "" },
+      );
+      setError(result.ok ? null : result.error.code);
       await load();
     } catch {
       setError("UNKNOWN");
@@ -232,7 +260,7 @@ export function ModerationQueueView() {
                     variant="destructive"
                     disabled={busy !== null}
                     onClick={() =>
-                      decide(r.id, `/api/admin/reports/${r.id}`, {
+                      decideReport(r.id, {
                         status: "actioned",
                         resolutionNote: noteOf(r.id),
                       })
@@ -246,7 +274,7 @@ export function ModerationQueueView() {
                       variant="overlay"
                       disabled={busy !== null}
                       onClick={() =>
-                        decide(r.id, `/api/admin/reports/${r.id}`, {
+                        decideReport(r.id, {
                           status: "actioned",
                           action: "warn",
                           resolutionNote: noteOf(r.id),
@@ -261,7 +289,7 @@ export function ModerationQueueView() {
                     variant="overlay"
                     disabled={busy !== null}
                     onClick={() =>
-                      decide(r.id, `/api/admin/reports/${r.id}`, {
+                      decideReport(r.id, {
                         status: "dismissed",
                         resolutionNote: noteOf(r.id),
                       })
@@ -301,7 +329,7 @@ export function ModerationQueueView() {
                     variant="overlay"
                     disabled={busy !== null}
                     onClick={() =>
-                      decide(a.id, `/api/admin/appeals/${a.id}`, {
+                      decideAppeal(a.id, {
                         decision: "upheld",
                         resolutionNote: noteOf(a.id),
                       })
@@ -314,7 +342,7 @@ export function ModerationQueueView() {
                     variant="destructive"
                     disabled={busy !== null}
                     onClick={() =>
-                      decide(a.id, `/api/admin/appeals/${a.id}`, {
+                      decideAppeal(a.id, {
                         decision: "overturned",
                         resolutionNote: noteOf(a.id),
                       })
@@ -347,9 +375,7 @@ export function ModerationQueueView() {
                     size="sm"
                     variant="overlay"
                     disabled={busy !== null}
-                    onClick={() =>
-                      decide(a.id, `/api/admin/audio/${a.id}`, { decision: "approved" })
-                    }
+                    onClick={() => decideAudio(a.id, "approved")}
                   >
                     {t("actions.approve")}
                   </Button>
@@ -358,12 +384,7 @@ export function ModerationQueueView() {
                     variant="destructive"
                     disabled={busy !== null || !noteOf(a.id)}
                     title={t("rejectNeedsNote")}
-                    onClick={() =>
-                      decide(a.id, `/api/admin/audio/${a.id}`, {
-                        decision: "rejected",
-                        reason: noteOf(a.id),
-                      })
-                    }
+                    onClick={() => decideAudio(a.id, "rejected", noteOf(a.id))}
                   >
                     {t("actions.reject")}
                   </Button>

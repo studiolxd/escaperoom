@@ -27,8 +27,12 @@ const STATUS_BY_CODE = {
 
 const handle = handleDomainErrors(RoomDraftError, STATUS_BY_CODE);
 
-/** `POST /api/onboarding/rooms` (A-9): única ruta del wizard que validaba a mano. */
-const CreateRoomBodySchema = z.object({
+/**
+ * `POST /api/onboarding/rooms` (A-9): única ruta del wizard que validaba a
+ * mano. Exportado para que la server action (`actions/onboarding.ts`)
+ * valide con el MISMO esquema, sin repetir los límites a mano.
+ */
+export const CreateRoomBodySchema = z.object({
   template: z.enum(["rey-aldric", "blank"]),
   title: z.string().trim().min(1).max(200).optional(),
 });
@@ -71,12 +75,60 @@ function blankInitialUpdate(roomId: string, authorId: string, title: string): Ui
   }
 }
 
+export type CreateOnboardingRoomInput = z.infer<typeof CreateRoomBodySchema>;
+export type CreateOnboardingRoomResult = { roomId: string; template: OnboardingRoomTemplate };
+
+/**
+ * Da de alta el draft de la primera sala del creador (ticket 6.7, specs/20
+ * §2, §3), en blanco o como copia editable del Rey Aldric ("modo sala de
+ * ejemplo"). Extraído para que el adaptador REST y la server action
+ * (`actions/onboarding.ts`) compartan la MISMA orquestación sobre
+ * `RoomDraftService` (3.1/3.9) y la serialización del editor
+ * (`roomPackageToDoc`) — cada uno resuelve su propio `actor` y valida el
+ * cuerpo antes de llamar aquí.
+ */
+export async function createOnboardingRoom(
+  deps: Pick<OnboardingHandlerDeps, "drafts" | "readReyAldricRoomPackageJson">,
+  actor: Actor,
+  input: CreateOnboardingRoomInput,
+): Promise<CreateOnboardingRoomResult> {
+  const { template, title } = input;
+
+  if (template === "blank") {
+    const roomTitle = title || "Mi primera sala";
+    const room = await deps.drafts.createDraft(actor, {
+      title: roomTitle,
+      initialUpdate: (roomId) => blankInitialUpdate(roomId, actor.userId, roomTitle),
+    });
+    return { roomId: room.id, template };
+  }
+
+  // "rey-aldric": copia editable del fixture, con nueva id/autor/título
+  // (specs/20 §3 — "sala de ejemplo" desmontable).
+  const fixture = loadCachedReyAldricFixture(deps.readReyAldricRoomPackageJson);
+  const roomTitle = title || `${fixture.meta.title} (copia)`;
+  const room = await deps.drafts.createDraft(actor, {
+    title: roomTitle,
+    initialUpdate: (roomId) => {
+      const doc = new Y.Doc();
+      try {
+        const copy = {
+          ...fixture,
+          meta: { ...fixture.meta, id: roomId, authorId: actor.userId, title: roomTitle },
+        };
+        roomPackageToDoc(copy, doc);
+        return Y.encodeStateAsUpdate(doc);
+      } finally {
+        doc.destroy();
+      }
+    },
+  });
+  return { roomId: room.id, template };
+}
+
 /**
  * Handlers REST del wizard de onboarding del creador (ticket 6.7, specs/20 §2,
- * §3). Solo el paso 2 ("Pinta tu primera sala") necesita servidor: da de alta
- * el draft de la sala nueva, en blanco o como copia editable del Rey Aldric
- * ("modo sala de ejemplo", specs/20 §3), reutilizando `RoomDraftService`
- * (3.1/3.9) y la serialización del editor (`roomPackageToDoc`).
+ * §3). Solo el paso 2 ("Pinta tu primera sala") necesita servidor.
  */
 export function createOnboardingHandlers(deps: OnboardingHandlerDeps) {
   return {
@@ -96,38 +148,9 @@ export function createOnboardingHandlers(deps: OnboardingHandlerDeps) {
             422,
           );
         }
-        const { template, title } = parsed.data;
 
-        if (template === "blank") {
-          const roomTitle = title || "Mi primera sala";
-          const room = await deps.drafts.createDraft(actor, {
-            title: roomTitle,
-            initialUpdate: (roomId) => blankInitialUpdate(roomId, actor.userId, roomTitle),
-          });
-          return Response.json({ roomId: room.id, template }, { status: 201, headers: NO_STORE });
-        }
-
-        // "rey-aldric": copia editable del fixture, con nueva id/autor/título
-        // (specs/20 §3 — "sala de ejemplo" desmontable).
-        const fixture = loadCachedReyAldricFixture(deps.readReyAldricRoomPackageJson);
-        const roomTitle = title || `${fixture.meta.title} (copia)`;
-        const room = await deps.drafts.createDraft(actor, {
-          title: roomTitle,
-          initialUpdate: (roomId) => {
-            const doc = new Y.Doc();
-            try {
-              const copy = {
-                ...fixture,
-                meta: { ...fixture.meta, id: roomId, authorId: actor.userId, title: roomTitle },
-              };
-              roomPackageToDoc(copy, doc);
-              return Y.encodeStateAsUpdate(doc);
-            } finally {
-              doc.destroy();
-            }
-          },
-        });
-        return Response.json({ roomId: room.id, template }, { status: 201, headers: NO_STORE });
+        const result = await createOnboardingRoom(deps, actor, parsed.data);
+        return Response.json(result, { status: 201, headers: NO_STORE });
       });
     },
   };
