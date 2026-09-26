@@ -288,13 +288,44 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `phaser/room-scene.ts`) y el inspector del editor (`inspector-model.ts`,
       `schema-form.ts`). Aplazado en el bloque 10 (#163) por ser un cambio de tipos y
       arquitectura del modelo, no un ajuste puntual.
-- [ ] **Mutaciones con `fetch` que quedaron fuera de la migración a server actions (#162).**
-      Diez pantallas siguen enviando con `fetch` a mano: `room-cover-upload`,
-      `event-dashboard`, `spectator-game`, `confirm-attendance`, `accept-terms-button`,
-      `moderation-queue`, `onboarding-wizard`, `payouts-panel`, `confirm-publish` y
-      `playtest-button`. Revisar cuáles encajan como server action + RHF (mismo patrón
-      que la #162, `server/actions/action-result.ts`) y migrarlas. Encolado detrás de la
-      limpieza de frontend (F-34/F-43..47), que toca los mismos componentes.
+- [x] **Mutaciones con `fetch` que quedaron fuera de la migración a server actions (#162).**
+      Resuelto. De las diez pantallas, seis migraron a server action (mismo patrón que
+      la #162, `server/actions/action-result.ts`: mismos servicios de
+      `@escaperoom/shared`, misma cuota de `RATE_LIMIT_POLICIES` donde la ruta REST la
+      tenía, mismo contrato de error): `confirm-attendance` (`confirmAttendance`),
+      `accept-terms-button` (`acceptTerms`), `confirm-publish` (`confirmPublish`, repite
+      los guardas 4.5/4.7 — rechazo de `Authorization` y `Sec-Fetch-Site: same-origin`,
+      el chequeo Origin/Host de las Server Actions no basta por sí solo),
+      `onboarding-wizard` paso 2 (`createOnboardingRoomAction`), `playtest-button`
+      (`createPlaytest`) y las pestañas de reportes/apelaciones de
+      `moderation-queue` (`resolveModerationReport`, `resolveModerationAppeal` — sin
+      cuota, como las rutas REST: `ModerationService` ya exige `isModerator|isAdmin`
+      en el propio servicio). La pestaña de audio de `moderation-queue`
+      (`PATCH /api/admin/audio/:id`) se deja explícitamente sin migrar: otro agente
+      va a retirar la moderación previa de audio (la pestaña y las rutas
+      `/api/admin/audio*`), así que invertir ahí sería trabajo tirado. `event-dashboard`
+      migró solo su mutación simple
+      (`resendPendingInvitations`, cuota `invitation-resend-pending`); ninguna tenía
+      campos de entrada que validar, así que ninguna necesitó React Hook Form (los
+      botones no tienen formulario; la plantilla del wizard ya viene acotada por el
+      `RadioGroup`). Se extrajeron `createOnboardingRoom`
+      (`server/rest/onboarding.ts`) y `runPlaytestCreation`
+      (`server/rest/room-playtest.ts`) para que el adaptador REST y la action
+      compartan la misma orquestación sin duplicarla. Las rutas REST equivalentes se
+      mantienen (las siguen usando el enlace del email, el MCP y los tests).
+
+      Se quedan en `fetch`/REST, explicado en cada caso:
+      - `room-cover-upload`: el límite por defecto de Server Actions en Next (1 MB) es
+        menor que `UPLOAD_MAX_BYTES` (5 MB) y no hay `serverActions.bodySizeLimit`
+        configurado — una action rompería subidas válidas hoy.
+      - `event-dashboard` (resto): la carga del panel es *polling* (`GET` cada 5 s) y
+        la exportación de PDF alterna entre una descarga síncrona (`blob`, no
+        serializable desde una action) y un job encolado que también se sondea por
+        *polling* — ambos casos son de los explícitamente excluidos (streaming/polling).
+      - `spectator-game`: depende de la conexión en tiempo real a Colyseus (pide un
+        token de observador y entra en la room), no es una mutación de dominio.
+      - `payouts-panel`: ambos botones son redirecciones a Stripe Connect
+        (`window.location.href` a una URL de onboarding/dashboard Express).
 - [ ] **F-5: partir `GameSessionShell` y `RoomPlaytestShell` (auditoría 2026-09-24, ALTA).**
       1 053 y 920 líneas casi duplicadas: extraer hooks (`useSceneSync`,
       `useServerEvents`, `usePanelState`, `useHudHotkeys`) y subcomponentes del HUD, y que

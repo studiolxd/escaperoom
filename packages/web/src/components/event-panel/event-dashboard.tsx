@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { ACCESS_KEY_CARDS_ERROR_CODES, EVENT_PANEL_ERROR_CODES } from "@escaperoom/shared/error-codes";
 import type { EventDashboard, EventSessionRow } from "@escaperoom/shared/services";
+import { resendPendingInvitations } from "@/actions/events";
 import { Button } from "@/components/ui/button";
 import { EventTimeLimitDialog } from "./event-time-limit-dialog";
 import { Link } from "@/i18n/navigation";
@@ -95,13 +96,12 @@ export function EventDashboardView({ eventId }: { eventId: string }) {
   const resendPending = async () => {
     setResend({ busy: true, count: null });
     try {
-      const res = await fetch(eventApiPath(eventId, "invitations/resend"), { method: "POST" });
-      if (!res.ok) {
-        setResend({ busy: false, count: null, error: await readApiError(res) });
+      const result = await resendPendingInvitations(eventId);
+      if (!result.ok) {
+        setResend({ busy: false, count: null, error: result.error.code });
         return;
       }
-      const json = (await res.json()) as { requested?: number };
-      setResend({ busy: false, count: json.requested ?? 0 });
+      setResend({ busy: false, count: result.data.requested });
       void load();
     } catch {
       setResend({ busy: false, count: null, error: "UNKNOWN" });

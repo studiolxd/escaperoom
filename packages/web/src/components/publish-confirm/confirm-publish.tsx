@@ -7,6 +7,7 @@ import {
   type PublishConfirmationErrorCode,
   type RoomPublishErrorCode,
 } from "@escaperoom/shared/error-codes";
+import { confirmPublish as confirmPublishAction } from "@/actions/publish-confirm";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -54,20 +55,12 @@ export function ConfirmPublish({ token }: ConfirmPublishProps) {
   const confirm = async () => {
     setState({ kind: "confirming" });
     try {
-      const res = await fetch("/api/publish-confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-      });
-      const json = (await res.json().catch(() => null)) as {
-        version?: { semver?: string };
-        error?: { code?: string };
-      } | null;
-      if (!res.ok || !json?.version?.semver) {
-        setState({ kind: "error", code: json?.error?.code ?? "UNKNOWN" });
+      const result = await confirmPublishAction({ token });
+      if (!result.ok) {
+        setState({ kind: "error", code: result.error.code });
         return;
       }
-      setState({ kind: "done", semver: json.version.semver });
+      setState({ kind: "done", semver: result.data.version.semver });
     } catch {
       setState({ kind: "error", code: "UNKNOWN" });
     }
