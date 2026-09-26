@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient } from "../../generated/client";
+import type { Prisma, PrismaClient } from "../../generated/client/client";
 import type { AdminDirectory } from "./admin";
 import type { PlatformSettingStore } from "./platform-settings";
 import type { PricingTierStore, PricingTierTx } from "./pricing-tiers";

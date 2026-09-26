@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Prisma } from "../generated/client";
+import { Prisma } from "../generated/client/client";
 import { createPrismaClient } from "../src/db";
 
 // El seed escribe directo a Postgres (DIRECT_URL): tras `migrate reset` los

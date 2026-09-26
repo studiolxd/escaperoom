@@ -1,4 +1,4 @@
-import type { PrismaClient } from "../../generated/client";
+import type { PrismaClient } from "../../generated/client/client";
 import type { CreatorConnectStore } from "./creator-connect";
 
 /** Implementación Prisma: `user.stripeAccountId` ya existe (0003_auth), sin migración. */

@@ -7,11 +7,16 @@ export const SAME_ORIGIN = { origin: WEB_URL } as const;
 
 /**
  * Consulta la tabla `verification` con `pg` directo, no con el cliente
- * Prisma de `@escaperoom/shared/db`: ese módulo hace `import ... from
- * "../../generated/client"` (un directorio sin extensión), que Next/Vite
- * resuelven pero el loader ESM de Playwright no («Directory import ... is
- * not supported»). Un pool propio, sin ese salto de paquete, evita el
- * problema y no toca código de producción.
+ * Prisma de `@escaperoom/shared/db`. Sigue haciendo falta tras la migración a
+ * Prisma 7 (generador `prisma-client`, sin motor de Rust): el cliente
+ * generado (`packages/shared/generated/client/client.ts`) importa sus
+ * propios ficheros internos (`./enums`, `./internal/class`…) sin extensión,
+ * que Next (webpack/turbopack) y tsx (worker/colyseus-server/editor-sync)
+ * resuelven con su propio loader, pero el loader ESM estricto de Playwright
+ * no («Cannot find module '.../enums' imported from '.../client.ts'», antes
+ * «Directory import ... is not supported» con el generador anterior — mismo
+ * problema de fondo, solo cambia dónde aparece). Un pool propio, sin ese
+ * salto de paquete, evita el problema y no toca código de producción.
  */
 let pool: Pool | undefined;
 function verificationPool(): Pool {

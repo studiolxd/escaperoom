@@ -1,4 +1,4 @@
-import type { PrismaClient } from "../../generated/client";
+import type { PrismaClient } from "../../generated/client/client";
 import { UUID_RE } from "./common";
 import type { Review, ReviewStore } from "./reviews";
 

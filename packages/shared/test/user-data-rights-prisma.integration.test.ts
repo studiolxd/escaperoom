@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import type { PrismaClient } from "../generated/client";
+import type { PrismaClient } from "../generated/client/client";
 import { createPrismaClient } from "../src/db";
 import { hashPurgedEmail, readEmailPurgeSecret } from "../src/services/access-key-email-purge";
 import { hashPurgedValue, readIpUaPurgeSecret } from "../src/services/ip-ua-purge";

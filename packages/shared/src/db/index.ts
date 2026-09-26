@@ -1,5 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient } from "../../generated/client";
+import { PrismaClient } from "../../generated/client/client";
 
 const DEFAULT_POOL_MAX = 10;
 
@@ -57,4 +57,4 @@ export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
   },
 });
 
-export * from "../../generated/client";
+export * from "../../generated/client/client";

@@ -3,7 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as Y from "yjs";
-import type { PrismaClient } from "../generated/client";
+import type { PrismaClient } from "../generated/client/client";
 import { createPrismaClient } from "../src/db";
 import type { RoomPackage } from "../src/schemas";
 import {
