@@ -6,13 +6,25 @@
       "outputs": [".next/**", "!.next/cache/**", "dist/**", "generated/**"]
     },
     "lint": {
-      "dependsOn": ["^build"]
+      // "build" (sin `^`) además de "^build": el `build` del PROPIO paquete
+      // debe terminar antes que su lint/typecheck/test, no solo el de sus
+      // dependencias. Con Prisma 7 (generador `prisma-client`) esto dejó de
+      // ser opcional: `@escaperoom/shared` define `build`/`typecheck`/`test`
+      // como tareas turbo independientes entre sí, y las tres corren
+      // `prisma generate` en su propio script — sin esta dependencia, turbo
+      // las lanza en paralelo y dos `prisma generate` concurrentes escriben
+      // a la vez sobre `generated/client`, que el nuevo generador (a
+      // diferencia del anterior) no tolera («exists and is not empty but
+      // doesn't look like a generated Prisma Client»). Con la dependencia,
+      // `build` genera una sola vez y typecheck/test/lint solo necesitan
+      // que el cliente YA exista (ver los scripts de packages/shared).
+      "dependsOn": ["^build", "build"]
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "build"]
     },
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "build"],
       // Los *.integration.test.ts (E-14) sólo corren si estas variables
       // están presentes y su resultado depende de contra qué Postgres/Redis
       // apunten — declaradas aquí para que entren en el hash de caché de

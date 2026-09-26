@@ -30,8 +30,8 @@
   "scripts": {
     "build": "prisma generate",
     "lint": "eslint .",
-    "typecheck": "prisma generate && tsc --noEmit",
-    "test": "prisma generate && vitest run --passWithNoTests",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:reset": "prisma migrate reset --force",
