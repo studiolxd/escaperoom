@@ -37,6 +37,30 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres -d escaperoom_ci"
           --health-interval 5s --health-timeout 5s --health-retries 10
+      # Pooler delante de Postgres (paridad con producción, decisión Prisma 7:
+      # dev sigue directo a Postgres — infra/docker-compose.dev.yml —, CI y
+      # producción por PgBouncer). Mismos parámetros que el compose de dev.
+      # Los servicios de un job sin `container:` no se ven entre sí por
+      # nombre salvo por éste: GitHub Actions los conecta igual a la red del
+      # job, así que `DB_HOST: postgres` sí resuelve aunque el propio job
+      # solo pueda alcanzar los servicios por `localhost:<puerto mapeado>`.
+      pgbouncer:
+        image: edoburu/pgbouncer:v1.25.2-p0
+        env:
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          AUTH_TYPE: scram-sha-256
+          POOL_MODE: transaction
+          MAX_CLIENT_CONN: 200
+          DEFAULT_POOL_SIZE: 10
+          MAX_PREPARED_STATEMENTS: 200
+        ports:
+          - 6432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -p 5432"
+          --health-interval 5s --health-timeout 5s --health-retries 10
       redis:
         image: redis:7-alpine
         ports:
@@ -50,7 +74,12 @@ jobs:
       # validación estricta de entorno (E-4, de otro bloque) no exige más
       # secretos (JOIN_TOKEN_SECRET, APP_SECRET, BETTER_AUTH_*, EMAIL_*…): esos
       # siguen cayendo a los valores de desarrollo del propio código.
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_ci
+      #
+      # DATABASE_URL (el cliente en tiempo de ejecución, createPrismaClient)
+      # va por PgBouncer (6432): paridad con producción. DIRECT_URL (Migrate,
+      # prisma.config.ts) sigue directo a Postgres (5432): el pooler en modo
+      # transacción no es compatible con el DDL de las migraciones.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:6432/escaperoom_ci
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_ci
       REDIS_URL: redis://localhost:6379
       REDIS_PREFIX: escaperoom
@@ -113,6 +142,25 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres -d escaperoom_e2e"
           --health-interval 5s --health-timeout 5s --health-retries 10
+      # Pooler delante de Postgres (paridad con producción; ver el comentario
+      # del job `verify` más arriba).
+      pgbouncer:
+        image: edoburu/pgbouncer:v1.25.2-p0
+        env:
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          AUTH_TYPE: scram-sha-256
+          POOL_MODE: transaction
+          MAX_CLIENT_CONN: 200
+          DEFAULT_POOL_SIZE: 10
+          MAX_PREPARED_STATEMENTS: 200
+        ports:
+          - 6432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -p 5432"
+          --health-interval 5s --health-timeout 5s --health-retries 10
       # E-4: web y colyseus arrancan con NODE_ENV=production
       # (packages/e2e/scripts/serve.ts) y ahora exigen REDIS_URL al arrancar
       # (requireInProduction); mismo servicio que ya usa e2e-nightly.yml.
@@ -123,7 +171,9 @@ jobs:
         options: >-
           --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_e2e
+      # DATABASE_URL por PgBouncer (paridad con producción); DIRECT_URL
+      # directo a Postgres, para Migrate (ver el comentario del job `verify`).
+      DATABASE_URL: postgresql://postgres:postgres@localhost:6432/escaperoom_e2e
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_e2e
       REDIS_URL: redis://localhost:6379
     steps:
