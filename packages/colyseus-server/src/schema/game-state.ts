@@ -78,6 +78,13 @@ export const GameRoomState = schema(
     /** Reloj lógico actual de la sala. */
     clock: t.number(),
     hostId: t.string(),
+    /**
+     * "Todos los grupos comienzan juntos" (evento, ticket "inicio conjunto"):
+     * mientras está activo, el anfitrión del grupo no ve "Empezar" — solo el
+     * organizador puede arrancar (`EventRoom.organizerStartGroup`). `false`
+     * fuera de eventos y en eventos sin la opción.
+     */
+    organizerControlsStart: t.boolean(),
     players: t.map(GamePlayerState),
     objects: t.map("string"),
     puzzles: t.map(GamePuzzleState),

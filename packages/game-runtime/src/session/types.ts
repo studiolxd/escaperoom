@@ -68,6 +68,13 @@ export interface GameSnapshot {
   roomPackageId: string;
   roomPackageVersion: string;
   hostId: string;
+  /**
+   * "Todos los grupos comienzan juntos" (evento, ticket "inicio conjunto"):
+   * mientras está activo, el anfitrión no ve "Empezar" — solo el organizador
+   * puede arrancar la partida. `false` fuera de eventos y en eventos sin la
+   * opción.
+   */
+  organizerControlsStart: boolean;
   /** Reloj lógico de la sala (ms). */
   clock: number;
   startedAt: number;

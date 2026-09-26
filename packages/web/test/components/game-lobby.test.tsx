@@ -59,6 +59,7 @@ function makeSnapshot(overrides: Partial<GameSnapshot> = {}, self = player()): G
     roomPackageId: model.meta.id,
     roomPackageVersion: "1",
     hostId: "p1",
+    organizerControlsStart: false,
     clock: 0,
     startedAt: 0,
     endsAt: 0,
@@ -142,6 +143,7 @@ describe("<LobbyPanel>", () => {
   const baseProps = {
     meta: model.meta,
     isHost: true,
+    organizerControlsStart: false,
     onSelectCharacter: vi.fn(),
     onToggleReady: vi.fn(),
     onStart: vi.fn(),
@@ -246,6 +248,23 @@ describe("<LobbyPanel>", () => {
     expect(screen.getByTestId("lobby-below-minimum")).toBeInTheDocument();
     expect(screen.queryByTestId("game-start")).not.toBeInTheDocument();
     expect(screen.queryByTestId("lobby-start-force")).not.toBeInTheDocument();
+  });
+
+  it('"inicio conjunto": con organizerControlsStart, el anfitrión no ve "Empezar"', () => {
+    const ready = player({ ready: true });
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        organizerControlsStart: true,
+        players: [ready],
+        self: ready,
+      }),
+    );
+    expect(screen.queryByTestId("game-start")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("lobby-start-force")).not.toBeInTheDocument();
+    expect(screen.getByTestId("lobby-waiting-organizer")).toHaveTextContent(
+      "Esperando a que el organizador inicie la partida…",
+    );
   });
 });
 

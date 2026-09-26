@@ -41,12 +41,28 @@ export function createPrismaEventRuntimeStore(
         },
       });
       if (!event || event.status !== "active") return null;
-      const config = event.config as unknown as { allowVideo?: boolean; timeLimitMinutes?: number | null };
+      const config = event.config as unknown as {
+        allowVideo?: boolean;
+        timeLimitMinutes?: number | null;
+        allGroupsStartTogether?: boolean;
+      };
+      const allGroupsStartTogether = config.allGroupsStartTogether === true;
+      // Solo hace falta la consulta cuando la opción está activa (§3): un
+      // grupo vacío al "Comenzar todos" nace sin bloqueo si ya hay otro
+      // grupo del evento jugando.
+      const anyGroupAlreadyStarted = allGroupsStartTogether
+        ? (await prisma.gameSession.findFirst({
+            where: { eventId, NOT: { status: "pending" } },
+            select: { id: true },
+          })) !== null
+        : false;
       return {
         eventId,
         roomVersionId: event.roomVersionId,
         roomPackage: parseRoomPackage(event.roomVersion.package),
         allowVideo: config.allowVideo === true,
+        allGroupsStartTogether,
+        anyGroupAlreadyStarted,
         ...("timeLimitMinutes" in config
           ? { timeLimitOverrideMinutes: config.timeLimitMinutes }
           : {}),

@@ -6,7 +6,9 @@ import { ACCESS_KEY_CARDS_ERROR_CODES, EVENT_PANEL_ERROR_CODES } from "@escapero
 import type { EventDashboard, EventSessionRow } from "@escaperoom/shared/services";
 import { resendPendingInvitations } from "@/actions/events";
 import { Button } from "@/components/ui/button";
+import { AllGroupsStartTogetherToggle } from "./all-groups-start-toggle";
 import { EventTimeLimitDialog } from "./event-time-limit-dialog";
+import { StartAllGroupsButton } from "./start-all-groups-button";
 import { Link } from "@/i18n/navigation";
 import { formatDuration } from "@/lib/session-format";
 import { eventApiPath, observePath, readApiError } from "@/lib/event-panel";
@@ -163,6 +165,12 @@ export function EventDashboardView({ eventId }: { eventId: string }) {
 
   const { event, keys, invitations, sessions, metrics, rows } = dashboard;
   const none = t("metrics.none");
+  // "Todos los grupos comienzan juntos" (ticket "inicio conjunto"): solo
+  // editable mientras ningún grupo haya empezado — el estado se deriva de
+  // `rows` en vez de pedirlo aparte (misma fuente que ya pinta la tabla).
+  const anyGroupStarted = rows.some(
+    (row) => row.state === "playing" || row.state === "ended" || row.state === "offline",
+  );
 
   return (
     <div className="space-y-6" data-testid="event-dashboard">
@@ -190,6 +198,19 @@ export function EventDashboardView({ eventId }: { eventId: string }) {
               }
             />
           </p>
+        ) : null}
+        <AllGroupsStartTogetherToggle
+          eventId={event.id}
+          enabled={event.allGroupsStartTogether}
+          anyGroupStarted={anyGroupStarted}
+          onChanged={(allGroupsStartTogether) =>
+            setDashboard((prev) =>
+              prev ? { ...prev, event: { ...prev.event, allGroupsStartTogether } } : prev,
+            )
+          }
+        />
+        {event.allGroupsStartTogether ? (
+          <StartAllGroupsButton eventId={event.id} rows={rows} onStarted={() => void load()} />
         ) : null}
         {!dashboard.liveAvailable ? (
           <p role="status" className="text-sm text-amber-200">
@@ -276,7 +297,12 @@ export function EventDashboardView({ eventId }: { eventId: string }) {
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <SessionRow key={row.sessionId} row={row} eventId={eventId} />
+                  <SessionRow
+                    key={row.sessionId}
+                    row={row}
+                    eventId={eventId}
+                    showReadiness={event.allGroupsStartTogether}
+                  />
                 ))}
               </tbody>
             </table>
@@ -335,7 +361,16 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SessionRow({ row, eventId }: { row: EventSessionRow; eventId: string }) {
+function SessionRow({
+  row,
+  eventId,
+  showReadiness,
+}: {
+  row: EventSessionRow;
+  eventId: string;
+  /** "Todos los grupos comienzan juntos": añade mínimo y "Listos" a la celda de jugadores. */
+  showReadiness: boolean;
+}) {
   const t = useTranslations("EventPanel");
   const percent =
     row.puzzlesTotal > 0 ? Math.round((row.puzzlesSolved / row.puzzlesTotal) * 100) : 0;
@@ -377,6 +412,11 @@ function SessionRow({ row, eventId }: { row: EventSessionRow; eventId: string })
           occupied: row.occupied,
           capacity: row.capacity,
         })}
+        {showReadiness && row.state === "lobby" ? (
+          <span className="block">
+            {t("table.readiness", { min: row.minPlayers, ready: row.readyCount })}
+          </span>
+        ) : null}
       </td>
       <td className="px-3 py-2 text-right">
         {row.observable ? (

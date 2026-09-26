@@ -147,6 +147,13 @@ export function createPrismaEventStore(prisma: PrismaClient): EventStore {
       });
       return rows.map(toRow);
     },
+    async hasStartedSession(eventId) {
+      const started = await prisma.gameSession.findFirst({
+        where: { eventId, NOT: { status: "pending" } },
+        select: { id: true },
+      });
+      return started !== null;
+    },
     async summarize(eventId): Promise<EventSummary> {
       const [sessions, keys] = await Promise.all([
         prisma.gameSession.count({ where: { eventId } }),

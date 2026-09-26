@@ -1,6 +1,6 @@
 import { ServerError, type Client } from "@colyseus/core";
 import { logger } from "@escaperoom/kit/logger";
-import type { SessionLiveProgress } from "@escaperoom/shared/event-progress";
+import type { GroupStartResult, SessionLiveProgress } from "@escaperoom/shared/event-progress";
 import {
   accountUserId,
   createProgressRecorder,
@@ -15,7 +15,7 @@ import {
   type SpectatorClaims,
 } from "@escaperoom/shared/join-token";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
-import { MAX_EVENT_SPECTATORS } from "../constants.js";
+import { GAME_ERRORS, MAX_EVENT_SPECTATORS } from "../constants.js";
 import { getEventRuntime } from "../events/runtime.js";
 import type { MediaRole } from "../media/index.js";
 import { GAME_ACCESS_ERRORS, GameRoom, type GameMilestone, type GameRoomOptions } from "./game-room.js";
@@ -107,6 +107,12 @@ export class EventRoom extends GameRoom {
    * override (usa la de la sala, como `GameRoom`); `null` = "sin duración".
    */
   private eventTimeLimitOverrideMinutes?: number | null;
+  /**
+   * `event.config.allGroupsStartTogether` (ticket "inicio conjunto"): se
+   * sincroniza en `state.organizerControlsStart` para que el cliente oculte
+   * "Empezar" al anfitrión del grupo.
+   */
+  private organizerControlsStart = false;
   private recorder?: ProgressRecorder;
   /** Claims de cada jugador que ha entrado (grupo y cuenta para los hitos). */
   private readonly playerClaims = new Map<string, JoinClaims>();
@@ -163,9 +169,11 @@ export class EventRoom extends GameRoom {
     if ("timeLimitOverrideMinutes" in loaded) {
       this.eventTimeLimitOverrideMinutes = loaded.timeLimitOverrideMinutes;
     }
+    this.organizerControlsStart = loaded.allGroupsStartTogether && !loaded.anyGroupAlreadyStarted;
     this.recorder = createProgressRecorder(runtime, claims.sessionId);
 
     await super.onCreate(options);
+    this.state.organizerControlsStart = this.organizerControlsStart;
     this.playerCapacity = this.maxClients;
     this.maxClients = this.playerCapacity + MAX_EVENT_SPECTATORS;
     const metadata: EventRoomMetadata = { sessionId: this.eventSessionId, eventId: this.eventId };
@@ -355,6 +363,40 @@ export class EventRoom extends GameRoom {
       ...this.progressCounters(),
       updatedAt: Date.now(),
     };
+  }
+
+  /**
+   * Inicio conjunto del organizador (ticket "inicio conjunto", specs/11 §4.1
+   * y §4.5, specs/19 §2): lo llama la ruta interna
+   * `POST /internal/events/:eventId/start-all` vía `matchMaker.remoteRoomCall`
+   * — nunca un jugador ni el anfitrión del grupo. Reutiliza `readiness()` y
+   * `startFromLobby()` de `GameRoom` (mismo motor que `handleStart`, encargo
+   * lobby-diseño #180: no arranca el reloj, solo cierra el lobby — el reloj
+   * de cada grupo arranca cuando SU primer jugador entra al mapa), pero con
+   * reglas propias: un grupo **vacío** nunca arranca (ni con `force`, para no
+   * dejar sin anfitrión a quien llegue después — por eso el chequeo va ANTES
+   * de llamar a `startFromLobby`, que por sí solo arrancaría con 0 conectados
+   * si `skipMinimum` está activo); con `force` ("Comenzar igualmente" del
+   * panel) SÍ se salta el mínimo de la sala (`skipMinimum`) — a diferencia del
+   * "Empezar igualmente" de un anfitrión, que nunca baja del mínimo — porque
+   * aquí es una decisión explícita del organizador sobre TODOS los grupos a
+   * la vez, no la de un anfitrión sobre el suyo.
+   */
+  organizerStartGroup(opts: { force: boolean }): GroupStartResult {
+    const { connected, ready, min } = this.readiness();
+    const base = { sessionId: this.eventSessionId, connected, ready, min };
+    if (this.lobbyClosed || this.state.phase !== "lobby" || !this.session) {
+      return { ...base, status: "already_started" };
+    }
+    if (connected === 0) return { ...base, status: "empty" };
+    const result = this.startFromLobby({ force: opts.force, skipMinimum: opts.force });
+    if (!result.ok) {
+      return {
+        ...base,
+        status: result.code === GAME_ERRORS.minPlayersNotMet ? "min_not_met" : "not_ready",
+      };
+    }
+    return { ...base, status: "started" };
   }
 }
 

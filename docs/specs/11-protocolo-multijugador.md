@@ -54,8 +54,8 @@ created ──> lobby ──> starting ──> playing ──> ended
   compra/clave/invitación y **aparecen en la sala de espera** (§2.1).
 - `lobby → starting`: cuando el host pulsa «Empezar» (`start_game`) o se invoca
   `GameRoom.startFromLobby({ force })` desde fuera de la room (inicio conjunto de un evento,
-  encargo siguiente). **El reloj NO corre todavía**: cada jugador ve la introducción de la sala
-  (si la hay) y su propio 3-2-1.
+  ticket "inicio conjunto", §2.2). **El reloj NO corre todavía**: cada jugador ve la introducción de
+  la sala (si la hay) y su propio 3-2-1.
 - `starting → playing`: cuando el **PRIMER** jugador entra al mapa (`enter_map`, tras su
   introducción y su 3-2-1). Ahí se fijan `startedAt`/`endsAt` (y se dispara `on_game_start`): los
   que sigan leyendo la introducción ya consumen tiempo.
@@ -97,6 +97,51 @@ created ──> lobby ──> starting ──> playing ──> ended
   por `EventRoom`; devuelve `{ ok }` o `{ ok: false, code, message }` con los mismos códigos que
   `start_game`).
 
+### 2.2 "Todos los grupos comienzan juntos" (evento, ticket "inicio conjunto")
+
+Ajuste del evento (`event.config.allGroupsStartTogether`, apagado por defecto), editable por el
+organizador mientras **ningún grupo del evento haya empezado a jugar**
+(`EventStore.hasStartedSession`); a diferencia del ajuste de duración (specs/02 §7), funciona tanto
+en `draft` como en `active`.
+
+- **Con la opción activa**: cada `EventRoom` sincroniza `state.organizerControlsStart = true`. El
+  anfitrión de ese grupo deja de ver «Empezar»/«Empezar igualmente» — el cliente le muestra
+  «Esperando a que el organizador inicie la partida» — y el servidor rechaza igualmente su
+  `start_game` con `PERMISSION_DENIED` (defensa en profundidad). Solo el organizador puede arrancar
+  el grupo, con `EventRoom.organizerStartGroup({ force })` (invocado por la ruta interna de abajo,
+  nunca por un cliente).
+- **Grupo tardío, sin bloqueo**: un grupo que estaba vacío en el momento de "Comenzar
+  todos"/"Comenzar igualmente" y solo recibe a su primer jugador DESPUÉS nace con
+  `organizerControlsStart = false` si al crearse la room ya hay otro grupo del evento jugando
+  (`EventPackage.anyGroupAlreadyStarted`, comprobado una vez, al crear la room) — su anfitrión
+  puede empezar él mismo, como en un evento sin la opción, para no dejarlo esperando un segundo
+  "Comenzar todos" que quizá no llegue.
+- **`organizerStartGroup({ force })`**: reutiliza `readiness()` (conectados/"Listos"/mínimo) y
+  `startFromLobby()` — nunca duplica esa lógica. Reglas propias, distintas de `start_game`:
+  - Un grupo **vacío** (0 conectados) nunca arranca, ni con `force`: `status: "empty"`.
+  - Sin `force`: exige mínimo Y "Listos" (`status: "min_not_met"`/`"not_ready"` si falla), igual
+    que un `start_game` normal.
+  - Con `force` ("Comenzar igualmente" del panel): SÍ salta el mínimo de la sala
+    (`skipMinimum`, parámetro nuevo de `startFromLobby`) — a diferencia del "Empezar igualmente"
+    de un anfitrión, que nunca baja del mínimo. Es una decisión explícita del organizador sobre
+    TODOS los grupos a la vez, no la de un anfitrión sobre el suyo.
+  - Un grupo ya arrancado (`lobbyClosed` o `phase !== "lobby"`) responde `status: "already_started"`
+    (no-op).
+- **`POST /internal/events/:eventId/start-all`** (web → Colyseus, mismo patrón que
+  `GET /internal/events/:eventId/progress`, `matchMaker.remoteRoomCall`): localiza las rooms `event`
+  del evento por su metadata y, sin `force`, primero lee el progreso de cada una
+  (`progressSnapshot`, sin mutar nada) — si TODOS los grupos con algún conectado están listos
+  (`groupReadinessStatus`, `@escaperoom/shared/event-progress`), llama `organizerStartGroup` a esos
+  mismos grupos; si alguno falla, no arranca ninguno (todo o nada) y devuelve el detalle por grupo.
+  Con `force`, llama `organizerStartGroup({force: true})` a todo grupo con algún conectado.
+- **Panel del organizador** (specs/19 §2): estado en vivo de cada grupo (conectados, mínimo de la
+  sala, "Listos" — `SessionLiveProgress.minPlayers`/`readyCount`, nuevos) y el botón "Comenzar
+  todos"; sin `force`, si falla, el mismo aviso que ve un anfitrión (`PLAYERS_NOT_READY`/
+  `MIN_PLAYERS_NOT_MET`) pero con el detalle de qué grupos fallan y tres opciones: Esperar,
+  Refrescar estado, Comenzar igualmente.
+- **Autorización**: solo el organizador del evento (`EventPanelService.startAllGroups`, igual que
+  `getDashboard`); cuota `event-start-all` (`docs/reference/seguridad.md`).
+
 ## 3. Estado sincronizado (room state)
 
 Lo que Colyseus sincroniza automáticamente (schema). Los clientes **solo reciben**, nunca escriben.
@@ -107,6 +152,7 @@ class GameState extends Schema {
   roomPackageVersion: string;       // versión congelada de la sala
   startedAt: number;
   endsAt: number;                   // startedAt + timeLimit (o 0 = sin límite)
+  organizerControlsStart: boolean;  // evento con "Todos los grupos comienzan juntos" (§2.2)
 
   players = new MapSchema<PlayerState>();
   puzzles = new MapSchema<PuzzleRuntime>();
@@ -159,7 +205,7 @@ Envoltura: `{type, payload, clientTime?}` — `clientTime` para corrección de r
 | `join` | `{sessionId, joinToken, accessKey?, characterId?}` | cualquiera | Valida compra/clave/joinToken → asigna role. Error si clave inválida/caducada/usada. `characterId` es opcional: sin él (o si está ocupado/no existe), el servidor asigna el primer libre, o el maniquí de reserva |
 | `select_character` | `{characterId}` | jugador | Lobby o en partida. El servidor valida unicidad contra `manifest.avatars`; rechaza (`NOT_AVAILABLE`) si ya está en uso por otro jugador |
 | `set_ready` | `{ready: bool}` | jugador | Lobby. Se resetea a `false` al cambiar de personaje (`select_character`) o al reconectar. Sin efecto fuera del lobby (`INVALID_STATE`) |
-| `start_game` | `{force?: bool}` | host | `lobby → starting` si todos los conectados están "Listo" **y** hay al menos `meta.players.min` conectados; rechaza con `PLAYERS_NOT_READY` si no (C-13). `force: true` ("Empezar igualmente") salta el requisito de "Listo" pero NUNCA el mínimo (`MIN_PLAYERS_NOT_MET` igualmente). **No** inicia el cronómetro (§2.1). Misma lógica que `GameRoom.startFromLobby({ force })` |
+| `start_game` | `{force?: bool}` | host | `lobby → starting` si todos los conectados están "Listo" **y** hay al menos `meta.players.min` conectados; rechaza con `PLAYERS_NOT_READY` si no (C-13). `force: true` ("Empezar igualmente") salta el requisito de "Listo" pero NUNCA el mínimo (`MIN_PLAYERS_NOT_MET` igualmente). **No** inicia el cronómetro (§2.1). Misma lógica que `GameRoom.startFromLobby({ force })`. Con `state.organizerControlsStart` activo (§2.2), rechaza siempre con `PERMISSION_DENIED`: solo el organizador puede arrancar el grupo |
 | `enter_map` | `{}` | jugador | Tras su introducción y su 3-2-1 (encargo lobby-diseño, §2.1): sale del lobby y aparece en la habitación inicial. El PRIMERO que entra pasa la fase a `playing`, fija `startedAt`/`endsAt` y dispara `on_game_start`. `INVALID_STATE` antes de «Empezar» o con la partida terminada; idempotente si ya está en el mapa |
 | `leave` | `{}` | cualquiera | Sale de la partida (**no implementado**: hoy solo se sale cerrando la conexión, C-13) |
 

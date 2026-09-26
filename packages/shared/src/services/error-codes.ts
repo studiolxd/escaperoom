@@ -54,6 +54,10 @@ export const EVENT_PANEL_ERROR_CODES = [
   "SESSION_NOT_FOUND",
   "SESSION_NOT_LIVE",
   "SPECTATOR_UNAVAILABLE",
+  /** "Comenzar todos" (ticket "inicio conjunto") sin la opción activa en el evento. */
+  "NOT_APPLICABLE",
+  /** Colyseus no respondió a "Comenzar todos" (caído o sin configurar). */
+  "START_ALL_UNAVAILABLE",
 ] as const;
 export type EventPanelErrorCode = (typeof EVENT_PANEL_ERROR_CODES)[number];
 

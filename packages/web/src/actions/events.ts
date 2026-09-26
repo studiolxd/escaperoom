@@ -1,9 +1,15 @@
 "use server";
 
 import { headers } from "next/headers";
-import { AccessKeyError, EventError, type EnqueueResult } from "@escaperoom/shared/services";
+import {
+  AccessKeyError,
+  EventError,
+  EventPanelError,
+  type EnqueueResult,
+  type GroupStartResult,
+} from "@escaperoom/shared/services";
 import { resolveActorFromHeaders } from "@/server/context";
-import { getEventService, getInvitationService } from "@/server/services";
+import { getEventPanelService, getEventService, getInvitationService } from "@/server/services";
 import {
   actionError,
   actionOk,
@@ -92,6 +98,54 @@ export async function updateEventTimeLimit(
     });
   } catch (err) {
     if (err instanceof EventError) return actionError(err.code, err.message, err.issues);
+    throw err;
+  }
+}
+
+/**
+ * Ticket "inicio conjunto": el organizador activa/desactiva "Todos los
+ * grupos comienzan juntos" desde su panel. Mismo `EventService.setAllGroupsStartTogether`
+ * que un futuro `PATCH` dedicado; a diferencia de `updateEventTimeLimit`,
+ * funciona en `draft` Y en `active` — solo se bloquea (`EVENT_NOT_EDITABLE`)
+ * en cuanto algún grupo del evento ha empezado a jugar.
+ */
+export async function setAllGroupsStartTogether(
+  eventId: string,
+  enabled: boolean,
+): Promise<ActionResult<{ allGroupsStartTogether: boolean }>> {
+  const hdrs = await headers();
+  const actor = await resolveActorFromHeaders(hdrs);
+
+  try {
+    const event = await getEventService().setAllGroupsStartTogether(actor, eventId, enabled);
+    return actionOk({ allGroupsStartTogether: event.config.allGroupsStartTogether === true });
+  } catch (err) {
+    if (err instanceof EventError) return actionError(err.code, err.message, err.issues);
+    throw err;
+  }
+}
+
+/**
+ * "Comenzar todos"/"Comenzar igualmente" (ticket "inicio conjunto", specs/11
+ * §4.1/§4.5, specs/19 §2): mismo `EventPanelService.startAllGroups` que
+ * `POST /api/events/:id/start-all` (que sigue existiendo). Cuota
+ * `event-start-all`, igual que la ruta REST.
+ */
+export async function startAllGroups(
+  eventId: string,
+  force: boolean,
+): Promise<ActionResult<GroupStartResult[]>> {
+  const rateLimit = await consumeActionRateLimit("event-start-all");
+  if (!rateLimit.ok) return rateLimitedActionError();
+
+  const hdrs = await headers();
+  const actor = await resolveActorFromHeaders(hdrs);
+
+  try {
+    const groups = await getEventPanelService().startAllGroups(actor, eventId, { force });
+    return actionOk(groups);
+  } catch (err) {
+    if (err instanceof EventPanelError) return actionError(err.code, err.message);
     throw err;
   }
 }

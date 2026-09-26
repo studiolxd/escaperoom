@@ -24,7 +24,7 @@ generada —, donde los jugadores ya aparecen, se mueven con su avatar y se ven.
 | Prueba de micro y cámara | Solo si la partida usa voz/vídeo (token de medios configurado y con permiso de publicar) | Abre el dispositivo LOCALMENTE (vista previa silenciada + nivel del micro); no publica nada en la sala |
 | Chat | El chat de la partida (el existente) | Funciona en cualquier fase |
 | Invitación | «Copiar invitación» (sin QR), solo en partida B2C (en un evento el jugador llega con su clave) | El enlace lleva el `gameToken` en el **fragmento** (nunca llega al servidor web ni a sus logs) y solo sirve para unirse a ESTA partida — también si ya empezó (entrada tardía) |
-| Empezar | «Empezar» (todos «Listo») o «Empezar igualmente» (con confirmación) | Solo el **anfitrión**; nunca por debajo de `players.min` conectados (se avisa y no se ofrece). No hace falta llenar el cupo máximo |
+| Empezar | «Empezar» (todos «Listo») o «Empezar igualmente» (con confirmación) | Solo el **anfitrión**; nunca por debajo de `players.min` conectados (se avisa y no se ofrece). No hace falta llenar el cupo máximo. Con "Todos los grupos comienzan juntos" activo en el evento (`11` §2.2), el anfitrión no ve este control: ve «Esperando a que el organizador inicie la partida» |
 
 **Transición:** «Empezar» envía `start_game` (`lobby → starting`); esta pantalla no valida nada,
 delega en el servidor. Después cada jugador ve la **introducción** de la sala (texto o vídeo, la
@@ -37,9 +37,10 @@ estrictamente en vivo.
 
 | Región | Contenido | Decisión de diseño |
 |---|---|---|
-| Cabecera | Nombre del evento, sala usada, nº de sesiones activas, ajuste de **duración de partida** (ticket duración-salas) | El ajuste de duración (`Dialog` de shadcn/ui, minutos o "sin duración") solo aparece mientras el evento está en `draft` (antes de activarlo); avisa (no bloquea) si acorta por debajo del `estimatedMinutes` de la sala |
+| Cabecera | Nombre del evento, sala usada, nº de sesiones activas, ajuste de **duración de partida** (ticket duración-salas) y de **"Todos los grupos comienzan juntos"** (ticket "inicio conjunto") | El ajuste de duración (`Dialog` de shadcn/ui, minutos o "sin duración") solo aparece mientras el evento está en `draft` (antes de activarlo); avisa (no bloquea) si acorta por debajo del `estimatedMinutes` de la sala. El de "inicio conjunto" (`Switch` de shadcn/ui) es editable en `draft` Y en `active`, hasta que algún grupo empiece a jugar |
 | Métricas resumen | Sesiones, claves usadas, tiempo medio, pistas por grupo | Las mismas métricas de `progressEvent` — el panel no calcula nada que no esté ya en la analítica de producto |
-| Listado de sesiones | Una fila por sesión: nombre del grupo, barra de progreso (puzzles resueltos / total), estado, acción | Tres acciones: `observar` (sesión en curso → entra como `SpectatorRoom`), `ver replay` (sesión terminada → reconstruida de `progressEvent`, la bitácora de eventos anti-cheat, no un vídeo), sin acción si no ha empezado |
+| Listado de sesiones | Una fila por sesión: nombre del grupo, barra de progreso (puzzles resueltos / total), estado, acción, y — con "inicio conjunto" activo — conectados/mínimo y "Listos" en vivo | Tres acciones: `observar` (sesión en curso → entra como `SpectatorRoom`), `ver replay` (sesión terminada → reconstruida de `progressEvent`, la bitácora de eventos anti-cheat, no un vídeo), sin acción si no ha empezado |
+| "Comenzar todos" | Solo visible con "inicio conjunto" activo | Sin `force`: todo o nada — si algún grupo no cumple mínimo/"Listo", no arranca ninguno y se muestra el aviso con el detalle por grupo y tres opciones (`Dialog` de shadcn/ui): Esperar, Refrescar estado, Comenzar igualmente. "Comenzar igualmente" arranca todo grupo con algún conectado (salta el mínimo), salvo los vacíos |
 | Pie de panel | Reenviar claves pendientes, exportar PDF | Acciones directas sobre `POST /api/access-keys/:code/resend` y `POST /api/events/:id/access-keys/export-pdf` |
 
 **Nota:** *observar* nunca añade un jugador a la partida (observador de solo lectura) — es una

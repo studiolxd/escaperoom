@@ -18,6 +18,7 @@ import {
   createInMemoryInvitationStore,
   createInMemoryLiveProgressSource,
   createInMemoryPricingTierStore,
+  createInMemoryStartAllGroupsSource,
   createPricingTierService,
   csvCell,
   eventProgressBearer,
@@ -32,6 +33,7 @@ import {
   type RankableProgress,
   type SessionLiveProgress,
   type SessionSeats,
+  type StartAllGroupsSource,
 } from "../src/services";
 
 /** DPA firmado (5.11): el panel no depende de él. */
@@ -68,6 +70,8 @@ function live(
     puzzlesTotal: 9,
     hintsUsed: 0,
     players: 3,
+    minPlayers: 2,
+    readyCount: 3,
     startedAt: T0.getTime(),
     endedAt: null,
     elapsedMs: 60_000,
@@ -208,7 +212,9 @@ describe("export CSV", () => {
   });
 });
 
-async function setup(opts: { spectator?: boolean } = {}) {
+async function setup(
+  opts: { spectator?: boolean; startAll?: StartAllGroupsSource; allGroupsStartTogether?: boolean } = {},
+) {
   const pricing = createPricingTierService({
     store: createInMemoryPricingTierStore({
       adminIds: [],
@@ -252,12 +258,13 @@ async function setup(opts: { spectator?: boolean } = {}) {
     invitations: createInMemoryInvitationStore({ keys: store }),
     keyCounts: async (eventId) => countKeys(store.keys.filter((k) => k.eventId === eventId)),
     live: source,
+    startAll: opts.startAll,
     spectator: opts.spectator === false ? null : { secret: SECRET, ttlSeconds: 900 },
     colyseusEndpoint: "ws://colyseus.test",
     roomName: "event",
     now: () => now,
   });
-  const event = await events.createEvent(organizer, {
+  const created = await events.createEvent(organizer, {
     roomVersionId: VERSION,
     title: "Jornada",
     maxSimultaneousSessions: 2,
@@ -266,6 +273,10 @@ async function setup(opts: { spectator?: boolean } = {}) {
     expiryRules: [],
     playersPlanned: 6,
   });
+  const event =
+    opts.allGroupsStartTogether === undefined
+      ? created
+      : await events.setAllGroupsStartTogether(organizer, created.id, opts.allGroupsStartTogether);
   const { sessions } = await accessKeys.activateEvent(organizer, event.id);
   return { panel, source, event, sessions, now };
 }
@@ -403,5 +414,60 @@ describe("fuente HTTP del progreso (ruta interna de Colyseus)", () => {
       }) as typeof fetch,
     });
     expect(await down.forEvent("e")).toBeNull();
+  });
+});
+
+describe('"Comenzar todos" (ticket "inicio conjunto")', () => {
+  it("solo con la opción activa en el evento", async () => {
+    const startAll = createInMemoryStartAllGroupsSource(() => ({ groups: [] }));
+    const { panel, event } = await setup({ startAll, allGroupsStartTogether: false });
+    await expect(panel.startAllGroups(organizer, event.id, { force: false })).rejects.toMatchObject(
+      { code: "NOT_APPLICABLE" },
+    );
+    expect(startAll.calls).toEqual([]);
+  });
+
+  it("delega en la fuente y devuelve su detalle por grupo", async () => {
+    const startAll = createInMemoryStartAllGroupsSource((_eventId, opts) => ({
+      groups: [
+        { sessionId: "s1", status: opts.force ? "started" : "not_ready", connected: 1, ready: 0, min: 1 },
+      ],
+    }));
+    const { panel, event } = await setup({ startAll, allGroupsStartTogether: true });
+
+    const blocked = await panel.startAllGroups(organizer, event.id, { force: false });
+    expect(blocked).toEqual([
+      { sessionId: "s1", status: "not_ready", connected: 1, ready: 0, min: 1 },
+    ]);
+    const started = await panel.startAllGroups(organizer, event.id, { force: true });
+    expect(started[0]).toMatchObject({ status: "started" });
+    expect(startAll.calls).toEqual([
+      { eventId: event.id, force: false },
+      { eventId: event.id, force: true },
+    ]);
+  });
+
+  it("sin fuente configurada, o si Colyseus no responde, START_ALL_UNAVAILABLE", async () => {
+    const { panel: withoutSource, event: e1 } = await setup({ allGroupsStartTogether: true });
+    await expect(
+      withoutSource.startAllGroups(organizer, e1.id, { force: false }),
+    ).rejects.toMatchObject({ code: "START_ALL_UNAVAILABLE" });
+
+    const down = createInMemoryStartAllGroupsSource(() => null);
+    const { panel, event } = await setup({ startAll: down, allGroupsStartTogether: true });
+    await expect(panel.startAllGroups(organizer, event.id, { force: false })).rejects.toMatchObject(
+      { code: "START_ALL_UNAVAILABLE" },
+    );
+  });
+
+  it("solo el organizador del evento", async () => {
+    const startAll = createInMemoryStartAllGroupsSource(() => ({ groups: [] }));
+    const { panel, event } = await setup({ startAll, allGroupsStartTogether: true });
+    await expect(panel.startAllGroups(other, event.id, { force: false })).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    await expect(
+      panel.startAllGroups(ANONYMOUS_ACTOR, event.id, { force: false }),
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 });

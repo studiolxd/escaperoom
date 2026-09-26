@@ -20,6 +20,7 @@ function makeSnapshot(overrides: Partial<GameSnapshot> = {}): GameSnapshot {
     roomPackageId: "room-rey-aldric",
     roomPackageVersion: "1",
     hostId: "p1",
+    organizerControlsStart: false,
     clock: 0,
     startedAt: 0,
     endsAt: 0,

@@ -332,6 +332,7 @@ export function GameSessionShell({
           players={snapshot.players}
           self={snapshot.self}
           isHost={hud.isHost}
+          organizerControlsStart={snapshot.organizerControlsStart}
           onSelectCharacter={(characterId) => client.selectCharacter(characterId)}
           onToggleReady={(ready) => client.setReady(ready)}
           onStart={(force) => client.startGame(force)}

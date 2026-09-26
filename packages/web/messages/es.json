@@ -1071,6 +1071,7 @@
       "markReady": "Marcarme como listo",
       "ready": "Listo ✓",
       "waitingHost": "Esperando a que el anfitrión empiece…",
+      "waitingOrganizer": "Esperando a que el organizador inicie la partida…",
       "invite": "Copiar link de invitación",
       "copied": "¡Link copiado!",
       "you": "tú",
@@ -1403,7 +1404,8 @@
       "hints": "Pistas",
       "players": "Jugadores",
       "playersValue": "{online} en línea · {occupied}/{capacity} plazas",
-      "action": "Acción"
+      "action": "Acción",
+      "readiness": "Mín. {min} · {ready} listos"
     },
     "states": {
       "not_started": "Sin empezar",
@@ -1439,7 +1441,9 @@
       "SESSION_NOT_LIVE": "Esa sesión no tiene ninguna partida en curso.",
       "SPECTATOR_UNAVAILABLE": "El modo observador no está disponible ahora mismo.",
       "NO_PRINTABLE_KEYS": "No hay claves que imprimir.",
-      "UNKNOWN": "Algo ha fallado. Inténtalo de nuevo en unos segundos."
+      "UNKNOWN": "Algo ha fallado. Inténtalo de nuevo en unos segundos.",
+      "NOT_APPLICABLE": "Este evento no tiene activado «Todos los grupos comienzan juntos».",
+      "START_ALL_UNAVAILABLE": "No se pudo contactar con el servidor de partida. Inténtalo de nuevo."
     },
     "observer": {
       "title": "Modo observador",
@@ -1485,6 +1489,22 @@
       "split_clue": "Pista repartida",
       "pipes": "Tuberías",
       "combine_items": "Combinar objetos"
+    },
+    "allGroupsStart": {
+      "label": "Todos los grupos comienzan juntos",
+      "hint": "El anfitrión de cada grupo no podrá empezar por su cuenta: solo tú, desde aquí.",
+      "lockedHint": "Ya hay grupos jugando: no se puede cambiar esta opción."
+    },
+    "startAll": {
+      "button": "Comenzar todos",
+      "starting": "Comenzando…",
+      "notReadyTitle": "No todos los grupos están listos",
+      "notReadyDescription": "Estos grupos no cumplen el mínimo o «Listo» todavía:",
+      "detailMinNotMet": "{name}: {connected}/{min} jugadores",
+      "detailNotReady": "{name}: {missing} sin listo",
+      "wait": "Esperar",
+      "refresh": "Refrescar estado",
+      "forceButton": "Comenzar igualmente"
     }
   },
   "Moderation": {

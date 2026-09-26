@@ -19,6 +19,12 @@ export interface LobbyPanelProps {
   players: readonly GamePlayerSnapshot[];
   self: GamePlayerSnapshot;
   isHost: boolean;
+  /**
+   * "Todos los grupos comienzan juntos" (evento, ticket "inicio conjunto"):
+   * con la opción activa, el anfitrión no ve "Empezar" — solo el organizador
+   * puede arrancar la partida desde su panel.
+   */
+  organizerControlsStart: boolean;
   onSelectCharacter: (characterId: string) => void;
   onToggleReady: (ready: boolean) => void;
   /** `force = true` es "Empezar igualmente" (nunca por debajo del mínimo, lo valida el servidor). */
@@ -43,6 +49,11 @@ export interface LobbyPanelProps {
  * micrófono/cámara, "Copiar invitación" y, solo para el anfitrión,
  * «Empezar» / «Empezar igualmente» (C-13, el servidor manda). La partida y
  * el playtest (red y local) pasan por aquí igual.
+ *
+ * "Todos los grupos comienzan juntos" (evento, ticket "inicio conjunto"):
+ * con `organizerControlsStart` activo, el anfitrión no ve "Empezar" en
+ * absoluto — solo el mensaje de que espera al organizador (`start_game` del
+ * anfitrión se rechaza igualmente en el servidor).
  */
 export function LobbyPanel({
   meta,
@@ -51,6 +62,7 @@ export function LobbyPanel({
   players,
   self,
   isHost,
+  organizerControlsStart,
   onSelectCharacter,
   onToggleReady,
   onStart,
@@ -209,7 +221,11 @@ export function LobbyPanel({
         >
           {self.ready ? t("lobby.ready") : t("lobby.markReady")}
         </Button>
-        {isHost ? (
+        {isHost && organizerControlsStart ? (
+          <p className="text-sm text-white/60" data-testid="lobby-waiting-organizer">
+            {t("lobby.waitingOrganizer")}
+          </p>
+        ) : isHost ? (
           belowMinimum ? (
             <p className="text-xs text-amber-200" data-testid="lobby-below-minimum">
               {t("lobby.belowMinimum", { min: meta.players.min })}

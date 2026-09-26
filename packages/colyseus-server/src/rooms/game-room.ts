@@ -271,7 +271,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   /** C-8: Colyseus corta al cliente que supere esto, aunque ignore el rate limit de la app. */
   override maxMessagesPerSecond = 60;
 
-  private roomPackage!: RoomPackage;
+  /** `protected`: `EventRoom` las lee para el arranque conjunto del organizador (ticket "inicio conjunto"). */
+  protected roomPackage!: RoomPackage;
   /** Sala de espera de la partida (la diseñada o la generada por `withLobbyRoom`). */
   private lobbyRoomId = "";
   /**
@@ -280,7 +281,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
    * parado hasta que el PRIMER jugador entra al mapa (`enter_map`).
    */
   private launched = false;
-  private session?: RoomSession;
+  protected session?: RoomSession;
   private createdAt = 0;
   private seed = 0;
   private ended = false;
@@ -797,6 +798,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     puzzlesTotal: number;
     hintsUsed: number;
     players: number;
+    /** Mínimo de `meta.players.min` (inicio conjunto, panel del organizador). */
+    minPlayers: number;
+    /** Conectados con "Listo" marcado (inicio conjunto, panel del organizador). */
+    readyCount: number;
     startedAt: number | null;
     endedAt: number | null;
     elapsedMs: number;
@@ -805,10 +810,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     const now = this.logicalNow();
     const started = Boolean(game?.flags.game_started);
     const endedAt = started && game?.endedAt !== undefined ? game.endedAt : null;
-    let players = 0;
-    this.state.players.forEach((player) => {
-      if (player.connected) players += 1;
-    });
+    const { connected, ready, min } = this.readiness();
     return {
       phase: (LIVE_PHASES as readonly string[]).includes(this.state.phase)
         ? (this.state.phase as LivePhase)
@@ -817,7 +819,9 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       puzzlesSolved: game ? solvedPuzzleIds(game).length : 0,
       puzzlesTotal: this.roomPackage.puzzles.length,
       hintsUsed: game ? Object.values(game.hintsUsed).reduce((sum, cost) => sum + cost, 0) : 0,
-      players,
+      players: connected,
+      minPlayers: min,
+      readyCount: ready,
       startedAt: started && game ? this.createdAt + game.startedAt : null,
       endedAt: endedAt !== null ? this.createdAt + endedAt : null,
       elapsedMs: started && game ? Math.max(0, (endedAt ?? now) - game.startedAt) : 0,
@@ -1139,6 +1143,24 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   /**
+   * Conectados, "Listos" y mínimo exigido (specs/11 §4.1): lo usa
+   * `EventRoom.organizerStartGroup` (inicio conjunto del organizador, ticket
+   * "inicio conjunto") y `progressCounters` (panel del organizador en vivo).
+   * `handleStart`/`startFromLobby` cuentan por su cuenta (no dependen de
+   * este helper) para no arrastrar el ticket a su propia lógica.
+   */
+  protected readiness(): { connected: number; ready: number; min: number } {
+    let connected = 0;
+    let ready = 0;
+    this.state.players.forEach((player) => {
+      if (!player.connected) return;
+      connected += 1;
+      if (player.ready) ready += 1;
+    });
+    return { connected, ready, min: this.roomPackage.meta.players.min };
+  }
+
+  /**
    * C-13 (decisiones del usuario): "Empezar" exige que TODOS los conectados
    * estén "Listo"; "Empezar igualmente" (`force`) se salta eso pero NUNCA
    * arranca por debajo de `meta.players.min` conectados — ni con `force`.
@@ -1152,6 +1174,18 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       );
       return;
     }
+    // Ticket "inicio conjunto": con la opción activa, el anfitrión no puede
+    // arrancar su grupo por su cuenta (defensa en profundidad — el cliente ya
+    // le oculta "Empezar" y muestra "Esperando al organizador"); solo
+    // `EventRoom.organizerStartGroup` puede.
+    if (this.state.organizerControlsStart) {
+      this.fail(
+        client,
+        GAME_ERRORS.permissionDenied,
+        "Solo el organizador puede iniciar esta partida (inicio conjunto).",
+      );
+      return;
+    }
     const result = this.startFromLobby({ force: data.force });
     if (!result.ok) this.fail(client, result.code, result.message);
   }
@@ -1160,16 +1194,18 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
    * Cierra el lobby y lanza la partida (encargo lobby-diseño; C-13 para las
    * reglas): exige a TODOS los conectados «Listo» salvo `force` («Empezar
    * igualmente»), y NUNCA arranca por debajo de `meta.players.min`
-   * conectados — ni con `force`. No arranca el reloj: la fase pasa a
-   * `starting` y cada jugador ve su introducción y su 3-2-1; el reloj
-   * arranca cuando el PRIMERO entra al mapa (`enter_map`).
+   * conectados — ni con `force`, salvo `skipMinimum` (ticket "inicio
+   * conjunto": únicamente `EventRoom.organizerStartGroup` lo pasa, para
+   * "Comenzar igualmente" del organizador — nunca el anfitrión). No arranca
+   * el reloj: la fase pasa a `starting` y cada jugador ve su introducción y
+   * su 3-2-1; el reloj arranca cuando el PRIMERO entra al mapa (`enter_map`).
    *
    * Público y sin cliente a propósito: el inicio conjunto de todos los grupos
    * de un evento ("Todos los grupos comienzan juntos") lo invoca desde fuera
    * de la room (p. ej. `matchMaker.remoteRoomCall(roomId, "startFromLobby",
    * [{ force: true }])`). El anfitrión lo dispara con `start_game`.
    */
-  startFromLobby(options: { force?: boolean } = {}): StartFromLobbyResult {
+  startFromLobby(options: { force?: boolean; skipMinimum?: boolean } = {}): StartFromLobbyResult {
     if (this.launched || this.state.phase !== "lobby" || !this.session) {
       return { ok: false, code: GAME_ERRORS.invalidState, message: "La partida ya ha empezado." };
     }
@@ -1177,7 +1213,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.state.players.forEach((player) => {
       if (player.connected) connected.push(player);
     });
-    if (connected.length < this.roomPackage.meta.players.min) {
+    if (!options.skipMinimum && connected.length < this.roomPackage.meta.players.min) {
       return {
         ok: false,
         code: GAME_ERRORS.minPlayersNotMet,

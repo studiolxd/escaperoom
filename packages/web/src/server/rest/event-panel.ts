@@ -1,10 +1,13 @@
+import { z } from "zod";
 import {
   EventPanelError,
   type Actor,
   type EventPanelErrorCode,
   type EventPanelService,
 } from "@escaperoom/shared/services";
-import { handleDomainErrors, NO_STORE } from "./_http";
+import { errorResponse, handleDomainErrors, NO_STORE, readJson } from "./_http";
+
+const StartAllBody = z.object({ force: z.boolean().optional().default(false) });
 
 /** Dependencias inyectables de los handlers del panel (testeables sin Postgres ni Colyseus). */
 export type EventPanelHandlerDeps = {
@@ -22,6 +25,8 @@ const STATUS_BY_CODE: Record<EventPanelErrorCode, number> = {
   SESSION_NOT_FOUND: 404,
   SESSION_NOT_LIVE: 409,
   SPECTATOR_UNAVAILABLE: 503,
+  NOT_APPLICABLE: 409,
+  START_ALL_UNAVAILABLE: 503,
 };
 
 /** Traduce errores de dominio a la forma de error REST (specs/13 §1). */
@@ -67,6 +72,21 @@ export function createEventPanelHandlers(deps: EventPanelHandlerDeps) {
         const actor = await deps.resolveActor(request);
         const ticket = await deps.panel.issueSpectatorTicket(actor, id, sessionId);
         return Response.json(ticket, { headers: NO_STORE });
+      });
+    },
+
+    /**
+     * `POST /api/events/:id/start-all` — "Comenzar todos" / "Comenzar
+     * igualmente" (ticket "inicio conjunto"). Cuerpo opcional `{force}`.
+     */
+    async postStartAll(request: Request, ctx: EventPanelRouteContext): Promise<Response> {
+      return handle(async () => {
+        const { id } = await ctx.params;
+        const actor = await deps.resolveActor(request);
+        const body = StartAllBody.safeParse(await readJson(request, { allowEmpty: true }));
+        if (!body.success) return errorResponse("VALIDATION_ERROR", "Cuerpo inválido", 422);
+        const groups = await deps.panel.startAllGroups(actor, id, { force: body.data.force });
+        return Response.json({ groups }, { headers: NO_STORE });
       });
     },
   };
