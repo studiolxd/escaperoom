@@ -302,12 +302,14 @@ export function remainingMs(snapshot: GameSnapshot): number | null {
  * como presentación mínima cuando la sala no tiene cuenta atrás
  * (`remainingMs` devuelve `null`) — nunca "00:00". `null` antes de empezar.
  *
- * Comprueba `phase`, no la verdad de `startedAt`: el reloj lógico del
- * cliente/servidor empieza en 0 en cada partida, así que una partida que
- * arranca en el mismísimo tick en que se crea (posible en los tests, con
- * `Date.now()` de resolución de milisegundo) tiene `startedAt === 0` — un
- * valor legítimo, no "sin fijar". Confundirlo con "sin empezar" hacía
- * intermitente el HUD de una sala sin duración justo al empezar.
+ * "Antes de empezar" se decide por `phase` (`"lobby"`), no por si
+ * `startedAt` es *truthy*: en el cliente local (`createLocalGameClient`),
+ * `startedAt` es tiempo lógico relativo a la creación del cliente
+ * (`session/local.ts`), así que una partida iniciada en el mismo instante en
+ * que se crea el cliente (habitual en tests síncronos, y visto de forma
+ * intermitente en CI) tiene legítimamente `startedAt === 0` — antes se leía
+ * como "sin empezar" y el HUD no pintaba ni el cronómetro ni el tiempo
+ * transcurrido.
  */
 export function elapsedMs(snapshot: GameSnapshot): number | null {
   if (snapshot.phase === "lobby") return null;

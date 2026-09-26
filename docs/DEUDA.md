@@ -277,15 +277,24 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `public/`, credenciales y quién lo ejecuta (script manual o paso de CI). Decidir
       también el almacenamiento definitivo de los binarios de la herramienta (`fuentes/`,
       `entregas/`, `referencias/`, hoy solo en local y con copia en `pipeline-assets`).
-- [ ] **No enviar al cliente de red el contenido oculto de los objetos (auditoría D-26).**
-      El loader del runtime (`game-runtime` `load.ts`) sigue mandando al cliente de una
-      partida en red `RuntimeObject.inventory` y `hidingSpot.contains`, con lo que un
-      jugador puede ver en el modelo qué esconde cada objeto antes de encontrarlo. Arreglarlo
-      exige separar una proyección "segura para red" del modelo completo, que siguen
-      necesitando el modo local/playtest (`world/distribution.ts`, `world/inspection.ts`,
-      `phaser/room-scene.ts`) y el inspector del editor (`inspector-model.ts`,
-      `schema-form.ts`). Aplazado en el bloque 10 (#163) por ser un cambio de tipos y
-      arquitectura del modelo, no un ajuste puntual.
+- [x] **No enviar al cliente de red el contenido oculto de los objetos (auditoría D-26).**
+      Resuelto (#174). `PublicRuntimeModel`/`PublicRuntimeObject`
+      (`game-runtime` `loader/types.ts`) proyectan el `RuntimeModel` completo
+      sin `inventory` ni `hidingSpot.contains` (`hasHidingSpot`/`inventoryCount`
+      en su lugar, sin decir qué hay) — `hasHidingSpot`/`inventoryCount` son
+      **obligatorios**, a diferencia de los campos que sustituyen, justo para
+      que el compilador impida pasar un `RuntimeModel` completo donde se
+      espera uno público (`toPublicRuntimeModel`, `load.ts`). `buildGameModel`
+      (`web/src/lib/game-model.ts`, todos sus llamantes son partida en red:
+      salas gratis/compradas, `playtest/[token]`, sesión de evento y
+      observador) siempre devuelve la proyección pública; el modo
+      local/playtest (`world/distribution.ts`, `world/inspection.ts`,
+      `phaser/room-scene.ts` con `intentOnly: false`) y el inspector del
+      editor siguen con `toRuntimeModel` a secas. La escena en red ya
+      resolvía la interacción en modo `intentOnly` (nunca leía
+      `object.inventory`); con el tipo público ya ni lo tiene disponible.
+      Test que falla si se cuela `inventory`/`hidingSpot` en la proyección
+      pública del Rey Aldric (`game-runtime` `test/loader.test.ts`).
 - [x] **Mutaciones con `fetch` que quedaron fuera de la migración a server actions (#162).**
       Resuelto. De las diez pantallas, seis migraron a server action (mismo patrón que
       la #162, `server/actions/action-result.ts`: mismos servicios de

@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
-import type { RuntimeModel } from "@escaperoom/game-runtime";
+import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ const MediaOverlay = dynamic(
 const NAME_STORAGE_KEY = "escaperoom:player-name";
 
 export interface NetworkGameProps {
-  model: RuntimeModel;
+  model: PublicRuntimeModel;
   pack?: RoomScenePack;
   target: GameJoinTarget;
   title?: string;

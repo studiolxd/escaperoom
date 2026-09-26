@@ -406,6 +406,7 @@ export function GameSessionShell({
         onTogglePlate={hud.togglePlate}
         onPlacePlatesBridge={hud.placePlatesBridge}
         onPlaceMirror={hud.placeMirror}
+        platesGetNow={hud.serverNow}
         panelTitle={(panel) => (panel === "hints" ? hud.tp("action.hints") : hud.tp("menu.openPanel"))}
         closeLabel={hud.tp("close")}
         loadingLabel={hud.t("hud.loadingPanel")}
