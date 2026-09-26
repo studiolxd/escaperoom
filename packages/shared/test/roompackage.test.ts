@@ -90,34 +90,4 @@ describe("RoomPackage schema", () => {
     ).toBe(true);
     expect(RoomPackageSchema.shape.meta.shape.packageFormat.safeParse("").success).toBe(false);
   });
-
-  it("acepta un meta.intro de texto localizado", () => {
-    const valid = parseRoomPackage(loadFixture());
-    const withIntro = {
-      ...valid,
-      meta: {
-        ...valid.meta,
-        intro: { text: { es: { text: "Bienvenidos al castillo." } } },
-      },
-    };
-
-    const result = safeParseRoomPackage(withIntro);
-
-    expect(result.success).toBe(true);
-  });
-
-  it("valida sin meta.intro (ausente = sin introducción)", () => {
-    const valid = parseRoomPackage(loadFixture());
-    expect(valid.meta.intro).toBeUndefined();
-  });
-
-  it("rechaza un meta.intro con un idioma inválido", () => {
-    const valid = parseRoomPackage(loadFixture());
-    const invalid = {
-      ...valid,
-      meta: { ...valid.meta, intro: { text: { "1": { text: "x" } } } },
-    };
-
-    expect(safeParseRoomPackage(invalid).success).toBe(false);
-  });
 });

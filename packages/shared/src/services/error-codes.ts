@@ -144,20 +144,3 @@ export const PUBLISH_CONFIRM_DISABLED_ERROR = "PUBLISH_CONFIRM_DISABLED" as cons
 
 /** Cuota agotada (`consumeActionRateLimit` en `web`; mismo código que `CHAT_RATE_LIMITED_ERROR`). */
 export const RATE_LIMITED_ERROR = "RATE_LIMITED" as const;
-
-/**
- * `GameRoom.handleStart`/`handleSetReady`/`handleKick` (encargo lobby-c13,
- * specs/11 §4.1/§4.5): códigos de error de protocolo para el lobby,
- * compartidos entre servidor y cliente vía `error` (`GAME_MESSAGES`).
- */
-export const GAME_LOBBY_ERROR_CODES = [
-  /** `start_game`: no está en fase `lobby` o quien lo pide no es el anfitrión. */
-  "NOT_HOST",
-  /** `start_game` sin `force`: hay conectados que aún no están "Listo". */
-  "PLAYERS_NOT_READY",
-  /** `start_game` (con o sin `force`): conectados por debajo de `meta.players.min`. */
-  "MIN_PLAYERS_NOT_MET",
-  /** `kick`: el objetivo no existe, ya no está conectado, o quien lo pide no es el anfitrión. */
-  "KICK_TARGET_INVALID",
-] as const;
-export type GameLobbyErrorCode = (typeof GAME_LOBBY_ERROR_CODES)[number];
