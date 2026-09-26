@@ -73,7 +73,7 @@ import {
   type HintState,
 } from "../hints";
 import { initialRoomOf, type PuzzleDefinition, type PuzzleState, type RoomPackage, type WorldObject } from "../schemas";
-import { buildSessionSummary, type SessionSummary } from "./end-game";
+import { buildSessionSummary, endSession, type SessionSummary } from "./end-game";
 
 /**
  * Sesión de sala (host) — pegamento puro entre el motor de reglas (1.4), las
@@ -638,6 +638,20 @@ export class RoomSession {
   /** Arranca la partida (`on_game_start`): timer, intro y fase `playing`. */
   start(now: number = this.now): EngineResult {
     return this.dispatch({ type: "on_game_start" }, now);
+  }
+
+  /**
+   * Cierra la partida como abandonada (ticket partidas-abandonadas, specs/04
+   * §5): cierre externo sin resultado del motor, para cuando la `GameRoom`
+   * detecta que lleva `ABANDONED_GAME_TIMEOUT_SEC` sin ningún jugador
+   * conectado. Reutiliza `endSession` (idempotente: si la partida ya terminó
+   * no hace nada) mutando el estado del motor en vez de sustituirlo, porque
+   * `Engine.state` no expone un setter.
+   */
+  abort(now: number = this.now): void {
+    const state = this.engine.state;
+    const next = endSession(state, "aborted", now);
+    if (next !== state) Object.assign(state, next);
   }
 
   /**
