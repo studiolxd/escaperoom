@@ -43,6 +43,12 @@ tiempo agotado), nunca por crear la sesión ni por una caída de conexión. Tres
   `gameToken` de la compra, cubierto por el protocolo).
 - **Consumida** (`play_session_ended_at` fijado): definitivo. `playable` nunca vuelve a `true`.
 
+**Excepción (partidas abandonadas, ADR-043, 2026-09-26):** el cierre por abandono —partida
+lanzada sin NINGÚN jugador conectado durante `ABANDONED_GAME_TIMEOUT_SEC` (1 h,
+`11-protocolo-multijugador.md` §8.2)— también es un `game_ended` (resultado `aborted`), pero NO
+consume: libera la reclamación igual que un cierre sin terminar, porque nadie llegó a jugar de
+verdad la partida. Un `game_ended` por victoria, derrota o tiempo agotado sigue consumiendo siempre.
+
 **Caída del servidor sin `onDispose`:** una reclamación "en curso" se trata como libre (se puede
 volver a reclamar) si lleva demasiado sin señales de vida. **Sustituye a la redacción anterior**
 (margen fijo de 2 h sobre `GAME_TIME_LIMIT_SEC` = 1 h): con la duración de sala ahora sin tope
