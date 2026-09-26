@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { loadRuntimeModel } from "@escaperoom/game-runtime";
+import { loadRuntimeModel, toPublicRuntimeModel } from "@escaperoom/game-runtime";
 import type { GameClient, GameSnapshot } from "@escaperoom/game-runtime/session";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -22,7 +22,7 @@ vi.mock("../../src/components/game-session/game-session-canvas", () => ({
   default: () => null,
 }));
 
-const model = loadRuntimeModel(readReyAldricRoomPackageJson());
+const model = toPublicRuntimeModel(loadRuntimeModel(readReyAldricRoomPackageJson()));
 
 function makeSnapshot(overrides: Partial<GameSnapshot> = {}): GameSnapshot {
   return {

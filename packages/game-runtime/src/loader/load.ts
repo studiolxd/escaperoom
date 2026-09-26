@@ -13,6 +13,8 @@ import {
 import { resolveLocalizedText } from "@escaperoom/shared/hints";
 import { RoomPackageLoadError } from "./errors";
 import type {
+  PublicRuntimeModel,
+  PublicRuntimeObject,
   RuntimeDialog,
   RuntimeHint,
   RuntimeItem,
@@ -202,6 +204,43 @@ export function toRuntimeModel(
     puzzles,
     puzzlesById: indexById(puzzles),
     hints,
+  };
+}
+
+/**
+ * Proyecta un `RuntimeModel` completo a la versión que puede viajar a una
+ * partida en red (auditoría D-26): quita `inventory` y `hidingSpot.contains`
+ * de cada objeto, que hoy revelan a cualquiera con las DevTools qué esconde
+ * cada contenedor o escondite antes de que lo encuentre. El servidor
+ * (Colyseus) es quien decide y entrega ese contenido en partida en red; el
+ * modo local sin servidor (playtest, previsualizaciones) y el editor siguen
+ * usando `toRuntimeModel` a secas.
+ */
+export function toPublicRuntimeModel(model: RuntimeModel): PublicRuntimeModel {
+  const objects = model.objects.map(toPublicRuntimeObject);
+  const objectsById = indexById(objects);
+  // Los `RuntimeSubRoom.objects` son las mismas referencias que `model.objects`
+  // (agrupadas por habitación, `load.ts` arriba): hay que proyectarlas también
+  // o la sala en red seguiría recibiendo el contenido oculto por ahí.
+  const subrooms = model.subrooms.map((room) => ({
+    ...room,
+    objects: room.objects.map((object) => objectsById[object.id]!),
+  }));
+  return {
+    ...model,
+    subrooms,
+    subroomsById: indexById(subrooms),
+    objects,
+    objectsById,
+  };
+}
+
+function toPublicRuntimeObject(object: RuntimeObject): PublicRuntimeObject {
+  const { inventory, hidingSpot, ...rest } = object;
+  return {
+    ...rest,
+    hasHidingSpot: hidingSpot !== undefined,
+    inventoryCount: inventory?.length ?? 0,
   };
 }
 

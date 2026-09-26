@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
-import type { RuntimeModel } from "@escaperoom/game-runtime";
+import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
 import { remainingMs, type GameClient } from "@escaperoom/game-runtime/session";
 import { EVENT_PANEL_ERROR_CODES } from "@escaperoom/shared/error-codes";
 import { ConnectionBadge } from "@/components/game-session/connection-badge";
@@ -30,7 +30,7 @@ export function SpectatorGame({
 }: {
   eventId: string;
   sessionId: string;
-  model: RuntimeModel;
+  model: PublicRuntimeModel;
 }) {
   const t = useTranslations("EventPanel");
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -91,7 +91,7 @@ function SpectatorConnection({
   back,
 }: {
   ticket: Ticket;
-  model: RuntimeModel;
+  model: PublicRuntimeModel;
   back: React.ReactNode;
 }) {
   const t = useTranslations("EventPanel");
@@ -137,7 +137,7 @@ function SpectatorConnection({
  * proyección pública que ve un jugador): fase, reloj, jugadores y dónde están,
  * estado de cada puzzle, actividad difundida y chat del grupo.
  */
-export function SpectatorView({ client, model }: { client: GameClient; model: RuntimeModel }) {
+export function SpectatorView({ client, model }: { client: GameClient; model: PublicRuntimeModel }) {
   const t = useTranslations("EventPanel");
   const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const [log, setLog] = useState<Array<{ id: number; text: string }>>([]);
