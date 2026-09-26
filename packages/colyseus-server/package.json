@@ -29,7 +29,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@colyseus/sdk": "0.18.2",
+    "@colyseus/sdk": "0.18.4",
     "@colyseus/testing": "0.18.5",
     "@colyseus/tools": "0.18.3",
     "@escaperoom/config": "workspace:*",
