@@ -100,6 +100,10 @@ describe.skipIf(!process.env.DATABASE_URL)(
       expect(await triggerExists("trgReviewUpdatedAt", "review")).toBe(true);
     });
 
+    it("trgRoomVersionSyncLanguages sigue ahí (E-23, 20260926190000)", async () => {
+      expect(await triggerExists("trgRoomVersionSyncLanguages", "roomVersion")).toBe(true);
+    });
+
     it("review_rating_check admite la escala doblada 2–10 (medios puntos, 20260925160000)", async () => {
       const def = await constraintDef("review_rating_check");
       expect(def).toMatch(/rating >= 2/);
