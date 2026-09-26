@@ -219,6 +219,27 @@ describe("GameSessionShell a partir del estado sincronizado", () => {
     client.dispose();
   });
 
+  it("sala sin duración: el HUD muestra tiempo transcurrido, nunca cuenta atrás (ticket duración-salas)", () => {
+    const unlimitedPackage = { ...roomPackage, meta: { ...roomPackage.meta, timeLimitMinutes: null } };
+    const client = createLocalGameClient(unlimitedPackage, { tickMs: false, name: "Ana" });
+    client.startGame();
+    const { model, pack } = buildGameModel(unlimitedPackage, "es");
+    const html = render(
+      createElement(GameSessionShell, {
+        model,
+        pack,
+        client,
+        connection: { status: "connected", onRetry: () => undefined },
+        inviteUrl: "https://escape.example/es/play?room=abc",
+      }),
+      "es",
+    );
+    expect(html).toContain('data-phase="playing"');
+    expect(html).toContain('data-testid="game-elapsed"');
+    expect(html).not.toContain('data-testid="game-timer"');
+    client.dispose();
+  });
+
   describe("con un cliente de red contra una GameRoom real", () => {
     let server: ReturnType<typeof createGameServer>;
     let url: string;

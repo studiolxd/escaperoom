@@ -18,6 +18,11 @@ const MetaInputSchema = RoomPackageMetaSchema.pick({
 }).extend({
   description: RoomPackageMetaSchema.shape.description.optional(),
   estimatedMinutes: RoomPackageMetaSchema.shape.estimatedMinutes.optional(),
+  /**
+   * Límite de partida (ticket duración-salas, specs/04 §6): omitido = 60 min
+   * por defecto (como hoy); `null` = sin duración; entero positivo = minutos.
+   */
+  timeLimitMinutes: RoomPackageMetaSchema.shape.timeLimitMinutes,
 });
 
 /** Id provisional para comprobar la metadata antes de dar de alta la sala. */
@@ -51,7 +56,7 @@ export const createRoomTool = defineTool({
   name: "create_room",
   title: "Crear sala",
   description:
-    "Crea un draft de sala nuevo con su metadata: título, tema, idiomas, dificultad (1–3) y nº de jugadores. Devuelve el id del draft.",
+    "Crea un draft de sala nuevo con su metadata: título, tema, idiomas, dificultad (1–3), nº de jugadores y, opcionalmente, la duración de partida en minutos (`timeLimitMinutes`: por defecto 60, `null` = sin duración, sin tope máximo). Devuelve el id del draft.",
   phase: "structure",
   ticket: "4.2",
   inputSchema: z.object({ meta: MetaInputSchema, dryRun: DryRunSchema }),

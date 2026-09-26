@@ -56,7 +56,13 @@ function otherPackage(): RoomPackage {
 
 /** Fila de compra en memoria: libre por defecto (ni reclamada ni consumida). */
 function purchaseRow(id: string): InMemoryGameAccessPurchase {
-  return { id, playSessionStartedAt: null, playSessionEndedAt: null, playSessionColyseusId: null };
+  return {
+    id,
+    playSessionStartedAt: null,
+    playSessionEndedAt: null,
+    playSessionColyseusId: null,
+    playSessionHeartbeatAt: null,
+  };
 }
 
 function purchaseToken(purchaseId: string, roomVersionId: string): string {

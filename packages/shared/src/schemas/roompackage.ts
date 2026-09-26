@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { LocalizedTextSchema } from "./common";
 import {
+  DEFAULT_ROOM_TIME_LIMIT_MINUTES,
   MAX_CONTENT_ARRAY_ITEMS,
   MAX_CONTENT_STRING_LENGTH,
   MAX_PLAYERS_PER_ROOM_CEILING,
@@ -52,6 +53,19 @@ export const RoomPackageMetaSchema = z.object({
   languages: z.array(z.string()).min(1).max(MAX_CONTENT_ARRAY_ITEMS),
   defaultLanguage: z.string(),
   estimatedMinutes: z.number(),
+  /**
+   * Límite de partida declarado por la sala, en minutos (ticket
+   * duración-salas, specs/04 §6 y specs/08 §2). Sustituye al antiguo límite
+   * fijo de 1 h (`GAME_TIME_LIMIT_SEC`) — el servidor es siempre quien lo
+   * aplica, nunca el cliente. Tres estados:
+   * - **ausente** (`undefined`): sala publicada antes de este campo —
+   *   retrocompatible con `DEFAULT_ROOM_TIME_LIMIT_MINUTES` (60 min, el
+   *   límite que ya tenían todas).
+   * - **`null`**: sin duración, marcado explícitamente por el creador —
+   *   partida sin límite de tiempo.
+   * - **entero positivo**: el límite en minutos, sin tope máximo.
+   */
+  timeLimitMinutes: z.number().int().positive().nullable().optional(),
   difficulty: DifficultySchema,
   players: PlayersRangeSchema,
   assetsManifest: z.string(),
@@ -93,6 +107,20 @@ export type RoomPackageMeta = z.infer<typeof RoomPackageMetaSchema>;
 export type DialogDef = z.infer<typeof DialogDefSchema>;
 export type HintDef = z.infer<typeof HintDefSchema>;
 export type RoomPackage = z.infer<typeof RoomPackageSchema>;
+
+/**
+ * Resuelve el límite de partida de una sala, en segundos: `undefined` si es
+ * "sin duración" (declarado `null` o, tras un override que la quite, `null`).
+ * `meta.timeLimitMinutes` ausente (sala publicada antes de este campo) cae al
+ * valor por defecto retrocompatible (`DEFAULT_ROOM_TIME_LIMIT_MINUTES`).
+ */
+export function resolveRoomTimeLimitSec(
+  meta: Pick<RoomPackageMeta, "timeLimitMinutes">,
+): number | undefined {
+  const minutes =
+    meta.timeLimitMinutes === undefined ? DEFAULT_ROOM_TIME_LIMIT_MINUTES : meta.timeLimitMinutes;
+  return minutes === null ? undefined : minutes * 60;
+}
 
 /** Valida y devuelve un `RoomPackage`, lanzando un `ZodError` si es inválido. */
 export function parseRoomPackage(input: unknown): RoomPackage {

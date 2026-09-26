@@ -166,8 +166,27 @@ created ──> lobby ──> playing ──> ended
 
 ## 6. Cronómetro, pistas y fin de juego
 
-- **Cronómetro** opcional definido por la sala (`timeLimitSec`; el Rey Aldric usa 3600 s). Se
-  inicia en `on_game_start` con un `start_timer` y termina con `end_game result=timeout`.
+- **Duración de partida** (ticket duración-salas, sustituye a la redacción anterior de este
+  apartado): límite general de tiempo declarado por la sala en `meta.timeLimitMinutes`
+  (`specs/08-formato-roompackage.md` §2) — **opcional, sin tope máximo**. Tres estados:
+  - **ausente** (sala publicada antes de este campo): retrocompatible con 60 min
+    (`DEFAULT_ROOM_TIME_LIMIT_MINUTES`, el límite fijo que ya tenían todas las salas).
+  - **`null`**: sin duración, marcado explícitamente por el creador — partida sin límite de
+    tiempo.
+  - **entero positivo**: el límite en minutos.
+
+  El **servidor** es siempre quien lo aplica (`GameRoom.timeLimitSeconds()`, nunca el cliente); al
+  agotarse dispara `end_game result=timeout` (§8.1 del protocolo). Un **evento** puede sobrescribir
+  este valor para SUS sesiones (`specs/02-modelo-de-negocio.md` §7): más corto, más largo o sin
+  límite, por encima del de la sala.
+- **Cronómetro por reglas** (`start_timer`/`on_timer_end`): mecánica DISTINTA, propia de un puzzle
+  o de una regla concreta de la sala (p. ej. una cuenta atrás de 30 s tras activar una palanca), no
+  el límite general de la partida. Una sala puede tener cero, uno o varios de estos timers de
+  reglas, independientes de `meta.timeLimitMinutes`.
+- **Sin duración — reconexión y compra B2C**: sin límite de tiempo, ni el "en curso" de una compra
+  B2C ni los tokens de reconexión pueden caducar por un plazo fijo pensado para partidas de máximo
+  1 h — ver `specs/11-protocolo-multijugador.md` §8 (latido de la reclamación, TTL del `joinToken`)
+  y `specs/13-api-rest.md` (compra B2C).
 - **Pistas limitadas**: sistema de tiers con coste, definido en la sala (`hints`), consumido por
   `hint_request`. Cada pista usada reduce la puntuación final.
 - **Condición de victoria**: la define el creador con reglas (p. ej. `on_puzzle_solved` del

@@ -174,6 +174,17 @@ export type ExpirySweepResult = {
 /** Puerto de persistencia de claves (ADR-022). */
 export interface AccessKeyStore {
   findEvent(eventId: string): Promise<EventRow | null>;
+  /**
+   * `meta.timeLimitMinutes` de la sala de esa versión (PR #169, cierre del
+   * punto parcial sobre tokens de reconexión de la PR original): la duración
+   * PROPIA de la sala, para cuando el evento no la sobrescribe.
+   * `undefined` = ausente o versión no encontrada (retrocompat: se trata
+   * como 60 min por defecto); `null` = sin duración; número = minutos. La
+   * usa `redeem` (`resolveEventJoinTokenTtlSeconds`) para que el `joinToken`
+   * dure toda la partida aunque sea la SALA, no el evento, la que declare
+   * "sin duración" o una duración larga.
+   */
+  findRoomTimeLimitMinutes(roomVersionId: string): Promise<number | null | undefined>;
   listSessions(eventId: string): Promise<GameSessionRef[]>;
   insertSessions(
     eventId: string,
@@ -906,7 +917,7 @@ export type AccessKeyService = ReturnType<typeof createAccessKeyService>;
  * servicio de 5.4 y genera claves sobre ellos).
  */
 export function createInMemoryAccessKeyStore(opts: {
-  events: Pick<EventStore, "findEvent">;
+  events: Pick<EventStore, "findEvent" | "findRoomVersion">;
 }): AccessKeyStore & {
   keys: AccessKeyRow[];
   sessions: GameSessionRef[];
@@ -948,6 +959,9 @@ export function createInMemoryAccessKeyStore(opts: {
     sessions,
     groups,
     findEvent: (id) => opts.events.findEvent(id),
+    async findRoomTimeLimitMinutes(roomVersionId) {
+      return (await opts.events.findRoomVersion(roomVersionId))?.timeLimitMinutes;
+    },
     async listSessions(eventId) {
       return sessions.filter((s) => s.eventId === eventId).map((s) => ({ ...s }));
     },

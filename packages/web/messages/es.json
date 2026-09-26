@@ -574,6 +574,17 @@
       "errorRange": "El mínimo y el máximo deben estar entre 1 y {ceiling}",
       "errorOrder": "El mínimo no puede ser mayor que el máximo"
     },
+    "duration": {
+      "button": "Duración: {minutes} min",
+      "buttonUnlimited": "Duración: sin límite",
+      "title": "Duración de la partida",
+      "description": "Límite de tiempo de esta sala, sin tope máximo. El servidor lo aplica siempre; el cronómetro por reglas (start_timer) es para mecánicas propias de un puzzle, no para este límite general.",
+      "unlimited": "Sin duración (sin límite de tiempo)",
+      "minutes": "Minutos",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "errorInvalid": "La duración debe ser un número entero de minutos mayor que 0"
+    },
     "tools": {
       "label": "Herramientas",
       "select": "Seleccionar",
@@ -1253,6 +1264,19 @@
       "closed": "Cerrado"
     },
     "activeSessions": "{count, plural, one {# sesión activa} other {# sesiones activas}}",
+    "duration": {
+      "button": "Duración del evento: {minutes} min",
+      "buttonDefault": "Duración del evento: la de la sala",
+      "buttonUnlimited": "Duración del evento: sin límite",
+      "title": "Duración de partida de este evento",
+      "description": "Por encima de la duración de la sala: más corta, más larga o sin límite. Las partidas con esta duración modificada no cuentan en el ranking público y sus reseñas quedan marcadas.",
+      "unlimited": "Sin duración (sin límite de tiempo)",
+      "minutes": "Minutos",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "errorInvalid": "La duración debe ser un número entero de minutos mayor que 0",
+      "warningBelowEstimate": "Esta duración es más corta que el tiempo estimado de la sala."
+    },
     "metrics": {
       "title": "Resumen",
       "keys": "Claves generadas",

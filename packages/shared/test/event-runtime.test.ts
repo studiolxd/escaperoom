@@ -335,7 +335,7 @@ describe("store en memoria: efectos del fin de partida", () => {
       }),
     );
     const status = (code: string) => store.keys.find((k) => k.code === code)!.status;
-    return { runtime, store, event, sessions, groups, groupKeys, status };
+    return { runtime, store, events, event, sessions, groups, groupKeys, status };
   }
 
   const end = (result: "victory" | "timeout" | "aborted", groupIds: string[]) =>
@@ -348,6 +348,77 @@ describe("store en memoria: efectos del fin de partida", () => {
       roomPackage: { meta: { id: fixture.meta.id } },
     });
     await expect(runtime.loadEventPackage("otro")).resolves.toBeNull();
+  });
+
+  it("ticket duración-salas: sin override, timeLimitOverrideMinutes está AUSENTE (no undefined)", async () => {
+    const { runtime, event } = await scenario([]);
+    const loaded = await runtime.loadEventPackage(event.id);
+    expect(loaded).not.toHaveProperty("timeLimitOverrideMinutes");
+  });
+
+  it("ticket duración-salas: propaga el override de duración del evento (número y null)", async () => {
+    // El override se fija mientras el evento está en `draft` (updateEvent lo
+    // exige); se activa DESPUÉS para que `loadEventPackage` (solo eventos
+    // `active`) lo vea ya aplicado.
+    const T0 = new Date("2026-01-01T00:00:00Z");
+    const eventStore = createInMemoryEventStore({
+      roomVersions: [
+        {
+          roomVersionId: VERSION,
+          roomId: "20000000-0000-4000-8000-000000000001",
+          authorId: organizer.userId,
+          roomStatus: "published",
+          saleEvents: true,
+          estimatedMinutes: 120,
+        },
+      ],
+    });
+    const events = createEventService({
+      store: eventStore,
+      pricing: createPricingTierService({
+        store: createInMemoryPricingTierStore({
+          adminIds: [],
+          tiers: [
+            {
+              id: "00000000-0000-4000-8000-000000000001",
+              minPlayers: 1,
+              maxPlayers: null,
+              priceCentsPerPlayer: 100,
+              currency: "EUR",
+              activeFrom: T0,
+              activeUntil: null,
+              createdBy: "seed-admin",
+              createdAt: T0,
+            },
+          ],
+        }),
+      }),
+      payments: createFakePaymentGateway(),
+    });
+    const accessKeyStore = createInMemoryAccessKeyStore({ events: eventStore });
+    const keys = createAccessKeyService({ store: accessKeyStore, events, dpa: DPA });
+    const runtime = createInMemoryEventRuntimeStore({
+      events: eventStore,
+      packages: { [VERSION]: fixture },
+      keys: accessKeyStore,
+    });
+    const event = await events.createEvent(organizer, {
+      roomVersionId: VERSION,
+      title: "Jornada",
+      maxSimultaneousSessions: 2,
+      groupingMode: "specific",
+      requireConfirmation: false,
+      expiryRules: [],
+      playersPlanned: 8,
+    });
+
+    const shortened = await events.updateEvent(organizer, event.id, { timeLimitMinutes: 90 });
+    expect(shortened.timeLimitBelowEstimate).toBe(true); // 90 < 120 (estimatedMinutes)
+
+    await keys.activateEvent(organizer, event.id, { keyPlan: [{ type: "individual", count: 1 }] });
+    await expect(runtime.loadEventPackage(event.id)).resolves.toMatchObject({
+      timeLimitOverrideMinutes: 90,
+    });
   });
 
   it("victoria: cierra la sesión, completa solo los grupos que jugaron y caduca sus claves", async () => {

@@ -31,6 +31,7 @@ import { PlaytestButton } from "./playtest-button";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
 import { RoomEditorInspector } from "./room-editor-inspector";
 import { RoomPlayersDialog } from "./room-players-dialog";
+import { RoomTimeLimitDialog } from "./room-time-limit-dialog";
 import {
   RoomEditorWorkspace,
   type CanvasTab,
@@ -317,6 +318,7 @@ function ValidatedWorkspace({
       headerActions={
         <>
           <RoomPlayersDialog doc={doc} players={pkg.meta.players} />
+          <RoomTimeLimitDialog doc={doc} timeLimitMinutes={pkg.meta.timeLimitMinutes} />
           <Button
             size="sm"
             variant="ghost"

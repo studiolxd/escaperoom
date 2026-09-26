@@ -296,3 +296,14 @@ export function remainingMs(snapshot: GameSnapshot): number | null {
   if (!snapshot.endsAt) return null;
   return Math.max(0, snapshot.endsAt - snapshot.clock);
 }
+
+/**
+ * Tiempo jugado en ms (ticket duración-salas, specs/04 §6): el HUD lo usa
+ * como presentación mínima cuando la sala no tiene cuenta atrás
+ * (`remainingMs` devuelve `null`) — nunca "00:00". `null` antes de empezar
+ * (`startedAt` sin fijar).
+ */
+export function elapsedMs(snapshot: GameSnapshot): number | null {
+  if (!snapshot.startedAt) return null;
+  return Math.max(0, snapshot.clock - snapshot.startedAt);
+}

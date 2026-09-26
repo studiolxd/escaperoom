@@ -64,6 +64,10 @@ async function setup(
     sessions?: number;
     players?: number;
     keyPlan?: KeyPlan;
+    /** Ticket duración-salas: override de duración fijado ANTES de activar (solo se admite en `draft`). */
+    timeLimitMinutes?: number | null;
+    /** PR #169: duración PROPIA de la sala (`meta.timeLimitMinutes`), para cuando el evento no la sobrescribe. */
+    roomTimeLimitMinutes?: number | null;
   } = {},
 ) {
   let clock = new Date("2026-06-01T10:00:00Z");
@@ -80,6 +84,9 @@ async function setup(
         authorId: author.userId,
         roomStatus: "published",
         saleEvents: true,
+        ...(opts.roomTimeLimitMinutes !== undefined
+          ? { timeLimitMinutes: opts.roomTimeLimitMinutes }
+          : {}),
       },
     ],
   });
@@ -111,6 +118,9 @@ async function setup(
     expiryRules: [],
     playersPlanned: opts.players ?? 30,
   });
+  if (opts.timeLimitMinutes !== undefined) {
+    await events.updateEvent(author, event.id, { timeLimitMinutes: opts.timeLimitMinutes });
+  }
   const activation = await keys.activateEvent(
     author,
     event.id,
@@ -223,6 +233,55 @@ describe("joinToken", () => {
   });
 });
 
+describe("redeem — ticket duración-salas: el joinToken dura toda la partida con override", () => {
+  it("sin override ni duración de sala declarada: retrocompat 60 min + margen (por encima del ttlSeconds de 900 s)", async () => {
+    const ctx = await setup();
+    const before = ctx.now().getTime();
+    const result = await ctx.redeem.redeem(ANONYMOUS_ACTOR, { code: ctx.codes[0]! });
+    // 60 min (DEFAULT_ROOM_TIME_LIMIT_MINUTES) + 30 min de margen = 90 min.
+    expect(result.expiresAt.getTime() - before).toBe(90 * 60 * 1000);
+  });
+
+  it("override en minutos: el joinToken dura al menos esa duración + margen", async () => {
+    const ctx = await setup({ timeLimitMinutes: 180 });
+    const before = ctx.now().getTime();
+    const result = await ctx.redeem.redeem(ANONYMOUS_ACTOR, { code: ctx.codes[0]! });
+    // 180 min + 30 min de margen = 210 min, muy por encima del ttlSeconds (900 s) de setup().
+    expect(result.expiresAt.getTime() - before).toBe(210 * 60 * 1000);
+  });
+
+  it("override 'sin duración' (null): el joinToken usa el techo de 24 h", async () => {
+    const ctx = await setup({ timeLimitMinutes: null });
+    const before = ctx.now().getTime();
+    const result = await ctx.redeem.redeem(ANONYMOUS_ACTOR, { code: ctx.codes[0]! });
+    expect(result.expiresAt.getTime() - before).toBe(24 * 60 * 60 * 1000);
+  });
+
+  it("PR #169 — sala SIN duración y SIN override de evento: el joinToken igualmente usa el techo de 24 h (antes se quedaba en el tope de 2 h)", async () => {
+    const ctx = await setup({ roomTimeLimitMinutes: null });
+    const before = ctx.now().getTime();
+    const result = await ctx.redeem.redeem(ANONYMOUS_ACTOR, { code: ctx.codes[0]! });
+    expect(result.expiresAt.getTime() - before).toBe(24 * 60 * 60 * 1000);
+  });
+
+  it("PR #169 — sala con duración de 90 min y SIN override de evento: el TTL sale de la duración de la SALA", async () => {
+    const ctx = await setup({ roomTimeLimitMinutes: 90 });
+    const before = ctx.now().getTime();
+    const result = await ctx.redeem.redeem(ANONYMOUS_ACTOR, { code: ctx.codes[0]! });
+    // 90 min + 30 min de margen = 120 min.
+    expect(result.expiresAt.getTime() - before).toBe(120 * 60 * 1000);
+  });
+
+  it("PR #169 — el override del EVENTO sigue mandando por encima de la duración de la sala", async () => {
+    const ctx = await setup({ roomTimeLimitMinutes: 180, timeLimitMinutes: 45 });
+    const before = ctx.now().getTime();
+    const result = await ctx.redeem.redeem(ANONYMOUS_ACTOR, { code: ctx.codes[0]! });
+    // El override del evento (45 min) manda sobre la duración de la sala (180 min):
+    // 45 + 30 de margen = 75 min, no 210.
+    expect(result.expiresAt.getTime() - before).toBe(75 * 60 * 1000);
+  });
+});
+
 describe("redeem — invitado sin cuenta", () => {
   it("canjea una clave individual: joinToken de la sesión asignada y la clave muere", async () => {
     const ctx = await setup();
@@ -240,7 +299,11 @@ describe("redeem — invitado sin cuenta", () => {
       roomName: "event",
       player: { id: "guest:invitado-1", displayName: "Ana b", guest: true },
     });
-    expect(result.expiresAt.getTime()).toBe(ctx.now().getTime() + 900_000);
+    // Ticket duración-salas (PR #169): sin override de evento ni duración
+    // propia declarada por la sala, el TTL sale del default retrocompatible
+    // (60 min + 30 min de margen = 90 min), no del `ttlSeconds` de 900 s de
+    // `setup()` — ese valor ahora solo actúa como piso (`Math.max`).
+    expect(result.expiresAt.getTime()).toBe(ctx.now().getTime() + 90 * 60 * 1000);
     // El token no lleva la clave en claro.
     expect(result.joinToken).not.toContain(code);
     expect(Buffer.from(result.joinToken.split(".")[1]!, "base64url").toString()).not.toContain(

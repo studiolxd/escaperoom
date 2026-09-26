@@ -31,6 +31,7 @@ interface RoomPackage {
     languages: string[];          // ["es","en"] — multidioma desde el diseño
     defaultLanguage: string;      // "es"
     estimatedMinutes: number;
+    timeLimitMinutes?: number | null;  // ticket duración-salas: opcional/sin tope; null = sin duración
     difficulty: 1 | 2 | 3;
     players: { min: number; max: number };
     assetsManifest: string;       // referencia a R2 (tileset, sprites, audio)

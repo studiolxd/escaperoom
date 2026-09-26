@@ -39,3 +39,31 @@ export async function createMinimalEvent(
     throw err;
   }
 }
+
+/**
+ * Ticket duración-salas (specs/02 §7): el organizador fija SU duración para
+ * el evento, por encima de la de la sala — más corta, más larga o sin
+ * límite (`null`). Mismo `EventService.updateEvent` que `PATCH
+ * /api/events/:id`; solo funciona mientras el evento está en `draft`
+ * (`EVENT_NOT_EDITABLE` si no). `timeLimitBelowEstimate` en la respuesta es
+ * el aviso si el override queda por debajo del `estimatedMinutes` de la
+ * sala — el panel lo muestra, no bloquea el guardado.
+ */
+export async function updateEventTimeLimit(
+  eventId: string,
+  timeLimitMinutes: number | null,
+): Promise<ActionResult<{ timeLimitMinutes?: number | null; timeLimitBelowEstimate: boolean }>> {
+  const hdrs = await headers();
+  const actor = await resolveActorFromHeaders(hdrs);
+
+  try {
+    const event = await getEventService().updateEvent(actor, eventId, { timeLimitMinutes });
+    return actionOk({
+      timeLimitMinutes: event.config.timeLimitMinutes,
+      timeLimitBelowEstimate: event.timeLimitBelowEstimate,
+    });
+  } catch (err) {
+    if (err instanceof EventError) return actionError(err.code, err.message, err.issues);
+    throw err;
+  }
+}

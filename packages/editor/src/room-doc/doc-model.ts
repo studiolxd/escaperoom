@@ -8,7 +8,8 @@ import * as Y from "yjs";
  *
  *   meta: Y.Map
  *     id, title, authorId, version, packageFormat, theme, description,
- *     estimatedMinutes, difficulty, players (JSON), assetsManifest
+ *     estimatedMinutes, timeLimitMinutes (número | null = sin duración),
+ *     difficulty, players (JSON), assetsManifest
  *     languages: Y.Array<string>, defaultLanguage   (3.10, `room-languages.ts`)
  *   map: Y.Map
  *     tileset: string

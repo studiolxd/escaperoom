@@ -14,6 +14,14 @@ export type Review = {
   authorDisplayName: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Ticket duración-salas (specs/21): `true` si el usuario jugó esta sala en
+   * algún evento cuyo organizador modificó la duración de partida
+   * (`event.config.timeLimitMinutes`). Dato para moderación/visualización —
+   * no cambia el aspecto de la reseña, sirve para excluirla del ranking
+   * público cuando exista.
+   */
+  durationOverridden: boolean;
 };
 
 /** Estado de la sala a efectos de reseñas (solo el catálogo publicado admite reseñas). */
@@ -28,11 +36,19 @@ export interface ReviewStore {
   getReviewableRoom(roomId: string): Promise<ReviewableRoom | null>;
   /** ¿Ha comprado (compra `succeeded`) o jugado (progreso registrado) la sala? */
   hasPlayedOrPurchased(userId: string, roomId: string): Promise<boolean>;
+  /**
+   * Ticket duración-salas: ¿alguna partida jugada por el usuario en esta
+   * sala vino de un evento con la duración modificada por el organizador?
+   * Se consulta al escribir la reseña, no al leerla — la marca queda fija en
+   * `durationOverridden` desde ese momento.
+   */
+  hasPlayedWithOverriddenDuration(userId: string, roomId: string): Promise<boolean>;
   upsert(input: {
     userId: string;
     roomId: string;
     rating: number;
     text: string | null;
+    durationOverridden: boolean;
   }): Promise<{ review: Review; created: boolean }>;
   find(userId: string, roomId: string): Promise<Review | null>;
   /** Reseñas de la sala, más recientes (por edición) primero. */
@@ -225,7 +241,16 @@ export function createReviewService(deps: { store: ReviewStore }) {
             : "Solo puede reseñar quien ha jugado o comprado la sala",
         );
       }
-      const { review, created } = await store.upsert({ userId: actor.userId, roomId, ...data });
+      const durationOverridden = await store.hasPlayedWithOverriddenDuration(
+        actor.userId,
+        roomId,
+      );
+      const { review, created } = await store.upsert({
+        userId: actor.userId,
+        roomId,
+        ...data,
+        durationOverridden,
+      });
       const stats = await store.stats(roomId);
       return {
         review,
@@ -244,11 +269,14 @@ export function createInMemoryReviewStore(seed: {
   rooms: ReviewableRoom[];
   /** Pares `userId:roomId` que han jugado o comprado. */
   eligible?: Iterable<string>;
+  /** Pares `userId:roomId` con alguna partida de duración modificada. */
+  overriddenDuration?: Iterable<string>;
   users?: Record<string, string>;
   now?: () => Date;
 }) {
   const rooms = new Map(seed.rooms.map((room) => [room.roomId, room]));
   const eligible = new Set(seed.eligible ?? []);
+  const overriddenDuration = new Set(seed.overriddenDuration ?? []);
   const users = seed.users ?? {};
   const now = seed.now ?? (() => new Date());
   const reviews = new Map<string, Review & { userId: string }>();
@@ -263,6 +291,7 @@ export function createInMemoryReviewStore(seed: {
     authorDisplayName: review.authorDisplayName,
     createdAt: review.createdAt,
     updatedAt: review.updatedAt,
+    durationOverridden: review.durationOverridden,
   });
 
   /** Estadísticas síncronas: también alimentan el listado en memoria. */
@@ -275,10 +304,14 @@ export function createInMemoryReviewStore(seed: {
   const store: ReviewStore & {
     ratingStats: typeof ratingStats;
     markEligible(userId: string, roomId: string): void;
+    markOverriddenDuration(userId: string, roomId: string): void;
   } = {
     ratingStats,
     markEligible(userId, roomId) {
       eligible.add(key(userId, roomId));
+    },
+    markOverriddenDuration(userId, roomId) {
+      overriddenDuration.add(key(userId, roomId));
     },
     async getReviewableRoom(roomId) {
       return rooms.get(roomId) ?? null;
@@ -286,17 +319,21 @@ export function createInMemoryReviewStore(seed: {
     async hasPlayedOrPurchased(userId, roomId) {
       return eligible.has(key(userId, roomId));
     },
-    async upsert({ userId, roomId, rating, text }) {
+    async hasPlayedWithOverriddenDuration(userId, roomId) {
+      return overriddenDuration.has(key(userId, roomId));
+    },
+    async upsert({ userId, roomId, rating, text, durationOverridden }) {
       const existing = reviews.get(key(userId, roomId));
       const at = now().toISOString();
       const next = existing
-        ? { ...existing, rating, text, updatedAt: at }
+        ? { ...existing, rating, text, durationOverridden, updatedAt: at }
         : {
             id: `review-${++seq}`,
             userId,
             roomId,
             rating,
             text,
+            durationOverridden,
             authorDisplayName: users[userId] ?? userId,
             createdAt: at,
             updatedAt: at,

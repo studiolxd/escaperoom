@@ -101,6 +101,12 @@ export class EventRoom extends GameRoom {
   private roomVersionId = "";
   /** `events.config.allowVideo` (C-3, specs/12 §4): techo de vídeo del token LiveKit. */
   private eventAllowVideo = false;
+  /**
+   * `event.config.timeLimitMinutes` (ticket duración-salas): override del
+   * organizador por encima de la duración de la sala. `undefined` = sin
+   * override (usa la de la sala, como `GameRoom`); `null` = "sin duración".
+   */
+  private eventTimeLimitOverrideMinutes?: number | null;
   private recorder?: ProgressRecorder;
   /** Claims de cada jugador que ha entrado (grupo y cuenta para los hitos). */
   private readonly playerClaims = new Map<string, JoinClaims>();
@@ -120,6 +126,18 @@ export class EventRoom extends GameRoom {
 
   protected override loadRoomPackage(): RoomPackage {
     return this.eventPackage;
+  }
+
+  /**
+   * Ticket duración-salas: el override del organizador (si lo hay) pisa la
+   * duración propia de la sala, exactamente como `allowVideo` es un techo
+   * fijado por el evento. Sin override, cae al comportamiento normal de
+   * `GameRoom` (la duración de la sala).
+   */
+  protected override timeLimitSeconds(): number | undefined {
+    const minutes = this.eventTimeLimitOverrideMinutes;
+    if (minutes === undefined) return super.timeLimitSeconds();
+    return minutes === null ? undefined : minutes * 60;
   }
 
   /** La `EventRoom` se autoriza con el `joinToken` del canje, no con `gameToken` (C-4). */
@@ -142,6 +160,9 @@ export class EventRoom extends GameRoom {
     this.eventPackage = loaded.roomPackage;
     this.roomVersionId = loaded.roomVersionId;
     this.eventAllowVideo = loaded.allowVideo;
+    if ("timeLimitOverrideMinutes" in loaded) {
+      this.eventTimeLimitOverrideMinutes = loaded.timeLimitOverrideMinutes;
+    }
     this.recorder = createProgressRecorder(runtime, claims.sessionId);
 
     await super.onCreate(options);

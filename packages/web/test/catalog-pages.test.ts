@@ -133,8 +133,14 @@ beforeEach(async () => {
     ),
   });
   state.actor = member("ana");
-  await store.upsert({ userId: "ana", roomId: ROOM_ID, rating: 5, text: "Brutal </script>" });
-  await store.upsert({ userId: "bruno", roomId: ROOM_ID, rating: 4, text: null });
+  await store.upsert({
+    userId: "ana",
+    roomId: ROOM_ID,
+    rating: 5,
+    text: "Brutal </script>",
+    durationOverridden: false,
+  });
+  await store.upsert({ userId: "bruno", roomId: ROOM_ID, rating: 4, text: null, durationOverridden: false });
 });
 
 /**
