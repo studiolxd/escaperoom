@@ -12,7 +12,11 @@ import {
   type ReactNode,
 } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { resolveIconFrame, type RuntimeModel, type RuntimePuzzle } from "@escaperoom/game-runtime";
+import {
+  resolveIconFrame,
+  type PublicRuntimeModel,
+  type RuntimePuzzle,
+} from "@escaperoom/game-runtime";
 import type { RoomScenePack, WorldSceneEvent } from "@escaperoom/game-runtime/phaser";
 import {
   buildHintView,
@@ -126,7 +130,7 @@ export const KNOWN_ERRORS = new Set<string>([
  * objetos sin estados declarados (decoración interactuable, `""`), que la
  * escena no sabe pintar.
  */
-function declaresState(model: RuntimeModel, objectId: string, state: string): boolean {
+function declaresState(model: PublicRuntimeModel, objectId: string, state: string): boolean {
   return Boolean(state) && (model.objectsById[objectId]?.states.includes(state) ?? false);
 }
 
@@ -134,7 +138,7 @@ const HINT_ERRORS = new Set<string>(["unknown_puzzle", "no_more_tiers", "insuffi
 
 export interface GameSessionShellProps {
   /** Modelo público de la sala (sin soluciones), calculado en servidor. */
-  model: RuntimeModel;
+  model: PublicRuntimeModel;
   pack?: RoomScenePack;
   /** Fuente de estado: la `GameRoom` por red (o la emulación local). */
   client: GameClient;
@@ -184,6 +188,18 @@ export function GameSessionShell({
   const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const snapshotRef = useRef<GameSnapshot>(snapshot);
   snapshotRef.current = snapshot;
+
+  /**
+   * F-43..47 punto 1: desfase entre el reloj lógico del servidor
+   * (`snapshot.clock`) y el reloj del jugador, recalculado en cada snapshot
+   * nuevo. `serverNow()` nunca lee `Date.now()` a secas: sirve para paneles
+   * con cuenta atrás corta (placas) donde el reloj del ordenador desincronizado
+   * haría que la ventana mostrada no coincidiera con la que resuelve el
+   * servidor.
+   */
+  const clockOffsetRef = useRef(0);
+  clockOffsetRef.current = snapshot.clock - Date.now();
+  const serverNow = useCallback(() => Date.now() + clockOffsetRef.current, []);
 
   const firstRoomId = model.subrooms[0]?.id ?? "";
   const self = snapshot.self;
@@ -1219,6 +1235,7 @@ export function GameSessionShell({
                 onTogglePlate={(objectId, active) => togglePlate(activePuzzle.id, objectId, active)}
                 onPlaceBridge={() => placePlatesBridge(activePuzzle.id)}
                 feedback={feedback.plates}
+                getNow={serverNow}
               />
             ) : null}
             {activePuzzle?.type === "sliding_puzzle" && activeView ? (
