@@ -90,17 +90,22 @@ def montar(pack):
     fx = pack.cfg.get("fx", [])
     for png in sorted((ent / "fx/2x").glob("fx-*.png")):
         inv.frames.append(Frame(png.stem, "fx", png, next(f["tamano_1x"] for f in fx if png.stem.startswith(f["key"] + "-"))))
-    # --- avatares: cada personaje con su fragmento (animaciones y origen) de empaquetar_avatar.py ---
+    # --- avatares: cada personaje con su fragmento (animaciones, origen y retrato) de empaquetar_avatar.py /
+    # empaquetar_retrato.py. El glob es "*.png" (no solo "avatar-*.png") para recoger también el retrato
+    # ("retrato-<personaje>.png", empaquetar_retrato.py) y los alias provisionales (empaquetar_avatar_alias.py).
     etiquetas = pack["avatar"]["etiquetas"]
     for d in sorted(p for p in (ent / "avatares").glob("*") if p.is_dir()):
-        for png in sorted((d / "2x").glob("avatar-*.png")):
+        for png in sorted((d / "2x").glob("*.png")):
             inv.frames.append(Frame(png.stem, "avatar", png, grupo=d.name))
         frag = d / "pack.config.fragment.json"
         if frag.exists():
             f = json.loads(frag.read_text())
             inv.animaciones += f.get("anims", [])
             inv.avatar_origen = f.get("avatarOrigin", inv.avatar_origen)
-            inv.avatares += f.get("avatars", [{"id": d.name, "label": etiquetas.get(d.name, {"es": {"text": d.name}})}])
+            defecto = {"id": d.name, "label": etiquetas.get(d.name, {"es": {"text": d.name}})}
+            if "portrait" in f:
+                defecto["portrait"] = f["portrait"]
+            inv.avatares += f.get("avatars", [defecto])
     inv.animaciones += [{"key": f["key"], "frames": [f"{f['key']}-{i}" for i in range(1, f["fotogramas"] + 1)],
                          "frameRate": f["frameRate"], "repeat": f["repeat"]} for f in fx]
     return inv

@@ -71,8 +71,14 @@ for anim_src, (action, fps) in ACTIONS.items():
         anims.append({"key": f"avatar-{CHAR_ID}-{d}-{action}", "frames": names, "frameRate": fps,
                       "repeat": 0 if action == "interact" else -1})
 
-(OUT / CHAR_ID / "pack.config.fragment.json").write_text(
-    json.dumps({"anims": anims, "avatarOrigin": [0.5, round(pivot_frac, 3)]}, indent=2), encoding="utf-8")
+# "portrait" lo genera empaquetar_retrato.py (retrato de cara desde el master); se conserva aquí si ya existe para
+# que una regeneración de los frames (este script) no lo borre.
+ficha_path = PACK.fuentes / "personajes" / CHAR_ID / "ficha.json"
+ficha = json.loads(ficha_path.read_text()) if ficha_path.exists() else {}
+frag = {"anims": anims, "avatarOrigin": [0.5, round(pivot_frac, 3)]}
+if "retrato" in ficha:
+    frag["portrait"] = f"retrato-{CHAR_ID}"
+(OUT / CHAR_ID / "pack.config.fragment.json").write_text(json.dumps(frag, indent=2), encoding="utf-8")
 
 # Hoja de previsualización a 2× sobre claro y oscuro
 order = ["s", "e", "n", "w"]
