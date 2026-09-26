@@ -72,7 +72,11 @@ export function MediaTiles({
 
       {localTile ? (
         <div className="mt-1.5">
-          <MediaTile participant={localTile} track={tracksByIdentity.get(localTile.identity)} />
+          <MediaTile
+            participant={localTile}
+            track={tracksByIdentity.get(localTile.identity)}
+            forceCameraOff={!isCameraEnabled}
+          />
         </div>
       ) : null}
 
@@ -126,9 +130,13 @@ export function MediaTiles({
 interface MediaTileProps {
   participant: Participant;
   track: TrackReference | undefined;
+  /** El propio participante: LiveKit puede seguir publicando el track un
+   * instante tras apagar la cámara (`setCameraEnabled(false)`), así que no
+   * basta con comprobar `track` para decidir si mostrar "Cámara apagada". */
+  forceCameraOff?: boolean;
 }
 
-function MediaTile({ participant, track }: MediaTileProps) {
+function MediaTile({ participant, track, forceCameraOff = false }: MediaTileProps) {
   const t = useTranslations("Media");
   const speaking = useIsSpeaking(participant);
   const label =
@@ -137,15 +145,16 @@ function MediaTile({ participant, track }: MediaTileProps) {
   const micLabel = participant.isMicrophoneEnabled
     ? t("tiles.micStatus.on")
     : t("tiles.micStatus.off");
+  const showVideo = Boolean(track) && !forceCameraOff;
 
   return (
     <div
-      className={`relative aspect-video overflow-hidden rounded-lg border bg-slate-900 ${
+      className={`relative aspect-video overflow-hidden rounded-lg border bg-white/10 ${
         speaking ? "border-emerald-400/70" : "border-white/10"
       }`}
     >
-      {track ? (
-        <VideoTrack trackRef={track} className="h-full w-full object-cover" />
+      {showVideo ? (
+        <VideoTrack trackRef={track!} className="h-full w-full object-cover" />
       ) : (
         <div className="grid h-full w-full place-items-center text-[0.65rem] text-white/40">
           {t("tiles.cameraOff")}

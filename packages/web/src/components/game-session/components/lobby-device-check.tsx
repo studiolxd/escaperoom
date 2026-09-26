@@ -38,8 +38,8 @@ export function LobbyDeviceCheck({ fullWidth = false }: { fullWidth?: boolean })
       </DialogTrigger>
       <DialogContent className="bg-neutral-900 text-white ring-white/10">
         <DialogHeader>
-          <DialogTitle className="sr-only">
-            {t(withCamera ? "lobby.deviceCheck.titleWithCamera" : "lobby.deviceCheck.title")}
+          <DialogTitle>
+            {t(withCamera ? "lobby.deviceCheck.openWithCamera" : "lobby.deviceCheck.open")}
           </DialogTitle>
         </DialogHeader>
         <DeviceCheck withCamera={withCamera} autoStart />

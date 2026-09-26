@@ -157,7 +157,7 @@ describe("<LobbyPanel>", () => {
     expect(screen.getByText(model.meta.title)).toBeInTheDocument();
     expect(screen.getByText("Dificultad media")).toBeInTheDocument();
     expect(screen.getByTestId("lobby-duration")).toHaveTextContent("60 min");
-    expect(screen.getByText("1–8 jugadores")).toBeInTheDocument();
+    expect(screen.getByText("1–8 personas")).toBeInTheDocument();
   });
 
   it("sala sin duración: «Sin límite de tiempo»", () => {
@@ -194,21 +194,37 @@ describe("<LobbyPanel>", () => {
     expect(onKick).toHaveBeenCalledWith("p2");
   });
 
-  it("«Listo» y «Empezar igualmente» con confirmación si faltan «Listo»", async () => {
+  it("el anfitrión debe confirmarse él mismo antes de poder empezar", async () => {
     const user = userEvent.setup();
     const onToggleReady = vi.fn();
-    const onStart = vi.fn();
     renderIntl(
       createElement(LobbyPanel, {
         ...baseProps,
         onToggleReady,
-        onStart,
         players: [player()],
         self: player(),
       }),
     );
+    expect(screen.getByTestId("lobby-host-not-ready")).toBeInTheDocument();
+    expect(screen.queryByTestId("game-start")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("lobby-start-force")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("lobby-ready"));
     expect(onToggleReady).toHaveBeenCalledWith(true);
+  });
+
+  it("«Empezar sin esperar» salta la confirmación de los demás, no la del anfitrión", async () => {
+    const user = userEvent.setup();
+    const onStart = vi.fn();
+    const hostReady = player({ ready: true });
+    const guest = player({ id: "p2", name: "Bruno", isHost: false, isSelf: false, ready: false });
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        onStart,
+        players: [hostReady, guest],
+        self: hostReady,
+      }),
+    );
     expect(screen.queryByTestId("game-start")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("lobby-start-force"));
     await user.click(screen.getByTestId("lobby-start-force-confirm"));

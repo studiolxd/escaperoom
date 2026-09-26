@@ -2,12 +2,20 @@
 
 import type { CSSProperties } from "react";
 import { useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
-import { resolveLocalizedText, type RuntimeMeta } from "@escaperoom/game-runtime";
+import { useTranslations } from "next-intl";
+import type { RuntimeMeta } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import type { GamePlayerSnapshot } from "@escaperoom/game-runtime/session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { CharacterPicker } from "../character-picker";
 
@@ -71,26 +79,25 @@ export function LobbyPanel({
   onCopyInvite,
 }: LobbyPanelProps) {
   const t = useTranslations("Game");
-  const locale = useLocale();
   const [confirmingForce, setConfirmingForce] = useState(false);
-  const [pendingKickId, setPendingKickId] = useState<string | null>(null);
+  const [kickTarget, setKickTarget] = useState<GamePlayerSnapshot | null>(null);
 
   const connected = players.filter((player) => player.connected);
   const allReady = connected.every((player) => player.ready);
   const belowMinimum = connected.length < meta.players.min;
+  // "Empezar sin esperar" salta la confirmación de los DEMÁS, nunca la propia
+  // del anfitrión: no tendría sentido que forzara la partida sin haberse
+  // confirmado él mismo.
+  const hostReady = self.ready;
   const occupied = new Set(
     players
       .filter((player) => !player.isSelf && player.connected)
       .map((player) => player.characterId),
   );
-  const characterName = (characterId: string) => {
-    const avatar = pack?.manifest.avatars?.find((candidate) => candidate.id === characterId);
-    return avatar ? resolveLocalizedText(avatar.label, locale) : characterId;
-  };
 
   return (
     <aside
-      className="pointer-events-auto absolute bottom-4 left-4 top-20 z-20 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 overflow-y-auto rounded-md border border-white/10 p-4 text-white shadow-xl backdrop-blur"
+      className="pointer-events-auto absolute bottom-4 left-4 top-16 z-20 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 overflow-y-auto rounded-md border border-white/10 p-4 text-white shadow-xl backdrop-blur"
       data-testid="game-lobby"
       aria-label={t("lobby.title")}
     >
@@ -107,10 +114,6 @@ export function LobbyPanel({
         <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
           {t("lobby.title")}
         </span>
-        <h2 className="text-base font-semibold leading-tight">{meta.title}</h2>
-        {meta.description ? (
-          <p className="line-clamp-4 text-xs text-white/70">{meta.description}</p>
-        ) : null}
         <div className="flex flex-wrap gap-1.5">
           <Badge variant="outline" className="border-white/20 text-white/80">
             {t(`lobby.difficulty.${meta.difficulty}`)}
@@ -128,13 +131,17 @@ export function LobbyPanel({
             {t("lobby.playersRange", { min: meta.players.min, max: meta.players.max })}
           </Badge>
         </div>
+        <h2 className="text-base font-semibold leading-tight">{meta.title}</h2>
+        {meta.description ? (
+          <p className="text-xs text-white/70">{meta.description}</p>
+        ) : null}
       </header>
 
       <Separator className="bg-white/10" />
 
       <section className="flex flex-col gap-1.5">
         <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
-          {t("lobby.players", { count: players.length })}
+          {t("lobby.playersOf", { count: players.length, max: meta.players.max })}
         </span>
         <ul className="flex flex-col gap-1 text-xs" data-testid="lobby-players">
           {players.map((player) => (
@@ -155,9 +162,14 @@ export function LobbyPanel({
                 {player.isSelf ? ` (${t("lobby.you")})` : ""}
                 {player.isHost ? ` · ${t("lobby.host")}` : ""}
                 {player.connected ? "" : ` · ${t("lobby.offline")}`}
-                <span className="block text-[0.65rem] text-white/50">
-                  {characterName(player.characterId)}
-                </span>
+                {player.connected && player.ready ? (
+                  <Badge
+                    className="ml-1.5 bg-emerald-400/20 text-emerald-100"
+                    data-testid={`lobby-ready-${player.id}`}
+                  >
+                    {t("lobby.ready")}
+                  </Badge>
+                ) : null}
               </span>
               {player.isSelf ? (
                 <Button
@@ -169,37 +181,17 @@ export function LobbyPanel({
                 >
                   {player.ready ? t("lobby.ready") : t("lobby.markReady")}
                 </Button>
-              ) : player.connected && player.ready ? (
-                <Badge
-                  className="bg-emerald-400/20 text-emerald-100"
-                  data-testid={`lobby-ready-${player.id}`}
-                >
-                  {t("lobby.ready")}
-                </Badge>
               ) : null}
               {isHost && !player.isSelf && player.connected && onKick ? (
-                pendingKickId === player.id ? (
-                  <Button
-                    size="default"
-                    variant="destructive"
-                    data-testid={`game-kick-confirm-${player.id}`}
-                    onClick={() => {
-                      setPendingKickId(null);
-                      onKick(player.id);
-                    }}
-                  >
-                    {t("lobby.kickConfirm", { player: player.name })}
-                  </Button>
-                ) : (
-                  <Button
-                    size="default"
-                    variant="destructive"
-                    data-testid={`game-kick-${player.id}`}
-                    onClick={() => setPendingKickId(player.id)}
-                  >
-                    {t("lobby.kick")}
-                  </Button>
-                )
+                <Button
+                  size="default"
+                  variant="destructive"
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  data-testid={`game-kick-${player.id}`}
+                  onClick={() => setKickTarget(player)}
+                >
+                  {t("lobby.kick")}
+                </Button>
               ) : null}
             </li>
           ))}
@@ -215,9 +207,7 @@ export function LobbyPanel({
         />
       ) : null}
 
-      <Separator className="bg-white/10" />
-
-      <div className="flex flex-col items-stretch gap-2 text-center">
+      <div className="mt-auto flex flex-col items-stretch gap-2 text-center">
         {isHost && organizerControlsStart ? (
           <p className="text-sm text-white/60" data-testid="lobby-waiting-organizer">
             {t("lobby.waitingOrganizer")}
@@ -226,6 +216,10 @@ export function LobbyPanel({
           belowMinimum ? (
             <p className="text-xs text-amber-200" data-testid="lobby-below-minimum">
               {t("lobby.belowMinimum", { min: meta.players.min })}
+            </p>
+          ) : !hostReady ? (
+            <p className="text-xs text-amber-200" data-testid="lobby-host-not-ready">
+              {t("lobby.hostMustConfirm")}
             </p>
           ) : confirmingForce ? (
             <div className="flex flex-col items-center gap-2 text-sm">
@@ -252,11 +246,11 @@ export function LobbyPanel({
               {t("lobby.start")}
             </Button>
           ) : (
-            <div className="flex flex-col items-center gap-1">
-              <p className="text-xs text-white/60">{t("lobby.startNotReady")}</p>
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-xs text-destructive">{t("lobby.startNotReady")}</p>
               <Button
-                size="sm"
-                variant="overlayGhost"
+                size="default"
+                className="w-full"
                 data-testid="lobby-start-force"
                 onClick={() => setConfirmingForce(true)}
               >
@@ -267,17 +261,46 @@ export function LobbyPanel({
         ) : (
           <p className="text-sm text-white/60">{t("lobby.waitingHost")}</p>
         )}
-        {inviteUrl ? (
-          <Button
-            size="sm"
-            variant="overlayGhost"
-            onClick={onCopyInvite}
-            data-testid="lobby-invite"
-          >
-            {copied ? t("lobby.copied") : t("lobby.invite")}
-          </Button>
-        ) : null}
       </div>
+
+      {inviteUrl ? (
+        <Button
+          size="default"
+          variant="overlayGhost"
+          onClick={onCopyInvite}
+          data-testid="lobby-invite"
+        >
+          {copied ? t("lobby.copied") : t("lobby.invite")}
+        </Button>
+      ) : null}
+
+      <Dialog open={kickTarget !== null} onOpenChange={(open) => !open && setKickTarget(null)}>
+        <DialogContent className="bg-neutral-900 text-white ring-white/10">
+          <DialogHeader>
+            <DialogTitle>{t("lobby.kickTitle")}</DialogTitle>
+            <DialogDescription className="text-white/60">
+              {kickTarget ? t("lobby.kickConfirm", { player: kickTarget.name }) : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="overlayGhost" onClick={() => setKickTarget(null)}>
+              {t("lobby.kickCancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              className="bg-destructive text-white hover:bg-destructive/90"
+              data-testid={kickTarget ? `game-kick-confirm-${kickTarget.id}` : undefined}
+              onClick={() => {
+                if (!kickTarget) return;
+                onKick?.(kickTarget.id);
+                setKickTarget(null);
+              }}
+            >
+              {t("lobby.kick")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

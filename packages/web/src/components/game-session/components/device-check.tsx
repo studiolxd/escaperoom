@@ -108,9 +108,7 @@ export function DeviceCheck({ withCamera, autoStart }: DeviceCheckProps) {
           autoPlay
           playsInline
           aria-label={t("lobby.deviceCheck.preview")}
-          className={
-            state === "running" ? "mt-2 aspect-video w-full rounded-md bg-black" : "hidden"
-          }
+          className={state === "running" ? "aspect-video w-full rounded-md bg-black" : "hidden"}
         />
       ) : null}
       {state === "running" ? (
