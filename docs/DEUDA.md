@@ -248,6 +248,25 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `phaser/room-scene.ts`) y el inspector del editor (`inspector-model.ts`,
       `schema-form.ts`). Aplazado en el bloque 10 (#163) por ser un cambio de tipos y
       arquitectura del modelo, no un ajuste puntual.
+- [ ] **Mutaciones con `fetch` que quedaron fuera de la migración a server actions (#162).**
+      Diez pantallas siguen enviando con `fetch` a mano: `room-cover-upload`,
+      `event-dashboard`, `spectator-game`, `confirm-attendance`, `accept-terms-button`,
+      `moderation-queue`, `onboarding-wizard`, `payouts-panel`, `confirm-publish` y
+      `playtest-button`. Revisar cuáles encajan como server action + RHF (mismo patrón
+      que la #162, `server/actions/action-result.ts`) y migrarlas. Encolado detrás de la
+      limpieza de frontend (F-34/F-43..47), que toca los mismos componentes.
+- [ ] **F-5: partir `GameSessionShell` y `RoomPlaytestShell` (auditoría 2026-09-24, ALTA).**
+      1 053 y 920 líneas casi duplicadas: extraer hooks (`useSceneSync`,
+      `useServerEvents`, `usePanelState`, `useHudHotkeys`) y subcomponentes del HUD, y que
+      el playtest monte `GameSessionShell` con `createLocalGameClient`. Aplazado en el
+      bloque 10; va al final de la cola (después de C-13 y D-26, que tocan el HUD) y sin
+      cambiar el aspecto.
+- [ ] **E-23 (resto): configuración del worker centralizada.** Concurrencias, `everyMs`
+      y crons de los ~14 workers sin variable de entorno; un `workerConfig` común
+      (pospuesto en la #139 por solaparse con otros bloques). Al final de la cola.
+- [ ] **F-33: lobby de pruebas a 20 Hz.** `lobby-canvas.tsx`, `lobby-store.ts` y
+      `lobby-scene.ts` crean objetos nuevos en cada `onStateChange` y se suscriben sin
+      selector. Es una página de desarrollo: valorar retirarla junto con `/[locale]/play`.
 - [ ] **Nightly E2E en rojo desde que existe (issue #115).** El job nocturno
       `.github/workflows/e2e-nightly.yml` (2:30, suite completa de Playwright + paridad
       MCP + carga) falla todas las noches desde el 2026-09-24 y nadie lo estaba mirando;
