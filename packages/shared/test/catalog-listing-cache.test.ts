@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createCachedPublishedRoomListing,
+  invalidatePublishedRoomListingCache,
   type CatalogCacheStore,
   type CatalogCacheTiming,
 } from "../src/services/catalog-listing";
@@ -180,5 +181,63 @@ describe("createCachedPublishedRoomListing", () => {
     await cached.listPublished(FILTER, { offset: 0, limit: 20 });
 
     expect(timings.map((t) => t.hit)).toEqual([false, true]);
+  });
+
+  it(
+    "publicar mientras una consulta lenta está en vuelo no deja escrita en cache " +
+      "la foto de antes de publicar (deuda 'sala duplicada en el catálogo justo tras publicar')",
+    async () => {
+      const store = memoryStore();
+      // La consulta lenta (empezó ANTES de publicar) ve el catálogo SIN la sala
+      // nueva: solo se resuelve cuando el test lo decide, después de publicar.
+      let resolveSlowLoad!: (rooms: CatalogRoom[]) => void;
+      const slowLoad = new Promise<CatalogRoom[]>((resolve) => {
+        resolveSlowLoad = resolve;
+      });
+      const inner: PublishedRoomListing = {
+        listPublished: () => slowLoad,
+        getPublished: async () => null,
+        countPublished: async () => 0,
+      };
+      const cached = createCachedPublishedRoomListing(inner, { store, prefix: "er" });
+
+      // 1) Empieza la petición lenta (cache fría): su `load()` queda pendiente.
+      const slowRequest = cached.listPublished(FILTER, { offset: 0, limit: 20 });
+
+      // 2) Se publica una sala nueva mientras la lenta sigue en vuelo.
+      await invalidatePublishedRoomListingCache(store, "er");
+
+      // 3) Una petición posterior a la publicación es un miss (nueva
+      // generación) y ve el catálogo YA con la sala nueva.
+      const freshInner = countingInner([ROOM]);
+      const freshCached = createCachedPublishedRoomListing(freshInner, { store, prefix: "er" });
+      const freshResult = await freshCached.listPublished(FILTER, { offset: 0, limit: 20 });
+      expect(freshResult).toEqual([ROOM]);
+
+      // 4) SOLO AHORA se resuelve la lenta: su escritura en cache (fire-and-forget)
+      // llega tarde, después de la publicación.
+      resolveSlowLoad([]);
+      await slowRequest;
+      // Deja que el `.catch`/`set` fire-and-forget de la petición lenta corra.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // 5) Una petición posterior sigue viendo el catálogo correcto: la
+      // escritura tardía de la lenta cayó en una clave de otra generación,
+      // no en la que se está leyendo ahora.
+      const afterResult = await freshCached.listPublished(FILTER, { offset: 0, limit: 20 });
+      expect(afterResult).toEqual([ROOM]);
+    },
+  );
+
+  it("invalidatePublishedRoomListingCache sin store no falla (cache desactivado)", async () => {
+    await expect(invalidatePublishedRoomListingCache(null, "er")).resolves.toBeUndefined();
+  });
+
+  it("invalidatePublishedRoomListingCache cae abierto si Redis no responde", async () => {
+    const store: CatalogCacheStore = {
+      get: vi.fn().mockResolvedValue(null),
+      set: vi.fn().mockRejectedValue(new Error("redis caído")),
+    };
+    await expect(invalidatePublishedRoomListingCache(store, "er")).resolves.toBeUndefined();
   });
 });

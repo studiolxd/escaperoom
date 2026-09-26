@@ -320,6 +320,13 @@ export type CachedPublishedRoomListingOptions = {
 const DEFAULT_CATALOG_CACHE_TTL_SECONDS = 60;
 
 /**
+ * TTL de la marca de generación (mucho más largo que el de una entrada
+ * normal: solo hay que evitar que desaparezca de Redis por LRU/expiración
+ * entre dos publicaciones, no acotar su frescura).
+ */
+const CATALOG_CACHE_GENERATION_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+/**
  * Cambia cuando el formato de lo cacheado varía de forma incompatible (v2:
  * `ratingAvg` pasa a calcularse sobre la escala doblada de `review.rating`;
  * v3: el filtro de jugadores pasa de `players: N` a un rango
@@ -346,6 +353,11 @@ function stableStringify(value: unknown): string {
   return JSON.stringify(value);
 }
 
+/** Clave de la marca de generación del cache (`invalidatePublishedRoomListingCache`). */
+function generationKey(prefix: string): string {
+  return `${prefix}:catalog:${CATALOG_CACHE_VERSION}:gen`;
+}
+
 /**
  * Cachea la CONSULTA del catálogo publicado en Redis (ticket 6.4), no la
  * respuesta HTTP: el render de `/[locale]/rooms` sigue siendo dinámico
@@ -356,6 +368,16 @@ function stableStringify(value: unknown): string {
  * Falla ABIERTO como el resto de usos de Redis en la app (rate limiting,
  * colas): un fallo de lectura o escritura en Redis nunca rompe el catálogo,
  * solo deja de acelerarlo.
+ *
+ * Cada clave incluye la GENERACIÓN vigente (`invalidatePublishedRoomListingCache`,
+ * llamada al publicar): sin ella, una publicación entre el `GET` y el
+ * `SET` (fire-and-forget) de dos peticiones concurrentes para la MISMA clave
+ * podía dejar en caché el valor de la petición más lenta —empezada ANTES de
+ * publicar, con la sala ausente o el listado desactualizado— pisando el de la
+ * más rápida durante los `ttlSeconds` siguientes (deuda "sala duplicada en el
+ * catálogo justo tras publicar"). Al cambiar la generación, esa escritura
+ * tardía cae en una clave ya abandonada (nadie la vuelve a leer) y toda
+ * petición posterior a la publicación falla en caché y relee Postgres.
  */
 export function createCachedPublishedRoomListing(
   inner: PublishedRoomListing,
@@ -367,12 +389,25 @@ export function createCachedPublishedRoomListing(
   // TS no arrastra el `if (!store)` de arriba a través de un closure.
   const cacheStore: CatalogCacheStore = store;
 
+  async function currentGeneration(): Promise<string> {
+    try {
+      return (await cacheStore.get(generationKey(prefix))) ?? "0";
+    } catch (err) {
+      logger.warn(
+        { err: err instanceof Error ? err : new Error(String(err)) },
+        "catalog-cache: redis unavailable reading la generación, usando la 0",
+      );
+      return "0";
+    }
+  }
+
   async function withCache<T>(
     op: CatalogCacheTiming["op"],
     keyPart: string,
     load: () => Promise<T>,
   ): Promise<T> {
-    const key = `${prefix}:catalog:${CATALOG_CACHE_VERSION}:${op}:${keyPart}`;
+    const generation = await currentGeneration();
+    const key = `${prefix}:catalog:${CATALOG_CACHE_VERSION}:${op}:${generation}:${keyPart}`;
     const start = Date.now();
     try {
       const cached = await cacheStore.get(key);
@@ -407,4 +442,34 @@ export function createCachedPublishedRoomListing(
     countPublished: (filter) =>
       withCache("countPublished", stableStringify(filter), () => inner.countPublished(filter)),
   };
+}
+
+/**
+ * Cambia la generación vigente del cache del catálogo (ver
+ * `createCachedPublishedRoomListing`): a llamar justo después de publicar,
+ * para que ninguna petición vuelva a leer una entrada cacheada de antes de
+ * esa publicación. Falla abierto (como el resto del cache): sin `store`, o
+ * si Redis no responde, no hace nada — el catálogo sigue funcionando, solo
+ * puede tardar hasta `ttlSeconds` en reflejar la publicación.
+ */
+export async function invalidatePublishedRoomListingCache(
+  store: CatalogCacheStore | null,
+  prefix: string,
+): Promise<void> {
+  if (!store) return;
+  try {
+    // Un valor único (no un contador): no hace falta lectura-incremento-escritura
+    // ni que las generaciones sean consecutivas, solo que cada publicación
+    // produzca una clave nueva.
+    await store.set(
+      generationKey(prefix),
+      `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      CATALOG_CACHE_GENERATION_TTL_SECONDS,
+    );
+  } catch (err) {
+    logger.warn(
+      { err: err instanceof Error ? err : new Error(String(err)) },
+      "catalog-cache: redis unavailable invalidando el cache tras publicar",
+    );
+  }
 }

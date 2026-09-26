@@ -25,6 +25,7 @@ import {
   createCatalogService,
   createCachedPublishedRoomListing,
   createPrismaPublishedRoomListing,
+  invalidatePublishedRoomListingCache,
   createPrismaReviewStore,
   createReviewService,
   type ReviewService,
@@ -317,7 +318,7 @@ export function getModerationService(): ModerationService {
  */
 export function getRoomPublishService(): RoomPublishService {
   if (!roomPublish) {
-    roomPublish = createRoomPublishService({
+    const inner = createRoomPublishService({
       store: createPrismaRoomPublishStore(prisma),
       drafts: createPrismaRoomDraftStore(prisma),
       serializer: roomDocToPackage,
@@ -338,6 +339,20 @@ export function getRoomPublishService(): RoomPublishService {
         toRuntimeModel(pkg);
       },
     });
+    roomPublish = {
+      ...inner,
+      // Invalida el cache del catálogo (ADR-027) justo tras publicar: sin
+      // esto, una consulta al catálogo en vuelo ANTES de esta publicación
+      // podía escribir en cache (fire-and-forget) una foto vieja DESPUÉS de
+      // que otra petición ya hubiera cacheado una correcta, dejando la sala
+      // recién publicada duplicada o ausente en `/rooms` hasta que expirase
+      // el TTL (deuda "sala duplicada en el catálogo justo tras publicar").
+      publish: async (...args) => {
+        const result = await inner.publish(...args);
+        await invalidatePublishedRoomListingCache(catalogCacheStore(), redisPrefix());
+        return result;
+      },
+    };
   }
   return roomPublish;
 }
