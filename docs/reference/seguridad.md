@@ -143,10 +143,12 @@ tenían su propio token) exige un `gameToken` HS256 (`GAME_ACCESS_TOKEN_SECRET`,
 `joinToken` de `event`, `packages/shared/src/services/game-access-token.ts`): o bien acredita una
 compra B2C `succeeded` sin jugar aún (`GET /api/rooms/:roomId/access`, que además reclama
 `purchase.playSessionStartedAt` con escritura condicional `IS NULL` — una compra = una partida,
-specs/02), o bien es una partida de prueba (`kind: "dev_test"`), que solo se acepta fuera de
-producción (`isDevFallbackAllowed`, comprobado también al verificar el token en Colyseus, no solo al
-firmarlo en web). `lobby_test` (ticket 0.5) ya no se registra en producción: es una room de prueba sin
-ningún gate propio.
+specs/02), o bien acredita una sala realmente gratis (`kind: "free"`, precio 0 + venta individual,
+`GET /api/rooms/:roomId/free-access`, rate-limitada por IP, sin cuenta ni Stripe). El `kind: "dev_test"`
+sigue existiendo en el tipo (lo usa la suite de tests del propio `colyseus-server` para no montar un
+`GameAccessStore` real), pero ningún endpoint ni página web lo firma ya: la partida de prueba sin
+compra (`/[locale]/play`) y la room `lobby_test` (ticket 0.5) se retiraron (DEUDA), sustituidas por el
+flujo de sala gratis sin cuenta y `/[locale]/play/room/:roomId`.
 
 **CORS del matchmaker (C-4).** `@colyseus/core` refleja cualquier `Origin` por defecto
 (`matchMaker.controller.getCorsHeaders`, `Access-Control-Allow-Origin: <origin> | *`).

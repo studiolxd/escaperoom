@@ -62,7 +62,9 @@ vi.mock("@/i18n/navigation", () => ({
     createElement("a", { href }, children as never),
 }));
 
-const { default: PlayPage } = await import("../src/app/[locale]/(play)/play/page");
+const { default: EventSessionPage } = await import(
+  "../src/app/[locale]/(play)/play/session/[sessionId]/page"
+);
 
 const roomPackage = loadRoomPackage(readReyAldricRoomPackageJson());
 const LOCK_CODES = roomPackage.puzzles.flatMap((puzzle) =>
@@ -116,45 +118,25 @@ function shell(
       pack,
       client,
       connection: { status, onRetry: () => undefined },
-      inviteUrl: "https://escape.example/es/play?room=abc",
+      inviteUrl: "https://escape.example/es/play/room/abc",
     }),
     locale,
   );
 }
 
-describe("página /[locale]/play (SSR)", () => {
+describe("página /[locale]/play/session/[sessionId] (SSR)", () => {
   it.each(["es", "en", "fr", "de", "nl", "pt"])(
-    "renderiza el formulario de entrada traducido (%s)",
+    "renderiza la espera de conexión de la sesión de evento (%s)",
     async (locale) => {
-      const element = await PlayPage({
-        params: Promise.resolve({ locale }),
-        searchParams: Promise.resolve({}),
+      const element = await EventSessionPage({
+        params: Promise.resolve({ locale, sessionId: "s-1" }),
       });
       const html = render(element, locale);
-      expect(html).toContain('data-testid="game-join"');
-      expect(html).toContain(tr(locale, "join.create"));
-      expect(html).toContain(tr(locale, "join.nameLabel"));
+      expect(html).toContain(tr(locale, "status.connecting"));
     },
   );
 
-  it("con ?room=<id> ofrece unirse a esa partida; un id raro se ignora", async () => {
-    const join = render(
-      await PlayPage({
-        params: Promise.resolve({ locale: "es" }),
-        searchParams: Promise.resolve({ room: "AbC123_x" }),
-      }),
-    );
-    expect(join).toContain(tr("es", "join.join"));
-    const weird = render(
-      await PlayPage({
-        params: Promise.resolve({ locale: "es" }),
-        searchParams: Promise.resolve({ room: "../../etc" }),
-      }),
-    );
-    expect(weird).toContain(tr("es", "join.create"));
-  });
-
-  it("C-4: en producción real (sin ALLOW_DEV_SECRETS) la partida de prueba no existe (404)", async () => {
+  it("no exige ALLOW_DEV_SECRETS ni depende de NODE_ENV (retirada de /play, DEUDA)", async () => {
     const savedNodeEnv = process.env.NODE_ENV;
     const savedAllow = process.env.ALLOW_DEV_SECRETS;
     // @ts-expect-error -- NODE_ENV es de solo lectura en el tipo, no en runtime
@@ -162,17 +144,7 @@ describe("página /[locale]/play (SSR)", () => {
     delete process.env.ALLOW_DEV_SECRETS;
     try {
       await expect(
-        PlayPage({
-          params: Promise.resolve({ locale: "es" }),
-          searchParams: Promise.resolve({}),
-        }),
-      ).rejects.toThrow();
-      // `?session=<id>` (evento) sigue disponible: no depende del gameToken de prueba.
-      await expect(
-        PlayPage({
-          params: Promise.resolve({ locale: "es" }),
-          searchParams: Promise.resolve({ session: "s-1" }),
-        }),
+        EventSessionPage({ params: Promise.resolve({ locale: "es", sessionId: "s-1" }) }),
       ).resolves.toBeTruthy();
     } finally {
       // @ts-expect-error -- idem
@@ -230,7 +202,7 @@ describe("GameSessionShell a partir del estado sincronizado", () => {
         pack,
         client,
         connection: { status: "connected", onRetry: () => undefined },
-        inviteUrl: "https://escape.example/es/play?room=abc",
+        inviteUrl: "https://escape.example/es/play/room/abc",
       }),
       "es",
     );

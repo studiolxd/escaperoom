@@ -7,7 +7,7 @@ const intl = createMiddleware(routing);
 
 /**
  * `proxy.ts` es el antiguo `middleware.ts` (renombrado en Next 16). Detecta el
- * locale, redirige "/" a `/es` y sirve `/es`, `/es/lobby`, etc.
+ * locale, redirige "/" a `/es` y sirve `/es`, `/es/rooms`, etc.
  *
  * Además fija la CSP de las páginas (ticket 6.3) con un nonce por petición.
  * Next lee la CSP de las cabeceras de la PETICIÓN para poner ese nonce en sus

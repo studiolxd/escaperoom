@@ -1,13 +1,12 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { boot, type ColyseusTestServer } from "@colyseus/testing";
 import defineConfig from "@colyseus/tools";
-import { LOBBY_ROOM_NAME } from "../src/constants";
 import {
   MEDIA_TOKEN_MESSAGE,
   MEDIA_TOKEN_REQUEST_MESSAGE,
   type MediaTokenPayload,
 } from "../src/media/index";
-import { LobbyTestRoom } from "../src/rooms/lobby-test-room";
+import { CHAT_MEDIA_TEST_ROOM_NAME, ChatMediaTestRoom } from "./helpers/chat-media-test-room";
 import { getFreePort } from "./helpers/free-port";
 
 const MEDIA_KEYS = ["LIVEKIT_URL", "LIVEKIT_API_KEY", "LIVEKIT_API_SECRET"] as const;
@@ -16,7 +15,7 @@ let colyseus: ColyseusTestServer;
 
 const config = defineConfig({
   initializeGameServer: (server) => {
-    server.define(LOBBY_ROOM_NAME, LobbyTestRoom);
+    server.define(CHAT_MEDIA_TEST_ROOM_NAME, ChatMediaTestRoom);
   },
 });
 
@@ -58,7 +57,7 @@ async function requestMediaToken(
 
 describe("media en la room (integración con @colyseus/testing)", () => {
   it("sin claves envía configured:false sin romper el join", async () => {
-    const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
+    const room = await colyseus.createRoom<ChatMediaTestRoom>(CHAT_MEDIA_TEST_ROOM_NAME, {});
     const client = await colyseus.connectTo(room);
 
     const payload = await requestMediaToken(client);
@@ -76,7 +75,7 @@ describe("media en la room (integración con @colyseus/testing)", () => {
     process.env.LIVEKIT_API_KEY = "devkey";
     process.env.LIVEKIT_API_SECRET = "secret";
 
-    const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
+    const room = await colyseus.createRoom<ChatMediaTestRoom>(CHAT_MEDIA_TEST_ROOM_NAME, {});
     const client = await colyseus.connectTo(room);
 
     const payload = await requestMediaToken(client);
@@ -87,13 +86,13 @@ describe("media en la room (integración con @colyseus/testing)", () => {
     expect(payload.canPublish).toBe(true);
   });
 
-  it("C-3: `role`/`name` del payload se ignoran — `lobby_test` no tiene observadores", async () => {
+  it("C-3: `role`/`name` del payload se ignoran — la room de test no tiene observadores", async () => {
     process.env.LIVEKIT_URL = "ws://localhost:7880";
     process.env.LIVEKIT_API_KEY = "devkey";
     process.env.LIVEKIT_API_SECRET = "secret";
 
-    const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
-    // `lobby_test` no lee `name` del join (siempre «Jugador N»): el nombre
+    const room = await colyseus.createRoom<ChatMediaTestRoom>(CHAT_MEDIA_TEST_ROOM_NAME, {});
+    // La room de test no lee `name` del join (siempre «Jugador N»): el nombre
     // servidor-autoritativo del token de medios es ese, nunca el del payload.
     const client = await colyseus.connectTo(room, { name: "Ana" });
     const serverName = room.state.players.get(client.sessionId)!.name;
@@ -121,7 +120,7 @@ describe("media en la room (integración con @colyseus/testing)", () => {
     process.env.LIVEKIT_API_SECRET = "secret";
     process.env.LIVEKIT_ALLOW_VIDEO = "false";
     try {
-      const room = await colyseus.createRoom<LobbyTestRoom>(LOBBY_ROOM_NAME, {});
+      const room = await colyseus.createRoom<ChatMediaTestRoom>(CHAT_MEDIA_TEST_ROOM_NAME, {});
       const client = await colyseus.connectTo(room);
 
       // La política del servidor es `false`; pedir `true` no la sube.

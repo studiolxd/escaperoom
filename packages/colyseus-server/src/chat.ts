@@ -23,8 +23,7 @@ import { ChatMessageState } from "./schema/lobby-state.js";
  * `state.chat` con ventana móvil de 50. El texto se censura y se marca
  * `filtered`; nunca se difunde el original.
  *
- * Lo comparten la `lobby_test` (donde nació) y la `GameRoom`, que según
- * specs/11 §3 lleva el mismo `chat` en su estado.
+ * La usa la `GameRoom`, que según specs/11 §3 lleva `chat` en su estado.
  */
 export class RoomChat {
   /** Estado del rate limit por jugador (`sessionId` → ventana). */

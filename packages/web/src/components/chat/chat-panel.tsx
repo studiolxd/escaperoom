@@ -6,26 +6,13 @@ import { cn } from "cn";
 import { CHAT_HISTORY_LIMIT, CHAT_MAX_LENGTH } from "@escaperoom/shared/chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useLobbyStore, type ChatEntry } from "@/store/lobby-store";
 
-/**
- * Chat del lobby de pruebas: la ventana de chat conectada al store del lobby.
- */
-export function ChatPanel() {
-  const messages = useLobbyStore((state) => state.chat);
-  const sendChat = useLobbyStore((state) => state.sendChat);
-  const chatError = useLobbyStore((state) => state.chatError);
-  const status = useLobbyStore((state) => state.status);
-  const selfId = useLobbyStore((state) => state.selfId);
-  return (
-    <ChatWindow
-      messages={messages}
-      selfId={selfId}
-      connected={status === "connected"}
-      error={chatError}
-      onSend={sendChat ?? undefined}
-    />
-  );
+export interface ChatEntry {
+  id: string;
+  authorId: string;
+  authorName: string;
+  text: string;
+  filtered: boolean;
 }
 
 export interface ChatWindowProps {

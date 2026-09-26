@@ -1,12 +1,7 @@
 import { existsSync } from "node:fs";
 import { requireInProduction } from "@escaperoom/env";
 import { initNodeSentry } from "@escaperoom/kit/observability/sentry-node";
-import {
-  EVENT_ROOM_NAME,
-  GAME_ROOM_NAME,
-  LOBBY_ROOM_NAME,
-  PLAYTEST_ROOM_NAME,
-} from "./constants.js";
+import { EVENT_ROOM_NAME, GAME_ROOM_NAME, PLAYTEST_ROOM_NAME } from "./constants.js";
 import { configureGameAccessRuntime } from "./game/access-runtime.js";
 import { configureEventRuntime } from "./events/runtime.js";
 import { resolvePort, startGameServer } from "./server.js";
@@ -64,8 +59,8 @@ async function configureGameAccess(): Promise<string> {
 
 /**
  * Punto de entrada de desarrollo: `pnpm --filter @escaperoom/colyseus-server dev`.
- * Arranca el servidor autoritativo con la room `lobby_test` en el puerto 2567
- * (o `COLYSEUS_PORT`/`PORT`).
+ * Arranca el servidor autoritativo (rooms `game`, `playtest`, `event`) en el
+ * puerto 2567 (o `COLYSEUS_PORT`/`PORT`).
  */
 loadLocalEnv();
 // E-4: en producción, sin estas variables el proceso no debe arrancar.
@@ -83,6 +78,6 @@ const gameAccess = await configureGameAccess();
 const port = resolvePort();
 await startGameServer(port);
 console.log(
-  `[colyseus] rooms «${LOBBY_ROOM_NAME}», «${GAME_ROOM_NAME}», «${PLAYTEST_ROOM_NAME}» y «${EVENT_ROOM_NAME}» ` +
+  `[colyseus] rooms «${GAME_ROOM_NAME}», «${PLAYTEST_ROOM_NAME}» y «${EVENT_ROOM_NAME}» ` +
     `(eventos: ${events}, compras: ${gameAccess}) escuchando en ws://localhost:${port}`,
 );

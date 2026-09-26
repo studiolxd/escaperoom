@@ -21,8 +21,9 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  *
  * Deuda técnica (DEUDA.md, "retirar world-preview o dejarlo solo para
  * desarrollo"): es una herramienta de QA interna sin dato real de usuario
- * (siempre la misma fixture), así que se restringe con el mismo criterio que
- * `/play` sin `?session` (`isDevFallbackAllowed`) en vez de retirarla — sigue
+ * (siempre la misma fixture), así que se restringe fuera de producción
+ * (`isDevFallbackAllowed`, el mismo criterio que usaba la partida de prueba
+ * de `/[locale]/play`, retirada — DEUDA) en vez de retirarla — sigue
  * haciendo falta para validar el runtime a mano en desarrollo.
  */
 export default async function WorldPreviewPage({ params }: Props) {

@@ -13,8 +13,9 @@ import {
  * el resto de la UI habla con `GameClient` (`@escaperoom/game-runtime/session`).
  *
  * - Partida (`game`): se crea una room nueva o se entra en una concreta por id
- *   (el link de invitación lleva `?room=<roomId>`). El cliente solo elige el
- *   **id** del paquete; el servidor lo resuelve (nunca viaja el paquete).
+ *   (`?join=<roomId>` en `/play/room/:roomId`, sala real comprada o gratis).
+ *   El cliente solo elige el **id** del paquete; el servidor lo resuelve
+ *   (nunca viaja el paquete).
  * - Playtest (`playtest`, ticket 3.8): se empareja por `playtestId` con el token
  *   firmado del link de prueba.
  * - Evento (`event`, ticket 5.8): se empareja por `sessionId` con el `joinToken`
@@ -120,18 +121,13 @@ export function isConsentedClose(code: number): boolean {
   return code === 1000 || code === 4000;
 }
 
-/** Link de invitación a una partida concreta (`/play?room=<id>`), sin locale. */
-export function invitePath(roomId: string): string {
-  return `/play?room=${encodeURIComponent(roomId)}`;
-}
-
 /**
- * Link de juego de una sesión de evento tras el canje: `/play?session=<id>` con
+ * Link de juego de una sesión de evento tras el canje: `/play/session/<id>` con
  * el `joinToken` en el **fragmento** (`#joinToken=…`), que el navegador no manda
  * al servidor web ni queda en sus logs. Sin locale.
  */
 export function eventPlayPath(sessionId: string, joinToken: string): string {
-  return `/play?session=${encodeURIComponent(sessionId)}#joinToken=${encodeURIComponent(joinToken)}`;
+  return `/play/session/${encodeURIComponent(sessionId)}#joinToken=${encodeURIComponent(joinToken)}`;
 }
 
 /** `joinToken` del fragmento de la URL (`#joinToken=…`), si lo hay. */
