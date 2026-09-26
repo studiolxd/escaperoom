@@ -14,6 +14,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import type { MediaRole } from "@/lib/media";
 import type { MediaStatus } from "@/store/media-store";
+import { LobbyDeviceCheck } from "../game-session/components/lobby-device-check";
 
 const STATUS_DOT: Record<MediaStatus, string> = {
   idle: "bg-slate-400",
@@ -101,6 +102,8 @@ export function MediaTiles({
       ) : (
         <p className="text-[0.7rem] text-white/50">{t("tiles.observer")}</p>
       )}
+
+      {role === "player" ? <LobbyDeviceCheck fullWidth /> : null}
 
       {others.length > 0 ? (
         <div

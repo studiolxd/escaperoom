@@ -5,10 +5,8 @@ import { ConnectionError } from "livekit-client";
 import { useTranslations } from "next-intl";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { canConnectMedia } from "@/lib/media";
 import { useMediaStore } from "@/store/media-store";
-import { LobbyDeviceCheck } from "../game-session/components/lobby-device-check";
 import { MediaTiles } from "./media-tiles";
 
 /**
@@ -111,14 +109,6 @@ export function MediaOverlay() {
               />
             </LiveKitRoom>
           </ErrorBoundary>
-          {payload.canPublish ? (
-            <>
-              <Separator className="bg-white/10" />
-              <ErrorBoundary>
-                <LobbyDeviceCheck />
-              </ErrorBoundary>
-            </>
-          ) : null}
         </div>
       ) : null}
 

@@ -108,11 +108,13 @@ export function DeviceCheck({ withCamera, autoStart }: DeviceCheckProps) {
           autoPlay
           playsInline
           aria-label={t("lobby.deviceCheck.preview")}
-          className={state === "running" ? "aspect-video w-full rounded-md bg-black" : "hidden"}
+          className={
+            state === "running" ? "mt-2 aspect-video w-full rounded-md bg-black" : "hidden"
+          }
         />
       ) : null}
       {state === "running" ? (
-        <div className="flex items-center gap-2 text-xs text-white/70">
+        <div className="flex flex-col gap-1 text-xs text-white/70">
           <span>{t("lobby.deviceCheck.micLevel")}</span>
           <Progress
             value={level}
@@ -122,10 +124,12 @@ export function DeviceCheck({ withCamera, autoStart }: DeviceCheckProps) {
         </div>
       ) : null}
       {state === "loading" ? (
-        <p className="flex items-center gap-2 text-xs text-white/60">
-          <Loader2 className="size-3.5 animate-spin" aria-hidden />
-          {withCamera ? t("lobby.deviceCheck.loadingWithCamera") : t("lobby.deviceCheck.loading")}
-        </p>
+        <div className="flex flex-col items-center gap-2 py-6 text-center text-xs text-white/60">
+          <Loader2 className="size-6 animate-spin" aria-hidden />
+          <p>
+            {withCamera ? t("lobby.deviceCheck.loadingWithCamera") : t("lobby.deviceCheck.loading")}
+          </p>
+        </div>
       ) : null}
       {state === "denied" ? (
         <p role="alert" className="text-xs text-amber-200">

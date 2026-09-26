@@ -21,7 +21,7 @@ import { DeviceCheck } from "./device-check";
  * En un popup (`Dialog`), no inline en el panel de "Audio y vídeo": abrir la
  * cámara/mic de prueba ahí competía por espacio con los tiles reales.
  */
-export function LobbyDeviceCheck() {
+export function LobbyDeviceCheck({ fullWidth = false }: { fullWidth?: boolean }) {
   const payload = useMediaStore((state) => state.payload);
   const t = useTranslations("Game");
   const [open, setOpen] = useState(false);
@@ -32,7 +32,7 @@ export function LobbyDeviceCheck() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="overlayGhost" className="w-fit">
+        <Button size="sm" variant="overlayGhost" className={fullWidth ? "w-full" : "w-fit"}>
           {t(withCamera ? "lobby.deviceCheck.openWithCamera" : "lobby.deviceCheck.open")}
         </Button>
       </DialogTrigger>
