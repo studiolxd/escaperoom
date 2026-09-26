@@ -48,6 +48,14 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `packages/shared/test/catalog-filters.test.ts` (rango + compatibilidad),
       `packages/editor/test/room-doc-players.test.ts` (aviso al revés) y
       `packages/web/test/components/room-players-dialog.test.tsx` (UI).
+- [ ] **Salas en 3D, además de 2D (muy largo plazo).** Permitir crear y jugar salas en
+      3D, además de las 2D isométricas actuales, tanto en el creador (editor y MCP) como
+      en el juego. Implica también una etiqueta **2D/3D** en cada sala y un **filtro
+      2D/3D en el catálogo**. Antes de implementar: spec propia (motor de render 3D —
+      Phaser 4 no trae 3D real, ADR-001 —, formato de la sala en el `RoomPackage`,
+      assets y pipeline de `tools/assets-generator`, rendimiento en equipos modestos
+      de colegios, paridad editor↔MCP y compatibilidad con las mecánicas y plantillas
+      de puzzles existentes).
 - [ ] **Decidir el dominio de producción.** Pendiente operativo, sin fecha. El Aviso
       Legal (`packages/web/src/content/legal/legal-notice.ts`) lleva un `[PENDIENTE]`
       con el dominio; al decidirlo, sustituirlo y revisar el resto de sitios que lo
