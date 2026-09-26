@@ -48,6 +48,11 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `packages/shared/test/catalog-filters.test.ts` (rango + compatibilidad),
       `packages/editor/test/room-doc-players.test.ts` (aviso al revés) y
       `packages/web/test/components/room-players-dialog.test.tsx` (UI).
+- [ ] **Decidir el dominio de producción.** Pendiente operativo, sin fecha. El Aviso
+      Legal (`packages/web/src/content/legal/legal-notice.ts`) lleva un `[PENDIENTE]`
+      con el dominio; al decidirlo, sustituirlo y revisar el resto de sitios que lo
+      necesiten (`BETTER_AUTH_URL`/`NEXT_PUBLIC_APP_URL`, CSP, Plausible, emails, OAuth
+      de Google y del MCP, Stripe).
 - [ ] **Claves reales de analítica antes de desplegar en producción.** En
       desarrollo se activan Plausible y Google Analytics con valores de prueba
       (para ver el banner de consentimiento de cookies). Antes del primer
