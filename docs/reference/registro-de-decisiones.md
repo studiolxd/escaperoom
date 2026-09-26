@@ -1441,3 +1441,18 @@ sin el GIN de `roomVersion`); test de integración que comprueba plan de consult
 (`packages/shared/test/catalog-listing-index.integration.test.ts`). La caché del catálogo (`v3`,
 ADR-027/#177) no cambia de versión: el filtro sigue devolviendo exactamente lo mismo, solo cambia
 cómo se calcula en Postgres.
+
+**Revisión de la coordinadora (misma PR, antes de integrar):** la primera versión escribía
+`room.languages` a mano dentro de `insertVersion` (`room-publish-prisma-store.ts`), el paso de
+publicación real. Pero el seed (`prisma/seed.ts`, `room.upsert`/`roomVersion.upsert` DIRECTO) y una
+fixture de e2e (`events-only-room.spec.ts`, `INSERT` SQL a mano) crean `roomVersion` sin pasar por
+ahí, así que en cualquier entorno nuevo (worktree, CI, `db:reset`) esas salas quedaban con
+`languages = '{}'` — invisibles para cualquier filtro de idioma, sin que ningún e2e lo notara
+(ninguno filtra el catálogo por idioma). Se sustituye por un trigger
+(`trgRoomVersionSyncLanguages`/`syncRoomLanguagesFromVersion`, `20260926190000`, `AFTER INSERT OR
+UPDATE OF package ON "roomVersion"`) que recalcula `room.languages` desde la versión con
+`publishedAt` más reciente de la sala, sin importar quién escriba la fila — aplicación, seed, SQL a
+mano, MCP. Se retira la escritura manual en `insertVersion` (redundante). Nuevo test
+(`packages/shared/test/seed-room-languages.integration.test.ts`) que corre el seed REAL como
+subproceso y comprueba contra el catálogo que el Rey Aldric sembrado aparece al filtrar por su
+idioma — habría fallado con la versión anterior de este ADR.
