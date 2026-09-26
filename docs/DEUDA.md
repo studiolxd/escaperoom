@@ -56,6 +56,21 @@ Tareas pendientes que no bloquean pero hay que resolver.
       assets y pipeline de `tools/assets-generator`, rendimiento en equipos modestos
       de colegios, paridad editor↔MCP y compatibilidad con las mecánicas y plantillas
       de puzzles existentes).
+- [ ] **Extraer el motor de creación y de juego a un paquete compartido `@studiolxd` (muy
+      largo plazo).** Sacar a un paquete propio de `@studiolxd` todo el motor de creación
+      y de juego, para consumirlo desde aquí y desde una futura aplicación de la suite
+      slxd:
+      - **Aquí** se queda solo lo propio del SaaS (catálogo, compras y pagos, eventos y
+        claves, organizaciones, reseñas, moderación, cuentas, páginas públicas y legales).
+      - **En slxd**, un producto nuevo que consume el mismo paquete y permite crear escape
+        rooms exportables a **SCORM** y con **xAPI** dentro de la suite.
+      Antes de implementar: decidir qué entra en el paquete (candidatos: esquemas del
+      `RoomPackage`, motor de reglas y sesión de `shared`, `game-runtime`, `editor` y
+      plantillas de puzzles, validador, packs gráficos y, en parte, el toolset MCP y el
+      protocolo de partida), cómo se publica y versiona (registro privado, semver, ADR-035),
+      qué queda acoplado hoy a Prisma, Next o Colyseus y hay que abstraer, y cómo se
+      empaqueta una partida para SCORM/xAPI (jugar sin servidor en red, con
+      `createLocalGameClient`, y reportar progreso y resultado al LMS).
 - [ ] **Decidir el dominio de producción.** Pendiente operativo, sin fecha. El Aviso
       Legal (`packages/web/src/content/legal/legal-notice.ts`) lleva un `[PENDIENTE]`
       con el dominio; al decidirlo, sustituirlo y revisar el resto de sitios que lo
