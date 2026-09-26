@@ -240,6 +240,16 @@ export function GameSessionShell({
     [model],
   );
 
+  /**
+   * F-27: nombre visible del objeto — el propio (o el del diálogo de
+   * inspección) que ya resolvió el loader, o un genérico traducido; nunca el
+   * `id` técnico (`armario`, `p-llave-cuadro`).
+   */
+  const objectName = useCallback(
+    (objectId: string) => model.objectsById[objectId]?.name || tp("genericObject"),
+    [model, tp],
+  );
+
   const errorText = useCallback(
     (code: string) => (KNOWN_ERRORS.has(code) ? t(`errors.${code}`) : t("errors.generic")),
     [t],
@@ -541,9 +551,9 @@ export function GameSessionShell({
   const applyItemUse = useCallback(
     (itemId: string, objectId: string) => {
       client.useItem(itemId, objectId);
-      pushLog(tp("log.useItem", { item: itemName(itemId), object: objectId }));
+      pushLog(tp("log.useItem", { item: itemName(itemId), object: objectName(objectId) }));
     },
-    [client, itemName, pushLog, tp],
+    [client, itemName, objectName, pushLog, tp],
   );
 
   const enterRoom = useCallback(
@@ -777,7 +787,7 @@ export function GameSessionShell({
                   disabled={!worldInputEnabled}
                   onClick={() => setSelected(object.id)}
                 >
-                  {object.id}
+                  {objectName(object.id)}
                 </Button>
               ))}
               {openDoors.map((door) => (

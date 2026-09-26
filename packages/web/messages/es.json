@@ -16,6 +16,57 @@
     "filteredTitle": "El filtro de lenguaje ha censurado parte de este mensaje",
     "hint": "Máx. {max} caracteres · 2 mensajes por segundo"
   },
+  "Media": {
+    "status": {
+      "idle": "medios: esperando",
+      "connecting": "conectando medios…",
+      "connected": "medios en directo",
+      "disconnected": "medios desconectados",
+      "error": "error de medios",
+      "unavailable": "sin medios"
+    },
+    "genericError": "No se pudo conectar a LiveKit",
+    "notConfigured": "LiveKit no configurado: la partida sigue sin voz ni webcam.",
+    "retry": "Reintentar",
+    "tiles": {
+      "title": "Voz y cámara",
+      "empty": "Sin participantes…",
+      "you": "Tú",
+      "mic": {
+        "on": "Silenciar mic",
+        "off": "Activar mic"
+      },
+      "camera": {
+        "on": "Apagar cámara",
+        "off": "Encender cámara"
+      },
+      "videoNotAllowed": "Vídeo no permitido",
+      "observer": "Observador: solo suscripción, no publica.",
+      "cameraOff": "Cámara apagada",
+      "micStatus": {
+        "on": "micrófono activo",
+        "off": "micrófono apagado"
+      },
+      "speaking": "hablando"
+    }
+  },
+  "Lobby": {
+    "testBadge": "lobby_test multijugador",
+    "loading": "Cargando lobby…",
+    "status": {
+      "idle": "inactivo",
+      "connecting": "conectando…",
+      "connected": "conectado",
+      "disconnected": "desconectado",
+      "error": "error"
+    },
+    "players": "Jugadores ({count})",
+    "you": "tú",
+    "noPlayers": "Sin jugadores",
+    "serverError": "Rechazo del servidor: {error}",
+    "connectionError": "Error de conexión: {error}",
+    "controls": "Muévete con WASD o flechas, o haz clic en una casilla. Servidor:"
+  },
   "RoomPreview": {
     "badge": "previsualización isométrica (1.2)",
     "loading": "Cargando habitaciones…",
@@ -149,6 +200,7 @@
   },
   "Playtest": {
     "badge": "playtest Rey Aldric (2.8)",
+    "genericObject": "el objeto",
     "subtitle": "Las 3 salas con las 8 plantillas: Salón del Trono → Bodega → Catacumbas. Abre el relicario con el sello final.",
     "controls": "WASD/flechas para mover · Espacio o clic para interactuar · I inventario · ESC cerrar",
     "steps": "Ruta crítica",

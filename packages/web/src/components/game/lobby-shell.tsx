@@ -1,17 +1,23 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useTranslations } from "next-intl";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { LobbyHud } from "./lobby-hud";
 
 const LobbyCanvas = dynamic(() => import("./lobby-canvas"), {
   ssr: false,
-  loading: () => (
-    <div className="absolute inset-0 grid place-items-center text-sm text-white/60">
-      Cargando lobby…
-    </div>
-  ),
+  loading: () => <LobbyCanvasLoading />,
 });
+
+function LobbyCanvasLoading() {
+  const t = useTranslations("Lobby");
+  return (
+    <div className="absolute inset-0 grid place-items-center text-sm text-white/60">
+      {t("loading")}
+    </div>
+  );
+}
 
 /**
  * El overlay de medios usa `livekit-client`, que necesita APIs del navegador

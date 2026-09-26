@@ -196,4 +196,31 @@ describe("toRuntimeModel", () => {
     expect(model.meta.id).toBe("room-rey-aldric");
     expect(model.subrooms).toHaveLength(3);
   });
+
+  it("F-27: deriva el nombre del objeto del diálogo de inspección cuando no tiene uno propio", () => {
+    const model = toRuntimeModel(loadValidPackage());
+    const cuadro = model.objectsById["cuadro-aurelio"];
+
+    expect(cuadro?.name).toContain("Rey Aurelio");
+  });
+
+  it("F-27: prefiere el nombre propio del objeto sobre el del diálogo", () => {
+    const roomPackage = loadValidPackage();
+    const object = roomPackage.objects.find((candidate) => candidate.id === "cuadro-aurelio");
+    if (!object) throw new Error("el fixture no tiene cuadro-aurelio");
+    object.name = { es: { text: "Cuadro del rey" } };
+
+    const model = toRuntimeModel(roomPackage);
+    expect(model.objectsById["cuadro-aurelio"]?.name).toBe("Cuadro del rey");
+  });
+
+  it("F-27: sin nombre propio ni diálogo asociado, el objeto no expone `name`", () => {
+    const model = toRuntimeModel(loadValidPackage());
+    const sinDialogo = model.objects.find(
+      (object) => !object.name && !object.inspectDialogId,
+    );
+
+    expect(sinDialogo).toBeDefined();
+    expect(sinDialogo?.name).toBeUndefined();
+  });
 });

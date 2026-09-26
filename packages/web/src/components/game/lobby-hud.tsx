@@ -1,17 +1,10 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { useTranslations } from "next-intl";
 import { COLYSEUS_URL } from "@/lib/colyseus";
 import { useLobbyStore, type LobbyStatus } from "@/store/lobby-store";
 import { ChatPanel } from "@/components/chat/chat-panel";
-
-const STATUS_LABEL: Record<LobbyStatus, string> = {
-  idle: "inactivo",
-  connecting: "conectando…",
-  connected: "conectado",
-  disconnected: "desconectado",
-  error: "error",
-};
 
 const STATUS_DOT: Record<LobbyStatus, string> = {
   idle: "bg-slate-400",
@@ -27,6 +20,7 @@ const STATUS_DOT: Record<LobbyStatus, string> = {
  * del 0.4, no captura el puntero salvo en sus paneles.
  */
 export function LobbyHud() {
+  const t = useTranslations("Lobby");
   const status = useLobbyStore((state) => state.status);
   const selfId = useLobbyStore((state) => state.selfId);
   const players = useLobbyStore((state) => state.players);
@@ -39,16 +33,18 @@ export function LobbyHud() {
     <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4">
       <header className="pointer-events-auto flex w-fit items-center gap-3 rounded-full border border-white/10 bg-black/40 px-4 py-1.5 text-sm text-white backdrop-blur">
         <span className="font-medium">EscapeRoom</span>
-        <span className="text-white/50">· lobby_test multijugador</span>
+        <span className="text-white/50">· {t("testBadge")}</span>
         <span className="flex items-center gap-1.5 text-white/80">
-          <span className={`size-2 rounded-full ${STATUS_DOT[status]}`} />
-          {STATUS_LABEL[status]}
+          <span aria-hidden className={`size-2 rounded-full ${STATUS_DOT[status]}`} />
+          {t(`status.${status}`)}
         </span>
       </header>
 
       <div className="flex items-end justify-between gap-4">
         <div className="pointer-events-auto flex w-fit flex-col gap-2 rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-white backdrop-blur">
-          <p className="text-xs uppercase tracking-wide text-white/50">Jugadores ({list.length})</p>
+          <p className="text-xs uppercase tracking-wide text-white/50">
+            {t("players", { count: list.length })}
+          </p>
           <ul className="flex flex-col gap-1">
             {list.map((player) => (
               <li key={player.id} className="flex items-center gap-2 text-sm">
@@ -57,21 +53,19 @@ export function LobbyHud() {
                   style={{ "--tint": player.tint } as CSSProperties}
                 />
                 <span className="font-mono">{player.id.slice(0, 8)}</span>
-                {player.id === selfId ? <span className="text-white/50">(tú)</span> : null}
+                {player.id === selfId ? <span className="text-white/50">({t("you")})</span> : null}
               </li>
             ))}
-            {list.length === 0 ? <li className="text-sm text-white/50">Sin jugadores</li> : null}
+            {list.length === 0 ? <li className="text-sm text-white/50">{t("noPlayers")}</li> : null}
           </ul>
 
-          {error ? <p className="text-xs text-rose-300">Rechazo del servidor: {error}</p> : null}
+          {error ? <p className="text-xs text-rose-300">{t("serverError", { error })}</p> : null}
           {connectionError ? (
-            <p className="text-xs text-rose-300">Error de conexión: {connectionError}</p>
+            <p className="text-xs text-rose-300">{t("connectionError", { error: connectionError })}</p>
           ) : null}
 
           <p className="max-w-xs border-t border-white/10 pt-2 text-xs text-white/50">
-            Muévete con <span className="font-mono text-white/80">WASD</span> o flechas, o haz clic
-            en una casilla. Servidor:{" "}
-            <span className="font-mono text-white/80">{COLYSEUS_URL}</span>
+            {t("controls")} <span className="font-mono text-white/80">{COLYSEUS_URL}</span>
           </p>
         </div>
 
