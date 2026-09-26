@@ -74,7 +74,6 @@ describe("acciones de moderación (server actions)", () => {
     });
   });
 
-  // La pestaña de audio (`reviewModerationAudio`) no se migra: otro agente
-  // va a retirar la moderación previa de audio y las rutas
-  // /api/admin/audio*, así que no hay action que testear aquí.
+  // El audio ya no tiene cola de moderación previa (ADR-039): no hay
+  // `reviewModerationAudio` que testear aquí.
 });

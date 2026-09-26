@@ -44,7 +44,7 @@ después en código.
 | 12 | [Voz y webcam (LiveKit)](specs/12-voz-y-webcam-livekit.md) | Topología de rooms, despliegue, ancho de banda, cámara por defecto, grabación y consentimiento |
 | 13 | [API REST](specs/13-api-rest.md) | Superficie REST pública (catálogo, checkout, eventos/claves, PDF, webhooks, moderación); la UI usa tRPC y el MCP comparte servicios (ADR-022) |
 | 14 | [Modelo de datos SQL](specs/14-modelo-de-datos-sql.md) | DDL completo y migraciones (usuarios/orgs, créditos, salas/Yjs, eventos/claves, compras, progreso, moderación) |
-| 15 | [Audio y créditos IA](specs/15-audio-y-creditos-ia.md) | Biblioteca, subida propia, ElevenLabs, ledger de créditos, moderación de audio |
+| 15 | [Audio y créditos IA](specs/15-audio-y-creditos-ia.md) | Biblioteca, subida propia, ElevenLabs, ledger de créditos, sin moderación previa (ADR-039) |
 | 16 | [Analítica](specs/16-analitica.md) | Taxonomía de eventos, funnels, métricas norte, implementación server-side |
 | 17 | [Moderación de contenido](specs/17-moderacion-de-contenido.md) | Pre-check automático, cola humana, SLA por severidad, strikes, apelaciones, menores |
 | 18 | [Legal, RGPD y menores](specs/18-legal-rgpd-y-menores.md) | TOS, licencia UGC, RGPD/LOPDGDD, protección de menores, checklist previo a producción |

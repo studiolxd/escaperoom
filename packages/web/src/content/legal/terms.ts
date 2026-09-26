@@ -11,7 +11,7 @@ import { legalLink, type LegalDocument } from "./types";
  * marketplace (sin suscripciones ni periodo de prueba).
  */
 export const termsOfService: LegalDocument = {
-  versionDate: "2026-09-23",
+  versionDate: "2026-09-26-2",
   sections: [
     {
       heading: "1. Quién presta el servicio y aceptación",
@@ -52,7 +52,10 @@ export const termsOfService: LegalDocument = {
         "Creador: diseña y publica salas de escape, en solitario o con el editor asistido por IA. " +
           "El creador conserva la propiedad de lo que crea (véase la sección 6, licencia UGC).",
         "Organizador: compra o licencia salas para organizar eventos (grupos, colegios, empresas) y " +
-          "reparte claves de acceso a los participantes.",
+          "reparte claves de acceso a los participantes. Antes de usar una sala con sus " +
+          "participantes, en especial si son menores, el organizador debe revisar su contenido " +
+          "(textos, imágenes, audios y vídeos) y es el responsable de decidir si es adecuado para " +
+          "su grupo.",
       ],
     },
     {
@@ -105,10 +108,13 @@ export const termsOfService: LegalDocument = {
           "Si la retirada es por moderación de severidad normal o alta, ocurre lo mismo. Si es por " +
           "severidad crítica (contenido ilegal o que compromete la seguridad de menores), el acceso " +
           "se revoca también para quien ya la compró, sin excepción.",
-        "Al subir un asset propio (audio o imagen) que no ha generado con las herramientas de la " +
-          "plataforma, el creador declara tener los derechos necesarios sobre ese contenido. La " +
-          "plataforma no hace una verificación legal previa de esa declaración; el pipeline de " +
-          "moderación automática y los reportes de usuarios son el mecanismo de control posterior.",
+        "Al subir un asset propio (audio, imagen o vídeo) que no ha generado con las herramientas de " +
+          "la plataforma, el creador declara tener los derechos necesarios sobre ese contenido. El " +
+          "creador es el responsable de todo el contenido de su sala, lo haya subido él o lo haya " +
+          "generado con las herramientas de la plataforma, y de que sea lícito y coherente con la " +
+          "descripción de la sala. La plataforma no revisa ese contenido ni verifica esa " +
+          "declaración antes de su publicación; los reportes de usuarios son el mecanismo de " +
+          "control posterior.",
       ],
     },
     {
@@ -145,8 +151,11 @@ export const termsOfService: LegalDocument = {
       heading: "10. Limitación de responsabilidad sobre contenido de terceros",
       paragraphs: [
         "La plataforma aloja contenido creado por sus usuarios y no garantiza su calidad ni su " +
-          "exactitud. El remedio frente a una sala problemática es el sistema de reportes, no una " +
-          "revisión previa de cada publicación por parte de la plataforma.",
+          "exactitud. La plataforma no revisa antes de su publicación los textos, imágenes, audios " +
+          "ni vídeos de las salas. El remedio frente a una sala problemática es el sistema de " +
+          "reportes, no una revisión previa de cada publicación por parte de la plataforma. Los " +
+          "reportes por contenido ilegal o que comprometa la seguridad de menores se atienden con " +
+          "prioridad y pueden retirar la sala de inmediato mientras se revisan.",
         [
           "La plataforma se presta \"tal cual\" y \"según disponibilidad\". En la medida permitida por " +
             "la ley, EscapeRoom Creator no será responsable de daños indirectos derivados del uso de " +

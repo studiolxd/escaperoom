@@ -44,6 +44,7 @@ import { createModerationSamplingWorker } from "./moderation-sampling";
 import { createStripeWebhookPurgeWorker } from "./stripe-webhook-purge";
 import { createAnalyticsWorker, type AnalyticsEventStore } from "./worker";
 import { startWorkerHealthServer } from "./health-server";
+import { readWorkerConfig } from "./config";
 
 /** Tiempo máximo para cerrar limpio antes de forzar la salida (E-9). */
 const SHUTDOWN_TIMEOUT_MS = 30_000;
@@ -71,6 +72,11 @@ function loadLocalEnv(): void {
 
 async function main(): Promise<void> {
   loadLocalEnv();
+
+  // E-23: concurrencia, `everyMs` y cron de cada factoría, centralizados y
+  // validados aquí — si alguna variable es inválida, el proceso falla al
+  // arrancar con un mensaje claro en vez de arrastrar un valor a medio parsear.
+  const workerConfig = readWorkerConfig();
 
   // E-4: en producción, sin estas variables el proceso no debe arrancar (y
   // menos quedarse "activo" degradando en silencio, como hacía antes el
@@ -103,6 +109,7 @@ async function main(): Promise<void> {
   const worker = createAnalyticsWorker({
     store: prisma.analyticsEvent as unknown as AnalyticsEventStore,
     connection,
+    concurrency: workerConfig.analytics.concurrency,
   });
 
   worker.on("ready", () => {
@@ -114,6 +121,7 @@ async function main(): Promise<void> {
   const expiry = await createAccessKeyExpiryWorker({
     store: createPrismaAccessKeyStore(prisma),
     connection: expiryConnection,
+    everyMs: workerConfig.accessKeyExpiry.everyMs,
   });
 
   // Purga (hash) del email de claves: sin APP_SECRET en producción, inactivo.
@@ -125,6 +133,7 @@ async function main(): Promise<void> {
           store: createPrismaAccessKeyEmailPurgeStore(prisma),
           secret: emailPurgeSecret,
           connection: emailPurgeConnection,
+          everyMs: workerConfig.accessKeyEmailPurge.everyMs,
         })
       : null;
   if (!emailPurge) {
@@ -147,6 +156,7 @@ async function main(): Promise<void> {
           },
           secret: ipUaPurgeSecret,
           connection: ipUaPurgeConnection,
+          everyMs: workerConfig.ipUaPurge.everyMs,
         })
       : null;
   if (!ipUaPurge) {
@@ -167,6 +177,7 @@ async function main(): Promise<void> {
             appUrl: process.env.APP_URL?.trim() || "http://localhost:3000",
           },
           connection: mailConnection,
+          concurrency: workerConfig.invitationEmail.concurrency,
         })
       : null;
   if (!invitations) {
@@ -187,6 +198,7 @@ async function main(): Promise<void> {
             appUrl: process.env.APP_URL?.trim() || "http://localhost:3000",
           },
           connection: purchaseConfirmationConnection,
+          concurrency: workerConfig.purchaseConfirmationEmail.concurrency,
         })
       : null;
   if (!purchaseConfirmations) {
@@ -205,6 +217,7 @@ async function main(): Promise<void> {
       ? await createPurchaseConfirmationOutboxWorker({
           store: createPrismaPurchaseConfirmationStore(prisma),
           connection: purchaseConfirmationOutboxConnection,
+          everyMs: workerConfig.purchaseConfirmationOutbox.everyMs,
         })
       : null;
 
@@ -222,6 +235,7 @@ async function main(): Promise<void> {
           connect: createStripeConnectGateway(stripeClient),
           payments: createStripePaymentGateway(stripeClient),
           connection: payoutsConnection,
+          everyMs: workerConfig.creatorPayouts.everyMs,
         })
       : null;
   if (!payouts) {
@@ -241,6 +255,7 @@ async function main(): Promise<void> {
         storage.putObject({ key, body: Buffer.from(bytes), contentType }),
     },
     connection: cardsConnection,
+    concurrency: workerConfig.accessKeyCards.concurrency,
   });
 
   // Particiones de analyticsEvent: crea la del mes siguiente y purga > 24 meses.
@@ -248,6 +263,7 @@ async function main(): Promise<void> {
   const partitions = await createAnalyticsPartitionsWorker({
     db: createPrismaPartitionMaintenanceDb(prisma),
     connection: partitionsConnection,
+    pattern: workerConfig.analyticsPartitions.cron,
   });
 
   // Muestreo de moderación: encola a revisión humana lo publicado recientemente.
@@ -255,6 +271,7 @@ async function main(): Promise<void> {
   const sampling = await createModerationSamplingWorker({
     moderation: createModerationService({ store: createPrismaModerationStore(prisma) }),
     connection: samplingConnection,
+    cron: workerConfig.moderationSampling.cron,
   });
 
   // Purga de stripeWebhookEvent (B-19): nunca se limpiaba, crecía sin límite.
@@ -262,6 +279,7 @@ async function main(): Promise<void> {
   const stripeWebhookPurge = await createStripeWebhookPurgeWorker({
     store: createPrismaStripeWebhookEventPurgeStore(prisma),
     connection: stripeWebhookPurgeConnection,
+    everyMs: workerConfig.stripeWebhookPurge.everyMs,
   });
 
   // Purga del OAuth del MCP (A-15): filas `mcp-oauth:*` caducadas en `verification`.
@@ -269,6 +287,7 @@ async function main(): Promise<void> {
   const mcpOAuthPurge = await createMcpOAuthPurgeWorker({
     store: createPrismaMcpOAuthPurgeStore(prisma),
     connection: mcpOAuthPurgeConnection,
+    everyMs: workerConfig.mcpOAuthPurge.everyMs,
   });
 
   // Todos los Worker de BullMQ en marcha, para el readiness de /healthz: si

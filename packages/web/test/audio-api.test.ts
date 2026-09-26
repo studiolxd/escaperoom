@@ -16,7 +16,6 @@ import { createAudioHandlers } from "../src/server/rest/audio";
 
 const ana: Actor = { userId: "ana", organizationId: null, role: "member" };
 const bruno: Actor = { userId: "bruno", organizationId: null, role: "member" };
-const mod: Actor = { userId: "mod", organizationId: null, role: "member" };
 
 type AssetJson = {
   id: string;
@@ -30,11 +29,9 @@ type ErrorJson = { error: { code: string; message: string; rejectionReason?: str
 /** Handlers REST con stores en memoria; el actor viaja en una cabecera de test. */
 function setup() {
   const blobs = createInMemoryAudioBlobStore();
-  const audio = createAudioAssetService({
-    store: createInMemoryAudioAssetStore({ moderatorIds: [mod.userId] }),
-    blobs,
-  });
-  const actors: Record<string, Actor> = { ana, bruno, mod };
+  const store = createInMemoryAudioAssetStore();
+  const audio = createAudioAssetService({ store, blobs });
+  const actors: Record<string, Actor> = { ana, bruno };
   const handlers = createAudioHandlers({
     audio,
     resolveActor: async (req) => actors[req.headers.get("x-test-user") ?? ""] ?? ANONYMOUS_ACTOR,
@@ -65,18 +62,14 @@ function setup() {
     return handlers.upload(uploadRequest(user, file));
   }
 
-  function review(user: string, id: string, body: unknown) {
-    return handlers.review(
-      new Request(`http://localhost/api/admin/audio/${id}`, {
-        method: "PATCH",
-        headers: { "x-test-user": user, "content-type": "application/json" },
-        body: JSON.stringify(body),
-      }),
-      { params: Promise.resolve({ id }) },
-    );
+  /** Simula un rechazo histórico de la extinta cola de moderación (ADR-039). */
+  function reject(id: string, reason: string) {
+    const row = store.rows.get(id);
+    if (!row) throw new Error(`No existe ${id}`);
+    store.rows.set(id, { ...row, status: "rejected", rejectionReason: reason });
   }
 
-  return { audio, blobs, handlers, uploadRequest, upload, review, mp3 };
+  return { audio, blobs, handlers, uploadRequest, upload, reject, mp3 };
 }
 
 describe("GET /api/audio/library", () => {
@@ -102,12 +95,12 @@ describe("GET /api/audio/library", () => {
 });
 
 describe("POST /api/audio/uploads", () => {
-  it("un MP3 propio → 201 pendiente; aparece en mis subidas", async () => {
+  it("un MP3 propio → 201 y disponible al instante; aparece en mis subidas", async () => {
     const { handlers, upload, blobs } = setup();
     const res = await upload("ana");
     expect(res.status).toBe(201);
     const asset = (await res.json()) as AssetJson;
-    expect(asset).toMatchObject({ status: "pending", rejectionReason: null });
+    expect(asset).toMatchObject({ status: "approved", rejectionReason: null });
     expect(asset.ref).toBe(`upload:${asset.id}`);
     expect(blobs.objects.size).toBe(1);
 
@@ -160,53 +153,25 @@ describe("POST /api/audio/uploads", () => {
   });
 });
 
-describe("moderación de audio subido", () => {
-  it("aprobado → usable al publicar; rechazado → no usable y con motivo", async () => {
-    const { audio, upload, review, mp3 } = setup();
+describe("sin moderación previa de audio (ADR-039)", () => {
+  it("disponible al instante → usable al publicar; rechazado (histórico) → no usable y con motivo", async () => {
+    const { audio, upload, reject, mp3 } = setup();
     const ok = (await (await upload("ana")).json()) as AssetJson;
     const ko = (await (await upload("ana", mp3("voz.mp3"))).json()) as AssetJson;
 
-    // Pendientes: ninguna se puede publicar.
-    expect(await audio.checkRefsForPublish(ana, [ok.ref, ko.ref])).toHaveLength(2);
+    // Sin cola de moderación: ambas son publicables de inmediato.
+    expect(await audio.checkRefsForPublish(ana, [ok.ref, ko.ref])).toEqual([]);
 
-    expect((await review("ana", ok.id, { decision: "approved" })).status).toBe(403);
-    const approved = await review("mod", ok.id, { decision: "approved" });
-    expect(approved.status).toBe(200);
-    expect(((await approved.json()) as AssetJson).status).toBe("approved");
-
-    expect((await review("mod", ko.id, { decision: "rejected" })).status).toBe(422);
-    const rejected = await review("mod", ko.id, {
-      decision: "rejected",
-      reason: "Música con copyright",
-    });
-    expect(((await rejected.json()) as AssetJson).rejectionReason).toBe("Música con copyright");
-    expect((await review("mod", ko.id, { decision: "approved" })).status).toBe(409);
+    reject(ko.id, "Música con copyright");
 
     expect(await audio.checkRefsForPublish(ana, [ok.ref, ko.ref])).toMatchObject([
       { ref: ko.ref, code: "AUDIO_REJECTED", rejectionReason: "Música con copyright" },
     ]);
   });
 
-  it("la cola solo la ven moderadores", async () => {
-    const { handlers, upload } = setup();
-    await upload("ana");
-    const queue = (user: string) =>
-      handlers.listModerationQueue(
-        new Request("http://localhost/api/admin/audio?status=pending", {
-          headers: { "x-test-user": user },
-        }),
-      );
-    expect((await queue("ana")).status).toBe(403);
-    const res = await queue("mod");
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { items: Array<{ ownerId: string }> };
-    expect(body.items).toMatchObject([{ ownerId: "ana" }]);
-  });
-
   it("un usuario no puede usar ni escuchar el audio subido por otro", async () => {
-    const { audio, handlers, upload, review } = setup();
+    const { audio, handlers, upload } = setup();
     const asset = (await (await upload("ana")).json()) as AssetJson;
-    await review("mod", asset.id, { decision: "approved" });
     const get = (user: string) =>
       handlers.getUpload(
         new Request(`http://localhost/api/audio/uploads/${asset.id}`, {

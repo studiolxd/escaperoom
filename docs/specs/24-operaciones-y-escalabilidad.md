@@ -138,6 +138,30 @@ cifras exactas para fases 1–4 porque dependen de precios de proveedores en el 
   (ticket 6.3).
 - Sin guardia 24/7 formal en el MVP: el modelo realista es degradación con gracia + alertas.
 
+### 6.1 Configuración de los workers (E-23, resto)
+
+Concurrencia, `everyMs` y cron de cada factoría de `packages/worker` se leen de variables de
+entorno (`packages/worker/src/config.ts`), validadas con Zod (enteros positivos, cron válido) —
+el proceso falla al arrancar con un mensaje claro si alguna es inválida. Todas son opcionales:
+sin definir, cada factoría usa el mismo valor que tenía fijo en código antes de esta auditoría
+(documentadas también en `packages/worker/.env.example`).
+
+| Cola | Variable | Por defecto | ¿Ajustar en producción? |
+|---|---|---|---|
+| Analítica (`worker.ts`) | `WORKER_ANALYTICS_CONCURRENCY` | 20 | Sí — subir en picos de tráfico (§4.1/§4.2) |
+| PDF de tarjetas-clave | `WORKER_ACCESS_KEY_CARDS_CONCURRENCY` | 2 | Sí — eventos grandes con muchas exportaciones a la vez |
+| Envío de invitaciones | `WORKER_INVITATION_EMAIL_CONCURRENCY` | 5 | Sí — según el límite de tasa del proveedor SMTP/Resend |
+| Confirmación de compra | `WORKER_PURCHASE_CONFIRMATION_EMAIL_CONCURRENCY` | 5 | Sí — mismo motivo que invitaciones |
+| Caducidad de claves | `WORKER_ACCESS_KEY_EXPIRY_EVERY_MS` | 60 000 (1 min) | No |
+| Purga de email de claves | `WORKER_ACCESS_KEY_EMAIL_PURGE_EVERY_MS` | 3 600 000 (1 h) | No |
+| Purga de IP/user-agent | `WORKER_IP_UA_PURGE_EVERY_MS` | 3 600 000 (1 h) | No |
+| Outbox de confirmación de compra | `WORKER_PURCHASE_CONFIRMATION_OUTBOX_EVERY_MS` | 300 000 (5 min) | No |
+| Reparto a creadores | `WORKER_CREATOR_PAYOUTS_EVERY_MS` | 300 000 (5 min) | No |
+| Purga de `stripeWebhookEvent` | `WORKER_STRIPE_WEBHOOK_PURGE_EVERY_MS` | 86 400 000 (24 h) | No |
+| Purga de OAuth del MCP | `WORKER_MCP_OAUTH_PURGE_EVERY_MS` | 3 600 000 (1 h) | No |
+| Particiones de analítica | `WORKER_ANALYTICS_PARTITIONS_CRON` | `0 3 1 * *` (día 1, 03:00 UTC) | No |
+| Muestreo de moderación | `WORKER_MODERATION_SAMPLING_CRON` | `0 6 * * *` (diario, 06:00 UTC) | No, salvo cambio de política de muestreo |
+
 ## 7. Dependencias
 
 - `specs/03-arquitectura-y-stack.md` §5 — infraestructura base.

@@ -49,7 +49,7 @@ export type RoomPackageSerializer = (
 /** Motivo por el que una referencia de asset no se puede publicar. */
 export type PublishAssetProblem = {
   ref: string;
-  /** p. ej. `AUDIO_PENDING_MODERATION`, `AUDIO_REJECTED`, `FORBIDDEN`. */
+  /** p. ej. `AUDIO_REJECTED`, `FORBIDDEN`. */
   code: string;
   message: string;
   rejectionReason: string | null;
@@ -58,7 +58,8 @@ export type PublishAssetProblem = {
 /**
  * Origen de los assets del creador referenciados por el draft. Su
  * `checkRefsForPublish` tiene la misma forma que el de `AudioAssetService`
- * (3.11): un audio pendiente o rechazado en moderación bloquea la publicación.
+ * (3.11): un audio rechazado en su día por la extinta cola de moderación
+ * bloquea la publicación (historial ya congelado, no se libera).
  */
 export interface PublishAssetSource {
   /** Revisa las referencias; no lanza: devuelve los problemas (vacío = todo publicable). */
@@ -618,7 +619,7 @@ export function createRoomPublishService(deps: {
     if (problems.length > 0) {
       throw new RoomPublishError(
         "ASSETS_NOT_PUBLISHABLE",
-        "Hay audios que no se pueden publicar (pendientes o rechazados en moderación)",
+        "Hay audios que no se pueden publicar (rechazados en moderación)",
         { problems },
       );
     }
@@ -880,10 +881,11 @@ export function createInMemoryPublishedAssetStorage(): PublishedAssetStorage & {
 }
 
 /**
- * Fuente de assets sobre el servicio de audio de 3.11: la moderación la decide
- * `checkRefsForPublish` (pendiente o rechazado ⇒ problema) y los bytes se leen
- * del bucket con la clave que resuelve `resolveAudioRef(…, "publish")`
- * (biblioteca incluida o subida propia aprobada).
+ * Fuente de assets sobre el servicio de audio de 3.11: un audio solo bloquea
+ * la publicación si está `rejected` (decisión humana ya tomada por la extinta
+ * cola de moderación, ver `checkRefsForPublish`); los bytes se leen del
+ * bucket con la clave que resuelve `resolveAudioRef` (biblioteca incluida o
+ * subida propia).
  */
 export function createAudioPublishAssetSource(deps: {
   audio: Pick<AudioAssetService, "checkRefsForPublish" | "resolveAudioRef">;
@@ -892,7 +894,7 @@ export function createAudioPublishAssetSource(deps: {
   return {
     checkRefsForPublish: (actor, refs) => deps.audio.checkRefsForPublish(actor, refs),
     async load(actor, ref) {
-      const resolved = await deps.audio.resolveAudioRef(actor, ref, "publish");
+      const resolved = await deps.audio.resolveAudioRef(actor, ref);
       return deps.readObject(resolved.storageKey);
     },
   };
@@ -901,7 +903,8 @@ export function createAudioPublishAssetSource(deps: {
 /**
  * Fuente de assets para superficies sin servicio de audio cableado: cualquier
  * referencia se reporta como no publicable (conservador: nunca se publica un
- * audio sin pasar por moderación). Las salas sin audio publican igual.
+ * audio sin poder comprobar si está rechazado). Las salas sin audio publican
+ * igual.
  */
 export function createUnavailablePublishAssetSource(): PublishAssetSource {
   return {

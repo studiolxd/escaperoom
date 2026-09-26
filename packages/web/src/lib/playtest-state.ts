@@ -40,27 +40,6 @@ export function isWorldInputEnabled(state: WorldInputState): boolean {
 }
 
 /**
- * Diálogo que debe quedar abierto tras una acción a partir de sus
- * `show_dialog`. Sin diálogos devuelve `null`: una acción completada **cierra**
- * el diálogo anterior en vez de dejarlo colgado (specs/04 §4).
- */
-export function resolveDialog(
-  dialogIds: readonly string[],
-  dialogsById: Record<string, DialogView | undefined>,
-  fallback?: string,
-): DialogView | null {
-  const last = dialogIds.at(-1);
-  if (!last) {
-    return null;
-  }
-  const known = dialogsById[last];
-  if (known) {
-    return known;
-  }
-  return { id: last, text: fallback ?? last };
-}
-
-/**
  * Alterna la selección de un item del inventario: pulsar uno seleccionado lo
  * quita; con dos ya seleccionados, el tercero reemplaza al más antiguo.
  */

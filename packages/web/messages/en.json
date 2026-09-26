@@ -387,17 +387,15 @@
       "sfx": "Sound effects",
       "voice": "Voices"
     },
-    "optionPending": "{name} (awaiting moderation)",
     "optionRejected": "{name} (rejected)",
     "credits": "License {license} · {author}",
     "noAudioIn": "No audio in {language}",
     "status": {
-      "pending": "Awaiting moderation: you can try it in the draft, but you can't publish the room until it's approved.",
       "rejected": "Rejected in moderation: {reason}. Pick another audio."
     },
     "upload": "Upload MP3",
     "uploading": "Uploading…",
-    "uploadHint": "MP3 only, up to {maxMb} MB and {maxMinutes} min. We review it before you can publish the room with it.",
+    "uploadHint": "MP3 only, up to {maxMb} MB and {maxMinutes} min. Available instantly to use and publish.",
     "rightsDeclared": "I declare that I own the rights to this audio and that it contains no third-party voices without their consent.",
     "errors": {
       "tooLarge": "The file exceeds the {maxMb} MB limit.",
@@ -1021,7 +1019,7 @@
       "DRAFT_CHANGED": "The draft has changed since the publication was requested. Ask the assistant to validate and request it again.",
       "VERSION_CHANGED": "A version has already been published with this request (or after it). Request a new one to publish again.",
       "VALIDATION_FAILED": "The room no longer passes the validator: fix the errors before publishing.",
-      "ASSETS_NOT_PUBLISHABLE": "Some audio files are pending or rejected in moderation: the room cannot be published yet.",
+      "ASSETS_NOT_PUBLISHABLE": "Some audio files are rejected in moderation: the room cannot be published with them.",
       "ROOM_NOT_PUBLISHABLE": "The room was removed by moderation and cannot be published.",
       "PUBLISH_CONFIRM_DISABLED": "Publication confirmation is not available in this environment.",
       "UNKNOWN": "The room could not be published. Please try again.",
@@ -1254,14 +1252,13 @@
   "Moderation": {
     "metaTitle": "Moderation queue",
     "title": "Moderation queue",
-    "intro": "Reports sorted by severity and SLA, pending appeals and uploaded audio awaiting review.",
+    "intro": "Reports sorted by severity and SLA, and pending appeals.",
     "forbidden": "Only moderators or administrators can see the moderation queue.",
     "loading": "Loading the queue…",
     "empty": "Nothing pending.",
     "tabs": {
       "reports": "Reports ({count})",
-      "appeals": "Appeals ({count})",
-      "audio": "Audio ({count})"
+      "appeals": "Appeals ({count})"
     },
     "severity": {
       "critical": "Critical",
@@ -1287,7 +1284,6 @@
     },
     "meta": "Review before {due} · created {created} · {count, plural, one {# report} other {# reports}} on this content",
     "note": "Resolution note (reason shown to the creator)",
-    "rejectNeedsNote": "To reject an audio, write the reason in the note",
     "appeal": {
       "room": "Appeal about a room",
       "account": "Account appeal (suspension or ban)"
@@ -1298,9 +1294,7 @@
       "dismiss": "Dismiss",
       "restore": "Restore (false positive)",
       "uphold": "Uphold the decision",
-      "overturn": "Overturn the action",
-      "approve": "Approve",
-      "reject": "Reject"
+      "overturn": "Overturn the action"
     },
     "errors": {
       "UNAUTHORIZED": "Sign in to moderate.",
