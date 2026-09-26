@@ -85,6 +85,15 @@ export type EventConfig = {
    * - **entero positivo**: el límite en minutos para este evento.
    */
   timeLimitMinutes?: number | null;
+  /**
+   * "Todos los grupos comienzan juntos" (ticket "inicio conjunto"): mientras
+   * está activo, el anfitrión de cada grupo no ve "Empezar" — solo el
+   * organizador puede arrancarlos desde el panel ("Comenzar todos"). Solo
+   * editable mientras ningún grupo del evento haya empezado a jugar
+   * (`EventStore.hasStartedSession`). Default `false` (ausente en eventos
+   * creados antes de este ticket).
+   */
+  allGroupsStartTogether?: boolean;
   recordingEnabled: boolean;
   /** Instante en que el organizador aceptó el texto de grabación (specs/12 §5.2). */
   recordingAcceptedAt: string | null;

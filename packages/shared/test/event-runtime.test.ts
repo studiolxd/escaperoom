@@ -217,7 +217,14 @@ describe("buildSessionRows: lo vivo manda, lo persistido cubre las sesiones sin 
       ...over,
     }) satisfies SessionStoredProgress;
   const live = (sessionId: string, over: Partial<SessionLiveProgress> = {}) =>
-    ({ ...stored(sessionId), roomId: `room-${sessionId}`, players: 2, ...over }) as const;
+    ({
+      ...stored(sessionId),
+      roomId: `room-${sessionId}`,
+      players: 2,
+      minPlayers: 2,
+      readyCount: 2,
+      ...over,
+    }) as const;
 
   it("terminada y a medias sin room: `ended` y `offline`, con su ranking", () => {
     const rows = buildSessionRows(

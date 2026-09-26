@@ -68,6 +68,8 @@ function live(
     puzzlesTotal: 9,
     hintsUsed: 0,
     players: 3,
+    minPlayers: 2,
+    readyCount: 3,
     startedAt: T0.getTime(),
     endedAt: null,
     elapsedMs: 60_000,

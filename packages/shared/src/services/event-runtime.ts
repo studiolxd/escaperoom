@@ -77,6 +77,12 @@ export type EventPackage = {
    * de la sala), `null` = override a "sin duración", número = minutos.
    */
   timeLimitOverrideMinutes?: number | null;
+  /**
+   * `event.config.allGroupsStartTogether` (ticket "inicio conjunto"): el
+   * anfitrión de cada grupo no ve "Empezar" y solo el organizador puede
+   * arrancarlos (`EventRoom.organizerStartGroup`). Default `false`.
+   */
+  allGroupsStartTogether: boolean;
 };
 
 /** Puerto de persistencia del runtime de eventos (Postgres o memoria). */
@@ -261,6 +267,7 @@ export function createInMemoryEventRuntimeStore(opts: {
             roomVersionId: event.roomVersionId,
             roomPackage: structuredClone(roomPackage),
             allowVideo: event.config.allowVideo,
+            allGroupsStartTogether: event.config.allGroupsStartTogether ?? false,
             ...(("timeLimitMinutes" in event.config)
               ? { timeLimitOverrideMinutes: event.config.timeLimitMinutes }
               : {}),

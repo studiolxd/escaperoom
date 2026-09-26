@@ -1,6 +1,6 @@
 import { ServerError, type Client } from "@colyseus/core";
 import { logger } from "@escaperoom/kit/logger";
-import type { SessionLiveProgress } from "@escaperoom/shared/event-progress";
+import type { GroupStartResult, SessionLiveProgress } from "@escaperoom/shared/event-progress";
 import {
   accountUserId,
   createProgressRecorder,
@@ -107,6 +107,12 @@ export class EventRoom extends GameRoom {
    * override (usa la de la sala, como `GameRoom`); `null` = "sin duración".
    */
   private eventTimeLimitOverrideMinutes?: number | null;
+  /**
+   * `event.config.allGroupsStartTogether` (ticket "inicio conjunto"): se
+   * sincroniza en `state.organizerControlsStart` para que el cliente oculte
+   * "Empezar" al anfitrión del grupo.
+   */
+  private organizerControlsStart = false;
   private recorder?: ProgressRecorder;
   /** Claims de cada jugador que ha entrado (grupo y cuenta para los hitos). */
   private readonly playerClaims = new Map<string, JoinClaims>();
@@ -163,9 +169,11 @@ export class EventRoom extends GameRoom {
     if ("timeLimitOverrideMinutes" in loaded) {
       this.eventTimeLimitOverrideMinutes = loaded.timeLimitOverrideMinutes;
     }
+    this.organizerControlsStart = loaded.allGroupsStartTogether;
     this.recorder = createProgressRecorder(runtime, claims.sessionId);
 
     await super.onCreate(options);
+    this.state.organizerControlsStart = this.organizerControlsStart;
     this.playerCapacity = this.maxClients;
     this.maxClients = this.playerCapacity + MAX_EVENT_SPECTATORS;
     const metadata: EventRoomMetadata = { sessionId: this.eventSessionId, eventId: this.eventId };
@@ -355,6 +363,34 @@ export class EventRoom extends GameRoom {
       ...this.progressCounters(),
       updatedAt: Date.now(),
     };
+  }
+
+  /**
+   * Inicio conjunto del organizador (ticket "inicio conjunto", specs/11 §4.1
+   * y §4.5, specs/19 §2): lo llama la ruta interna
+   * `POST /internal/events/:eventId/start-all` vía `matchMaker.remoteRoomCall`
+   * — nunca un jugador ni el anfitrión del grupo. Reutiliza `readiness()` y
+   * `startCore()` de `GameRoom` (mismo motor que `handleStart`), pero con
+   * reglas propias: un grupo **vacío** nunca arranca (ni con `force`, para no
+   * dejar sin anfitrión a quien llegue después); con `force` ("Comenzar
+   * igualmente" del panel) SÍ se salta el mínimo de la sala — a diferencia del
+   * "Empezar igualmente" de un anfitrión, que nunca baja del mínimo — porque
+   * aquí es una decisión explícita del organizador sobre TODOS los grupos a
+   * la vez, no la de un anfitrión sobre el suyo.
+   */
+  organizerStartGroup(opts: { force: boolean }): GroupStartResult {
+    const { connected, ready, min } = this.readiness();
+    const base = { sessionId: this.eventSessionId, connected, ready, min };
+    if (this.state.phase !== "lobby" || !this.session) {
+      return { ...base, status: "already_started" };
+    }
+    if (connected === 0) return { ...base, status: "empty" };
+    if (!opts.force) {
+      if (connected < min) return { ...base, status: "min_not_met" };
+      if (ready < connected) return { ...base, status: "not_ready" };
+    }
+    this.startCore();
+    return { ...base, status: "started" };
   }
 }
 

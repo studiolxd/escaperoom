@@ -43,6 +43,10 @@ export const SessionLiveProgressSchema = z.object({
   hintsUsed: z.number().int().min(0),
   /** Jugadores conectados ahora (los observadores no cuentan). */
   players: z.number().int().min(0),
+  /** `meta.players.min` de la sala (inicio conjunto, panel del organizador). */
+  minPlayers: z.number().int().min(0),
+  /** Conectados con "Listo" marcado (inicio conjunto, panel del organizador). */
+  readyCount: z.number().int().min(0),
   /** Epoch ms del inicio de la partida, `null` en el lobby. */
   startedAt: z.number().nullable(),
   /** Epoch ms del final, `null` mientras se juega. */
@@ -112,6 +116,98 @@ export function createColyseusLiveProgressSource(options: {
   };
 }
 
+// ── Inicio conjunto ("Todos los grupos comienzan juntos") ──────────────────
+
+/**
+ * Desenlace de `EventRoom.organizerStartGroup` para UN grupo: `started` (se
+ * arrancó), `already_started` (fase distinta de `lobby`, no-op), `empty`
+ * (sin conectados: nunca arranca, ni con `force`), `min_not_met`/`not_ready`
+ * (sin `force`: por debajo del mínimo o con alguien sin "Listo").
+ */
+export const GROUP_START_STATUSES = [
+  "started",
+  "already_started",
+  "empty",
+  "min_not_met",
+  "not_ready",
+] as const;
+export type GroupStartStatus = (typeof GROUP_START_STATUSES)[number];
+
+export type GroupStartResult = {
+  sessionId: string;
+  status: GroupStartStatus;
+  connected: number;
+  ready: number;
+  min: number;
+};
+
+/** Ruta interna de "Comenzar todos" (evento con la opción activa). */
+export const EVENT_START_ALL_INTERNAL_PATH = "/internal/events";
+
+const GroupStartResultSchema = z.object({
+  sessionId: z.string().min(1).max(128),
+  status: z.enum(GROUP_START_STATUSES),
+  connected: z.number().int().min(0),
+  ready: z.number().int().min(0),
+  min: z.number().int().min(0),
+});
+const StartAllGroupsResponse = z.object({ groups: z.array(GroupStartResultSchema) });
+
+export type StartAllGroupsResult = { groups: GroupStartResult[] };
+
+/** Fuente de "Comenzar todos" (Colyseus por HTTP; en memoria en tests). */
+export interface StartAllGroupsSource {
+  /** `null` si la fuente no responde (Colyseus caído o sin configurar). */
+  startAll(eventId: string, opts: { force: boolean }): Promise<StartAllGroupsResult | null>;
+}
+
+/**
+ * ¿Arrancan TODOS los grupos no vacíos sin `force`? (specs 11/19, ticket
+ * "inicio conjunto"): sin `force`, "Comenzar todos" es todo-o-nada — si
+ * cualquier grupo con conectados no cumple mínimo+listos, no arranca
+ * ninguno. Los grupos vacíos nunca cuentan como bloqueo (su anfitrión podrá
+ * empezar él mismo cuando lleguen jugadores).
+ */
+export function allNonEmptyGroupsReady(groups: readonly SessionLiveProgress[]): boolean {
+  return groups
+    .filter((group) => group.phase === "lobby" && group.players > 0)
+    .every((group) => group.players >= group.minPlayers && group.readyCount >= group.players);
+}
+
+/** Cliente HTTP de la ruta interna de "Comenzar todos"; cualquier fallo → `null`. */
+export function createColyseusStartAllGroupsSource(options: {
+  baseUrl: string;
+  secret: string;
+  fetch?: typeof fetch;
+  timeoutMs?: number;
+}): StartAllGroupsSource {
+  const doFetch = options.fetch ?? fetch;
+  const base = options.baseUrl.replace(/\/+$/u, "");
+  return {
+    async startAll(eventId, opts) {
+      try {
+        const res = await doFetch(
+          `${base}${EVENT_START_ALL_INTERNAL_PATH}/${encodeURIComponent(eventId)}/start-all`,
+          {
+            method: "POST",
+            headers: {
+              authorization: `Bearer ${eventProgressBearer(options.secret)}`,
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({ force: opts.force }),
+            signal: AbortSignal.timeout(options.timeoutMs ?? 5000),
+          },
+        );
+        if (!res.ok) return null;
+        const parsed = StartAllGroupsResponse.safeParse(await res.json());
+        return parsed.success ? { groups: parsed.data.groups } : null;
+      } catch {
+        return null;
+      }
+    },
+  };
+}
+
 // ── Progreso persistido (ticket 5.12) ──────────────────────────────────────
 
 /**
@@ -119,7 +215,10 @@ export function createColyseusLiveProgressSource(options: {
  * que sobrevive a un reinicio de Colyseus. Misma forma que el vivo salvo lo
  * que solo existe con una room viva (`roomId`, jugadores conectados).
  */
-export type SessionStoredProgress = Omit<SessionLiveProgress, "roomId" | "players">;
+export type SessionStoredProgress = Omit<
+  SessionLiveProgress,
+  "roomId" | "players" | "minPlayers" | "readyCount"
+>;
 
 /** Fuente del progreso persistido de las sesiones de un evento. */
 export interface StoredProgressSource {

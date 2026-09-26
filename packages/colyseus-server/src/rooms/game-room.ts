@@ -254,8 +254,9 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   /** C-8: Colyseus corta al cliente que supere esto, aunque ignore el rate limit de la app. */
   override maxMessagesPerSecond = 60;
 
-  private roomPackage!: RoomPackage;
-  private session?: RoomSession;
+  /** `protected`: `EventRoom` la lee para el arranque conjunto del organizador (ticket "inicio conjunto"). */
+  protected roomPackage!: RoomPackage;
+  protected session?: RoomSession;
   private createdAt = 0;
   private seed = 0;
   private ended = false;
@@ -743,6 +744,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     puzzlesTotal: number;
     hintsUsed: number;
     players: number;
+    /** Mínimo de `meta.players.min` (inicio conjunto, panel del organizador). */
+    minPlayers: number;
+    /** Conectados con "Listo" marcado (inicio conjunto, panel del organizador). */
+    readyCount: number;
     startedAt: number | null;
     endedAt: number | null;
     elapsedMs: number;
@@ -751,10 +756,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     const now = this.logicalNow();
     const started = Boolean(game?.flags.game_started);
     const endedAt = started && game?.endedAt !== undefined ? game.endedAt : null;
-    let players = 0;
-    this.state.players.forEach((player) => {
-      if (player.connected) players += 1;
-    });
+    const { connected, ready, min } = this.readiness();
     return {
       phase: (LIVE_PHASES as readonly string[]).includes(this.state.phase)
         ? (this.state.phase as LivePhase)
@@ -763,7 +765,9 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       puzzlesSolved: game ? solvedPuzzleIds(game).length : 0,
       puzzlesTotal: this.roomPackage.puzzles.length,
       hintsUsed: game ? Object.values(game.hintsUsed).reduce((sum, cost) => sum + cost, 0) : 0,
-      players,
+      players: connected,
+      minPlayers: min,
+      readyCount: ready,
       startedAt: started && game ? this.createdAt + game.startedAt : null,
       endedAt: endedAt !== null ? this.createdAt + endedAt : null,
       elapsedMs: started && game ? Math.max(0, (endedAt ?? now) - game.startedAt) : 0,
@@ -1069,6 +1073,33 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   /**
+   * Conectados, "Listos" y mínimo exigido (specs/11 §4.1): lo usan tanto
+   * `handleStart` (anfitrión) como `EventRoom.organizerStartGroup` (inicio
+   * conjunto del organizador, ticket "inicio conjunto") para no duplicar el
+   * recuento.
+   */
+  protected readiness(): { connected: number; ready: number; min: number } {
+    let connected = 0;
+    let ready = 0;
+    this.state.players.forEach((player) => {
+      if (!player.connected) return;
+      connected += 1;
+      if (player.ready) ready += 1;
+    });
+    return { connected, ready, min: this.roomPackage.meta.players.min };
+  }
+
+  /** Arranca la partida ya validada: dispara el hito `game_started` y publica el estado. */
+  protected startCore(): void {
+    const session = this.session!;
+    const started = session.start(this.logicalNow());
+    if (session.state.flags.game_started) {
+      this.onMilestone({ kind: "game_started", at: this.createdAt + session.state.startedAt });
+    }
+    this.publish(started);
+  }
+
+  /**
    * C-13 (decisiones del usuario): "Empezar" exige que TODOS los conectados
    * estén "Listo"; "Empezar igualmente" (`force`) se salta eso pero NUNCA
    * arranca por debajo de `meta.players.min` conectados — ni con `force`.
@@ -1086,27 +1117,20 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       this.fail(client, GAME_ERRORS.invalidState, "La partida ya ha empezado.");
       return;
     }
-    const connected: GamePlayerState[] = [];
-    this.state.players.forEach((player) => {
-      if (player.connected) connected.push(player);
-    });
-    if (connected.length < this.roomPackage.meta.players.min) {
+    const { connected, ready, min } = this.readiness();
+    if (connected < min) {
       this.fail(
         client,
         GAME_ERRORS.minPlayersNotMet,
-        `Hacen falta al menos ${this.roomPackage.meta.players.min} jugadores conectados.`,
+        `Hacen falta al menos ${min} jugadores conectados.`,
       );
       return;
     }
-    if (!data.force && connected.some((player) => !player.ready)) {
+    if (!data.force && ready < connected) {
       this.fail(client, GAME_ERRORS.playersNotReady, "Todavía hay jugadores que no están «Listo».");
       return;
     }
-    const started = this.session.start(this.logicalNow());
-    if (this.session.state.flags.game_started) {
-      this.onMilestone({ kind: "game_started", at: this.createdAt + this.session.state.startedAt });
-    }
-    this.publish(started);
+    this.startCore();
   }
 
   /** C-13 (solo anfitrión, specs/11 §4.5): expulsa a otro jugador; no puede volver a esta room. */

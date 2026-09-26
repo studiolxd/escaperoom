@@ -41,12 +41,17 @@ export function createPrismaEventRuntimeStore(
         },
       });
       if (!event || event.status !== "active") return null;
-      const config = event.config as unknown as { allowVideo?: boolean; timeLimitMinutes?: number | null };
+      const config = event.config as unknown as {
+        allowVideo?: boolean;
+        timeLimitMinutes?: number | null;
+        allGroupsStartTogether?: boolean;
+      };
       return {
         eventId,
         roomVersionId: event.roomVersionId,
         roomPackage: parseRoomPackage(event.roomVersion.package),
         allowVideo: config.allowVideo === true,
+        allGroupsStartTogether: config.allGroupsStartTogether === true,
         ...("timeLimitMinutes" in config
           ? { timeLimitOverrideMinutes: config.timeLimitMinutes }
           : {}),
