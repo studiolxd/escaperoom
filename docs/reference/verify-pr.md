@@ -182,6 +182,21 @@ script. Si ves 429/403 en tests de rate-limit bajo `pnpm verify:pr`, comprueba p
 contención de CPU (que sigue siendo real para OTROS tests, ver "Timeouts de CI" más arriba —
 `test/sitemap.test.ts` sí es un timeout genuino de CPU, sin relación con rate-limit).
 
+**Actualización 2 (entrada "Tests de rate limit de `web` aún intermitentes bajo `pnpm verify:pr`
+(429)" de `docs/DEUDA.md`, #170, resuelta): el prefijo por worktree no bastaba.** Leer el
+`REDIS_PREFIX` de `packages/shared/.env` (arreglo anterior) evita que dos worktrees se pisen entre
+sí, pero ese Redis sigue siendo el mismo persistente **entre tiradas sucesivas del mismo
+worktree**: las claves de cuota que deja una `pnpm verify:pr --all` seguían vivas para la
+siguiente, así que el 429 podía depender de la tirada anterior (visto en `room-license-api.test.ts`,
+`gift-copy`, reproducible en dos tiradas seguidas sin limpiar Redis a mano entre medias). Arreglado:
+el script añade un sufijo por EJECUCIÓN al `REDIS_PREFIX` del worktree (PID del script + epoch,
+nunca reutilizado — `REDIS_PREFIX="${REDIS_PREFIX}_run$$_$(date +%s)"`, justo antes de exportarlo),
+así que cada tirada de `pnpm verify:pr` empieza con un namespace de Redis limpio propio, sin tocar
+el prefijo por worktree que sigue separando `pnpm dev`/workers reales entre worktrees. Las claves
+"huérfanas" de tiradas anteriores no se limpian activamente, pero llevan TTL propio (rate limiting
+por ventana) y ya no colisionan con nada: se dejan expirar solas. Verificado con dos
+`pnpm verify:pr --all` seguidas en verde.
+
 De forma independiente (defensa en profundidad, no la causa de lo anterior): el limitador en
 memoria (`MemoryRateLimitStore`/`MemorySlidingWindowStore`, `packages/kit/src/rate-limit/`) acepta
 ahora un reloj inyectable de punta a punta (ningún test depende ya de un `setTimeout`/espera real),

@@ -8,8 +8,31 @@ import {
   loadReyAldricRoomPackage,
   startGameServer,
 } from "@escaperoom/colyseus-server";
+import { readGameAccessTokenConfig, signGameAccessToken } from "@escaperoom/shared/game-access-token";
 import type { PipesPuzzleDefinition } from "@escaperoom/shared/schemas";
 import { createPipesState, slidingNeighborIndices } from "@escaperoom/shared/templates";
+
+/**
+ * La `GameRoom` exige un `gameToken` para `create`/`join` desde #140
+ * (docs/DEUDA.md): esta prueba de carga mide el protocolo de una `GameRoom`
+ * "desnuda" (sin Postgres/GameAccessStore detrás, ni una compra/sala real),
+ * así que usa el mismo atajo que la suite de tests del propio
+ * `colyseus-server` (`kind: "dev_test"`, nunca aceptado en un despliegue real
+ * sin `ALLOW_DEV_SECRETS=1` explícito — `isDevFallbackAllowed`). Se fija aquí
+ * y no en el entorno del workflow para que el script sea autocontenido.
+ */
+process.env.ALLOW_DEV_SECRETS ??= "1";
+
+function gameToken(): string {
+  const config = readGameAccessTokenConfig();
+  if (!config) throw new Error("sin GAME_ACCESS_TOKEN_SECRET ni fallback de desarrollo");
+  const now = Date.now();
+  return signGameAccessToken(
+    config.secret,
+    { kind: "dev_test", label: "load-test" },
+    { now, expiresAt: now + SESSION_TIMEOUT_MS },
+  );
+}
 
 /**
  * Prueba de carga de 10 sesiones simultáneas (plan fase 6, fila 6.5; specs/22
@@ -264,9 +287,11 @@ async function playSession(endpoint: string, index: number, metrics: Metrics): P
   const hostRoom = await sdk.create(GAME_ROOM_NAME, {
     name: `Ana-${index}`,
     packageId: "room-rey-aldric",
+    gameToken: gameToken(),
   });
   const guestRoom = await new Client(endpoint).joinById(hostRoom.roomId, {
     name: `Bruno-${index}`,
+    gameToken: gameToken(),
   });
   // El resto de difusiones (diálogos, objetos, puzzles resueltos) no hacen falta aquí.
   for (const room of [hostRoom, guestRoom]) room.onMessage("*", () => undefined);

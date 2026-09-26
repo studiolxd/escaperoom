@@ -268,7 +268,7 @@ export async function solveMemory(players: UiPlayer[]): Promise<void> {
   for (let turn = 0; turn < 24; turn += 1) {
     const player = players[turn % players.length]!;
     const { page } = player;
-    const board = page.getByRole("list", { name: "Tablero de memoria" });
+    const board = page.getByRole("listbox", { name: "Tablero de memoria" });
     await expect(board).toBeVisible();
     const cards = await board.locator("[data-card-id]").evaluateAll((els) =>
       els.map((el) => ({
