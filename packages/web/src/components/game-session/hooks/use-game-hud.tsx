@@ -119,10 +119,19 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
   clockOffsetRef.current = snapshot.clock - Date.now();
   const serverNow = useCallback(() => Date.now() + clockOffsetRef.current, []);
 
-  const firstRoomId = model.subrooms[0]?.id ?? "";
+  const firstRoomId = model.initialRoomId || (model.subrooms[0]?.id ?? "");
   const self = snapshot.self;
   const roomId = self?.roomId || firstRoomId;
-  const playing = snapshot.phase === "playing";
+  /**
+   * Encargo lobby-diseño: el jugador ya entró al mapa (tras su introducción y
+   * su 3-2-1). Sin `self` (observador) cuenta como dentro: ve la partida.
+   */
+  const inMap = self ? self.inMap : true;
+  const inMapRef = useRef(inMap);
+  inMapRef.current = inMap;
+  const playing = snapshot.phase === "playing" && inMap;
+  /** Sala de espera: el avatar se mueve (y los demás lo ven), sin interactuar. */
+  const walkingLobby = snapshot.phase === "lobby" && Boolean(self);
   const isHost = snapshot.hostId !== "" && snapshot.hostId === snapshot.selfId;
 
   const [dialog, setDialog] = useState<{ id: string; text: string } | null>(null);
@@ -144,6 +153,13 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
 
   const panelRef = useRef<string | null>(null);
   panelRef.current = panel;
+  const pendingDialogRef = useRef<{ id: string; text: string } | null>(null);
+
+  useEffect(() => {
+    if (!inMap || !pendingDialogRef.current) return;
+    setDialog(pendingDialogRef.current);
+    pendingDialogRef.current = null;
+  }, [inMap]);
 
   const combinePuzzleId = useMemo(
     () => model.puzzles.find((puzzle) => puzzle.type === "combine_items")?.id,
@@ -172,7 +188,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
 
   const introOpen = isIntroOpen(dialog);
   const worldInputEnabled =
-    playing &&
+    (playing || walkingLobby) &&
     isWorldInputEnabled({ introOpen, inventoryOpen, panelOpen: panel !== null }) &&
     selected === null &&
     pickerFor === null;
@@ -190,7 +206,12 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
       switch (event.type) {
         case "dialog_show": {
           const known = model.dialogsById[event.dialogId];
-          setDialog({ id: event.dialogId, text: known?.text ?? event.dialogId });
+          const next = { id: event.dialogId, text: known?.text ?? event.dialogId };
+          // Quien aún lee la introducción o está en su 3-2-1 no está en el
+          // mapa: el diálogo (p. ej. la intro de las reglas `on_game_start`,
+          // que dispara el PRIMERO en entrar) se le muestra al entrar.
+          if (!inMapRef.current) pendingDialogRef.current = next;
+          else setDialog(next);
           break;
         }
         case "image_show": {
@@ -413,6 +434,8 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
 
   const onWorldEvent = useCallback(
     (event: WorldSceneEvent) => {
+      // En la sala de espera solo se camina: sin objetos, ítems ni puertas.
+      if (!inMapRef.current && event.type !== "avatar-move") return;
       if (event.type === "interact") {
         setSelected(event.objectId);
       } else if (event.type === "use-item") {
@@ -425,7 +448,9 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
         enterRoom(event.roomId);
       } else if (event.type === "avatar-move") {
         const me = snapshotRef.current.self;
-        if (snapshotRef.current.phase === "playing" && me && event.roomId === me.roomId) {
+        const phase = snapshotRef.current.phase;
+        const canWalk = me?.inMap ? phase === "playing" : phase === "lobby";
+        if (canWalk && me && event.roomId === me.roomId) {
           client.move(event.x, event.y);
         }
       }
@@ -556,6 +581,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
     roomId,
     currentRoom,
     playing,
+    inMap,
     isHost,
     introOpen,
     worldInputEnabled,

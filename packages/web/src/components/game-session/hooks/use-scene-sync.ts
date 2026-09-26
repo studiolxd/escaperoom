@@ -26,7 +26,9 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
   snapshotRef.current = snapshot;
 
   /** Habitación que muestra la escena (puede adelantarse al servidor al cruzar). */
-  const sceneRoomRef = useRef(snapshot.self?.roomId || model.subrooms[0]?.id || "");
+  const sceneRoomRef = useRef(
+    snapshot.self?.roomId || model.initialRoomId || model.subrooms[0]?.id || "",
+  );
   /** Última habitación autoritativa del jugador local. */
   const serverRoomRef = useRef<string | null>(null);
   const appliedObjectsRef = useRef<Record<string, string>>({});

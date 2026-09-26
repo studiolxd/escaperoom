@@ -1,4 +1,5 @@
 import { loadRoomPackage, toRuntimeModel } from "@escaperoom/game-runtime";
+import { withLobbyRoom } from "@escaperoom/shared/schemas";
 import type { Metadata } from "next";
 import { setRequestLocale } from "next-intl/server";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
@@ -24,7 +25,8 @@ export default async function RoomPlaytestPage({ params }: Props) {
   setRequestLocale(locale);
 
   const roomPackage = loadRoomPackage(readReyAldricRoomPackageJson());
-  const model = toRuntimeModel(roomPackage, { locale });
+  // Mismo lobby que la partida real (el cliente local también lo genera).
+  const model = toRuntimeModel(withLobbyRoom(roomPackage), { locale });
   const { pack } = resolveRoomPreviewPack(roomPackage.map.tileset, model);
 
   return (

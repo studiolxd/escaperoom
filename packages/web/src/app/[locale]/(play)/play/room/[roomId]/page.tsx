@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { storage } from "@escaperoom/kit/storage";
 import { ANONYMOUS_ACTOR, CatalogError, isAnonymous } from "@escaperoom/shared/services";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { headers } from "next/headers";
@@ -8,6 +9,8 @@ import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { roomPath } from "@/lib/catalog-seo";
 import { buildGameModel } from "@/lib/game-model";
 import { resolveActorFromHeaders } from "@/server/context";
+import { buildGameIntro } from "@/server/game-intro";
+import { introMediaUrlResolver } from "@/server/intro-media-url";
 import { getCatalogService, getGameAccessStore } from "@/server/services";
 
 type Props = {
@@ -45,6 +48,12 @@ export default async function RoomGamePage({ params, searchParams }: Props) {
   if (!roomPackage) notFound();
 
   const { model, pack } = buildGameModel(roomPackage, locale);
+  // Encargo lobby-diseño: introducción (texto o vídeo con URLs firmadas) y
+  // portada para la cabecera del lobby. Ninguna de las dos impide jugar.
+  const [intro, coverUrl] = await Promise.all([
+    buildGameIntro(roomPackage, locale, introMediaUrlResolver({ kind: "published" })),
+    room.coverImageKey ? storage.getSignedReadUrl(room.coverImageKey).catch(() => null) : null,
+  ]);
   const joinRoomId = typeof join === "string" && /^[\w-]{1,64}$/u.test(join) ? join : undefined;
   const t = await getTranslations("Game");
 
@@ -65,6 +74,8 @@ export default async function RoomGamePage({ params, searchParams }: Props) {
         joinRoomId={joinRoomId}
         subtitle={t("page.subtitle")}
         signInHref={signInHref}
+        intro={intro}
+        coverUrl={coverUrl}
       />
       <div className="absolute right-4 top-4 z-50">
         <LocaleSwitcher />

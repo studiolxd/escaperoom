@@ -1077,7 +1077,34 @@
       "host": "anfitrión",
       "offline": "desconectado",
       "kick": "Expulsar",
-      "kickConfirm": "¿Expulsar a {player}? No podrá volver a esta partida."
+      "kickConfirm": "¿Expulsar a {player}? No podrá volver a esta partida.",
+      "difficulty": {
+        "1": "Dificultad fácil",
+        "2": "Dificultad media",
+        "3": "Dificultad difícil"
+      },
+      "duration": "{minutes} min",
+      "noTimeLimit": "Sin límite de tiempo",
+      "playersRange": "{min}–{max} jugadores",
+      "belowMinimum": "Hacen falta al menos {min} jugadores conectados para empezar.",
+      "deviceCheck": {
+        "title": "Prueba tu micrófono",
+        "titleWithCamera": "Prueba tu micrófono y tu cámara",
+        "preview": "Vista previa de tu cámara",
+        "micLevel": "Nivel del micrófono",
+        "denied": "No se ha podido acceder al micrófono o a la cámara. Revisa los permisos del navegador.",
+        "start": "Probar",
+        "stop": "Parar la prueba"
+      }
+    },
+    "intro": {
+      "title": "Introducción",
+      "continue": "Continuar",
+      "hint": "Tómate el tiempo que quieras. El reloj empieza cuando el primer jugador entra en el mapa.",
+      "videoLabel": "Vídeo de introducción de la sala"
+    },
+    "countdown": {
+      "label": "¡Preparados para entrar!"
     },
     "hud": {
       "loadingPanel": "Cargando…"

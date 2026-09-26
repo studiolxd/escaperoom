@@ -16,12 +16,16 @@ import { HudHeader } from "./components/hud-header";
 import { HudLogCorner } from "./components/hud-log-corner";
 import { InventoryDialog } from "./components/inventory-dialog";
 import { ItemPickerPopover } from "./components/item-picker-popover";
+import type { IntroModel } from "@/lib/intro-model";
+import { CountdownOverlay } from "./components/countdown-overlay";
+import { IntroOverlay } from "./components/intro-overlay";
 import { LobbyPanel } from "./components/lobby-panel";
 import { ObjectsBar } from "./components/objects-bar";
 import { PanelHost } from "./components/panel-host";
 import { PlayersAside } from "./components/players-aside";
 import { useGameHud } from "./hooks/use-game-hud";
 import { useHudHotkeys } from "./hooks/use-hud-hotkeys";
+import { useLobbyFlow } from "./hooks/use-lobby-flow";
 import { useSceneSync } from "./hooks/use-scene-sync";
 import type { GameConnectionStatus } from "./use-game-connection";
 
@@ -50,6 +54,16 @@ export interface GameSessionShellProps {
   signInHref?: string;
   /** Capas extra sobre el canvas (p. ej. el overlay de voz/webcam). */
   children?: ReactNode;
+  /**
+   * Introducción de la sala ya resuelta en servidor (texto o vídeo, encargo
+   * lobby-diseño): se muestra tras «Empezar» (o al llegar tarde) antes del
+   * 3-2-1. `null`/ausente = directo al 3-2-1.
+   */
+  intro?: IntroModel | null;
+  /** Portada de la sala para la cabecera del lobby (URL firmada). */
+  coverUrl?: string | null;
+  /** Prueba de micrófono/cámara del lobby, si la partida usa voz/vídeo. */
+  deviceCheck?: ReactNode;
 
   // — Puntos de extensión propios del playtest (F-5) —————————————
   /**
@@ -92,6 +106,9 @@ export function GameSessionShell({
   exitHref,
   signInHref,
   children,
+  intro,
+  coverUrl,
+  deviceCheck,
   variant = "game",
   showChat = true,
   objectsBarHeader,
@@ -109,6 +126,8 @@ export function GameSessionShell({
     debugLog: variant === "playtest",
   });
 
+  const lobby = useLobbyFlow({ snapshot, client, hasIntro: Boolean(intro) });
+  const inMapStage = lobby.stage === "map";
   const sectionRef = useRef<HTMLElement | null>(null);
 
   const { preventEscapeIfDialogOpen } = useHudHotkeys({
@@ -157,6 +176,7 @@ export function GameSessionShell({
       className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10 bg-slate-950"
       data-testid="game-session"
       data-phase={snapshot.phase}
+      data-stage={lobby.stage}
     >
       <ErrorBoundary>
         <GameSessionCanvas
@@ -190,24 +210,28 @@ export function GameSessionShell({
         />
 
         <div className="pointer-events-auto flex w-full flex-wrap items-end justify-between gap-4">
-          <ObjectsBar
-            model={model}
-            objectsLabel={hud.tp("objects")}
-            roomObjects={hud.roomObjects}
-            openDoors={hud.openDoors}
-            worldInputEnabled={hud.worldInputEnabled}
-            objectName={hud.objectName}
-            goToLabel={(room) => hud.tp("action.goTo", { room })}
-            onSelectObject={(objectId) => hud.setSelected(objectId)}
-            onEnterRoom={(door) => {
-              if (!door.leadsTo) return;
-              sceneRoomRef.current = door.leadsTo;
-              handleRef.current?.showRoom(door.leadsTo);
-              hud.enterRoom(door.leadsTo, door.position);
-            }}
-            header={objectsBarHeader}
-            footer={objectsBarFooter}
-          />
+          {/* En la sala de espera (y durante la introducción/3-2-1) no hay
+              objetos ni inventario que mostrar: solo el chat. */}
+          {inMapStage ? (
+            <ObjectsBar
+              model={model}
+              objectsLabel={hud.tp("objects")}
+              roomObjects={hud.roomObjects}
+              openDoors={hud.openDoors}
+              worldInputEnabled={hud.worldInputEnabled}
+              objectName={hud.objectName}
+              goToLabel={(room) => hud.tp("action.goTo", { room })}
+              onSelectObject={(objectId) => hud.setSelected(objectId)}
+              onEnterRoom={(door) => {
+                if (!door.leadsTo) return;
+                sceneRoomRef.current = door.leadsTo;
+                handleRef.current?.showRoom(door.leadsTo);
+                hud.enterRoom(door.leadsTo, door.position);
+              }}
+              header={objectsBarHeader}
+              footer={objectsBarFooter}
+            />
+          ) : null}
 
           {showChat ? (
             <ChatWindow
@@ -219,62 +243,66 @@ export function GameSessionShell({
             />
           ) : null}
 
-          <div className="flex w-64 flex-col gap-2 rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-white backdrop-blur">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs uppercase tracking-wide text-white/50">{hud.tp("inventory")}</span>
+          {inMapStage ? (
+            <div className="flex w-64 flex-col gap-2 rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-white backdrop-blur">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs uppercase tracking-wide text-white/50">
+                  {hud.tp("inventory")}
+                </span>
+                <Button
+                  size="xs"
+                  variant="overlay"
+                  disabled={hud.introOpen || !hud.playing}
+                  onClick={hud.openInventory}
+                  data-testid="game-open-inventory"
+                >
+                  {hud.tp("inventoryButton")}
+                </Button>
+              </div>
+              <ul className="flex flex-wrap gap-1.5" data-testid="game-inventory">
+                {snapshot.inventory.length === 0 ? (
+                  <li className="text-[0.7rem] text-white/40">{hud.tp("emptyInventory")}</li>
+                ) : (
+                  snapshot.inventory.map((itemId) => (
+                    <li
+                      key={itemId}
+                      draggable
+                      onDragStart={(event) => {
+                        hud.setDraggingItem(itemId);
+                        event.dataTransfer.setData("text/plain", itemId);
+                        event.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragEnd={() => hud.setDraggingItem(null)}
+                      className="flex cursor-grab items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/10 py-1 pl-1 pr-2.5 text-[0.7rem] text-amber-100 active:cursor-grabbing"
+                    >
+                      {hud.renderItemIcon(itemId, 28)}
+                      {hud.itemName(itemId)}
+                    </li>
+                  ))
+                )}
+              </ul>
+              <dl className="flex justify-between text-[0.7rem] text-white/60">
+                <dt>{hud.tp("stats.puzzles")}</dt>
+                <dd className="font-mono text-white/90">
+                  {hud.solvedCount}/{model.puzzles.length}
+                </dd>
+              </dl>
               <Button
-                size="xs"
+                size="sm"
                 variant="overlay"
-                disabled={hud.introOpen || !hud.playing}
-                onClick={hud.openInventory}
-                data-testid="game-open-inventory"
+                disabled={!hud.playing || !hud.hintPuzzleId}
+                onClick={() => hud.setPanel("hints")}
               >
-                {hud.tp("inventoryButton")}
+                {hud.tp("action.hints")}
               </Button>
             </div>
-            <ul className="flex flex-wrap gap-1.5" data-testid="game-inventory">
-              {snapshot.inventory.length === 0 ? (
-                <li className="text-[0.7rem] text-white/40">{hud.tp("emptyInventory")}</li>
-              ) : (
-                snapshot.inventory.map((itemId) => (
-                  <li
-                    key={itemId}
-                    draggable
-                    onDragStart={(event) => {
-                      hud.setDraggingItem(itemId);
-                      event.dataTransfer.setData("text/plain", itemId);
-                      event.dataTransfer.effectAllowed = "move";
-                    }}
-                    onDragEnd={() => hud.setDraggingItem(null)}
-                    className="flex cursor-grab items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/10 py-1 pl-1 pr-2.5 text-[0.7rem] text-amber-100 active:cursor-grabbing"
-                  >
-                    {hud.renderItemIcon(itemId, 28)}
-                    {hud.itemName(itemId)}
-                  </li>
-                ))
-              )}
-            </ul>
-            <dl className="flex justify-between text-[0.7rem] text-white/60">
-              <dt>{hud.tp("stats.puzzles")}</dt>
-              <dd className="font-mono text-white/90">
-                {hud.solvedCount}/{model.puzzles.length}
-              </dd>
-            </dl>
-            <Button
-              size="sm"
-              variant="overlay"
-              disabled={!hud.playing || !hud.hintPuzzleId}
-              onClick={() => hud.setPanel("hints")}
-            >
-              {hud.tp("action.hints")}
-            </Button>
-          </div>
+          ) : null}
         </div>
       </div>
 
       {variant === "playtest" ? (
         <HudLogCorner log={hud.log} title={hud.tp("log.title")} />
-      ) : (
+      ) : !inMapStage ? null : (
         <PlayersAside
           players={snapshot.players}
           phase={snapshot.phase}
@@ -296,40 +324,31 @@ export function GameSessionShell({
         />
       )}
 
-      {variant === "game" && snapshot.phase === "lobby" && snapshot.self ? (
+      {lobby.stage === "lobby" && snapshot.self ? (
         <LobbyPanel
+          meta={model.meta}
           pack={pack}
-          occupiedCharacterIds={
-            new Set(
-              snapshot.players
-                .filter((player) => !player.isSelf && player.connected)
-                .map((player) => player.characterId),
-            )
-          }
-          selectedCharacterId={snapshot.self.characterId}
-          onSelectCharacter={(characterId) => client.selectCharacter(characterId)}
+          coverUrl={coverUrl}
+          players={snapshot.players}
+          self={snapshot.self}
           isHost={hud.isHost}
-          allReady={snapshot.players.every((player) => !player.connected || player.ready)}
-          isReady={snapshot.self.ready}
+          onSelectCharacter={(characterId) => client.selectCharacter(characterId)}
           onToggleReady={(ready) => client.setReady(ready)}
           onStart={(force) => client.startGame(force)}
+          onKick={(playerId) => client.kick(playerId)}
           inviteUrl={inviteUrl}
           copied={hud.copied}
           onCopyInvite={() => void hud.copyInvite(inviteUrl)}
-          titleLabel={hud.t("lobby.title")}
-          playersLabel={hud.t("lobby.players", { count: snapshot.players.length })}
-          startLabel={hud.t("lobby.start")}
-          startForceLabel={hud.t("lobby.startForce")}
-          startNotReadyLabel={hud.t("lobby.startNotReady")}
-          confirmForceTitleLabel={hud.t("lobby.confirmForceTitle")}
-          confirmForceConfirmLabel={hud.t("lobby.confirmForceConfirm")}
-          confirmForceCancelLabel={hud.t("lobby.confirmForceCancel")}
-          markReadyLabel={hud.t("lobby.markReady")}
-          readyLabel={hud.t("lobby.ready")}
-          waitingHostLabel={hud.t("lobby.waitingHost")}
-          inviteLabel={hud.t("lobby.invite")}
-          copiedLabel={hud.t("lobby.copied")}
+          deviceCheck={deviceCheck}
         />
+      ) : null}
+
+      {lobby.stage === "intro" && intro ? (
+        <IntroOverlay intro={intro} onClose={lobby.closeIntro} />
+      ) : null}
+
+      {lobby.stage === "countdown" ? (
+        <CountdownOverlay value={lobby.countdown} label={hud.t("countdown.label")} />
       ) : null}
 
       <ContextMenuPopover
@@ -422,7 +441,9 @@ export function GameSessionShell({
         onPlacePlatesBridge={hud.placePlatesBridge}
         onPlaceMirror={hud.placeMirror}
         platesGetNow={hud.serverNow}
-        panelTitle={(panel) => (panel === "hints" ? hud.tp("action.hints") : hud.tp("menu.openPanel"))}
+        panelTitle={(panel) =>
+          panel === "hints" ? hud.tp("action.hints") : hud.tp("menu.openPanel")
+        }
         closeLabel={hud.tp("close")}
         loadingLabel={hud.t("hud.loadingPanel")}
       />
@@ -430,7 +451,12 @@ export function GameSessionShell({
       {children}
 
       {hud.summary ? (
-        <ResultsScreen summary={hud.summary} exitHref={exitHref} signInHref={signInHref} className="z-40" />
+        <ResultsScreen
+          summary={hud.summary}
+          exitHref={exitHref}
+          signInHref={signInHref}
+          className="z-40"
+        />
       ) : null}
     </section>
   );
