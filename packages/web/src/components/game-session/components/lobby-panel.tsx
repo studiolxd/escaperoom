@@ -306,7 +306,7 @@ export function LobbyPanel({
 }
 
 /**
- * Descripción de la sala recortada a 4 líneas (`line-clamp-4`): sin una
+ * Descripción de la sala recortada a 5 líneas (`line-clamp-5`): sin una
  * medida nativa de "¿se ha truncado?", comparamos `scrollHeight` contra
  * `clientHeight` tras montar — solo entonces aparece "Leer más", que abre el
  * texto completo en un `Dialog`.
@@ -324,7 +324,7 @@ function RoomDescription({ title, description }: { title: string; description: s
 
   return (
     <>
-      <p ref={ref} className="line-clamp-4 text-xs text-white/70">
+      <p ref={ref} className="line-clamp-5 text-xs text-white/70">
         {description}
       </p>
       {truncated ? (

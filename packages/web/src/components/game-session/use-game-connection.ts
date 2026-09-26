@@ -166,6 +166,11 @@ export function useGameConnection({
         // Salida definitiva (consentida o gracia agotada/fin de partida): ya
         // no hay nada que reconectar con esta room.
         clearGameReconnect(joined.roomId);
+        // Vacía el cliente: sin esto, `network-game.tsx` seguía pintando el
+        // lobby/HUD con el último snapshot (ya congelado, la room real está
+        // cerrada) en vez de la pantalla de "desconectado" — p. ej. al
+        // expulsar a alguien (`kick`), no lo sacaba visualmente del lobby.
+        setClient(null);
       });
       setRoomId(joined.roomId);
       setClient(spectating ? createReadOnlyGameClient(networkClient) : networkClient);
