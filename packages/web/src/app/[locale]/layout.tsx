@@ -5,7 +5,7 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import { routing } from "@/i18n/routing";
 import { ConsentProvider } from "@/components/consent/consent-provider";
 import { CookieBanner, CookiePreferencesDialog } from "@/components/consent/cookie-consent-ui";

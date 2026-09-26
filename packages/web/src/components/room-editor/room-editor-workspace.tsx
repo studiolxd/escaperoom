@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
+import { cn } from "cn";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
 import { EditorToolHint } from "./editor-tool-hint";
