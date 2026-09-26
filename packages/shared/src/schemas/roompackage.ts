@@ -69,6 +69,18 @@ export const RoomPackageMetaSchema = z.object({
   difficulty: DifficultySchema,
   players: PlayersRangeSchema,
   assetsManifest: z.string(),
+  /**
+   * Introducción opcional previa a la partida (encargo lobby-c13, specs/04 §7):
+   * un texto localizado que cada jugador lee (y cierra cuando quiere) tras
+   * "Empezar", antes de su 3-2-1. Ausente/`undefined`: sin introducción, se
+   * pasa directo al 3-2-1. La variante en vídeo queda fuera de esta primera
+   * entrega (ver PR): solo texto por ahora.
+   */
+  intro: z
+    .object({
+      text: LocalizedTextSchema,
+    })
+    .optional(),
 });
 
 /** Diálogo localizado, opcionalmente condicionado — specs/08 §2.3. */
@@ -104,6 +116,7 @@ export const RoomPackageSchema = z.object({
 
 export type Difficulty = z.infer<typeof DifficultySchema>;
 export type RoomPackageMeta = z.infer<typeof RoomPackageMetaSchema>;
+export type RoomIntro = NonNullable<RoomPackageMeta["intro"]>;
 export type DialogDef = z.infer<typeof DialogDefSchema>;
 export type HintDef = z.infer<typeof HintDefSchema>;
 export type RoomPackage = z.infer<typeof RoomPackageSchema>;
