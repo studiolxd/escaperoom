@@ -107,6 +107,18 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
   const snapshotRef = useRef<GameSnapshot>(snapshot);
   snapshotRef.current = snapshot;
 
+  /**
+   * F-43..47 punto 1: desfase entre el reloj lógico del servidor
+   * (`snapshot.clock`) y el reloj del jugador, recalculado en cada snapshot
+   * nuevo. `serverNow()` nunca lee `Date.now()` a secas: sirve para paneles
+   * con cuenta atrás corta (placas) donde el reloj del ordenador desincronizado
+   * haría que la ventana mostrada no coincidiera con la que resuelve el
+   * servidor.
+   */
+  const clockOffsetRef = useRef(0);
+  clockOffsetRef.current = snapshot.clock - Date.now();
+  const serverNow = useCallback(() => Date.now() + clockOffsetRef.current, []);
+
   const firstRoomId = model.subrooms[0]?.id ?? "";
   const self = snapshot.self;
   const roomId = self?.roomId || firstRoomId;
@@ -541,6 +553,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
     worldInputEnabled,
     remaining,
     elapsed,
+    serverNow,
     selectedObject,
     dialog,
     setDialog,

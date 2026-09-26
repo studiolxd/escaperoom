@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type DragEvent } from "react";
-import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
+import type { RuntimeModel } from "@escaperoom/game-runtime";
 import {
   RoomRuntime,
   type RoomScenePack,
@@ -34,7 +34,7 @@ export default function GameSessionCanvas({
   onEvent,
   onReady,
 }: {
-  model: PublicRuntimeModel;
+  model: RuntimeModel;
   roomId: string;
   pack?: RoomScenePack;
   inputEnabled?: boolean;
