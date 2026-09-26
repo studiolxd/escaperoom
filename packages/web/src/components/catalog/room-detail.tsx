@@ -143,7 +143,7 @@ export function RoomPlayCta({
     // retorno a esta sala), nunca lanza el checkout directamente.
     if (isAnonymous) {
       return (
-        <Button asChild size="lg" className="w-fit" variant="outline">
+        <Button asChild size="lg" className="w-fit">
           <Link href={`/login?callbackURL=${encodeURIComponent(roomHref)}`}>
             {t("loginToBuyCta")}
           </Link>
@@ -222,7 +222,7 @@ export function RoomDetailView({
   ];
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-6xl flex-col gap-6 bg-background px-4 py-8 text-foreground">
+    <>
       <Link href={CATALOG_PATH} className="text-sm underline-offset-4 hover:underline">
         ← {t("back")}
       </Link>
@@ -306,6 +306,6 @@ export function RoomDetailView({
           <ReviewsList roomId={room.id} locale={locale} reviewsPromise={reviewsPromise} />
         </Suspense>
       </section>
-    </main>
+    </>
   );
 }

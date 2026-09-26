@@ -10,10 +10,11 @@ export default async function RoomsLoading() {
   const t = await getTranslations("Catalog");
 
   return (
-    <main
+    <div
+      role="status"
       aria-busy="true"
       aria-label={t("loading")}
-      className="mx-auto flex min-h-dvh max-w-6xl flex-col gap-6 bg-background px-4 py-8 text-foreground"
+      className="flex w-full flex-col gap-6"
     >
       <header className="flex flex-col gap-2">
         <Skeleton className="h-8 w-48" />
@@ -27,6 +28,6 @@ export default async function RoomsLoading() {
           <Skeleton key={index} className="h-64 w-full rounded-xl" />
         ))}
       </div>
-    </main>
+    </div>
   );
 }

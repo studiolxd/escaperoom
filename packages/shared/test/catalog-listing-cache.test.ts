@@ -14,6 +14,7 @@ const FILTER: CatalogListFilter = {
   maxPrice: null,
   playersMin: null,
   playersMax: null,
+  minRating: null,
   q: null,
   sort: "recent",
 };
@@ -121,6 +122,7 @@ describe("createCachedPublishedRoomListing", () => {
       maxPrice: FILTER.maxPrice,
       playersMin: FILTER.playersMin,
       playersMax: FILTER.playersMax,
+      minRating: FILTER.minRating,
       sort: FILTER.sort,
     };
 

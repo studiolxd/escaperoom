@@ -44,6 +44,7 @@ export function catalogInputFromSearchParams(params: URLSearchParams): CatalogLi
     minPlayers: params.get("minPlayers"),
     maxPlayers: params.get("maxPlayers"),
     players: params.get("players"),
+    minRating: params.get("minRating"),
     q: params.get("q"),
     sort: params.get("sort"),
     cursor: params.get("cursor"),

@@ -17,6 +17,7 @@ const FILTER_KEYS = [
   "minPlayers",
   "maxPlayers",
   "maxPrice",
+  "minRating",
   "sort",
 ] as const;
 

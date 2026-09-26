@@ -15,7 +15,12 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@/components/ui/pagination";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+} from "@/components/ui/pagination";
 import { CatalogFilters, type CatalogFilterValues } from "./catalog-filters";
 import { PageSizeSelect } from "./page-size-select";
 import { RoomCard } from "./room-card";
@@ -164,9 +169,18 @@ async function CatalogResults({
 
       {rooms.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <PageSizeSelect pageSize={pageSize} defaultPageSize={CATALOG_DEFAULT_LIMIT} query={query} />
+          <PageSizeSelect
+            pageSize={pageSize}
+            defaultPageSize={CATALOG_DEFAULT_LIMIT}
+            query={query}
+          />
           {totalPages > 1 ? (
-            <CatalogPagination query={query} page={page} pageSize={pageSize} totalPages={totalPages} />
+            <CatalogPagination
+              query={query}
+              page={page}
+              pageSize={pageSize}
+              totalPages={totalPages}
+            />
           ) : null}
         </div>
       ) : null}
@@ -192,7 +206,7 @@ export function CatalogView({
   );
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-6xl flex-col gap-6 bg-background px-4 py-8 text-foreground">
+    <>
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">{t("heading")}</h1>
         <p className="text-muted-foreground">{t("intro")}</p>
@@ -212,6 +226,6 @@ export function CatalogView({
       <Suspense fallback={<CatalogResultsSkeleton />}>
         <CatalogResults resultPromise={resultPromise} locale={locale} query={query} />
       </Suspense>
-    </main>
+    </>
   );
 }

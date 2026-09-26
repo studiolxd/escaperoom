@@ -929,6 +929,9 @@
     "priceFree": "Gratis",
     "priceMax": "Precio máximo",
     "priceUnlimited": "Sin límite",
+    "ratingLabel": "Valoración",
+    "anyRating": "Cualquiera",
+    "ratingFromOption": "A partir de {rating}",
     "sort": "Ordenar por",
     "sortRecent": "Más recientes",
     "sortRating": "Mejor valoradas",
@@ -955,6 +958,7 @@
   },
   "RoomDetail": {
     "metaTitle": "{title} · Escape room online",
+    "loading": "Cargando la sala…",
     "back": "Volver al catálogo",
     "languages": "Idiomas",
     "difficulty": "Dificultad",
@@ -1775,16 +1779,16 @@
   "Auth": {
     "login": {
       "title": "Inicia sesión",
-      "subtitle": "Accede con Google o con un enlace mágico por email"
+      "subtitle": "Accede con tu email o con Google"
     },
     "signup": {
       "title": "Crea tu cuenta",
-      "subtitle": "Regístrate con Google o con un enlace mágico por email"
+      "subtitle": "Regístrate con tu email o con Google"
     },
     "emailInvalid": "Introduce un email válido",
     "emailLabel": "Email",
     "emailPlaceholder": "tucorreo@ejemplo.com",
-    "emailSubmit": "Enviar enlace mágico",
+    "emailSubmit": "Continuar",
     "continueWith": "O continúa con",
     "google": "Continuar con Google",
     "emailSent": "Te hemos enviado un enlace a tu email.",
@@ -1809,7 +1813,7 @@
     "title": "No hemos encontrado esta página",
     "description": "El enlace puede estar roto o la página ya no existe.",
     "home": "Ir al inicio",
-    "browseCatalog": "Ver el catálogo"
+    "browseCatalog": "Explorar salas"
   },
   "PublicErrorPage": {
     "title": "Ha ocurrido un error",
@@ -1821,7 +1825,7 @@
     "title": "No hemos encontrado esta página",
     "description": "El enlace puede estar roto o la página ya no existe.",
     "home": "Ir al inicio",
-    "browseCatalog": "Ver el catálogo"
+    "browseCatalog": "Explorar salas"
   },
   "ThemeToggle": {
     "label": "Tema",

@@ -45,7 +45,7 @@ export function RoomCard({ room, locale }: { room: CatalogRoom; locale: string }
       <p className="line-clamp-3 text-sm" lang={room.defaultLanguage}>
         {room.description}
       </p>
-      <dl className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
         <div className="flex gap-1">
           <dt className="font-medium">{t("difficulty")}</dt>
           <dd>{t(`difficulty${room.difficulty}`)}</dd>

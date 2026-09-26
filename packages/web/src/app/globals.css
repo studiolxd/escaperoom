@@ -125,6 +125,10 @@
   }
   html {
     @apply font-sans;
+    /* Reserva el hueco de la barra de scroll siempre: sin esto, el
+       contenido centrado (`mx-auto max-w-*`) se desplaza unos px entre el
+       esqueleto de carga (sin scroll) y la página ya cargada (con scroll). */
+    scrollbar-gutter: stable;
   }
 }
 
