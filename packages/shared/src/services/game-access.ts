@@ -29,14 +29,28 @@ import type { RoomPackage } from "../schemas";
  */
 
 /**
- * Margen de una reclamación "en curso" antes de considerarla abandonada
- * (servidor caído sin `onDispose`): el límite de partida más largo posible
- * (`GAME_TIME_LIMIT_SEC` de `colyseus-server`, 1 h) más un margen generoso
- * para el lobby (antes de `start_game`) y la pantalla de resultados. No hay
- * job de limpieza: la condición vive en la propia escritura de
- * `claimPlaySession`.
+ * Cadencia del latido de una reclamación "en curso" (ticket duración-salas):
+ * con la duración de partida ahora sin tope, una reclamación ya no puede
+ * darse por "en curso pero viva" solo por la hora a la que empezó — la
+ * `GameRoom` renueva la reclamación con este latido mientras la room exista
+ * (`heartbeatPlaySession`), y `claimPlaySession` la considera abandonada si
+ * el último latido (o el inicio, si aún no hubo ninguno) es más viejo que
+ * `PLAY_SESSION_STALE_AFTER_SECONDS`.
  */
-export const PLAY_SESSION_STALE_AFTER_SECONDS = 2 * 60 * 60;
+export const PLAY_SESSION_HEARTBEAT_INTERVAL_SECONDS = 5 * 60;
+
+/**
+ * Margen de una reclamación "en curso" antes de considerarla abandonada
+ * (servidor caído sin `onDispose`, o sin que llegara a emitir su primer
+ * latido): un múltiplo generoso de `PLAY_SESSION_HEARTBEAT_INTERVAL_SECONDS`
+ * para tolerar un latido perdido sin liberar una partida que sigue viva. No
+ * depende de la duración de la sala (que ya no tiene tope): antes de este
+ * ticket asumía como máximo 1 h de partida (`GAME_TIME_LIMIT_SEC`) más
+ * margen; con duración sin tope, esa suposición ya no vale y el latido la
+ * sustituye. No hay job de limpieza: la condición vive en la propia
+ * escritura de `claimPlaySession`.
+ */
+export const PLAY_SESSION_STALE_AFTER_SECONDS = 3 * PLAY_SESSION_HEARTBEAT_INTERVAL_SECONDS;
 
 export interface GameAccessStore {
   /** El paquete de la versión comprada; `null` si no existe (dato inconsistente/borrado). */
@@ -48,6 +62,15 @@ export interface GameAccessStore {
    * o "en curso" y aún no caducada (otra room la tiene).
    */
   claimPlaySession(purchaseId: string, colyseusRoomId: string): Promise<boolean>;
+  /**
+   * Renueva la reclamación "en curso" (ticket duración-salas): la `GameRoom`
+   * la llama cada `PLAY_SESSION_HEARTBEAT_INTERVAL_SECONDS` mientras la room
+   * viva, para que una partida larga (o sin duración) nunca se considere
+   * abandonada solo por el tiempo transcurrido desde que empezó. No hace
+   * nada si `colyseusRoomId` ya no es quien tiene la reclamación, o si la
+   * compra ya se consumió.
+   */
+  heartbeatPlaySession(purchaseId: string, colyseusRoomId: string): Promise<void>;
   /** Consumo definitivo: la partida terminó (`game_ended`). */
   markPlaySessionEnded(purchaseId: string): Promise<void>;
   /** Libera una reclamación de `colyseusRoomId` que no llegó a terminar. */
@@ -61,6 +84,7 @@ export type InMemoryGameAccessPurchase = {
   playSessionStartedAt: Date | null;
   playSessionEndedAt: Date | null;
   playSessionColyseusId: string | null;
+  playSessionHeartbeatAt: Date | null;
 };
 
 /**
@@ -86,14 +110,24 @@ export function createInMemoryGameAccessStore(opts: {
     async claimPlaySession(purchaseId, colyseusRoomId) {
       const purchase = opts.purchases.find((p) => p.id === purchaseId);
       if (!purchase || purchase.playSessionEndedAt !== null) return false;
-      const stale =
-        purchase.playSessionStartedAt !== null &&
-        now().getTime() - purchase.playSessionStartedAt.getTime() > staleAfterMs;
+      const lastAlive = purchase.playSessionHeartbeatAt ?? purchase.playSessionStartedAt;
+      const stale = lastAlive !== null && now().getTime() - lastAlive.getTime() > staleAfterMs;
       if (purchase.playSessionStartedAt !== null && !stale) return false;
       purchase.playSessionStartedAt = now();
+      purchase.playSessionHeartbeatAt = null;
       purchase.playSessionColyseusId = colyseusRoomId;
       claimedRoomIdByPurchase.set(purchaseId, colyseusRoomId);
       return true;
+    },
+    async heartbeatPlaySession(purchaseId, colyseusRoomId) {
+      const purchase = opts.purchases.find((p) => p.id === purchaseId);
+      if (
+        purchase &&
+        purchase.playSessionEndedAt === null &&
+        purchase.playSessionColyseusId === colyseusRoomId
+      ) {
+        purchase.playSessionHeartbeatAt = now();
+      }
     },
     async markPlaySessionEnded(purchaseId) {
       const purchase = opts.purchases.find((p) => p.id === purchaseId);
@@ -107,6 +141,7 @@ export function createInMemoryGameAccessStore(opts: {
         purchase.playSessionColyseusId === colyseusRoomId
       ) {
         purchase.playSessionStartedAt = null;
+        purchase.playSessionHeartbeatAt = null;
         purchase.playSessionColyseusId = null;
       }
     },

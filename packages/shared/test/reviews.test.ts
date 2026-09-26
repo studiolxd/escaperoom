@@ -91,6 +91,16 @@ describe("reviewService.upsertReview", () => {
     });
   });
 
+  it("marca durationOverridden si el usuario jugó una partida de duración modificada (ticket duración-salas)", async () => {
+    const { reviews, store } = setup();
+    const first = await reviews.upsertReview(actor("ana"), "sala", { rating: 4 });
+    expect(first.review.durationOverridden).toBe(false);
+
+    store.markOverriddenDuration("ana", "sala");
+    const edited = await reviews.upsertReview(actor("ana"), "sala", { rating: 5 });
+    expect(edited.review.durationOverridden).toBe(true);
+  });
+
   it("sala fuera de catálogo: ROOM_NOT_FOUND al listar y al reseñar", async () => {
     const { reviews } = setup();
     await expect(reviews.listReviews(ANONYMOUS_ACTOR, "otra")).rejects.toMatchObject({

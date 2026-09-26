@@ -52,6 +52,7 @@ const version = (
   authorId: author.userId,
   roomStatus: "published",
   saleEvents: true,
+  estimatedMinutes: 30,
   ...over,
 });
 

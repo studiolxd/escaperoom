@@ -72,6 +72,19 @@ export type EventPaymentStatus = "not_required" | "pending" | "paid" | "refunded
 /** Contenido de `event.config` (JSONB). */
 export type EventConfig = {
   allowVideo: boolean;
+  /**
+   * Ticket duración-salas (specs/02 §7, specs/21): el organizador puede
+   * poner cualquier duración de partida para SU evento (más corta, más
+   * larga o sin límite), por encima de la de la sala. Tres estados, igual
+   * que `meta.timeLimitMinutes` de la sala:
+   * - **ausente** (clave sin la propiedad, no `undefined` explícito): sin
+   *   override — la partida usa la duración propia de la sala. Es la marca
+   *   que decide si una partida cuenta para el ranking público (specs/21):
+   *   presente = duración modificada, se excluye.
+   * - **`null`**: override explícito a "sin duración".
+   * - **entero positivo**: el límite en minutos para este evento.
+   */
+  timeLimitMinutes?: number | null;
   recordingEnabled: boolean;
   /** Instante en que el organizador aceptó el texto de grabación (specs/12 §5.2). */
   recordingAcceptedAt: string | null;
@@ -139,6 +152,12 @@ export type EventRoomVersionRef = {
   authorId: string;
   roomStatus: "draft" | "published" | "unlisted" | "archived" | "removed";
   saleEvents: boolean;
+  /**
+   * `meta.estimatedMinutes` de la sala (ticket duración-salas): para avisar
+   * si el override la acorta. Opcional para no romper otros `EventStore` de
+   * prueba que no lo necesitan (nada usa esta ref fuera de create/update).
+   */
+  estimatedMinutes?: number;
 };
 
 /** Resumen del detalle (specs/13 §6.1): nº de sesiones y nº de claves por estado. */
@@ -383,6 +402,13 @@ export const CreateEventInput = z
     /** Por defecto `false` en cualquier evento (specs/12 §4). */
     allowVideo: z.boolean().default(false),
     recordingEnabled: z.boolean().default(false),
+    /**
+     * Override de duración del evento (ticket duración-salas): omitido = sin
+     * override (usa la de la sala); `null` = sin duración; entero positivo =
+     * minutos. Se envía explícitamente como `null` para "sin duración", nunca
+     * se omite para conseguir el mismo efecto (ausente ≠ `null`).
+     */
+    timeLimitMinutes: z.number().int().positive().nullable().optional(),
     /** Idioma de los emails de invitación (5.6). */
     locale: z.enum(LOCALES).optional(),
   })
@@ -405,10 +431,23 @@ export const UpdateEventInput = z
     audience: z.enum(EVENT_AUDIENCES).optional(),
     allowVideo: z.boolean().optional(),
     recordingEnabled: z.boolean().optional(),
+    /**
+     * `null` fija/mantiene "sin duración"; un entero fija el override en
+     * minutos. **Ausente** significa "no tocar" en un `PATCH` (semántica
+     * habitual de este esquema) — para QUITAR el override y volver a la
+     * duración de la sala hay que usar `clearTimeLimitOverride: true`.
+     */
+    timeLimitMinutes: z.number().int().positive().nullable().optional(),
+    /** Ticket duración-salas: quita el override y vuelve a la duración de la sala. */
+    clearTimeLimitOverride: z.boolean().optional(),
     locale: z.enum(LOCALES).optional(),
   })
   .strict()
-  .refine((p) => Object.keys(p).length > 0, { message: "No hay cambios que aplicar" });
+  .refine((p) => Object.keys(p).length > 0, { message: "No hay cambios que aplicar" })
+  .refine((p) => !(p.clearTimeLimitOverride && p.timeLimitMinutes !== undefined), {
+    message: "No se puede fijar `timeLimitMinutes` y quitar el override a la vez",
+    path: ["clearTimeLimitOverride"],
+  });
 
 export const ListEventsQuery = z.object({
   cursor: z.string().min(1).optional(),
@@ -428,6 +467,14 @@ export type EventView = EventRow & {
   pricing: EventPricing;
   /** `true` si puede pasar a `active` sin más pasos (autoventa o ya pagado). */
   activatable: boolean;
+  /**
+   * Ticket duración-salas: `true` si el override de duración de este evento
+   * (`config.timeLimitMinutes`) es un número por debajo del
+   * `estimatedMinutes` de la sala. Solo se calcula en `createEvent`/
+   * `updateEvent` (donde se conoce ese dato); en otros sitios sale `false`.
+   * Aviso, no bloqueo: el organizador puede acortar la duración a propósito.
+   */
+  timeLimitBelowEstimate: boolean;
 };
 
 export type EventDetail = EventView & { summary: EventSummary };
@@ -457,8 +504,13 @@ function priceOrThrow(snapshot: PricingSnapshot, playerCount: number): PricingQu
   return quote;
 }
 
-/** Vista de un evento: precio recalculado desde su snapshot (nunca desde los tramos actuales). */
-export function toEventView(event: EventRow): EventView {
+/**
+ * Vista de un evento: precio recalculado desde su snapshot (nunca desde los
+ * tramos actuales). `roomEstimatedMinutes` (ticket duración-salas) solo lo
+ * pasan `createEvent`/`updateEvent`, que conocen el `estimatedMinutes` de la
+ * sala; en el resto de sitios `timeLimitBelowEstimate` sale `false`.
+ */
+export function toEventView(event: EventRow, roomEstimatedMinutes?: number): EventView {
   const quote = quotePricing(event.pricingSnapshot, event.playersPurchased);
   // Un evento siempre se crea con un precio válido: `null` solo si el JSONB se corrompió.
   const base = quote ?? {
@@ -468,6 +520,7 @@ export function toEventView(event: EventRow): EventView {
     totalCents: 0,
     currency: event.pricingSnapshot.tiers[0]?.currency ?? "EUR",
   };
+  const overrideMinutes = event.config.timeLimitMinutes;
   return {
     ...event,
     pricing: {
@@ -476,6 +529,10 @@ export function toEventView(event: EventRow): EventView {
       selfSale: event.config.selfSale,
     },
     activatable: event.status === "draft" && paymentSettled(event.config),
+    timeLimitBelowEstimate:
+      roomEstimatedMinutes !== undefined &&
+      typeof overrideMinutes === "number" &&
+      overrideMinutes < roomEstimatedMinutes,
   };
 }
 
@@ -588,6 +645,9 @@ export function createEventService(deps: {
           recordingEnabled: data.recordingEnabled,
           recordingAcceptedAt: data.recordingEnabled ? at.toISOString() : null,
           selfSale,
+          ...(data.timeLimitMinutes !== undefined
+            ? { timeLimitMinutes: data.timeLimitMinutes }
+            : {}),
           ...(data.locale ? { locale: data.locale } : {}),
           payment: {
             status: selfSale ? "not_required" : "pending",
@@ -597,7 +657,7 @@ export function createEventService(deps: {
           },
         },
       });
-      return toEventView(event);
+      return toEventView(event, version.estimatedMinutes);
     },
 
     /** `GET /api/events/:id` — organizador o admin de plataforma; incluye el resumen. */
@@ -670,6 +730,8 @@ export function createEventService(deps: {
       }
 
       const recordingTurnedOn = recordingEnabled && !event.config.recordingEnabled;
+      const { timeLimitMinutes: existingTimeLimitOverride, ...configWithoutTimeLimit } =
+        event.config;
       const patch: EventPatch = {
         title: data.title,
         audience: data.audience,
@@ -679,7 +741,7 @@ export function createEventService(deps: {
         expiryRules: data.expiryRules,
         playersPurchased: data.playersPlanned,
         config: {
-          ...event.config,
+          ...configWithoutTimeLimit,
           allowVideo: data.allowVideo ?? event.config.allowVideo,
           recordingEnabled,
           recordingAcceptedAt: !recordingEnabled
@@ -687,12 +749,24 @@ export function createEventService(deps: {
             : recordingTurnedOn
               ? now().toISOString()
               : event.config.recordingAcceptedAt,
+          ...(data.clearTimeLimitOverride
+            ? {}
+            : data.timeLimitMinutes !== undefined
+              ? { timeLimitMinutes: data.timeLimitMinutes }
+              : existingTimeLimitOverride !== undefined
+                ? { timeLimitMinutes: existingTimeLimitOverride }
+                : {}),
           ...(data.locale ? { locale: data.locale } : {}),
         },
       };
       const updated = await store.updateEvent(event.id, expected(event), patch);
       if (!updated) throw notEditable();
-      return toEventView(updated);
+      const finalOverride = updated.config.timeLimitMinutes;
+      const roomEstimatedMinutes =
+        typeof finalOverride === "number"
+          ? (await store.findRoomVersion(updated.roomVersionId))?.estimatedMinutes
+          : undefined;
+      return toEventView(updated, roomEstimatedMinutes);
     },
 
     /**

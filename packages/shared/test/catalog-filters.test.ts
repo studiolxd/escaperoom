@@ -277,10 +277,10 @@ describe("catalogService.listRooms — filtros combinables", () => {
 describe("rating agregado en el listado y el detalle", () => {
   it("media (1 decimal) y recuento correctos; orden por rating con desempate", async () => {
     const { catalog, reviews } = setup();
-    await reviews.upsert({ userId: "u1", roomId: "castillo", rating: 5, text: null });
-    await reviews.upsert({ userId: "u2", roomId: "castillo", rating: 4, text: null });
-    await reviews.upsert({ userId: "u3", roomId: "castillo", rating: 4, text: null });
-    await reviews.upsert({ userId: "u1", roomId: "nocturno", rating: 5, text: null });
+    await reviews.upsert({ userId: "u1", roomId: "castillo", rating: 5, text: null, durationOverridden: false });
+    await reviews.upsert({ userId: "u2", roomId: "castillo", rating: 4, text: null, durationOverridden: false });
+    await reviews.upsert({ userId: "u3", roomId: "castillo", rating: 4, text: null, durationOverridden: false });
+    await reviews.upsert({ userId: "u1", roomId: "nocturno", rating: 5, text: null, durationOverridden: false });
 
     const { items } = await catalog.listRooms(ANONYMOUS_ACTOR, { sort: "rating" });
     expect(items.map((r) => [r.id, r.ratingAvg, r.ratingCount])).toEqual([
@@ -292,7 +292,7 @@ describe("rating agregado en el listado y el detalle", () => {
     ]);
 
     // Editar una reseña (upsert) recalcula sin duplicar.
-    await reviews.upsert({ userId: "u1", roomId: "castillo", rating: 1, text: null });
+    await reviews.upsert({ userId: "u1", roomId: "castillo", rating: 1, text: null, durationOverridden: false });
     const detail = await catalog.getRoom(ANONYMOUS_ACTOR, "castillo");
     expect(detail).toMatchObject({ ratingAvg: 3, ratingCount: 3 });
   });
