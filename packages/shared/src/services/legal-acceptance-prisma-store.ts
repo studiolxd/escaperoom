@@ -1,4 +1,4 @@
-import type { PrismaClient } from "../../generated/client";
+import type { PrismaClient } from "../../generated/client/client";
 import type { TermsAcceptanceRow, TermsAcceptanceStore } from "./legal-acceptance";
 
 /** Implementación Prisma del puerto de reaceptación de términos/privacidad. */

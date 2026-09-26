@@ -1,4 +1,4 @@
-import { Prisma, type PrismaClient } from "../../generated/client";
+import { Prisma, type PrismaClient } from "../../generated/client/client";
 import { createPrismaAdminDirectory } from "./admin-prisma-store";
 import type { PurchaseStore, RoomPurchaseRow } from "./purchases";
 

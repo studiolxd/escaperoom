@@ -1,5 +1,5 @@
 import { logger } from "@escaperoom/kit/logger";
-import { Prisma, type PrismaClient } from "../../generated/client";
+import { Prisma, type PrismaClient } from "../../generated/client/client";
 import { includesAllLanguages, parseRoomPackage, RoomPackageMetaSchema } from "../schemas";
 import {
   toCatalogRoom,

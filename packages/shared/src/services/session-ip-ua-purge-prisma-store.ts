@@ -1,4 +1,4 @@
-import type { PrismaClient } from "../../generated/client";
+import type { PrismaClient } from "../../generated/client/client";
 import {
   IP_HASH_DOMAIN,
   IP_UA_HASH_RETENTION_DAYS,

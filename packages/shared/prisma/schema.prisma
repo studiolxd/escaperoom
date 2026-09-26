@@ -1,12 +1,13 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
   output   = "../generated/client"
 }
 
+// Prisma 7: `url`/`directUrl` ya no se admiten aquí (P1012); las URLs de
+// conexión viven en `prisma.config.ts` (Migrate) y en `createPrismaClient()`
+// (`src/db/index.ts`, el adaptador en tiempo de ejecución).
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
 }
 
 /// Además de los `@@index` de abajo, dos índices parciales creados a mano

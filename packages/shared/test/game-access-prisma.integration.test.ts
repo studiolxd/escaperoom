@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PrismaClient } from "../generated/client";
+import type { PrismaClient } from "../generated/client/client";
+import { createPrismaClient } from "../src/db";
 import { createPrismaGameAccessStore } from "../src/services/game-access-prisma-store";
 import type { RoomPackage } from "../src/schemas";
 
@@ -52,7 +53,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
       });
 
     beforeAll(async () => {
-      prisma = new PrismaClient();
+      prisma = createPrismaClient();
       await prisma.user.create({ data: { id: userId, name: userId, email: `${userId}@test.local` } });
       const room = await prisma.room.create({
         data: { authorId: userId, title: TAG, status: "published" },

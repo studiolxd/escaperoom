@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { PrismaClient } from "../generated/client";
+import type { PrismaClient } from "../generated/client/client";
+import { createPrismaClient } from "../src/db";
 import { InsufficientCreditsError, createPrismaCreditAccountStore, type Actor } from "../src/services";
 
 // ---------------------------------------------------------------------------
@@ -30,7 +31,7 @@ describe.skipIf(!process.env.DATABASE_URL)("crÃ©ditos sobre Postgres (integraciÃ
   const actor: Actor = { userId, organizationId: null, role: "member" };
 
   beforeAll(async () => {
-    prisma = new PrismaClient();
+    prisma = createPrismaClient();
     await prisma.user.create({
       data: { id: userId, name: "Creadora de prueba", email: `${TAG}@escaperoom.local` },
     });

@@ -33,6 +33,25 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U postgres -d escaperoom_e2e"
           --health-interval 5s --health-timeout 5s --health-retries 10
+      # Pooler delante de Postgres (paridad con producción; ver el comentario
+      # del job `verify` de ci.yml).
+      pgbouncer:
+        image: edoburu/pgbouncer:v1.25.2-p0
+        env:
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          AUTH_TYPE: scram-sha-256
+          POOL_MODE: transaction
+          MAX_CLIENT_CONN: 200
+          DEFAULT_POOL_SIZE: 10
+          MAX_PREPARED_STATEMENTS: 200
+        ports:
+          - 6432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -p 5432"
+          --health-interval 5s --health-timeout 5s --health-retries 10
       redis:
         image: redis:7-alpine
         ports:
@@ -40,7 +59,9 @@ jobs:
         options: >-
           --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_e2e
+      # DATABASE_URL por PgBouncer (paridad con producción); DIRECT_URL
+      # directo a Postgres, para Migrate.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:6432/escaperoom_e2e
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_e2e
       # Rate limiting REST con Redis, como en producción (ticket 6.3).
       REDIS_URL: redis://localhost:6379

@@ -312,6 +312,22 @@ fi
 if [ -z "${DATABASE_URL:-}" ]; then
   die "sin DATABASE_URL: corre 'pnpm infra:up && pnpm dev:env' en este worktree primero."
 fi
+# --- DATABASE_URL por PgBouncer (paridad con CI, migración a Prisma 7) ------
+# CI (.github/workflows/ci.yml, jobs `verify`/`e2e-smoke`) hace correr el
+# cliente en tiempo de ejecución (createPrismaClient/@prisma/adapter-pg)
+# contra un PgBouncer en modo transacción, no directo a Postgres — decisión
+# del ticket: dev sigue directo (55433), CI y producción por el pooler.
+# `pnpm verify:pr` reproduce CI, así que hace lo mismo: reescribe el puerto
+# de Postgres directo que deja `scripts/dev-env.sh` (55433) al del PgBouncer
+# LOCAL compartido por los worktrees (56433,
+# infra/docker-compose.dev.yml), sin tocar usuario/contraseña/nombre de
+# base — cada worktree sigue detrás del pooler con su propia base
+# `escaperoom_<slug>`. DIRECT_URL no se toca: Migrate sigue yendo directo a
+# Postgres (el pooler en modo transacción no es compatible con su DDL).
+if [[ "$DATABASE_URL" == *:55433/* ]]; then
+  DATABASE_URL=${DATABASE_URL/:55433\//:56433/}
+  export DATABASE_URL
+fi
 # Redis/SeaweedFS de infra/docker-compose.dev.yml (compartidos por todos los
 # worktrees, puertos fijos): activan los *.integration.test.ts (E-14), que si
 # no se saltan silenciosamente con `describe.skipIf`.

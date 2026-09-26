@@ -1,4 +1,4 @@
-import type { PrismaClient } from "../../generated/client";
+import type { PrismaClient } from "../../generated/client/client";
 import { parseRoomPackage } from "../schemas";
 import { LIVE_ACCESS_KEY_STATUSES } from "./access-keys";
 import type { LiveResult, SessionStoredProgress, StoredProgressSource } from "./event-progress";

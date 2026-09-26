@@ -1,4 +1,4 @@
-import type { PrismaClient } from "../../generated/client";
+import type { PrismaClient } from "../../generated/client/client";
 import type { RoomPackage } from "../schemas";
 import type {
   ForkRoomRow,
