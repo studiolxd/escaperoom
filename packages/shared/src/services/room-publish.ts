@@ -12,6 +12,12 @@ import { type Actor } from "./actor";
 import type { AdminDirectory } from "./admin";
 import type { AudioAssetService } from "./audio-assets";
 import { UUID_RE, requireUser } from "./common";
+import {
+  IntroMediaError,
+  introMediaRefsOf,
+  isIntroMediaDraftRef,
+  type IntroMediaService,
+} from "./intro-media";
 import type { ModerationService, PublishPrecheck } from "./moderation";
 import { buildDraftDoc, type RoomDraftTx } from "./room-draft";
 import { classifyRoomPackageChange, type RoomPackageChange } from "./room-version-diff";
@@ -66,11 +72,22 @@ export interface PublishAssetSource {
   checkRefsForPublish(actor: Actor, refs: readonly string[]): Promise<PublishAssetProblem[]>;
   /** Bytes del asset ya comprobado (el servicio solo lo llama si no hubo problemas). */
   load(actor: Actor, ref: string): Promise<{ bytes: Uint8Array; contentType: string }>;
+  /**
+   * Opcional (vídeo de la introducción, hasta 200 MB): dónde está el asset en
+   * el bucket, para empaquetarlo SIN pasarlo por memoria (digest en streaming
+   * + copia servidor-servidor, ver `PublishedAssetStorage.digest`/`copy`).
+   * `null` = usar `load`.
+   */
+  locate?(actor: Actor, ref: string): Promise<{ key: string; contentType: string } | null>;
 }
 
 /** Almacenamiento de objetos (R2/S3 en producción, en memoria en tests). */
 export interface PublishedAssetStorage {
   put(key: string, bytes: Uint8Array, contentType: string): Promise<void>;
+  /** SHA-256 (hex) y tamaño de un objeto existente, leído en streaming. */
+  digest?(key: string): Promise<{ sha256: string; byteSize: number }>;
+  /** Copia servidor-servidor dentro del bucket. */
+  copy?(fromKey: string, toKey: string, contentType: string): Promise<void>;
 }
 
 export type PublishRoomRef = {
@@ -120,8 +137,7 @@ export interface RoomPublishTx {
  * `room`), de modo que dos publicaciones simultáneas obtienen semver distintos.
  */
 export interface RoomPublishStore
-  extends AdminDirectory,
-    Pick<RoomPublishTx, "listSemvers" | "findLatestVersion"> {
+  extends AdminDirectory, Pick<RoomPublishTx, "listSemvers" | "findLatestVersion"> {
   findRoom(roomId: string): Promise<PublishRoomRef | null>;
   listVersions(roomId: string): Promise<RoomVersionMeta[]>;
   findVersion(roomId: string, versionId: string): Promise<RoomVersionRow | null>;
@@ -192,6 +208,8 @@ export const MAX_CHANGELOG_LENGTH = 5000;
 const SEMVER_RE = /^(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})$/;
 /** Referencias de asset del creador que se empaquetan (3.11: `library:`/`upload:`). */
 const ASSET_REF_RE = /^(library|upload):\S+$/;
+/** Referencias de medios de la introducción (`meta.intro`, encargo lobby-diseño). */
+const INTRO_MEDIA_REF_RE = /^media:\S+$/;
 
 type Semver = [number, number, number];
 
@@ -241,7 +259,8 @@ export function nextSemver(existing: readonly string[], change: RoomPackageChang
 
 /**
  * Referencias de asset del creador (`audioUrl` de cualquier `LocalizedText`:
- * diálogos, pistas, textos de objetos…), únicas y ordenadas.
+ * diálogos, pistas, textos de objetos…, y los `media:` del vídeo y los
+ * subtítulos de `meta.intro`), únicas y ordenadas.
  */
 export function collectAssetRefs(pkg: RoomPackage): string[] {
   const refs = new Set<string>();
@@ -256,10 +275,16 @@ export function collectAssetRefs(pkg: RoomPackage): string[] {
     }
   };
   walk(pkg);
+  for (const ref of introMediaRefsOf(pkg.meta.intro)) {
+    if (INTRO_MEDIA_REF_RE.test(ref)) refs.add(ref);
+  }
   return [...refs].sort();
 }
 
-/** Sustituye cada `audioUrl` referenciado en `replacements` (devuelve una copia). */
+/**
+ * Sustituye cada `audioUrl` referenciado en `replacements`, y las referencias
+ * del vídeo y los subtítulos de `meta.intro` (devuelve una copia).
+ */
 export function rewriteAssetRefs(
   pkg: RoomPackage,
   replacements: ReadonlyMap<string, string>,
@@ -278,7 +303,23 @@ export function rewriteAssetRefs(
     }
     return value;
   };
-  return walk(pkg) as RoomPackage;
+  const out = walk(pkg) as RoomPackage;
+  const intro = out.meta.intro;
+  if (intro?.type === "video") {
+    const swap = (ref: string) => replacements.get(ref) ?? ref;
+    out.meta.intro = {
+      ...intro,
+      video: swap(intro.video),
+      ...(intro.subtitles
+        ? {
+            subtitles: Object.fromEntries(
+              Object.entries(intro.subtitles).map(([lang, ref]) => [lang, swap(ref)]),
+            ),
+          }
+        : {}),
+    };
+  }
+  return out;
 }
 
 const EXT_BY_TYPE: Record<string, string> = {
@@ -289,6 +330,9 @@ const EXT_BY_TYPE: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
   "application/json": "json",
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "text/vtt": "vtt",
 };
 
 const sha256 = (data: Uint8Array | string) => createHash("sha256").update(data).digest("hex");
@@ -523,6 +567,16 @@ export function createRoomPublishService(deps: {
   ): Promise<PackagedAsset[]> {
     const packaged: PackagedAsset[] = [];
     for (const ref of refs) {
+      // Vídeo de la introducción (hasta 200 MB): digest en streaming y copia
+      // dentro del bucket, sin cargarlo en memoria.
+      const located = assets.locate ? await assets.locate(actor, ref) : null;
+      if (located && storage.digest && storage.copy) {
+        const { sha256: digest, byteSize } = await storage.digest(located.key);
+        const key = publishedAssetKey(roomId, digest, located.contentType);
+        await storage.copy(located.key, key, located.contentType);
+        packaged.push({ ref, key, sha256: digest, contentType: located.contentType, byteSize });
+        continue;
+      }
       const { bytes, contentType } = await assets.load(actor, ref);
       const digest = sha256(bytes);
       const key = publishedAssetKey(roomId, digest, contentType);
@@ -578,7 +632,9 @@ export function createRoomPublishService(deps: {
     const previousVersion = await store.findLatestVersion(roomId);
     const change = classifyRoomPackageChange(previousVersion?.package ?? null, draftPackage);
     const resolvedSemver =
-      !record && change === "none" ? (latestSemver(semvers) ?? "1.0.0") : nextSemver(semvers, change);
+      !record && change === "none"
+        ? (latestSemver(semvers) ?? "1.0.0")
+        : nextSemver(semvers, change);
 
     const format = draftPackage.meta.packageFormat;
     if (!supportedFormats.includes(format)) {
@@ -619,7 +675,7 @@ export function createRoomPublishService(deps: {
     if (problems.length > 0) {
       throw new RoomPublishError(
         "ASSETS_NOT_PUBLISHABLE",
-        "Hay audios que no se pueden publicar (rechazados en moderación)",
+        "Hay audios o medios de la introducción que no se pueden publicar",
         { problems },
       );
     }
@@ -896,6 +952,69 @@ export function createAudioPublishAssetSource(deps: {
     async load(actor, ref) {
       const resolved = await deps.audio.resolveAudioRef(actor, ref);
       return deps.readObject(resolved.storageKey);
+    },
+  };
+}
+
+/**
+ * Fuente de los medios de la introducción (`media:<uuid>`, encargo
+ * lobby-diseño): bloquean la publicación si no existen, no son del autor o su
+ * subida no se completó (`NOT_READY`). Se empaquetan sin pasar por memoria
+ * (`locate`) cuando el almacenamiento sabe hacer digest + copia.
+ */
+export function createIntroMediaPublishAssetSource(deps: {
+  introMedia: Pick<IntroMediaService, "resolveDraftAsset">;
+  readObject(key: string): Promise<{ bytes: Uint8Array; contentType: string }>;
+}): PublishAssetSource {
+  return {
+    async checkRefsForPublish(actor, refs) {
+      const problems: PublishAssetProblem[] = [];
+      for (const ref of new Set(refs)) {
+        try {
+          await deps.introMedia.resolveDraftAsset(actor, ref);
+        } catch (err) {
+          if (!(err instanceof IntroMediaError)) throw err;
+          problems.push({ ref, code: err.code, message: err.message, rejectionReason: null });
+        }
+      }
+      return problems;
+    },
+    async load(actor, ref) {
+      const asset = await deps.introMedia.resolveDraftAsset(actor, ref);
+      const { bytes } = await deps.readObject(asset.storageKey);
+      return { bytes, contentType: asset.contentType };
+    },
+    async locate(actor, ref) {
+      const asset = await deps.introMedia.resolveDraftAsset(actor, ref);
+      return { key: asset.storageKey, contentType: asset.contentType };
+    },
+  };
+}
+
+/**
+ * Reparte las referencias entre la fuente de audio (`library:`/`upload:`) y
+ * la de medios de la introducción (`media:`). Sin fuente de medios, un
+ * `media:` se reporta como no publicable (nunca se publica sin comprobarlo).
+ */
+export function createCompositePublishAssetSource(sources: {
+  audio: PublishAssetSource;
+  introMedia?: PublishAssetSource | null;
+}): PublishAssetSource {
+  const introMedia = sources.introMedia ?? createUnavailablePublishAssetSource();
+  const pick = (ref: string) => (isIntroMediaDraftRef(ref) ? introMedia : sources.audio);
+  return {
+    async checkRefsForPublish(actor, refs) {
+      const media = refs.filter(isIntroMediaDraftRef);
+      const audio = refs.filter((r) => !isIntroMediaDraftRef(r));
+      return [
+        ...(audio.length > 0 ? await sources.audio.checkRefsForPublish(actor, audio) : []),
+        ...(media.length > 0 ? await introMedia.checkRefsForPublish(actor, media) : []),
+      ];
+    },
+    load: (actor, ref) => pick(ref).load(actor, ref),
+    async locate(actor, ref) {
+      const source = pick(ref);
+      return source.locate ? source.locate(actor, ref) : null;
     },
   };
 }
