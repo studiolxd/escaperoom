@@ -513,7 +513,11 @@ model review {
 /// `ixRoomCatalog` sobre `status` WHERE status = 'published' AND `deletedAt`
 /// IS NULL (0005_rooms), para el listado del catálogo. `trgRoomUpdatedAt`
 /// (trigger `setUpdatedAt`, 0005_rooms) pone `updatedAt` en cada UPDATE — por
-/// eso el campo no lleva `@updatedAt` aquí.
+/// eso el campo no lleva `@updatedAt` aquí. `languages` (E-23, 20260926180000)
+/// nunca se escribe a mano desde la aplicación: la recalcula el trigger
+/// `trgRoomVersionSyncLanguages` sobre `roomVersion` (20260926190000) en cada
+/// INSERT/UPDATE de `package`, así que ninguna vía de escritura (publish,
+/// seed, fixtures de e2e, MCP…) puede olvidarse de rellenarla.
 model room {
   id                                                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   authorId                                          String
@@ -576,6 +580,9 @@ model roomUpdate {
   @@index([authorId], map: "ixRoomUpdateAuthor")
 }
 
+/// E-23 (20260926190000): `trgRoomVersionSyncLanguages` (trigger
+/// `syncRoomLanguagesFromVersion`) recalcula `room.languages` en cada
+/// INSERT/UPDATE de `package` — no representable en Prisma.
 model roomVersion {
   id                                         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   roomId                                     String          @db.Uuid

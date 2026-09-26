@@ -48,6 +48,10 @@ function txOps(db: Db): RoomPublishTx {
     listSemvers: listSemvers(db),
     findLatestVersion: findLatestVersion(db),
     async insertVersion(version) {
+      // `room.languages` (catálogo, E-23) se recalcula solo: trigger
+      // `trgRoomVersionSyncLanguages` (20260926190000) sobre este INSERT, no
+      // hace falta escribirlo aquí — y así no depende de que cualquier otro
+      // sitio que inserte una `roomVersion` (seed, e2e, MCP…) se acuerde.
       const row = await db.roomVersion.create({
         data: {
           roomId: version.roomId,
@@ -57,12 +61,6 @@ function txOps(db: Db): RoomPublishTx {
           changelog: version.changelog,
           publishedBy: version.publishedBy,
         },
-      });
-      // Denormalizado para el catálogo (E-23): evita indexar/leer el `package`
-      // completo solo para filtrar por idioma.
-      await db.room.update({
-        where: { id: version.roomId },
-        data: { languages: version.package.meta.languages },
       });
       return toRow(row);
     },
