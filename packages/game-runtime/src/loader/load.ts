@@ -1,4 +1,5 @@
 import {
+  DEFAULT_ROOM_TIME_LIMIT_MINUTES,
   RoomPackageSchema,
   initialRoomOf,
   lobbyRoomOf,
@@ -193,6 +194,8 @@ export function toRuntimeModel(
       estimatedMinutes: meta.estimatedMinutes,
       difficulty: meta.difficulty,
       players: meta.players,
+      timeLimitMinutes:
+        meta.timeLimitMinutes === undefined ? DEFAULT_ROOM_TIME_LIMIT_MINUTES : meta.timeLimitMinutes,
     },
     locale,
     initialRoomId: initialRoomOf(map)?.id ?? subrooms[0]?.id ?? "",

@@ -269,6 +269,7 @@ describe("playtest de punta a punta (web → Colyseus real)", () => {
     const intro = new Promise((resolve) => room.onMessage(GAME_PROTOCOL.dialogShow, resolve));
     room.send(GAME_PROTOCOL.setReady, { ready: true });
     room.send(GAME_PROTOCOL.startGame, {});
+    room.send(GAME_PROTOCOL.enterMap, {});
     expect(await intro).toEqual({ dialogId: "d-intro" });
     await expect.poll(() => room.state.phase).toBe("playing");
 
@@ -315,6 +316,10 @@ describe("playtest de punta a punta (web → Colyseus real)", () => {
     const frozen = await reader.read(created.playtestId);
     expect(frozen?.meta.id).toBe((received[0]!.roomPackage as RoomPackage).meta.id);
     expect(await reader.read("no-existe")).toBeNull();
+    // Encargo lobby-diseño: también la sala del borrador (medios de la introducción).
+    const entry = await reader.readEntry(created.playtestId);
+    expect(entry?.draftRoomId).toBe(created.roomId);
+    expect(entry?.roomPackage.meta.id).toBe(frozen?.meta.id);
     const intruderReader = createHttpPlaytestPackageReader({
       baseUrl: `http://localhost:${port}`,
       secret: "otro-secreto",

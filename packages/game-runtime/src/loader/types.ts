@@ -194,6 +194,11 @@ export interface RuntimeMeta {
   estimatedMinutes: number;
   difficulty: RoomPackage["meta"]["difficulty"];
   players: { min: number; max: number };
+  /**
+   * Duración de la partida en minutos (`meta.timeLimitMinutes` resuelto, #169):
+   * `null` = sin límite. La cabecera del lobby la muestra ("sin límite").
+   */
+  timeLimitMinutes: number | null;
 }
 
 export interface RuntimeModel {

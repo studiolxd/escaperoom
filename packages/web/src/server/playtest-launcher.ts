@@ -126,6 +126,15 @@ export function getPlaytestLauncher(env: LauncherEnv = process.env): PlaytestLau
 export interface PlaytestPackageReader {
   /** `null` si el playtest no existe o ya caducó. */
   read(playtestId: string): Promise<RoomPackage | null>;
+  /**
+   * Como `read`, más la sala del borrador (`draftRoomId`) de la que sale —
+   * para resolver los medios de la introducción del borrador (encargo
+   * lobby-diseño). `draftRoomId` es `null` si el servidor de partidas no lo
+   * devuelve.
+   */
+  readEntry(
+    playtestId: string,
+  ): Promise<{ roomPackage: RoomPackage; draftRoomId: string | null } | null>;
 }
 
 /**
@@ -139,8 +148,11 @@ export function createHttpPlaytestPackageReader(options: {
   fetch?: typeof fetch;
 }): PlaytestPackageReader {
   const doFetch = options.fetch ?? fetch;
-  return {
+  const reader: PlaytestPackageReader = {
     async read(playtestId) {
+      return (await reader.readEntry(playtestId))?.roomPackage ?? null;
+    },
+    async readEntry(playtestId) {
       let res: Response;
       try {
         res = await doFetch(
@@ -155,14 +167,23 @@ export function createHttpPlaytestPackageReader(options: {
         );
       }
       if (res.status === 404) return null;
-      const json = (await res.json().catch(() => null)) as { roomPackage?: RoomPackage } | null;
-      if (res.status === 200 && json?.roomPackage) return json.roomPackage;
+      const json = (await res.json().catch(() => null)) as {
+        roomPackage?: RoomPackage;
+        draftRoomId?: unknown;
+      } | null;
+      if (res.status === 200 && json?.roomPackage) {
+        return {
+          roomPackage: json.roomPackage,
+          draftRoomId: typeof json.draftRoomId === "string" ? json.draftRoomId : null,
+        };
+      }
       throw new PlaytestLaunchError(
         "UNAVAILABLE",
         `El servidor de partidas no devolvió el borrador (${res.status})`,
       );
     },
   };
+  return reader;
 }
 
 /** Lector del entorno; `null` si el playtest no está configurado. */
