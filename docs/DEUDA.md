@@ -239,6 +239,15 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `public/`, credenciales y quién lo ejecuta (script manual o paso de CI). Decidir
       también el almacenamiento definitivo de los binarios de la herramienta (`fuentes/`,
       `entregas/`, `referencias/`, hoy solo en local y con copia en `pipeline-assets`).
+- [ ] **No enviar al cliente de red el contenido oculto de los objetos (auditoría D-26).**
+      El loader del runtime (`game-runtime` `load.ts`) sigue mandando al cliente de una
+      partida en red `RuntimeObject.inventory` y `hidingSpot.contains`, con lo que un
+      jugador puede ver en el modelo qué esconde cada objeto antes de encontrarlo. Arreglarlo
+      exige separar una proyección "segura para red" del modelo completo, que siguen
+      necesitando el modo local/playtest (`world/distribution.ts`, `world/inspection.ts`,
+      `phaser/room-scene.ts`) y el inspector del editor (`inspector-model.ts`,
+      `schema-form.ts`). Aplazado en el bloque 10 (#163) por ser un cambio de tipos y
+      arquitectura del modelo, no un ajuste puntual.
 - [x] **404 de URLs que no existen.** Resuelto (auditoría 2026-09-24, B-27):
       `app/[locale]/(public)/[...rest]/page.tsx` (comodín, llama a `notFound()`) captura
       cualquier URL con locale válido que ninguna otra ruta capturó, y sale con la shell
