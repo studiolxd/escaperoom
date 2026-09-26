@@ -59,8 +59,9 @@ No es un borrador legal, es la lista de decisiones de producto que el TOS debe r
 ### 2.4 Assets subidos por el creador (no generados)
 
 - Al subir audio/imagen, el creador declara tener los derechos necesarios (cláusula estándar UGC).
-- La comprobación de que eso es cierto (voces de terceros, copyright) es lo que hace el pipeline
-  de moderación, **no** una verificación legal previa de la plataforma.
+- La plataforma no verifica esa declaración antes de publicar (ADR-039): la comprobación de que es
+  cierta (voces de terceros, copyright) es cosa de los reportes de usuarios, **no** una
+  verificación legal previa de la plataforma.
 
 ## 3. RGPD / LOPDGDD
 
