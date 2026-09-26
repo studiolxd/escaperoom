@@ -7,9 +7,10 @@ import type {
   LocalizedText,
   PuzzleDefinition,
   SpawnPoint,
+  SubRoomKind,
   TileLayer,
 } from "@escaperoom/shared/schemas";
-import { MAX_GRID_DIMENSION } from "@escaperoom/shared/schemas";
+import { LOBBY_ROOM_KIND, MAX_GRID_DIMENSION } from "@escaperoom/shared/schemas";
 import { getRoomLanguages } from "../i18n-fields/room-languages";
 import {
   RoomDocError,
@@ -27,6 +28,7 @@ import {
   type RecordCollection,
   type RecordMap,
 } from "./doc-model";
+import { buildLobbyRoom, setSubRoomKind } from "./lobby-intro";
 import { buildRoomMap, buildRoomObjects, buildSubRoomRecord, localizedRecord } from "./serialize";
 import { decodeRle, parseTileKey, tileKey } from "./tiles";
 
@@ -208,10 +210,17 @@ export type SubRoomSpec = {
   grid: Grid;
   /** Puntos de aparición; por defecto, uno si la sala aún no tiene ninguno. */
   spawnPoints?: SpawnPoint[];
+  /**
+   * Tipo especial (encargo lobby-diseño): `"lobby"` la marca como sala de
+   * espera, `null` le quita el tipo y ausente lo deja como estaba.
+   */
+  kind?: SubRoomKind | null;
 };
 
+/** ¿Alguna habitación de juego (no el lobby) tiene ya un punto de aparición? */
 function hasAnySpawnPoint(doc: Y.Doc): boolean {
   for (const room of collection(doc, "subrooms").values()) {
+    if (room.get("kind") === LOBBY_ROOM_KIND) continue;
     const spawns = room.get("spawnPoints");
     if (spawns instanceof Y.Array && spawns.length > 0) return true;
   }
@@ -219,9 +228,32 @@ function hasAnySpawnPoint(doc: Y.Doc): boolean {
 }
 
 /**
+ * Comprueba ANTES de escribir (una transacción Yjs no se deshace al lanzar)
+ * que tras aplicar los `kind` de `specs` quede como mucho una sala de espera.
+ */
+function assertSingleLobby(doc: Y.Doc, specs: readonly SubRoomSpec[]): void {
+  const lobbies = new Set<string>();
+  for (const [id, room] of collection(doc, "subrooms").entries()) {
+    if (room.get("kind") === LOBBY_ROOM_KIND) lobbies.add(id);
+  }
+  for (const spec of specs) if (spec.kind === null) lobbies.delete(spec.id);
+  for (const spec of specs) if (spec.kind === LOBBY_ROOM_KIND) lobbies.add(spec.id);
+  if (lobbies.size > 1) {
+    throw new RoomDocError(
+      "LOBBY_CONFLICT",
+      `Solo puede haber una sala de espera y quedarían ${lobbies.size}: ${[...lobbies].map((id) => `«${id}»`).join(", ")}. Quita el tipo lobby (kind: null) de las demás.`,
+    );
+  }
+}
+
+/**
  * Define habitaciones internas: crea las nuevas (vacías, sin capas) y
- * renombra/redimensiona las existentes. La primera habitación de la sala
- * recibe un punto de aparición por defecto, como `initRoomDoc`.
+ * renombra/redimensiona las existentes. La primera habitación de juego de la
+ * sala recibe un punto de aparición por defecto, como `initRoomDoc`; una sala
+ * de espera nueva (`kind: "lobby"`), uno por jugador cerca del centro. Los
+ * tipos (`kind`) se aplican al final, con todas las habitaciones ya creadas
+ * (así `[lobby, juego]` en una sola llamada no choca con "el lobby no puede
+ * ser la única habitación"): primero los que se quitan, luego los que se ponen.
  */
 export function defineSubRooms(
   doc: Y.Doc,
@@ -229,6 +261,7 @@ export function defineSubRooms(
 ): { created: string[]; updated: string[] } {
   const created: string[] = [];
   const updated: string[] = [];
+  assertSingleLobby(doc, specs);
   doc.transact(() => {
     const subrooms = collection(doc, "subrooms");
     for (const spec of specs) {
@@ -249,17 +282,20 @@ export function defineSubRooms(
         continue;
       }
       assertFreeId(doc, spec.id);
+      const isLobby = spec.kind === LOBBY_ROOM_KIND;
       const spawnPoints =
         spec.spawnPoints ??
-        (hasAnySpawnPoint(doc)
-          ? []
-          : [
-              {
-                id: "spawn-1",
-                x: Math.floor(spec.grid.cols / 2),
-                y: Math.max(0, spec.grid.rows - 2),
-              },
-            ]);
+        (isLobby
+          ? buildLobbyRoom(doc, { id: spec.id, name: spec.name, ...spec.grid }).spawnPoints
+          : hasAnySpawnPoint(doc)
+            ? []
+            : [
+                {
+                  id: "spawn-1",
+                  x: Math.floor(spec.grid.cols / 2),
+                  y: Math.max(0, spec.grid.rows - 2),
+                },
+              ]);
       subrooms.set(
         spec.id,
         buildSubRoomRecord(
@@ -277,6 +313,8 @@ export function defineSubRooms(
       );
       created.push(spec.id);
     }
+    for (const spec of specs) if (spec.kind === null) setSubRoomKind(doc, spec.id, undefined);
+    for (const spec of specs) if (spec.kind) setSubRoomKind(doc, spec.id, spec.kind);
   });
   return { created, updated };
 }

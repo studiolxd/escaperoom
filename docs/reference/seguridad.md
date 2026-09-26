@@ -59,6 +59,9 @@ canjea sus claves detrás del mismo NAT: los canjes correctos no la tocan.
 | `room-cover-write` | `POST /api/rooms/:roomId/cover-image` (A-12); mismo cupo que la meta-tool `upload` del MCP con `kind: "cover_image"` (revisión de la PR #168, D-12) | 20 / 1 h | 10 / 1 h | — |
 | `audio-upload` | `POST /api/audio/uploads` (3.11); mismo cupo que `upload` del MCP con `kind: "audio"` (revisión de la PR #168, D-12) | 10 / 1 h | 6 / 1 h | — |
 | `event-start-all` | `POST /api/events/:id/start-all` (ticket "inicio conjunto"): "Comenzar todos"/"Comenzar igualmente" del organizador | 60 / 10 min | 30 / 10 min | — |
+| `intro-media-upload` | `POST /api/rooms/:roomId/intro-media/video` y `…/intro-media/subtitles` (introducción de la sala, lobby-diseño); mismo cupo que `upload` del MCP con `kind: "intro_video"`/`"intro_subtitles"` | 30 / 1 h | 20 / 1 h | — |
+| `intro-media-complete` | `POST /api/rooms/:roomId/intro-media/video/:assetId/complete` (HEAD + GET por rango al bucket por llamada) | 60 / 1 h | 40 / 1 h | — |
+| `intro-media-read` | `GET /api/rooms/:roomId/intro-media/url` (URL firmada para la previsualización del editor) | 240 / 10 min | 120 / 10 min | — |
 
 Razonamiento de los números:
 

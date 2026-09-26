@@ -27,6 +27,14 @@ export const GamePlayerState = schema(
      * "lobby"`.
      */
     ready: t.boolean(),
+    /**
+     * Encargo lobby-diseño (specs/11 §4.1): `true` cuando el jugador ya ha
+     * entrado al mapa de la partida (`enter_map`, tras su introducción y su
+     * 3-2-1). Mientras es `false` está en la sala de espera (lobby): antes de
+     * «Empezar», o después si aún lee la introducción o llegó tarde. Una
+     * reconexión conserva el valor (salta lobby e introducción).
+     */
+    inMap: t.boolean(),
   },
   "GamePlayerState",
 );
@@ -53,6 +61,11 @@ export type GameInventoryState = SchemaType<typeof GameInventoryState>;
 
 export const GameRoomState = schema(
   {
+    /**
+     * `lobby` (sala de espera, antes de «Empezar») → `starting` (ya se pulsó
+     * «Empezar» pero nadie ha entrado todavía al mapa: el reloj NO corre) →
+     * `playing` (desde que el PRIMER jugador entra al mapa) → `ended`.
+     */
     phase: t.string(),
     /** `victory | timeout | abandoned`, o cadena vacía mientras se juega. */
     result: t.string(),

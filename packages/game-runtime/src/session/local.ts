@@ -1,7 +1,13 @@
 import { filterChatText } from "@escaperoom/shared/chat";
 import type { EngineResult } from "@escaperoom/shared/engine";
 import { resolveLocalizedText } from "@escaperoom/shared/hints";
-import { resolveRoomTimeLimitSec, type PuzzleDefinition, type RoomPackage } from "@escaperoom/shared/schemas";
+import {
+  lobbyRoomOf,
+  resolveRoomTimeLimitSec,
+  withLobbyRoom,
+  type PuzzleDefinition,
+  type RoomPackage,
+} from "@escaperoom/shared/schemas";
 import {
   createRoomSession,
   type RoomPuzzleActionResult,
@@ -86,9 +92,12 @@ const ATTEMPT_ERRORS: Record<string, string> = {
 };
 
 export function createLocalGameClient(
-  roomPackage: RoomPackage,
+  sourcePackage: RoomPackage,
   options: LocalGameClientOptions = {},
 ): LocalGameClient {
+  // Como la `GameRoom`: siempre hay sala de espera (la diseñada o la generada).
+  const roomPackage = withLobbyRoom(sourcePackage);
+  const lobbyRoomId = lobbyRoomOf(roomPackage.map)?.id;
   const selfId = options.playerId ?? "p1";
   const wallNow = options.now ?? (() => Date.now());
   const createdAt = wallNow();
@@ -99,7 +108,9 @@ export function createLocalGameClient(
     timeLimitSec: options.timeLimitSec ?? resolveRoomTimeLimitSec(roomPackage.meta),
     now: logicalNow(),
   });
-  session.spawnPlayer(selfId, logicalNow());
+  // El jugador aparece en la sala de espera; entra al mapa con `enterMap`
+  // tras «Empezar», su introducción y su 3-2-1 (encargo lobby-diseño).
+  session.spawnPlayer(selfId, logicalNow(), lobbyRoomId);
 
   const snapshots = new Emitter<GameSnapshot>();
   const events = new Emitter<GameEvent>();
@@ -108,6 +119,12 @@ export function createLocalGameClient(
   let ended = false;
   let chatId = 0;
   let characterId = options.characterId ?? PLACEHOLDER_CHARACTER_ID;
+  /** «Listo» del lobby (C-13): cambiar de personaje lo quita. */
+  let ready = false;
+  /** Se pulsó «Empezar» (fase `starting` hasta entrar al mapa). */
+  let launched = false;
+  /** Ya entró al mapa (tras la introducción y el 3-2-1). */
+  let inMap = false;
   let snapshot = buildSnapshot();
 
   function buildSnapshot(): GameSnapshot {
@@ -122,7 +139,8 @@ export function createLocalGameClient(
       tint: options.tint ?? "#38bdf8",
       characterId,
       connected: true,
-      ready: true,
+      ready,
+      inMap,
       isHost: true,
       isSelf: true,
     };
@@ -136,7 +154,7 @@ export function createLocalGameClient(
     const started = Boolean(game.flags.game_started);
     return {
       ...emptyGameSnapshot(selfId),
-      phase: game.phase,
+      phase: game.phase === "lobby" && launched ? "starting" : game.phase,
       result: game.result ?? "",
       roomPackageId: roomPackage.meta.id,
       roomPackageVersion: roomPackage.meta.version,
@@ -217,7 +235,7 @@ export function createLocalGameClient(
   }
 
   function playing(): boolean {
-    if (session.state.phase !== "playing") {
+    if (session.state.phase !== "playing" || !inMap) {
       fail(GAME_PROTOCOL_ERRORS.invalidState, "La partida no está en juego.");
       return false;
     }
@@ -302,7 +320,8 @@ export function createLocalGameClient(
       : setInterval(() => tick(), options.tickMs ?? LOCAL_TICK_MS);
 
   function tick(): void {
-    if (session.state.phase === "lobby") return;
+    // El reloj no corre hasta entrar al mapa (como en la `GameRoom`).
+    if (!session.state.flags.game_started) return;
     publish(session.tick(logicalNow()));
   }
 
@@ -322,29 +341,63 @@ export function createLocalGameClient(
     dispose,
     leave: async () => dispose(),
 
-    // C-13: el playtest local es de un solo jugador (siempre "el anfitrión,
-    // solo") — sin gate de mínimo/"Listo" que tenga sentido aquí (eso es
-    // multijugador); `force` se acepta por compatibilidad de interfaz mas no
-    // se usa.
-    startGame() {
-      if (session.state.phase !== "lobby") {
+    // C-13 + encargo lobby-diseño: el playtest local es de un solo jugador
+    // (siempre "el anfitrión, solo"), pero pasa por el MISMO lobby que la
+    // partida real — elegir personaje, «Listo», «Empezar» (o «Empezar
+    // igualmente»), introducción y 3-2-1 — y el reloj arranca al entrar al
+    // mapa (`enterMap`), no al pulsar «Empezar».
+    startGame(force) {
+      if (launched || session.state.phase !== "lobby") {
         fail(GAME_PROTOCOL_ERRORS.invalidState, "La partida ya ha empezado.");
         return;
       }
-      publish(session.start(logicalNow()));
+      if (!force && !ready) {
+        fail(GAME_PROTOCOL_ERRORS.playersNotReady, "Todavía hay jugadores que no están «Listo».");
+        return;
+      }
+      launched = true;
+      sync();
     },
-    setReady() {
-      // No-op: un solo jugador, sin nadie más a quien esperar.
+    setReady(next) {
+      if (launched || session.state.phase !== "lobby") {
+        fail(GAME_PROTOCOL_ERRORS.invalidState, "La partida ya ha empezado.");
+        return;
+      }
+      ready = next;
+      sync();
+    },
+    enterMap() {
+      if (!launched) {
+        fail(GAME_PROTOCOL_ERRORS.invalidState, "La partida aún no ha empezado.");
+        return;
+      }
+      if (inMap || session.ended) return;
+      const now = logicalNow();
+      const moved = session.spawnPlayer(selfId, now);
+      inMap = true;
+      ready = false;
+      if (session.state.flags.game_started) {
+        publish(moved.engine);
+        return;
+      }
+      publish(moved.engine);
+      publish(session.start(now));
     },
     kick() {
       // No-op: no hay a quien expulsar en un playtest de un jugador.
     },
 
     move(x, y, roomId) {
-      if (!playing()) return;
+      // En la sala de espera también se mueve el avatar, sin cruzar a otra habitación.
+      const waiting = !inMap && !session.ended;
+      if (!waiting && !playing()) return;
       const current = session.playerPosition(selfId);
       if (!current) return;
       const target = roomId ?? current.roomId;
+      if (waiting && target !== current.roomId) {
+        fail(GAME_PROTOCOL_ERRORS.roomLocked, "Desde la sala de espera se entra al mapa al empezar.");
+        return;
+      }
       if (target !== current.roomId) {
         const door = roomPackage.objects.find(
           (object) => object.roomId === current.roomId && object.leadsTo === target,
@@ -516,7 +569,9 @@ export function createLocalGameClient(
     selectCharacter(next) {
       // Cliente local (playtest sin servidor, un solo jugador): no hay
       // colisión posible con otro jugador, así que se acepta sin más.
+      // Cambiar de personaje quita el «Listo» (C-13, como la `GameRoom`).
       characterId = next;
+      ready = false;
       sync();
     },
 

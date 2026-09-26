@@ -169,6 +169,33 @@ export const RATE_LIMIT_POLICIES = {
     user: { limit: 6, windowSeconds: 3600 },
   },
   /**
+   * `POST /api/rooms/:roomId/intro-media/video` y `…/intro-media/subtitles`
+   * (encargo lobby-diseño): el autor sube el vídeo (hasta 200 MB, PUT
+   * presignado directo al bucket) o los WebVTT de la introducción. También la
+   * consume la meta-tool `upload` del MCP con `kind: "intro_video"`/
+   * `"intro_subtitles"` (misma clave `intro-media-upload:user:<id>`). Un vídeo
+   * + un .vtt por idioma y algún reintento caben de sobra; acota el
+   * almacenamiento que un usuario puede ocupar por hora.
+   */
+  "intro-media-upload": {
+    ip: { limit: 30, windowSeconds: 3600 },
+    user: { limit: 20, windowSeconds: 3600 },
+  },
+  /**
+   * `POST /api/rooms/:roomId/intro-media/video/:assetId/complete`: cada
+   * llamada hace un HEAD y un GET por rango al bucket; cada subida necesita
+   * al menos una (más reintentos si el PUT aún no terminó).
+   */
+  "intro-media-complete": {
+    ip: { limit: 60, windowSeconds: 3600 },
+    user: { limit: 40, windowSeconds: 3600 },
+  },
+  /** `GET /api/rooms/:roomId/intro-media/url` — URL firmada para previsualizar en el editor. */
+  "intro-media-read": {
+    ip: { limit: 240, windowSeconds: 600 },
+    user: { limit: 120, windowSeconds: 600 },
+  },
+  /**
    * `POST /api/mcp/oauth/register` — registro dinámico de clientes OAuth
    * (RFC 7591, A-4/D-4). Público, sin sesión: solo IP. Antes vivía en un
    * limitador en memoria por proceso con la primera entrada (falsificable) de

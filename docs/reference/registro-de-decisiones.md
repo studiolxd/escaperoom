@@ -1277,3 +1277,50 @@ menores). La responsabilidad legal del contenido se reparte explícitamente entr
   sobre contenido concreto (algunas por voces de terceros sin consentimiento, incumplimiento de
   TOS); revertirlas retroactivamente sin revisión no es equivalente a "ya no hay cola para casos
   nuevos".
+
+## ADR-040 — Sala de espera diseñable, introducción (texto/vídeo) y reloj al primer jugador en el mapa (2026-09-26)
+
+**Contexto:** tras C-13 (#179) el lobby era una fase de la `GameRoom` pintada como un panel encima
+del mapa de la primera habitación, el reloj arrancaba al pulsar «Empezar», el playtest arrancaba sin
+lobby y quien llegaba a una partida ya empezada no pasaba por ninguna entrada propia. El usuario
+cerró la definición el 2026-09-26 (encargo lobby-diseño).
+
+**Decisión:**
+
+1. **El lobby es una habitación del mapa** de tipo especial (`SubRoom.kind: "lobby"`, specs/08
+   §2.1), diseñada en el editor o por MCP como cualquier otra (tamaño, suelo/muros, decoración) pero
+   **sin pruebas, puertas ni objetos que den ítems** (lo impide el validador, `checkLobbyRoom`).
+   Como mucho una por sala. Sin lobby diseñado, se **genera** uno pequeño con el suelo y los muros
+   de la habitación inicial (`withLobbyRoom`) al jugar — nunca se reescribe el paquete publicado, así
+   que todas las salas existentes (Rey Aldric incluido) siguen funcionando sin tocarlas.
+2. **La misma conexión** a la `GameRoom`: los jugadores aparecen en el lobby, se mueven y se ven;
+   nueva fase `starting` entre `lobby` y `playing`, y `PlayerState.inMap`.
+3. **Introducción opcional** por sala (`meta.intro`): texto multiidioma **o** vídeo (mp4 H.264 /
+   webm hasta 200 MB, sin límite de duración, subtítulos WebVTT por idioma), **sin moderación
+   previa** (coherente con ADR-039 y los Términos v2026-09-26-2). Se muestra a cada jugador tras
+   «Empezar», la cierra cuando quiere y no se puede volver a ver.
+4. **3-2-1 por jugador** (3 s, sin saltar) y `enter_map`. **El reloj arranca cuando el PRIMER
+   jugador entra al mapa**, no al pulsar «Empezar».
+5. **Entrada tardía permitida** (también fuera de eventos, con el enlace de invitación) hasta el
+   máximo de jugadores: lobby → introducción → 3-2-1 → mapa en curso. La reconexión salta los tres.
+6. **Playtest con lobby** (local y en red): mismo flujo que la partida real.
+7. `GameRoom.startFromLobby({ force })` es **público** para que el inicio conjunto de un evento
+   ("Todos los grupos comienzan juntos", encargo siguiente) lo dispare desde fuera de la room.
+
+**Consecuencias:** el protocolo gana `enter_map` y la fase `starting` (specs/11 §2.1/§4.1); el
+modelo del runtime lleva `initialRoomId`/`lobbyRoomId` y la habitación inicial deja de ser
+"`map.rooms[0]`" a secas (`initialRoomOf`). Subir un vídeo de 200 MB exige PUT presignado directo al
+bucket (tabla `introMediaAsset`, specs/14 §10.2) y la publicación copia el vídeo en streaming. Los
+tiempos de partida de analítica (`game_started`) pasan a medirse desde la entrada del primer
+jugador, no desde «Empezar».
+
+**Alternativas descartadas:**
+
+- **Lobby como pantalla separada fuera del mapa** (la definición anterior, "lobby como pantalla
+  propia"): descartada por el usuario — prefiere que los jugadores estén ya en un espacio diseñado,
+  moviéndose y viéndose.
+- **Reloj al pulsar «Empezar»**: descartado — penalizaría a los grupos con una introducción larga y
+  el 3-2-1 dejaría de tener sentido como "entrada" a la partida.
+- **Subir el vídeo por el servidor web** (como el audio): descartado — 200 MB en memoria por
+  petición y el tope de cuerpo de las rutas; R2 no admite presigned POST con condiciones, así que se
+  usa PUT presignado + comprobación posterior (HEAD + sniff por rango).

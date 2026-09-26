@@ -1,8 +1,14 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { boot, type ColyseusTestServer } from "@colyseus/testing";
 import defineConfig from "@colyseus/tools";
-import { createInMemoryGameAccessStore, type InMemoryGameAccessPurchase } from "@escaperoom/shared/game-access";
-import { signGameAccessToken, readGameAccessTokenConfig } from "@escaperoom/shared/game-access-token";
+import {
+  createInMemoryGameAccessStore,
+  type InMemoryGameAccessPurchase,
+} from "@escaperoom/shared/game-access";
+import {
+  signGameAccessToken,
+  readGameAccessTokenConfig,
+} from "@escaperoom/shared/game-access-token";
 import { parseRoomPackage, type RoomPackage } from "@escaperoom/shared/schemas";
 import { GAME_MESSAGES, GAME_ROOM_NAME } from "../src/constants";
 import { configureGameAccessRuntime } from "../src/game/access-runtime";
@@ -79,6 +85,8 @@ async function startPurchasedGame(roomPackage: RoomPackage) {
   client.send(GAME_MESSAGES.setReady, { ready: true });
   await expect.poll(() => room.state.players.get(client.sessionId)?.ready).toBe(true);
   client.send(GAME_MESSAGES.startGame, {});
+  await expect.poll(() => client.state.phase).toBe("starting");
+  client.send(GAME_MESSAGES.enterMap, {});
   await expect.poll(() => client.state.phase).toBe("playing");
   return { room, client };
 }

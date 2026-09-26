@@ -20,6 +20,7 @@ import { publishTool } from "./publish";
 import { runToolTool } from "./run-tool";
 import { setMapTool } from "./set-map";
 import { setRoomDurationTool } from "./set-room-duration";
+import { setRoomIntroTool } from "./set-room-intro";
 import { toolSchemaTool } from "./tool-schema";
 import { uploadTool } from "./upload";
 import { validateTool } from "./validate";
@@ -38,6 +39,7 @@ export const CONTENT_TOOLSET: readonly CreatorTool[] = [
   createRoomTool,
   setMapTool,
   setRoomDurationTool,
+  setRoomIntroTool,
   paintTilesTool,
   defineSubroomsTool,
   // Fase B — Contenido

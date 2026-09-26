@@ -241,6 +241,12 @@ describe("\"Comenzar todos\" — sin `force`, todo o nada", () => {
     await setReady(bruno, true);
     const started = await startAll(event.id, false);
     expect(started.groups.every((g) => g.status === "started")).toBe(true);
+    // No arranca el reloj todavía (encargo lobby-diseño, PR #180): la fase
+    // pasa a `starting` y espera a que cada quien entre al mapa.
+    await until(ana, (state) => state.phase === "starting");
+    await until(bruno, (state) => state.phase === "starting");
+    ana.send(GAME_MESSAGES.enterMap, {});
+    bruno.send(GAME_MESSAGES.enterMap, {});
     await until(ana, (state) => state.phase === "playing");
     await until(bruno, (state) => state.phase === "playing");
   });
@@ -261,6 +267,10 @@ describe("\"Comenzar todos\" — con `force` (\"Comenzar igualmente\")", () => {
     // sale en el resultado (no hay nada que "empty" pueda describir).
     expect(bySession[sessions[2]!.id]).toBeUndefined();
 
+    await until(ana, (state) => state.phase === "starting");
+    await until(bruno, (state) => state.phase === "starting");
+    ana.send(GAME_MESSAGES.enterMap, {});
+    bruno.send(GAME_MESSAGES.enterMap, {});
     await until(ana, (state) => state.phase === "playing");
     await until(bruno, (state) => state.phase === "playing");
 
@@ -269,6 +279,8 @@ describe("\"Comenzar todos\" — con `force` (\"Comenzar igualmente\")", () => {
     expect(carla.state.phase).toBe("lobby");
     await setReady(carla, true);
     carla.send(GAME_MESSAGES.startGame, {});
+    await until(carla, (state) => state.phase === "starting");
+    carla.send(GAME_MESSAGES.enterMap, {});
     await until(carla, (state) => state.phase === "playing");
   });
 });

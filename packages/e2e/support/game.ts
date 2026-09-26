@@ -65,6 +65,19 @@ export class UiPlayer {
     await this.page.getByTestId("lobby-ready").click();
   }
 
+  /**
+   * Tras «Empezar» (encargo lobby-diseño): cierra la introducción de la sala
+   * si la hay, espera a su 3-2-1 (3 s, sin botón de saltar) y a entrar al
+   * mapa en fase de juego.
+   */
+  async enterMapAfterStart(): Promise<void> {
+    await expect(this.session).not.toHaveAttribute("data-stage", "lobby", { timeout: 15_000 });
+    const intro = this.page.getByTestId("game-intro-continue");
+    if (await intro.isVisible().catch(() => false)) await intro.click();
+    await expect(this.session).toHaveAttribute("data-stage", "map", { timeout: 15_000 });
+    await expect(this.session).toHaveAttribute("data-phase", "playing");
+  }
+
   /** Cierra el diálogo abierto (intro, lore): mientras está, el mundo no acepta clics. */
   async closeDialog(): Promise<void> {
     const dialog = this.page.getByTestId("game-dialog");

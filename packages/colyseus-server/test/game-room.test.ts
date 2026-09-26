@@ -45,7 +45,10 @@ afterAll(async () => {
 
 /** Crea una `GameRoom` con el `gameToken` de prueba que exige `onCreate` (C-4). */
 function createGameRoom(options: Record<string, unknown> = {}) {
-  return colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, { gameToken: devTestGameToken(), ...options });
+  return colyseus.createRoom<GameRoom>(GAME_ROOM_NAME, {
+    gameToken: devTestGameToken(),
+    ...options,
+  });
 }
 
 /** Conecta un cliente de test tipado con el estado de la `GameRoom` (mismo `gameToken`). */
@@ -88,8 +91,13 @@ async function startGame(): Promise<{ room: GameRoom; a: TestClient; b: TestClie
   await expect.poll(() => room.state.players.get(b.sessionId)?.ready).toBe(true);
   const intro = a.waitForMessage(GAME_MESSAGES.dialogShow);
   a.send(GAME_MESSAGES.startGame, {});
+  // Tras «Empezar», cada uno entra al mapa al acabar su introducción y su 3-2-1.
+  await expect.poll(() => a.state.phase).toBe("starting");
+  a.send(GAME_MESSAGES.enterMap, {});
+  b.send(GAME_MESSAGES.enterMap, {});
   expect(await intro).toEqual({ dialogId: "d-intro" });
   await expect.poll(() => b.state.phase).toBe("playing");
+  await expect.poll(() => room.state.players.get(b.sessionId)?.inMap).toBe(true);
   return { room, a, b };
 }
 
@@ -129,7 +137,10 @@ function slidingNeighbor(
 }
 
 /** Par ya conocido (mismo símbolo) entre los ids restantes de un `memory`. */
-function knownMemoryPair(ids: readonly string[], known: ReadonlyMap<string, string>): [string, string] | undefined {
+function knownMemoryPair(
+  ids: readonly string[],
+  known: ReadonlyMap<string, string>,
+): [string, string] | undefined {
   for (let i = 0; i < ids.length; i += 1) {
     for (let j = i + 1; j < ids.length; j += 1) {
       const s1 = known.get(ids[i]!);
@@ -161,7 +172,10 @@ async function solveMemoria(client: TestClient, cardIds: readonly string[]): Pro
       // `puzzleAttempt` está limitado a 2/s (specs/11 §9): sin esperar entre
       // volteos, la ráfaga dispara `RATE_LIMITED` en vez de `attemptResult`.
       const attempted = client.waitForMessage(GAME_MESSAGES.attemptResult);
-      client.send(GAME_MESSAGES.puzzleAttempt, { puzzleId: "p-copas-memoria", attempt: { flip: cardId } });
+      client.send(GAME_MESSAGES.puzzleAttempt, {
+        puzzleId: "p-copas-memoria",
+        attempt: { flip: cardId },
+      });
       const { revealedSymbol } = (await attempted) as { revealedSymbol?: string };
       if (revealedSymbol) known.set(cardId, revealedSymbol);
       await new Promise((resolve) => setTimeout(resolve, 550));
@@ -190,6 +204,9 @@ describe("GameRoom — Rey Aldric sobre Colyseus", () => {
     b.send(GAME_MESSAGES.setReady, { ready: true });
     await expect.poll(() => room.state.players.get(b.sessionId)?.ready).toBe(true);
     a.send(GAME_MESSAGES.startGame, {});
+    await expect.poll(() => b.state.phase).toBe("starting");
+    a.send(GAME_MESSAGES.enterMap, {});
+    b.send(GAME_MESSAGES.enterMap, {});
     await expect.poll(() => b.state.phase).toBe("playing");
     expect(b.state.endsAt - b.state.startedAt).toBe(3600 * 1000);
     expect(b.state.players.size).toBe(2);
@@ -410,7 +427,9 @@ describe("GameRoom — Rey Aldric sobre Colyseus", () => {
     // corrección de contenido, este mensaje no se habría mandado.
     const entered = b.waitForMessage(GAME_MESSAGES.puzzleView);
     await walk(room, b, { x: 9, y: 10 });
-    expect(((await entered) as { view: { viewpointId: string } }).view.viewpointId).toBe("mirilla-a");
+    expect(((await entered) as { view: { viewpointId: string } }).view.viewpointId).toBe(
+      "mirilla-a",
+    );
 
     const exited = b.waitForMessage(GAME_MESSAGES.puzzleView);
     await walk(room, b, { x: 9, y: 2 }); // spawn-1 de la bodega: lejos de ambas mirillas.

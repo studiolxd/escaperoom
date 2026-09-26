@@ -164,6 +164,7 @@ export function createNetworkGameClient(
     startGame: (force) => send(GAME_PROTOCOL.startGame, force ? { force } : {}),
     setReady: (ready) => send(GAME_PROTOCOL.setReady, { ready }),
     kick: (playerId) => send(GAME_PROTOCOL.kick, { playerId }),
+    enterMap: () => send(GAME_PROTOCOL.enterMap, {}),
     move: (x, y, roomId) => send(GAME_PROTOCOL.move, roomId ? { x, y, roomId } : { x, y }),
     interact: (objectId) => send(GAME_PROTOCOL.interact, { objectId }),
     useItem: (itemId, objectId) => send(GAME_PROTOCOL.useItem, { itemId, objectId }),

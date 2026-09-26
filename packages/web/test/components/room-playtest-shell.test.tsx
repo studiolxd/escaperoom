@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { loadRoomPackage, toRuntimeModel } from "@escaperoom/game-runtime";
-import { cleanup, render, screen } from "@testing-library/react";
+import { withLobbyRoom } from "@escaperoom/shared/schemas";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { createElement, type ReactElement } from "react";
@@ -20,7 +21,7 @@ vi.mock("../../src/components/game-session/game-session-canvas", () => ({
 }));
 
 const roomPackage = loadRoomPackage(readReyAldricRoomPackageJson());
-const model = toRuntimeModel(roomPackage);
+const model = toRuntimeModel(withLobbyRoom(roomPackage));
 
 function renderIntl(element: ReactElement) {
   return render(
@@ -34,14 +35,27 @@ beforeEach(() => {
   window.HTMLElement.prototype.releasePointerCapture = vi.fn();
 });
 
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
-describe("<RoomPlaytestShell> — F-17", () => {
+describe("<RoomPlaytestShell> — F-17 + lobby", () => {
   it("el inventario es un Dialog con rol, foco atrapado y se cierra con Escape", async () => {
-    const user = userEvent.setup();
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderIntl(createElement(RoomPlaytestShell, { model, roomPackage }));
 
-    // La intro bloquea el juego al montar: la cierra antes de abrir el inventario.
+    // Encargo lobby-diseño: el playtest pasa por el lobby (Listo → Empezar),
+    // el 3-2-1 y entra al mapa; la intro de las reglas bloquea el juego.
+    expect(screen.getByTestId("game-session")).toHaveAttribute("data-stage", "lobby");
+    await user.click(screen.getByTestId("lobby-ready"));
+    await user.click(screen.getByTestId("game-start"));
+    expect(screen.getByTestId("game-countdown")).toBeInTheDocument();
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(screen.getByTestId("game-session")).toHaveAttribute("data-stage", "map");
     await user.click(screen.getByTestId("game-dialog"));
 
     await user.click(screen.getByRole("button", { name: /abrir \(i\)/i }));

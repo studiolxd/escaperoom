@@ -400,7 +400,8 @@ export class RoomScene extends Phaser.Scene {
     this.localCharacterId =
       options.localCharacterId ?? this.manifest.avatars?.[0]?.id ?? PLACEHOLDER_CHARACTER_ID;
 
-    const initialRoomId = options.initialRoomId ?? this.model.subrooms[0]?.id;
+    const initialRoomId =
+      options.initialRoomId ?? (this.model.initialRoomId || this.model.subrooms[0]?.id);
     if (!initialRoomId || !this.model.subroomsById[initialRoomId]) {
       throw new Error(
         `RoomScene: la habitación inicial "${initialRoomId ?? ""}" no existe en el modelo.`,

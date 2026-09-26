@@ -7,6 +7,10 @@ import {
   createAudioAssetService,
   createAudioPublishAssetSource,
   createCatalogService,
+  createCompositePublishAssetSource,
+  createIntroMediaPublishAssetSource,
+  createIntroMediaService,
+  createPrismaIntroMediaStore,
   createJsonFileRoomPackageRepository,
   createModerationService,
   createPrismaAudioAssetStore,
@@ -53,16 +57,34 @@ const publishRequests = publishConfig
         store: createPrismaRoomPublishStore(prisma),
         drafts: createPrismaRoomDraftStore(prisma),
         serializer: roomDocToPackage,
-        assets: createAudioPublishAssetSource({
-          audio: createAudioAssetService({
-            store: createPrismaAudioAssetStore(prisma),
-            blobs: {
-              put: unavailable("bucket"),
-              delete: unavailable("bucket"),
-              signedReadUrl: unavailable("bucket"),
-            },
+        assets: createCompositePublishAssetSource({
+          audio: createAudioPublishAssetSource({
+            audio: createAudioAssetService({
+              store: createPrismaAudioAssetStore(prisma),
+              blobs: {
+                put: unavailable("bucket"),
+                delete: unavailable("bucket"),
+                signedReadUrl: unavailable("bucket"),
+              },
+            }),
+            readObject: unavailable("bucket"),
           }),
-          readObject: unavailable("bucket"),
+          // Medios de la introducción (`media:<uuid>`): la comprobación solo
+          // lee Postgres (existen, son del autor, están listos).
+          introMedia: createIntroMediaPublishAssetSource({
+            introMedia: createIntroMediaService({
+              store: createPrismaIntroMediaStore(prisma),
+              blobs: {
+                put: unavailable("bucket"),
+                delete: unavailable("bucket"),
+                signedUploadUrl: unavailable("bucket"),
+                head: unavailable("bucket"),
+                readRange: unavailable("bucket"),
+                signedReadUrl: unavailable("bucket"),
+              },
+            }),
+            readObject: unavailable("bucket"),
+          }),
         }),
         storage: { put: unavailable("bucket") },
         // Mismo pre-check y puerta de cuenta que la web (6.1); en seco no escribe.

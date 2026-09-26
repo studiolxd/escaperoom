@@ -20,7 +20,13 @@ import {
   type GameAccessClaims,
   type GameAccessTokenError,
 } from "@escaperoom/shared/game-access-token";
-import { resolveRoomTimeLimitSec, type PuzzleDefinition, type RoomPackage } from "@escaperoom/shared/schemas";
+import {
+  lobbyRoomOf,
+  resolveRoomTimeLimitSec,
+  withLobbyRoom,
+  type PuzzleDefinition,
+  type RoomPackage,
+} from "@escaperoom/shared/schemas";
 import { LIVE_PHASES, type LivePhase } from "@escaperoom/shared/event-progress";
 import {
   createRoomSession,
@@ -161,7 +167,11 @@ export interface GameMilestoneClock {
  */
 export type GameMilestone =
   | { kind: "game_started"; at: number }
-  | ({ kind: "solved" | "hint_used"; puzzleId: string; actorId: string | null } & GameMilestoneClock)
+  | ({
+      kind: "solved" | "hint_used";
+      puzzleId: string;
+      actorId: string | null;
+    } & GameMilestoneClock)
   | ({ kind: "door_opened"; objectId: string; actorId: string | null } & GameMilestoneClock)
   | ({ kind: "game_ended"; result: SessionResult } & GameMilestoneClock)
   | ({
@@ -189,6 +199,7 @@ const puzzlePayload = z.object({ puzzleId: z.string().min(1).max(64) });
 const optionalPuzzlePayload = z.object({ puzzleId: z.string().min(1).max(64).optional() });
 const attemptPayload = z.object({ puzzleId: z.string().min(1).max(64), attempt: z.unknown() });
 const selectCharacterPayload = z.object({ characterId: z.string().min(1).max(64) });
+const emptyPayload = z.object({}).passthrough();
 /** `start_game` (C-13): `force` es "Empezar igualmente" (nunca por debajo del mínimo). */
 const startGamePayload = z.object({ force: z.boolean().optional() });
 const setReadyPayload = z.object({ ready: z.boolean() });
@@ -231,6 +242,12 @@ const OK_OUTCOMES = new Set([
   "deactivated",
 ]);
 
+/**
+ * Resultado de `startFromLobby` (encargo lobby-diseño): `ok` o el rechazo con
+ * su código de protocolo (`GAME_ERRORS`) y un mensaje legible.
+ */
+export type StartFromLobbyResult = { ok: true } | { ok: false; code: string; message: string };
+
 /** Traducción de desenlaces de plantilla a errores de `attempt_result` (specs/11 §5). */
 const ATTEMPT_ERRORS: Record<string, string> = {
   wrong: "wrong_code",
@@ -254,8 +271,16 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   /** C-8: Colyseus corta al cliente que supere esto, aunque ignore el rate limit de la app. */
   override maxMessagesPerSecond = 60;
 
-  /** `protected`: `EventRoom` la lee para el arranque conjunto del organizador (ticket "inicio conjunto"). */
+  /** `protected`: `EventRoom` las lee para el arranque conjunto del organizador (ticket "inicio conjunto"). */
   protected roomPackage!: RoomPackage;
+  /** Sala de espera de la partida (la diseñada o la generada por `withLobbyRoom`). */
+  private lobbyRoomId = "";
+  /**
+   * Encargo lobby-diseño: el anfitrión ya pulsó «Empezar» (o se invocó
+   * `startFromLobby` desde fuera). La fase pasa a `starting` y el reloj sigue
+   * parado hasta que el PRIMER jugador entra al mapa (`enter_map`).
+   */
+  private launched = false;
   protected session?: RoomSession;
   private createdAt = 0;
   private seed = 0;
@@ -349,8 +374,12 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     if (this.requiresGameAccessToken()) {
       await this.authorizeGameAccessCreate(options);
     }
-    const roomPackage = this.loadRoomPackage(options);
+    // La partida siempre tiene sala de espera: la diseñada por el creador o,
+    // si la sala no tiene (todas las anteriores a este campo), una generada
+    // con el suelo y los muros de su habitación inicial (`withLobbyRoom`).
+    const roomPackage = withLobbyRoom(this.loadRoomPackage(options));
     this.roomPackage = roomPackage;
+    this.lobbyRoomId = lobbyRoomOf(roomPackage.map)?.id ?? "";
     this.maxClients = Math.min(MAX_PLAYERS, roomPackage.meta.players.max);
     this.createdAt = Date.now();
     this.seed = randomInt(0, 2 ** 31);
@@ -398,18 +427,28 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
         try {
           handler(client, payload);
         } catch (err) {
-          this.roomLogger.error({ err, sessionId: client.sessionId, messageType: type }, "game-room: fallo en un handler");
+          this.roomLogger.error(
+            { err, sessionId: client.sessionId, messageType: type },
+            "game-room: fallo en un handler",
+          );
           Sentry.captureException(err, { extra: { roomId: this.roomId, messageType: type } });
         }
       });
     on(GAME_MESSAGES.startGame, (client, payload) =>
-      this.withPayload(client, startGamePayload, payload ?? {}, (data) => this.handleStart(client, data)),
+      this.withPayload(client, startGamePayload, payload ?? {}, (data) =>
+        this.handleStart(client, data),
+      ),
     );
     on(GAME_MESSAGES.setReady, (client, payload) =>
-      this.withPayload(client, setReadyPayload, payload, (data) => this.handleSetReady(client, data)),
+      this.withPayload(client, setReadyPayload, payload, (data) =>
+        this.handleSetReady(client, data),
+      ),
     );
     on(GAME_MESSAGES.kick, (client, payload) =>
       this.withPayload(client, kickPayload, payload, (data) => this.handleKick(client, data)),
+    );
+    on(GAME_MESSAGES.enterMap, (client, payload) =>
+      this.withPayload(client, emptyPayload, payload ?? {}, () => this.handleEnterMap(client)),
     );
     on(GAME_MESSAGES.move, (client, payload) =>
       this.withPayload(client, movePayload, payload, (data) => this.handleMove(client, data)),
@@ -560,7 +599,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     }
     const verified = verifyGameAccessToken(config.secret, options.gameToken);
     if (!verified.ok) {
-      throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERROR_BY_TOKEN_ERROR[verified.error]);
+      throw new ServerError(
+        GAME_ACCESS_FORBIDDEN_CODE,
+        GAME_ACCESS_ERROR_BY_TOKEN_ERROR[verified.error],
+      );
     }
     this.gameAccess = verified.claims;
     if (verified.claims.kind === "dev_test") {
@@ -612,7 +654,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       return this.authorizeJoin(_client, options);
     } catch (err) {
       if (err instanceof ServerError) {
-        this.roomLogger.warn({ code: err.code, message: err.message }, "game-room: token de acceso rechazado");
+        this.roomLogger.warn(
+          { code: err.code, message: err.message },
+          "game-room: token de acceso rechazado",
+        );
       }
       throw err;
     }
@@ -627,7 +672,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     if (!config) throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.missing);
     const verified = verifyGameAccessToken(config.secret, options.gameToken);
     if (!verified.ok) {
-      throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERROR_BY_TOKEN_ERROR[verified.error]);
+      throw new ServerError(
+        GAME_ACCESS_FORBIDDEN_CODE,
+        GAME_ACCESS_ERROR_BY_TOKEN_ERROR[verified.error],
+      );
     }
     if (verified.claims.kind === "dev_test") {
       if (!devTestGameTokenAllowed()) {
@@ -647,7 +695,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       }
       return true;
     }
-    if (this.gameAccess?.kind !== "purchase" || this.gameAccess.purchaseId !== verified.claims.purchaseId) {
+    if (
+      this.gameAccess?.kind !== "purchase" ||
+      this.gameAccess.purchaseId !== verified.claims.purchaseId
+    ) {
       throw new ServerError(GAME_ACCESS_FORBIDDEN_CODE, GAME_ACCESS_ERRORS.invalid);
     }
     return true;
@@ -702,7 +753,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     getGameAccessRuntime()
       ?.markPlaySessionEnded(purchaseId)
       .catch((err: unknown) => {
-        logger.warn({ err, roomId: this.roomId, purchaseId }, "game-access: fallo al consumir la compra");
+        logger.warn(
+          { err, roomId: this.roomId, purchaseId },
+          "game-access: fallo al consumir la compra",
+        );
       });
   }
 
@@ -790,8 +844,12 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     }
     if (seatKey) this.seatKeyBySession.set(client.sessionId, seatKey);
 
+    // Todo jugador nuevo aparece en la sala de espera (encargo lobby-diseño):
+    // antes de «Empezar», y también quien llega tarde a una partida ya
+    // empezada — verá la introducción y su 3-2-1 y entrará al mapa en curso
+    // con `enter_map`. (Una reconexión no pasa por aquí: conserva su plaza.)
     const session = this.ensureSession(client.sessionId);
-    const moved = session.spawnPlayer(client.sessionId, this.logicalNow());
+    const moved = session.spawnPlayer(client.sessionId, this.logicalNow(), this.lobbyRoomId);
     const position = session.playerPosition(client.sessionId)!;
 
     const usedTints: string[] = [];
@@ -809,6 +867,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     player.tint = pickPlayerTint(usedTints);
     player.characterId = this.resolveJoinCharacter(options.characterId, usedCharacters);
     player.connected = true;
+    player.inMap = false;
     this.state.players.set(client.sessionId, player);
     if (!this.state.hostId) this.state.hostId = client.sessionId;
     this.openPanels.set(client.sessionId, new Set());
@@ -833,7 +892,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     if (player) player.connected = false;
     if (client.sessionId === this.state.hostId) this.scheduleHostReassignment(client.sessionId);
     if (this.ended) return; // `onLeave` purga: tras `game_ended` no hay reconexión.
-    const seconds = this.state.phase === "playing" ? ("manual" as const) : this.lobbyReconnectGraceSeconds();
+    // Partida lanzada (`starting`/`playing`): la plaza se reserva hasta el fin.
+    const seconds = this.launched ? ("manual" as const) : this.lobbyReconnectGraceSeconds();
     const reservation = this.allowReconnection(client, seconds);
     reservation.catch(() => undefined); // evita "unhandled rejection"; `onLeave` hace la purga real.
     this.pendingReconnections.set(client.sessionId, reservation);
@@ -869,7 +929,11 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     const wasKicked = this.pendingKickReasons.delete(client.sessionId);
     if (player) {
       const reason = wasKicked ? "kicked" : "left";
-      this.broadcast(GAME_MESSAGES.playerLeft, { playerId: client.sessionId, name: player.name, reason });
+      this.broadcast(GAME_MESSAGES.playerLeft, {
+        playerId: client.sessionId,
+        name: player.name,
+        reason,
+      });
       this.onMilestone({
         kind: "player_left",
         playerId: client.sessionId,
@@ -908,6 +972,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       player.tint = previous.tint;
       player.characterId = previous.characterId;
       player.connected = true;
+      player.ready = previous.ready;
+      player.inMap = previous.inMap;
       this.state.players.set(newId, player);
       this.state.players.delete(previousSessionId);
       const inventory = this.state.inventories.get(previousSessionId);
@@ -919,8 +985,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       if (this.originalHostId === previousSessionId) this.originalHostId = newId;
     } else {
       // La plaza anterior ya se había purgado del todo (tardó en volver más
-      // que la gracia disponible): entra como si fuera nueva.
-      const moved = session.spawnPlayer(newId, this.logicalNow());
+      // que la gracia disponible): entra como si fuera nueva (sala de espera).
+      const moved = session.spawnPlayer(newId, this.logicalNow(), this.lobbyRoomId);
       const position = session.playerPosition(newId)!;
       const usedTints: string[] = [];
       this.state.players.forEach((existing) => usedTints.push(existing.tint));
@@ -933,6 +999,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       player.tint = pickPlayerTint(usedTints);
       player.characterId = this.resolveJoinCharacter(undefined, []);
       player.connected = true;
+      player.inMap = false;
       this.state.players.set(newId, player);
       if (!this.state.hostId) this.state.hostId = newId;
       this.publish(moved.engine);
@@ -1020,7 +1087,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     return getGameAccessRuntime()
       ?.releasePlaySession(purchaseId, this.roomId)
       .catch((err: unknown) => {
-        logger.warn({ err, roomId: this.roomId, purchaseId }, "game-access: fallo al liberar la compra");
+        logger.warn(
+          { err, roomId: this.roomId, purchaseId },
+          "game-access: fallo al liberar la compra",
+        );
       });
   }
 
@@ -1073,10 +1143,11 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   /**
-   * Conectados, "Listos" y mínimo exigido (specs/11 §4.1): lo usan tanto
-   * `handleStart` (anfitrión) como `EventRoom.organizerStartGroup` (inicio
-   * conjunto del organizador, ticket "inicio conjunto") para no duplicar el
-   * recuento.
+   * Conectados, "Listos" y mínimo exigido (specs/11 §4.1): lo usa
+   * `EventRoom.organizerStartGroup` (inicio conjunto del organizador, ticket
+   * "inicio conjunto") y `progressCounters` (panel del organizador en vivo).
+   * `handleStart`/`startFromLobby` cuentan por su cuenta (no dependen de
+   * este helper) para no arrastrar el ticket a su propia lógica.
    */
   protected readiness(): { connected: number; ready: number; min: number } {
     let connected = 0;
@@ -1087,16 +1158,6 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       if (player.ready) ready += 1;
     });
     return { connected, ready, min: this.roomPackage.meta.players.min };
-  }
-
-  /** Arranca la partida ya validada: dispara el hito `game_started` y publica el estado. */
-  protected startCore(): void {
-    const session = this.session!;
-    const started = session.start(this.logicalNow());
-    if (session.state.flags.game_started) {
-      this.onMilestone({ kind: "game_started", at: this.createdAt + session.state.startedAt });
-    }
-    this.publish(started);
   }
 
   /**
@@ -1125,24 +1186,88 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       );
       return;
     }
-    if (this.state.phase !== "lobby" || !this.session) {
-      this.fail(client, GAME_ERRORS.invalidState, "La partida ya ha empezado.");
+    const result = this.startFromLobby({ force: data.force });
+    if (!result.ok) this.fail(client, result.code, result.message);
+  }
+
+  /**
+   * Cierra el lobby y lanza la partida (encargo lobby-diseño; C-13 para las
+   * reglas): exige a TODOS los conectados «Listo» salvo `force` («Empezar
+   * igualmente»), y NUNCA arranca por debajo de `meta.players.min`
+   * conectados — ni con `force`, salvo `skipMinimum` (ticket "inicio
+   * conjunto": únicamente `EventRoom.organizerStartGroup` lo pasa, para
+   * "Comenzar igualmente" del organizador — nunca el anfitrión). No arranca
+   * el reloj: la fase pasa a `starting` y cada jugador ve su introducción y
+   * su 3-2-1; el reloj arranca cuando el PRIMERO entra al mapa (`enter_map`).
+   *
+   * Público y sin cliente a propósito: el inicio conjunto de todos los grupos
+   * de un evento ("Todos los grupos comienzan juntos") lo invoca desde fuera
+   * de la room (p. ej. `matchMaker.remoteRoomCall(roomId, "startFromLobby",
+   * [{ force: true }])`). El anfitrión lo dispara con `start_game`.
+   */
+  startFromLobby(options: { force?: boolean; skipMinimum?: boolean } = {}): StartFromLobbyResult {
+    if (this.launched || this.state.phase !== "lobby" || !this.session) {
+      return { ok: false, code: GAME_ERRORS.invalidState, message: "La partida ya ha empezado." };
+    }
+    const connected: GamePlayerState[] = [];
+    this.state.players.forEach((player) => {
+      if (player.connected) connected.push(player);
+    });
+    if (!options.skipMinimum && connected.length < this.roomPackage.meta.players.min) {
+      return {
+        ok: false,
+        code: GAME_ERRORS.minPlayersNotMet,
+        message: `Hacen falta al menos ${this.roomPackage.meta.players.min} jugadores conectados.`,
+      };
+    }
+    if (!options.force && connected.some((player) => !player.ready)) {
+      return {
+        ok: false,
+        code: GAME_ERRORS.playersNotReady,
+        message: "Todavía hay jugadores que no están «Listo».",
+      };
+    }
+    this.launched = true;
+    this.syncState({ forceClock: true });
+    return { ok: true };
+  }
+
+  /** ¿Ya se cerró el lobby (`startFromLobby`)? Para quien orquesta la room desde fuera. */
+  get lobbyClosed(): boolean {
+    return this.launched;
+  }
+
+  /**
+   * `enter_map` (encargo lobby-diseño, specs/11 §4.1): el jugador terminó su
+   * introducción y su 3-2-1 — sale de la sala de espera y aparece en la
+   * habitación inicial (spawn normal). El PRIMERO que entra arranca el reloj
+   * de la partida (`RoomSession.start`: `startedAt`/`endsAt`, hito
+   * `game_started`); los que sigan leyendo la introducción ya consumen tiempo.
+   * Idempotente para quien ya está en el mapa.
+   */
+  private handleEnterMap(client: Client): void {
+    const player = this.state.players.get(client.sessionId);
+    const session = this.session;
+    if (!player || !session) return;
+    if (!this.launched) {
+      this.fail(client, GAME_ERRORS.invalidState, "La partida aún no ha empezado.");
       return;
     }
-    const { connected, ready, min } = this.readiness();
-    if (connected < min) {
-      this.fail(
-        client,
-        GAME_ERRORS.minPlayersNotMet,
-        `Hacen falta al menos ${min} jugadores conectados.`,
-      );
+    if (this.ended || session.ended) {
+      this.fail(client, GAME_ERRORS.invalidState, "La partida ha terminado.");
       return;
     }
-    if (!data.force && ready < connected) {
-      this.fail(client, GAME_ERRORS.playersNotReady, "Todavía hay jugadores que no están «Listo».");
-      return;
+    if (player.inMap) return;
+    const now = this.logicalNow();
+    const moved = session.spawnPlayer(client.sessionId, now);
+    player.inMap = true;
+    player.ready = false;
+    const results: Array<EngineResult | null | undefined> = [moved.engine];
+    if (!session.state.flags.game_started) {
+      results.push(session.start(now));
+      this.onMilestone({ kind: "game_started", at: this.createdAt + session.state.startedAt });
     }
-    this.startCore();
+    for (const result of results) this.publish(result);
   }
 
   /** C-13 (solo anfitrión, specs/11 §4.5): expulsa a otro jugador; no puede volver a esta room. */
@@ -1177,12 +1302,23 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   private handleMove(client: Client, payload: z.infer<typeof movePayload>): void {
-    const session = this.playing(client);
+    // En la sala de espera (antes de entrar al mapa) el avatar también se
+    // mueve y los demás lo ven, pero sin cruzar a ninguna otra habitación.
+    const inLobby = this.inLobby(client);
+    const session = inLobby ? this.session : this.playing(client);
     if (!session) return;
     const current = session.playerPosition(client.sessionId);
     if (!current) return;
 
     const targetRoomId = payload.roomId ?? current.roomId;
+    if (inLobby && targetRoomId !== current.roomId) {
+      this.fail(
+        client,
+        GAME_ERRORS.roomLocked,
+        "Desde la sala de espera se entra al mapa al empezar.",
+      );
+      return;
+    }
     if (targetRoomId !== current.roomId) {
       this.handleRoomChange(client, session, current, targetRoomId);
       return;
@@ -1505,7 +1641,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   private handleTick(): void {
-    if (!this.session || this.state.phase === "lobby") return;
+    // El reloj no corre hasta que el primer jugador entra al mapa.
+    if (!this.session || !this.session.state.flags.game_started) return;
     this.publish(this.session.tick(this.logicalNow()), { fromTick: true });
   }
 
@@ -1541,7 +1678,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
    * `state.clock` a todos los clientes — se sincroniza como mucho 1 vez por
    * segundo salvo que la llamada venga de un mensaje real (reacción inmediata).
    */
-  private publish(result: EngineResult | null | undefined, opts: { fromTick?: boolean } = {}): void {
+  private publish(
+    result: EngineResult | null | undefined,
+    opts: { fromTick?: boolean } = {},
+  ): void {
     if (result) {
       for (const effect of result.effects) {
         switch (effect.type) {
@@ -1628,7 +1768,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       this.state.clock = now;
       this.lastClockSyncAt = now;
     }
-    this.state.phase = game.phase;
+    this.state.phase = game.phase === "lobby" && this.launched ? "starting" : game.phase;
     this.state.result = game.result ?? "";
     this.state.startedAt = game.flags.game_started ? game.startedAt : 0;
     this.state.endsAt =
@@ -1648,7 +1788,11 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
         this.state.puzzles.set(puzzleId, puzzle);
       }
       const solvedBy = runtime.solvedBy ?? "";
-      if (puzzle.state !== runtime.state || puzzle.attempts !== runtime.attempts || puzzle.solvedBy !== solvedBy) {
+      if (
+        puzzle.state !== runtime.state ||
+        puzzle.attempts !== runtime.attempts ||
+        puzzle.solvedBy !== solvedBy
+      ) {
         puzzle.state = runtime.state;
         puzzle.attempts = runtime.attempts;
         puzzle.solvedBy = solvedBy;
@@ -1737,13 +1881,17 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     // puede reconectar para seguir jugando —se rechazan todas las
     // reconexiones pendientes—, y la room se mantiene un margen para la
     // pantalla de resultados antes de desconectar a todos y destruirse.
-    for (const reservation of this.pendingReconnections.values()) reservation.reject(new Error("game_ended"));
+    for (const reservation of this.pendingReconnections.values())
+      reservation.reject(new Error("game_ended"));
     this.pendingReconnections.clear();
     for (const timer of this.hostReassignTimers.values()) timer.clear();
     this.hostReassignTimers.clear();
     this.clock.setTimeout(() => {
       this.disconnect().catch((err: unknown) => {
-        logger.warn({ err, roomId: this.roomId }, "game-room: fallo al cerrar la room tras los resultados");
+        logger.warn(
+          { err, roomId: this.roomId },
+          "game-room: fallo al cerrar la room tras los resultados",
+        );
       });
     }, this.resultsRoomLifetimeSeconds() * 1000);
   }
@@ -1757,11 +1905,18 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
 
   /** La sesión si la partida está en juego; si no, responde el error y devuelve `undefined`. */
   private playing(client: Client): RoomSession | undefined {
-    if (!this.session || this.state.phase !== "playing") {
+    const player = this.state.players.get(client.sessionId);
+    if (!this.session || this.state.phase !== "playing" || !player?.inMap) {
       this.fail(client, GAME_ERRORS.invalidState, "La partida no está en juego.");
       return undefined;
     }
     return this.session;
+  }
+
+  /** ¿Está el jugador en la sala de espera (aún sin entrar al mapa) de una partida sin terminar? */
+  private inLobby(client: Client): boolean {
+    const player = this.state.players.get(client.sessionId);
+    return Boolean(this.session && player && !player.inMap && !this.ended && !this.session.ended);
   }
 
   /** Puzzle de la habitación del jugador (no se juega un panel de otra sala). */

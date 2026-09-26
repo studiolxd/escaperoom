@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { sanitizePlayerName, type GameJoinTarget } from "@/lib/game-net";
 import { readGameReconnect } from "@/lib/game-reconnect";
+import type { IntroModel } from "@/lib/intro-model";
+import { LobbyDeviceCheck } from "./components/lobby-device-check";
 import { ConnectionBadge } from "./connection-badge";
 import { GameSessionShell } from "./game-session-shell";
 import { useGameConnection } from "./use-game-connection";
@@ -44,6 +46,12 @@ export interface NetworkGameProps {
    * recargar/reabrir la pestaña sin perder la partida.
    */
   onJoined?: (roomId: string) => void;
+  /** Introducción de la sala ya resuelta en servidor (encargo lobby-diseño). */
+  intro?: IntroModel | null;
+  /** Portada de la sala para la cabecera del lobby. */
+  coverUrl?: string | null;
+  /** Link para invitar a esta partida (también a quien llega tarde). */
+  inviteUrl?: string | null;
 }
 
 /**
@@ -61,6 +69,9 @@ export function NetworkGame({
   exitHref,
   signInHref,
   onJoined,
+  intro,
+  coverUrl,
+  inviteUrl,
 }: NetworkGameProps) {
   const t = useTranslations("Game");
   const [draftName, setDraftName] = useState("");
@@ -183,6 +194,14 @@ export function NetworkGame({
       subtitle={subtitle}
       exitHref={exitHref}
       signInHref={signInHref}
+      intro={intro}
+      coverUrl={coverUrl}
+      inviteUrl={inviteUrl}
+      deviceCheck={
+        <ErrorBoundary>
+          <LobbyDeviceCheck />
+        </ErrorBoundary>
+      }
     >
       {connection.status === "expired" ? (
         <p

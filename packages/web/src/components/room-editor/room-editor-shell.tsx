@@ -30,6 +30,7 @@ import { EDITOR_UI_KIT } from "./editor-ui-kit";
 import { PlaytestButton } from "./playtest-button";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
 import { RoomEditorInspector } from "./room-editor-inspector";
+import { RoomLobbyIntroDialog } from "./room-lobby-intro-dialog";
 import { RoomPlayersDialog } from "./room-players-dialog";
 import { RoomTimeLimitDialog } from "./room-time-limit-dialog";
 import {
@@ -319,6 +320,17 @@ function ValidatedWorkspace({
         <>
           <RoomPlayersDialog doc={doc} players={pkg.meta.players} />
           <RoomTimeLimitDialog doc={doc} timeLimitMinutes={pkg.meta.timeLimitMinutes} />
+          <RoomLobbyIntroDialog
+            roomId={roomId}
+            doc={doc}
+            pkg={pkg}
+            pack={pack}
+            uploadsEnabled={status !== "local"}
+            onEditLobby={(lobbyId) => {
+              setCanvasTab("map");
+              controller.setRoom(lobbyId);
+            }}
+          />
           <Button
             size="sm"
             variant="ghost"

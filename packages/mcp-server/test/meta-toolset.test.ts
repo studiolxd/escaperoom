@@ -6,6 +6,9 @@ import {
 } from "@escaperoom/kit/rate-limit";
 import {
   AudioError,
+  createInMemoryIntroMediaBlobStore,
+  createInMemoryIntroMediaStore,
+  createIntroMediaService,
   RoomCoverError,
   type AudioAssetRow,
   type AudioAssetService,
@@ -491,5 +494,141 @@ describe("upload", () => {
     } finally {
       await close();
     }
+  });
+
+  describe("medios de la introducción (intro_video / intro_subtitles)", () => {
+    const MP4 = Buffer.from([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d]);
+    const VTT = Buffer.from("WEBVTT\n\n00:00.000 --> 00:01.000\nHola\n");
+
+    /** El servicio REAL en memoria: sala de test del autor y una ajena. */
+    function introMedia() {
+      const store = createInMemoryIntroMediaStore([
+        { id: ALDRIC_ROOM_ID, authorId: AUTHOR.userId },
+        { id: FOREIGN_ROOM_ID, authorId: "otra-persona" },
+      ]);
+      const blobs = createInMemoryIntroMediaBlobStore();
+      return { store, blobs, service: createIntroMediaService({ store, blobs }) };
+    }
+
+    it("intro_video sube el vídeo (sniff mp4) y devuelve ref media:<uuid> para set_room_intro", async () => {
+      const deps = await createTestDeps(AUTHOR);
+      const media = introMedia();
+      const { client, close } = await connect({ ...deps, introMedia: media.service });
+      try {
+        const result = await call(client, "upload", {
+          kind: "intro_video",
+          roomId: ALDRIC_ROOM_ID,
+          filename: "intro.mp4",
+          contentType: "video/mp4",
+          data: MP4.toString("base64"),
+        });
+        expect(result.isError, result.text).toBe(false);
+        const ref = result.structured?.ref as string;
+        expect(ref).toMatch(/^media:[0-9a-f-]{36}$/);
+        expect(result.text).toContain("set_room_intro");
+        const row = [...media.store.rows.values()][0]!;
+        expect(row).toMatchObject({ kind: "video", status: "ready", roomId: ALDRIC_ROOM_ID });
+      } finally {
+        await close();
+      }
+    });
+
+    it("intro_subtitles exige lang y roomId; sube un WebVTT", async () => {
+      const deps = await createTestDeps(AUTHOR);
+      const media = introMedia();
+      const { client, close } = await connect({ ...deps, introMedia: media.service });
+      try {
+        const base = {
+          kind: "intro_subtitles",
+          filename: "es.vtt",
+          contentType: "text/vtt",
+          data: VTT.toString("base64"),
+        };
+        const noLang = await call(client, "upload", { ...base, roomId: ALDRIC_ROOM_ID });
+        expect(errorCode(noLang)).toBe("INVALID_INPUT");
+        const noRoom = await call(client, "upload", { ...base, lang: "es" });
+        expect(errorCode(noRoom)).toBe("INVALID_INPUT");
+        const ok = await call(client, "upload", { ...base, roomId: ALDRIC_ROOM_ID, lang: "es" });
+        expect(ok.isError, ok.text).toBe(false);
+        expect(ok.structured).toMatchObject({ kind: "intro_subtitles", lang: "es" });
+      } finally {
+        await close();
+      }
+    });
+
+    it("errores del dominio: contenido que no es vídeo, sala ajena, sin servicio", async () => {
+      const deps = await createTestDeps(AUTHOR);
+      const media = introMedia();
+      const { client, close } = await connect({ ...deps, introMedia: media.service });
+      try {
+        const notVideo = await call(client, "upload", {
+          kind: "intro_video",
+          roomId: ALDRIC_ROOM_ID,
+          filename: "intro.mp4",
+          contentType: "video/mp4",
+          data: Buffer.from("<html>hola</html>").toString("base64"),
+        });
+        expect(errorCode(notVideo)).toBe("UNSUPPORTED_MEDIA_TYPE");
+        const foreign = await call(client, "upload", {
+          kind: "intro_video",
+          roomId: FOREIGN_ROOM_ID,
+          filename: "intro.mp4",
+          contentType: "video/mp4",
+          data: MP4.toString("base64"),
+        });
+        expect(errorCode(foreign)).toBe("FORBIDDEN");
+      } finally {
+        await close();
+      }
+      const bare = await connect(await createTestDeps(AUTHOR));
+      try {
+        const result = await call(bare.client, "upload", {
+          kind: "intro_video",
+          roomId: ALDRIC_ROOM_ID,
+          filename: "intro.mp4",
+          contentType: "video/mp4",
+          data: MP4.toString("base64"),
+        });
+        expect(errorCode(result)).toBe("NOT_AVAILABLE");
+      } finally {
+        await bare.close();
+      }
+    });
+
+    it("comparte la cuota intro-media-upload con la web (vídeo y subtítulos, misma clave)", async () => {
+      const deps = await createTestDeps(AUTHOR);
+      const quota: UploadQuotaPolicy = {
+        policyName: "test-intro-media-quota",
+        user: { limit: 2, windowSeconds: 60 },
+      };
+      // Una subida ya hecha por la ruta REST con la misma clave.
+      await slidingRateLimiter.hit(`${quota.policyName}:user:${AUTHOR.userId}`, 2, 60);
+      const { client, close } = await connect({
+        ...deps,
+        introMedia: introMedia().service,
+        uploadQuota: { introMedia: quota },
+      });
+      try {
+        const video = await call(client, "upload", {
+          kind: "intro_video",
+          roomId: ALDRIC_ROOM_ID,
+          filename: "intro.mp4",
+          contentType: "video/mp4",
+          data: MP4.toString("base64"),
+        });
+        expect(video.isError, video.text).toBe(false);
+        const subs = await call(client, "upload", {
+          kind: "intro_subtitles",
+          roomId: ALDRIC_ROOM_ID,
+          lang: "es",
+          filename: "es.vtt",
+          contentType: "text/vtt",
+          data: VTT.toString("base64"),
+        });
+        expect(errorCode(subs)).toBe("RATE_LIMITED");
+      } finally {
+        await close();
+      }
+    });
   });
 });

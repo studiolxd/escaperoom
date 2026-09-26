@@ -15,7 +15,7 @@ import {
   type SpectatorClaims,
 } from "@escaperoom/shared/join-token";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
-import { MAX_EVENT_SPECTATORS } from "../constants.js";
+import { GAME_ERRORS, MAX_EVENT_SPECTATORS } from "../constants.js";
 import { getEventRuntime } from "../events/runtime.js";
 import type { MediaRole } from "../media/index.js";
 import { GAME_ACCESS_ERRORS, GameRoom, type GameMilestone, type GameRoomOptions } from "./game-room.js";
@@ -370,10 +370,14 @@ export class EventRoom extends GameRoom {
    * y §4.5, specs/19 §2): lo llama la ruta interna
    * `POST /internal/events/:eventId/start-all` vía `matchMaker.remoteRoomCall`
    * — nunca un jugador ni el anfitrión del grupo. Reutiliza `readiness()` y
-   * `startCore()` de `GameRoom` (mismo motor que `handleStart`), pero con
+   * `startFromLobby()` de `GameRoom` (mismo motor que `handleStart`, encargo
+   * lobby-diseño #180: no arranca el reloj, solo cierra el lobby — el reloj
+   * de cada grupo arranca cuando SU primer jugador entra al mapa), pero con
    * reglas propias: un grupo **vacío** nunca arranca (ni con `force`, para no
-   * dejar sin anfitrión a quien llegue después); con `force` ("Comenzar
-   * igualmente" del panel) SÍ se salta el mínimo de la sala — a diferencia del
+   * dejar sin anfitrión a quien llegue después — por eso el chequeo va ANTES
+   * de llamar a `startFromLobby`, que por sí solo arrancaría con 0 conectados
+   * si `skipMinimum` está activo); con `force` ("Comenzar igualmente" del
+   * panel) SÍ se salta el mínimo de la sala (`skipMinimum`) — a diferencia del
    * "Empezar igualmente" de un anfitrión, que nunca baja del mínimo — porque
    * aquí es una decisión explícita del organizador sobre TODOS los grupos a
    * la vez, no la de un anfitrión sobre el suyo.
@@ -381,15 +385,17 @@ export class EventRoom extends GameRoom {
   organizerStartGroup(opts: { force: boolean }): GroupStartResult {
     const { connected, ready, min } = this.readiness();
     const base = { sessionId: this.eventSessionId, connected, ready, min };
-    if (this.state.phase !== "lobby" || !this.session) {
+    if (this.lobbyClosed || this.state.phase !== "lobby" || !this.session) {
       return { ...base, status: "already_started" };
     }
     if (connected === 0) return { ...base, status: "empty" };
-    if (!opts.force) {
-      if (connected < min) return { ...base, status: "min_not_met" };
-      if (ready < connected) return { ...base, status: "not_ready" };
+    const result = this.startFromLobby({ force: opts.force, skipMinimum: opts.force });
+    if (!result.ok) {
+      return {
+        ...base,
+        status: result.code === GAME_ERRORS.minPlayersNotMet ? "min_not_met" : "not_ready",
+      };
     }
-    this.startCore();
     return { ...base, status: "started" };
   }
 }

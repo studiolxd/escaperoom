@@ -121,6 +121,30 @@ model audioAsset {
   @@index([organizationId], map: "ixAudioAssetOrganization")
 }
 
+/// Medios de la introducción de una sala (encargo lobby-diseño, migración
+/// 20260926160000_intro_media_asset): vídeo (PUT presignado, `pending` hasta
+/// comprobar el objeto) y subtítulos WebVTT por idioma. El borrador los
+/// referencia como `media:<id>`; la publicación los copia a claves
+/// direccionadas por contenido. CHECK a mano: `(kind = 'subtitles') = (lang IS NOT NULL)`.
+model introMediaAsset {
+  id          String   @id @db.Uuid
+  ownerId     String
+  roomId      String   @db.Uuid
+  kind        String
+  lang        String?
+  storageKey  String   @unique
+  contentType String
+  byteSize    Int
+  status      String   @default("pending")
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @db.Timestamptz(6)
+  user        user     @relation(fields: [ownerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  room        room     @relation(fields: [roomId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([ownerId], map: "ixIntroMediaAssetOwner")
+  @@index([roomId, createdAt(sort: Desc)], map: "ixIntroMediaAssetRoom")
+}
+
 /// E-18: dos índices parciales creados a mano (no representables en Prisma)
 /// — `ixContentReportStatus` sobre `status` WHERE status = 'pending'
 /// (0010_moderation) e `ixContentReportRoom` sobre `roomId` WHERE `roomId`
@@ -508,6 +532,7 @@ model room {
   updatedAt                                         DateTime           @default(now()) @db.Timestamptz(6)
   deletedAt                                         DateTime?          @db.Timestamptz(6)
   contentReport                                     contentReport[]
+  introMediaAsset                                   introMediaAsset[]
   moderationAppeal                                  moderationAppeal[]
   purchase                                          purchase[]
   review                                            review[]
@@ -637,6 +662,7 @@ model user {
   creditAccount                                      creditAccount[]
   creditMovement                                     creditMovement[]
   event                                              event[]
+  introMediaAsset                                    introMediaAsset[]
   invitation                                         invitation[]
   member                                             member[]
   moderationAppeal_moderationAppeal_creatorIdTouser  moderationAppeal[] @relation("moderationAppeal_creatorIdTouser")

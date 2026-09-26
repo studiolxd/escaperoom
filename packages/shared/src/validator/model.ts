@@ -10,6 +10,7 @@ import type {
   RuleTrigger,
   WorldObject,
 } from "../schemas";
+import { initialRoomOf } from "../schemas/lobby";
 import type { RouteStepKind } from "./types";
 
 /**
@@ -81,7 +82,8 @@ export class RoomIndex {
 
   constructor(pkg: RoomPackage) {
     this.pkg = pkg;
-    this.startRoomId = pkg.map.rooms[0]?.id;
+    // La sala de espera (`kind: "lobby"`) nunca es el punto de partida del juego.
+    this.startRoomId = initialRoomOf(pkg.map)?.id;
     this.roomIds = new Set(pkg.map.rooms.map((room) => room.id));
     for (const object of pkg.objects) this.objects.set(object.id, object);
     for (const puzzle of pkg.puzzles) this.puzzles.set(puzzle.id, puzzle);

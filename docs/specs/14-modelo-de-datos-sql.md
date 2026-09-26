@@ -658,6 +658,42 @@ CREATE INDEX "ixAudioAssetPending" ON "audioAsset"("createdAt") WHERE status = '
 > también `ixAudioAssetPending`/`ixAudioAssetStatusCreatedAt`: sin cola no hay consultas por
 > `status`. Ver migraciones `_audio_asset_drop_pending` y `_audio_asset_status_index_drop`.
 
+### 10.2 Medios de la introducción (encargo lobby-diseño)
+
+Migración `20260926160000_intro_media_asset`: vídeo (mp4/webm, hasta 200 MB, sin límite de
+duración) y subtítulos WebVTT por idioma de la introducción de una sala (`meta.intro`,
+`specs/04` §10). **Sin moderación previa** (decisión del usuario, como el audio en ADR-039). El
+borrador los referencia como `media:<id>`; al publicar se copian a una clave direccionada por
+contenido (`assets/rooms/{roomId}/{sha256}.{mp4|webm|vtt}`, `r2://…` en el paquete congelado), así
+que una versión publicada no depende de esta tabla.
+
+```sql
+-- 20260926160000_intro_media_asset/migration.sql
+CREATE TABLE "introMediaAsset" (
+  id              uuid PRIMARY KEY,                     -- generado en el servicio (forma la clave del bucket)
+  "ownerId"       text NOT NULL REFERENCES "user"(id),
+  "roomId"        uuid NOT NULL REFERENCES "room"(id) ON DELETE CASCADE,
+  kind            text NOT NULL CHECK (kind IN ('video', 'subtitles')),
+  lang            text,                                 -- idioma de los subtítulos (null en el vídeo)
+  "storageKey"    text NOT NULL UNIQUE,                 -- uploads/intro/{roomId}/{id}.{mp4|webm|vtt}
+  "contentType"   text NOT NULL,
+  "byteSize"      int NOT NULL CHECK ("byteSize" >= 0), -- declarado en `pending`, real en `ready`
+  status          text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'ready')),
+  "createdAt"     timestamptz NOT NULL DEFAULT now(),
+  "updatedAt"     timestamptz NOT NULL DEFAULT now(),
+  CHECK ((kind = 'subtitles') = (lang IS NOT NULL))
+);
+CREATE INDEX "ixIntroMediaAssetRoom" ON "introMediaAsset"("roomId", "createdAt" DESC);
+CREATE INDEX "ixIntroMediaAssetOwner" ON "introMediaAsset"("ownerId");
+```
+
+- `pending`: el vídeo tiene un PUT presignado firmado pero el objeto aún no se ha comprobado
+  (HEAD + magic bytes); solo `ready` es utilizable en el editor, el playtest o la publicación. Los
+  subtítulos y el vídeo subido por la meta-tool `upload` del MCP (llega en el cuerpo) nacen
+  `ready`.
+- Un vídeo `pending` que nunca se completa queda como fila huérfana (y quizá un objeto bajo
+  `uploads/intro/`): no se usa en ningún sitio; su limpieza periódica queda pendiente.
+
 ## 11. Relaciones — vista de conjunto
 
 ```
@@ -683,6 +719,7 @@ user ──< review >── room
 user ──< contentReport >── roomVersion
 user ──< moderationAppeal >── room | contentReport
 user ──< audioAsset                                (dueño; sin revisor desde ADR-039)
+user ──< introMediaAsset >── room                  (vídeo/subtítulos de la introducción)
 
 pricingTier / platformSetting / stripeWebhookEvent     (independientes)
 analyticsEvent                                         (sin FK, alto volumen)

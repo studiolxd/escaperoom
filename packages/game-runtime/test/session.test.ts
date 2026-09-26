@@ -212,16 +212,56 @@ describe("createLocalGameClient (misma interfaz que la red)", () => {
     client.interact("cuadro-aurelio");
     expect(events.at(-1)).toMatchObject({ type: "error", code: "INVALID_STATE" });
 
+    // Mismo lobby que la partida real: «Listo» → «Empezar» → entrar al mapa.
+    expect(client.getSnapshot().self).toMatchObject({ roomId: "lobby", inMap: false, ready: false });
     client.startGame();
+    expect(events.at(-1)).toMatchObject({ type: "error", code: "PLAYERS_NOT_READY" });
+    client.setReady(true);
+    expect(client.getSnapshot().self?.ready).toBe(true);
+    client.startGame();
+    expect(client.getSnapshot().phase).toBe("starting");
+    expect(client.getSnapshot().startedAt).toBe(0);
+    client.enterMap();
     expect(client.getSnapshot().phase).toBe("playing");
+    expect(client.getSnapshot().self).toMatchObject({ roomId: "salon-trono", inMap: true });
     expect(events).toContainEqual({ type: "dialog_show", dialogId: "d-intro" });
+  });
+
+  it("el reloj arranca al entrar al mapa, no al pulsar «Empezar»", () => {
+    const { client, advance } = setup();
+    client.startGame(true);
+    advance(5000);
+    client.tick();
+    expect(client.getSnapshot().phase).toBe("starting");
+    client.enterMap();
+    expect(client.getSnapshot().startedAt).toBe(5000);
+    expect(client.getSnapshot().endsAt).toBe(5000 + 3600 * 1000);
+  });
+
+  it("en la sala de espera se mueve el avatar pero no se cruza de habitación", () => {
+    const { client, events } = setup();
+    const self = client.getSnapshot().self!;
+    client.move(self.x + 1, self.y);
+    expect(client.getSnapshot().self?.x).toBe(self.x + 1);
+    client.move(0, 0, "salon-trono");
+    expect(events.at(-1)).toMatchObject({ type: "error", code: "ROOM_LOCKED" });
+    client.enterMap();
+    expect(events.at(-1)).toMatchObject({ type: "error", code: "INVALID_STATE" });
+  });
+
+  it("cambiar de personaje quita el «Listo»", () => {
+    const { client } = setup();
+    client.setReady(true);
+    client.selectCharacter("maniqui");
+    expect(client.getSnapshot().self?.ready).toBe(false);
   });
 
   it("interactuar, abrir un panel e intentar un código produce los mismos mensajes que la GameRoom", () => {
     const { client, events } = setup();
     let snapshots = 0;
     client.subscribe(() => (snapshots += 1));
-    client.startGame();
+    client.startGame(true);
+    client.enterMap();
     client.interact("cuadro-aurelio");
     expect(events).toContainEqual({ type: "item_granted", playerId: "p1", itemId: "llave-bronce" });
     expect(client.getSnapshot().inventory).toEqual(["llave-bronce"]);
@@ -244,7 +284,8 @@ describe("createLocalGameClient (misma interfaz que la red)", () => {
 
   it("valida el salto máximo y el cruce por una puerta cerrada", () => {
     const { client, events } = setup();
-    client.startGame();
+    client.startGame(true);
+    client.enterMap();
     const self = client.getSnapshot().self!;
     client.move(self.x - 5, self.y);
     expect(events.at(-1)).toMatchObject({ type: "error", code: "MOVE_TOO_FAST" });

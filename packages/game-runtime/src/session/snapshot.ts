@@ -30,6 +30,8 @@ export interface GameRoomStateLike {
     connected: boolean;
     /** C-13: "Listo" en el lobby; sin efecto fuera de `phase === "lobby"`. */
     ready: boolean;
+    /** Encargo lobby-diseño: ya entró al mapa (tras su introducción y su 3-2-1). */
+    inMap?: boolean;
   }>;
   objects: Each<string>;
   puzzles: Each<{ state: string; attempts: number; solvedBy: string }>;
@@ -98,6 +100,7 @@ function buildPlayers(
       characterId: player.characterId,
       connected: player.connected,
       ready: player.ready,
+      inMap: player.inMap ?? false,
       isHost: player.id === state.hostId,
       isSelf: player.id === selfId,
     };
@@ -318,6 +321,7 @@ export function remainingMs(snapshot: GameSnapshot): number | null {
  * transcurrido.
  */
 export function elapsedMs(snapshot: GameSnapshot): number | null {
-  if (snapshot.phase === "lobby") return null;
+  // `starting`: ya se pulsó «Empezar» pero nadie ha entrado al mapa (el reloj no corre).
+  if (snapshot.phase === "lobby" || snapshot.phase === "starting") return null;
   return Math.max(0, snapshot.clock - snapshot.startedAt);
 }

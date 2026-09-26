@@ -4,7 +4,7 @@ import {
   type PublicRuntimeModel,
 } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
-import type { RoomPackage } from "@escaperoom/shared/schemas";
+import { withLobbyRoom, type RoomPackage } from "@escaperoom/shared/schemas";
 import { resolveRoomPreviewPack } from "./room-preview-pack";
 
 /**
@@ -25,7 +25,9 @@ export interface GameModelPayload {
 }
 
 export function buildGameModel(roomPackage: RoomPackage, locale: string): GameModelPayload {
-  const fullModel = toRuntimeModel(roomPackage, { locale });
+  // Encargo lobby-diseño: el modelo incluye la sala de espera que juega la
+  // `GameRoom` (la diseñada o la generada con `withLobbyRoom`, mismo id).
+  const fullModel = toRuntimeModel(withLobbyRoom(roomPackage), { locale });
   const { pack } = resolveRoomPreviewPack(roomPackage.map.tileset, fullModel);
   const model = toPublicRuntimeModel(fullModel);
   return pack ? { model, pack } : { model };

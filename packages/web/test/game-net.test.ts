@@ -233,6 +233,8 @@ describe("cliente de red contra una GameRoom real", () => {
     const intro = nextEvent(guest, "dialog_show");
     guest.client.setReady(true);
     guest.client.startGame();
+    // Encargo lobby-diseño: tras «Empezar», su 3-2-1 y entra al mapa.
+    guest.client.enterMap();
     expect((await intro).dialogId).toBe("d-intro");
 
     await expect(
@@ -271,6 +273,7 @@ describe("cliente de red contra una GameRoom real", () => {
     const intro = nextEvent(guest, "dialog_show");
     guest.client.setReady(true);
     guest.client.startGame();
+    guest.client.enterMap();
     await intro;
 
     const room = await joinGameRoom(new Client(url), target);
@@ -314,7 +317,8 @@ describe("cliente de red contra una GameRoom real", () => {
     await until(ana, (snapshot) => snapshot.self !== null);
     const first = ana.client.getSnapshot();
     expect(first).toMatchObject({ phase: "lobby", roomPackageId: "room-rey-aldric" });
-    expect(first.self).toMatchObject({ name: "Ana", isHost: true, roomId: model.subrooms[0]!.id });
+    // Encargo lobby-diseño: se aparece en la sala de espera (la generada).
+    expect(first.self).toMatchObject({ name: "Ana", isHost: true, roomId: "lobby", inMap: false });
     // Cada objeto del estado existe en el modelo que pinta Phaser (mismos ids).
     for (const objectId of Object.keys(first.objects)) {
       expect(model.objectsById[objectId], objectId).toBeDefined();
@@ -339,6 +343,10 @@ describe("cliente de red contra una GameRoom real", () => {
     const intro = nextEvent(ana, "dialog_show");
     ana.client.setReady(true);
     ana.client.startGame();
+    await until(ana, (snapshot) => snapshot.phase === "starting");
+    // El reloj no corre hasta entrar al mapa.
+    expect(ana.client.getSnapshot().endsAt).toBe(0);
+    ana.client.enterMap();
     expect(await intro).toEqual({ type: "dialog_show", dialogId: "d-intro" });
     await until(ana, (snapshot) => snapshot.phase === "playing" && snapshot.endsAt > 0);
 
@@ -391,6 +399,9 @@ describe("cliente de red contra una GameRoom real", () => {
     // …pero SÍ puede forzarlo ("Empezar igualmente", nunca por debajo del mínimo).
     const forcedStart = nextEvent(ana, "dialog_show");
     ana.client.startGame(true);
+    await until(bruno, (snapshot) => snapshot.phase === "starting");
+    ana.client.enterMap();
+    bruno.client.enterMap();
     await forcedStart;
     await Promise.all([
       until(ana, (snapshot) => snapshot.phase === "playing"),

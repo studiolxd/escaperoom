@@ -72,7 +72,7 @@ import {
   type HintRequestResult,
   type HintState,
 } from "../hints";
-import type { PuzzleDefinition, PuzzleState, RoomPackage, WorldObject } from "../schemas";
+import { initialRoomOf, type PuzzleDefinition, type PuzzleState, type RoomPackage, type WorldObject } from "../schemas";
 import { buildSessionSummary, type SessionSummary } from "./end-game";
 
 /**
@@ -571,14 +571,15 @@ export class RoomSession {
 
   /**
    * Coloca a un jugador en un punto de aparición de la habitación inicial (la
-   * primera del mapa) o de la pedida. No valida puertas: es la entrada a la
+   * primera del mapa que no es la sala de espera, `initialRoomOf`) o de la
+   * pedida (p. ej. el lobby). No valida puertas: es la entrada a la
    * partida, no un movimiento.
    */
   spawnPlayer(playerId: string, now: number = this.now, roomId?: string): RoomMoveResult {
     this.addPlayer(playerId);
     const room =
       this.roomPackage.map.rooms.find((candidate) => candidate.id === roomId) ??
-      this.roomPackage.map.rooms[0];
+      initialRoomOf(this.roomPackage.map);
     if (!room) {
       return { outcome: "unknown_room", enteredRoom: false, engine: emptyResult(now), plates: [] };
     }
@@ -594,7 +595,7 @@ export class RoomSession {
    */
   canEnterRoom(from: string | undefined, to: string): boolean {
     if (!this.roomPackage.map.rooms.some((room) => room.id === to)) return false;
-    if (from === undefined) return to === this.roomPackage.map.rooms[0]?.id;
+    if (from === undefined) return to === initialRoomOf(this.roomPackage.map)?.id;
     if (from === to) return true;
     return this.roomPackage.objects.some(
       (object) =>

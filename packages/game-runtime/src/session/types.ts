@@ -14,7 +14,12 @@ import type { RoomPuzzlePublicView, SessionStats } from "@escaperoom/shared/sess
  *   `RoomSession`, para el playtest sin servidor y los tests.
  */
 
-export type GamePhase = "lobby" | "playing" | "paused" | "ended" | (string & {});
+/**
+ * `lobby` (sala de espera) → `starting` (se pulsó «Empezar»: cada jugador ve
+ * su introducción y su 3-2-1; el reloj aún no corre) → `playing` (desde que
+ * el PRIMER jugador entra al mapa) → `ended`.
+ */
+export type GamePhase = "lobby" | "starting" | "playing" | "paused" | "ended" | (string & {});
 
 export interface GamePlayerSnapshot {
   id: string;
@@ -30,6 +35,11 @@ export interface GamePlayerSnapshot {
   connected: boolean;
   /** C-13: "Listo" en el lobby; sin efecto fuera de `phase === "lobby"`. */
   ready: boolean;
+  /**
+   * Ya entró al mapa de la partida (tras su introducción y su 3-2-1). `false`
+   * mientras está en la sala de espera — también quien llega tarde.
+   */
+  inMap: boolean;
   isHost: boolean;
   isSelf: boolean;
 }
@@ -146,6 +156,11 @@ export interface GameActions {
   startGame(force?: boolean): void;
   /** C-13: marca/desmarca "Listo" en el lobby. */
   setReady(ready: boolean): void;
+  /**
+   * Tras la introducción y el 3-2-1, entra al mapa (encargo lobby-diseño). El
+   * primero que entra arranca el reloj de la partida.
+   */
+  enterMap(): void;
   /** C-13: solo anfitrión, expulsa a otro jugador (no puede volver a esta partida). */
   kick(playerId: string): void;
   /** Posición deseada; con `roomId` distinto al actual, cruce de habitación. */

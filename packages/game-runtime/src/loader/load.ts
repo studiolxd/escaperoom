@@ -1,5 +1,8 @@
 import {
+  DEFAULT_ROOM_TIME_LIMIT_MINUTES,
   RoomPackageSchema,
+  initialRoomOf,
+  lobbyRoomOf,
   formatRoomPackageError,
   toReadableIssues,
   type PuzzleDefinition,
@@ -191,8 +194,12 @@ export function toRuntimeModel(
       estimatedMinutes: meta.estimatedMinutes,
       difficulty: meta.difficulty,
       players: meta.players,
+      timeLimitMinutes:
+        meta.timeLimitMinutes === undefined ? DEFAULT_ROOM_TIME_LIMIT_MINUTES : meta.timeLimitMinutes,
     },
     locale,
+    initialRoomId: initialRoomOf(map)?.id ?? subrooms[0]?.id ?? "",
+    ...(lobbyRoomOf(map) ? { lobbyRoomId: lobbyRoomOf(map)!.id } : {}),
     subrooms,
     subroomsById,
     objects,
@@ -331,6 +338,7 @@ function toRuntimeSubRoom(room: SubRoom): RuntimeSubRoom {
   return {
     id: room.id,
     name: room.name,
+    ...(room.kind ? { kind: room.kind } : {}),
     width: cols,
     height: rows,
     layers,

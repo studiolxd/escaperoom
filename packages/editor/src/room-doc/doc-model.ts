@@ -11,10 +11,12 @@ import * as Y from "yjs";
  *     estimatedMinutes, timeLimitMinutes (número | null = sin duración),
  *     difficulty, players (JSON), assetsManifest
  *     languages: Y.Array<string>, defaultLanguage   (3.10, `room-languages.ts`)
+ *     intro?: Y.Map                      introducción (lobby-diseño, `lobby-intro.ts`):
+ *       type "text": text (YLocalizedText) | type "video": video (ref), subtitles: Y.Map<idioma, ref>
  *   map: Y.Map
  *     tileset: string
  *   subrooms: Y.Map<roomId, Y.Map>
- *     id, name, order, cols, rows
+ *     id, name, kind? ("lobby" = sala de espera), order, cols, rows
  *     layerNames: Y.Array<string>        orden de capas (ground, walls, decor…)
  *     tiles: Y.Map<"capa|x,y", tileId>   disperso: una celda vacía no tiene clave
  *     decorations / spawnPoints / lighting: Y.Array<JSON>
