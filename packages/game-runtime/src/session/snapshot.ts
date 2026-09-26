@@ -300,10 +300,16 @@ export function remainingMs(snapshot: GameSnapshot): number | null {
 /**
  * Tiempo jugado en ms (ticket duración-salas, specs/04 §6): el HUD lo usa
  * como presentación mínima cuando la sala no tiene cuenta atrás
- * (`remainingMs` devuelve `null`) — nunca "00:00". `null` antes de empezar
- * (`startedAt` sin fijar).
+ * (`remainingMs` devuelve `null`) — nunca "00:00". `null` antes de empezar.
+ *
+ * Comprueba `phase`, no la verdad de `startedAt`: el reloj lógico del
+ * cliente/servidor empieza en 0 en cada partida, así que una partida que
+ * arranca en el mismísimo tick en que se crea (posible en los tests, con
+ * `Date.now()` de resolución de milisegundo) tiene `startedAt === 0` — un
+ * valor legítimo, no "sin fijar". Confundirlo con "sin empezar" hacía
+ * intermitente el HUD de una sala sin duración justo al empezar.
  */
 export function elapsedMs(snapshot: GameSnapshot): number | null {
-  if (!snapshot.startedAt) return null;
+  if (snapshot.phase === "lobby") return null;
   return Math.max(0, snapshot.clock - snapshot.startedAt);
 }
