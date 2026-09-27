@@ -158,15 +158,16 @@
   }
 
   /**
-   * Fija los tokens al valor de tema claro para un subárbol, sin importar si
-   * `.dark` está en `<html>` (las custom properties heredan del ancestro más
-   * cercano que las redeclara): la portada de la ficha de sala (`room-detail.tsx`)
-   * siempre lleva su degradado oscuro encima, así que el botón/texto atenuado
-   * que hay sobre ella deben leerse igual en los dos temas del sitio.
+   * Fija botón y texto atenuado a blanco/negro para un subárbol, sin importar
+   * si `.dark` está en `<html>` (las custom properties heredan del ancestro
+   * más cercano que las redeclara): la portada de la ficha de sala
+   * (`room-detail.tsx`) siempre lleva su degradado oscuro encima, así que el
+   * CTA (blanco, texto negro) y "sin reseñas" deben leerse igual en los dos
+   * temas del sitio.
    */
   .force-light {
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
+    --primary: oklch(1 0 0);
+    --primary-foreground: oklch(0.145 0 0);
     --muted-foreground: oklch(0.556 0 0);
   }
 

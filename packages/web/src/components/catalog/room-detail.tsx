@@ -261,15 +261,15 @@ export function RoomDetailView({
 
         <div className="force-light relative z-10 flex flex-col gap-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 text-white">
           <div className="flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-black/40 px-2 py-1 backdrop-blur">
+            <span className="rounded-full bg-white px-2 py-1 text-black">
               {t("version", { semver: room.latestVersion.semver })}
             </span>
             {isEventsOnly ? (
-              <span className="rounded-full bg-black/40 px-2 py-1 backdrop-blur">
+              <span className="rounded-full bg-white px-2 py-1 text-black">
                 {t("eventsOnlyBadge")}
               </span>
             ) : room.saleEvents ? (
-              <span className="rounded-full bg-black/40 px-2 py-1 backdrop-blur">
+              <span className="rounded-full bg-white px-2 py-1 text-black">
                 {t("saleEvents")}
               </span>
             ) : null}
