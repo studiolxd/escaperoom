@@ -1,5 +1,6 @@
 """
-Render isométrico 2:1 de las animaciones de Mixamo de un personaje, en 4 direcciones, para cualquier pack.
+Render isométrico 2:1 de las animaciones de Mixamo de un personaje, en las direcciones que declare
+el estilo ("direcciones_deg" de estilo.json: 4 clásicas, u 8 con las diagonales), para cualquier pack.
 
 Uso (desde assets-generator/):
     PACK=medieval-v1 PERSONAJE=caballero-m /Applications/Blender.app/Contents/MacOS/Blender -b --python scripts/blender/render_animaciones.py [-- <carpeta_mixamo> <salida> <prefijo>]

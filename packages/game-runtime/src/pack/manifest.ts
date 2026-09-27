@@ -83,6 +83,13 @@ export const PackAvatarSchema = z.object({
   id: z.string().min(1),
   label: LocalizedTextSchema,
   portrait: z.string().min(1).optional(),
+  /**
+   * Nº de direcciones de animación que trae este personaje (deuda "8
+   * direcciones"): 8 con las 4 diagonales renderizadas, 4 sin ellas
+   * (retrocompatible; ausente = 4). Lo calcula `build-pack.ts` a partir de
+   * los frames "avatar-<id>-*" presentes, nunca se declara a mano.
+   */
+  directions: z.union([z.literal(4), z.literal(8)]).optional(),
 });
 
 const PackUiSchema = z.object({

@@ -218,6 +218,13 @@ vela, busto) que una vista frontal pura.
   personaje**. "Interactuar" es alcanzar/manipular: el personaje extiende el brazo hacia el
   objeto a la altura del pecho y vuelve (cuadros, palancas, cofres, cerraduras); otros gestos
   quedan para después.
+  - **8 direcciones (opcional, deuda "8 direcciones"):** un personaje puede traer también las 4
+    diagonales (ne/se/sw/nw), mismos frames por dirección → **160 frames por personaje**. El
+    manifiesto lo declara en `avatars[].directions` (`4` u `8`, calculado de los frames
+    presentes en el pack, nunca a mano; ausente = `4`, retrocompatible). Sin las diagonales, el
+    runtime elige la más cercana de las 4 clásicas (`game-runtime/src/pack/avatar.ts`,
+    `directionFromGridDelta`). `caballero-m` (y sus 7 alias provisionales) las traen desde esta
+    deuda; el resto de personajes reales las incorporan al generarse.
 - **Sin sombra de contacto en el sprite** (A5): la dibuja el runtime en su propia capa bajo el
   avatar (una elipse, en el mismo punto de apoyo que el pivote de §3.1), para que no se desalinee
   al andar ni quede por encima de otros objetos en el orden isométrico.
@@ -229,8 +236,9 @@ vela, busto) que una vista frontal pura.
 - Se entrega un **master 2D a 1536×2048** por personaje y su **modelo 3D**, para reutilizar
   (retrato del lobby/chat, nuevas animaciones o direcciones) sin volver a generar desde cero
   (A3/A9).
-- **Estructura de entrega:** subcarpeta `avatar/<characterId>/` con los 80 frames prefijados
-  (`avatar-<characterId>-<dirección>-<acción>-<n>`), su `pack.config.fragment.json` (`anims` y
+- **Estructura de entrega:** subcarpeta `avatar/<characterId>/` con los 80 (o 160 con las 4
+  diagonales) frames prefijados (`avatar-<characterId>-<dirección>-<acción>-<n>`), su
+  `pack.config.fragment.json` (`anims` y
   `avatarOrigin`) y su `LEEME.md` (herramientas y fecha, §8). `pnpm pack:build` fusiona todos los
   personajes en un único **atlas de avatar**; el manifiesto declara la lista en `avatars` (§6).
 - **Personaje de reserva:** mientras no estén los 8, el maniquí SVG tintado por color que existía

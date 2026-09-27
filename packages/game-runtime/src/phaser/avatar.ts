@@ -1,11 +1,13 @@
 import Phaser from "phaser";
 import {
+  ALL_AVATAR_DIRECTIONS,
   AVATAR_ACTION_FRAME_RATE,
   AVATAR_ACTIONS,
   AVATAR_DIRECTIONS,
   AVATAR_ACTION_FRAMES,
   avatarAnimKey,
   avatarFrameName,
+  avatarHasDiagonals,
   directionFromGridDelta,
   type AvatarAction,
   type AvatarDirection,
@@ -58,6 +60,8 @@ export class AvatarController {
   private readonly collision: CollisionGrid;
   private readonly speed: number;
   private readonly characterId: string;
+  /** Deuda "8 direcciones": este personaje trae las 4 diagonales renderizadas. */
+  private readonly hasDiagonals: boolean;
   private cell: { x: number; y: number };
   private direction: AvatarDirection = "s";
   private currentAnim?: string;
@@ -77,6 +81,7 @@ export class AvatarController {
     this.collision = options.collision;
     this.speed = options.speed ?? 4;
     this.characterId = options.characterId;
+    this.hasDiagonals = avatarHasDiagonals(options.manifest, this.characterId);
     this.cell = { x: options.start.x, y: options.start.y };
 
     const first = options.resolver.resolve(
@@ -123,7 +128,7 @@ export class AvatarController {
   update(delta: number, move: AvatarMove | null): void {
     if (move && (move.x !== 0 || move.y !== 0)) {
       this.moving = true;
-      this.direction = directionFromGridDelta(move.x, move.y);
+      this.direction = directionFromGridDelta(move.x, move.y, this.hasDiagonals);
       const step = this.speed * (delta / 1000);
       this.tryMove(move.x * step, move.y * step);
     } else {
@@ -160,7 +165,7 @@ export class AvatarController {
         x: this.cell.x + (dx / distance) * step,
         y: this.cell.y + (dy / distance) * step,
       };
-      this.direction = directionFromGridDelta(Math.sign(dx), Math.sign(dy));
+      this.direction = directionFromGridDelta(Math.sign(dx), Math.sign(dy), this.hasDiagonals);
       this.moving = true;
     } else {
       this.moving = false;
@@ -220,7 +225,8 @@ export class AvatarController {
   }
 
   private registerAnimations(resolver: PackFrameResolver, manifest: PackManifest): void {
-    for (const direction of AVATAR_DIRECTIONS) {
+    const directions = this.hasDiagonals ? ALL_AVATAR_DIRECTIONS : AVATAR_DIRECTIONS;
+    for (const direction of directions) {
       for (const action of AVATAR_ACTIONS) {
         const key = avatarAnimKey(this.characterId, direction, action);
         if (this.scene.anims.exists(key)) {

@@ -13,7 +13,9 @@ import { encodePng } from "../src/pack/png";
 import { checkSvgAspect, rasterizeSvg } from "../src/pack/svg";
 import { normalizePng } from "../src/pack/image";
 import {
+  ALL_AVATAR_DIRECTIONS,
   AVATAR_ACTION_FRAMES,
+  AVATAR_DIAGONAL_DIRECTIONS,
   DEFAULT_PACK_PROJECTION,
   defaultAvatarAnims,
   formatPackIssues,
@@ -295,7 +297,9 @@ function frameIndex(frame: string): number {
   return match ? Number(match[1]) : 0;
 }
 
-const AVATAR_FRAME_PATTERN = /^avatar-(.+)-(?:n|e|s|w)-(?:idle|walk|interact)-\d+$/;
+// Direcciones diagonales antes que las cardinales de una letra: con guiones a
+// ambos lados el orden no cambia el resultado, pero así queda explícito.
+const AVATAR_FRAME_PATTERN = /^avatar-(.+)-(?:ne|se|sw|nw|n|e|s|w)-(?:idle|walk|interact)-\d+$/;
 
 /** Personajes presentes en `avatar/` a partir de los nombres de frame (B4). */
 function charactersFromAvatarFrames(frames: readonly string[]): string[] {
@@ -309,10 +313,15 @@ function charactersFromAvatarFrames(frames: readonly string[]): string[] {
   return [...ids].sort();
 }
 
-/** Deriva las animaciones del avatar de los nombres de frame presentes (todo personaje, incluido el de reserva). */
+/**
+ * Deriva las animaciones del avatar de los nombres de frame presentes (todo
+ * personaje, incluido el de reserva). Se generan las 8 direcciones posibles
+ * y solo se incluyen las que tengan frames: así un personaje sin diagonales
+ * (deuda "8 direcciones") sigue con sus 4 de siempre.
+ */
 function deriveAvatarAnims(frames: string[], overrides: PackAnim[]): PackAnim[] {
   const anims: PackAnim[] = [];
-  for (const base of defaultAvatarAnims(charactersFromAvatarFrames(frames))) {
+  for (const base of defaultAvatarAnims(charactersFromAvatarFrames(frames), ALL_AVATAR_DIRECTIONS)) {
     const override = overrides.find((anim) => anim.key === base.key);
     if (override) {
       anims.push(override);
@@ -387,6 +396,11 @@ function buildManifest(
 
   const fxSpark = framesByKind.fx[0] ?? "fx-spark";
 
+  const avatars = config.avatars?.map((avatar) => ({
+    ...avatar,
+    directions: avatarDirectionsCount(framesByKind.avatar, avatar.id),
+  }));
+
   return {
     id: config.id ?? packId,
     version: config.version ?? "1.0.0",
@@ -403,14 +417,35 @@ function buildManifest(
     ui: { icons },
     fx: { spark: fxSpark },
     keys: atlases.map(({ key }) => key),
-    ...(config.avatars ? { avatars: config.avatars } : {}),
+    ...(avatars ? { avatars } : {}),
     ...(config.avatarOrigin ? { avatarOrigin: config.avatarOrigin } : {}),
   };
 }
 
-/** Frames por personaje (idle + walk + interact) × 4 direcciones (A2/B3). */
-const AVATAR_FRAMES_PER_CHARACTER =
-  Object.values(AVATAR_ACTION_FRAMES).reduce((total, count) => total + count, 0) * 4;
+/**
+ * 8 si `characterId` tiene algún frame en una dirección diagonal, 4 si no
+ * (deuda "8 direcciones"): se calcula de los frames reales, nunca se declara
+ * a mano en `pack.config.json`.
+ */
+function avatarDirectionsCount(frames: readonly string[], characterId: string): 4 | 8 {
+  const prefix = `avatar-${characterId}-`;
+  const hasDiagonal = AVATAR_DIAGONAL_DIRECTIONS.some((direction) =>
+    frames.some((frame) => frame.startsWith(`${prefix}${direction}-`)),
+  );
+  return hasDiagonal ? 8 : 4;
+}
+
+/** Frames de (idle + walk + interact) para una sola dirección. */
+const AVATAR_FRAMES_PER_DIRECTION = Object.values(AVATAR_ACTION_FRAMES).reduce(
+  (total, count) => total + count,
+  0,
+);
+/**
+ * Frames válidos por personaje (A2/B3; deuda "8 direcciones"): 4 direcciones
+ * (sin diagonales) u 8 (con ellas). Cualquier otro número es una entrega
+ * parcial.
+ */
+const AVATAR_FRAMES_PER_CHARACTER = [4, 8].map((n) => n * AVATAR_FRAMES_PER_DIRECTION);
 
 function checkNames(
   framesByKind: Record<Kind, string[]>,
@@ -429,9 +464,10 @@ function checkNames(
     }
   }
   // Cada personaje de manifest.avatars necesita sus 80 frames (idle 8 + walk 8
-  // + interact 4, ×4 direcciones; A2/B4). 0 frames = aún no entregado (aviso,
-  // como el resto del pack incompleto); cualquier otro número = entrega
-  // parcial, un error real.
+  // + interact 4, ×4 direcciones) o 160 (×8, con diagonales; deuda "8
+  // direcciones"; A2/B4). 0 frames = aún no entregado (aviso, como el resto
+  // del pack incompleto); cualquier otro número = entrega parcial, un error
+  // real.
   for (const avatar of config.avatars ?? []) {
     const count = framesByKind.avatar.filter((frame) =>
       frame.startsWith(`avatar-${avatar.id}-`),
@@ -442,10 +478,10 @@ function checkNames(
         message: `falta el personaje "${avatar.id}": no hay frames "avatar-${avatar.id}-*" en el pack.`,
         severity: "warning",
       });
-    } else if (count !== AVATAR_FRAMES_PER_CHARACTER) {
+    } else if (!AVATAR_FRAMES_PER_CHARACTER.includes(count)) {
       issues.push({
         path: `avatar/${avatar.id}`,
-        message: `el personaje "${avatar.id}" tiene ${count} frames; se esperan ${AVATAR_FRAMES_PER_CHARACTER} (idle 8 + andar 8 + interactuar 4, ×4 direcciones).`,
+        message: `el personaje "${avatar.id}" tiene ${count} frames; se esperan ${AVATAR_FRAMES_PER_CHARACTER.join(" o ")} (idle 8 + andar 8 + interactuar 4, ×4 u ×8 direcciones).`,
         severity: "error",
       });
     }
