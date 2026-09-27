@@ -238,7 +238,7 @@ export function NetworkGame({
       {connection.status === "expired" ? (
         <p
           role="alert"
-          className="absolute inset-x-4 top-4 z-50 mx-auto w-fit rounded-lg border border-amber-300/40 px-4 py-2 text-sm text-amber-100"
+          className="absolute inset-x-4 top-4 z-50 mx-auto w-fit rounded-lg border border-amber-500/40 px-4 py-2 text-sm text-amber-700 dark:border-amber-300/40 dark:text-amber-100"
         >
           {t("status.expired")}
         </p>

@@ -40,8 +40,8 @@ const RESULT_ICON = {
 } as const;
 
 const RESULT_TONE = {
-  victory: "text-emerald-300",
-  timeout: "text-amber-300",
+  victory: "text-emerald-700 dark:text-emerald-300",
+  timeout: "text-amber-700 dark:text-amber-300",
   aborted: "text-muted-foreground",
 } as const;
 

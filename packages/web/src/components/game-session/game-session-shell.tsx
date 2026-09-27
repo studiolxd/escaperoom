@@ -214,7 +214,7 @@ export function GameSessionShell({
       </ErrorBoundary>
 
       {hud.draggingItem ? (
-        <div className="pointer-events-none absolute inset-x-4 top-24 z-30 mx-auto w-fit rounded-full border border-amber-200/40 px-4 py-1.5 text-xs text-amber-100 shadow-lg">
+        <div className="pointer-events-none absolute inset-x-4 top-24 z-30 mx-auto w-fit rounded-full border border-amber-500/40 px-4 py-1.5 text-xs text-amber-700 shadow-lg dark:border-amber-200/40 dark:text-amber-100">
           {hud.tp("menu.dropHint", { item: hud.itemName(hud.draggingItem) })}
         </div>
       ) : null}

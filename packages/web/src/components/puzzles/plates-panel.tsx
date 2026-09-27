@@ -114,7 +114,7 @@ export function PlatesPanel({
           data-open={windowOpen}
           className={cn(
             "text-center text-xs",
-            windowOpen ? "text-amber-200" : "text-muted-foreground",
+            windowOpen ? "text-amber-700 dark:text-amber-200" : "text-muted-foreground",
           )}
         >
           {windowOpen ? t("countdown", { seconds }) : t("windowClosed")}
@@ -138,7 +138,7 @@ export function PlatesPanel({
             >
               <span className="font-mono text-xs">{plate.objectId}</span>
               <span
-                className={cn("text-xs", plate.active ? "text-amber-100" : "text-muted-foreground")}
+                className={cn("text-xs", plate.active ? "text-amber-700 dark:text-amber-100" : "text-muted-foreground")}
               >
                 {plate.bridged ? t("bridged") : plate.active ? t("active") : t("inactive")}
               </span>

@@ -210,11 +210,11 @@ export function LobbyPanel({
           </p>
         ) : isHost ? (
           belowMinimum ? (
-            <p className="text-xs text-amber-200" data-testid="lobby-below-minimum">
+            <p className="text-xs text-amber-700 dark:text-amber-200" data-testid="lobby-below-minimum">
               {t("lobby.belowMinimum", { min: meta.players.min })}
             </p>
           ) : !hostReady ? (
-            <p className="text-xs text-amber-200" data-testid="lobby-host-not-ready">
+            <p className="text-xs text-amber-700 dark:text-amber-200" data-testid="lobby-host-not-ready">
               {t("lobby.hostMustConfirm")}
             </p>
           ) : confirmingForce ? (

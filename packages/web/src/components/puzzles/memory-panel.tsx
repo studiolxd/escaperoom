@@ -134,7 +134,7 @@ export function MemoryPanel({
               className={cn(
                 "grid aspect-square h-auto place-items-center rounded-lg border p-0 text-2xl transition-colors",
                 card.matched
-                  ? "border-emerald-300/60 bg-emerald-300/10 text-emerald-100"
+                  ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:border-emerald-300/60 dark:bg-emerald-300/10 dark:text-emerald-100"
                   : faceUp
                     ? "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:border-amber-300/60 dark:bg-amber-300/10 dark:text-amber-100"
                     : "border-border bg-muted/50 text-muted-foreground hover:border-amber-300/50 hover:bg-muted",

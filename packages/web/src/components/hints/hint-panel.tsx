@@ -55,7 +55,7 @@ export function HintPanel({
     >
       <header className="flex items-baseline justify-between gap-2">
         <h2 className="text-sm font-medium">{t("title")}</h2>
-        <p className="text-xs text-amber-200" data-testid="hint-remaining">
+        <p className="text-xs text-amber-700 dark:text-amber-200" data-testid="hint-remaining">
           {t("remaining", { count: view.remaining })}
         </p>
       </header>
@@ -66,7 +66,7 @@ export function HintPanel({
         ) : (
           hints.map((hint) => (
             <li key={hint.id} className="rounded-lg border border-border bg-muted/50 p-2">
-              <p className="text-[0.7rem] font-medium tracking-wide text-amber-200 uppercase">
+              <p className="text-[0.7rem] font-medium tracking-wide text-amber-700 uppercase dark:text-amber-200">
                 {t("tier", { tier: hint.tier })}
               </p>
               <p className="text-xs text-foreground/90">{hint.text}</p>

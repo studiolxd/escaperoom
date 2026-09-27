@@ -210,7 +210,7 @@ export function InventoryPanel({
                   ) : (
                     <span
                       aria-hidden
-                      className="grid size-7 place-items-center rounded-md bg-amber-200/15 text-xs font-semibold text-amber-100"
+                      className="grid size-7 place-items-center rounded-md bg-amber-500/15 text-xs font-semibold text-amber-700 dark:bg-amber-200/15 dark:text-amber-100"
                     >
                       {labelFor(itemId).slice(0, 1).toUpperCase()}
                     </span>

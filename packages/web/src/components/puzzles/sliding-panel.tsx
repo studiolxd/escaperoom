@@ -175,7 +175,7 @@ export function SlidingPanel({
               }
             >
               {!imageSrc ? (
-                <span className="grid size-full place-items-center bg-amber-200/10 text-amber-100">
+                <span className="grid size-full place-items-center bg-amber-500/10 text-amber-700 dark:bg-amber-200/10 dark:text-amber-100">
                   {tile}
                 </span>
               ) : null}

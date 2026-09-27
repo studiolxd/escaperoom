@@ -67,7 +67,7 @@ export function MediaTiles({
           <span aria-hidden className={`size-2 rounded-full ${STATUS_DOT[status]}`} />
           {statusLabel}
         </span>
-        {errorText ? <span className="text-[0.7rem] text-rose-300">{errorText}</span> : null}
+        {errorText ? <span className="text-[0.7rem] text-rose-600 dark:text-rose-300">{errorText}</span> : null}
       </div>
 
       {localTile ? (
