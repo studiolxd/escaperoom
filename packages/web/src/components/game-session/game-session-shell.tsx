@@ -417,8 +417,6 @@ export function GameSessionShell({
         onPickItem={onPickItem}
         onOpenPanel={onOpenPanelFromMenu}
         onCancel={closeMenu}
-        titleLabel={hud.tp("menu.title")}
-        objectLabel={(object) => hud.tp("menu.object", { object })}
         inspectLabel={hud.tp("menu.inspect")}
         useItemLabel={hud.tp("menu.useItem")}
         openPanelLabel={hud.tp("menu.openPanel")}

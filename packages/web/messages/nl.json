@@ -147,8 +147,6 @@
     "intro": "Introductie",
     "close": "Sluiten",
     "menu": {
-      "title": "Acties voor het object",
-      "object": "Object: {object}",
       "inspect": "Bekijken",
       "useItem": "Voorwerp gebruiken…",
       "openPanel": "Paneel openen",

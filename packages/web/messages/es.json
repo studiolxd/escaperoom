@@ -280,8 +280,6 @@
     "intro": "Introducción",
     "close": "Cerrar",
     "menu": {
-      "title": "Acciones sobre el objeto",
-      "object": "Objeto: {object}",
       "inspect": "Inspeccionar",
       "useItem": "Usar objeto…",
       "openPanel": "Abrir panel",

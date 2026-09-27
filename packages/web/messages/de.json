@@ -147,8 +147,6 @@
     "intro": "Einleitung",
     "close": "Schließen",
     "menu": {
-      "title": "Aktionen für das Objekt",
-      "object": "Objekt: {object}",
       "inspect": "Untersuchen",
       "useItem": "Gegenstand benutzen…",
       "openPanel": "Panel öffnen",

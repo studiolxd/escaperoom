@@ -179,8 +179,6 @@
     "intro": "Introduction",
     "close": "Close",
     "menu": {
-      "title": "Object actions",
-      "object": "Object: {object}",
       "inspect": "Inspect",
       "useItem": "Use item…",
       "openPanel": "Open panel",
