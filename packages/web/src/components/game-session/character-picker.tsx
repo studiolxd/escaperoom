@@ -44,7 +44,7 @@ export function CharacterPicker({ pack, occupiedBy, value, onChange }: Character
 
   return (
     <div className="flex w-full flex-col gap-2 text-left">
-      <span className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">
+      <span className="text-xs uppercase tracking-wide text-muted-foreground">
         {t("lobby.chooseCharacter")}
       </span>
       <RadioGroup

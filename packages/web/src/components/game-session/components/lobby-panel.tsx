@@ -111,7 +111,7 @@ export function LobbyPanel({
             className="aspect-video w-full rounded-lg object-cover"
           />
         ) : null}
-        <span className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">
           {t("lobby.title")}
         </span>
         <div className="flex flex-wrap gap-1.5">
@@ -136,7 +136,7 @@ export function LobbyPanel({
       <Separator />
 
       <section className="flex flex-col gap-1.5">
-        <span className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">
           {t("lobby.playersOf", { count: players.length, max: meta.players.max })}
         </span>
         <ul className="flex flex-col gap-1 text-xs" data-testid="lobby-players">

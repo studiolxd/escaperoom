@@ -128,21 +128,21 @@ export function GameSessionShell({
   const timer =
     hud.remaining !== null ? (
       <span
-        className="rounded-md border border-border bg-card/90 px-4 py-1.5 font-mono text-xs text-foreground"
+        className="rounded-md border border-border bg-card/90 px-4 py-1.5 text-xs text-foreground"
         data-testid="game-timer"
       >
         {formatDuration(Math.ceil(hud.remaining / 1000))}
       </span>
     ) : hud.elapsed !== null ? (
       <span
-        className="rounded-md border border-border bg-card/90 px-4 py-1.5 font-mono text-xs text-foreground"
+        className="rounded-md border border-border bg-card/90 px-4 py-1.5 text-xs text-foreground"
         data-testid="game-elapsed"
       >
         {formatDuration(Math.floor(hud.elapsed / 1000))}
       </span>
     ) : lobby.stage === "lobby" && model.meta.timeLimitMinutes !== null ? (
       <span
-        className="rounded-md border border-border bg-card/90 px-4 py-1.5 font-mono text-xs text-foreground"
+        className="rounded-md border border-border bg-card/90 px-4 py-1.5 text-xs text-foreground"
         data-testid="game-timer-preview"
       >
         {formatDuration(model.meta.timeLimitMinutes * 60)}
