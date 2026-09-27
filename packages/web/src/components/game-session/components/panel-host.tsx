@@ -86,9 +86,9 @@ export function PanelHost({
       <DialogContent
         container={container}
         showCloseButton={false}
-        overlayClassName="absolute inset-0 z-20 bg-background/60 backdrop-blur-sm"
+        overlayClassName="absolute inset-0 z-40 bg-background/60 backdrop-blur-sm"
         onEscapeKeyDown={onEscapeKeyDown}
-        className="absolute inset-0 top-auto left-auto z-20 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-transparent p-4 shadow-none ring-0"
+        className="absolute inset-0 z-40 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-transparent p-4 shadow-none ring-0"
       >
         <DialogTitle className="sr-only">{panelTitle(panel)}</DialogTitle>
         <DialogDescription className="sr-only">{closeLabel}</DialogDescription>
