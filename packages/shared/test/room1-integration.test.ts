@@ -125,7 +125,6 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
     // — Timer e intro (reglas del motor) —
     expect(state.timers.cronometro?.running).toBe(true);
     expect(state.timers.cronometro?.durationSec).toBe(3600);
-    expect(dialogs).toContain("d-intro");
     expect(dialogs).toContain("d-cuadro");
     expect(dialogs).toContain("d-brasero");
     expect(dialogs).toContain("d-pergamino");

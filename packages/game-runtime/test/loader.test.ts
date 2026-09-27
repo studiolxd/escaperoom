@@ -122,9 +122,9 @@ describe("toRuntimeModel", () => {
     const model = toRuntimeModel(loadValidPackage(), { locale: "en" });
 
     expect(model.locale).toBe("en");
-    expect(model.dialogs).toHaveLength(14);
-    expect(model.dialogsById["d-intro"]?.text).toContain("Profecía");
-    expect(model.dialogsById["d-intro"]?.localized.es?.text).toContain("Profecía");
+    expect(model.dialogs).toHaveLength(13);
+    expect(model.dialogsById["d-cuadro"]?.text).toContain("Rey Aurelio");
+    expect(model.dialogsById["d-cuadro"]?.localized.es?.text).toContain("Rey Aurelio");
   });
 
   it("resume los puzzles sin filtrar secretos (code/solution)", () => {

@@ -283,7 +283,9 @@ describe("GameSessionShell a partir del estado sincronizado", () => {
       expect(html).toContain('data-phase="lobby"');
       expect(html).toContain("Ana · " + tr("fr", "lobby.host"));
       expect(html).toContain("Bruno (" + tr("fr", "lobby.you") + ")");
-      expect(html).toContain(tr("fr", "lobby.waitingHost"));
+      // Bruno entra sin personaje elegido (encargo retratos): el aviso pide
+      // elegir uno, no que espere al anfitrión.
+      expect(html).toContain(tr("fr", "lobby.chooseCharacterFirst"));
       expect(html).not.toContain('data-testid="game-start"');
       // El chat de la partida (2.1) también sale en el idioma del jugador.
       expect(html).toContain(tr("fr", "placeholder", "Chat"));

@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { cn } from "cn";
+import { Lightbulb } from "lucide-react";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import type { GameClient } from "@escaperoom/game-runtime/session";
@@ -19,7 +20,7 @@ import { HudLogCorner } from "./components/hud-log-corner";
 import { InventoryDialog } from "./components/inventory-dialog";
 import { ItemPickerPopover } from "./components/item-picker-popover";
 import type { IntroModel } from "@/lib/intro-model";
-import { CountdownOverlay } from "./components/countdown-overlay";
+import { EntryFade } from "./components/entry-fade";
 import { IntroOverlay } from "./components/intro-overlay";
 import { LobbyPanel } from "./components/lobby-panel";
 import { ObjectsBar } from "./components/objects-bar";
@@ -126,26 +127,23 @@ export function GameSessionShell({
   const lobby = useLobbyFlow({ snapshot, client, hasIntro: Boolean(intro) });
   const inMapStage = lobby.stage === "map";
 
+  // Monoespacio + ancho fijo (basta para "H:MM:SS", el formato más largo de
+  // `formatDuration`): sin esto, la píldora cambiaba de tamaño con el propio
+  // número (p. ej. de "1:00:00" a "59:00"), con letra proporcional o sin
+  // ancho fijo.
+  const timerClassName =
+    "inline-block w-20 rounded-md border border-border bg-card/75 py-1.5 text-center font-mono text-xs text-foreground";
   const timer =
     hud.remaining !== null ? (
-      <span
-        className="rounded-md border border-border bg-card/75 px-4 py-1.5 text-xs text-foreground"
-        data-testid="game-timer"
-      >
+      <span className={timerClassName} data-testid="game-timer">
         {formatDuration(Math.ceil(hud.remaining / 1000))}
       </span>
     ) : hud.elapsed !== null ? (
-      <span
-        className="rounded-md border border-border bg-card/75 px-4 py-1.5 text-xs text-foreground"
-        data-testid="game-elapsed"
-      >
+      <span className={timerClassName} data-testid="game-elapsed">
         {formatDuration(Math.floor(hud.elapsed / 1000))}
       </span>
     ) : lobby.stage === "lobby" && model.meta.timeLimitMinutes !== null ? (
-      <span
-        className="rounded-md border border-border bg-card/75 px-4 py-1.5 text-xs text-foreground"
-        data-testid="game-timer-preview"
-      >
+      <span className={timerClassName} data-testid="game-timer-preview">
         {formatDuration(model.meta.timeLimitMinutes * 60)}
       </span>
     ) : null;
@@ -232,7 +230,21 @@ export function GameSessionShell({
             ) : (
               <span />
             )}
-            {timer}
+            <div className="flex items-center gap-2">
+              {inMapStage ? (
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  disabled={hud.introOpen || !hud.playing || !hud.hintPuzzleId}
+                  onClick={() => hud.setPanel("hints")}
+                  aria-label={hud.tp("action.hints")}
+                  data-testid="game-open-hints"
+                >
+                  <Lightbulb />
+                </Button>
+              ) : null}
+              {timer}
+            </div>
           </header>
         ) : (
           // Espaciador: sin conexión ni cronómetro (p. ej. playtest en sala
@@ -242,9 +254,14 @@ export function GameSessionShell({
         )}
 
         <div className="pointer-events-auto flex w-full flex-wrap items-end justify-between gap-4">
-          {/* En la sala de espera (y durante la introducción/3-2-1) no hay
-              objetos ni inventario que mostrar: solo el chat. */}
-          {inMapStage ? (
+          {/* En la sala de espera (y durante la introducción/entrada al mapa)
+              no hay objetos ni inventario que mostrar: solo el chat. En la
+              partida real (variant="game") tampoco: los objetos se
+              inspeccionan directo sobre el canvas isométrico, sin este panel
+              — el playtest sí lo conserva (lleva enganchados el checklist de
+              la ruta crítica y el botón de reinicio, `objectsBarHeader`/
+              `objectsBarFooter`). */}
+          {inMapStage && variant === "playtest" ? (
             <ObjectsBar
               model={model}
               objectsLabel={hud.tp("objects")}
@@ -266,7 +283,7 @@ export function GameSessionShell({
           ) : null}
 
           {inMapStage ? (
-            <div className="flex w-64 flex-col gap-2 rounded-xl border border-border bg-card/75 px-4 py-3 text-foreground backdrop-blur">
+            <div className="ml-auto flex w-64 flex-col gap-2 rounded-xl border border-border bg-card/75 px-4 py-3 text-foreground backdrop-blur">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs uppercase tracking-wide text-muted-foreground">
                   {hud.tp("inventory")}
@@ -303,31 +320,18 @@ export function GameSessionShell({
                   ))
                 )}
               </ul>
-              <dl className="flex justify-between text-[0.7rem] text-muted-foreground">
-                <dt>{hud.tp("stats.puzzles")}</dt>
-                <dd className="font-mono text-foreground">
-                  {hud.solvedCount}/{model.puzzles.length}
-                </dd>
-              </dl>
-              <Button
-                size="sm"
-                variant="secondary"
-                disabled={!hud.playing || !hud.hintPuzzleId}
-                onClick={() => hud.setPanel("hints")}
-              >
-                {hud.tp("action.hints")}
-              </Button>
             </div>
           ) : null}
         </div>
       </div>
 
       {showChat ? (
-        // A la derecha del panel de la izquierda que esté abierto ahora
-        // mismo, con el mismo hueco (1rem) que ese panel tiene del borde
-        // izquierdo de la pantalla: en el lobby es `LobbyPanel`
-        // (`left-4`, ancho variable `min(22rem, calc(100% - 2rem))`), en
-        // partida es `PlayersAside` (`left-4 w-56` = 1rem + 14rem fijos).
+        // En el lobby, a la derecha de `LobbyPanel` (`left-4`, ancho variable
+        // `min(22rem, calc(100% - 2rem))`), con el mismo hueco de 1rem que
+        // ese panel tiene del borde izquierdo. En partida ya no hay panel que
+        // esquivar por la izquierda (el panel de objetos se quitó del juego
+        // real, y el inventario ahora vive a la derecha): el chat va pegado
+        // a la izquierda sin más.
         <ChatWindow
           messages={snapshot.chat}
           selfId={snapshot.selfId || null}
@@ -338,9 +342,7 @@ export function GameSessionShell({
             "absolute bottom-4",
             lobby.stage === "lobby"
               ? "left-[calc(2rem+min(22rem,calc(100%-2rem)))]"
-              : inMapStage
-                ? "left-64"
-                : "left-4",
+              : "left-4",
           )}
         />
       ) : null}
@@ -389,11 +391,11 @@ export function GameSessionShell({
       ) : null}
 
       {lobby.stage === "intro" && intro ? (
-        <IntroOverlay intro={intro} onClose={lobby.closeIntro} />
-      ) : null}
-
-      {lobby.stage === "countdown" ? (
-        <CountdownOverlay value={lobby.countdown} label={hud.t("countdown.label")} />
+        <EntryFade>
+          <IntroOverlay intro={intro} onClose={lobby.closeIntro} />
+        </EntryFade>
+      ) : lobby.stage === "entering" ? (
+        <EntryFade />
       ) : null}
 
       <ContextMenuPopover

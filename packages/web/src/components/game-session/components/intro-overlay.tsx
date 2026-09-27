@@ -41,9 +41,11 @@ function useSubtitleUrls(subtitles: readonly { lang: string; vtt: string }[]) {
 
 /**
  * Introducción de la sala (encargo lobby-diseño, specs/04 §10): tras «Empezar»
- * (o al llegar tarde), antes del 3-2-1. Texto o vídeo; el jugador la cierra
- * cuando quiere, sin límite de tiempo, y no se puede volver a ver durante la
- * partida.
+ * (o al llegar tarde), sobre el fundido de `EntryFade` (encargo
+ * limpieza-entrada: ya no hay cuenta atrás después). Texto o vídeo; el
+ * jugador la cierra cuando quiere, sin límite de tiempo, y no se puede volver
+ * a ver durante la partida. Al cerrarla se manda `enter_map` de inmediato
+ * (`useLobbyFlow`), así que «Continuar» ya no lleva a un paso intermedio.
  *
  * El vídeo usa el `<video>` nativo (elemento de medios, permitido junto a
  * shadcn/ui) con controles accesibles del navegador, **sin autoplay** (nunca
@@ -62,55 +64,50 @@ export function IntroOverlay({ intro, onClose }: IntroOverlayProps) {
 
   return (
     <div
-      className="pointer-events-auto absolute inset-0 z-40 grid place-items-center overflow-y-auto p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       data-testid="game-intro"
+      className="flex max-h-full w-full max-w-2xl flex-col gap-4 rounded-xl border border-border bg-card/95 p-6 text-foreground shadow-xl"
     >
-      <div className="flex max-h-full w-full max-w-2xl flex-col gap-4 rounded-xl border border-border bg-card/95 p-6 text-foreground shadow-xl">
-        <h2 id={titleId} className="text-lg font-semibold">
-          {t("intro.title")}
-        </h2>
-        {intro.kind === "text" ? (
-          <div
-            className="max-h-[60dvh] overflow-y-auto whitespace-pre-line text-sm leading-relaxed text-foreground/90"
-            data-testid="game-intro-text"
-          >
-            {intro.text}
-          </div>
-        ) : (
-          // Los subtítulos son opcionales (decisión del usuario): cuando el
-          // creador los sube van como `<track>` por idioma, más abajo.
-          // eslint-disable-next-line jsx-a11y/media-has-caption
-          <video
-            controls
-            playsInline
-            preload="metadata"
-            src={intro.videoUrl}
-            aria-label={t("intro.videoLabel")}
-            className="max-h-[60dvh] w-full rounded-lg bg-black"
-            data-testid="game-intro-video"
-          >
-            {tracks.map((track) => (
-              <track
-                key={track.lang}
-                kind="subtitles"
-                src={track.url}
-                srcLang={track.lang}
-                label={languageName(track.lang, locale)}
-                default={track.lang === defaultLang}
-              />
-            ))}
-          </video>
-        )}
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-muted-foreground">{t("intro.hint")}</p>
-          <Button onClick={onClose} data-testid="game-intro-continue">
-            {t("intro.continue")}
-          </Button>
+      <h2 id={titleId} className="text-lg font-semibold">
+        {t("intro.title")}
+      </h2>
+      {intro.kind === "text" ? (
+        <div
+          className="max-h-[60dvh] overflow-y-auto whitespace-pre-line text-sm leading-relaxed text-foreground/90"
+          data-testid="game-intro-text"
+        >
+          {intro.text}
         </div>
-      </div>
+      ) : (
+        // Los subtítulos son opcionales (decisión del usuario): cuando el
+        // creador los sube van como `<track>` por idioma, más abajo.
+        // eslint-disable-next-line jsx-a11y/media-has-caption
+        <video
+          controls
+          playsInline
+          preload="metadata"
+          src={intro.videoUrl}
+          aria-label={t("intro.videoLabel")}
+          className="max-h-[60dvh] w-full rounded-lg bg-black"
+          data-testid="game-intro-video"
+        >
+          {tracks.map((track) => (
+            <track
+              key={track.lang}
+              kind="subtitles"
+              src={track.url}
+              srcLang={track.lang}
+              label={languageName(track.lang, locale)}
+              default={track.lang === defaultLang}
+            />
+          ))}
+        </video>
+      )}
+      <Button onClick={onClose} data-testid="game-intro-continue" className="self-end">
+        {t("intro.continue")}
+      </Button>
     </div>
   );
 }

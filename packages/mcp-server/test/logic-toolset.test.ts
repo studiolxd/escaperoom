@@ -284,7 +284,7 @@ describe("errores accionables (specs/10 §3)", () => {
       ],
     });
     expect(dialog.text).toContain(
-      'No existe el diálogo "d-nada" (en actions[0].actions[0].dialogId). Diálogos disponibles: [d-intro,',
+      'No existe el diálogo "d-nada" (en actions[0].actions[0].dialogId). Diálogos disponibles: [d-cuadro,',
     );
     expect(dialog.structured?.error).toMatchObject({ reason: "UNKNOWN_DIALOG" });
 

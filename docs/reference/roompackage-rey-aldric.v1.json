@@ -1561,10 +1561,6 @@
           "type": "start_timer",
           "id": "cronometro",
           "durationSec": 3600
-        },
-        {
-          "type": "show_dialog",
-          "dialogId": "d-intro"
         }
       ]
     },
@@ -2099,14 +2095,6 @@
     }
   ],
   "dialogs": [
-    {
-      "id": "d-intro",
-      "text": {
-        "es": {
-          "text": "Profecía: «Solo los leales que despierten el fuego, equilibren la mesa y encaminen la luz, liberarán al Rey antes de que la última arena caiga.» Tenéis 60 minutos."
-        }
-      }
-    },
     {
       "id": "d-cuadro",
       "text": {

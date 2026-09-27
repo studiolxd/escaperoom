@@ -74,8 +74,11 @@ describe("<CharacterPicker>", () => {
       }),
     );
     expect(screen.getByTestId("character-occupant-caballero-m")).toHaveTextContent("Ana");
-    // Ningún otro personaje (sin elegir) muestra nombre.
-    expect(screen.queryByTestId("character-occupant-mago-f")).not.toBeInTheDocument();
+    // Ningún otro personaje (sin elegir) muestra nombre, pero el hueco sigue
+    // reservado (invisible, no ausente): que la rejilla no salte al elegir.
+    const empty = screen.getByTestId("character-occupant-mago-f");
+    expect(empty.textContent?.trim()).toBe("");
+    expect(empty).toHaveClass("invisible");
   });
 
   it("elegir un personaje llama a onChange con su id", async () => {

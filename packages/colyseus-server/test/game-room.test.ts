@@ -89,13 +89,11 @@ async function startGame(): Promise<{ room: GameRoom; a: TestClient; b: TestClie
   a.send(GAME_MESSAGES.setReady, { ready: true });
   b.send(GAME_MESSAGES.setReady, { ready: true });
   await expect.poll(() => room.state.players.get(b.sessionId)?.ready).toBe(true);
-  const intro = a.waitForMessage(GAME_MESSAGES.dialogShow);
   a.send(GAME_MESSAGES.startGame, {});
   // Tras «Empezar», cada uno entra al mapa al acabar su introducción y su 3-2-1.
   await expect.poll(() => a.state.phase).toBe("starting");
   a.send(GAME_MESSAGES.enterMap, {});
   b.send(GAME_MESSAGES.enterMap, {});
-  expect(await intro).toEqual({ dialogId: "d-intro" });
   await expect.poll(() => b.state.phase).toBe("playing");
   await expect.poll(() => room.state.players.get(b.sessionId)?.inMap).toBe(true);
   return { room, a, b };

@@ -73,6 +73,3 @@ export const MAX_INTRO_SUBTITLES_BYTES = 512 * 1024;
 
 /** Longitud máxima de una referencia de medio de la introducción (`media:<uuid>` o clave del bucket). */
 export const MAX_INTRO_MEDIA_REF_LENGTH = 512;
-
-/** Cuenta atrás antes de entrar al mapa (3-2-1, sin botón de saltar), en segundos. */
-export const LOBBY_COUNTDOWN_SECONDS = 3;

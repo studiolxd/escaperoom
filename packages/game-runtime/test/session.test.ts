@@ -224,7 +224,6 @@ describe("createLocalGameClient (misma interfaz que la red)", () => {
     client.enterMap();
     expect(client.getSnapshot().phase).toBe("playing");
     expect(client.getSnapshot().self).toMatchObject({ roomId: "salon-trono", inMap: true });
-    expect(events).toContainEqual({ type: "dialog_show", dialogId: "d-intro" });
   });
 
   it("el reloj arranca al entrar al mapa, no al pulsar «Empezar»", () => {

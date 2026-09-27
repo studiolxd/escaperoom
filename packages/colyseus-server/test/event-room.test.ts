@@ -163,11 +163,9 @@ describe("room de evento con joinToken", () => {
     // Juega con el mismo protocolo que la GameRoom.
     client.send(GAME_MESSAGES.setReady, { ready: true });
     await expect.poll(() => client.state.players.get(client.sessionId)?.ready).toBe(true);
-    const intro = client.waitForMessage(GAME_MESSAGES.dialogShow);
     client.send(GAME_MESSAGES.startGame, {});
     await expect.poll(() => client.state.phase).toBe("starting");
     client.send(GAME_MESSAGES.enterMap, {});
-    expect(await intro).toEqual({ dialogId: "d-intro" });
 
     // La clave ya no sirve.
     await expect(redeem.redeem(ANONYMOUS_ACTOR, { code: codes[0]! })).rejects.toMatchObject({

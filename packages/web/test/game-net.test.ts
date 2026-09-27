@@ -231,12 +231,11 @@ describe("cliente de red contra una GameRoom real", () => {
     await until(guest, (snapshot) => snapshot.self !== null);
     expect(guest.room.name).toBe(EVENT_ROOM);
     expect(guest.client.getSnapshot().self).toMatchObject({ name: "Invitada", isHost: true });
-    const intro = nextEvent(guest, "dialog_show");
     guest.client.setReady(true);
     guest.client.startGame();
     // Encargo lobby-diseño: tras «Empezar», su 3-2-1 y entra al mapa.
     guest.client.enterMap();
-    expect((await intro).dialogId).toBe("d-intro");
+    await until(guest, (snapshot) => snapshot.self?.inMap === true);
 
     await expect(
       joinGameRoom(new Client(url), { kind: "event", sessionId: "sesion-1", joinToken: "x.y.z" }),
@@ -271,11 +270,10 @@ describe("cliente de red contra una GameRoom real", () => {
 
     const guest = await join({ kind: "event", sessionId: "sesion-2", joinToken }, "");
     await until(guest, (snapshot) => snapshot.self !== null);
-    const intro = nextEvent(guest, "dialog_show");
     guest.client.setReady(true);
     guest.client.startGame();
     guest.client.enterMap();
-    await intro;
+    await until(guest, (snapshot) => snapshot.phase === "playing");
 
     const room = await joinGameRoom(new Client(url), target);
     expect(room.roomId).toBe(guest.room.roomId);
@@ -341,14 +339,12 @@ describe("cliente de red contra una GameRoom real", () => {
     ana.client.interact("cuadro-aurelio");
     expect((await rejected).code).toBe(GAME_PROTOCOL_ERRORS.invalidState);
 
-    const intro = nextEvent(ana, "dialog_show");
     ana.client.setReady(true);
     ana.client.startGame();
     await until(ana, (snapshot) => snapshot.phase === "starting");
     // El reloj no corre hasta entrar al mapa.
     expect(ana.client.getSnapshot().endsAt).toBe(0);
     ana.client.enterMap();
-    expect(await intro).toEqual({ type: "dialog_show", dialogId: "d-intro" });
     await until(ana, (snapshot) => snapshot.phase === "playing" && snapshot.endsAt > 0);
 
     // Movimiento autoritativo: pasos por debajo del salto máximo hasta la placa.
@@ -420,12 +416,10 @@ describe("cliente de red contra una GameRoom real", () => {
     ana.client.startGame();
     expect((await notReady).code).toBe(GAME_PROTOCOL_ERRORS.playersNotReady);
     // …pero SÍ puede forzarlo ("Empezar igualmente", nunca por debajo del mínimo).
-    const forcedStart = nextEvent(ana, "dialog_show");
     ana.client.startGame(true);
     await until(bruno, (snapshot) => snapshot.phase === "starting");
     ana.client.enterMap();
     bruno.client.enterMap();
-    await forcedStart;
     await Promise.all([
       until(ana, (snapshot) => snapshot.phase === "playing"),
       until(bruno, (snapshot) => snapshot.phase === "playing"),
