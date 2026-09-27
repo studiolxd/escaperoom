@@ -25,10 +25,19 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
   const snapshotRef = useRef<GameSnapshot>(snapshot);
   snapshotRef.current = snapshot;
 
-  /** Habitación que muestra la escena (puede adelantarse al servidor al cruzar). */
-  const sceneRoomRef = useRef(
-    snapshot.self?.roomId || model.initialRoomId || model.subrooms[0]?.id || "",
-  );
+  /**
+   * Habitación que muestra la escena (puede adelantarse al servidor al
+   * cruzar). Empieza `undefined`, nunca con un valor de respaldo adivinado
+   * ("primera del mapa", "lobby"…): `GameSessionCanvas` monta con `dynamic()`
+   * (`ssr:false`, resuelve más tarde) y puede construir la escena con un
+   * `self.roomId` YA REAL (más tarde en el tiempo) mientras este hook se creó
+   * antes, con un `snapshot` todavía vacío (`self: null`, antes de conectar)
+   * — dos adivinanzas independientes que no tienen por qué coincidir. Con
+   * `undefined` de partida, el primer `selfRoom` real SIEMPRE dispara un
+   * `showRoom()` explícito (ver el efecto de abajo), en vez de asumir que la
+   * escena ya está en la sala correcta por casualidad.
+   */
+  const sceneRoomRef = useRef<string | undefined>(undefined);
   /** Última habitación autoritativa del jugador local. */
   const serverRoomRef = useRef<string | null>(null);
   const appliedObjectsRef = useRef<Record<string, string>>({});
