@@ -44,7 +44,7 @@ export function CharacterPicker({ pack, occupiedBy, value, onChange }: Character
 
   return (
     <div className="flex w-full flex-col gap-2 text-left">
-      <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
+      <span className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">
         {t("lobby.chooseCharacter")}
       </span>
       <RadioGroup
@@ -61,8 +61,8 @@ export function CharacterPicker({ pack, occupiedBy, value, onChange }: Character
               className={`flex-col gap-0 p-0 ${taken ? "cursor-not-allowed opacity-40" : "cursor-pointer"}`}
             >
               <Card
-                className={`w-full gap-1 border-white/10 bg-white/5 py-2 text-white ${
-                  value === avatar.id ? "border-sky-400" : ""
+                className={`w-full gap-1 bg-muted/50 py-2 ${
+                  value === avatar.id ? "border-sky-500 dark:border-sky-400" : ""
                 }`}
               >
                 <CardContent className="flex flex-col items-center gap-1 px-2">
@@ -82,7 +82,7 @@ export function CharacterPicker({ pack, occupiedBy, value, onChange }: Character
                   />
                   <span className="text-xs">{label}</span>
                   {taken ? (
-                    <span className="text-[0.6rem] text-white/50">{t("lobby.characterTaken")}</span>
+                    <span className="text-[0.6rem] text-muted-foreground">{t("lobby.characterTaken")}</span>
                   ) : null}
                 </CardContent>
               </Card>

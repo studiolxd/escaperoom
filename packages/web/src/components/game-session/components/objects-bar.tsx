@@ -33,16 +33,16 @@ export function ObjectsBar({
 }: ObjectsBarProps) {
   const disabled = !worldInputEnabled;
   return (
-    <div className="flex w-fit max-w-[min(92vw,40rem)] flex-col gap-3 rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-white backdrop-blur">
+    <div className="flex w-fit max-w-[min(92vw,40rem)] flex-col gap-3 rounded-xl border border-border bg-card/90 px-4 py-3 text-foreground backdrop-blur">
       {header}
-      <span className="text-[0.65rem] uppercase tracking-wide text-white/40">{objectsLabel}</span>
+      <span className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">{objectsLabel}</span>
       <div className="flex flex-wrap gap-2">
         {roomObjects.map((object) => (
           <Button
             key={object.id}
             data-testid={`game-object-${object.id}`}
             size="xs"
-            variant="overlay"
+            variant="secondary"
             disabled={disabled}
             onClick={() => onSelectObject(object.id)}
           >

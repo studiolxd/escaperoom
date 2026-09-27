@@ -42,7 +42,7 @@ const RESULT_ICON = {
 const RESULT_TONE = {
   victory: "text-emerald-300",
   timeout: "text-amber-300",
-  aborted: "text-white/60",
+  aborted: "text-muted-foreground",
 } as const;
 
 export function ResultsScreen({
@@ -62,7 +62,7 @@ export function ResultsScreen({
       <DialogContent
         showCloseButton={false}
         className={cn(
-          "flex w-[min(92vw,26rem)] max-w-none flex-col items-center gap-5 rounded-2xl border-white/15 px-6 py-7 text-center text-white shadow-2xl sm:max-w-none",
+          "flex w-[min(92vw,26rem)] max-w-none flex-col items-center gap-5 rounded-2xl px-6 py-7 text-center shadow-2xl sm:max-w-none",
           className,
         )}
       >
@@ -72,14 +72,14 @@ export function ResultsScreen({
         <DialogDescription className="sr-only">{t(`result.${summary.result}`)}</DialogDescription>
 
         <header className="flex flex-col gap-1">
-          <p className="text-[0.65rem] uppercase tracking-[0.2em] text-white/50">{t("title")}</p>
+          <p className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">{t("title")}</p>
           <h2 className="text-2xl font-semibold" data-testid="results-outcome">
             {t(`result.${summary.result}`)}
           </h2>
         </header>
 
         <div className="flex flex-col items-center gap-0.5">
-          <span className="text-xs text-white/50">{t("time")}</span>
+          <span className="text-xs text-muted-foreground">{t("time")}</span>
           <span className="font-mono text-3xl tabular-nums" data-testid="results-time">
             {formatDuration(stats.durationSec)}
           </span>
@@ -108,12 +108,12 @@ export function ResultsScreen({
 
         <div className="flex w-full flex-col gap-2">
           {signInHref ? (
-            <Button asChild variant="overlay">
+            <Button asChild variant="secondary">
               <Link href={signInHref}>{t("signIn")}</Link>
             </Button>
           ) : null}
           {onReview ? (
-            <Button variant="overlay" onClick={onReview}>
+            <Button variant="secondary" onClick={onReview}>
               {t("review")}
             </Button>
           ) : null}
@@ -141,9 +141,9 @@ function Stat({
   testId: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-2 py-3">
-      <span className="text-amber-200/80">{icon}</span>
-      <dt className="text-[0.65rem] leading-tight text-white/50">{label}</dt>
+    <div className="flex flex-col items-center gap-1 rounded-xl border border-border bg-muted/50 px-2 py-3">
+      <span className="text-amber-600/80 dark:text-amber-200/80">{icon}</span>
+      <dt className="text-[0.65rem] leading-tight text-muted-foreground">{label}</dt>
       <dd className="font-mono text-sm tabular-nums" data-testid={testId}>
         {value}
       </dd>

@@ -12,14 +12,14 @@ export interface CountdownOverlayProps {
 export function CountdownOverlay({ value, label }: CountdownOverlayProps) {
   return (
     <div
-      className="pointer-events-auto absolute inset-0 z-40 grid place-items-center text-white backdrop-blur-sm"
+      className="pointer-events-auto absolute inset-0 z-40 grid place-items-center bg-background/30 text-foreground backdrop-blur-sm"
       data-testid="game-countdown"
     >
       <div className="flex flex-col items-center gap-3" role="status" aria-live="assertive">
         <span className="text-8xl font-bold tabular-nums" data-testid="game-countdown-value">
           {value > 0 ? value : "…"}
         </span>
-        <p className="text-sm text-white/70">{label}</p>
+        <p className="text-sm text-muted-foreground">{label}</p>
       </div>
     </div>
   );

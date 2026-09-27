@@ -53,8 +53,8 @@ export function PlayersAside({
   const [pendingKickId, setPendingKickId] = useState<string | null>(null);
 
   return (
-    <aside className="pointer-events-auto absolute left-4 top-40 z-10 flex max-h-52 w-56 flex-col gap-2 overflow-y-auto rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-white backdrop-blur">
-      <span className="text-[0.65rem] uppercase tracking-wide text-white/50">{playersLabel}</span>
+    <aside className="pointer-events-auto absolute left-4 top-40 z-10 flex max-h-52 w-56 flex-col gap-2 overflow-y-auto rounded-xl border border-border bg-card/90 px-3 py-2 text-foreground backdrop-blur">
+      <span className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">{playersLabel}</span>
       <ul className="flex max-h-20 flex-col gap-1 overflow-y-auto text-xs" data-testid="game-players">
         {players.map((player) => (
           <li key={player.id} className="flex items-center gap-2">
@@ -63,7 +63,7 @@ export function PlayersAside({
               className="tint-dot inline-block size-2.5 rounded-full"
               style={{ "--tint": player.tint } as CSSProperties}
             />
-            <span className={player.connected ? "text-white/90" : "text-white/40"}>
+            <span className={player.connected ? "text-foreground" : "text-muted-foreground"}>
               {player.name}
               {player.isSelf ? ` (${youSuffix})` : ""}
               {player.isHost ? ` · ${hostSuffix}` : ""}
@@ -98,15 +98,15 @@ export function PlayersAside({
         ))}
       </ul>
       {inviteUrl ? (
-        <Button size="xs" variant="overlayGhost" onClick={onCopyInvite}>
+        <Button size="xs" variant="ghost" onClick={onCopyInvite}>
           {copied ? copiedLabel : inviteLabel}
         </Button>
       ) : null}
-      <span className="mt-1 text-[0.65rem] uppercase tracking-wide text-white/50">{logTitle}</span>
+      <span className="mt-1 text-[0.65rem] uppercase tracking-wide text-muted-foreground">{logTitle}</span>
       {/* Tope propio además del de arriba: el registro es lo que más crece
           dentro del aside a lo largo de la partida. */}
-      <ul className="flex max-h-24 flex-col gap-0.5 overflow-y-auto text-[0.65rem] text-white/70" aria-live="polite">
-        {log.length === 0 ? <li className="text-white/40">—</li> : null}
+      <ul className="flex max-h-24 flex-col gap-0.5 overflow-y-auto text-[0.65rem] text-muted-foreground" aria-live="polite">
+        {log.length === 0 ? <li className="text-muted-foreground">—</li> : null}
         {log.map((entry) => (
           <li key={entry.id}>{entry.text}</li>
         ))}

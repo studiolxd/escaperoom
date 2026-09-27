@@ -62,19 +62,19 @@ export function IntroOverlay({ intro, onClose }: IntroOverlayProps) {
 
   return (
     <div
-      className="pointer-events-auto absolute inset-0 z-40 grid place-items-center overflow-y-auto p-4 text-white backdrop-blur-sm"
+      className="pointer-events-auto absolute inset-0 z-40 grid place-items-center overflow-y-auto p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
       data-testid="game-intro"
     >
-      <div className="flex max-h-full w-full max-w-2xl flex-col gap-4 rounded-xl border border-white/10 p-6 shadow-xl">
+      <div className="flex max-h-full w-full max-w-2xl flex-col gap-4 rounded-xl border border-border bg-card/95 p-6 text-foreground shadow-xl">
         <h2 id={titleId} className="text-lg font-semibold">
           {t("intro.title")}
         </h2>
         {intro.kind === "text" ? (
           <div
-            className="max-h-[60dvh] overflow-y-auto whitespace-pre-line text-sm leading-relaxed text-white/85"
+            className="max-h-[60dvh] overflow-y-auto whitespace-pre-line text-sm leading-relaxed text-foreground/90"
             data-testid="game-intro-text"
           >
             {intro.text}
@@ -105,7 +105,7 @@ export function IntroOverlay({ intro, onClose }: IntroOverlayProps) {
           </video>
         )}
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-white/50">{t("intro.hint")}</p>
+          <p className="text-xs text-muted-foreground">{t("intro.hint")}</p>
           <Button onClick={onClose} data-testid="game-intro-continue">
             {t("intro.continue")}
           </Button>
