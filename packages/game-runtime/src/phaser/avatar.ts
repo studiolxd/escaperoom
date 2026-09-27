@@ -174,7 +174,9 @@ export class AvatarController {
    * mantiene por compatibilidad con quien la llama (`RoomScene.setLocalTint`,
    * `syncRemoteAvatars`), sin efecto visual.
    */
-  setTint(_tint: number): void {}
+  setTint(tint: number): void {
+    void tint;
+  }
 
   /** Dispara la animación de interacción una vez. */
   interact(): void {
