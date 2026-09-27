@@ -259,7 +259,7 @@ export function RoomDetailView({
         )}
         {isAuthor ? <RoomCoverUpload roomId={room.id} /> : null}
 
-        <div className="relative z-10 flex flex-col gap-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 text-white">
+        <div className="force-light relative z-10 flex flex-col gap-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 text-white">
           <div className="flex flex-wrap gap-2 text-xs">
             <span className="rounded-full bg-black/40 px-2 py-1 backdrop-blur">
               {t("version", { semver: room.latestVersion.semver })}
