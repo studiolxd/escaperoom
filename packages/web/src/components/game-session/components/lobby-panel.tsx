@@ -173,6 +173,8 @@ export function LobbyPanel({
                   variant={player.ready ? "secondary" : "default"}
                   data-testid="lobby-ready"
                   aria-pressed={player.ready}
+                  disabled={!player.characterId}
+                  title={player.characterId ? undefined : t("lobby.chooseCharacterFirst")}
                   onClick={() => onToggleReady(!player.ready)}
                 >
                   {player.ready ? t("lobby.ready") : t("lobby.markReady")}

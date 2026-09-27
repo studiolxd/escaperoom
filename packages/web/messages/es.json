@@ -1095,6 +1095,7 @@
       "confirmForceConfirm": "Sí, empezar sin esperar",
       "confirmForceCancel": "Esperar",
       "markReady": "¡Vamos!",
+      "chooseCharacterFirst": "Elige un personaje antes de confirmar",
       "ready": "Confirmado",
       "waitingHost": "Esperando a que el anfitrión empiece…",
       "waitingOrganizer": "Esperando a que el organizador inicie la partida…",

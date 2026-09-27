@@ -264,6 +264,24 @@ describe("<LobbyPanel>", () => {
     expect(onToggleReady).toHaveBeenCalledWith(true);
   });
 
+  it("sin personaje elegido, «¡Vamos!» está deshabilitado", async () => {
+    const user = userEvent.setup();
+    const onToggleReady = vi.fn();
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        onToggleReady,
+        pack,
+        players: [player({ characterId: "" })],
+        self: player({ characterId: "" }),
+      }),
+    );
+    const button = screen.getByTestId("lobby-ready");
+    expect(button).toBeDisabled();
+    await user.click(button);
+    expect(onToggleReady).not.toHaveBeenCalled();
+  });
+
   it("«Empezar sin esperar» salta la confirmación de los demás, no la del anfitrión", async () => {
     const user = userEvent.setup();
     const onStart = vi.fn();
