@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { cn } from "cn";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import type { GameClient } from "@escaperoom/game-runtime/session";
@@ -322,17 +323,25 @@ export function GameSessionShell({
       </div>
 
       {showChat ? (
-        // A la derecha del aside de jugadores (`left-4 w-56` = 1rem + 14rem
-        // de borde a borde): mismo hueco (1rem) que este tiene respecto al
-        // borde izquierdo de la pantalla → 1rem + 14rem + 1rem = 16rem
-        // (`left-64`, escala de 0.25rem por unidad de Tailwind).
+        // A la derecha del panel de la izquierda que esté abierto ahora
+        // mismo, con el mismo hueco (1rem) que ese panel tiene del borde
+        // izquierdo de la pantalla: en el lobby es `LobbyPanel`
+        // (`left-4`, ancho variable `min(22rem, calc(100% - 2rem))`), en
+        // partida es `PlayersAside` (`left-4 w-56` = 1rem + 14rem fijos).
         <ChatWindow
           messages={snapshot.chat}
           selfId={snapshot.selfId || null}
           connected={connection ? connection.status === "connected" : true}
           error={hud.chatError}
           onSend={hud.sendChat}
-          className="absolute bottom-4 left-64"
+          className={cn(
+            "absolute bottom-4",
+            lobby.stage === "lobby"
+              ? "left-[calc(2rem+min(22rem,calc(100%-2rem)))]"
+              : inMapStage
+                ? "left-64"
+                : "left-4",
+          )}
         />
       ) : null}
 
