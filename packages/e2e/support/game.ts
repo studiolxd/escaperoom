@@ -14,15 +14,19 @@ import { REPO_ROOT } from "./env";
  * Los textos son los de `messages/es.json` (la suite corre en `es`).
  */
 
+declare global {
+  interface Window {
+    /** Expuesto por `GameSessionShell` solo para E2E — ver `clickObjectOnCanvas`. */
+    __escaperoomGame?: {
+      getObjectScreenFraction: (objectId: string) => { x: number; y: number } | undefined;
+    };
+  }
+}
+
 /** El mismo RoomPackage que sirven web y colyseus-server (`room-rey-aldric`). */
 export const REY_ALDRIC: RoomPackage = JSON.parse(
   readFileSync(resolve(REPO_ROOT, "docs/reference/roompackage-rey-aldric.v1.json"), "utf8"),
 ) as RoomPackage;
-
-export const ROOM_NAMES = {
-  bodega: "La Bodega de los Vinos Encantados",
-  catacumbas: "Las Catacumbas del Rey",
-} as const;
 
 /**
  * Ritmo de persona en los paneles: la `GameRoom` admite 2 `puzzle_attempt`/s
@@ -107,26 +111,34 @@ export class UiPlayer {
    * Ojo: el handler de Playwright también corre antes de cada aserción.
    */
   async dismissDialogsWhenBlocking(): Promise<void> {
-    // El panel de imagen (`show_image`) es un overlay de shadcn/ui por
-    // encima del diálogo de lore: si los dos están abiertos a la vez, el
-    // handler de `game-dialog` no puede clicar a través del panel de
-    // imagen, así que lo cierra primero (Escape) antes de intentarlo.
+    // Dos handlers independientes (uno por testid: Playwright exige que el
+    // locator de un handler resuelva a un único elemento, así que no se
+    // pueden combinar con `.or()` cuando los dos pueden estar visibles a la
+    // vez). Pueden dispararse casi a la vez (varios objetos otorgan ítem +
+    // diálogo de lore seguidos): el `catch` ignora que el otro handler ya
+    // haya cerrado/desmontado el elemento antes de que este llegue a clicar.
     await this.page.addLocatorHandler(
       this.page.getByTestId("game-dialog"),
       async (dialog) => {
         const imagePanel = this.page.getByTestId("game-image-panel");
         if (await imagePanel.isVisible().catch(() => false)) {
-          await this.page.keyboard.press("Escape");
+          await imagePanel
+            .getByRole("button", { name: "Close" })
+            .click({ timeout: 2_000 })
+            .catch(() => undefined);
           return;
         }
-        await dialog.click();
+        await dialog.click({ timeout: 2_000 }).catch(() => undefined);
       },
       { noWaitAfter: true },
     );
     await this.page.addLocatorHandler(
       this.page.getByTestId("game-image-panel"),
-      async () => {
-        await this.page.keyboard.press("Escape");
+      async (imagePanel) => {
+        await imagePanel
+          .getByRole("button", { name: "Close" })
+          .click({ timeout: 2_000 })
+          .catch(() => undefined);
       },
       { noWaitAfter: true },
     );
@@ -139,17 +151,47 @@ export class UiPlayer {
   }
 
   /**
-   * Botón del objeto en la lista «Objetos». Localizado por `data-testid`, no
-   * por su texto visible: desde F-27 (auditoría 2026-09-24) el texto es el
-   * nombre localizado del objeto (o un genérico), nunca su id técnico.
+   * Clic directo sobre el objeto en el canvas isométrico: la partida real no
+   * tiene lista de botones por objeto (`ObjectsBar`, solo en el playtest),
+   * así que el sitio exacto sale de `window.__escaperoomGame` (expuesto por
+   * `GameSessionShell` solo para esto, `getObjectScreenFraction`) como
+   * fracción (0–1) del lienzo, resuelta a píxel contra su tamaño real en
+   * pantalla. Reintenta mientras el objeto no esté en la sala visible
+   * (p. ej. justo tras cruzar a otra sala).
    */
-  private objectButton(objectId: string): Locator {
-    return this.page.getByTestId(`game-object-${objectId}`);
+  private async clickObjectOnCanvas(objectId: string): Promise<void> {
+    const canvas = this.page.locator("canvas").first();
+    await expect(canvas).toBeVisible();
+    const fraction = await this.page.waitForFunction(
+      (id) => window.__escaperoomGame?.getObjectScreenFraction(id) ?? null,
+      objectId,
+      { timeout: 15_000 },
+    );
+    const point = (await fraction.jsonValue()) as { x: number; y: number };
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error("El canvas del juego no tiene tamaño en pantalla.");
+    await this.page.mouse.click(box.x + point.x * box.width, box.y + point.y * box.height);
+  }
+
+  /**
+   * Camina hasta `objectId` y cierra su menú sin elegir ninguna acción — solo
+   * para REPOSICIONAR al avatar cerca de él antes de ir a otro sitio.
+   * `approachCell` (game-runtime) elige la celda adyacente más cercana en
+   * LÍNEA RECTA a la posición actual, sin rodear obstáculos de por medio (sin
+   * pathfinding real): de la sala de espera a un objeto de la pared en línea
+   * con una estatua, el avatar podía quedarse clavado contra ella.
+   * `playThroneRoom` usa esto para acercarse en dos saltos (por una zona ya
+   * confirmada despejada) al primer objeto de la ruta, en vez de en uno
+   * directo que sí puede toparse con un obstáculo. Encargo revisión en vivo.
+   */
+  async warmUpNear(objectId: string): Promise<void> {
+    await this.clickObjectOnCanvas(objectId);
+    await this.page.getByRole("button", { name: "Cancelar", exact: true }).click();
   }
 
   /** Clic en el objeto → acción del menú contextual. */
   private async objectAction(objectId: string, action: string): Promise<void> {
-    await this.objectButton(objectId).click();
+    await this.clickObjectOnCanvas(objectId);
     await this.page.getByRole("button", { name: action, exact: true }).click();
   }
 
@@ -204,17 +246,24 @@ export class UiPlayer {
   }
 
   /**
-   * «Ir a {sala}»: el botón de la puerta abierta camina hasta ella y cruza.
-   * El HUD ya no muestra el nombre de la sala actual (c105a4c, "sin cabecera
-   * fija"): la propia puerta desapareciendo de la `ObjectsBar` (ya no se está
-   * en la sala de origen) es la señal de que la transición terminó; los
-   * tests verifican la sala de destino por un objeto suyo (p. ej.
-   * `game-object-mural-vendimia`).
+   * Cruza una puerta ABIERTA por su id de objeto (p. ej. `puerta-bodega`):
+   * clic directo en el canvas — al llegar, `useGameHud.onWorldEvent` detecta
+   * que es una puerta abierta y la cruza sola (`enterRoom`), sin menú
+   * contextual (el clic normal nunca alcanza la baldosa de la puerta por sí
+   * solo; solo `walkTo`, autoritativo en el servidor, la cruza de verdad).
+   * Espera a que la propia puerta deje de estar en la sala visible (la
+   * escena ya cambió de sala) antes de devolver el control. El HUD ya no
+   * muestra el nombre de la sala actual (c105a4c, "sin cabecera fija"): los
+   * tests verifican la sala de destino inspeccionando un objeto suyo con
+   * `inspect`/`openPanel`.
    */
-  async goTo(roomName: string): Promise<void> {
-    const door = this.page.getByRole("button", { name: `Ir a ${roomName}`, exact: true });
-    await door.click();
-    await expect(door).toHaveCount(0);
+  async goTo(doorObjectId: string): Promise<void> {
+    await this.clickObjectOnCanvas(doorObjectId);
+    await this.page.waitForFunction(
+      (id) => window.__escaperoomGame?.getObjectScreenFraction(id) === undefined,
+      doorObjectId,
+      { timeout: 15_000 },
+    );
   }
 
   /** Objetos que el servidor ha dado por resueltos (contador «Puzzles» del HUD). */

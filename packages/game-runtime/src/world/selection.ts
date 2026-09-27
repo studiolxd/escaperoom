@@ -86,6 +86,35 @@ export function nearestInteractableId(
  * ninguna adyacente lo es, cae a la propia celda del objeto si es caminable.
  * Es pura: la transitabilidad entra como predicado.
  */
+/**
+ * `true` si el rectángulo (en celdas, redondeadas) entre `from` y `to` es
+ * enteramente caminable. El avatar se mueve eje a eje cada frame (nunca en
+ * línea recta exacta, `RoomScene.readMove`/`AvatarController.tryMove`), así
+ * que su trayectoria real queda SIEMPRE dentro de este rectángulo — si está
+ * libre entero, el camino es seguro pase lo que pase el orden x/y de cada
+ * frame. Es una comprobación deliberadamente conservadora (más cara de lo
+ * estrictamente necesario), no un pathfinding real: solo evita elegir una
+ * celda de acercamiento que obligue a cruzar un obstáculo de por medio
+ * (encargo revisión en vivo: el avatar se quedaba clavado contra una
+ * estatua al ir a un objeto lejano en línea con ella).
+ */
+function hasClearPath(
+  from: GridCell,
+  to: GridCell,
+  isWalkable: (x: number, y: number) => boolean,
+): boolean {
+  const x0 = Math.min(Math.round(from.x), Math.round(to.x));
+  const x1 = Math.max(Math.round(from.x), Math.round(to.x));
+  const y0 = Math.min(Math.round(from.y), Math.round(to.y));
+  const y1 = Math.max(Math.round(from.y), Math.round(to.y));
+  for (let x = x0; x <= x1; x += 1) {
+    for (let y = y0; y <= y1; y += 1) {
+      if (!isWalkable(x, y)) return false;
+    }
+  }
+  return true;
+}
+
 export function approachCell(
   target: GridCell,
   from: GridCell,
@@ -123,5 +152,5 @@ export function approachCell(
     return a.y - b.y;
   });
 
-  return candidates[0];
+  return candidates.find((c) => hasClearPath(from, c, isWalkable)) ?? candidates[0];
 }

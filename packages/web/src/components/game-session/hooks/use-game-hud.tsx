@@ -437,7 +437,17 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
       // En la sala de espera solo se camina: sin objetos, ítems ni puertas.
       if (!inMapRef.current && event.type !== "avatar-move") return;
       if (event.type === "interact") {
-        setSelected(event.objectId);
+        // Puerta ya abierta: cruzarla directo (como el "Ir a X" del
+        // playtest), no tiene sentido ofrecerle Inspeccionar/Usar objeto. El
+        // click normal nunca la alcanza por sí solo (su baldosa bloquea el
+        // movimiento local): solo `walkTo` (autoritativo en el servidor) la
+        // cruza de verdad.
+        const object = model.objectsById[event.objectId];
+        if (object?.leadsTo !== undefined && snapshotRef.current.objects[event.objectId] === "open") {
+          enterRoom(object.leadsTo, object.position);
+        } else {
+          setSelected(event.objectId);
+        }
       } else if (event.type === "use-item") {
         setSelected(null);
         setPickerFor(null);
@@ -455,7 +465,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
         }
       }
     },
-    [client, applyItemUse, enterRoom, sceneRoomRef],
+    [client, applyItemUse, enterRoom, sceneRoomRef, model],
   );
 
   const togglePlate = useCallback(

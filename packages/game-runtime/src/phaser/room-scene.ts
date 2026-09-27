@@ -87,6 +87,9 @@ function formatLabel(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (match, key: string) => vars[key] ?? match);
 }
 
+/** Lado (px del mundo) de la zona de clic fija de `wireInteraction`, centrada en el ancla del objeto. */
+const OBJECT_HIT_SIZE = 44;
+
 /**
  * El teclado de Phaser escucha en `document`, no en el canvas: sin esto, el
  * chat (u otro input de React fuera del canvas) movía al avatar y disparaba
@@ -946,10 +949,28 @@ export class RoomScene extends Phaser.Scene {
    * Habilita brillo de pista y clic sobre un objeto interactuable. Encargo
    * revisión en vivo: sin cursor de mano ni zoom al pasar el ratón por
    * encima (solo el brillo), a diferencia del modo edición.
+   *
+   * Área de clic PEQUEÑA y FIJA (`OBJECT_HIT_SIZE`), centrada en el ancla del
+   * objeto (`tileAnchor`) — no el rectángulo completo del frame (el que usa
+   * Phaser por defecto): en isométrico, un sprite alto (una estatua, el
+   * trono) tiene un frame mucho más alto que su propia celda, y ese
+   * rectángulo por defecto puede "tapar" invisiblemente el área de clic de
+   * OTRO objeto lejano con menos profundidad de render (un cuadro de la
+   * pared) sin que se vea nada solapado en pantalla — el jugador clica donde
+   * ve el cuadro y activa la estatua. Una zona fija y pequeña por ancla,
+   * en cambio, no se sale de su propia celda: nunca se solapa con la de otro
+   * objeto en una celda distinta.
    */
   private wireInteraction(view: ObjectView): void {
     const { sprite, object } = view;
-    sprite.setInteractive();
+    const halfW = OBJECT_HIT_SIZE / 2 / sprite.scaleX;
+    const halfH = OBJECT_HIT_SIZE / 2 / sprite.scaleY;
+    const anchorLocalX = sprite.originX * sprite.frame.width;
+    const anchorLocalY = sprite.originY * sprite.frame.height;
+    sprite.setInteractive(
+      new Phaser.Geom.Rectangle(anchorLocalX - halfW, anchorLocalY - halfH, halfW * 2, halfH * 2),
+      Phaser.Geom.Rectangle.Contains,
+    );
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => this.setHover(object.id));
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => this.clearHover(object.id));
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (pointer: Phaser.Input.Pointer) => {
@@ -1162,6 +1183,29 @@ export class RoomScene extends Phaser.Scene {
       repeat: declared.repeat,
     });
     return true;
+  }
+
+  /**
+   * Posición en pantalla del ANCLA de un objeto interactuable (`tileAnchor`,
+   * el mismo punto en el que `wireInteraction` centra su zona de clic), como
+   * fracción (0–1) del lienzo (independiente de resolución/zoom del
+   * navegador): para clicar el objeto directamente sobre el canvas
+   * isométrico desde fuera del motor (E2E, `packages/e2e/support/game.ts`,
+   * ya que no hay lista de botones por objeto en la partida real).
+   * `undefined` si el objeto no está en la sala visible.
+   */
+  getObjectScreenFraction(objectId: string): { x: number; y: number } | undefined {
+    const view = this.objectViews.get(objectId);
+    if (!view) {
+      return undefined;
+    }
+    const sprite = view.sprite;
+    const camera = this.cameras.main;
+    const worldView = camera.worldView;
+    return {
+      x: (sprite.x - worldView.x) / worldView.width,
+      y: (sprite.y - worldView.y) / worldView.height,
+    };
   }
 
   /** Inspecciona un objeto: diálogo, reparto de inventario y panel asociado. */

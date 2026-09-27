@@ -1,6 +1,5 @@
 import { expect, test, type Browser } from "@playwright/test";
 import {
-  ROOM_NAMES,
   UiPlayer,
   readSplitFragments,
   solveCanal,
@@ -65,6 +64,9 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
   });
 
   await test.step("Salón del Trono (pasos 1–6)", async () => {
+    // De la sala de espera al cuadro hay una estatua de por medio: se
+    // acerca primero al armario, sin elegir acción (ver `UiPlayer.warmUpNear`).
+    await a.warmUpNear("armario");
     // 1. Inspeccionar el cuadro → llave de bronce
     await a.inspect("cuadro-aurelio");
     await a.expectItems("Llave de bronce");
@@ -85,7 +87,7 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
     await a.page.getByRole("button", { name: "Placa placa-izq" }).click();
     await b.page.getByRole("button", { name: "Placa placa-der" }).click();
     for (const player of [a, b]) {
-      await player.goTo(ROOM_NAMES.bodega);
+      await player.goTo("puerta-bodega");
     }
   });
 }
@@ -103,9 +105,12 @@ test("Rey Aldric: 2 jugadores se unen y abren la bodega por clics (pasos 1–6) 
   const a = await newPlayer(browser, "Ana");
   const b = await newPlayer(browser, "Bruno");
   await playThroneRoom(a, b);
-  for (const player of [a, b]) {
-    await expect(player.page.getByTestId("game-object-mural-vendimia")).toBeVisible();
-  }
+  // Confirma que los dos llegaron de verdad a la Bodega: `mural-vendimia`
+  // solo existe ahí (sin panel de objetos, ya no hay testid que mirar).
+  await a.openPanel("mural-vendimia");
+  await expect(a.page.locator('[data-slot="sliding-board"]')).toBeVisible();
+  await a.closePanel();
+  await b.inspect("mural-ranura");
 });
 
 test("Rey Aldric: 2 jugadores completan la sala por clics y ven la victoria", async ({
@@ -144,7 +149,7 @@ test("Rey Aldric: 2 jugadores completan la sala por clics y ven la victoria", as
     await submitSymbols(b, symbols);
     // La reja se abre: `puzzle_solved` cierra el panel de los dos.
     for (const player of [a, b]) {
-      await player.goTo(ROOM_NAMES.catacumbas);
+      await player.goTo("reja-escalera");
     }
   });
 

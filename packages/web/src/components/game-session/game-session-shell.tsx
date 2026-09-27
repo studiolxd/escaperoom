@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { cn } from "cn";
 import { Lightbulb } from "lucide-react";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
@@ -122,6 +123,20 @@ export function GameSessionShell({
     sceneRoomRef,
     debugLog: variant === "playtest",
   });
+
+  // Sin lista de botones por objeto en la partida real (se inspeccionan
+  // directo sobre el canvas isométrico): el E2E necesita saber dónde clicar.
+  // Expuesto siempre (solo lectura, sin datos sensibles) — no hay ninguna
+  // señal de "estoy en un test" fiable en un build de producción como el
+  // que usa `e2e-smoke`.
+  useEffect(() => {
+    window.__escaperoomGame = {
+      getObjectScreenFraction: (objectId) => handleRef.current?.getObjectScreenFraction(objectId),
+    };
+    return () => {
+      delete window.__escaperoomGame;
+    };
+  }, [handleRef]);
 
   const lobby = useLobbyFlow({ snapshot, client, hasIntro: Boolean(intro) });
   const inMapStage = lobby.stage === "map";
@@ -254,12 +269,13 @@ export function GameSessionShell({
 
         <div className="pointer-events-auto flex w-full flex-wrap items-end justify-between gap-4">
           {/* En la sala de espera (y durante la introducción/entrada al mapa)
-              no hay objetos ni inventario que mostrar: solo el chat. Los
-              objetos se inspeccionan por aquí en las dos variantes (el canvas
-              isométrico no tiene clic directo sobre los sprites); el playtest
-              además le engancha el checklist de la ruta crítica y el botón
-              de reinicio (`objectsBarHeader`/`objectsBarFooter`). */}
-          {inMapStage ? (
+              no hay objetos ni inventario que mostrar: solo el chat. En la
+              partida real los objetos se inspeccionan directo sobre el canvas
+              isométrico (clic + menú contextual, `RoomScene.wireInteraction`):
+              sin panel de objetos, que era redundante. El playtest sí lo
+              conserva (lleva enganchados el checklist de la ruta crítica y el
+              botón de reinicio, `objectsBarHeader`/`objectsBarFooter`). */}
+          {inMapStage && variant === "playtest" ? (
             <ObjectsBar
               model={model}
               objectsLabel={hud.tp("objects")}
@@ -280,11 +296,12 @@ export function GameSessionShell({
             />
           ) : null}
 
-          {showChat && lobby.stage !== "lobby" ? (
-            // Con la `ObjectsBar` de vuelta (crece con la sala, hasta
-            // `min(92vw,40rem)`), fijar el chat en una esquina absoluta podía
-            // solaparse con ella y bloquear sus clics: aquí, en la misma fila
-            // flex, `flex-wrap` los reparte sin invadirse.
+          {showChat && lobby.stage !== "lobby" && variant === "playtest" ? (
+            // El playtest conserva la `ObjectsBar` (crece con la sala, hasta
+            // `min(92vw,40rem)`): fijar el chat en una esquina absoluta podía
+            // solaparla y bloquear sus clics, así que aquí va en la misma
+            // fila flex, que los reparte sin invadirse. La partida real ya no
+            // tiene `ObjectsBar` (ver arriba): su chat va fijo más abajo.
             <ChatWindow
               messages={snapshot.chat}
               selfId={snapshot.selfId || null}
@@ -310,24 +327,28 @@ export function GameSessionShell({
                   {hud.tp("inventoryButton")}
                 </Button>
               </div>
-              <ul className="flex flex-wrap gap-1.5" data-testid="game-inventory">
+              {/* Últimos 3 objetos añadidos, en cuadrado (como el inventario
+                  completo): el nombre es solo etiqueta accesible, no texto
+                  visible — el icono ya lo identifica. */}
+              <ul className="flex gap-1.5" data-testid="game-inventory">
                 {snapshot.inventory.length === 0 ? (
                   <li className="text-[0.7rem] text-muted-foreground">{hud.tp("emptyInventory")}</li>
                 ) : (
-                  snapshot.inventory.map((itemId) => (
+                  snapshot.inventory.slice(-3).map((itemId) => (
                     <li
                       key={itemId}
                       draggable
+                      title={hud.itemName(itemId)}
                       onDragStart={(event) => {
                         hud.setDraggingItem(itemId);
                         event.dataTransfer.setData("text/plain", itemId);
                         event.dataTransfer.effectAllowed = "move";
                       }}
                       onDragEnd={() => hud.setDraggingItem(null)}
-                      className="flex cursor-grab items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 py-1 pl-1 pr-2.5 text-[0.7rem] text-amber-800 active:cursor-grabbing dark:border-amber-300/40 dark:bg-amber-300/10 dark:text-amber-100"
+                      className="flex aspect-square size-11 cursor-grab items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 active:cursor-grabbing dark:border-amber-300/40 dark:bg-amber-300/10"
                     >
                       {hud.renderItemIcon(itemId, 28)}
-                      {hud.itemName(itemId)}
+                      <span className="sr-only">{hud.itemName(itemId)}</span>
                     </li>
                   ))
                 )}
@@ -337,19 +358,24 @@ export function GameSessionShell({
         </div>
       </div>
 
-      {showChat && lobby.stage === "lobby" ? (
-        // A la derecha de `LobbyPanel` (`left-4`, ancho variable
-        // `min(22rem, calc(100% - 2rem))`), con el mismo hueco de 1rem que
-        // ese panel tiene del borde izquierdo. Fuera del lobby, el chat va
-        // dentro de la fila flex de abajo (junto a `ObjectsBar`/inventario,
-        // como en la partida real) para no invadir la `ObjectsBar`.
+      {showChat && (lobby.stage === "lobby" || variant === "game") ? (
+        // En el lobby, a la derecha de `LobbyPanel` (`left-4`, ancho variable
+        // `min(22rem, calc(100% - 2rem))`), con el mismo hueco de 1rem que ese
+        // panel tiene del borde izquierdo. En partida real, sin `ObjectsBar`
+        // que esquivar, pegado a la izquierda sin más. El playtest (con
+        // `ObjectsBar`) sigue yendo dentro de la fila flex de arriba.
         <ChatWindow
           messages={snapshot.chat}
           selfId={snapshot.selfId || null}
           connected={connection ? connection.status === "connected" : true}
           error={hud.chatError}
           onSend={hud.sendChat}
-          className="absolute bottom-4 left-[calc(2rem+min(22rem,calc(100%-2rem)))]"
+          className={cn(
+            "absolute bottom-4",
+            lobby.stage === "lobby"
+              ? "left-[calc(2rem+min(22rem,calc(100%-2rem)))]"
+              : "left-4",
+          )}
         />
       ) : null}
 
@@ -509,4 +535,17 @@ export function GameSessionShell({
       ) : null}
     </section>
   );
+}
+
+declare global {
+  interface Window {
+    /**
+     * Solo E2E (`packages/e2e/support/game.ts`): la partida real no tiene
+     * lista de botones por objeto, así que el test necesita saber dónde
+     * clicar sobre el canvas isométrico.
+     */
+    __escaperoomGame?: {
+      getObjectScreenFraction: (objectId: string) => { x: number; y: number } | undefined;
+    };
+  }
 }

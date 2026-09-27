@@ -136,3 +136,23 @@ Tareas pendientes que no bloquean pero hay que resolver.
       §"Pipeline de personajes jugables"), sustituir su carpeta de enlaces por la entrega real
       (`empaquetar_avatar.py` + `empaquetar_retrato.py`) y quitar la entrada correspondiente de
       `tools/assets-generator/packs/medieval-v1/entregas/avatares/`.
+- [ ] **Pathfinding real para el movimiento del avatar (revisión en vivo).** El clic
+      directo sobre un objeto en el canvas (`RoomScene.wireInteraction`, sustituye a la
+      `ObjectsBar` de la partida real) puede dejar al avatar clavado a mitad de camino
+      cuando la ruta en línea recta hacia la celda de acercamiento cruza un obstáculo
+      (una estatua) o una zona no caminable fuera del contorno de la sala. `approachCell`
+      (`packages/game-runtime/src/world/selection.ts`) ya prefiere, entre las celdas
+      adyacentes al objeto, la primera cuyo **rectángulo delimitador** hacia el jugador
+      esté enteramente libre (`hasClearPath`), pero es una heurística insuficiente en
+      salas no rectangulares o en forma de L: el rectángulo entre dos puntos puede
+      incluir celdas fuera de la sala aunque exista un camino válido rodeando el
+      obstáculo, y entonces cae al candidato más cercano en línea recta sin más — el
+      mismo bloqueo que se quería evitar. Reproducido en el Salón del Trono de Rey
+      Aldric: desde el spawn hasta `cuadro-aurelio` (estatua de por medio) y, tras
+      resolver las placas, desde `placa-izq`/`placa-der` hasta `puerta-bodega`. El E2E
+      (`packages/e2e/support/game.ts`, `UiPlayer.warmUpNear`) esquiva el primer caso con
+      un salto intermedio hacia un objeto despejado antes del real, pero es un parche
+      empírico por caso, no una solución general — el segundo bloqueo (puerta de la
+      bodega) sigue sin arreglo y deja fallando el smoke test `game.reyaldric.spec.ts`.
+      Arreglo de fondo: pathfinding real sobre el grid de colisión (BFS/A*) en
+      `AvatarController`/`approachCell`, no un chequeo de rectángulo.

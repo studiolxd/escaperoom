@@ -133,6 +133,11 @@ export class RoomRuntime {
     this.scene.inspectObjectById(objectId);
   }
 
+  /** Posición en pantalla (fracción 0–1 del lienzo) de un objeto interactuable, o `undefined`. */
+  getObjectScreenFraction(objectId: string): { x: number; y: number } | undefined {
+    return this.scene.getObjectScreenFraction(objectId);
+  }
+
   /**
    * Activa o desactiva el control del jugador (movimiento e interacción). La
    * intro lo desactiva hasta cerrarse; el HUD del inventario también, para que
