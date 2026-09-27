@@ -1,9 +1,9 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import type { RuntimeMeta } from "@escaperoom/game-runtime";
+import { FALLBACK_CHARACTER_ID, type RuntimeMeta } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import type { GamePlayerSnapshot } from "@escaperoom/game-runtime/session";
 import { Badge } from "@/components/ui/badge";
@@ -92,7 +92,20 @@ export function LobbyPanel({
   // del anfitrión: no tendría sentido que forzara la partida sin haberse
   // confirmado él mismo.
   const hostReady = self.ready;
-  const noCharacter = !self.characterId;
+  // Sin pack generado (`pnpm pack:build`, .gitignore — un clon limpio, CI o
+  // producción sin ese paso manual) o sin avatares declarados, no hay nada
+  // que elegir: `CharacterPicker` ni se monta. Bloquear "¡Vamos!" ahí dejaría
+  // la partida sin poder empezar nunca, así que ese caso no exige personaje
+  // (el efecto de abajo pide el maniquí de reserva por su cuenta).
+  const canChooseCharacter = Boolean(pack && (pack.manifest.avatars?.length ?? 0) > 0);
+  const noCharacter = canChooseCharacter && !self.characterId;
+
+  useEffect(() => {
+    if (!canChooseCharacter && !self.characterId) {
+      onSelectCharacter(FALLBACK_CHARACTER_ID);
+    }
+  }, [canChooseCharacter, self.characterId, onSelectCharacter]);
+
   const occupied = new Map(
     players
       .filter((player) => !player.isSelf && player.connected)

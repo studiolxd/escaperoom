@@ -60,17 +60,22 @@ export class UiPlayer {
     await expect(this.session).toBeVisible({ timeout: 30_000 });
   }
 
-  /** Marca "Listo" en el lobby (C-13): lo exige `start_game` antes de dejar empezar. */
+  /**
+   * Marca "Listo" en el lobby (C-13): lo exige `start_game` antes de dejar
+   * empezar. Sin pack generado (`pnpm pack:build`, .gitignore — el caso de
+   * un clon limpio o CI) no hay ningún `character-option-*` que elegir: el
+   * selector ni se monta y el propio servidor asigna el maniquí de reserva
+   * (`lobby-panel.tsx`), así que "¡Vamos!" ya sale habilitado solo.
+   */
   async markReady(): Promise<void> {
-    // No se puede confirmar sin personaje elegido: el primero LIBRE (no
-    // `disabled`, ya lo tiene otro jugador conectado). El radio real es
-    // `sr-only` (oculto); es su <label> visible quien recibe el clic real
-    // (y lo reenvía al radio por debajo), así que se clica la etiqueta en
-    // vez del radio directamente.
-    const option = this.page
-      .locator('[data-testid^="character-option-"]:not([disabled])')
-      .first();
-    await option.locator("xpath=ancestor::label[1]").click();
+    const options = this.page.locator('[data-testid^="character-option-"]:not([disabled])');
+    if (await options.first().isVisible({ timeout: 2_000 }).catch(() => false)) {
+      // El radio real es `sr-only` (oculto); es su <label> visible quien
+      // recibe el clic real (y lo reenvía al radio por debajo), así que se
+      // clica la etiqueta en vez del radio directamente. El primero LIBRE
+      // (no `disabled`, ya lo tiene otro jugador conectado).
+      await options.first().locator("xpath=ancestor::label[1]").click();
+    }
     await this.page.getByTestId("lobby-ready").click();
   }
 
