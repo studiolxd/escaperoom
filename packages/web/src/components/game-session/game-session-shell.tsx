@@ -322,15 +322,17 @@ export function GameSessionShell({
       </div>
 
       {showChat ? (
-        // A la derecha del aside de jugadores (`left-4 w-56`): mismo hueco
-        // (1rem) que este tiene respecto al borde izquierdo de la pantalla.
+        // A la derecha del aside de jugadores (`left-4 w-56` = 1rem + 14rem
+        // de borde a borde): mismo hueco (1rem) que este tiene respecto al
+        // borde izquierdo de la pantalla → 1rem + 14rem + 1rem = 16rem
+        // (`left-64`, escala de 0.25rem por unidad de Tailwind).
         <ChatWindow
           messages={snapshot.chat}
           selfId={snapshot.selfId || null}
           connected={connection ? connection.status === "connected" : true}
           error={hud.chatError}
           onSend={hud.sendChat}
-          className="absolute left-64 top-40"
+          className="absolute bottom-4 left-64"
         />
       ) : null}
 
