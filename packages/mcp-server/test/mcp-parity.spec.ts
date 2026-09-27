@@ -23,7 +23,7 @@ import { AUTHOR, loadAldric } from "./fixtures/drafts";
  * (sin escribir el doc por otra vía) y se comprueba que:
  *
  * 1. `validate` la da en verde (publicable);
- * 2. el validador la da solvable para 1–4 jugadores con la MISMA ruta crítica
+ * 2. el validador la da solvable para 1–8 jugadores con la MISMA ruta crítica
  *    que el fixture;
  * 3. el RoomPackage resultante (`roomDocToPackage` del draft, lo que ve el
  *    editor) es equivalente al fixture, salvo las diferencias no semánticas
@@ -194,6 +194,10 @@ describe("paridad editor ↔ MCP: el Rey Aldric construido por MCP (4.8)", () =>
       [2, true],
       [3, true],
       [4, true],
+      [5, true],
+      [6, true],
+      [7, true],
+      [8, true],
     ]);
     expect(report.solvability).toEqual(expected.solvability);
     expect(report.criticalRoute).toEqual(expected.criticalRoute);
