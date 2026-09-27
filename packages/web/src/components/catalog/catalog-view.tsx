@@ -1,4 +1,5 @@
 import { CATALOG_DEFAULT_LIMIT, type CatalogListResult } from "@escaperoom/shared/services";
+import { storage } from "@escaperoom/kit/storage";
 import { Suspense } from "react";
 import { SearchX } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -141,6 +142,10 @@ async function CatalogResults({
     getTranslations({ locale, namespace: "Catalog" }),
     resultPromise,
   ]);
+  // F-37 (mismo patrón que la ficha de sala): un solo lote de URLs firmadas
+  // para todas las portadas de la página, en vez de una petición por tarjeta.
+  const coverKeys = rooms.flatMap((room) => (room.coverImageKey ? [room.coverImageKey] : []));
+  const coverUrls = coverKeys.length > 0 ? await storage.getSignedReadUrls(coverKeys) : new Map();
 
   return (
     <>
@@ -162,7 +167,12 @@ async function CatalogResults({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rooms.map((room) => (
-            <RoomCard key={room.id} room={room} locale={locale} />
+            <RoomCard
+              key={room.id}
+              room={room}
+              locale={locale}
+              coverImageUrl={room.coverImageKey ? (coverUrls.get(room.coverImageKey) ?? null) : null}
+            />
           ))}
         </div>
       )}
