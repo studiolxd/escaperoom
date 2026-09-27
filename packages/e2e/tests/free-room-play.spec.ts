@@ -19,13 +19,14 @@ test("sala gratis: 'Jugar gratis' sin sesión conecta a una GameRoom real @smoke
     // ("recientes") no está garantizada.
     await page.goto(`rooms/${SEED.reyAldricRoomId}`);
     // Nunca pide login: sin sesión, el botón está visible y habilitado.
-    await expect(page.getByRole("button", { name: "Jugar gratis" })).toBeVisible();
+    // Duplicado (sobre la portada + debajo): al menos uno visible.
+    await expect(page.getByRole("button", { name: "Jugar gratis" }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /inicia sesión/iu })).toHaveCount(0);
   });
 
   const player = new UiPlayer(page, "Invitada");
   await test.step("clic conecta a una partida real, sin pasar por login/checkout", async () => {
-    await page.getByRole("button", { name: "Jugar gratis" }).click();
+    await page.getByRole("button", { name: "Jugar gratis" }).first().click();
     await expect(page).toHaveURL(/\/play\/room\//u);
     await player.enterName();
   });

@@ -55,10 +55,11 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
     await a.markReady();
     await b.markReady();
     await a.page.getByTestId("game-start").click();
+    // La intro de la sala ya se muestra y cierra antes de entrar al mapa
+    // (pantalla `game-intro-continue`, dentro de `enterMapAfterStart`): sin
+    // profecía, no hay diálogo `d-intro` adicional dentro del mapa.
     for (const player of [a, b]) {
       await player.enterMapAfterStart();
-      await expect(player.page.getByTestId("game-dialog")).toHaveAttribute("data-intro", "true");
-      await player.closeDialog();
       await player.dismissDialogsWhenBlocking();
     }
   });

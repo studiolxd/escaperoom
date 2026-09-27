@@ -72,11 +72,14 @@ test("sala solo para eventos: badge + 'Organizar un evento con esta sala', sin C
     await expect(page.getByText("Solo para eventos").first()).toBeVisible();
     await expect(page.getByRole("button", { name: "Comprar" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: /^Jugar/u })).toHaveCount(0);
-    await expect(page.getByRole("link", { name: "Organizar un evento con esta sala" })).toBeVisible();
+    // Duplicado (sobre la portada + debajo): al menos un CTA visible.
+    await expect(
+      page.getByRole("link", { name: "Organizar un evento con esta sala" }).first(),
+    ).toBeVisible();
   });
 
   await test.step("sin sesión: el CTA lleva a iniciar sesión, no directo al formulario", async () => {
-    await page.getByRole("link", { name: "Organizar un evento con esta sala" }).click();
+    await page.getByRole("link", { name: "Organizar un evento con esta sala" }).first().click();
     await expect(page).toHaveURL(new RegExp(`roomVersionId=${roomVersionId}`, "u"));
     await expect(page.getByRole("heading", { name: /organizar/iu })).toHaveCount(0);
   });

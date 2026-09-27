@@ -62,6 +62,15 @@ export class UiPlayer {
 
   /** Marca "Listo" en el lobby (C-13): lo exige `start_game` antes de dejar empezar. */
   async markReady(): Promise<void> {
+    // No se puede confirmar sin personaje elegido: el primero LIBRE (no
+    // `disabled`, ya lo tiene otro jugador conectado). El radio real es
+    // `sr-only` (oculto); es su <label> visible quien recibe el clic real
+    // (y lo reenvía al radio por debajo), así que se clica la etiqueta en
+    // vez del radio directamente.
+    const option = this.page
+      .locator('[data-testid^="character-option-"]:not([disabled])')
+      .first();
+    await option.locator("xpath=ancestor::label[1]").click();
     await this.page.getByTestId("lobby-ready").click();
   }
 
