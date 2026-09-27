@@ -53,13 +53,23 @@ const MAIN_ROOM_INTRO_TEXT =
   "minutos antes de que el sello se cierre para siempre: el destino del rey Aldric —y quizá " +
   "el vuestro— está en vuestras manos.";
 
-/** Sube una portada de `seed-assets/` y devuelve su `coverImageKey`, o `null` sin storage de dev. */
+/**
+ * Sube una portada de `seed-assets/` y devuelve su `coverImageKey`, o `null`
+ * sin storage de dev (o si el storage está inalcanzable, p. ej. CI sin
+ * SeaweedFS levantado: el seed no debe romperse por un servicio externo
+ * opcional, solo sembrar la sala sin portada).
+ */
 async function seedCoverImageKey(roomId: string, fileName: string): Promise<string | null> {
   if (!devStorage) return null;
   const bytes = readFileSync(path.join(seedAssetsDir, fileName));
   const key = `rooms/${roomId}/cover.jpg`;
-  await devStorage.putObject({ key, body: bytes, contentType: "image/jpeg" });
-  return key;
+  try {
+    await devStorage.putObject({ key, body: bytes, contentType: "image/jpeg" });
+    return key;
+  } catch (error) {
+    console.warn(`⚠️  No se pudo subir la portada de seed (${fileName}) al storage de dev, se sigue sin ella:`, error);
+    return null;
+  }
 }
 
 type RoomPackageFixture = {
