@@ -71,13 +71,28 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
   useEffect(() => {
     const handle = handleRef.current;
     if (!handle || !selfRoom || selfX === undefined || selfY === undefined) return;
-    if (serverRoomRef.current !== selfRoom) {
-      // Primera posición o cruce aceptado: la escena pasa a la sala del servidor.
-      serverRoomRef.current = selfRoom;
-      if (sceneRoomRef.current !== selfRoom) {
-        sceneRoomRef.current = selfRoom;
+    if (sceneRoomRef.current !== selfRoom) {
+      // Solo se marca como hecho si `showRoom` no revienta (sala desconocida
+      // en el modelo del cliente, p. ej.): si se diera por bueno antes de
+      // llamarlo (como antes) y lanzara, esta sala quedaría marcada como "ya
+      // mostrada" para siempre — ninguna futura actualización de posición
+      // volvería a intentarlo, y la escena se quedaría encallada en la sala
+      // vieja aunque el resto del HUD (temporizador, aside…) ya reflejase la
+      // partida en marcha. Al no depender de `serverRoomRef` (abajo), sigue
+      // reintentando en cada movimiento posterior hasta que funcione.
+      try {
         handle.showRoom(selfRoom);
+        sceneRoomRef.current = selfRoom;
+      } catch (err) {
+        console.error(
+          `useSceneSync: no se pudo mostrar la sala "${selfRoom}" (seguía en "${sceneRoomRef.current}")`,
+          err,
+        );
       }
+    }
+    if (serverRoomRef.current !== selfRoom) {
+      // Primera posición o cruce aceptado: coloca al jugador en la sala del servidor.
+      serverRoomRef.current = selfRoom;
       handle.placeAvatar(selfX, selfY);
       return;
     }

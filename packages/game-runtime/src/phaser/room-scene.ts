@@ -652,10 +652,20 @@ export class RoomScene extends Phaser.Scene {
     return this.localInputEnabled;
   }
 
-  /** Cambia de habitación con un fundido y reconstruye la escena. */
+  /**
+   * Cambia de habitación con un fundido y reconstruye la escena. Sin
+   * lanzar por una sala que no existe en el modelo del cliente (antes sí):
+   * los llamadores (cruce de puerta, sincronización con el servidor) no
+   * envuelven la llamada en un try/catch, así que una excepción aquí se
+   * perdía sin control y —peor aún, en `useSceneSync`— podía dejar la
+   * escena encallada para siempre en la sala anterior, sin volver a
+   * reintentarlo nunca (el ref que marca "sala ya mostrada" se actualizaba
+   * ANTES de comprobar si la llamada había funcionado).
+   */
   setRoom(roomId: string): void {
     if (!this.model.subroomsById[roomId]) {
-      throw new Error(`RoomScene: la habitación "${roomId}" no existe en el modelo.`);
+      console.error(`RoomScene: la habitación "${roomId}" no existe en el modelo.`);
+      return;
     }
     if (roomId === this.activeRoomId && this.built) {
       return;
