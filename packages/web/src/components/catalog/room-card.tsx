@@ -39,7 +39,7 @@ export function RoomCard({
   const t = useTranslations("Catalog");
   return (
     <article
-      className="flex flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground"
+      className="relative flex flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground"
       data-room-id={room.id}
     >
       {/* Mismo patrón que la ficha de sala (room-detail.tsx): degradado
@@ -58,7 +58,14 @@ export function RoomCard({
         ) : null}
         <div className="force-light relative z-10 flex flex-col gap-1 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 text-white">
           <h2 className="text-lg font-semibold" lang={room.defaultLanguage}>
-            <Link href={roomPath(room.id)} className="hover:underline">
+            {/* "Stretched link" (patrón habitual de tarjeta clicable): el
+                `::after` cubre toda la `<article>` (el ancestro `relative`
+                más cercano), así que toda la tarjeta lleva al detalle sin
+                más enlaces sueltos ni onClick propio. */}
+            <Link
+              href={roomPath(room.id)}
+              className="after:absolute after:inset-0 hover:underline"
+            >
               {room.title}
             </Link>
           </h2>
