@@ -70,6 +70,14 @@ Tareas pendientes que no bloquean pero hay que resolver.
       ni en el lobby ni en la partida. Decidir el criterio exacto: por `meta.players.max === 1` de la sala,
       o por número de jugadores conectados (y qué pasa si alguien entra tarde a una partida que empezó con
       uno). Aplicar también al playtest del editor (un jugador).
+- [ ] **Personajes que anden en 8 direcciones.** Hoy los avatares tienen 4 direcciones (n, s, e, o:
+      `avatar-<id>-<dir>-<acción>-<n>.png`, idle/walk/interact) y el movimiento en diagonal reutiliza la más
+      cercana. Hacen falta las 4 diagonales (ne, no, se, so): renderizarlas en Blender con la herramienta de
+      assets (`tools/assets-generator`, `render_animaciones.py` + `empaquetar_avatar.py`, cámara y recorte del
+      estilo), declararlas en el formato del pack (`anims`/direcciones de `pack.config.json` y el manifiesto de
+      `game-runtime`), y que la escena de Phaser (`avatar.ts`/`room-scene.ts`) elija la dirección de las 8 según
+      el vector de movimiento, con respaldo a 4 si un personaje no trae diagonales. Aplicar a `caballero-m` y a
+      los personajes reales que sustituyan a los 7 provisionales.
 - [ ] **Decidir el dominio de producción.** Pendiente operativo, sin fecha. El Aviso
       Legal (`packages/web/src/content/legal/legal-notice.ts`) lleva un `[PENDIENTE]`
       con el dominio; al decidirlo, sustituirlo y revisar el resto de sitios que lo
