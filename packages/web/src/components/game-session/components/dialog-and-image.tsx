@@ -28,7 +28,7 @@ export function DialogButton({
       data-testid="game-dialog"
       data-intro={isIntro}
       onClick={onClose}
-      className="absolute inset-x-4 bottom-40 z-30 mx-auto block h-auto max-w-2xl cursor-pointer rounded-xl border border-amber-500/40 bg-card/90 px-5 py-4 text-left text-sm whitespace-normal shadow-lg backdrop-blur dark:border-amber-200/40"
+      className="absolute inset-x-4 bottom-40 z-30 mx-auto block h-auto max-w-2xl cursor-pointer rounded-xl border border-amber-500/40 bg-card/75 px-5 py-4 text-left text-sm whitespace-normal shadow-lg backdrop-blur dark:border-amber-200/40"
     >
       <span className="block text-[0.65rem] uppercase tracking-wide text-amber-700 dark:text-amber-200/70">
         {isIntro ? introLabel : dialogLabel}

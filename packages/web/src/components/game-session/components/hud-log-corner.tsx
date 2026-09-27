@@ -12,7 +12,7 @@ export interface HudLogCornerProps {
  */
 export function HudLogCorner({ log, title }: HudLogCornerProps) {
   return (
-    <div className="pointer-events-none absolute right-4 top-4 w-52 rounded-xl border border-border bg-card/90 px-3 py-2 text-foreground backdrop-blur">
+    <div className="pointer-events-none absolute right-4 top-4 w-52 rounded-xl border border-border bg-card/75 px-3 py-2 text-foreground backdrop-blur">
       <span className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">{title}</span>
       <ul className="mt-1 flex flex-col gap-0.5 text-[0.65rem] text-muted-foreground">
         {log.length === 0 ? <li className="text-muted-foreground">—</li> : null}

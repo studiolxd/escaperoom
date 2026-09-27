@@ -77,6 +77,7 @@ export function NetworkGame({
 }: NetworkGameProps) {
   const t = useTranslations("Game");
   const [draftName, setDraftName] = useState("");
+  const [nameError, setNameError] = useState(false);
   // En una sesión de evento el nombre lo fija el `joinToken` del canje.
   const [name, setName] = useState<string | null>(target.kind === "event" ? "" : null);
 
@@ -131,9 +132,16 @@ export function NetworkGame({
 
   const enter = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const clean = sanitizePlayerName(draftName) ?? "";
+    const clean = sanitizePlayerName(draftName);
+    // Sin nombre (vacío, o solo espacios/`<>` que `sanitizePlayerName`
+    // recorta) no se entra: mensaje propio, no la validación nativa del
+    // navegador (este proyecto no valida formularios así).
+    if (!clean) {
+      setNameError(true);
+      return;
+    }
     try {
-      if (clean) window.localStorage.setItem(NAME_STORAGE_KEY, clean);
+      window.localStorage.setItem(NAME_STORAGE_KEY, clean);
     } catch {
       // Ídem: recordar el nombre es opcional.
     }
@@ -156,10 +164,19 @@ export function NetworkGame({
             <span>{t("join.nameLabel")}</span>
             <Input
               value={draftName}
-              onChange={(event) => setDraftName(event.target.value)}
+              onChange={(event) => {
+                setDraftName(event.target.value);
+                setNameError(false);
+              }}
               maxLength={32}
+              aria-invalid={nameError}
               className="h-auto px-2 py-1.5 text-sm"
             />
+            {nameError ? (
+              <span role="alert" className="text-xs text-destructive">
+                {t("join.nameRequired")}
+              </span>
+            ) : null}
           </Label>
           <Button type="submit" data-testid="game-enter">
             {joining ? t("join.join") : t("join.create")}

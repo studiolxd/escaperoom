@@ -77,7 +77,7 @@ describe("toRuntimeModel", () => {
 
     for (const room of model.subrooms) {
       expect(room.layers.length).toBeGreaterThan(0);
-      expect(room.spawns).toHaveLength(4);
+      expect(room.spawns).toHaveLength(8);
       expect(room.lighting.length).toBeGreaterThan(0);
       expect(room.objects.length).toBeGreaterThan(0);
       const cells = room.width * room.height;
@@ -140,7 +140,7 @@ describe("toRuntimeModel", () => {
     const model = toRuntimeModel(loadValidPackage());
     const salon = model.subroomsById["salon-trono"];
 
-    expect(salon?.spawns.map((spawn) => spawn.playerIndex)).toEqual([1, 2, 3, 4]);
+    expect(salon?.spawns.map((spawn) => spawn.playerIndex)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
   });
 
   it("normaliza capas RLE que no cubren la rejilla exacta", () => {

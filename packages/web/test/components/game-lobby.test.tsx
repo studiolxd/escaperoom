@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { loadRuntimeModel, toPublicRuntimeModel } from "@escaperoom/game-runtime";
+import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import type {
   GameClient,
   GamePlayerSnapshot,
@@ -32,6 +33,18 @@ vi.mock("../../src/components/game-session/game-session-canvas", () => ({
 const model = toPublicRuntimeModel(
   loadRuntimeModel(JSON.stringify(withLobbyRoom(JSON.parse(readReyAldricRoomPackageJson())))),
 );
+
+/** Encargo retratos: fixture mínima con dos personajes (uno con portrait, otro sin). */
+const pack = {
+  baseUrl: "https://cdn.example/pack",
+  manifest: {
+    avatars: [
+      { id: "caballero-m", label: { es: { text: "Caballero" } }, portrait: "retrato-caballero-m" },
+      { id: "mago-f", label: { es: { text: "Maga" } } },
+      { id: "arquero-m", label: { es: { text: "Arquero" } } },
+    ],
+  },
+} as unknown as RoomScenePack;
 
 function player(overrides: Partial<GamePlayerSnapshot> = {}): GamePlayerSnapshot {
   return {
@@ -192,6 +205,42 @@ describe("<LobbyPanel>", () => {
     expect(onKick).not.toHaveBeenCalled();
     await user.click(screen.getByTestId("game-kick-confirm-p2"));
     expect(onKick).toHaveBeenCalledWith("p2");
+  });
+
+  it("encargo retratos: selector de personaje con el pack — elegir uno llama a onSelectCharacter y quita el «Listo» quien lo hace", async () => {
+    const user = userEvent.setup();
+    const onSelectCharacter = vi.fn();
+    const bruno = player({
+      id: "p2",
+      name: "Bruno",
+      isHost: false,
+      isSelf: false,
+      characterId: "mago-f",
+      tint: "#00ff00",
+    });
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        pack,
+        onSelectCharacter,
+        players: [player(), bruno],
+        self: player(),
+      }),
+    );
+    // El propio personaje (caballero-m) no tiene nombre visible debajo.
+    expect(screen.queryByTestId("character-occupant-caballero-m")).not.toBeInTheDocument();
+    // El de Bruno (mago-f) está ocupado: deshabilitado y con su nombre.
+    const magoOption = screen.getByTestId("character-option-mago-f");
+    expect(magoOption).toBeDisabled();
+    expect(magoOption).toHaveAccessibleName("Bruno ya tiene este personaje");
+    expect(screen.getByTestId("character-occupant-mago-f")).toHaveTextContent("Bruno");
+
+    await user.click(magoOption);
+    expect(onSelectCharacter).not.toHaveBeenCalled();
+    // Cambiar a un personaje libre sí llama al callback (el servidor decide
+    // si eso quita el «Listo»; aquí solo comprobamos que la intención sale).
+    await user.click(screen.getByTestId("character-option-arquero-m"));
+    expect(onSelectCharacter).toHaveBeenCalledWith("arquero-m");
   });
 
   it("el anfitrión debe confirmarse él mismo antes de poder empezar", async () => {

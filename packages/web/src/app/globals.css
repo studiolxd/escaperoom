@@ -143,6 +143,16 @@
     background-color: var(--tint);
   }
 
+  /** Borde/anillo del color de un jugador (selección propia, o personaje ya
+      ocupado por otro): `character-picker.tsx`. */
+  .tint-border {
+    border-color: var(--tint);
+  }
+
+  .tint-ring {
+    box-shadow: 0 0 0 2px var(--tint);
+  }
+
   .grid-cols-dynamic {
     grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
   }

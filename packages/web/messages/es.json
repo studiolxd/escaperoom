@@ -1056,6 +1056,7 @@
       "createSubtitle": "Crea una partida y comparte el link con tu grupo (hasta 4 jugadores).",
       "joinSubtitle": "Te han invitado a una partida en curso.",
       "nameLabel": "Tu nombre",
+      "nameRequired": "Escribe tu nombre para continuar.",
       "create": "Crear partida",
       "join": "Unirme"
     },
@@ -1084,7 +1085,7 @@
       "title": "Sala de espera",
       "readMore": "Leer más",
       "chooseCharacter": "Elige tu personaje",
-      "characterTaken": "ocupado",
+      "characterTakenBy": "{player} ya tiene este personaje",
       "players": "{count, plural, one {# jugador} other {# jugadores}}",
       "playersOf": "{count, plural, one {# persona} other {# personas}} de {max}",
       "start": "Empezar partida",

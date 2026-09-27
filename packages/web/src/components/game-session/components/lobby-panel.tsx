@@ -89,15 +89,15 @@ export function LobbyPanel({
   // del anfitrión: no tendría sentido que forzara la partida sin haberse
   // confirmado él mismo.
   const hostReady = self.ready;
-  const occupied = new Set(
+  const occupied = new Map(
     players
       .filter((player) => !player.isSelf && player.connected)
-      .map((player) => player.characterId),
+      .map((player) => [player.characterId, { name: player.name, tint: player.tint }] as const),
   );
 
   return (
     <aside
-      className="pointer-events-auto absolute bottom-4 left-4 top-16 z-20 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 overflow-y-auto rounded-md border border-border bg-card/90 p-4 text-foreground shadow-xl backdrop-blur"
+      className="pointer-events-auto absolute bottom-4 left-4 top-16 z-20 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 overflow-y-auto rounded-md border border-border bg-card/75 p-4 text-foreground shadow-xl backdrop-blur"
       data-testid="game-lobby"
       aria-label={t("lobby.title")}
     >
@@ -199,6 +199,7 @@ export function LobbyPanel({
           pack={pack}
           occupiedBy={occupied}
           value={self.characterId}
+          selfTint={self.tint}
           onChange={onSelectCharacter}
         />
       ) : null}

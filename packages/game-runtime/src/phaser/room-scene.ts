@@ -88,6 +88,21 @@ function formatLabel(template: string, vars: Record<string, string>): string {
 }
 
 /**
+ * El teclado de Phaser escucha en `document`, no en el canvas: sin esto, el
+ * chat (u otro input de React fuera del canvas) movía al avatar y disparaba
+ * `interact` a la vez que escribías.
+ */
+function isTypingInFormField(): boolean {
+  const active = typeof document !== "undefined" ? document.activeElement : null;
+  if (!(active instanceof HTMLElement)) return false;
+  return (
+    active.tagName === "INPUT" ||
+    active.tagName === "TEXTAREA" ||
+    active.isContentEditable
+  );
+}
+
+/**
  * Atlas ya descargados una vez, por URL de la imagen (F-43..47 punto 5): cada
  * `Phaser.Game` nuevo trae su propio `TextureManager` vacío, así que remontar
  * el juego (reintento de conexión, cambio de `key` en React) volvía a pedir a
@@ -250,7 +265,6 @@ export const AVATAR_MOVE_EMIT_MS = SESSION_AVATAR_MOVE_EMIT_MS;
 /** Avatar de otro jugador: se interpola hacia la última posición del servidor. */
 interface RemoteAvatar {
   controller: AvatarController;
-  label: Phaser.GameObjects.Text;
   target: { x: number; y: number };
 }
 
@@ -346,7 +360,6 @@ export class RoomScene extends Phaser.Scene {
   private collision!: CollisionGrid;
   private avatar?: AvatarController;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
-  private movementKeys?: Record<"w" | "a" | "s" | "d", Phaser.Input.Keyboard.Key>;
   private built = false;
   private transitioning = false;
   private doorCooldownUntil = 0;
@@ -560,7 +573,6 @@ export class RoomScene extends Phaser.Scene {
       const existing = this.remoteAvatars.get(player.id);
       if (existing) {
         existing.target = { x: player.x, y: player.y };
-        existing.label.setText(player.name);
         continue;
       }
       const controller = new AvatarController({
@@ -570,21 +582,9 @@ export class RoomScene extends Phaser.Scene {
         collision: this.collision,
         start: { x: player.x, y: player.y },
         characterId: player.characterId || PLACEHOLDER_CHARACTER_ID,
-        tint: Phaser.Display.Color.HexStringToColor(player.tint).color,
       });
-      const label = this.add
-        .text(0, -100, player.name, {
-          fontFamily: "system-ui, sans-serif",
-          fontSize: "13px",
-          color: "#f8fafc",
-          backgroundColor: "rgba(2, 6, 23, 0.65)",
-          padding: { x: 4, y: 1 },
-        })
-        .setOrigin(0.5, 1);
-      controller.container.add(label);
       this.remoteAvatars.set(player.id, {
         controller,
-        label,
         target: { x: player.x, y: player.y },
       });
     }
@@ -1530,14 +1530,8 @@ export class RoomScene extends Phaser.Scene {
       return;
     }
     this.cursors = keyboard.createCursorKeys();
-    this.movementKeys = {
-      w: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      a: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      s: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      d: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-    };
     keyboard.on("keydown-SPACE", () => {
-      if (!this.localInputEnabled) {
+      if (!this.localInputEnabled || isTypingInFormField()) {
         return;
       }
       this.avatar?.interact();
@@ -1590,13 +1584,14 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private readKeyboardMove(): { x: number; y: number } | null {
+    if (isTypingInFormField()) return null;
     let x = 0;
     let y = 0;
 
-    const up = this.cursors?.up.isDown || this.movementKeys?.w.isDown;
-    const down = this.cursors?.down.isDown || this.movementKeys?.s.isDown;
-    const left = this.cursors?.left.isDown || this.movementKeys?.a.isDown;
-    const right = this.cursors?.right.isDown || this.movementKeys?.d.isDown;
+    const up = this.cursors?.up.isDown;
+    const down = this.cursors?.down.isDown;
+    const left = this.cursors?.left.isDown;
+    const right = this.cursors?.right.isDown;
 
     if (up) {
       x -= 1;

@@ -39,7 +39,7 @@ export function ConnectionBadge({
       data-testid="game-connection"
       data-status={status}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border border-border bg-card/90 px-2 py-0.5 text-xs text-muted-foreground",
+        "inline-flex items-center gap-2 rounded-full border border-border bg-card/75 px-2 py-0.5 text-xs text-muted-foreground",
         className,
       )}
     >
