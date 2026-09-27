@@ -22,18 +22,22 @@ export interface CharacterPickerProps {
   pack: RoomScenePack;
   /** Personaje → nombre y tinte de quien lo tiene (A1: únicos por sesión, solo conectados). */
   occupiedBy: ReadonlyMap<string, { name: string; tint: string }>;
-  /** Personaje del jugador local, si ya tiene uno asignado. */
+  /** Personaje del jugador local, si ya tiene uno asignado (`""`/sin elegir). */
   value?: string;
+  /** Nombre del propio jugador, para mostrarlo bajo su personaje elegido. */
+  selfName: string;
   /** Color del propio jugador (servidor), para resaltar su selección. */
   selfTint: string;
+  /** `""` para liberar el personaje (pulsar el propio otra vez lo suelta). */
   onChange: (characterId: string) => void;
 }
 
 /**
  * Selector de personaje del lobby (A1/specs/19, B4, encargo retratos):
- * rejilla de retratos redondos por `shadcn/ui` (`RadioGroup`, sin tarjetas
- * ni nombre debajo del propio personaje). El seleccionado se resalta con el
- * tinte del jugador; los personajes ya ocupados por otro conectado se ven
+ * rejilla de retratos redondos por `shadcn/ui` (`RadioGroup`, sin tarjetas).
+ * El elegido se resalta con el tinte del jugador y muestra su propio nombre
+ * debajo (pulsarlo otra vez lo libera, `onChange("")`: sin él, el avatar no
+ * se pinta en el mapa). Los personajes ya ocupados por otro conectado se ven
  * atenuados, con el borde del tinte de quien los tiene, no se pueden elegir
  * y muestran su nombre debajo. El servidor es la autoridad — este control
  * solo expresa la intención (`select_character`); si dos jugadores pulsan
@@ -44,6 +48,7 @@ export function CharacterPicker({
   pack,
   occupiedBy,
   value,
+  selfName,
   selfTint,
   onChange,
 }: CharacterPickerProps) {
@@ -70,7 +75,18 @@ export function CharacterPicker({
           return (
             <Label
               key={avatar.id}
-              title={taken ? occupant.name : label}
+              title={taken ? occupant.name : selected ? t("lobby.characterRelease") : label}
+              onClickCapture={(event) => {
+                // Radix no dispara `onValueChange` al pulsar el ya
+                // seleccionado (mismo valor, sin "cambio"): se intercepta
+                // aquí, antes de que el clic llegue al `RadioGroupItem`, y
+                // se libera directamente (`onChange("")`).
+                if (selected) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onChange("");
+                }
+              }}
               className={cn(
                 "flex flex-col items-center gap-1 p-0",
                 taken ? "cursor-not-allowed opacity-40" : "cursor-pointer",
@@ -86,7 +102,11 @@ export function CharacterPicker({
                   descarta en esta versión): el nombre accesible del control
                   sale de este texto, por el envoltorio nativo <label>. */}
               <span className="sr-only">
-                {taken ? t("lobby.characterTakenBy", { player: occupant.name }) : label}
+                {taken
+                  ? t("lobby.characterTakenBy", { player: occupant.name })
+                  : selected
+                    ? t("lobby.characterRelease")
+                    : label}
               </span>
               <span
                 aria-hidden
@@ -112,6 +132,14 @@ export function CharacterPicker({
                   className="max-w-14 truncate text-center text-[0.6rem] text-muted-foreground"
                 >
                   {occupant.name}
+                </span>
+              ) : selected ? (
+                <span
+                  aria-hidden
+                  data-testid={`character-occupant-${avatar.id}`}
+                  className="max-w-14 truncate text-center text-[0.6rem] text-muted-foreground"
+                >
+                  {selfName}
                 </span>
               ) : null}
             </Label>

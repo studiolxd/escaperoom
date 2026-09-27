@@ -94,7 +94,10 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
 
   const selfCharacterId = self?.characterId;
   useEffect(() => {
-    if (selfCharacterId) handleRef.current?.setLocalCharacter(selfCharacterId);
+    // "" (encargo retratos) es "sin personaje aún": también hay que
+    // propagarlo (antes se ignoraba por ser falsy), o la escena se queda
+    // con el de respaldo del constructor en vez de no pintar avatar.
+    if (selfCharacterId !== undefined) handleRef.current?.setLocalCharacter(selfCharacterId);
   }, [selfCharacterId]);
 
   const onReady = useCallback(
@@ -110,7 +113,7 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
       if (current.self) {
         serverRoomRef.current = current.self.roomId;
         if (current.self.tint) handle.setLocalTint(current.self.tint);
-        if (current.self.characterId) handle.setLocalCharacter(current.self.characterId);
+        handle.setLocalCharacter(current.self.characterId);
         handle.placeAvatar(current.self.x, current.self.y);
       }
     },

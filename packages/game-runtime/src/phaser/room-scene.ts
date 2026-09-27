@@ -534,9 +534,14 @@ export class RoomScene extends Phaser.Scene {
     }
     this.localCharacterId = characterId;
     if (this.built && !this.transitioning && this.avatarEnabled) {
-      const cell = this.avatar?.cellPosition;
+      // Sin avatar todavía (recién elegido, `pendingAvatarCell` es la última
+      // posición del servidor que `placeAvatar` no pudo aplicar por faltar
+      // avatar): úsala, o el nuevo avatar aparecería en (0, 0).
+      const cell = this.avatar?.cellPosition ?? this.pendingAvatarCell;
+      this.pendingAvatarCell = undefined;
       this.avatar?.destroy();
-      this.avatar = this.createAvatarController(cell ?? { x: 0, y: 0 });
+      // "" (encargo retratos): sin personaje, no se pinta ningún avatar.
+      this.avatar = characterId ? this.createAvatarController(cell ?? { x: 0, y: 0 }) : undefined;
     }
   }
 
@@ -1494,7 +1499,9 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private buildAvatar(room: RuntimeSubRoom): void {
-    if (!this.avatarEnabled) {
+    // Encargo retratos: sin personaje elegido (`""`, el valor por defecto
+    // hasta que el jugador elige uno en el lobby) no se pinta ningún avatar.
+    if (!this.avatarEnabled || !this.localCharacterId) {
       return;
     }
     const spawn = this.pendingAvatarCell ?? room.spawns[0] ?? { x: 0, y: 0 };

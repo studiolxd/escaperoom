@@ -227,8 +227,8 @@ describe("<LobbyPanel>", () => {
         self: player(),
       }),
     );
-    // El propio personaje (caballero-m) no tiene nombre visible debajo.
-    expect(screen.queryByTestId("character-occupant-caballero-m")).not.toBeInTheDocument();
+    // El propio personaje (caballero-m) muestra el propio nombre debajo.
+    expect(screen.getByTestId("character-occupant-caballero-m")).toHaveTextContent("Ana");
     // El de Bruno (mago-f) está ocupado: deshabilitado y con su nombre.
     const magoOption = screen.getByTestId("character-option-mago-f");
     expect(magoOption).toBeDisabled();
@@ -241,6 +241,9 @@ describe("<LobbyPanel>", () => {
     // si eso quita el «Listo»; aquí solo comprobamos que la intención sale).
     await user.click(screen.getByTestId("character-option-arquero-m"));
     expect(onSelectCharacter).toHaveBeenCalledWith("arquero-m");
+    // Pulsar el propio (caballero-m, ya elegido) otra vez lo libera.
+    await user.click(screen.getByTestId("character-option-caballero-m"));
+    expect(onSelectCharacter).toHaveBeenCalledWith("");
   });
 
   it("el anfitrión debe confirmarse él mismo antes de poder empezar", async () => {

@@ -10,10 +10,11 @@ import es from "../../messages/es.json";
 import { CharacterPicker } from "../../src/components/game-session/character-picker";
 
 /**
- * Encargo retratos: la rejilla de retratos redondos del lobby (sin nombre
- * del propio personaje, sin tarjetas), resaltada con el tinte del jugador,
- * con los personajes ocupados por otro conectado atenuados y con el nombre
- * de quien los tiene.
+ * Encargo retratos: la rejilla de retratos redondos del lobby (sin
+ * tarjetas), resaltada con el tinte del jugador, con el propio nombre
+ * debajo del personaje elegido (pulsarlo otra vez lo libera) y los
+ * personajes ocupados por otro conectado atenuados y con el nombre de
+ * quien los tiene.
  */
 
 const pack = {
@@ -44,6 +45,7 @@ describe("<CharacterPicker>", () => {
       createElement(CharacterPicker, {
         pack,
         occupiedBy: new Map(),
+        selfName: "Ana",
         selfTint: "#ff0000",
         onChange: vi.fn(),
       }),
@@ -60,17 +62,20 @@ describe("<CharacterPicker>", () => {
     expect(portraits).toContain("https://cdn.example/pack/avatar/mago-f/avatar-mago-f-s-idle-1.png");
   });
 
-  it("no muestra el nombre del propio personaje debajo del retrato (solo accesible)", () => {
+  it("muestra el propio nombre debajo del personaje elegido", () => {
     renderIntl(
       createElement(CharacterPicker, {
         pack,
         occupiedBy: new Map(),
         value: "caballero-m",
+        selfName: "Ana",
         selfTint: "#ff0000",
         onChange: vi.fn(),
       }),
     );
-    expect(screen.queryByTestId("character-occupant-caballero-m")).not.toBeInTheDocument();
+    expect(screen.getByTestId("character-occupant-caballero-m")).toHaveTextContent("Ana");
+    // Ningún otro personaje (sin elegir) muestra nombre.
+    expect(screen.queryByTestId("character-occupant-mago-f")).not.toBeInTheDocument();
   });
 
   it("elegir un personaje llama a onChange con su id", async () => {
@@ -80,12 +85,30 @@ describe("<CharacterPicker>", () => {
       createElement(CharacterPicker, {
         pack,
         occupiedBy: new Map(),
+        selfName: "Ana",
         selfTint: "#ff0000",
         onChange,
       }),
     );
     await user.click(screen.getByTestId("character-option-mago-f"));
     expect(onChange).toHaveBeenCalledWith("mago-f");
+  });
+
+  it("pulsar el propio personaje elegido otra vez lo libera (onChange con \"\")", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderIntl(
+      createElement(CharacterPicker, {
+        pack,
+        occupiedBy: new Map(),
+        value: "caballero-m",
+        selfName: "Ana",
+        selfTint: "#ff0000",
+        onChange,
+      }),
+    );
+    await user.click(screen.getByTestId("character-option-caballero-m"));
+    expect(onChange).toHaveBeenCalledWith("");
   });
 
   it("un personaje ocupado por otro jugador conectado se ve deshabilitado, con su nombre y no se puede elegir", async () => {
@@ -95,6 +118,7 @@ describe("<CharacterPicker>", () => {
       createElement(CharacterPicker, {
         pack,
         occupiedBy: new Map([["mago-f", { name: "Bruno", tint: "#00ff00" }]]),
+        selfName: "Ana",
         selfTint: "#ff0000",
         onChange,
       }),
@@ -114,6 +138,7 @@ describe("<CharacterPicker>", () => {
         pack,
         occupiedBy: new Map([["mago-f", { name: "Ana", tint: "#00ff00" }]]),
         value: "mago-f",
+        selfName: "Ana",
         selfTint: "#ff0000",
         onChange: vi.fn(),
       }),

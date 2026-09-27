@@ -199,7 +199,8 @@ const combinePayload = z.object({
 const puzzlePayload = z.object({ puzzleId: z.string().min(1).max(64) });
 const optionalPuzzlePayload = z.object({ puzzleId: z.string().min(1).max(64).optional() });
 const attemptPayload = z.object({ puzzleId: z.string().min(1).max(64), attempt: z.unknown() });
-const selectCharacterPayload = z.object({ characterId: z.string().min(1).max(64) });
+// "" (encargo retratos) es "sin personaje" — pulsar el propio otra vez lo libera.
+const selectCharacterPayload = z.object({ characterId: z.string().max(64) });
 const emptyPayload = z.object({}).passthrough();
 /** `start_game` (C-13): `force` es "Empezar igualmente" (nunca por debajo del mínimo). */
 const startGamePayload = z.object({ force: z.boolean().optional() });
@@ -1194,26 +1195,41 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
 
   /**
    * Personajes seleccionables del pack (A1/B4): el servidor es la autoridad,
-   * valida contra esta lista y contra los ya ocupados en la sala. Mientras
-   * falten personajes (hoy solo `caballero-m`), el resto cae al maniquí de
+   * valida contra esta lista y contra los ya ocupados en la sala. Sin pack
+   * con avatares (`available` vacío, packs antiguos), cae al maniquí de
    * reserva, que no es único.
    */
   private availableCharacters(): readonly string[] {
     return loadAvatarCharacterIds();
   }
 
-  /** `characterId` de un jugador que se une: el elegido si es válido, o el primero libre. */
+  /**
+   * `characterId` de un jugador que se une: el elegido si es válido, o `""`
+   * (encargo retratos) — sin avatar hasta que lo elija en el lobby, la
+   * escena no lo pinta mientras tanto. Solo cae directo al maniquí de
+   * reserva cuando el pack no tiene avatares seleccionables (`available`
+   * vacío): ahí no hay selector con el que elegir nada.
+   */
   private resolveJoinCharacter(requested: string | undefined, usedCharacters: string[]): string {
     const available = this.availableCharacters();
     if (requested && isCharacterAvailable(requested, available, usedCharacters)) {
       return requested;
     }
+    if (available.length > 0) return "";
     return pickPlayerCharacter(available, usedCharacters);
   }
 
   private handleSelectCharacter(client: Client, data: { characterId: string }): void {
     const player = this.state.players.get(client.sessionId);
     if (!player) return;
+    // "" (encargo retratos): pulsar el propio otra vez lo libera, sin pasar
+    // por la validación de disponibilidad (siempre es válido quedarse sin
+    // personaje).
+    if (data.characterId === "") {
+      player.characterId = "";
+      player.ready = false;
+      return;
+    }
     const usedCharacters: string[] = [];
     this.state.players.forEach((existing) => {
       if (existing.id !== client.sessionId) usedCharacters.push(existing.characterId);

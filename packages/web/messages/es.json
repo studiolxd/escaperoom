@@ -1086,6 +1086,7 @@
       "readMore": "Leer más",
       "chooseCharacter": "Elige tu personaje",
       "characterTakenBy": "{player} ya tiene este personaje",
+      "characterRelease": "Tu personaje. Pulsa otra vez para dejarlo libre.",
       "players": "{count, plural, one {# jugador} other {# jugadores}}",
       "playersOf": "{count, plural, one {# persona} other {# personas}} de {max}",
       "start": "Empezar partida",

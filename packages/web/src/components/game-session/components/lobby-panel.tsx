@@ -199,6 +199,7 @@ export function LobbyPanel({
           pack={pack}
           occupiedBy={occupied}
           value={self.characterId}
+          selfName={self.name}
           selfTint={self.tint}
           onChange={onSelectCharacter}
         />
