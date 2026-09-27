@@ -257,13 +257,13 @@ describe("room de evento con joinToken", () => {
       );
 
     const clients = [];
-    for (let i = 0; i < 4; i += 1) {
-      // El paquete de Rey Aldric admite 4 jugadores (meta.players.max).
+    for (let i = 0; i < 8; i += 1) {
+      // El paquete de Rey Aldric admite 8 jugadores (meta.players.max).
       clients.push(await joinEvent({ sessionId, joinToken: tokenForPlayer(`guest:${i}`) }));
     }
     await Promise.all(clients.map((c) => c.waitForInitialState()));
     const room = colyseus.getRoomById<EventRoom>(clients[0]!.roomId);
-    await expect.poll(() => room.state.players.size).toBe(4);
+    await expect.poll(() => room.state.players.size).toBe(8);
 
     // Lleno: un jugador nuevo (identidad nunca vista) no entra.
     expect(
@@ -282,7 +282,7 @@ describe("room de evento con joinToken", () => {
       joinToken: tokenForPlayer("guest:0"),
     });
     await rejoin.waitForInitialState();
-    expect(room.state.players.size).toBe(4);
+    expect(room.state.players.size).toBe(8);
     expect(room.state.players.has(firstSessionId)).toBe(false);
   });
 
