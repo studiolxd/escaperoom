@@ -136,14 +136,3 @@ Tareas pendientes que no bloquean pero hay que resolver.
       §"Pipeline de personajes jugables"), sustituir su carpeta de enlaces por la entrega real
       (`empaquetar_avatar.py` + `empaquetar_retrato.py`) y quitar la entrada correspondiente de
       `tools/assets-generator/packs/medieval-v1/entregas/avatares/`.
-- [ ] **`game.reyaldric.spec.ts` (@smoke) roto desde F-5 (#175): interacción con objetos vía
-      canvas, no vía `ObjectsBar`.** Desde que F-5 partió el HUD (`game-session-shell.tsx`), la
-      variante real de partida (`variant="game"`, la que usa `/dev/game-room` y por tanto este
-      E2E) inspecciona los objetos directo sobre el canvas isométrico de Phaser — sin la
-      `ObjectsBar` con botones `data-testid="game-object-<id>"` (esa solo sigue existiendo para
-      `variant="playtest"`). El test (y los helpers `objectAction`/`inspect`/`useItemOn`/`combine`
-      de `packages/e2e/support/game.ts`) siguen asumiendo esos botones y llevan rotos desde
-      entonces (fallan en `pnpm verify:pr --e2e`, detectado al preparar la rama de revisión en
-      vivo para su PR). Arreglarlo bien exige clicar el canvas por coordenadas reales (posición
-      isométrica del objeto vía `tileAnchor`/cámara) en vez de un testid de botón — más trabajo
-      que un ajuste de locator, así que queda pendiente en vez de bloquear esa PR.

@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useRef, useSyncExternalStore, type ReactNode } from "react";
-import { cn } from "cn";
 import { Lightbulb } from "lucide-react";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
@@ -255,13 +254,12 @@ export function GameSessionShell({
 
         <div className="pointer-events-auto flex w-full flex-wrap items-end justify-between gap-4">
           {/* En la sala de espera (y durante la introducción/entrada al mapa)
-              no hay objetos ni inventario que mostrar: solo el chat. En la
-              partida real (variant="game") tampoco: los objetos se
-              inspeccionan directo sobre el canvas isométrico, sin este panel
-              — el playtest sí lo conserva (lleva enganchados el checklist de
-              la ruta crítica y el botón de reinicio, `objectsBarHeader`/
-              `objectsBarFooter`). */}
-          {inMapStage && variant === "playtest" ? (
+              no hay objetos ni inventario que mostrar: solo el chat. Los
+              objetos se inspeccionan por aquí en las dos variantes (el canvas
+              isométrico no tiene clic directo sobre los sprites); el playtest
+              además le engancha el checklist de la ruta crítica y el botón
+              de reinicio (`objectsBarHeader`/`objectsBarFooter`). */}
+          {inMapStage ? (
             <ObjectsBar
               model={model}
               objectsLabel={hud.tp("objects")}
@@ -279,6 +277,20 @@ export function GameSessionShell({
               }}
               header={objectsBarHeader}
               footer={objectsBarFooter}
+            />
+          ) : null}
+
+          {showChat && lobby.stage !== "lobby" ? (
+            // Con la `ObjectsBar` de vuelta (crece con la sala, hasta
+            // `min(92vw,40rem)`), fijar el chat en una esquina absoluta podía
+            // solaparse con ella y bloquear sus clics: aquí, en la misma fila
+            // flex, `flex-wrap` los reparte sin invadirse.
+            <ChatWindow
+              messages={snapshot.chat}
+              selfId={snapshot.selfId || null}
+              connected={connection ? connection.status === "connected" : true}
+              error={hud.chatError}
+              onSend={hud.sendChat}
             />
           ) : null}
 
@@ -325,25 +337,19 @@ export function GameSessionShell({
         </div>
       </div>
 
-      {showChat ? (
-        // En el lobby, a la derecha de `LobbyPanel` (`left-4`, ancho variable
+      {showChat && lobby.stage === "lobby" ? (
+        // A la derecha de `LobbyPanel` (`left-4`, ancho variable
         // `min(22rem, calc(100% - 2rem))`), con el mismo hueco de 1rem que
-        // ese panel tiene del borde izquierdo. En partida ya no hay panel que
-        // esquivar por la izquierda (el panel de objetos se quitó del juego
-        // real, y el inventario ahora vive a la derecha): el chat va pegado
-        // a la izquierda sin más.
+        // ese panel tiene del borde izquierdo. Fuera del lobby, el chat va
+        // dentro de la fila flex de abajo (junto a `ObjectsBar`/inventario,
+        // como en la partida real) para no invadir la `ObjectsBar`.
         <ChatWindow
           messages={snapshot.chat}
           selfId={snapshot.selfId || null}
           connected={connection ? connection.status === "connected" : true}
           error={hud.chatError}
           onSend={hud.sendChat}
-          className={cn(
-            "absolute bottom-4",
-            lobby.stage === "lobby"
-              ? "left-[calc(2rem+min(22rem,calc(100%-2rem)))]"
-              : "left-4",
-          )}
+          className="absolute bottom-4 left-[calc(2rem+min(22rem,calc(100%-2rem)))]"
         />
       ) : null}
 

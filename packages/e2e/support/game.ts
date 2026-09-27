@@ -162,8 +162,9 @@ export class UiPlayer {
     await this.page.getByRole("button", { name: itemName, exact: true }).click();
   }
 
+  /** X del `Dialog` estándar (124345b: ya no hay botón "Cerrar" a medida). */
   async closePanel(): Promise<void> {
-    await this.page.getByRole("button", { name: "Cerrar", exact: true }).first().click();
+    await this.page.locator('[data-slot="dialog-close"]').first().click();
   }
 
   async expectItems(...itemNames: string[]): Promise<void> {
@@ -181,7 +182,8 @@ export class UiPlayer {
     }
     await overlay.getByRole("button", { name: "Combinar" }).click();
     await expect(overlay).toContainText(`Has creado: ${expected}`);
-    await overlay.getByRole("button", { name: "Cerrar", exact: true }).click();
+    // X del `Dialog` estándar (124345b: ya no hay botón "Cerrar" a medida).
+    await overlay.locator('[data-slot="dialog-close"]').click();
     await expect(overlay).toBeHidden();
     await this.expectItems(expected);
   }
@@ -196,10 +198,18 @@ export class UiPlayer {
     await panel.getByRole("button", { name: "Abrir", exact: true }).click();
   }
 
-  /** «Ir a {sala}»: el botón de la puerta abierta camina hasta ella y cruza. */
+  /**
+   * «Ir a {sala}»: el botón de la puerta abierta camina hasta ella y cruza.
+   * El HUD ya no muestra el nombre de la sala actual (c105a4c, "sin cabecera
+   * fija"): la propia puerta desapareciendo de la `ObjectsBar` (ya no se está
+   * en la sala de origen) es la señal de que la transición terminó; los
+   * tests verifican la sala de destino por un objeto suyo (p. ej.
+   * `game-object-mural-vendimia`).
+   */
   async goTo(roomName: string): Promise<void> {
-    await this.page.getByRole("button", { name: `Ir a ${roomName}`, exact: true }).click();
-    await expect(this.page.getByTestId("game-room")).toContainText(roomName);
+    const door = this.page.getByRole("button", { name: `Ir a ${roomName}`, exact: true });
+    await door.click();
+    await expect(door).toHaveCount(0);
   }
 
   /** Objetos que el servidor ha dado por resueltos (contador «Puzzles» del HUD). */
