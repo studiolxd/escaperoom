@@ -42,5 +42,11 @@ export function isDarkThemeActive(): boolean {
   return typeof document !== "undefined" && document.documentElement.classList.contains("dark");
 }
 
-/** Aproximan `--background` de `globals.css` (gris acromático, oklch(1 0 0)/oklch(0.145 0 0)). */
+/**
+ * Conversión exacta (no aproximada) de `--background` de `globals.css` a
+ * `#rrggbb` para Phaser, que no puede leer variables CSS: `oklch(1 0 0)` es
+ * blanco puro y `oklch(0.145 0 0)` (acromático, sin canal a/b) da
+ * `rgb(10,10,10)` tras la codificación gamma sRGB — verificado a mano con la
+ * matriz OKLab→sRGB de la CSS Color 4 spec.
+ */
 export const BACKGROUND_HEX = { light: "#ffffff", dark: "#0a0a0a" } as const;

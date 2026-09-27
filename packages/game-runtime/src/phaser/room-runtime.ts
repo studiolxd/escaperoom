@@ -64,6 +64,7 @@ export class RoomRuntime {
       mode: options.mode,
       emitAvatarMoves: options.emitAvatarMoves,
       labels: options.labels,
+      backgroundColor: options.backgroundColor,
     });
 
     this.game = new Phaser.Game({
@@ -110,6 +111,11 @@ export class RoomRuntime {
   /** Personaje del avatar local (asignado o confirmado por el servidor). */
   setLocalCharacter(characterId: string): void {
     this.scene.setLocalCharacter(characterId);
+  }
+
+  /** Color de fondo de la cámara (`#rrggbb`), en caliente (tema claro/oscuro). */
+  setBackgroundColor(hex: string): void {
+    this.scene.setBackgroundColor(hex);
   }
 
   /** Otros jugadores de la partida (se pintan los de la sala visible). */

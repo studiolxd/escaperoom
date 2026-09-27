@@ -243,6 +243,8 @@ export interface RoomSceneOptions {
   emitAvatarMoves?: boolean;
   /** Textos in-canvas (F-10); sin ellos, el castellano de siempre. */
   labels?: Partial<RoomSceneLabels>;
+  /** Color de fondo de la cámara (`#rrggbb`); por defecto el fijo de siempre. */
+  backgroundColor?: string;
 }
 
 /** Otro jugador de la partida, tal como lo sincroniza el servidor (fase 2). */
@@ -333,6 +335,8 @@ export class RoomScene extends Phaser.Scene {
   private localInputEnabled: boolean;
   private readonly localPlayerId: string;
   private readonly manifest: PackManifest;
+  /** Color de fondo de la cámara (`#rrggbb`); `setBackgroundColor` lo actualiza en caliente (tema claro/oscuro). */
+  private backgroundColor: string;
 
   private activeRoomId: string;
   private roomObjects: Phaser.GameObjects.GameObject[] = [];
@@ -410,6 +414,7 @@ export class RoomScene extends Phaser.Scene {
     this.emitAvatarMoves = options.emitAvatarMoves ?? false;
     this.labels = { ...DEFAULT_LABELS, ...options.labels };
     this.manifest = options.pack?.manifest ?? buildPlaceholderManifest(options.model);
+    this.backgroundColor = options.backgroundColor ?? "#0b1120";
     this.localCharacterId =
       options.localCharacterId ?? this.manifest.avatars?.[0]?.id ?? PLACEHOLDER_CHARACTER_ID;
 
@@ -1652,10 +1657,21 @@ export class RoomScene extends Phaser.Scene {
     const bounds = gridBounds(room.width, room.height, 1);
     const center = gridCenter(room.width, room.height);
 
-    camera.setBackgroundColor("#0b1120");
+    camera.setBackgroundColor(this.backgroundColor);
     camera.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
     camera.centerOn(center.x, center.y);
     this.fitZoom(bounds.width, bounds.height);
+  }
+
+  /**
+   * Color de fondo de la cámara (`#rrggbb`), en caliente: el tema claro/oscuro
+   * puede cambiar con la partida ya en marcha (`game-session-canvas.tsx`
+   * observa la clase `dark` de `<html>`). Sin reconstruir sala ni cámara.
+   */
+  setBackgroundColor(hex: string): void {
+    if (this.backgroundColor === hex) return;
+    this.backgroundColor = hex;
+    this.cameras?.main?.setBackgroundColor(hex);
   }
 
   private fitZoom(contentWidth: number, contentHeight: number): void {

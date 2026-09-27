@@ -88,6 +88,19 @@ export default function GameSessionCanvas({
     runtimeRef.current?.setInputEnabled(inputEnabled);
   }, [inputEnabled]);
 
+  useEffect(() => {
+    // Nada dispara un evento al cambiar de tema (`ThemeSelect` solo hace
+    // `classList.toggle`): sin esto, el fondo del canvas se quedaría con el
+    // de la carga inicial si el tema cambia con la partida ya en marcha.
+    const observer = new MutationObserver(() => {
+      runtimeRef.current?.setBackgroundColor(
+        isDarkThemeActive() ? BACKGROUND_HEX.dark : BACKGROUND_HEX.light,
+      );
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     if (!inputEnabled) return;
