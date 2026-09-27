@@ -186,7 +186,6 @@
   },
   "Inventory": {
     "title": "Inventario",
-    "recipes": "Recetas: {found}/{total}",
     "gridLabel": "Rejilla de inventario",
     "emptySlot": "Hueco vacío",
     "unknownItem": "Objeto desconocido",

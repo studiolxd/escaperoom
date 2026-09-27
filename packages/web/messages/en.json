@@ -87,7 +87,6 @@
   },
   "Inventory": {
     "title": "Inventory",
-    "recipes": "Recipes: {found}/{total}",
     "gridLabel": "Inventory grid",
     "emptySlot": "Empty slot",
     "unknownItem": "Unknown item",

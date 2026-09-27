@@ -87,7 +87,6 @@
   },
   "Inventory": {
     "title": "Inventaris",
-    "recipes": "Recepten: {found}/{total}",
     "gridLabel": "Inventarisraster",
     "emptySlot": "Leeg vak",
     "unknownItem": "Onbekend voorwerp",
