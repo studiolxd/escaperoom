@@ -12,8 +12,7 @@
     "disconnected": "Conéctate para chatear",
     "send": "Enviar",
     "filtered": "filtrado",
-    "filteredTitle": "El filtro de lenguaje ha censurado parte de este mensaje",
-    "hint": "Máx. {max} caracteres · 2 mensajes por segundo"
+    "filteredTitle": "El filtro de lenguaje ha censurado parte de este mensaje"
   },
   "Media": {
     "status": {

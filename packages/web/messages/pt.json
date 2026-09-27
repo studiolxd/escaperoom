@@ -890,8 +890,7 @@
     "disconnected": "Liga-te para conversar",
     "send": "Enviar",
     "filtered": "filtrado",
-    "filteredTitle": "O filtro de linguagem censurou parte desta mensagem",
-    "hint": "Máx. {max} caracteres · 2 mensagens por segundo"
+    "filteredTitle": "O filtro de linguagem censurou parte desta mensagem"
   },
   "Hints": {
     "title": "Pistas",

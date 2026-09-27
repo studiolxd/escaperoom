@@ -890,8 +890,7 @@
     "disconnected": "Maak verbinding om te chatten",
     "send": "Versturen",
     "filtered": "gefilterd",
-    "filteredTitle": "Het taalfilter heeft een deel van dit bericht gecensureerd",
-    "hint": "Max. {max} tekens · 2 berichten per seconde"
+    "filteredTitle": "Het taalfilter heeft een deel van dit bericht gecensureerd"
   },
   "Hints": {
     "title": "Hints",

@@ -890,8 +890,7 @@
     "disconnected": "Connectez-vous pour discuter",
     "send": "Envoyer",
     "filtered": "filtré",
-    "filteredTitle": "Le filtre de langage a censuré une partie de ce message",
-    "hint": "Max. {max} caractères · 2 messages par seconde"
+    "filteredTitle": "Le filtre de langage a censuré une partie de ce message"
   },
   "Hints": {
     "title": "Indices",

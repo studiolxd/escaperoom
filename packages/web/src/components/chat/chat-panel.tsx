@@ -3,7 +3,7 @@
 import { memo, useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
-import { CHAT_HISTORY_LIMIT, CHAT_MAX_LENGTH } from "@escaperoom/shared/chat";
+import { CHAT_MAX_LENGTH } from "@escaperoom/shared/chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -76,12 +76,7 @@ export const ChatWindow = memo(function ChatWindow({
         className,
       )}
     >
-      <header className="flex items-center justify-between">
-        <h2 className="text-xs uppercase tracking-wide text-muted-foreground">{t("title")}</h2>
-        <span className="font-mono text-[10px] text-muted-foreground">
-          {messages.length}/{CHAT_HISTORY_LIMIT}
-        </span>
-      </header>
+      <h2 className="text-xs uppercase tracking-wide text-muted-foreground">{t("title")}</h2>
 
       <ul
         ref={listRef}
@@ -130,9 +125,7 @@ export const ChatWindow = memo(function ChatWindow({
         <p aria-live="polite" className="text-xs text-rose-600 dark:text-rose-300">
           {chatError}
         </p>
-      ) : (
-        <p className="text-[10px] text-muted-foreground">{t("hint", { max: CHAT_MAX_LENGTH })}</p>
-      )}
+      ) : null}
     </section>
   );
 });

@@ -992,8 +992,7 @@
     "disconnected": "Connect to chat",
     "send": "Send",
     "filtered": "filtered",
-    "filteredTitle": "The language filter censored part of this message",
-    "hint": "Max. {max} characters · 2 messages per second"
+    "filteredTitle": "The language filter censored part of this message"
   },
   "PublishConfirm": {
     "title": "Confirm publication",
