@@ -64,6 +64,12 @@ Tareas pendientes que no bloquean pero hay que resolver.
       versiones intermedias de dev (p. ej. `2026-09-26-2`) y sus comentarios. Con la base de producción vacía no
       hay aceptaciones previas que invalidar. Hacerlo junto con el resto de textos legales definitivos (incluido
       el dominio, entrada de abajo).
+- [ ] **Partidas de 1 jugador sin paneles multijugador.** En una partida con un solo jugador (sala de
+      máximo 1 jugador, o partida en la que solo hay uno) no deben mostrarse el panel de audio y vídeo
+      (LiveKit, `media-overlay`/`media-tiles`), el de jugadores (`PlayersAside`) ni el chat (`ChatWindow`),
+      ni en el lobby ni en la partida. Decidir el criterio exacto: por `meta.players.max === 1` de la sala,
+      o por número de jugadores conectados (y qué pasa si alguien entra tarde a una partida que empezó con
+      uno). Aplicar también al playtest del editor (un jugador).
 - [ ] **Decidir el dominio de producción.** Pendiente operativo, sin fecha. El Aviso
       Legal (`packages/web/src/content/legal/legal-notice.ts`) lleva un `[PENDIENTE]`
       con el dominio; al decidirlo, sustituirlo y revisar el resto de sitios que lo
