@@ -73,18 +73,18 @@ export function MemoryPanel({
       data-state={view.state}
       data-turn-mode={view.turnMode}
       className={cn(
-        "flex w-full max-w-sm flex-col gap-4 rounded-xl border border-white/10 bg-black/60 p-4 text-white backdrop-blur",
+        "flex w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/95 p-4 text-foreground backdrop-blur",
         className,
       )}
     >
       <header className="flex items-baseline justify-between gap-2">
         <h2 className="text-sm font-medium">{t("title")}</h2>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-white/50">
+          <span className="text-xs text-muted-foreground">
             {t("pairs", { found: view.matchedCount, total: view.targetCount })}
           </span>
           {onClose ? (
-            <Button size="xs" variant="overlayGhost" onClick={onClose}>
+            <Button size="xs" variant="ghost" onClick={onClose}>
               {t("close")}
             </Button>
           ) : null}
@@ -97,7 +97,7 @@ export function MemoryPanel({
         aria-valuemin={0}
         aria-valuemax={view.targetCount}
         aria-valuenow={view.matchedCount}
-        className="h-1.5 overflow-hidden rounded-full bg-white/10"
+        className="h-1.5 overflow-hidden rounded-full bg-muted"
       >
         <span
           data-slot="memory-progress"
@@ -106,7 +106,7 @@ export function MemoryPanel({
         />
       </div>
 
-      <p data-slot="memory-turn" className="text-center text-xs text-white/60">
+      <p data-slot="memory-turn" className="text-center text-xs text-muted-foreground">
         {turnLabel}
       </p>
 
@@ -122,7 +122,7 @@ export function MemoryPanel({
             <Button
               key={card.id}
               type="button"
-              variant="overlayGhost"
+              variant="ghost"
               role="option"
               aria-label={faceUp ? t("cardUp", { id: card.id }) : t("cardDown", { id: card.id })}
               aria-selected={faceUp}
@@ -136,8 +136,8 @@ export function MemoryPanel({
                 card.matched
                   ? "border-emerald-300/60 bg-emerald-300/10 text-emerald-100"
                   : faceUp
-                    ? "border-amber-300/60 bg-amber-300/10 text-amber-100"
-                    : "border-white/15 bg-white/5 text-white/30 hover:border-amber-300/50 hover:bg-white/10",
+                    ? "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:border-amber-300/60 dark:bg-amber-300/10 dark:text-amber-100"
+                    : "border-border bg-muted/50 text-muted-foreground hover:border-amber-300/50 hover:bg-muted",
               )}
             >
               {faceUp ? (
@@ -166,12 +166,12 @@ export function MemoryPanel({
         className={cn(
           "text-center text-xs",
           solved
-            ? "text-emerald-300"
+            ? "text-emerald-700 dark:text-emerald-300"
             : unavailable || feedback === "unavailable"
-              ? "text-amber-300"
+              ? "text-amber-700 dark:text-amber-300"
               : feedback === "mismatch" || feedback === "turn_ended" || feedback === "not_your_turn"
-                ? "text-red-300"
-                : "text-white/60",
+                ? "text-red-600 dark:text-red-300"
+                : "text-muted-foreground",
         )}
       >
         {pending ? t("pending") : status}

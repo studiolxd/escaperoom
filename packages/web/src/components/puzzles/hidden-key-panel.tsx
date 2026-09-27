@@ -49,11 +49,11 @@ export function HiddenKeyPanel({
       aria-label={t("title")}
       data-state={view.state}
       data-animation={view.revealAnimation}
-      className="flex w-fit flex-col gap-4 rounded-xl border border-white/10 bg-black/60 p-4 text-white backdrop-blur"
+      className="flex w-fit flex-col gap-4 rounded-xl border border-border bg-card/95 p-4 text-foreground backdrop-blur"
     >
       <header className="flex flex-col gap-0.5">
         <h2 className="text-sm font-medium">{t("title")}</h2>
-        <p className="text-xs text-white/60">{t("spot")}</p>
+        <p className="text-xs text-muted-foreground">{t("spot")}</p>
       </header>
 
       <div
@@ -62,8 +62,8 @@ export function HiddenKeyPanel({
         className={cn(
           "grid h-16 place-items-center rounded-md border text-center text-sm",
           revealed
-            ? "border-amber-300/60 bg-amber-300/10 text-amber-100"
-            : "border-white/15 bg-white/5 text-white/40",
+            ? "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:border-amber-300/60 dark:bg-amber-300/10 dark:text-amber-100"
+            : "border-border bg-muted/50 text-muted-foreground",
         )}
       >
         {revealed ? (view.itemId ?? "?") : t("hidden")}
@@ -78,7 +78,11 @@ export function HiddenKeyPanel({
         data-tone={revealed ? "success" : unavailable ? "locked" : "info"}
         className={cn(
           "text-center text-xs",
-          revealed ? "text-emerald-300" : unavailable ? "text-amber-300" : "text-white/60",
+          revealed
+            ? "text-emerald-700 dark:text-emerald-300"
+            : unavailable
+              ? "text-amber-700 dark:text-amber-300"
+              : "text-muted-foreground",
         )}
       >
         {status}

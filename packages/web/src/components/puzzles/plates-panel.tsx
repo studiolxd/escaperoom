@@ -82,13 +82,13 @@ export function PlatesPanel({
       data-state={view.state}
       data-hold-mode={view.holdMode}
       className={cn(
-        "flex w-fit flex-col gap-4 rounded-xl border border-white/10 bg-black/60 p-4 text-white backdrop-blur",
+        "flex w-fit flex-col gap-4 rounded-xl border border-border bg-card/95 p-4 text-foreground backdrop-blur",
         className,
       )}
     >
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="text-sm font-medium">{t("title")}</h2>
-        <span className="text-xs text-white/60">
+        <span className="text-xs text-muted-foreground">
           {t("progress", { active: view.activeCount, total: view.totalCount })}
         </span>
       </header>
@@ -99,7 +99,7 @@ export function PlatesPanel({
         aria-valuemin={0}
         aria-valuemax={view.totalCount}
         aria-valuenow={view.activeCount}
-        className="h-1.5 overflow-hidden rounded-full bg-white/10"
+        className="h-1.5 overflow-hidden rounded-full bg-muted"
       >
         <span
           data-slot="plates-progress"
@@ -112,7 +112,10 @@ export function PlatesPanel({
         <p
           data-slot="plates-countdown"
           data-open={windowOpen}
-          className={cn("text-center text-xs", windowOpen ? "text-amber-200" : "text-white/50")}
+          className={cn(
+            "text-center text-xs",
+            windowOpen ? "text-amber-200" : "text-muted-foreground",
+          )}
         >
           {windowOpen ? t("countdown", { seconds }) : t("windowClosed")}
         </p>
@@ -122,7 +125,7 @@ export function PlatesPanel({
         {view.plates.map((plate) => (
           <li key={plate.objectId}>
             <Button
-              variant="overlay"
+              variant="secondary"
               size="sm"
               className="w-full justify-between"
               aria-label={t("plate", { id: plate.objectId })}
@@ -134,7 +137,9 @@ export function PlatesPanel({
               onClick={() => onTogglePlate?.(plate.objectId, !plate.active)}
             >
               <span className="font-mono text-xs">{plate.objectId}</span>
-              <span className={cn("text-xs", plate.active ? "text-amber-100" : "text-white/50")}>
+              <span
+                className={cn("text-xs", plate.active ? "text-amber-100" : "text-muted-foreground")}
+              >
                 {plate.bridged ? t("bridged") : plate.active ? t("active") : t("inactive")}
               </span>
             </Button>
@@ -143,12 +148,7 @@ export function PlatesPanel({
       </ul>
 
       {onPlaceBridge ? (
-        <Button
-          variant="overlayGhost"
-          size="sm"
-          disabled={disabled}
-          onClick={onPlaceBridge}
-        >
+        <Button variant="ghost" size="sm" disabled={disabled} onClick={onPlaceBridge}>
           {t("placeBridge")}
         </Button>
       ) : null}
@@ -165,10 +165,10 @@ export function PlatesPanel({
         className={cn(
           "text-center text-xs",
           solved
-            ? "text-emerald-300"
+            ? "text-emerald-700 dark:text-emerald-300"
             : unavailable || feedback === "expired" || feedback === "unavailable"
-              ? "text-amber-300"
-              : "text-white/60",
+              ? "text-amber-700 dark:text-amber-300"
+              : "text-muted-foreground",
         )}
       >
         {pending ? t("pending") : status}

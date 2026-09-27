@@ -2,7 +2,10 @@ import type { ReactNode } from "react";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { CombineItemsPublicView } from "@escaperoom/shared/templates";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { InventoryPanel, type InventoryCombineFeedback } from "@/components/puzzles/inventory-panel";
+import {
+  InventoryPanel,
+  type InventoryCombineFeedback,
+} from "@/components/puzzles/inventory-panel";
 
 export interface InventoryDialogProps {
   open: boolean;
@@ -44,7 +47,7 @@ export function InventoryDialog({
         overlayClassName="hidden"
         onEscapeKeyDown={onEscapeKeyDown}
         data-testid="game-inventory-overlay"
-        className="absolute inset-0 top-auto left-auto z-30 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-black/60 p-4 ring-0"
+        className="absolute inset-0 top-auto left-auto z-30 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-background/70 p-4 ring-0"
       >
         <DialogTitle className="sr-only">{inventoryLabel}</DialogTitle>
         <DialogDescription className="sr-only">{dragHintLabel}</DialogDescription>
@@ -58,7 +61,7 @@ export function InventoryDialog({
             renderIcon={(item) => renderIcon(item.id)}
           />
         ) : (
-          <p className="text-sm text-white/70">{loadingLabel}</p>
+          <p className="text-sm text-muted-foreground">{loadingLabel}</p>
         )}
       </DialogContent>
     </Dialog>

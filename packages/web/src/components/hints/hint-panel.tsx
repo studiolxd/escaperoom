@@ -49,7 +49,7 @@ export function HintPanel({
     <section
       aria-label={t("title")}
       className={cn(
-        "flex w-72 flex-col gap-3 rounded-xl border border-white/10 bg-black/60 p-4 text-white backdrop-blur",
+        "flex w-72 flex-col gap-3 rounded-xl border border-border bg-card/95 p-4 text-foreground backdrop-blur",
         className,
       )}
     >
@@ -62,21 +62,21 @@ export function HintPanel({
 
       <ol className="flex flex-col gap-2" data-testid="hint-tiers">
         {hints.length === 0 ? (
-          <li className="text-xs text-white/50">{t("empty")}</li>
+          <li className="text-xs text-muted-foreground">{t("empty")}</li>
         ) : (
           hints.map((hint) => (
-            <li key={hint.id} className="rounded-lg border border-white/10 bg-white/5 p-2">
+            <li key={hint.id} className="rounded-lg border border-border bg-muted/50 p-2">
               <p className="text-[0.7rem] font-medium tracking-wide text-amber-200 uppercase">
                 {t("tier", { tier: hint.tier })}
               </p>
-              <p className="text-xs text-white/85">{hint.text}</p>
+              <p className="text-xs text-foreground/90">{hint.text}</p>
             </li>
           ))
         )}
       </ol>
 
       <Button
-        variant="overlay"
+        variant="secondary"
         size="lg"
         disabled={!canRequest}
         onClick={() => onRequest(puzzleId)}
@@ -88,7 +88,7 @@ export function HintPanel({
             : t("requestCost", { cost: nextCost })}
       </Button>
 
-      <p aria-live="polite" className="text-center text-xs text-amber-300">
+      <p aria-live="polite" className="text-center text-xs text-amber-700 dark:text-amber-300">
         {!available
           ? t("unavailable")
           : error

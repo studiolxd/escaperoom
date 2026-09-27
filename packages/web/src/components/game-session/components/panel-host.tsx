@@ -88,12 +88,12 @@ export function PanelHost({
         showCloseButton={false}
         overlayClassName="hidden"
         onEscapeKeyDown={onEscapeKeyDown}
-        className="absolute inset-0 top-auto left-auto z-20 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-black/50 p-4 ring-0"
+        className="absolute inset-0 top-auto left-auto z-20 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-background/70 p-4 ring-0"
       >
         <DialogTitle className="sr-only">{panelTitle(panel)}</DialogTitle>
         <DialogDescription className="sr-only">{closeLabel}</DialogDescription>
         <div className="flex flex-col items-end gap-2">
-          <Button size="sm" variant="overlayGhost" onClick={onClose}>
+          <Button size="sm" variant="secondary" onClick={onClose}>
             {closeLabel}
           </Button>
           {panel === "hints" && hintPuzzleId ? (
@@ -105,7 +105,9 @@ export function PanelHost({
               error={hintError}
             />
           ) : null}
-          {activePuzzle && !activeView ? <p className="text-sm text-white/70">{loadingLabel}</p> : null}
+          {activePuzzle && !activeView ? (
+            <p className="text-sm text-muted-foreground">{loadingLabel}</p>
+          ) : null}
           {activePuzzle?.type === "hidden_key" && activeView ? (
             <HiddenKeyPanel
               view={activeView as HiddenKeyPublicView}
