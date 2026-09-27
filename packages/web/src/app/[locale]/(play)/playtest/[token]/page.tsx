@@ -5,6 +5,7 @@ import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { buildGameModel, type GameModelPayload } from "@/lib/game-model";
 import type { IntroModel } from "@/lib/intro-model";
 import { buildGameIntro } from "@/server/game-intro";
+import { introAudioUrlResolver } from "@/server/intro-audio-url";
 import { introMediaUrlResolver } from "@/server/intro-media-url";
 import { isPlaytestExpired, readPlaytestToken } from "@/lib/playtest-link";
 import { getPlaytestPackageReader } from "@/server/playtest-launcher";
@@ -36,6 +37,7 @@ async function loadPlaytestModel(playtestId: string, locale: string): Promise<Lo
       roomPackage,
       locale,
       draftRoomId ? introMediaUrlResolver({ kind: "draft", roomId: draftRoomId }) : undefined,
+      draftRoomId ? introAudioUrlResolver({ kind: "draft", roomId: draftRoomId }) : undefined,
     );
     return { ok: true, payload: buildGameModel(roomPackage, locale), intro };
   } catch {

@@ -16,11 +16,22 @@ const MediaRefSchema = z
     "debe ser una referencia `media:<uuid>` devuelta por la tool upload",
   );
 
+/** Referencia estable de audio del creador (`library:<id>` / `upload:<uuid>`), como `LocalizedText.audioUrl`. */
+const AudioRefSchema = z
+  .string()
+  .regex(
+    /^(library:[a-z0-9]+(?:-[a-z0-9]+)*|upload:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i,
+    'debe ser "library:<id>" o "upload:<uuid>"',
+  );
+
 const IntroInputSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("text"),
     text: LocalizedTextSchema.describe(
       `Texto por idioma declarado de la sala ({ es: { text }, en: { text } }), hasta ${MAX_INTRO_TEXT_LENGTH} caracteres cada uno`,
+    ),
+    audioUrl: AudioRefSchema.optional().describe(
+      "Narración opcional de toda la introducción (no por idioma), una referencia de audio del creador ya subida o generada",
     ),
   }),
   z.object({

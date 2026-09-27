@@ -5,5 +5,6 @@
  * `@escaperoom/shared/services` (`createAudioAssetService`).
  */
 export * from "./library";
+export * from "./limits";
 export * from "./mp3";
 export * from "./refs";

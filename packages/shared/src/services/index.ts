@@ -25,6 +25,7 @@ export * from "./audio-assets";
 export * from "./audio-assets-prisma-store";
 export * from "./intro-media";
 export * from "./intro-media-prisma-store";
+export * from "./intro-audio";
 export * from "./credits";
 export * from "./credits-prisma-store";
 export * from "./elevenlabs-client";

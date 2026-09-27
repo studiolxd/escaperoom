@@ -74,12 +74,28 @@ export function IntroOverlay({ intro, onClose }: IntroOverlayProps) {
         {t("intro.title")}
       </h2>
       {intro.kind === "text" ? (
-        <div
-          className="max-h-[60dvh] overflow-y-auto whitespace-pre-line text-sm leading-relaxed text-foreground/90"
-          data-testid="game-intro-text"
-        >
-          {intro.text}
-        </div>
+        <>
+          <div
+            className="max-h-[60dvh] overflow-y-auto whitespace-pre-line text-sm leading-relaxed text-foreground/90"
+            data-testid="game-intro-text"
+          >
+            {intro.text}
+          </div>
+          {intro.audioUrl ? (
+            // Narración opcional (encargo "audio de la introducción"): elemento
+            // de medios nativo, sin autoplay (nunca suena solo), controles del
+            // navegador.
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            <audio
+              controls
+              preload="metadata"
+              src={intro.audioUrl}
+              aria-label={t("intro.audioLabel")}
+              className="w-full"
+              data-testid="game-intro-audio"
+            />
+          ) : null}
+        </>
       ) : (
         // Los subtítulos son opcionales (decisión del usuario): cuando el
         // creador los sube van como `<track>` por idioma, más abajo.

@@ -63,7 +63,18 @@ const PlayersRangeSchema = z.object({
 const MediaRefSchema = z.string().min(1).max(MAX_INTRO_MEDIA_REF_LENGTH);
 
 export const RoomIntroSchema = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("text"), text: LocalizedTextSchema }),
+  z.object({
+    type: z.literal("text"),
+    text: LocalizedTextSchema,
+    /**
+     * Narración opcional del texto (encargo "audio de la introducción"):
+     * misma referencia estable que `LocalizedText.audioUrl` (`library:<id>` /
+     * `upload:<uuid>`, subida a mano o generada con ElevenLabs desde el
+     * creador) — nunca localizada, a diferencia del texto: una sola pista
+     * para toda la introducción.
+     */
+    audioUrl: z.string().max(MAX_CONTENT_STRING_LENGTH).optional(),
+  }),
   z.object({
     type: z.literal("video"),
     video: MediaRefSchema,
