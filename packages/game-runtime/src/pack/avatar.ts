@@ -106,3 +106,22 @@ export function directionFromGridDelta(dx: number, dy: number): AvatarDirection 
   }
   return screenY >= 0 ? "s" : "n";
 }
+
+/**
+ * Inversa de {@link directionFromGridDelta} para un paso de un solo eje
+ * (el único caso que produce cada una de las 4 direcciones): vector unitario
+ * en celdas de rejilla hacia el que mira esa dirección. Usado para el
+ * interactuar "de frente" con la tecla Espacio (revisión en vivo).
+ */
+export function directionToGridDelta(direction: AvatarDirection): { x: number; y: number } {
+  switch (direction) {
+    case "e":
+      return { x: 1, y: 0 };
+    case "w":
+      return { x: -1, y: 0 };
+    case "s":
+      return { x: 0, y: 1 };
+    case "n":
+      return { x: 0, y: -1 };
+  }
+}

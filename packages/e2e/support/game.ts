@@ -173,22 +173,6 @@ export class UiPlayer {
     await this.page.mouse.click(box.x + point.x * box.width, box.y + point.y * box.height);
   }
 
-  /**
-   * Camina hasta `objectId` y cierra su menú sin elegir ninguna acción — solo
-   * para REPOSICIONAR al avatar cerca de él antes de ir a otro sitio.
-   * `approachCell` (game-runtime) elige la celda adyacente más cercana en
-   * LÍNEA RECTA a la posición actual, sin rodear obstáculos de por medio (sin
-   * pathfinding real): de la sala de espera a un objeto de la pared en línea
-   * con una estatua, el avatar podía quedarse clavado contra ella.
-   * `playThroneRoom` usa esto para acercarse en dos saltos (por una zona ya
-   * confirmada despejada) al primer objeto de la ruta, en vez de en uno
-   * directo que sí puede toparse con un obstáculo. Encargo revisión en vivo.
-   */
-  async warmUpNear(objectId: string): Promise<void> {
-    await this.clickObjectOnCanvas(objectId);
-    await this.page.getByRole("button", { name: "Cancelar", exact: true }).click();
-  }
-
   /** Clic en el objeto → acción del menú contextual. */
   private async objectAction(objectId: string, action: string): Promise<void> {
     await this.clickObjectOnCanvas(objectId);
@@ -199,8 +183,14 @@ export class UiPlayer {
     await this.objectAction(objectId, "Inspeccionar");
   }
 
+  /**
+   * "Abrir panel" ya no existe como botón del menú (revisión en vivo,
+   * quitado): "Inspeccionar" ya abre el panel del puzzle asociado al objeto
+   * (`useGameHud.inspect`), así que abrir su panel es simplemente
+   * inspeccionarlo.
+   */
   async openPanel(objectId: string): Promise<void> {
-    await this.objectAction(objectId, "Abrir panel");
+    await this.inspect(objectId);
   }
 
   /** «Usar objeto…» sobre `objectId` y elegir `itemName` en el selector. */

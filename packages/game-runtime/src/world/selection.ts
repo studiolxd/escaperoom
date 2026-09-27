@@ -1,4 +1,5 @@
 import type { RuntimeObject } from "../loader";
+import { isReachable } from "./pathfinding";
 
 /**
  * Selección fiable de objetos interactuables (specs/04 §4, ticket 1.14).
@@ -26,15 +27,25 @@ const EPSILON = 1e-9;
 export interface NearestInteractableOptions {
   /** Radio máximo en celdas; por defecto {@link INTERACT_RADIUS}. */
   radius?: number;
+  /**
+   * Vector unitario de "hacia dónde mira" el avatar (revisión en vivo: la
+   * tecla Espacio solo debe interactuar con lo que tiene delante, no con
+   * cualquier cosa dentro del radio). Sin este campo, sin filtro de
+   * dirección (comportamiento por defecto, el que sigue usando el drag&drop
+   * de items sobre el mundo). Un objeto en la propia celda del avatar
+   * (distancia ~0) nunca se descarta por dirección, al no tener una hacia él.
+   */
+  facing?: { x: number; y: number };
 }
 
 /** Subconjunto mínimo de `RuntimeObject` que necesita la selección. */
 export type SelectableObject = Pick<RuntimeObject, "id" | "position" | "interactable">;
 
 /**
- * Devuelve el objeto interactuable más cercano a `cell` dentro de `radius`.
- * A igual distancia desempata por `id` (orden estable). Nunca devuelve un
- * objeto fuera de radio ni uno no interactuable.
+ * Devuelve el objeto interactuable más cercano a `cell` dentro de `radius`
+ * (y, si se da `facing`, delante del avatar — semiplano, producto escalar
+ * ≥ 0). A igual distancia desempata por `id` (orden estable). Nunca
+ * devuelve un objeto fuera de radio, no interactuable, o a la espalda.
  */
 export function nearestInteractable<T extends SelectableObject>(
   objects: readonly T[],
@@ -42,6 +53,7 @@ export function nearestInteractable<T extends SelectableObject>(
   options: NearestInteractableOptions = {},
 ): T | undefined {
   const radius = options.radius ?? INTERACT_RADIUS;
+  const facing = options.facing;
   let best: T | undefined;
   let bestDistance = Number.POSITIVE_INFINITY;
 
@@ -49,8 +61,13 @@ export function nearestInteractable<T extends SelectableObject>(
     if (!object.interactable) {
       continue;
     }
-    const distance = Math.hypot(object.position.x - cell.x, object.position.y - cell.y);
+    const dx = object.position.x - cell.x;
+    const dy = object.position.y - cell.y;
+    const distance = Math.hypot(dx, dy);
     if (distance > radius + EPSILON) {
+      continue;
+    }
+    if (facing && distance > EPSILON && dx * facing.x + dy * facing.y < -EPSILON) {
       continue;
     }
 
@@ -82,39 +99,17 @@ export function nearestInteractableId(
 
 /**
  * Celda transitable desde la que acercarse a un objeto: la adyacente (8
- * vecinos) más próxima a `from` que sea caminable, con desempate estable. Si
- * ninguna adyacente lo es, cae a la propia celda del objeto si es caminable.
- * Es pura: la transitabilidad entra como predicado.
+ * vecinos) más próxima a `from` que sea caminable Y alcanzable de verdad
+ * desde `from` (BFS, `./pathfinding`, revisión en vivo) — antes solo se
+ * comprobaba que el rectángulo delimitador entre las dos celdas estuviera
+ * libre, una heurística insuficiente en salas no rectangulares (el
+ * rectángulo puede incluir celdas fuera del contorno de la sala aunque
+ * exista un camino real rodeando el obstáculo) que dejaba al avatar clavado
+ * contra una estatua u otro obstáculo con el objetivo detrás. Si ninguna
+ * adyacente es alcanzable, cae a la más cercana en línea recta sin más (y,
+ * si tampoco hay ninguna caminable, a la propia celda del objeto). Es pura:
+ * la transitabilidad entra como predicado.
  */
-/**
- * `true` si el rectángulo (en celdas, redondeadas) entre `from` y `to` es
- * enteramente caminable. El avatar se mueve eje a eje cada frame (nunca en
- * línea recta exacta, `RoomScene.readMove`/`AvatarController.tryMove`), así
- * que su trayectoria real queda SIEMPRE dentro de este rectángulo — si está
- * libre entero, el camino es seguro pase lo que pase el orden x/y de cada
- * frame. Es una comprobación deliberadamente conservadora (más cara de lo
- * estrictamente necesario), no un pathfinding real: solo evita elegir una
- * celda de acercamiento que obligue a cruzar un obstáculo de por medio
- * (encargo revisión en vivo: el avatar se quedaba clavado contra una
- * estatua al ir a un objeto lejano en línea con ella).
- */
-function hasClearPath(
-  from: GridCell,
-  to: GridCell,
-  isWalkable: (x: number, y: number) => boolean,
-): boolean {
-  const x0 = Math.min(Math.round(from.x), Math.round(to.x));
-  const x1 = Math.max(Math.round(from.x), Math.round(to.x));
-  const y0 = Math.min(Math.round(from.y), Math.round(to.y));
-  const y1 = Math.max(Math.round(from.y), Math.round(to.y));
-  for (let x = x0; x <= x1; x += 1) {
-    for (let y = y0; y <= y1; y += 1) {
-      if (!isWalkable(x, y)) return false;
-    }
-  }
-  return true;
-}
-
 export function approachCell(
   target: GridCell,
   from: GridCell,
@@ -152,5 +147,5 @@ export function approachCell(
     return a.y - b.y;
   });
 
-  return candidates.find((c) => hasClearPath(from, c, isWalkable)) ?? candidates[0];
+  return candidates.find((c) => isReachable(from, c, isWalkable)) ?? candidates[0];
 }

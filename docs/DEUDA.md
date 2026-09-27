@@ -136,23 +136,20 @@ Tareas pendientes que no bloquean pero hay que resolver.
       §"Pipeline de personajes jugables"), sustituir su carpeta de enlaces por la entrega real
       (`empaquetar_avatar.py` + `empaquetar_retrato.py`) y quitar la entrada correspondiente de
       `tools/assets-generator/packs/medieval-v1/entregas/avatares/`.
-- [ ] **Pathfinding real para el movimiento del avatar (revisión en vivo).** El clic
-      directo sobre un objeto en el canvas (`RoomScene.wireInteraction`, sustituye a la
-      `ObjectsBar` de la partida real) puede dejar al avatar clavado a mitad de camino
-      cuando la ruta en línea recta hacia la celda de acercamiento cruza un obstáculo
-      (una estatua) o una zona no caminable fuera del contorno de la sala. `approachCell`
-      (`packages/game-runtime/src/world/selection.ts`) ya prefiere, entre las celdas
-      adyacentes al objeto, la primera cuyo **rectángulo delimitador** hacia el jugador
-      esté enteramente libre (`hasClearPath`), pero es una heurística insuficiente en
-      salas no rectangulares o en forma de L: el rectángulo entre dos puntos puede
-      incluir celdas fuera de la sala aunque exista un camino válido rodeando el
-      obstáculo, y entonces cae al candidato más cercano en línea recta sin más — el
-      mismo bloqueo que se quería evitar. Reproducido en el Salón del Trono de Rey
-      Aldric: desde el spawn hasta `cuadro-aurelio` (estatua de por medio) y, tras
-      resolver las placas, desde `placa-izq`/`placa-der` hasta `puerta-bodega`. El E2E
-      (`packages/e2e/support/game.ts`, `UiPlayer.warmUpNear`) esquiva el primer caso con
-      un salto intermedio hacia un objeto despejado antes del real, pero es un parche
-      empírico por caso, no una solución general — el segundo bloqueo (puerta de la
-      bodega) sigue sin arreglo y deja fallando el smoke test `game.reyaldric.spec.ts`.
-      Arreglo de fondo: pathfinding real sobre el grid de colisión (BFS/A*) en
-      `AvatarController`/`approachCell`, no un chequeo de rectángulo.
+- [ ] **Smoke E2E (`game.reyaldric.spec.ts`) intermitente en el último paso (cruzar
+      `puerta-bodega`).** El pathfinding real ya está implementado (BFS con
+      simplificado de ruta, `packages/game-runtime/src/world/pathfinding.ts`,
+      `findPath`/`simplifyPath`, revisión en vivo) y sustituye a la vieja heurística de
+      "rectángulo delimitador libre" (`hasClearPath`, insuficiente en salas no
+      rectangulares) — el avatar ya no se queda clavado contra una estatua u otro
+      obstáculo con el destino detrás, ni al ir a `cuadro-aurelio` desde el spawn ni al
+      ir de las placas a la puerta. En 3 ejecuciones seguidas del smoke test tras el
+      arreglo, los pasos 1–5 (candado, cuadro, armario, combinar, brasero) pasaron las
+      3 veces; el registro del juego confirma que ambos jugadores llegan a cruzar de
+      verdad a la Bodega ("Entras en La Bodega de los Vinos Encantados"), pero el
+      `page.waitForFunction` de `UiPlayer.goTo` (`packages/e2e/support/game.ts`) que
+      espera a que la puerta deje de estar en la sala visible falló por timeout en 1 de
+      esas 3 veces pese a que el cruce sí ocurrió — parece timing del propio arnés de
+      pruebas (dos `BrowserContext`, sincronización de red) más que un bug de
+      movimiento. Revisar si `goTo` necesita más margen o una espera distinta antes de
+      dar el smoke test por estable.

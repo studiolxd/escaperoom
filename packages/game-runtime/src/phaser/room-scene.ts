@@ -3,6 +3,7 @@ import type { RuntimeModel, RuntimeObject, RuntimeSubRoom } from "../loader";
 import {
   buildCollisionGrid,
   buildPlaceholderManifest,
+  directionToGridDelta,
   PLACEHOLDER_CHARACTER_ID,
   resolveSpriteFrame,
   resolveTileFrame,
@@ -20,6 +21,7 @@ import {
   createContainerStateMap,
   createObjectStateMap,
   currentObjectState,
+  findPath,
   inspectObject,
   nearestInteractable,
   reactiveObjectIds,
@@ -29,11 +31,12 @@ import {
   resolveObjectStateSprite,
   setObjectState as applyObjectState,
   type ContainerStateMap,
+  type GridCell,
   type ObjectStateMap,
 } from "../world";
 import { EDIT_EVENT, type EditCell, type EditSceneEvent } from "../edit";
 import { AVATAR_MOVE_EMIT_MS as SESSION_AVATAR_MOVE_EMIT_MS } from "../session/protocol";
-import { AvatarController } from "./avatar";
+import { AvatarController, type AvatarMove } from "./avatar";
 import {
   ISO_TILE_HEIGHT,
   ISO_TILE_WIDTH,
@@ -87,8 +90,23 @@ function formatLabel(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (match, key: string) => vars[key] ?? match);
 }
 
-/** Lado (px del mundo) de la zona de clic fija de `wireInteraction`, centrada en el ancla del objeto. */
-const OBJECT_HIT_SIZE = 44;
+/**
+ * Semiancho/semialto (px del mundo) de la zona de clic fija de
+ * `wireInteraction`, centrada en el ancla de cada objeto. Cotas
+ * MATEMÁTICAMENTE seguras (revisión en vivo): dos celdas de grid DISTINTAS
+ * nunca comparten ancla de pantalla (`tileAnchor`, proyección isométrica), y
+ * la separación mínima entre dos anclas distintas es `ISO_TILE_WIDTH` en X
+ * (pares con la misma pantalla-Y) o `ISO_TILE_HEIGHT` en Y (pares con la
+ * misma pantalla-X, p. ej. `trono` en (9,1) y `retrato-2` en (8,0): su
+ * `tx-ty` coincide, así que comparten X de pantalla y solo separan
+ * `ISO_TILE_HEIGHT` en Y). Manteniendo el semiancho/semialto por debajo de la
+ * MITAD de esa separación mínima, dos zonas de clic de celdas distintas
+ * JAMÁS se solapan — antes, con un cuadrado fijo de 44px (semilado 22, mayor
+ * que la mitad de `ISO_TILE_HEIGHT`, 16), un clic sobre el trono podía
+ * activar el retrato de al lado.
+ */
+const OBJECT_HIT_HALF_WIDTH = ISO_TILE_WIDTH / 2 - 6;
+const OBJECT_HIT_HALF_HEIGHT = ISO_TILE_HEIGHT / 2 - 3;
 
 /**
  * El teclado de Phaser escucha en `document`, no en el canvas: sin esto, el
@@ -369,7 +387,12 @@ export class RoomScene extends Phaser.Scene {
   private built = false;
   private transitioning = false;
   private doorCooldownUntil = 0;
-  private clickTarget?: { x: number; y: number };
+  /**
+   * Ruta pendiente hacia el destino del clic (BFS, `world/pathfinding`,
+   * revisión en vivo): waypoints por recorrer, SIN incluir la celda actual
+   * del avatar. Vacío = sin movimiento por clic en curso.
+   */
+  private path: GridCell[] = [];
   /** Objeto al que el avatar camina para abrir su menú al llegar (clic). */
   private pendingObjectId?: string;
 
@@ -513,7 +536,7 @@ export class RoomScene extends Phaser.Scene {
    * se aplica al crear el avatar.
    */
   placeAvatar(x: number, y: number): void {
-    this.clickTarget = undefined;
+    this.path = [];
     this.pendingObjectId = undefined;
     if (this.avatar && !this.transitioning) {
       this.avatar.setCell(x, y);
@@ -644,7 +667,7 @@ export class RoomScene extends Phaser.Scene {
     }
     this.localInputEnabled = enabled;
     if (!enabled) {
-      this.clickTarget = undefined;
+      this.path = [];
       this.pendingObjectId = undefined;
       this.input.setDefaultCursor("default");
     }
@@ -719,7 +742,7 @@ export class RoomScene extends Phaser.Scene {
     this.avatar?.destroy();
     this.avatar = undefined;
     this.clearRemoteAvatars();
-    this.clickTarget = undefined;
+    this.path = [];
     this.pendingObjectId = undefined;
     this.hoveredObjectId = undefined;
     this.input.setDefaultCursor("default");
@@ -963,8 +986,8 @@ export class RoomScene extends Phaser.Scene {
    */
   private wireInteraction(view: ObjectView): void {
     const { sprite, object } = view;
-    const halfW = OBJECT_HIT_SIZE / 2 / sprite.scaleX;
-    const halfH = OBJECT_HIT_SIZE / 2 / sprite.scaleY;
+    const halfW = OBJECT_HIT_HALF_WIDTH / sprite.scaleX;
+    const halfH = OBJECT_HIT_HALF_HEIGHT / sprite.scaleY;
     const anchorLocalX = sprite.originX * sprite.frame.width;
     const anchorLocalY = sprite.originY * sprite.frame.height;
     sprite.setInteractive(
@@ -997,12 +1020,18 @@ export class RoomScene extends Phaser.Scene {
     const target = approachCell(object.position, this.avatar.gridCell, (x, y) =>
       this.collision.isWalkable(x, y),
     );
-    if (!target) {
+    const path =
+      target &&
+      findPath(this.avatar.gridCell, target, (x, y) => this.collision.isWalkable(x, y));
+    if (!path) {
+      // Sin ruta real hasta ninguna celda de acercamiento (objeto en una
+      // zona inalcanzable): mejor abrir directo su menú que dejar al avatar
+      // caminando hacia un destino al que nunca podrá llegar.
       this.inspectObjectById(objectId);
       return;
     }
     this.pendingObjectId = objectId;
-    this.clickTarget = target;
+    this.path = path.slice(1);
   }
 
   /** Si el avatar ya alcanzó el objeto pendiente, abre su menú/interacción. */
@@ -1020,7 +1049,7 @@ export class RoomScene extends Phaser.Scene {
     const distance = Math.hypot(object.position.x - cell.x, object.position.y - cell.y);
     if (distance <= 1.75) {
       this.pendingObjectId = undefined;
-      this.clickTarget = undefined;
+      this.path = [];
       this.inspectObjectById(objectId);
     }
   }
@@ -1301,12 +1330,20 @@ export class RoomScene extends Phaser.Scene {
     return this.model.itemsById[itemId]?.name ?? itemId;
   }
 
-  /** Interactúa con el objeto interactuable más cercano al avatar (tecla Espacio). */
+  /**
+   * Interactúa con el objeto interactuable más cercano al avatar QUE ADEMÁS
+   * tenga delante (revisión en vivo: la tecla Espacio no debía disparar algo
+   * a la espalda o al lado solo por estar dentro del radio).
+   */
   private interactNearest(): void {
     if (!this.localInputEnabled || !this.avatar) {
       return;
     }
-    const nearest = this.findInteractableNear(this.avatar.gridCell);
+    const nearest = this.findInteractableNear(
+      this.avatar.gridCell,
+      undefined,
+      directionToGridDelta(this.avatar.facing),
+    );
     if (nearest) {
       this.inspectObjectById(nearest);
     }
@@ -1337,12 +1374,16 @@ export class RoomScene extends Phaser.Scene {
    * Delegación pura (`nearestInteractable`) con desempate estable: nunca salta
    * a otro objeto a igual distancia.
    */
-  private findInteractableNear(cell: { x: number; y: number }, radius = 1.75): string | undefined {
+  private findInteractableNear(
+    cell: { x: number; y: number },
+    radius = 1.75,
+    facing?: { x: number; y: number },
+  ): string | undefined {
     const room = this.model.subroomsById[this.activeRoomId];
     if (!room) {
       return undefined;
     }
-    return nearestInteractable(room.objects, cell, { radius })?.id;
+    return nearestInteractable(room.objects, cell, { radius, facing })?.id;
   }
 
   private showDialog(text: string): void {
@@ -1606,28 +1647,42 @@ export class RoomScene extends Phaser.Scene {
     const world = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
     const tile = worldToTile(world.x, world.y);
     if (this.collision.isWalkable(tile.tx, tile.ty)) {
-      this.pendingObjectId = undefined;
-      this.clickTarget = { x: tile.tx, y: tile.ty };
+      const path = findPath(this.avatar.gridCell, { x: tile.tx, y: tile.ty }, (x, y) =>
+        this.collision.isWalkable(x, y),
+      );
+      // Sin ruta real (bolsa de suelo caminable aislada del resto): no hay
+      // nada sensato que hacer, mejor no mover que dejarlo clavado.
+      if (path) {
+        this.pendingObjectId = undefined;
+        this.path = path.slice(1);
+      }
     }
   }
 
-  private readMove(): { x: number; y: number } | null {
+  private readMove(): AvatarMove | null {
     const keyboardMove = this.readKeyboardMove();
     if (keyboardMove) {
-      this.clickTarget = undefined;
+      this.path = [];
       this.pendingObjectId = undefined;
       return keyboardMove;
     }
 
-    if (this.clickTarget && this.avatar) {
-      const cell = this.avatar.cellPosition;
-      const dx = this.clickTarget.x - cell.x;
-      const dy = this.clickTarget.y - cell.y;
-      if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
-        this.clickTarget = undefined;
-        return null;
+    if (this.avatar) {
+      while (this.path.length > 0) {
+        const cell = this.avatar.cellPosition;
+        const waypoint = this.path[0]!;
+        const dx = waypoint.x - cell.x;
+        const dy = waypoint.y - cell.y;
+        if (Math.abs(dx) < 0.1 && Math.abs(dy) < 0.1) {
+          // Ya en este waypoint: pasa al siguiente sin perder el frame.
+          this.path.shift();
+          continue;
+        }
+        // Topa el paso a lo que queda por eje: sin esto, un `delta` grande
+        // (bajón de fps) puede sobrepasar el waypoint y no converger nunca
+        // al umbral de llegada de arriba (revisión en vivo).
+        return { x: Math.sign(dx), y: Math.sign(dy), maxX: Math.abs(dx), maxY: Math.abs(dy) };
       }
-      return { x: Math.sign(dx), y: Math.sign(dy) };
     }
 
     return null;

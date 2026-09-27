@@ -64,9 +64,6 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
   });
 
   await test.step("Salón del Trono (pasos 1–6)", async () => {
-    // De la sala de espera al cuadro hay una estatua de por medio: se
-    // acerca primero al armario, sin elegir acción (ver `UiPlayer.warmUpNear`).
-    await a.warmUpNear("armario");
     // 1. Inspeccionar el cuadro → llave de bronce
     await a.inspect("cuadro-aurelio");
     await a.expectItems("Llave de bronce");

@@ -11,4 +11,5 @@ export * from "./state";
 export * from "./distribution";
 export * from "./inspection";
 export * from "./selection";
+export * from "./pathfinding";
 export * from "./reactive";
