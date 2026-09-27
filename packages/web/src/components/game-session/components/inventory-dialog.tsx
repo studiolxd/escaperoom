@@ -16,7 +16,6 @@ export interface InventoryDialogProps {
   view: CombineItemsPublicView | undefined;
   onCombine: (inputs: readonly string[]) => void;
   feedback: InventoryCombineFeedback | null;
-  onClose: () => void;
   renderIcon: (itemId: string) => ReactNode;
   inventoryLabel: string;
   dragHintLabel: string;
@@ -33,7 +32,6 @@ export function InventoryDialog({
   view,
   onCombine,
   feedback,
-  onClose,
   renderIcon,
   inventoryLabel,
   dragHintLabel,
@@ -43,11 +41,9 @@ export function InventoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         container={container}
-        showCloseButton={false}
-        overlayClassName="absolute inset-0 z-40 bg-background/60 backdrop-blur-sm"
         onEscapeKeyDown={onEscapeKeyDown}
         data-testid="game-inventory-overlay"
-        className="absolute inset-0 z-40 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-transparent p-4 shadow-none ring-0"
+        className="max-h-[calc(100%-2rem)] w-fit max-w-[calc(100%-2rem)] overflow-auto bg-transparent p-0 shadow-none ring-0"
       >
         <DialogTitle className="sr-only">{inventoryLabel}</DialogTitle>
         <DialogDescription className="sr-only">{dragHintLabel}</DialogDescription>
@@ -57,7 +53,6 @@ export function InventoryDialog({
             items={model.items.map((item) => ({ id: item.id, name: item.name, icon: item.icon }))}
             onCombine={onCombine}
             feedback={feedback}
-            onClose={onClose}
             renderIcon={(item) => renderIcon(item.id)}
           />
         ) : (

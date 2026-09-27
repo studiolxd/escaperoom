@@ -460,7 +460,6 @@ export function GameSessionShell({
         view={hud.combineView}
         onCombine={hud.combine}
         feedback={hud.combineFeedback}
-        onClose={hud.closeInventory}
         renderIcon={(itemId) => hud.renderItemIcon(itemId)}
         inventoryLabel={hud.tp("inventory")}
         dragHintLabel={hud.tp("menu.dragHint")}
@@ -472,7 +471,6 @@ export function GameSessionShell({
         container={sectionRef.current}
         onOpenChange={(open) => !open && hud.closePanel()}
         onEscapeKeyDown={preventEscapeIfDialogOpen}
-        onClose={hud.closePanel}
         panel={hud.panel}
         activePuzzle={hud.activePuzzle}
         activeView={hud.activeView}

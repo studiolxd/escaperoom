@@ -12,7 +12,6 @@ import type {
   SlidingPuzzlePublicView,
   SplitCluePublicView,
 } from "@escaperoom/shared/templates";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { HintPanel } from "@/components/hints/hint-panel";
 import { CodeLockPanel, type CodeLockFeedback } from "@/components/puzzles/code-lock-panel";
@@ -29,7 +28,6 @@ export interface PanelHostProps {
   container: HTMLElement | null;
   onOpenChange: (open: boolean) => void;
   onEscapeKeyDown: (event: { preventDefault: () => void }) => void;
-  onClose: () => void;
   panel: string | null;
   activePuzzle: RuntimePuzzle | undefined;
   activeView: RoomPuzzlePublicView | undefined;
@@ -61,7 +59,6 @@ export function PanelHost({
   container,
   onOpenChange,
   onEscapeKeyDown,
-  onClose,
   panel,
   activePuzzle,
   activeView,
@@ -85,17 +82,12 @@ export function PanelHost({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         container={container}
-        showCloseButton={false}
-        overlayClassName="absolute inset-0 z-40 bg-background/60 backdrop-blur-sm"
         onEscapeKeyDown={onEscapeKeyDown}
-        className="absolute inset-0 z-40 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-transparent p-4 shadow-none ring-0"
+        className="max-h-[calc(100%-2rem)] w-fit max-w-[calc(100%-2rem)] overflow-auto bg-transparent p-0 shadow-none ring-0"
       >
         <DialogTitle className="sr-only">{panelTitle(panel)}</DialogTitle>
         <DialogDescription className="sr-only">{closeLabel}</DialogDescription>
         <div className="flex flex-col items-end gap-2">
-          <Button size="sm" variant="secondary" onClick={onClose}>
-            {closeLabel}
-          </Button>
           {panel === "hints" && hintPuzzleId ? (
             <HintPanel
               view={hintView}
