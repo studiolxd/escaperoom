@@ -41,5 +41,11 @@
   ],
   "comparativa": "25/09/2026, mismo prompt y referencias: GPT 2 elegido (toon 3D sin contorno, nariz simple, diseño correcto). Nano Banana Pro: contorno oscuro y demasiado chibi. Seedream 5 Pro: más realista, nariz dibujada. Klein: contorno y nariz detallada.",
   "notas": "Para cada personaje nuevo: el mismo prompt con la ficha nueva (docs/personajes.md) + este master como referencia de identidad del estilo.",
-  "creditos_total": 955
+  "creditos_total": 955,
+  "retrato": {
+    "_": "encuadre del retrato (cara + arranque de hombros) sobre master.png, cuadrado en px del master a resolución completa; lo usa scripts/empaquetar/empaquetar_retrato.py",
+    "x": 490,
+    "y": 90,
+    "lado": 560
+  }
 }
