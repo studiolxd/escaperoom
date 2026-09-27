@@ -3,7 +3,7 @@
 import { memo, useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
-import { CHAT_HISTORY_LIMIT, CHAT_MAX_LENGTH } from "@escaperoom/shared/chat";
+import { CHAT_MAX_LENGTH } from "@escaperoom/shared/chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -72,42 +72,33 @@ export const ChatWindow = memo(function ChatWindow({
     <section
       aria-label={t("title")}
       className={cn(
-        "pointer-events-auto flex w-72 flex-col gap-2 rounded-xl border border-white/10 bg-black/50 p-3 text-white backdrop-blur",
+        "pointer-events-auto z-30 flex w-72 flex-col gap-2 rounded-xl border border-border bg-card/75 p-3 text-foreground backdrop-blur",
         className,
       )}
     >
-      <header className="flex items-center justify-between">
-        <h2 className="text-xs uppercase tracking-wide text-white/60">{t("title")}</h2>
-        <span className="font-mono text-[10px] text-white/40">
-          {messages.length}/{CHAT_HISTORY_LIMIT}
-        </span>
-      </header>
+      <h2 className="text-xs uppercase tracking-wide text-muted-foreground">{t("title")}</h2>
 
       <ul
         ref={listRef}
         aria-live="polite"
         className="flex h-48 flex-col gap-1.5 overflow-y-auto pr-1"
       >
-        {messages.length === 0 ? (
-          <li className="text-xs text-white/40">{t("empty")}</li>
-        ) : (
-          messages.map((message) => (
-            <li key={message.id} className="text-xs leading-snug">
-              <span className={message.authorId === selfId ? "text-sky-300" : "text-white/70"}>
-                {message.authorName}
+        {messages.map((message) => (
+          <li key={message.id} className="text-xs leading-snug">
+            <span className={message.authorId === selfId ? "text-sky-600 dark:text-sky-300" : "text-muted-foreground"}>
+              {message.authorName}
+            </span>
+            {message.filtered ? (
+              <span
+                title={t("filteredTitle")}
+                className="ml-1 rounded bg-rose-500/20 px-1 text-[10px] text-rose-700 dark:text-rose-200"
+              >
+                {t("filtered")}
               </span>
-              {message.filtered ? (
-                <span
-                  title={t("filteredTitle")}
-                  className="ml-1 rounded bg-rose-500/20 px-1 text-[10px] text-rose-200"
-                >
-                  {t("filtered")}
-                </span>
-              ) : null}
-              <p className="break-words text-white/90">{message.text}</p>
-            </li>
-          ))
-        )}
+            ) : null}
+            <p className="break-words text-foreground">{message.text}</p>
+          </li>
+        ))}
       </ul>
 
       <form onSubmit={submit} className="flex items-center gap-2">
@@ -118,11 +109,11 @@ export const ChatWindow = memo(function ChatWindow({
           disabled={!connected}
           placeholder={connected ? t("placeholder") : t("disconnected")}
           aria-label={t("placeholder")}
-          className="h-auto min-w-0 flex-1 rounded-md border-white/15 bg-white/5 px-2 py-1 text-sm text-white placeholder:text-white/40 focus-visible:border-white/30 focus-visible:ring-1 focus-visible:ring-white/30 disabled:opacity-50"
+          className="h-auto min-w-0 flex-1 rounded-md px-2 py-1 text-sm disabled:opacity-50"
         />
         <Button
           type="submit"
-          variant="overlay"
+          variant="secondary"
           size="sm"
           disabled={!connected || draft.trim().length === 0}
         >
@@ -131,12 +122,10 @@ export const ChatWindow = memo(function ChatWindow({
       </form>
 
       {chatError ? (
-        <p aria-live="polite" className="text-xs text-rose-300">
+        <p aria-live="polite" className="text-xs text-rose-600 dark:text-rose-300">
           {chatError}
         </p>
-      ) : (
-        <p className="text-[10px] text-white/40">{t("hint", { max: CHAT_MAX_LENGTH })}</p>
-      )}
+      ) : null}
     </section>
   );
 });

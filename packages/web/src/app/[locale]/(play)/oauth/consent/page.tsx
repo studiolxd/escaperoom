@@ -129,7 +129,7 @@ export default async function McpConsentPage({ params, searchParams }: Props) {
   }
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center bg-slate-950 p-4 text-white">
+    <main className="relative flex min-h-dvh items-center justify-center p-4 text-white">
       <section className="w-full max-w-md space-y-4 rounded-xl border border-white/10 bg-white/5 p-6">
         <h1 className="text-lg font-semibold">{t("title")}</h1>
         {body}

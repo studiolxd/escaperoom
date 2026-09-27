@@ -18,7 +18,7 @@ export default async function HomePage({ params }: Props) {
   const audiences = ["player", "creator", "teacher", "company"] as const;
 
   return (
-    <main className="bg-background">
+    <main className="w-full bg-background">
       <section className="mx-auto flex min-h-[70dvh] w-full max-w-3xl flex-col items-start justify-center px-4 py-20 text-left">
         <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">{l("heroTitle")}</h1>
         <p className="mt-4 text-balance text-base text-muted-foreground sm:text-lg">

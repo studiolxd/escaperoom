@@ -92,20 +92,22 @@ export function SlidingPanel({
       aria-label={t("title")}
       data-state={view.state}
       className={cn(
-        "flex w-fit flex-col gap-4 rounded-xl border border-white/10 bg-black/60 p-4 text-white backdrop-blur",
+        "flex w-fit flex-col gap-4 rounded-xl border border-border bg-card/95 p-4 text-foreground backdrop-blur",
         className,
       )}
     >
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="text-sm font-medium">{t("title")}</h2>
-        <span className="text-xs text-white/60">{t("moves", { count: view.moveCount })}</span>
+        <span className="text-xs text-muted-foreground">
+          {t("moves", { count: view.moveCount })}
+        </span>
       </header>
 
       <div
         role="group"
         aria-label={t("boardLabel")}
         data-slot="sliding-board"
-        className="grid-cols-dynamic grid w-fit gap-1 rounded-lg bg-black/40 p-1"
+        className="grid-cols-dynamic grid w-fit gap-1 rounded-lg bg-muted p-1"
         style={{ "--cols": cols } as CSSProperties}
       >
         {view.tiles.map((tile, index) => {
@@ -134,7 +136,7 @@ export function SlidingPanel({
                   setDragIndex(null);
                   if (Number.isInteger(from)) tryMove(from);
                 }}
-                className="size-16 rounded-md border border-dashed border-white/15 bg-white/5"
+                className="size-16 rounded-md border border-dashed border-border bg-muted/50"
               />
             );
           }
@@ -143,7 +145,7 @@ export function SlidingPanel({
             <Button
               key={index}
               type="button"
-              variant="overlayGhost"
+              variant="ghost"
               aria-label={t("tile", { tile })}
               data-tile={tile}
               data-movable={canMove}
@@ -159,7 +161,7 @@ export function SlidingPanel({
                 "relative size-16 h-auto overflow-hidden rounded-md border p-0 text-sm font-semibold transition",
                 canMove
                   ? "cursor-pointer border-amber-200/40 hover:border-amber-200/80"
-                  : "cursor-default border-white/10",
+                  : "cursor-default border-border",
               )}
               style={
                 imageSrc
@@ -173,7 +175,7 @@ export function SlidingPanel({
               }
             >
               {!imageSrc ? (
-                <span className="grid size-full place-items-center bg-amber-200/10 text-amber-100">
+                <span className="grid size-full place-items-center bg-amber-500/10 text-amber-700 dark:bg-amber-200/10 dark:text-amber-100">
                   {tile}
                 </span>
               ) : null}
@@ -197,7 +199,11 @@ export function SlidingPanel({
         data-tone={solved ? "success" : unavailable ? "locked" : "info"}
         className={cn(
           "text-center text-xs",
-          solved ? "text-emerald-300" : unavailable ? "text-amber-300" : "text-white/60",
+          solved
+            ? "text-emerald-700 dark:text-emerald-300"
+            : unavailable
+              ? "text-amber-700 dark:text-amber-300"
+              : "text-muted-foreground",
         )}
       >
         {pending ? t("pending") : status}

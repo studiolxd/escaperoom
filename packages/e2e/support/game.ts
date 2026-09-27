@@ -60,8 +60,22 @@ export class UiPlayer {
     await expect(this.session).toBeVisible({ timeout: 30_000 });
   }
 
-  /** Marca "Listo" en el lobby (C-13): lo exige `start_game` antes de dejar empezar. */
+  /**
+   * Marca "Listo" en el lobby (C-13): lo exige `start_game` antes de dejar
+   * empezar. Sin pack generado (`pnpm pack:build`, .gitignore — el caso de
+   * un clon limpio o CI) no hay ningún `character-option-*` que elegir: el
+   * selector ni se monta y el propio servidor asigna el maniquí de reserva
+   * (`lobby-panel.tsx`), así que "¡Vamos!" ya sale habilitado solo.
+   */
   async markReady(): Promise<void> {
+    const options = this.page.locator('[data-testid^="character-option-"]:not([disabled])');
+    if (await options.first().isVisible({ timeout: 2_000 }).catch(() => false)) {
+      // El radio real es `sr-only` (oculto); es su <label> visible quien
+      // recibe el clic real (y lo reenvía al radio por debajo), así que se
+      // clica la etiqueta en vez del radio directamente. El primero LIBRE
+      // (no `disabled`, ya lo tiene otro jugador conectado).
+      await options.first().locator("xpath=ancestor::label[1]").click();
+    }
     await this.page.getByTestId("lobby-ready").click();
   }
 
@@ -153,8 +167,9 @@ export class UiPlayer {
     await this.page.getByRole("button", { name: itemName, exact: true }).click();
   }
 
+  /** X del `Dialog` estándar (124345b: ya no hay botón "Cerrar" a medida). */
   async closePanel(): Promise<void> {
-    await this.page.getByRole("button", { name: "Cerrar", exact: true }).first().click();
+    await this.page.locator('[data-slot="dialog-close"]').first().click();
   }
 
   async expectItems(...itemNames: string[]): Promise<void> {
@@ -172,7 +187,8 @@ export class UiPlayer {
     }
     await overlay.getByRole("button", { name: "Combinar" }).click();
     await expect(overlay).toContainText(`Has creado: ${expected}`);
-    await overlay.getByRole("button", { name: "Cerrar", exact: true }).click();
+    // X del `Dialog` estándar (124345b: ya no hay botón "Cerrar" a medida).
+    await overlay.locator('[data-slot="dialog-close"]').click();
     await expect(overlay).toBeHidden();
     await this.expectItems(expected);
   }
@@ -187,10 +203,18 @@ export class UiPlayer {
     await panel.getByRole("button", { name: "Abrir", exact: true }).click();
   }
 
-  /** «Ir a {sala}»: el botón de la puerta abierta camina hasta ella y cruza. */
+  /**
+   * «Ir a {sala}»: el botón de la puerta abierta camina hasta ella y cruza.
+   * El HUD ya no muestra el nombre de la sala actual (c105a4c, "sin cabecera
+   * fija"): la propia puerta desapareciendo de la `ObjectsBar` (ya no se está
+   * en la sala de origen) es la señal de que la transición terminó; los
+   * tests verifican la sala de destino por un objeto suyo (p. ej.
+   * `game-object-mural-vendimia`).
+   */
   async goTo(roomName: string): Promise<void> {
-    await this.page.getByRole("button", { name: `Ir a ${roomName}`, exact: true }).click();
-    await expect(this.page.getByTestId("game-room")).toContainText(roomName);
+    const door = this.page.getByRole("button", { name: `Ir a ${roomName}`, exact: true });
+    await door.click();
+    await expect(door).toHaveCount(0);
   }
 
   /** Objetos que el servidor ha dado por resueltos (contador «Puzzles» del HUD). */

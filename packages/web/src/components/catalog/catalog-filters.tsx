@@ -7,7 +7,13 @@ import { useRouter } from "@/i18n/navigation";
 import { CATALOG_PATH } from "@/lib/catalog-seo";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { languageName } from "./language-name";
 
@@ -19,6 +25,7 @@ export type CatalogFilterValues = {
   minPlayers?: string;
   maxPlayers?: string;
   maxPrice?: string;
+  minRating?: string;
   sort?: string;
 };
 
@@ -37,6 +44,12 @@ const SORT_LABEL: Record<(typeof CATALOG_SORTS)[number], string> = {
 
 /** = `MAX_PLAYERS_PER_ROOM_CEILING` (el techo real de una sala, specs/22). */
 const PLAYER_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+
+/**
+ * Copia local de `CATALOG_RATING_OPTIONS` (mismo motivo que `CATALOG_SORTS`:
+ * evitar que este componente cliente arrastre Prisma al bundle).
+ */
+const RATING_OPTIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5] as const;
 
 /** Escalones fijos del slider de precio máximo, en euros; el último es "sin límite". */
 export const PRICE_STEPS_EUROS = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100] as const;
@@ -108,10 +121,18 @@ export function CatalogFilters({
     const v = value === ANY ? undefined : value;
     next[key] = v;
     if (v !== undefined) {
-      if (key === "minPlayers" && next.maxPlayers !== undefined && Number(v) > Number(next.maxPlayers)) {
+      if (
+        key === "minPlayers" &&
+        next.maxPlayers !== undefined &&
+        Number(v) > Number(next.maxPlayers)
+      ) {
         next.maxPlayers = v;
       }
-      if (key === "maxPlayers" && next.minPlayers !== undefined && Number(v) < Number(next.minPlayers)) {
+      if (
+        key === "maxPlayers" &&
+        next.minPlayers !== undefined &&
+        Number(v) < Number(next.minPlayers)
+      ) {
         next.minPlayers = v;
       }
     }
@@ -143,9 +164,9 @@ export function CatalogFilters({
     <div
       role="group"
       aria-label={t("filtersLabel")}
-      className="grid gap-3 rounded-xl border border-border bg-muted/40 p-4 sm:grid-cols-2 lg:grid-cols-4"
+      className="grid gap-3 rounded-xl border border-border bg-muted/40 p-4 sm:grid-cols-2 lg:grid-cols-3"
     >
-      <div className="flex flex-col gap-1 text-sm sm:col-span-2 lg:col-span-4">
+      <div className="flex flex-col gap-1 text-sm sm:col-span-2 lg:col-span-3">
         <Label htmlFor={`${id}-q`}>{t("search")}</Label>
         <Input
           id={`${id}-q`}
@@ -196,14 +217,22 @@ export function CatalogFilters({
         </Select>
       </div>
 
-      <div className="flex flex-col gap-1 text-sm sm:col-span-2">
+      <div className="flex flex-col gap-1 text-sm sm:col-span-2 lg:col-span-1">
         <Label id={`${id}-players-label`}>{t("players")}</Label>
-        <div className="grid grid-cols-2 items-center gap-2" role="group" aria-labelledby={`${id}-players-label`}>
+        <div
+          className="grid grid-cols-2 items-center gap-2"
+          role="group"
+          aria-labelledby={`${id}-players-label`}
+        >
           <Select
             value={values.minPlayers || ANY}
             onValueChange={(value) => onPlayersChange("minPlayers", value)}
           >
-            <SelectTrigger id={`${id}-players-min`} className="w-full" aria-label={t("playersFrom")}>
+            <SelectTrigger
+              id={`${id}-players-min`}
+              className="w-full"
+              aria-label={t("playersFrom")}
+            >
               <SelectValue placeholder={t("playersFrom")} />
             </SelectTrigger>
             <SelectContent>
@@ -219,7 +248,11 @@ export function CatalogFilters({
             value={values.maxPlayers || ANY}
             onValueChange={(value) => onPlayersChange("maxPlayers", value)}
           >
-            <SelectTrigger id={`${id}-players-max`} className="w-full" aria-label={t("playersToLabel")}>
+            <SelectTrigger
+              id={`${id}-players-max`}
+              className="w-full"
+              aria-label={t("playersToLabel")}
+            >
               <SelectValue placeholder={t("playersToLabel")} />
             </SelectTrigger>
             <SelectContent>
@@ -234,7 +267,7 @@ export function CatalogFilters({
         </div>
       </div>
 
-      <div className="flex flex-col gap-1 text-sm">
+      <div className="flex h-full flex-col gap-1 text-sm">
         <div className="flex items-baseline justify-between">
           <Label htmlFor={`${id}-max-price`}>{t("priceMax")}</Label>
           <span className="text-xs text-muted-foreground">
@@ -243,22 +276,44 @@ export function CatalogFilters({
               : euros(PRICE_STEPS_EUROS[priceIndex]! * 100)}
           </span>
         </div>
-        <Slider
-          id={`${id}-max-price`}
-          min={0}
-          max={UNLIMITED_INDEX}
-          step={1}
-          value={[priceIndex]}
-          onValueChange={([index]) => {
-            const cents = centsAtIndex(index ?? UNLIMITED_INDEX);
-            onFieldChange("maxPrice", cents === undefined ? "" : String(cents));
-          }}
-          aria-valuetext={
-            priceIndex >= UNLIMITED_INDEX
-              ? t("priceUnlimited")
-              : euros(PRICE_STEPS_EUROS[priceIndex]! * 100)
-          }
-        />
+        <div className="flex flex-1 items-center">
+          <Slider
+            id={`${id}-max-price`}
+            min={0}
+            max={UNLIMITED_INDEX}
+            step={1}
+            value={[priceIndex]}
+            onValueChange={([index]) => {
+              const cents = centsAtIndex(index ?? UNLIMITED_INDEX);
+              onFieldChange("maxPrice", cents === undefined ? "" : String(cents));
+            }}
+            aria-valuetext={
+              priceIndex >= UNLIMITED_INDEX
+                ? t("priceUnlimited")
+                : euros(PRICE_STEPS_EUROS[priceIndex]! * 100)
+            }
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-1 text-sm">
+        <Label htmlFor={`${id}-rating`}>{t("ratingLabel")}</Label>
+        <Select
+          value={values.minRating || ANY}
+          onValueChange={(value) => onFieldChange("minRating", value === ANY ? "" : value)}
+        >
+          <SelectTrigger id={`${id}-rating`} className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ANY}>{t("anyRating")}</SelectItem>
+            {RATING_OPTIONS.map((rating) => (
+              <SelectItem key={rating} value={String(rating)}>
+                {t("ratingFromOption", { rating: String(rating).replace(".", ",") })}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-1 text-sm">

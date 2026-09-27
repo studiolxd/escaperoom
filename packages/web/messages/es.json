@@ -8,37 +8,44 @@
   },
   "Chat": {
     "title": "Chat",
-    "empty": "Aún no hay mensajes",
     "placeholder": "Escribe un mensaje…",
     "disconnected": "Conéctate para chatear",
     "send": "Enviar",
     "filtered": "filtrado",
-    "filteredTitle": "El filtro de lenguaje ha censurado parte de este mensaje",
-    "hint": "Máx. {max} caracteres · 2 mensajes por segundo"
+    "filteredTitle": "El filtro de lenguaje ha censurado parte de este mensaje"
   },
   "Media": {
     "status": {
-      "idle": "medios: esperando",
-      "connecting": "conectando medios…",
-      "connected": "medios en directo",
-      "disconnected": "medios desconectados",
-      "error": "error de medios",
-      "unavailable": "sin medios"
+      "idle": "Sin conectar",
+      "connecting": "Conectando…",
+      "connected": "Conectado",
+      "disconnected": "Desconectado",
+      "error": "Error de conexión",
+      "unavailable": "No disponible"
+    },
+    "connectionError": {
+      "ServerUnreachable": "No se pudo conectar con el servidor de audio y vídeo.",
+      "Timeout": "El servidor de audio y vídeo ha tardado demasiado en responder.",
+      "WebSocket": "Se ha perdido la conexión de audio y vídeo.",
+      "InternalError": "Ha fallado la conexión de audio y vídeo.",
+      "ServiceNotFound": "El servidor de audio y vídeo no está disponible.",
+      "NotAllowed": "No tienes permiso para conectarte a audio y vídeo.",
+      "LeaveRequest": "Te han desconectado de la sala de audio y vídeo.",
+      "Cancelled": "Se ha cancelado la conexión de audio y vídeo."
     },
     "genericError": "No se pudo conectar a LiveKit",
-    "notConfigured": "LiveKit no configurado: la partida sigue sin voz ni webcam.",
+    "notConfigured": "LiveKit no configurado: la partida sigue sin audio ni vídeo.",
     "retry": "Reintentar",
     "tiles": {
-      "title": "Voz y cámara",
-      "empty": "Sin participantes…",
+      "title": "Audio y vídeo",
       "you": "Tú",
       "mic": {
-        "on": "Silenciar mic",
-        "off": "Activar mic"
+        "on": "Micrófono activado",
+        "off": "Micrófono desactivado"
       },
       "camera": {
-        "on": "Apagar cámara",
-        "off": "Encender cámara"
+        "on": "Cámara activada",
+        "off": "Cámara desactivada"
       },
       "videoNotAllowed": "Vídeo no permitido",
       "observer": "Observador: solo suscripción, no publica.",
@@ -549,6 +556,8 @@
   },
   "RoomEditor": {
     "untitledRoom": "Sala sin título",
+    "canvasErrorTitle": "No se pudo cargar el editor",
+    "canvasErrorDescription": "Ha fallado el lienzo del editor. Puedes reintentar o recargar la página.",
     "loading": "Cargando el lienzo…",
     "connecting": "Conectando con el borrador…",
     "status": {
@@ -919,15 +928,19 @@
     "anyLanguage": "Cualquier idioma",
     "difficulty": "Dificultad",
     "anyDifficulty": "Cualquier dificultad",
-    "players": "Jugadores",
+    "players": "Personas",
     "anyPlayers": "Cualquiera",
     "playersFrom": "De",
     "playersToLabel": "a",
-    "playersFromOption": "De {n}",
-    "playersToOption": "a {n}",
+    "playersFromOption": "Desde {n, plural, one {# persona} other {# personas}}",
+    "playersToOption": "Hasta {n, plural, one {# persona} other {# personas}}",
+    "time": "Tiempo",
     "priceFree": "Gratis",
     "priceMax": "Precio máximo",
     "priceUnlimited": "Sin límite",
+    "ratingLabel": "Valoración",
+    "anyRating": "Cualquiera",
+    "ratingFromOption": "A partir de {rating}",
     "sort": "Ordenar por",
     "sortRecent": "Más recientes",
     "sortRating": "Mejor valoradas",
@@ -954,6 +967,7 @@
   },
   "RoomDetail": {
     "metaTitle": "{title} · Escape room online",
+    "loading": "Cargando la sala…",
     "back": "Volver al catálogo",
     "languages": "Idiomas",
     "difficulty": "Dificultad",
@@ -1031,6 +1045,8 @@
     }
   },
   "Game": {
+    "errorTitle": "No se pudo cargar el juego",
+    "errorDescription": "Ha fallado el motor del juego. Puedes reintentar o recargar la página.",
     "page": {
       "subtitle": "Partida cooperativa en red: invita a tu grupo con el link."
     },
@@ -1038,7 +1054,7 @@
       "createSubtitle": "Crea una partida y comparte el link con tu grupo (hasta 4 jugadores).",
       "joinSubtitle": "Te han invitado a una partida en curso.",
       "nameLabel": "Tu nombre",
-      "namePlaceholder": "p. ej. Ana",
+      "nameRequired": "Escribe tu nombre para continuar.",
       "create": "Crear partida",
       "join": "Unirme"
     },
@@ -1048,28 +1064,39 @@
       "connected": "En línea",
       "reconnecting": "Reconectando…",
       "disconnected": "Desconectado",
+      "kicked": "Fuera de la partida",
       "expired": "Partida cerrada",
       "error": "Sin conexión",
-      "retry": "Reintentar"
+      "roomFull": "Sala llena",
+      "retry": "Reintentar",
+      "exploreRooms": "Explorar salas"
     },
     "status": {
       "connecting": "Conectando con la partida…",
       "error": "No se pudo conectar con el servidor de partidas.",
+      "roomFull": "Esta sala ya tiene el número máximo de jugadores.",
+      "disconnected": "Te has desconectado de la partida.",
+      "kicked": "El anfitrión te ha expulsado de la partida.",
       "expired": "Esta partida se ha cerrado."
     },
     "lobby": {
       "title": "Sala de espera",
+      "readMore": "Leer más",
       "chooseCharacter": "Elige tu personaje",
-      "characterTaken": "ocupado",
+      "characterTakenBy": "{player} ya tiene este personaje",
+      "characterRelease": "Tu personaje. Pulsa otra vez para dejarlo libre.",
       "players": "{count, plural, one {# jugador} other {# jugadores}}",
+      "playersOf": "{count, plural, one {# persona} other {# personas}} de {max}",
       "start": "Empezar partida",
-      "startForce": "Empezar igualmente",
-      "startNotReady": "Todavía hay jugadores que no están listos.",
-      "confirmForceTitle": "¿Empezar sin que todos estén listos?",
-      "confirmForceConfirm": "Sí, empezar igualmente",
+      "hostMustConfirm": "Confirma tu participación para poder empezar",
+      "startForce": "Empezar sin esperar",
+      "startNotReady": "Faltan personas por confirmar",
+      "confirmForceTitle": "¿Empezar sin esperar a que todos confirmen?",
+      "confirmForceConfirm": "Sí, empezar sin esperar",
       "confirmForceCancel": "Esperar",
-      "markReady": "Marcarme como listo",
-      "ready": "Listo ✓",
+      "markReady": "¡Vamos!",
+      "chooseCharacterFirst": "Elige un personaje antes de confirmar",
+      "ready": "Confirmado",
       "waitingHost": "Esperando a que el anfitrión empiece…",
       "waitingOrganizer": "Esperando a que el organizador inicie la partida…",
       "invite": "Copiar link de invitación",
@@ -1078,7 +1105,9 @@
       "host": "anfitrión",
       "offline": "desconectado",
       "kick": "Expulsar",
+      "kickTitle": "Expulsar jugador",
       "kickConfirm": "¿Expulsar a {player}? No podrá volver a esta partida.",
+      "kickCancel": "Cancelar",
       "difficulty": {
         "1": "Dificultad fácil",
         "2": "Dificultad media",
@@ -1086,26 +1115,22 @@
       },
       "duration": "{minutes} min",
       "noTimeLimit": "Sin límite de tiempo",
-      "playersRange": "{min}–{max} jugadores",
+      "playersRange": "{min}–{max} personas",
       "belowMinimum": "Hacen falta al menos {min} jugadores conectados para empezar.",
       "deviceCheck": {
-        "title": "Prueba tu micrófono",
-        "titleWithCamera": "Prueba tu micrófono y tu cámara",
+        "open": "Probar micrófono",
+        "openWithCamera": "Probar cámara y micrófono",
         "preview": "Vista previa de tu cámara",
+        "loading": "Pidiendo acceso al micrófono…",
+        "loadingWithCamera": "Pidiendo acceso al micrófono y a la cámara…",
         "micLevel": "Nivel del micrófono",
-        "denied": "No se ha podido acceder al micrófono o a la cámara. Revisa los permisos del navegador.",
-        "start": "Probar",
-        "stop": "Parar la prueba"
+        "denied": "No se ha podido acceder al micrófono o a la cámara. Revisa los permisos del navegador."
       }
     },
     "intro": {
       "title": "Introducción",
       "continue": "Continuar",
-      "hint": "Tómate el tiempo que quieras. El reloj empieza cuando el primer jugador entra en el mapa.",
       "videoLabel": "Vídeo de introducción de la sala"
-    },
-    "countdown": {
-      "label": "¡Preparados para entrar!"
     },
     "hud": {
       "loadingPanel": "Cargando…"
@@ -1774,16 +1799,16 @@
   "Auth": {
     "login": {
       "title": "Inicia sesión",
-      "subtitle": "Accede con Google o con un enlace mágico por email"
+      "subtitle": "Accede con tu email o con Google"
     },
     "signup": {
       "title": "Crea tu cuenta",
-      "subtitle": "Regístrate con Google o con un enlace mágico por email"
+      "subtitle": "Regístrate con tu email o con Google"
     },
     "emailInvalid": "Introduce un email válido",
     "emailLabel": "Email",
     "emailPlaceholder": "tucorreo@ejemplo.com",
-    "emailSubmit": "Enviar enlace mágico",
+    "emailSubmit": "Continuar",
     "continueWith": "O continúa con",
     "google": "Continuar con Google",
     "emailSent": "Te hemos enviado un enlace a tu email.",
@@ -1802,13 +1827,14 @@
   "ErrorBoundary": {
     "title": "Ha ocurrido un error",
     "description": "Este panel no se ha podido cargar. Puedes reintentarlo.",
+    "reload": "Recargar página",
     "retry": "Reintentar"
   },
   "NotFound": {
     "title": "No hemos encontrado esta página",
     "description": "El enlace puede estar roto o la página ya no existe.",
     "home": "Ir al inicio",
-    "browseCatalog": "Ver el catálogo"
+    "browseCatalog": "Explorar salas"
   },
   "PublicErrorPage": {
     "title": "Ha ocurrido un error",
@@ -1820,7 +1846,7 @@
     "title": "No hemos encontrado esta página",
     "description": "El enlace puede estar roto o la página ya no existe.",
     "home": "Ir al inicio",
-    "browseCatalog": "Ver el catálogo"
+    "browseCatalog": "Explorar salas"
   },
   "ThemeToggle": {
     "label": "Tema",

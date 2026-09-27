@@ -424,12 +424,10 @@ describe("E2E de protocolo — Rey Aldric con 2 clientes de Colyseus", () => {
     a.client.send(GAME_MESSAGES.setReady, { ready: true });
     b.client.send(GAME_MESSAGES.setReady, { ready: true });
     await expect.poll(() => room.state.players.get(b.client.sessionId)?.ready).toBe(true);
-    const intro = next(b, GAME_MESSAGES.dialogShow);
     a.client.send(GAME_MESSAGES.startGame, {});
     await until(b, (state) => state.phase === "starting");
     a.client.send(GAME_MESSAGES.enterMap, {});
     b.client.send(GAME_MESSAGES.enterMap, {});
-    expect(await intro).toEqual({ dialogId: "d-intro" });
     await until(b, (state) => state.phase === "playing");
 
     // — Salón del Trono (pasos 1–6) ——————————————————————————————————

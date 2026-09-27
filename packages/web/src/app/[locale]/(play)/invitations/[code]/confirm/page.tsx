@@ -25,7 +25,7 @@ export default async function ConfirmInvitationPage({ params, searchParams }: Pr
   // vez lanzaba `URIError` (500, ruta pública) ante un `%` mal formado (B-20/F-15).
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center bg-slate-950 p-4 text-white">
+    <main className="relative flex min-h-dvh items-center justify-center p-4 text-white">
       <section className="w-full max-w-md space-y-4 rounded-xl border border-white/10 bg-white/5 p-6">
         <h1 className="text-lg font-semibold">{t("title")}</h1>
         <p className="text-sm text-white/70">{t("intro")}</p>

@@ -104,13 +104,13 @@ export function PipesPanel({
       aria-label={t("title")}
       data-state={view.state}
       className={cn(
-        "flex w-fit flex-col gap-4 rounded-xl border border-white/10 bg-black/60 p-4 text-white backdrop-blur",
+        "flex w-fit flex-col gap-4 rounded-xl border border-border bg-card/95 p-4 text-foreground backdrop-blur",
         className,
       )}
     >
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="text-sm font-medium">{t("title")}</h2>
-        <span className="text-xs text-white/60">
+        <span className="text-xs text-muted-foreground">
           {t("rotations", { count: view.rotationCount })}
         </span>
       </header>
@@ -120,7 +120,7 @@ export function PipesPanel({
         aria-label={t("boardLabel")}
         data-slot="pipes-board"
         data-connected={view.connected}
-        className="grid-cols-dynamic grid w-fit gap-1 rounded-lg bg-black/40 p-1"
+        className="grid-cols-dynamic grid w-fit gap-1 rounded-lg bg-muted p-1"
         style={{ "--cols": view.grid.cols } as CSSProperties}
       >
         {view.cells.map((cell) => {
@@ -135,7 +135,7 @@ export function PipesPanel({
             <Button
               key={cell.index}
               type="button"
-              variant="overlayGhost"
+              variant="ghost"
               aria-label={canOpen ? `${cellLabel(cell)} — ${t("useItem")}` : cellLabel(cell)}
               data-cell={cell.index}
               data-kind={cell.kind}
@@ -152,7 +152,7 @@ export function PipesPanel({
                 "relative size-14 h-auto overflow-hidden rounded-md border p-0 transition",
                 cell.index === startIndex || cell.index === endIndex
                   ? "border-sky-300/50"
-                  : "border-white/10",
+                  : "border-border",
                 interactive ? "cursor-pointer hover:border-amber-200/70" : "cursor-default",
                 cell.kind === "empty" && !isGate ? "bg-stone-800/70" : "bg-stone-900/60",
               )}
@@ -179,7 +179,11 @@ export function PipesPanel({
         data-tone={solved ? "success" : unavailable ? "locked" : "info"}
         className={cn(
           "text-center text-xs",
-          solved ? "text-emerald-300" : unavailable ? "text-amber-300" : "text-white/60",
+          solved
+            ? "text-emerald-700 dark:text-emerald-300"
+            : unavailable
+              ? "text-amber-700 dark:text-amber-300"
+              : "text-muted-foreground",
         )}
       >
         {pending ? t("pending") : status}

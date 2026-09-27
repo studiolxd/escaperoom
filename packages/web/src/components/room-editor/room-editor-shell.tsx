@@ -64,12 +64,6 @@ function CanvasLoading() {
   );
 }
 
-const renderCanvas = (props: RoomEditorCanvasProps) => (
-  <ErrorBoundary>
-    <RoomEditorCanvas {...props} />
-  </ErrorBoundary>
-);
-
 export interface RoomEditorShellProps {
   roomId: string;
   palette: EditorPalette;
@@ -281,7 +275,15 @@ function ValidatedWorkspace({
       palette={palette}
       pack={pack}
       status={status}
-      renderCanvas={renderCanvas}
+      renderCanvas={(canvasProps: RoomEditorCanvasProps) => (
+        <ErrorBoundary
+          layout="overlay"
+          title={t("canvasErrorTitle")}
+          description={t("canvasErrorDescription")}
+        >
+          <RoomEditorCanvas {...canvasProps} />
+        </ErrorBoundary>
+      )}
       canvasTab={canvasTab}
       onCanvasTabChange={setCanvasTab}
       rulesGraph={

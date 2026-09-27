@@ -70,7 +70,7 @@ export default async function PlaytestPage({ params }: Props) {
         : null;
 
   return (
-    <main className="relative min-h-dvh bg-slate-950 p-4 text-white">
+    <main className="relative min-h-dvh p-4 text-white">
       {notice || !payload || !loaded?.ok ? (
         <div className="space-y-4">
           <header className="pr-40">

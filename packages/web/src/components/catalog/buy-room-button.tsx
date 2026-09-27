@@ -1,18 +1,26 @@
 "use client";
 
 import { useState } from "react";
+import type { VariantProps } from "class-variance-authority";
 import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 type State = "idle" | "loading" | "error";
+type ButtonSize = VariantProps<typeof buttonVariants>["size"];
 
 /**
  * "Comprar" de la ficha de sala (punto b, "CTA Jugar", `docs/DEUDA.md`):
  * `POST /api/purchases/room-checkout` → redirige a `checkoutUrl` (patrón de
  * `payouts-panel.tsx`, adaptado al campo `checkoutUrl` en vez de `url`).
  */
-export function BuyRoomButton({ roomVersionId }: { roomVersionId: string }) {
+export function BuyRoomButton({
+  roomVersionId,
+  size = "lg",
+}: {
+  roomVersionId: string;
+  size?: ButtonSize;
+}) {
   const t = useTranslations("RoomDetail");
   const [state, setState] = useState<State>("idle");
 
@@ -34,7 +42,7 @@ export function BuyRoomButton({ roomVersionId }: { roomVersionId: string }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <Button size="lg" className="w-fit" onClick={startCheckout} disabled={state === "loading"}>
+      <Button size={size} className="w-fit" onClick={startCheckout} disabled={state === "loading"}>
         {state === "loading" && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />}
         {t("buyCta")}
       </Button>

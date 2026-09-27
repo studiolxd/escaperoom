@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { Lightbulb } from "lucide-react";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import type { GameClient } from "@escaperoom/game-runtime/session";
@@ -10,14 +11,15 @@ import { ChatWindow } from "@/components/chat/chat-panel";
 import { ResultsScreen } from "@/components/game/results-screen";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { INTRO_DIALOG_ID } from "@/lib/playtest-state";
+import { formatDuration } from "@/lib/session-format";
+import { ConnectionBadge } from "./connection-badge";
 import { ContextMenuPopover } from "./components/context-menu-popover";
 import { DialogButton, ImageDialog } from "./components/dialog-and-image";
-import { HudHeader } from "./components/hud-header";
 import { HudLogCorner } from "./components/hud-log-corner";
 import { InventoryDialog } from "./components/inventory-dialog";
 import { ItemPickerPopover } from "./components/item-picker-popover";
 import type { IntroModel } from "@/lib/intro-model";
-import { CountdownOverlay } from "./components/countdown-overlay";
+import { EntryFade } from "./components/entry-fade";
 import { IntroOverlay } from "./components/intro-overlay";
 import { LobbyPanel } from "./components/lobby-panel";
 import { ObjectsBar } from "./components/objects-bar";
@@ -31,7 +33,7 @@ import type { GameConnectionStatus } from "./use-game-connection";
 
 const GameSessionCanvas = dynamic(() => import("./game-session-canvas"), {
   ssr: false,
-  loading: () => <div className="absolute inset-0 bg-slate-950" />,
+  loading: () => <div className="absolute inset-0" />,
 });
 
 export { KNOWN_ERRORS } from "./hooks/use-game-hud";
@@ -62,8 +64,6 @@ export interface GameSessionShellProps {
   intro?: IntroModel | null;
   /** Portada de la sala para la cabecera del lobby (URL firmada). */
   coverUrl?: string | null;
-  /** Prueba de micrófono/cámara del lobby, si la partida usa voz/vídeo. */
-  deviceCheck?: ReactNode;
 
   // — Puntos de extensión propios del playtest (F-5) —————————————
   /**
@@ -101,14 +101,11 @@ export function GameSessionShell({
   client,
   connection,
   inviteUrl,
-  title,
-  subtitle,
   exitHref,
   signInHref,
   children,
   intro,
   coverUrl,
-  deviceCheck,
   variant = "game",
   showChat = true,
   objectsBarHeader,
@@ -128,6 +125,27 @@ export function GameSessionShell({
 
   const lobby = useLobbyFlow({ snapshot, client, hasIntro: Boolean(intro) });
   const inMapStage = lobby.stage === "map";
+
+  // Monoespacio + ancho fijo (basta para "H:MM:SS", el formato más largo de
+  // `formatDuration`): sin esto, la píldora cambiaba de tamaño con el propio
+  // número (p. ej. de "1:00:00" a "59:00"), con letra proporcional o sin
+  // ancho fijo.
+  const timerClassName =
+    "inline-block w-20 rounded-md border border-border bg-card/75 py-1.5 text-center font-mono text-xs text-foreground";
+  const timer =
+    hud.remaining !== null ? (
+      <span className={timerClassName} data-testid="game-timer">
+        {formatDuration(Math.ceil(hud.remaining / 1000))}
+      </span>
+    ) : hud.elapsed !== null ? (
+      <span className={timerClassName} data-testid="game-elapsed">
+        {formatDuration(Math.floor(hud.elapsed / 1000))}
+      </span>
+    ) : lobby.stage === "lobby" && model.meta.timeLimitMinutes !== null ? (
+      <span className={timerClassName} data-testid="game-timer-preview">
+        {formatDuration(model.meta.timeLimitMinutes * 60)}
+      </span>
+    ) : null;
   const sectionRef = useRef<HTMLElement | null>(null);
 
   const { preventEscapeIfDialogOpen } = useHudHotkeys({
@@ -173,12 +191,16 @@ export function GameSessionShell({
   return (
     <section
       ref={sectionRef}
-      className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10 bg-slate-950"
+      className="absolute inset-0 overflow-hidden"
       data-testid="game-session"
       data-phase={snapshot.phase}
       data-stage={lobby.stage}
     >
-      <ErrorBoundary>
+      <ErrorBoundary
+        layout="overlay"
+        title={hud.t("errorTitle")}
+        description={hud.t("errorDescription")}
+      >
         <GameSessionCanvas
           model={model}
           roomId={hud.roomId}
@@ -190,28 +212,53 @@ export function GameSessionShell({
       </ErrorBoundary>
 
       {hud.draggingItem ? (
-        <div className="pointer-events-none absolute inset-x-4 top-24 z-30 mx-auto w-fit rounded-full border border-amber-200/40 bg-slate-950/90 px-4 py-1.5 text-xs text-amber-100 shadow-lg">
+        <div className="pointer-events-none absolute inset-x-4 top-24 z-30 mx-auto w-fit rounded-full border border-amber-500/40 px-4 py-1.5 text-xs text-amber-700 shadow-lg dark:border-amber-200/40 dark:text-amber-100">
           {hud.tp("menu.dropHint", { item: hud.itemName(hud.draggingItem) })}
         </div>
       ) : null}
 
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4">
-        <HudHeader
-          variant={variant}
-          title={title ?? model.meta.title}
-          subtitle={variant === "playtest" ? (subtitle ?? hud.tp("subtitle")) : subtitle}
-          roomName={hud.currentRoom?.name ?? hud.roomId}
-          controlsText={hud.tp("controls")}
-          remaining={hud.remaining}
-          elapsed={hud.elapsed}
-          connection={variant === "game" ? connection : undefined}
-          badgeText={variant === "playtest" ? hud.tp("badge") : undefined}
-          roomLabel={(room) => hud.tp("room", { room })}
-        />
+        {connection || timer ? (
+          <header className="pointer-events-auto flex w-full items-center justify-between text-foreground">
+            {connection ? (
+              <ConnectionBadge
+                status={connection.status}
+                onRetry={connection.onRetry}
+                className="rounded-md px-4 py-1.5"
+              />
+            ) : (
+              <span />
+            )}
+            <div className="flex items-center gap-2">
+              {inMapStage ? (
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  disabled={hud.introOpen || !hud.playing || !hud.hintPuzzleId}
+                  onClick={() => hud.setPanel("hints")}
+                  aria-label={hud.tp("action.hints")}
+                  data-testid="game-open-hints"
+                >
+                  <Lightbulb />
+                </Button>
+              ) : null}
+              {timer}
+            </div>
+          </header>
+        ) : (
+          // Espaciador: sin conexión ni cronómetro (p. ej. playtest en sala
+          // sin duración), mantiene el chat/inventario pegados abajo
+          // (justify-between).
+          <div />
+        )}
 
         <div className="pointer-events-auto flex w-full flex-wrap items-end justify-between gap-4">
-          {/* En la sala de espera (y durante la introducción/3-2-1) no hay
-              objetos ni inventario que mostrar: solo el chat. */}
+          {/* En la sala de espera (y durante la introducción/entrada al mapa)
+              no hay objetos ni inventario que mostrar: solo el chat. Los
+              objetos se inspeccionan por aquí en las dos variantes (el canvas
+              isométrico no tiene clic directo sobre los sprites); el playtest
+              además le engancha el checklist de la ruta crítica y el botón
+              de reinicio (`objectsBarHeader`/`objectsBarFooter`). */}
           {inMapStage ? (
             <ObjectsBar
               model={model}
@@ -233,7 +280,11 @@ export function GameSessionShell({
             />
           ) : null}
 
-          {showChat ? (
+          {showChat && lobby.stage !== "lobby" ? (
+            // Con la `ObjectsBar` de vuelta (crece con la sala, hasta
+            // `min(92vw,40rem)`), fijar el chat en una esquina absoluta podía
+            // solaparse con ella y bloquear sus clics: aquí, en la misma fila
+            // flex, `flex-wrap` los reparte sin invadirse.
             <ChatWindow
               messages={snapshot.chat}
               selfId={snapshot.selfId || null}
@@ -244,14 +295,14 @@ export function GameSessionShell({
           ) : null}
 
           {inMapStage ? (
-            <div className="flex w-64 flex-col gap-2 rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-white backdrop-blur">
+            <div className="ml-auto flex w-64 flex-col gap-2 rounded-xl border border-border bg-card/75 px-4 py-3 text-foreground backdrop-blur">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs uppercase tracking-wide text-white/50">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                   {hud.tp("inventory")}
                 </span>
                 <Button
                   size="xs"
-                  variant="overlay"
+                  variant="secondary"
                   disabled={hud.introOpen || !hud.playing}
                   onClick={hud.openInventory}
                   data-testid="game-open-inventory"
@@ -261,7 +312,7 @@ export function GameSessionShell({
               </div>
               <ul className="flex flex-wrap gap-1.5" data-testid="game-inventory">
                 {snapshot.inventory.length === 0 ? (
-                  <li className="text-[0.7rem] text-white/40">{hud.tp("emptyInventory")}</li>
+                  <li className="text-[0.7rem] text-muted-foreground">{hud.tp("emptyInventory")}</li>
                 ) : (
                   snapshot.inventory.map((itemId) => (
                     <li
@@ -273,7 +324,7 @@ export function GameSessionShell({
                         event.dataTransfer.effectAllowed = "move";
                       }}
                       onDragEnd={() => hud.setDraggingItem(null)}
-                      className="flex cursor-grab items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/10 py-1 pl-1 pr-2.5 text-[0.7rem] text-amber-100 active:cursor-grabbing"
+                      className="flex cursor-grab items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 py-1 pl-1 pr-2.5 text-[0.7rem] text-amber-800 active:cursor-grabbing dark:border-amber-300/40 dark:bg-amber-300/10 dark:text-amber-100"
                     >
                       {hud.renderItemIcon(itemId, 28)}
                       {hud.itemName(itemId)}
@@ -281,24 +332,26 @@ export function GameSessionShell({
                   ))
                 )}
               </ul>
-              <dl className="flex justify-between text-[0.7rem] text-white/60">
-                <dt>{hud.tp("stats.puzzles")}</dt>
-                <dd className="font-mono text-white/90">
-                  {hud.solvedCount}/{model.puzzles.length}
-                </dd>
-              </dl>
-              <Button
-                size="sm"
-                variant="overlay"
-                disabled={!hud.playing || !hud.hintPuzzleId}
-                onClick={() => hud.setPanel("hints")}
-              >
-                {hud.tp("action.hints")}
-              </Button>
             </div>
           ) : null}
         </div>
       </div>
+
+      {showChat && lobby.stage === "lobby" ? (
+        // A la derecha de `LobbyPanel` (`left-4`, ancho variable
+        // `min(22rem, calc(100% - 2rem))`), con el mismo hueco de 1rem que
+        // ese panel tiene del borde izquierdo. Fuera del lobby, el chat va
+        // dentro de la fila flex de abajo (junto a `ObjectsBar`/inventario,
+        // como en la partida real) para no invadir la `ObjectsBar`.
+        <ChatWindow
+          messages={snapshot.chat}
+          selfId={snapshot.selfId || null}
+          connected={connection ? connection.status === "connected" : true}
+          error={hud.chatError}
+          onSend={hud.sendChat}
+          className="absolute bottom-4 left-[calc(2rem+min(22rem,calc(100%-2rem)))]"
+        />
+      ) : null}
 
       {variant === "playtest" ? (
         <HudLogCorner log={hud.log} title={hud.tp("log.title")} />
@@ -340,16 +393,15 @@ export function GameSessionShell({
           inviteUrl={inviteUrl}
           copied={hud.copied}
           onCopyInvite={() => void hud.copyInvite(inviteUrl)}
-          deviceCheck={deviceCheck}
         />
       ) : null}
 
       {lobby.stage === "intro" && intro ? (
-        <IntroOverlay intro={intro} onClose={lobby.closeIntro} />
-      ) : null}
-
-      {lobby.stage === "countdown" ? (
-        <CountdownOverlay value={lobby.countdown} label={hud.t("countdown.label")} />
+        <EntryFade>
+          <IntroOverlay intro={intro} onClose={lobby.closeIntro} />
+        </EntryFade>
+      ) : lobby.stage === "entering" ? (
+        <EntryFade />
       ) : null}
 
       <ContextMenuPopover
@@ -414,7 +466,6 @@ export function GameSessionShell({
         view={hud.combineView}
         onCombine={hud.combine}
         feedback={hud.combineFeedback}
-        onClose={hud.closeInventory}
         renderIcon={(itemId) => hud.renderItemIcon(itemId)}
         inventoryLabel={hud.tp("inventory")}
         dragHintLabel={hud.tp("menu.dragHint")}
@@ -426,7 +477,6 @@ export function GameSessionShell({
         container={sectionRef.current}
         onOpenChange={(open) => !open && hud.closePanel()}
         onEscapeKeyDown={preventEscapeIfDialogOpen}
-        onClose={hud.closePanel}
         panel={hud.panel}
         activePuzzle={hud.activePuzzle}
         activeView={hud.activeView}

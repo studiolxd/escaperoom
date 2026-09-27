@@ -323,7 +323,7 @@ function LobbySection({
             </p>
           ) : (
             <div
-              className="relative h-64 overflow-hidden rounded-md border bg-slate-950"
+              className="relative h-64 overflow-hidden rounded-md border"
               data-lobby-preview={preview.roomId}
             >
               {renderPreview({ model: preview.model, roomId: preview.roomId, pack })}
@@ -608,7 +608,9 @@ function IntroVideoPreview({
       resolveIntroMediaUrl(roomId, video),
       // Subtítulos desde el mismo origen (un `<track>` a la URL firmada del
       // bucket no carga sin CORS): ver `introSubtitlesUrl`.
-      Promise.resolve(entries.map(([lang, ref]) => ({ lang, url: introSubtitlesUrl(roomId, ref) }))),
+      Promise.resolve(
+        entries.map(([lang, ref]) => ({ lang, url: introSubtitlesUrl(roomId, ref) })),
+      ),
     ])
       .then(([url, tracks]) => {
         if (!cancelled) setState({ status: "ready", url, tracks: tracks.filter((tr) => tr.url) });

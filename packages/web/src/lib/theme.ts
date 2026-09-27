@@ -31,3 +31,22 @@ export function themeCookieValue(theme: Theme): string {
  * `[locale]/layout.tsx`), así que siempre es seguro ejecutarlo.
  */
 export const THEME_INIT_SCRIPT = `(function(){try{var m=document.cookie.match(/(?:^|; )${THEME_COOKIE_NAME}=([^;]*)/);var v=m?decodeURIComponent(m[1]):"system";var dark=v==="dark"||(v!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",dark);}catch(e){}})();`;
+
+/**
+ * ¿Está activo el tema oscuro ahora mismo? Lee la clase `dark` que
+ * `THEME_INIT_SCRIPT`/`ThemeSelect` ya dejaron en `<html>` — sin volver a
+ * resolver la cookie ni `matchMedia` (esos ya decidieron esa clase).
+ * Solo cliente: en SSR devuelve `false`.
+ */
+export function isDarkThemeActive(): boolean {
+  return typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+}
+
+/**
+ * Conversión exacta (no aproximada) de `--background` de `globals.css` a
+ * `#rrggbb` para Phaser, que no puede leer variables CSS: `oklch(1 0 0)` es
+ * blanco puro y `oklch(0.145 0 0)` (acromático, sin canal a/b) da
+ * `rgb(10,10,10)` tras la codificación gamma sRGB — verificado a mano con la
+ * matriz OKLab→sRGB de la CSS Color 4 spec.
+ */
+export const BACKGROUND_HEX = { light: "#ffffff", dark: "#0a0a0a" } as const;

@@ -55,20 +55,22 @@ export function ContextMenuPopover({
         align="center"
         sideOffset={8}
         onEscapeKeyDown={onEscapeKeyDown}
-        className="w-fit max-w-[min(92vw,26rem)] rounded-xl border border-amber-200/30 bg-slate-950/95 px-4 py-3 text-white shadow-xl"
+        className="w-fit max-w-[min(92vw,26rem)] rounded-xl border border-amber-500/30 px-4 py-3 shadow-xl dark:border-amber-200/30"
       >
         {object ? (
           <>
-            <PopoverTitle className="block text-[0.65rem] font-normal uppercase tracking-wide text-amber-200/70">
+            <PopoverTitle className="block text-[0.65rem] font-normal uppercase tracking-wide text-amber-700 dark:text-amber-200/70">
               {titleLabel}
             </PopoverTitle>
-            <span className="block font-mono text-xs text-white/60">{objectLabel(objectName(object.id))}</span>
+            <span className="block font-mono text-xs text-muted-foreground">
+              {objectLabel(objectName(object.id))}
+            </span>
             <div className="mt-2 flex flex-wrap gap-2">
               {(object.actions ?? ["inspect", "use_item"]).map((action) => (
                 <Button
                   key={action}
                   size="sm"
-                  variant={action === "use_item" ? "default" : "overlay"}
+                  variant={action === "use_item" ? "default" : "secondary"}
                   onClick={() => {
                     if (action === "inspect") onInspect(object.id);
                     else onPickItem(object.id);
@@ -78,11 +80,15 @@ export function ContextMenuPopover({
                 </Button>
               ))}
               {object.panelPuzzleId && !isSolved ? (
-                <Button size="sm" variant="overlay" onClick={() => onOpenPanel(object.panelPuzzleId!, object.id)}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onOpenPanel(object.panelPuzzleId!, object.id)}
+                >
                   {openPanelLabel}
                 </Button>
               ) : null}
-              <Button size="sm" variant="overlayGhost" onClick={onCancel}>
+              <Button size="sm" variant="ghost" onClick={onCancel}>
                 {cancelLabel}
               </Button>
             </div>

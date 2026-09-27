@@ -1,4 +1,4 @@
-import { Client, type Room } from "@colyseus/sdk";
+import { Client, MatchMakeError, type Room } from "@colyseus/sdk";
 import {
   EVENT_ROOM,
   GAME_ROOM,
@@ -114,6 +114,20 @@ export async function joinGameRoom(
 /** Cierre por caducidad del playtest (el link dejó de servir). */
 export function isExpiredClose(code: number): boolean {
   return code === PLAYTEST_EXPIRED_CLOSE;
+}
+
+/**
+ * `MATCHMAKE_INVALID_ROOM_ID` (522) del matchmaker de Colyseus cubre tres
+ * casos ("disposed", "not found", "is locked" — `MatchMaker.ts` del core);
+ * solo el de "is locked" es el que dispara `joinById` cuando `players.max` ya
+ * está cubierto (`GameRoom` no bloquea la room por ningún otro motivo).
+ */
+export function isRoomFullError(reason: unknown): boolean {
+  return (
+    reason instanceof MatchMakeError &&
+    reason.code === 522 &&
+    reason.message.endsWith("is locked")
+  );
 }
 
 /** Cierres "normales" del WebSocket (salida consentida del propio cliente). */

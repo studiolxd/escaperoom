@@ -2,8 +2,18 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { getRedis, redisPrefix } from "@escaperoom/kit/redis";
+import { createStorage } from "@escaperoom/kit/storage";
 import { Prisma } from "../generated/client/client";
 import { createPrismaClient } from "../src/db";
+import { invalidatePublishedRoomListingCache } from "../src/services/catalog-listing";
+
+// `packages/shared/.env` (dev-env.sh) no trae REDIS_URL, solo REDIS_PREFIX
+// (E-13 lo comparten todos los worktrees vía prefijo, no vía URL propia):
+// hace falta para poder invalidar el cache del catálogo (ADR-027) al final
+// del seed, igual que la URL de storage de más abajo — mismo valor fijo de
+// dev que `infra/README.md`, no es un secreto.
+process.env.REDIS_URL ??= "redis://:redis_dev_only@localhost:56380";
 
 // El seed escribe directo a Postgres (DIRECT_URL): tras `migrate reset` los
 // ENUMs se recrean con OIDs nuevos y el pooler (PgBouncer) puede tener planes
@@ -15,6 +25,52 @@ const prisma = createPrismaClient({
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.resolve(here, "../../../docs/reference/roompackage-rey-aldric.v1.json");
+const seedAssetsDir = path.resolve(here, "../../../docs/reference/seed-assets");
+
+/**
+ * Portada e introducción de la sala del fixture (SOLO dev, nunca producción,
+ * como `devRoomsCount` más abajo): se guardan como bytes fijos en
+ * `docs/reference/seed-assets/` y se suben al bucket de dev
+ * (SeaweedFS, infra/README.md — credenciales y bucket fijos, no
+ * worktree-specific) en vez de al fixture JSON compartido por decenas de
+ * tests de otros paquetes, que se queda intacto.
+ */
+const devStorage = process.env.NODE_ENV === "production" ? null : createStorage({
+  STORAGE_PROVIDER: "s3",
+  STORAGE_BUCKET: "escaperoom-assets",
+  STORAGE_REGION: "us-east-1",
+  STORAGE_ENDPOINT: "http://localhost:9002",
+  STORAGE_ACCESS_KEY_ID: "minioadmin",
+  STORAGE_SECRET_ACCESS_KEY: "minioadmin",
+});
+
+const MAIN_ROOM_INTRO_TEXT =
+  "Hace veinte años, el rey Aldric fue traicionado por su propio hermano, el mago Malrec, " +
+  "que le arrebató el alma y la selló en un relicario oculto en las profundidades del " +
+  "castillo. Esta noche, sin motivo aparente, las viejas defensas han despertado. Cruzaréis " +
+  "el Salón del Trono, descenderéis a la Bodega de los Vinos Encantados y os adentraréis en " +
+  "las Catacumbas, donde el relicario aguarda entre sombras y magia antigua. Tenéis 60 " +
+  "minutos antes de que el sello se cierre para siempre: el destino del rey Aldric —y quizá " +
+  "el vuestro— está en vuestras manos.";
+
+/**
+ * Sube una portada de `seed-assets/` y devuelve su `coverImageKey`, o `null`
+ * sin storage de dev (o si el storage está inalcanzable, p. ej. CI sin
+ * SeaweedFS levantado: el seed no debe romperse por un servicio externo
+ * opcional, solo sembrar la sala sin portada).
+ */
+async function seedCoverImageKey(roomId: string, fileName: string): Promise<string | null> {
+  if (!devStorage) return null;
+  const bytes = readFileSync(path.join(seedAssetsDir, fileName));
+  const key = `rooms/${roomId}/cover.jpg`;
+  try {
+    await devStorage.putObject({ key, body: bytes, contentType: "image/jpeg" });
+    return key;
+  } catch (error) {
+    console.warn(`⚠️  No se pudo subir la portada de seed (${fileName}) al storage de dev, se sigue sin ella:`, error);
+    return null;
+  }
+}
 
 type RoomPackageFixture = {
   meta: { title: string; theme: string; version: string };
@@ -121,9 +177,18 @@ async function main() {
     create: { id: ID.orgAccount, organizationId: ID.org, balanceCredits: 0n },
   });
 
+  const mainCoverImageKey = await seedCoverImageKey(ID.room, "rey-aldric-cover.jpg");
+  const mainRoomPackage = {
+    ...roomPackage,
+    meta: {
+      ...roomPackage.meta,
+      intro: { type: "text", text: { es: { text: MAIN_ROOM_INTRO_TEXT } } },
+    },
+  };
+
   await prisma.room.upsert({
     where: { id: ID.room },
-    update: {},
+    update: mainCoverImageKey ? { coverImageKey: mainCoverImageKey } : {},
     create: {
       id: ID.room,
       authorId: ID.creator,
@@ -132,16 +197,17 @@ async function main() {
       saleIndividual: true,
       saleEvents: true,
       priceCents: 0,
+      coverImageKey: mainCoverImageKey,
     },
   });
 
   await prisma.roomVersion.upsert({
     where: { roomId_semver: { roomId: ID.room, semver: roomPackage.meta.version } },
-    update: { package: roomPackage as unknown as Prisma.InputJsonValue, assetsHash },
+    update: { package: mainRoomPackage as unknown as Prisma.InputJsonValue, assetsHash },
     create: {
       roomId: ID.room,
       semver: roomPackage.meta.version,
-      package: roomPackage as unknown as Prisma.InputJsonValue,
+      package: mainRoomPackage as unknown as Prisma.InputJsonValue,
       assetsHash,
       changelog: "Versión inicial (seed)",
       publishedBy: ID.creator,
@@ -168,9 +234,13 @@ async function main() {
       ...roomPackage,
       meta: { ...roomPackage.meta, id: devRoomId, title },
     };
+    // Sala 8: portada clara (contraste de la #301, oscura) para comparar
+    // botón/estrellas/tags sobre el degradado con las dos.
+    const devCoverImageKey =
+      i === 8 ? await seedCoverImageKey(devRoomId, "rey-aldric-cover-light.jpg") : null;
     await prisma.room.upsert({
       where: { id: devRoomId },
-      update: {},
+      update: devCoverImageKey ? { coverImageKey: devCoverImageKey } : {},
       create: {
         id: devRoomId,
         authorId: ID.creator,
@@ -179,6 +249,7 @@ async function main() {
         saleIndividual: true,
         saleEvents: true,
         priceCents: DEV_PRICES_CENTS[i % DEV_PRICES_CENTS.length],
+        coverImageKey: devCoverImageKey,
       },
     });
     await prisma.roomVersion.upsert({
@@ -194,6 +265,22 @@ async function main() {
       },
     });
   }
+
+  // El seed escribe la portada/intro directo por Prisma (no por
+  // `getRoomCoverService`/`roomPublish`, que son quienes normalmente invalidan
+  // el cache del catálogo tras cambiar algo visible): sin esto, `/rooms` y la
+  // ficha de sala seguían sirviendo la respuesta cacheada de antes del seed
+  // hasta que expirase el TTL.
+  const redis = getRedis();
+  const cacheStore = redis
+    ? {
+        get: (key: string) => redis.get(key),
+        set: (key: string, value: string, ttlSeconds: number) =>
+          redis.set(key, value, "EX", ttlSeconds),
+      }
+    : null;
+  await invalidatePublishedRoomListingCache(cacheStore, redisPrefix());
+  await redis?.quit();
 
   console.log(
     `Seed OK: admin + creador + sala "${roomPackage.meta.title}" publicada + ${PRICING_TIERS.length} tramos de precio + ${devRoomsCount} salas de desarrollo`,

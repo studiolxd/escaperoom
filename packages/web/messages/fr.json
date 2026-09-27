@@ -830,7 +830,6 @@
       "createSubtitle": "Créez une partie et partagez le lien avec votre groupe (jusqu'à 4 joueurs).",
       "joinSubtitle": "Vous êtes invité à une partie en cours.",
       "nameLabel": "Votre nom",
-      "namePlaceholder": "ex. Ana",
       "create": "Créer une partie",
       "join": "Rejoindre"
     },
@@ -852,7 +851,6 @@
     "lobby": {
       "title": "Salle d'attente",
       "chooseCharacter": "Choisis ton personnage",
-      "characterTaken": "pris",
       "players": "{count, plural, one {# joueur} other {# joueurs}}",
       "start": "Commencer la partie",
       "waitingHost": "En attente du lancement par l'hôte…",
@@ -888,13 +886,11 @@
   },
   "Chat": {
     "title": "Chat",
-    "empty": "Aucun message pour l'instant",
     "placeholder": "Écrivez un message…",
     "disconnected": "Connectez-vous pour discuter",
     "send": "Envoyer",
     "filtered": "filtré",
-    "filteredTitle": "Le filtre de langage a censuré une partie de ce message",
-    "hint": "Max. {max} caractères · 2 messages par seconde"
+    "filteredTitle": "Le filtre de langage a censuré une partie de ce message"
   },
   "Hints": {
     "title": "Indices",

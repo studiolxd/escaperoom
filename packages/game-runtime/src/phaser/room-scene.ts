@@ -88,6 +88,21 @@ function formatLabel(template: string, vars: Record<string, string>): string {
 }
 
 /**
+ * El teclado de Phaser escucha en `document`, no en el canvas: sin esto, el
+ * chat (u otro input de React fuera del canvas) movía al avatar y disparaba
+ * `interact` a la vez que escribías.
+ */
+function isTypingInFormField(): boolean {
+  const active = typeof document !== "undefined" ? document.activeElement : null;
+  if (!(active instanceof HTMLElement)) return false;
+  return (
+    active.tagName === "INPUT" ||
+    active.tagName === "TEXTAREA" ||
+    active.isContentEditable
+  );
+}
+
+/**
  * Atlas ya descargados una vez, por URL de la imagen (F-43..47 punto 5): cada
  * `Phaser.Game` nuevo trae su propio `TextureManager` vacío, así que remontar
  * el juego (reintento de conexión, cambio de `key` en React) volvía a pedir a
@@ -228,6 +243,8 @@ export interface RoomSceneOptions {
   emitAvatarMoves?: boolean;
   /** Textos in-canvas (F-10); sin ellos, el castellano de siempre. */
   labels?: Partial<RoomSceneLabels>;
+  /** Color de fondo de la cámara (`#rrggbb`); por defecto el fijo de siempre. */
+  backgroundColor?: string;
 }
 
 /** Otro jugador de la partida, tal como lo sincroniza el servidor (fase 2). */
@@ -250,7 +267,6 @@ export const AVATAR_MOVE_EMIT_MS = SESSION_AVATAR_MOVE_EMIT_MS;
 /** Avatar de otro jugador: se interpola hacia la última posición del servidor. */
 interface RemoteAvatar {
   controller: AvatarController;
-  label: Phaser.GameObjects.Text;
   target: { x: number; y: number };
 }
 
@@ -319,6 +335,8 @@ export class RoomScene extends Phaser.Scene {
   private localInputEnabled: boolean;
   private readonly localPlayerId: string;
   private readonly manifest: PackManifest;
+  /** Color de fondo de la cámara (`#rrggbb`); `setBackgroundColor` lo actualiza en caliente (tema claro/oscuro). */
+  private backgroundColor: string;
 
   private activeRoomId: string;
   private roomObjects: Phaser.GameObjects.GameObject[] = [];
@@ -341,12 +359,10 @@ export class RoomScene extends Phaser.Scene {
    * las antorchas y canales de la sala) en cada `setObjectState`.
    */
   private readonly reactiveAnimated = new Map<string, Phaser.GameObjects.Graphics>();
-  private ambientOverlay?: Phaser.GameObjects.Rectangle;
   private resolver!: PackFrameResolver;
   private collision!: CollisionGrid;
   private avatar?: AvatarController;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
-  private movementKeys?: Record<"w" | "a" | "s" | "d", Phaser.Input.Keyboard.Key>;
   private built = false;
   private transitioning = false;
   private doorCooldownUntil = 0;
@@ -397,6 +413,7 @@ export class RoomScene extends Phaser.Scene {
     this.emitAvatarMoves = options.emitAvatarMoves ?? false;
     this.labels = { ...DEFAULT_LABELS, ...options.labels };
     this.manifest = options.pack?.manifest ?? buildPlaceholderManifest(options.model);
+    this.backgroundColor = options.backgroundColor ?? "#0b1120";
     this.localCharacterId =
       options.localCharacterId ?? this.manifest.avatars?.[0]?.id ?? PLACEHOLDER_CHARACTER_ID;
 
@@ -521,9 +538,14 @@ export class RoomScene extends Phaser.Scene {
     }
     this.localCharacterId = characterId;
     if (this.built && !this.transitioning && this.avatarEnabled) {
-      const cell = this.avatar?.cellPosition;
+      // Sin avatar todavía (recién elegido, `pendingAvatarCell` es la última
+      // posición del servidor que `placeAvatar` no pudo aplicar por faltar
+      // avatar): úsala, o el nuevo avatar aparecería en (0, 0).
+      const cell = this.avatar?.cellPosition ?? this.pendingAvatarCell;
+      this.pendingAvatarCell = undefined;
       this.avatar?.destroy();
-      this.avatar = this.createAvatarController(cell ?? { x: 0, y: 0 });
+      // "" (encargo retratos): sin personaje, no se pinta ningún avatar.
+      this.avatar = characterId ? this.createAvatarController(cell ?? { x: 0, y: 0 }) : undefined;
     }
   }
 
@@ -560,7 +582,6 @@ export class RoomScene extends Phaser.Scene {
       const existing = this.remoteAvatars.get(player.id);
       if (existing) {
         existing.target = { x: player.x, y: player.y };
-        existing.label.setText(player.name);
         continue;
       }
       const controller = new AvatarController({
@@ -570,21 +591,9 @@ export class RoomScene extends Phaser.Scene {
         collision: this.collision,
         start: { x: player.x, y: player.y },
         characterId: player.characterId || PLACEHOLDER_CHARACTER_ID,
-        tint: Phaser.Display.Color.HexStringToColor(player.tint).color,
       });
-      const label = this.add
-        .text(0, -100, player.name, {
-          fontFamily: "system-ui, sans-serif",
-          fontSize: "13px",
-          color: "#f8fafc",
-          backgroundColor: "rgba(2, 6, 23, 0.65)",
-          padding: { x: 4, y: 1 },
-        })
-        .setOrigin(0.5, 1);
-      controller.container.add(label);
       this.remoteAvatars.set(player.id, {
         controller,
-        label,
         target: { x: player.x, y: player.y },
       });
     }
@@ -642,10 +651,20 @@ export class RoomScene extends Phaser.Scene {
     return this.localInputEnabled;
   }
 
-  /** Cambia de habitación con un fundido y reconstruye la escena. */
+  /**
+   * Cambia de habitación con un fundido y reconstruye la escena. Sin
+   * lanzar por una sala que no existe en el modelo del cliente (antes sí):
+   * los llamadores (cruce de puerta, sincronización con el servidor) no
+   * envuelven la llamada en un try/catch, así que una excepción aquí se
+   * perdía sin control y —peor aún, en `useSceneSync`— podía dejar la
+   * escena encallada para siempre en la sala anterior, sin volver a
+   * reintentarlo nunca (el ref que marca "sala ya mostrada" se actualizaba
+   * ANTES de comprobar si la llamada había funcionado).
+   */
   setRoom(roomId: string): void {
     if (!this.model.subroomsById[roomId]) {
-      throw new Error(`RoomScene: la habitación "${roomId}" no existe en el modelo.`);
+      console.error(`RoomScene: la habitación "${roomId}" no existe en el modelo.`);
+      return;
     }
     if (roomId === this.activeRoomId && this.built) {
       return;
@@ -708,7 +727,6 @@ export class RoomScene extends Phaser.Scene {
     }
     this.roomObjects = [];
     this.clearReactive();
-    this.ambientOverlay = undefined;
     this.editCursor = undefined;
     this.editSelection = undefined;
   }
@@ -1368,20 +1386,16 @@ export class RoomScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * `room.lighting` (tipo "ambient") ya no pinta ningún tinte de pantalla
+   * completa: el rectángulo cubría `this.scale.width/height` fijo a la
+   * cámara, así que también teñía (con `MULTIPLY`) el margen vacío fuera
+   * del rombo isométrico de la sala — más visible cuanto más claro el fondo
+   * del canvas (encargo limpieza-entrada), imperceptible en negro. El dato
+   * de `room.lighting` se queda en el esquema/editor (otros usos posibles
+   * más adelante); solo se retira el pintado.
+   */
   private drawLighting(room: RuntimeSubRoom): void {
-    const ambient = room.lighting.find((light) => light.type === "ambient");
-    if (ambient && ambient.type === "ambient") {
-      this.ambientOverlay = this.track(
-        this.add
-          .rectangle(0, 0, this.scale.width, this.scale.height, parseColor(ambient.color), 1)
-          .setOrigin(0, 0)
-          .setScrollFactor(0)
-          .setDepth(DEPTH.ambient)
-          .setBlendMode(Phaser.BlendModes.MULTIPLY)
-          .setAlpha(Phaser.Math.Clamp(ambient.intensity, 0, 1) * 0.7),
-      );
-    }
-
     this.drawReactive(room);
   }
 
@@ -1494,7 +1508,9 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private buildAvatar(room: RuntimeSubRoom): void {
-    if (!this.avatarEnabled) {
+    // Encargo retratos: sin personaje elegido (`""`, el valor por defecto
+    // hasta que el jugador elige uno en el lobby) no se pinta ningún avatar.
+    if (!this.avatarEnabled || !this.localCharacterId) {
       return;
     }
     const spawn = this.pendingAvatarCell ?? room.spawns[0] ?? { x: 0, y: 0 };
@@ -1530,14 +1546,8 @@ export class RoomScene extends Phaser.Scene {
       return;
     }
     this.cursors = keyboard.createCursorKeys();
-    this.movementKeys = {
-      w: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      a: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      s: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      d: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-    };
     keyboard.on("keydown-SPACE", () => {
-      if (!this.localInputEnabled) {
+      if (!this.localInputEnabled || isTypingInFormField()) {
         return;
       }
       this.avatar?.interact();
@@ -1590,13 +1600,14 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private readKeyboardMove(): { x: number; y: number } | null {
+    if (isTypingInFormField()) return null;
     let x = 0;
     let y = 0;
 
-    const up = this.cursors?.up.isDown || this.movementKeys?.w.isDown;
-    const down = this.cursors?.down.isDown || this.movementKeys?.s.isDown;
-    const left = this.cursors?.left.isDown || this.movementKeys?.a.isDown;
-    const right = this.cursors?.right.isDown || this.movementKeys?.d.isDown;
+    const up = this.cursors?.up.isDown;
+    const down = this.cursors?.down.isDown;
+    const left = this.cursors?.left.isDown;
+    const right = this.cursors?.right.isDown;
 
     if (up) {
       x -= 1;
@@ -1650,10 +1661,21 @@ export class RoomScene extends Phaser.Scene {
     const bounds = gridBounds(room.width, room.height, 1);
     const center = gridCenter(room.width, room.height);
 
-    camera.setBackgroundColor("#0b1120");
+    camera.setBackgroundColor(this.backgroundColor);
     camera.setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
     camera.centerOn(center.x, center.y);
     this.fitZoom(bounds.width, bounds.height);
+  }
+
+  /**
+   * Color de fondo de la cámara (`#rrggbb`), en caliente: el tema claro/oscuro
+   * puede cambiar con la partida ya en marcha (`game-session-canvas.tsx`
+   * observa la clase `dark` de `<html>`). Sin reconstruir sala ni cámara.
+   */
+  setBackgroundColor(hex: string): void {
+    if (this.backgroundColor === hex) return;
+    this.backgroundColor = hex;
+    this.cameras?.main?.setBackgroundColor(hex);
   }
 
   private fitZoom(contentWidth: number, contentHeight: number): void {
@@ -1854,9 +1876,6 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private handleResize(): void {
-    if (this.ambientOverlay) {
-      this.ambientOverlay.setSize(this.scale.width, this.scale.height);
-    }
     const room = this.model.subroomsById[this.activeRoomId];
     if (room) {
       const bounds = gridBounds(room.width, room.height, 1);
@@ -1901,10 +1920,4 @@ function strokeDiamond(
   graphics.lineTo(x - halfW, y);
   graphics.closePath();
   graphics.strokePath();
-}
-
-function parseColor(color: string): number {
-  const normalized = color.startsWith("#") ? color.slice(1) : color;
-  const value = Number.parseInt(normalized, 16);
-  return Number.isNaN(value) ? 0x000000 : value;
 }

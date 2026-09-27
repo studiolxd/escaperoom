@@ -78,9 +78,7 @@ export function SplitCluePanel({
 
   function append(value: string) {
     if (disabled) return;
-    setEntry((current) =>
-      current.length >= view.fragmentsCount ? current : [...current, value],
-    );
+    setEntry((current) => (current.length >= view.fragmentsCount ? current : [...current, value]));
   }
 
   function backspace() {
@@ -113,19 +111,19 @@ export function SplitCluePanel({
       data-input-ui={view.inputUI}
       data-viewpoint={view.viewpointId}
       className={cn(
-        "flex w-fit flex-col gap-4 rounded-xl border border-white/10 bg-black/60 p-4 text-white backdrop-blur",
+        "flex w-fit flex-col gap-4 rounded-xl border border-border bg-card/95 p-4 text-foreground backdrop-blur",
         className,
       )}
     >
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="text-sm font-medium">{t("title")}</h2>
-        <span className="text-xs text-white/60">
+        <span className="text-xs text-muted-foreground">
           {t("progress", { visible: view.visibleCount, total: view.fragmentsCount })}
         </span>
       </header>
 
       <div className="flex flex-col gap-1">
-        <span className="text-xs text-white/60">{t("viewLabel")}</span>
+        <span className="text-xs text-muted-foreground">{t("viewLabel")}</span>
         <ol className="flex flex-wrap gap-2" aria-label={t("viewLabel")}>
           {view.visible.map((fragment, index) => (
             <li key={index}>
@@ -137,8 +135,8 @@ export function SplitCluePanel({
                 className={cn(
                   "grid size-10 place-items-center rounded-md border font-mono text-lg",
                   fragment !== null
-                    ? "border-amber-300/60 bg-amber-300/10 text-amber-100"
-                    : "border-white/10 bg-white/5 text-white/30",
+                    ? "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:border-amber-300/60 dark:bg-amber-300/10 dark:text-amber-100"
+                    : "border-border bg-muted/50 text-muted-foreground",
                 )}
               >
                 {fragment ?? t("hidden")}
@@ -149,7 +147,7 @@ export function SplitCluePanel({
       </div>
 
       <div className="flex flex-col gap-1">
-        <span className="text-xs text-white/60">{t("inputLabel")}</span>
+        <span className="text-xs text-muted-foreground">{t("inputLabel")}</span>
         <div className="flex flex-wrap gap-2" role="group" aria-label={t("inputLabel")}>
           {Array.from({ length: view.fragmentsCount }, (_, index) => (
             <span
@@ -161,8 +159,8 @@ export function SplitCluePanel({
               className={cn(
                 "grid size-10 place-items-center rounded-md border font-mono text-lg",
                 entry[index] !== undefined
-                  ? "border-amber-300/60 bg-amber-300/10 text-amber-100"
-                  : "border-white/15 bg-white/5 text-white/40",
+                  ? "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:border-amber-300/60 dark:bg-amber-300/10 dark:text-amber-100"
+                  : "border-border bg-muted/50 text-muted-foreground",
               )}
             >
               {entry[index] ?? "·"}
@@ -176,42 +174,30 @@ export function SplitCluePanel({
           {KEYPAD_ROWS.flat().map((digit) => (
             <Button
               key={digit}
-              variant="overlay"
+              variant="secondary"
               size="lg"
               disabled={disabled}
               aria-label={t("symbol", { symbol: digit })}
-              className="font-mono text-white hover:bg-white/10 hover:text-white"
+              className="font-mono"
               onClick={() => append(digit)}
             >
               {digit}
             </Button>
           ))}
-          <Button
-            variant="overlayGhost"
-            size="lg"
-            disabled={disabled}
-            className="text-white hover:bg-white/10 hover:text-white"
-            onClick={clear}
-          >
+          <Button variant="ghost" size="lg" disabled={disabled} onClick={clear}>
             {t("clear")}
           </Button>
           <Button
-            variant="overlay"
+            variant="secondary"
             size="lg"
             disabled={disabled}
             aria-label={t("symbol", { symbol: "0" })}
-            className="font-mono text-white hover:bg-white/10 hover:text-white"
+            className="font-mono"
             onClick={() => append("0")}
           >
             0
           </Button>
-          <Button
-            variant="overlayGhost"
-            size="lg"
-            disabled={disabled}
-            className="text-white hover:bg-white/10 hover:text-white"
-            onClick={backspace}
-          >
+          <Button variant="ghost" size="lg" disabled={disabled} onClick={backspace}>
             {t("backspace")}
           </Button>
         </div>
@@ -221,7 +207,7 @@ export function SplitCluePanel({
             {palette.map((symbol) => (
               <li key={symbol}>
                 <Button
-                  variant="overlay"
+                  variant="secondary"
                   size="sm"
                   disabled={disabled}
                   aria-label={t("symbol", { symbol })}
@@ -233,10 +219,10 @@ export function SplitCluePanel({
             ))}
           </ul>
           <div className="flex gap-2">
-            <Button variant="overlayGhost" size="sm" disabled={disabled} onClick={backspace}>
+            <Button variant="ghost" size="sm" disabled={disabled} onClick={backspace}>
               {t("backspace")}
             </Button>
-            <Button variant="overlayGhost" size="sm" disabled={disabled} onClick={clear}>
+            <Button variant="ghost" size="sm" disabled={disabled} onClick={clear}>
               {t("clear")}
             </Button>
           </div>
@@ -248,7 +234,7 @@ export function SplitCluePanel({
       </Button>
 
       {onPlaceBridge && view.bridgeAvailable && !view.bridged ? (
-        <Button variant="overlayGhost" size="sm" disabled={disabled} onClick={onPlaceBridge}>
+        <Button variant="ghost" size="sm" disabled={disabled} onClick={onPlaceBridge}>
           {t("bridge")}
         </Button>
       ) : null}
@@ -267,12 +253,12 @@ export function SplitCluePanel({
         className={cn(
           "text-center text-xs",
           solved
-            ? "text-emerald-300"
+            ? "text-emerald-700 dark:text-emerald-300"
             : unavailable || feedback === "unavailable"
-              ? "text-amber-300"
+              ? "text-amber-700 dark:text-amber-300"
               : feedback === "wrong"
-                ? "text-red-300"
-                : "text-white/60",
+                ? "text-red-600 dark:text-red-300"
+                : "text-muted-foreground",
         )}
       >
         {pending ? t("pending") : status}

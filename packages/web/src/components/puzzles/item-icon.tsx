@@ -54,7 +54,7 @@ export function ItemIcon({ frame, baseUrl, name, size = 28, className }: ItemIco
         data-icon-fallback="true"
         title={name}
         className={cn(
-          "icon-fallback-size grid shrink-0 place-items-center rounded-md bg-amber-200/15 font-semibold text-amber-100",
+          "icon-fallback-size grid shrink-0 place-items-center rounded-md bg-amber-500/15 font-semibold text-amber-700 dark:bg-amber-200/15 dark:text-amber-100",
           className,
         )}
         style={

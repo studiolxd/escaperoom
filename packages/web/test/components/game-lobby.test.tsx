@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { loadRuntimeModel, toPublicRuntimeModel } from "@escaperoom/game-runtime";
+import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import type {
   GameClient,
   GamePlayerSnapshot,
   GameSnapshot,
 } from "@escaperoom/game-runtime/session";
 import { withLobbyRoom } from "@escaperoom/shared/schemas";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { createElement, type ReactElement } from "react";
@@ -32,6 +33,18 @@ vi.mock("../../src/components/game-session/game-session-canvas", () => ({
 const model = toPublicRuntimeModel(
   loadRuntimeModel(JSON.stringify(withLobbyRoom(JSON.parse(readReyAldricRoomPackageJson())))),
 );
+
+/** Encargo retratos: fixture mínima con dos personajes (uno con portrait, otro sin). */
+const pack = {
+  baseUrl: "https://cdn.example/pack",
+  manifest: {
+    avatars: [
+      { id: "caballero-m", label: { es: { text: "Caballero" } }, portrait: "retrato-caballero-m" },
+      { id: "mago-f", label: { es: { text: "Maga" } } },
+      { id: "arquero-m", label: { es: { text: "Arquero" } } },
+    ],
+  },
+} as unknown as RoomScenePack;
 
 function player(overrides: Partial<GamePlayerSnapshot> = {}): GamePlayerSnapshot {
   return {
@@ -122,12 +135,12 @@ afterEach(() => {
 });
 
 describe("lobbyStageOf", () => {
-  it("lobby → introducción → 3-2-1 → mapa", () => {
+  it("lobby → introducción → entrando → mapa", () => {
     const waiting = player();
     expect(lobbyStageOf("lobby", waiting, true, false)).toBe("lobby");
     expect(lobbyStageOf("starting", waiting, true, false)).toBe("intro");
-    expect(lobbyStageOf("starting", waiting, true, true)).toBe("countdown");
-    expect(lobbyStageOf("starting", waiting, false, false)).toBe("countdown");
+    expect(lobbyStageOf("starting", waiting, true, true)).toBe("entering");
+    expect(lobbyStageOf("starting", waiting, false, false)).toBe("entering");
     expect(lobbyStageOf("playing", player({ inMap: true }), true, false)).toBe("map");
   });
 
@@ -152,24 +165,20 @@ describe("<LobbyPanel>", () => {
     onCopyInvite: vi.fn(),
   };
 
-  it("cabecera con título, dificultad, duración y jugadores mín.–máx.", () => {
+  it("cabecera con el título de la sala", () => {
     renderIntl(createElement(LobbyPanel, { ...baseProps, players: [player()], self: player() }));
     expect(screen.getByText(model.meta.title)).toBeInTheDocument();
-    expect(screen.getByText("Dificultad media")).toBeInTheDocument();
-    expect(screen.getByTestId("lobby-duration")).toHaveTextContent("60 min");
-    expect(screen.getByText("1–4 jugadores")).toBeInTheDocument();
   });
 
-  it("sala sin duración: «Sin límite de tiempo»", () => {
+  it("X persona(s) de N según los jugadores conectados", () => {
     renderIntl(
       createElement(LobbyPanel, {
         ...baseProps,
-        meta: { ...model.meta, timeLimitMinutes: null },
         players: [player()],
         self: player(),
       }),
     );
-    expect(screen.getByTestId("lobby-duration")).toHaveTextContent("Sin límite de tiempo");
+    expect(screen.getByText("1 persona de 8")).toBeInTheDocument();
   });
 
   it("lista de jugadores con «Listo», anfitrión y expulsar (con confirmación)", async () => {
@@ -194,21 +203,149 @@ describe("<LobbyPanel>", () => {
     expect(onKick).toHaveBeenCalledWith("p2");
   });
 
-  it("«Listo» y «Empezar igualmente» con confirmación si faltan «Listo»", async () => {
+  it("encargo retratos: selector de personaje con el pack — elegir uno llama a onSelectCharacter y quita el «Listo» quien lo hace", async () => {
+    const user = userEvent.setup();
+    const onSelectCharacter = vi.fn();
+    const bruno = player({
+      id: "p2",
+      name: "Bruno",
+      isHost: false,
+      isSelf: false,
+      characterId: "mago-f",
+      tint: "#00ff00",
+    });
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        pack,
+        onSelectCharacter,
+        players: [player(), bruno],
+        self: player(),
+      }),
+    );
+    // El propio personaje (caballero-m) muestra el propio nombre debajo.
+    expect(screen.getByTestId("character-occupant-caballero-m")).toHaveTextContent("Ana");
+    // El de Bruno (mago-f) está ocupado: deshabilitado y con su nombre.
+    const magoOption = screen.getByTestId("character-option-mago-f");
+    expect(magoOption).toBeDisabled();
+    expect(magoOption).toHaveAccessibleName("Bruno ya tiene este personaje");
+    expect(screen.getByTestId("character-occupant-mago-f")).toHaveTextContent("Bruno");
+
+    await user.click(magoOption);
+    expect(onSelectCharacter).not.toHaveBeenCalled();
+    // Cambiar a un personaje libre sí llama al callback (el servidor decide
+    // si eso quita el «Listo»; aquí solo comprobamos que la intención sale).
+    await user.click(screen.getByTestId("character-option-arquero-m"));
+    expect(onSelectCharacter).toHaveBeenCalledWith("arquero-m");
+    // Pulsar el propio (caballero-m, ya elegido) otra vez lo libera.
+    await user.click(screen.getByTestId("character-option-caballero-m"));
+    expect(onSelectCharacter).toHaveBeenCalledWith("");
+  });
+
+  it("el anfitrión debe confirmarse él mismo antes de poder empezar", async () => {
     const user = userEvent.setup();
     const onToggleReady = vi.fn();
-    const onStart = vi.fn();
     renderIntl(
       createElement(LobbyPanel, {
         ...baseProps,
         onToggleReady,
-        onStart,
         players: [player()],
         self: player(),
       }),
     );
+    expect(screen.getByTestId("lobby-host-not-ready")).toBeInTheDocument();
+    expect(screen.queryByTestId("game-start")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("lobby-start-force")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("lobby-ready"));
     expect(onToggleReady).toHaveBeenCalledWith(true);
+  });
+
+  it("sin personaje elegido, «¡Vamos!» está deshabilitado", async () => {
+    const user = userEvent.setup();
+    const onToggleReady = vi.fn();
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        onToggleReady,
+        pack,
+        players: [player({ characterId: "" })],
+        self: player({ characterId: "" }),
+      }),
+    );
+    const button = screen.getByTestId("lobby-ready");
+    expect(button).toBeDisabled();
+    await user.click(button);
+    expect(onToggleReady).not.toHaveBeenCalled();
+  });
+
+  it("anfitrión sin personaje: el aviso es «Elige un personaje», no «Confirma tu participación»", () => {
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        pack,
+        players: [player({ characterId: "" })],
+        self: player({ characterId: "" }),
+      }),
+    );
+    expect(screen.getByTestId("lobby-host-not-ready")).toHaveTextContent(
+      es.Game.lobby.chooseCharacterFirst,
+    );
+  });
+
+  it("invitado sin personaje: el aviso es «Elige un personaje», no «Esperando al anfitrión»", () => {
+    const host = player({ characterId: "caballero-m" });
+    const guest = player({ id: "p2", name: "Bruno", isHost: false, isSelf: true, characterId: "" });
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        isHost: false,
+        pack,
+        players: [host, guest],
+        self: guest,
+      }),
+    );
+    expect(screen.getByTestId("lobby-waiting-host")).toHaveTextContent(
+      es.Game.lobby.chooseCharacterFirst,
+    );
+  });
+
+  it("invitado con personaje pero sin confirmar: el aviso pide confirmar, no esperar al anfitrión", () => {
+    const host = player({ characterId: "caballero-m" });
+    const guest = player({
+      id: "p2",
+      name: "Bruno",
+      isHost: false,
+      isSelf: true,
+      characterId: "mago-f",
+      ready: false,
+    });
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        isHost: false,
+        pack,
+        players: [host, guest],
+        self: guest,
+      }),
+    );
+    expect(screen.getByTestId("lobby-guest-not-ready")).toHaveTextContent(
+      es.Game.lobby.hostMustConfirm,
+    );
+  });
+
+  it("«Empezar sin esperar» salta la confirmación de los demás, no la del anfitrión", async () => {
+    const user = userEvent.setup();
+    const onStart = vi.fn();
+    const hostReady = player({ ready: true });
+    const guest = player({ id: "p2", name: "Bruno", isHost: false, isSelf: false, ready: false });
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        onStart,
+        players: [hostReady, guest],
+        self: hostReady,
+      }),
+    );
     expect(screen.queryByTestId("game-start")).not.toBeInTheDocument();
     await user.click(screen.getByTestId("lobby-start-force"));
     await user.click(screen.getByTestId("lobby-start-force-confirm"));
@@ -223,7 +360,7 @@ describe("<LobbyPanel>", () => {
     expect(screen.getByTestId("game-start")).toBeInTheDocument();
     unmount();
 
-    const guest = player({ id: "p2", isHost: false });
+    const guest = player({ id: "p2", isHost: false, ready: true });
     renderIntl(
       createElement(LobbyPanel, {
         ...baseProps,
@@ -268,7 +405,7 @@ describe("<LobbyPanel>", () => {
   });
 });
 
-describe("<GameSessionShell> — lobby, introducción y 3-2-1", () => {
+describe("<GameSessionShell> — lobby, introducción y entrada al mapa", () => {
   const textIntro: IntroModel = { kind: "text", text: "Érase una vez el rey Aldric…" };
 
   it("en el lobby pinta la sala de espera y oculta objetos e inventario", () => {
@@ -280,34 +417,29 @@ describe("<GameSessionShell> — lobby, introducción y 3-2-1", () => {
     expect(screen.queryByTestId("game-intro")).not.toBeInTheDocument();
   });
 
-  it("tras «Empezar»: introducción de texto, «Continuar», 3-2-1 sin saltar y enter_map", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  it("tras «Empezar»: introducción de texto, «Continuar» y enter_map inmediato, sin cuenta atrás", async () => {
+    const user = userEvent.setup();
     const client = makeClient(makeSnapshot({ phase: "starting" }));
     renderIntl(createElement(GameSessionShell, { model, client, intro: textIntro }));
 
     expect(screen.getByTestId("game-intro-text")).toHaveTextContent("Érase una vez el rey Aldric…");
+    expect(client.enterMap).not.toHaveBeenCalled();
     await user.click(screen.getByTestId("game-intro-continue"));
 
-    expect(screen.getByTestId("game-countdown-value")).toHaveTextContent("3");
-    // Sin botón de saltar.
-    expect(screen.getByTestId("game-countdown").querySelector("button")).toBeNull();
-    await act(async () => {
-      vi.advanceTimersByTime(1000);
-    });
-    expect(screen.getByTestId("game-countdown-value")).toHaveTextContent("2");
-    expect(client.enterMap).not.toHaveBeenCalled();
-    await act(async () => {
-      vi.advanceTimersByTime(2000);
-    });
+    // Sin cuenta atrás de por medio: cerrar la introducción manda enter_map
+    // ya mismo, y el fundido (mismo `EntryFade` de la introducción) se queda
+    // hasta que el servidor confirme `inMap`.
     expect(client.enterMap).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("game-intro")).not.toBeInTheDocument();
+    expect(screen.getByTestId("game-entry-fade")).toBeInTheDocument();
   });
 
-  it("sin introducción: directo al 3-2-1", () => {
+  it("sin introducción: fundido y enter_map inmediato, sin cuenta atrás", () => {
     const client = makeClient(makeSnapshot({ phase: "starting" }));
     renderIntl(createElement(GameSessionShell, { model, client, intro: null }));
     expect(screen.queryByTestId("game-intro")).not.toBeInTheDocument();
-    expect(screen.getByTestId("game-countdown")).toBeInTheDocument();
+    expect(screen.getByTestId("game-entry-fade")).toBeInTheDocument();
+    expect(client.enterMap).toHaveBeenCalledTimes(1);
   });
 
   it("vídeo con subtítulos: controles, sin autoplay y pista por idioma", () => {

@@ -6,6 +6,7 @@ import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import type { IntroModel } from "@/lib/intro-model";
 import { readGameTokenFromHash } from "@/lib/game-net";
+import { AlertStatus, LoadingStatus } from "./components/status-overlay";
 import { NetworkGame } from "./network-game";
 
 /** El token se guarda por pestaña para reintentos y recargas (no en `localStorage`). */
@@ -85,19 +86,19 @@ export function RoomGame({
   // nuevo en cada render de `RoomGame` reprocesaba el `gameToken`
   // (`JSON.stringify` en `use-game-connection.ts`) aunque no cambiara nada.
   const target = useMemo(
-    () => ({ kind: "game" as const, gameToken: token ?? "", ...(joinRoomId ? { roomId: joinRoomId } : {}) }),
+    () => ({
+      kind: "game" as const,
+      gameToken: token ?? "",
+      ...(joinRoomId ? { roomId: joinRoomId } : {}),
+    }),
     [token, joinRoomId],
   );
 
   if (token === undefined) {
-    return <p className="p-4 text-sm text-white/70">{t("status.connecting")}</p>;
+    return <LoadingStatus message={t("status.connecting")} />;
   }
   if (!token) {
-    return (
-      <p role="alert" className="p-4 text-sm text-white/70">
-        {t("room.missingToken")}
-      </p>
-    );
+    return <AlertStatus message={t("room.missingToken")} />;
   }
   return (
     <NetworkGame

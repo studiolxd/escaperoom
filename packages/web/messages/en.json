@@ -932,7 +932,6 @@
       "createSubtitle": "Create a game and share the link with your group (up to 4 players).",
       "joinSubtitle": "You have been invited to a game in progress.",
       "nameLabel": "Your name",
-      "namePlaceholder": "e.g. Ana",
       "create": "Create game",
       "join": "Join"
     },
@@ -954,7 +953,6 @@
     "lobby": {
       "title": "Waiting room",
       "chooseCharacter": "Choose your character",
-      "characterTaken": "taken",
       "players": "{count, plural, one {# player} other {# players}}",
       "start": "Start game",
       "waitingHost": "Waiting for the host to start…",
@@ -990,13 +988,11 @@
   },
   "Chat": {
     "title": "Chat",
-    "empty": "No messages yet",
     "placeholder": "Write a message…",
     "disconnected": "Connect to chat",
     "send": "Send",
     "filtered": "filtered",
-    "filteredTitle": "The language filter censored part of this message",
-    "hint": "Max. {max} characters · 2 messages per second"
+    "filteredTitle": "The language filter censored part of this message"
   },
   "PublishConfirm": {
     "title": "Confirm publication",
@@ -1115,10 +1111,10 @@
     "titleLabel": "Event title",
     "playersLabel": "Planned players",
     "pricingTitle": "Price per player",
-    "pricingLoading": "Loading pricing tiers\u2026",
+    "pricingLoading": "Loading pricing tiers…",
     "pricingUnavailable": "Could not load the pricing tiers.",
     "pricingRangeOpen": "{min}+ players:",
-    "pricingRangeCapped": "{min}\u2013{max} players:",
+    "pricingRangeCapped": "{min}–{max} players:",
     "submitError": "Could not create the event. Please try again.",
     "submit": "Create event",
     "errors": {

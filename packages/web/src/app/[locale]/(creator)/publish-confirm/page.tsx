@@ -28,7 +28,12 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  * `RoomPublishErrorCode` (sala), más `PUBLISH_CONFIRM_DISABLED_ERROR`.
  */
 export const KNOWN_ERRORS: ReadonlySet<string> = new Set([
-  ...(["UNAUTHORIZED", "FORBIDDEN", "INVALID_TOKEN", "EXPIRED"] satisfies readonly PublishConfirmationErrorCode[]),
+  ...([
+    "UNAUTHORIZED",
+    "FORBIDDEN",
+    "INVALID_TOKEN",
+    "EXPIRED",
+  ] satisfies readonly PublishConfirmationErrorCode[]),
   ...([
     "NOT_FOUND",
     "DRAFT_CHANGED",
@@ -81,7 +86,7 @@ export default async function PublishConfirmPage({ params, searchParams }: Props
     KNOWN_ERRORS.has(code) ? t(`errors.${code}`) : t("errors.UNKNOWN");
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center bg-slate-950 p-4 text-white">
+    <main className="relative flex min-h-dvh items-center justify-center p-4 text-white">
       <section className="w-full max-w-lg space-y-4 rounded-xl border border-white/10 bg-white/5 p-6">
         <h1 className="text-lg font-semibold">{t("title")}</h1>
         <p className="text-sm text-white/70">{t("intro")}</p>

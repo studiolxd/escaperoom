@@ -84,7 +84,7 @@ export interface UseGameHudOptions {
   client: GameClient;
   snapshot: GameSnapshot;
   handleRef: RefObject<GameSessionCanvasHandle | null>;
-  sceneRoomRef: RefObject<string>;
+  sceneRoomRef: RefObject<string | undefined>;
   /**
    * Indicadores de depuración propios del playtest (F-5): registra también
    * cada inspección y combinación, no solo los desenlaces del servidor.

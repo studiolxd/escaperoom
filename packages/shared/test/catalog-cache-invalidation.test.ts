@@ -42,6 +42,7 @@ const FILTER: CatalogListFilter = {
   maxPrice: null,
   playersMin: null,
   playersMax: null,
+  minRating: null,
   q: null,
   sort: "recent",
 };
@@ -101,10 +102,13 @@ describe("retirada por moderación invalida el cache del catálogo", () => {
     const moderation = createModerationService({ store: moderationStore });
 
     const cacheStore = memoryStore();
-    const cachedCatalog = createCachedPublishedRoomListing(listingOverModerationStore(moderationStore), {
-      store: cacheStore,
-      prefix: "er",
-    });
+    const cachedCatalog = createCachedPublishedRoomListing(
+      listingOverModerationStore(moderationStore),
+      {
+        store: cacheStore,
+        prefix: "er",
+      },
+    );
 
     // Punto único de invalidación, igual que en el composition root de web.
     const resolveReport = withCatalogCacheInvalidation(cacheStore, "er", moderation.resolveReport);
@@ -140,10 +144,13 @@ describe("retirada por moderación invalida el cache del catálogo", () => {
     const moderation = createModerationService({ store: moderationStore });
 
     const cacheStore = memoryStore();
-    const cachedCatalog = createCachedPublishedRoomListing(listingOverModerationStore(moderationStore), {
-      store: cacheStore,
-      prefix: "er",
-    });
+    const cachedCatalog = createCachedPublishedRoomListing(
+      listingOverModerationStore(moderationStore),
+      {
+        store: cacheStore,
+        prefix: "er",
+      },
+    );
     const resolveReport = withCatalogCacheInvalidation(cacheStore, "er", moderation.resolveReport);
     const resolveAppeal = withCatalogCacheInvalidation(cacheStore, "er", moderation.resolveAppeal);
 

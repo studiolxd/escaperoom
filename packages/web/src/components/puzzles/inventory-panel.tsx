@@ -130,18 +130,18 @@ export function InventoryPanel({
     <section
       aria-label={t("title")}
       className={cn(
-        "flex w-full max-w-sm flex-col gap-4 rounded-xl border border-white/10 bg-black/60 p-4 text-white backdrop-blur",
+        "flex w-full max-w-sm flex-col gap-4 rounded-xl border border-border bg-card/95 p-4 text-foreground backdrop-blur",
         className,
       )}
     >
       <header className="flex items-baseline justify-between gap-2">
         <h2 className="text-sm font-medium">{t("title")}</h2>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-white/50">
+          <span className="text-xs text-muted-foreground">
             {t("recipes", { found: view.appliedRecipeCount, total: view.recipeCount })}
           </span>
           {onClose ? (
-            <Button size="xs" variant="overlayGhost" onClick={onClose}>
+            <Button size="xs" variant="ghost" onClick={onClose}>
               {t("close")}
             </Button>
           ) : null}
@@ -165,7 +165,7 @@ export function InventoryPanel({
             <Button
               key={index}
               type="button"
-              variant="overlayGhost"
+              variant="ghost"
               role="option"
               draggable={isDraggable}
               disabled={itemId === undefined || disabled}
@@ -196,8 +196,8 @@ export function InventoryPanel({
               className={cn(
                 "flex aspect-square h-auto flex-col items-center justify-center gap-1 rounded-lg border p-1 text-center transition-colors",
                 itemId === undefined
-                  ? "border-dashed border-white/10 bg-white/[0.02]"
-                  : "border-white/15 bg-white/5 hover:border-amber-300/50 hover:bg-white/10",
+                  ? "border-dashed border-border bg-muted/20"
+                  : "border-border bg-muted/50 hover:border-amber-300/50 hover:bg-muted",
                 stagedItem && "border-amber-300/70 bg-amber-300/10",
                 isDropTarget && "border-amber-300 ring-2 ring-amber-300/50",
                 isDraggable && "cursor-grab active:cursor-grabbing",
@@ -210,17 +210,17 @@ export function InventoryPanel({
                   ) : (
                     <span
                       aria-hidden
-                      className="grid size-7 place-items-center rounded-md bg-amber-200/15 text-xs font-semibold text-amber-100"
+                      className="grid size-7 place-items-center rounded-md bg-amber-500/15 text-xs font-semibold text-amber-700 dark:bg-amber-200/15 dark:text-amber-100"
                     >
                       {labelFor(itemId).slice(0, 1).toUpperCase()}
                     </span>
                   )}
-                  <span className="line-clamp-2 text-[0.65rem] leading-tight text-white/80">
+                  <span className="line-clamp-2 text-[0.65rem] leading-tight text-foreground/80">
                     {item?.name ?? t("unknownItem")}
                   </span>
                 </>
               ) : (
-                <span className="text-[0.6rem] text-white/20">·</span>
+                <span className="text-[0.6rem] text-muted-foreground">·</span>
               )}
             </Button>
           );
@@ -236,7 +236,7 @@ export function InventoryPanel({
           {pending ? t("pending") : t("combine")}
         </Button>
         <Button
-          variant="overlayGhost"
+          variant="ghost"
           disabled={disabled || staged.length === 0}
           onClick={() => setStaged([])}
         >
@@ -249,10 +249,10 @@ export function InventoryPanel({
         className={cn(
           "text-center text-xs",
           feedback?.outcome === "combined" || feedback?.outcome === "already_applied"
-            ? "text-emerald-300"
+            ? "text-emerald-700 dark:text-emerald-300"
             : feedback
-              ? "text-amber-300"
-              : "text-white/50",
+              ? "text-amber-700 dark:text-amber-300"
+              : "text-muted-foreground",
         )}
       >
         {status}

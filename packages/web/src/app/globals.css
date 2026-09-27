@@ -125,6 +125,10 @@
   }
   html {
     @apply font-sans;
+    /* Reserva el hueco de la barra de scroll siempre: sin esto, el
+       contenido centrado (`mx-auto max-w-*`) se desplaza unos px entre el
+       esqueleto de carga (sin scroll) y la página ya cargada (con scroll). */
+    scrollbar-gutter: stable;
   }
 }
 
@@ -139,8 +143,26 @@
     background-color: var(--tint);
   }
 
+  /** Borde/anillo del color de un jugador (selección propia, o personaje ya
+      ocupado por otro): `character-picker.tsx`. */
+  .tint-border {
+    border-color: var(--tint);
+  }
+
   .grid-cols-dynamic {
     grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  }
+
+  /**
+   * Fija el botón a blanco con texto negro para un subárbol, sin importar si
+   * `.dark` está en `<html>` (las custom properties heredan del ancestro más
+   * cercano que las redeclara): la portada de la ficha de sala
+   * (`room-detail.tsx`) y la tarjeta del listado siempre llevan su degradado
+   * oscuro encima, así que el CTA debe leerse igual en los dos temas del sitio.
+   */
+  .force-light {
+    --primary: oklch(1 0 0);
+    --primary-foreground: oklch(0.145 0 0);
   }
 
   .progress-fill {

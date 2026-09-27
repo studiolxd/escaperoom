@@ -45,14 +45,9 @@ function RichText({ text }: { text: LegalText }) {
  * envolviendo el contenido. La navegación entre páginas legales no se repite
  * aquí: ya la da el `PublicFooter` compartido del layout `(public)`.
  */
-export function LegalPage({
-  title,
-  document,
-  onlyInSpanishNotice,
-  children,
-}: LegalPageProps) {
+export function LegalPage({ title, document, onlyInSpanishNotice, children }: LegalPageProps) {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-6xl flex-col gap-6 bg-background px-4 py-8 text-foreground">
+    <main className="mx-auto flex min-h-dvh w-full max-w-6xl flex-col gap-6 bg-background px-4 py-8 text-foreground">
       <header className="space-y-2">
         <h1 className="text-lg font-semibold text-foreground">{title}</h1>
         {onlyInSpanishNotice ? (

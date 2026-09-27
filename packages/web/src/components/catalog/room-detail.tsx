@@ -6,12 +6,13 @@ import type {
   RoomAccessResult,
 } from "@escaperoom/shared/services";
 import { Suspense } from "react";
+import type { VariantProps } from "class-variance-authority";
 import { useFormatter, useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { CATALOG_PATH, roomPath } from "@/lib/catalog-seo";
 import { roomGamePlayPath } from "@/lib/game-net";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BuyRoomButton } from "./buy-room-button";
 import { FreeRoomPlayButton } from "./free-room-play-button";
@@ -109,6 +110,8 @@ export function RoomPlayCta({
   access,
   isAnonymous,
   roomHref,
+  size = "lg",
+  className,
 }: {
   room: CatalogRoom;
   locale: string;
@@ -118,36 +121,41 @@ export function RoomPlayCta({
   access: RoomAccessResult | null;
   isAnonymous: boolean;
   roomHref: string;
+  size?: VariantProps<typeof buttonVariants>["size"];
+  /** Envuelve el CTA para poder ajustar su espaciado desde fuera. */
+  className?: string;
 }) {
   const t = useTranslations("RoomDetail");
+  const wrap = (content: React.ReactNode) =>
+    className ? <div className={className}>{content}</div> : content;
 
   // Punto h: solo para eventos, con venta para eventos activa. Sin ningún
   // modo de venta, no hay botón (cae al `return null` final).
   if (isEventsOnly) {
-    return (
-      <Button asChild size="lg" className="w-fit">
+    return wrap(
+      <Button asChild size={size} className="w-fit">
         <Link href={{ pathname: "/events/new", query: { roomVersionId: room.latestVersion.id } }}>
           {t("organizeEventCta")}
         </Link>
-      </Button>
+      </Button>,
     );
   }
 
   // Punto i: sala gratis, sin cuenta, sin distinguir `isAnonymous`.
   if (isFree) {
-    return <FreeRoomPlayButton roomId={room.id} />;
+    return wrap(<FreeRoomPlayButton roomId={room.id} size={size} />);
   }
 
   if (isPaid) {
     // Punto c: sin sesión, el CTA lleva primero a login/registro (con
     // retorno a esta sala), nunca lanza el checkout directamente.
     if (isAnonymous) {
-      return (
-        <Button asChild size="lg" className="w-fit" variant="outline">
+      return wrap(
+        <Button asChild size={size} className="w-fit">
           <Link href={`/login?callbackURL=${encodeURIComponent(roomHref)}`}>
             {t("loginToBuyCta")}
           </Link>
-        </Button>
+        </Button>,
       );
     }
     // Punto f: acceso "libre" o "en curso" → Jugar/Reanudar con el
@@ -155,22 +163,22 @@ export function RoomPlayCta({
     // (`access.roomId`) en vez de crear otra.
     if (access?.owned && access.playable && access.gameToken) {
       const gameHref = `/${locale}${roomGamePlayPath(room.id, access.gameToken, access.roomId)}`;
-      return (
-        <Button asChild size="lg" className="w-fit">
+      return wrap(
+        <Button asChild size={size} className="w-fit">
           <a href={gameHref}>{t(access.roomId ? "resumeCta" : "playCta")}</a>
-        </Button>
+        </Button>,
       );
     }
     // Punto f: compra consumida → ya se jugó, ofrecer volver a comprar.
     if (access?.owned && !access.playable) {
-      return (
+      return wrap(
         <div className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">{t("alreadyPlayed")}</p>
-          <BuyRoomButton roomVersionId={room.latestVersion.id} />
-        </div>
+          <BuyRoomButton roomVersionId={room.latestVersion.id} size={size} />
+        </div>,
       );
     }
-    return <BuyRoomButton roomVersionId={room.latestVersion.id} />;
+    return wrap(<BuyRoomButton roomVersionId={room.latestVersion.id} size={size} />);
   }
 
   // Ni venta individual ni para eventos: sin botón (punto h).
@@ -222,13 +230,13 @@ export function RoomDetailView({
   ];
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-6xl flex-col gap-6 bg-background px-4 py-8 text-foreground">
+    <>
       <Link href={CATALOG_PATH} className="text-sm underline-offset-4 hover:underline">
         ← {t("back")}
       </Link>
 
       <div
-        className="relative isolate flex aspect-[21/9] w-full flex-col justify-end overflow-hidden rounded-xl bg-muted"
+        className="relative isolate flex aspect-[4/5] w-full flex-col justify-end overflow-hidden rounded-xl bg-muted sm:aspect-[21/9]"
         data-slot="room-cover"
       >
         {coverImageUrl ? (
@@ -251,25 +259,37 @@ export function RoomDetailView({
         )}
         {isAuthor ? <RoomCoverUpload roomId={room.id} /> : null}
 
-        <div className="relative z-10 flex flex-col gap-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 text-white">
+        <div className="force-light relative z-10 flex flex-col gap-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 text-white">
           <div className="flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-black/40 px-2 py-1 backdrop-blur">
+            <span className="rounded-full bg-white px-2 py-1 text-black">
               {t("version", { semver: room.latestVersion.semver })}
             </span>
             {isEventsOnly ? (
-              <span className="rounded-full bg-black/40 px-2 py-1 backdrop-blur">
+              <span className="rounded-full bg-white px-2 py-1 text-black">
                 {t("eventsOnlyBadge")}
               </span>
             ) : room.saleEvents ? (
-              <span className="rounded-full bg-black/40 px-2 py-1 backdrop-blur">
+              <span className="rounded-full bg-white px-2 py-1 text-black">
                 {t("saleEvents")}
               </span>
             ) : null}
           </div>
-          <h1 className="text-3xl font-semibold" lang={room.defaultLanguage}>
+          <h1 className="text-2xl font-semibold sm:text-3xl" lang={room.defaultLanguage}>
             {room.title}
           </h1>
           <RatingSummary ratingAvg={room.ratingAvg} ratingCount={room.ratingCount} />
+          <RoomPlayCta
+            room={room}
+            locale={locale}
+            isFree={isFree}
+            isPaid={isPaid}
+            isEventsOnly={isEventsOnly}
+            access={access}
+            isAnonymous={isAnonymous}
+            roomHref={roomHref}
+            size="xl"
+            className="mt-2"
+          />
         </div>
       </div>
 
@@ -306,6 +326,6 @@ export function RoomDetailView({
           <ReviewsList roomId={room.id} locale={locale} reviewsPromise={reviewsPromise} />
         </Suspense>
       </section>
-    </main>
+    </>
   );
 }

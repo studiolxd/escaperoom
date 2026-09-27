@@ -33,6 +33,8 @@ export interface RoomRuntimeOptions {
   emitAvatarMoves?: boolean;
   /** Textos in-canvas (F-10); sin ellos, el castellano de siempre. */
   labels?: Partial<RoomSceneLabels>;
+  /** Color de fondo del `Phaser.Game`; por defecto el fijo de siempre. */
+  backgroundColor?: string;
 }
 
 /**
@@ -62,12 +64,13 @@ export class RoomRuntime {
       mode: options.mode,
       emitAvatarMoves: options.emitAvatarMoves,
       labels: options.labels,
+      backgroundColor: options.backgroundColor,
     });
 
     this.game = new Phaser.Game({
       type: Phaser.AUTO,
       parent,
-      backgroundColor: "#0b1120",
+      backgroundColor: options.backgroundColor ?? "#0b1120",
       scale: {
         mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -108,6 +111,11 @@ export class RoomRuntime {
   /** Personaje del avatar local (asignado o confirmado por el servidor). */
   setLocalCharacter(characterId: string): void {
     this.scene.setLocalCharacter(characterId);
+  }
+
+  /** Color de fondo de la cámara (`#rrggbb`), en caliente (tema claro/oscuro). */
+  setBackgroundColor(hex: string): void {
+    this.scene.setBackgroundColor(hex);
   }
 
   /** Otros jugadores de la partida (se pintan los de la sala visible). */

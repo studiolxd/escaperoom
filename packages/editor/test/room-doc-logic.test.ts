@@ -42,7 +42,7 @@ describe("comandos de lógica (4.3) sobre el mapa rules de 3.6", () => {
       id: "r-estatua",
       trigger: { type: "on_interact", objectId: "estatua-izq" },
       actions: [
-        { type: "delay", seconds: 2, actions: [{ type: "show_dialog", dialogId: "d-intro" }] },
+        { type: "delay", seconds: 2, actions: [{ type: "show_dialog", dialogId: "d-cuadro" }] },
       ],
     });
     expect(addRule(doc, added)).toEqual({ replaced: false });

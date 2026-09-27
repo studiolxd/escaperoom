@@ -25,10 +25,19 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
   const snapshotRef = useRef<GameSnapshot>(snapshot);
   snapshotRef.current = snapshot;
 
-  /** Habitación que muestra la escena (puede adelantarse al servidor al cruzar). */
-  const sceneRoomRef = useRef(
-    snapshot.self?.roomId || model.initialRoomId || model.subrooms[0]?.id || "",
-  );
+  /**
+   * Habitación que muestra la escena (puede adelantarse al servidor al
+   * cruzar). Empieza `undefined`, nunca con un valor de respaldo adivinado
+   * ("primera del mapa", "lobby"…): `GameSessionCanvas` monta con `dynamic()`
+   * (`ssr:false`, resuelve más tarde) y puede construir la escena con un
+   * `self.roomId` YA REAL (más tarde en el tiempo) mientras este hook se creó
+   * antes, con un `snapshot` todavía vacío (`self: null`, antes de conectar)
+   * — dos adivinanzas independientes que no tienen por qué coincidir. Con
+   * `undefined` de partida, el primer `selfRoom` real SIEMPRE dispara un
+   * `showRoom()` explícito (ver el efecto de abajo), en vez de asumir que la
+   * escena ya está en la sala correcta por casualidad.
+   */
+  const sceneRoomRef = useRef<string | undefined>(undefined);
   /** Última habitación autoritativa del jugador local. */
   const serverRoomRef = useRef<string | null>(null);
   const appliedObjectsRef = useRef<Record<string, string>>({});
@@ -71,13 +80,28 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
   useEffect(() => {
     const handle = handleRef.current;
     if (!handle || !selfRoom || selfX === undefined || selfY === undefined) return;
-    if (serverRoomRef.current !== selfRoom) {
-      // Primera posición o cruce aceptado: la escena pasa a la sala del servidor.
-      serverRoomRef.current = selfRoom;
-      if (sceneRoomRef.current !== selfRoom) {
-        sceneRoomRef.current = selfRoom;
+    if (sceneRoomRef.current !== selfRoom) {
+      // Solo se marca como hecho si `showRoom` no revienta (sala desconocida
+      // en el modelo del cliente, p. ej.): si se diera por bueno antes de
+      // llamarlo (como antes) y lanzara, esta sala quedaría marcada como "ya
+      // mostrada" para siempre — ninguna futura actualización de posición
+      // volvería a intentarlo, y la escena se quedaría encallada en la sala
+      // vieja aunque el resto del HUD (temporizador, aside…) ya reflejase la
+      // partida en marcha. Al no depender de `serverRoomRef` (abajo), sigue
+      // reintentando en cada movimiento posterior hasta que funcione.
+      try {
         handle.showRoom(selfRoom);
+        sceneRoomRef.current = selfRoom;
+      } catch (err) {
+        console.error(
+          `useSceneSync: no se pudo mostrar la sala "${selfRoom}" (seguía en "${sceneRoomRef.current}")`,
+          err,
+        );
       }
+    }
+    if (serverRoomRef.current !== selfRoom) {
+      // Primera posición o cruce aceptado: coloca al jugador en la sala del servidor.
+      serverRoomRef.current = selfRoom;
       handle.placeAvatar(selfX, selfY);
       return;
     }
@@ -94,7 +118,10 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
 
   const selfCharacterId = self?.characterId;
   useEffect(() => {
-    if (selfCharacterId) handleRef.current?.setLocalCharacter(selfCharacterId);
+    // "" (encargo retratos) es "sin personaje aún": también hay que
+    // propagarlo (antes se ignoraba por ser falsy), o la escena se queda
+    // con el de respaldo del constructor en vez de no pintar avatar.
+    if (selfCharacterId !== undefined) handleRef.current?.setLocalCharacter(selfCharacterId);
   }, [selfCharacterId]);
 
   const onReady = useCallback(
@@ -110,7 +137,7 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
       if (current.self) {
         serverRoomRef.current = current.self.roomId;
         if (current.self.tint) handle.setLocalTint(current.self.tint);
-        if (current.self.characterId) handle.setLocalCharacter(current.self.characterId);
+        handle.setLocalCharacter(current.self.characterId);
         handle.placeAvatar(current.self.x, current.self.y);
       }
     },

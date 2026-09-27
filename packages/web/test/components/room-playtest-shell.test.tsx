@@ -2,7 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { loadRoomPackage, toRuntimeModel } from "@escaperoom/game-runtime";
 import { withLobbyRoom } from "@escaperoom/shared/schemas";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { createElement, type ReactElement } from "react";
@@ -46,17 +46,12 @@ describe("<RoomPlaytestShell> — F-17 + lobby", () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderIntl(createElement(RoomPlaytestShell, { model, roomPackage }));
 
-    // Encargo lobby-diseño: el playtest pasa por el lobby (Listo → Empezar),
-    // el 3-2-1 y entra al mapa; la intro de las reglas bloquea el juego.
+    // Encargo lobby-diseño (sin cuenta atrás, encargo limpieza-entrada): el
+    // playtest pasa por el lobby (Listo → Empezar) y entra directo al mapa.
     expect(screen.getByTestId("game-session")).toHaveAttribute("data-stage", "lobby");
     await user.click(screen.getByTestId("lobby-ready"));
     await user.click(screen.getByTestId("game-start"));
-    expect(screen.getByTestId("game-countdown")).toBeInTheDocument();
-    await act(async () => {
-      vi.advanceTimersByTime(3000);
-    });
     expect(screen.getByTestId("game-session")).toHaveAttribute("data-stage", "map");
-    await user.click(screen.getByTestId("game-dialog"));
 
     await user.click(screen.getByRole("button", { name: /abrir \(i\)/i }));
 

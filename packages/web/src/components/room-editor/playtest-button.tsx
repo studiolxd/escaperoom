@@ -103,7 +103,7 @@ export function PlaytestButton({ roomId, disabled }: PlaytestButtonProps) {
       {state.kind === "ready" || state.kind === "error" ? (
         <div
           role={state.kind === "error" ? "alert" : "status"}
-          className="absolute right-0 top-full z-20 mt-2 w-80 space-y-2 rounded-lg border border-white/15 bg-slate-950 p-3 text-sm text-white shadow-lg"
+          className="absolute right-0 top-full z-20 mt-2 w-80 space-y-2 rounded-lg border border-white/15 p-3 text-sm text-white shadow-lg"
         >
           {state.kind === "error" ? (
             <p className="text-red-200">

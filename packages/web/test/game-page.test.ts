@@ -62,9 +62,8 @@ vi.mock("@/i18n/navigation", () => ({
     createElement("a", { href }, children as never),
 }));
 
-const { default: EventSessionPage } = await import(
-  "../src/app/[locale]/(play)/play/session/[sessionId]/page"
-);
+const { default: EventSessionPage } =
+  await import("../src/app/[locale]/(play)/play/session/[sessionId]/page");
 const { default: DevGameRoomPage } = await import("../src/app/[locale]/(play)/dev/game-room/page");
 
 const roomPackage = loadRoomPackage(readReyAldricRoomPackageJson());
@@ -199,7 +198,10 @@ describe("página /[locale]/dev/game-room (SSR) — GameRoom desnuda de pruebas"
     delete process.env.ALLOW_DEV_SECRETS;
     try {
       await expect(
-        DevGameRoomPage({ params: Promise.resolve({ locale: "es" }), searchParams: Promise.resolve({}) }),
+        DevGameRoomPage({
+          params: Promise.resolve({ locale: "es" }),
+          searchParams: Promise.resolve({}),
+        }),
       ).rejects.toThrow();
     } finally {
       // @ts-expect-error -- idem
@@ -224,42 +226,18 @@ describe("GameSessionShell a partir del estado sincronizado", () => {
     client.dispose();
   });
 
-  it("en juego: sala, cronómetro, inventario e indicador de desconexión con reintento", () => {
+  it("en juego: inventario e indicador de desconexión con reintento", () => {
     const client = createLocalGameClient(roomPackage, { tickMs: false, name: "Ana" });
     client.startGame(true);
     client.enterMap();
     client.interact("cuadro-aurelio");
     const html = shell(client, "en", "disconnected");
     expect(html).toContain('data-phase="playing"');
-    expect(html).toContain('data-testid="game-timer"');
-    expect(html).toContain("Salón del Trono");
     expect(html).toContain('data-status="disconnected"');
     expect(html).toContain(tr("en", "connection.retry"));
     // El inventario pinta el nombre del ítem del modelo, no su id.
     expect(html).toContain(buildGameModel(roomPackage, "en").model.itemsById["llave-bronce"]!.name);
     expect(html).not.toContain('data-testid="game-start"');
-    client.dispose();
-  });
-
-  it("sala sin duración: el HUD muestra tiempo transcurrido, nunca cuenta atrás (ticket duración-salas)", () => {
-    const unlimitedPackage = { ...roomPackage, meta: { ...roomPackage.meta, timeLimitMinutes: null } };
-    const client = createLocalGameClient(unlimitedPackage, { tickMs: false, name: "Ana" });
-    client.startGame(true);
-    client.enterMap();
-    const { model, pack } = buildGameModel(unlimitedPackage, "es");
-    const html = render(
-      createElement(GameSessionShell, {
-        model,
-        pack,
-        client,
-        connection: { status: "connected", onRetry: () => undefined },
-        inviteUrl: "https://escape.example/es/play/room/abc",
-      }),
-      "es",
-    );
-    expect(html).toContain('data-phase="playing"');
-    expect(html).toContain('data-testid="game-elapsed"');
-    expect(html).not.toContain('data-testid="game-timer"');
     client.dispose();
   });
 
@@ -305,10 +283,12 @@ describe("GameSessionShell a partir del estado sincronizado", () => {
       expect(html).toContain('data-phase="lobby"');
       expect(html).toContain("Ana · " + tr("fr", "lobby.host"));
       expect(html).toContain("Bruno (" + tr("fr", "lobby.you") + ")");
-      expect(html).toContain(tr("fr", "lobby.waitingHost"));
+      // Bruno entra sin personaje elegido (encargo retratos): el aviso pide
+      // elegir uno, no que espere al anfitrión.
+      expect(html).toContain(tr("fr", "lobby.chooseCharacterFirst"));
       expect(html).not.toContain('data-testid="game-start"');
       // El chat de la partida (2.1) también sale en el idioma del jugador.
-      expect(html).toContain(tr("fr", "empty", "Chat"));
+      expect(html).toContain(tr("fr", "placeholder", "Chat"));
 
       guest.dispose();
       await guestRoom.leave(true);

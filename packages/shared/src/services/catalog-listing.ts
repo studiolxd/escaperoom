@@ -49,6 +49,7 @@ export function matchesCatalogFilter(room: CatalogRoom, filter: CatalogListFilte
     (filter.maxPrice === null || price <= filter.maxPrice) &&
     (filter.playersMin === null || room.players.max >= filter.playersMin) &&
     (filter.playersMax === null || room.players.min <= filter.playersMax) &&
+    (filter.minRating === null || (room.ratingAvg ?? -1) >= filter.minRating) &&
     (filter.q === null || room.title.toLocaleLowerCase().includes(filter.q.toLocaleLowerCase()))
   );
 }
@@ -182,6 +183,9 @@ function whereClause(filter: CatalogListFilter): Prisma.Sql {
   if (filter.playersMax !== null) {
     conditions.push(Prisma.sql`(${meta} -> 'players' ->> 'min')::int <= ${filter.playersMax}`);
   }
+  if (filter.minRating !== null) {
+    conditions.push(Prisma.sql`s.avg >= ${filter.minRating}`);
+  }
   if (filter.q !== null) {
     conditions.push(
       Prisma.sql`${meta} ->> 'title' ILIKE ${`%${escapeLikePattern(filter.q)}%`} ESCAPE '\\'`,
@@ -294,10 +298,19 @@ export function createPrismaPublishedRoomListing(prisma: PrismaClient): Publishe
            WHERE r.status = 'published' AND r."deletedAt" IS NULL
              AND ${languagesCondition(filter.languages)}
            ORDER BY v."roomId", v."publishedAt" DESC
+        ), s AS (
+          -- misma escala que catalogSelect (2-10 doblada -> 1-5): necesaria
+          -- aquí también porque whereClause puede filtrar por s.avg
+          -- (minRating), y el conteo tiene que casar con listPublished.
+          SELECT "roomId", (AVG(rating)::float8 / 2) AS avg, COUNT(*)::int AS count
+            FROM "review"
+           WHERE "roomId" IN (SELECT "roomId" FROM latest) AND "hiddenAt" IS NULL
+           GROUP BY "roomId"
         )
         SELECT COUNT(*)::int AS count
           FROM latest
           JOIN "room" r ON r.id = latest."roomId"
+          LEFT JOIN s ON s."roomId" = latest."roomId"
          WHERE ${whereClause(filter)}`;
       return rows[0]?.count ?? 0;
     },

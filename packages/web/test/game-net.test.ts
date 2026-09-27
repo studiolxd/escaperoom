@@ -47,6 +47,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { EVENT_ROOM_NAME as WEB_EVENT_ROOM_NAME } from "../src/lib/colyseus";
 import {
   eventPlayPath,
+  isRoomFullError,
   joinGameRoom,
   joinOptions,
   readJoinTokenFromHash,
@@ -230,12 +231,11 @@ describe("cliente de red contra una GameRoom real", () => {
     await until(guest, (snapshot) => snapshot.self !== null);
     expect(guest.room.name).toBe(EVENT_ROOM);
     expect(guest.client.getSnapshot().self).toMatchObject({ name: "Invitada", isHost: true });
-    const intro = nextEvent(guest, "dialog_show");
     guest.client.setReady(true);
     guest.client.startGame();
     // Encargo lobby-diseño: tras «Empezar», su 3-2-1 y entra al mapa.
     guest.client.enterMap();
-    expect((await intro).dialogId).toBe("d-intro");
+    await until(guest, (snapshot) => snapshot.self?.inMap === true);
 
     await expect(
       joinGameRoom(new Client(url), { kind: "event", sessionId: "sesion-1", joinToken: "x.y.z" }),
@@ -270,11 +270,10 @@ describe("cliente de red contra una GameRoom real", () => {
 
     const guest = await join({ kind: "event", sessionId: "sesion-2", joinToken }, "");
     await until(guest, (snapshot) => snapshot.self !== null);
-    const intro = nextEvent(guest, "dialog_show");
     guest.client.setReady(true);
     guest.client.startGame();
     guest.client.enterMap();
-    await intro;
+    await until(guest, (snapshot) => snapshot.phase === "playing");
 
     const room = await joinGameRoom(new Client(url), target);
     expect(room.roomId).toBe(guest.room.roomId);
@@ -340,14 +339,12 @@ describe("cliente de red contra una GameRoom real", () => {
     ana.client.interact("cuadro-aurelio");
     expect((await rejected).code).toBe(GAME_PROTOCOL_ERRORS.invalidState);
 
-    const intro = nextEvent(ana, "dialog_show");
     ana.client.setReady(true);
     ana.client.startGame();
     await until(ana, (snapshot) => snapshot.phase === "starting");
     // El reloj no corre hasta entrar al mapa.
     expect(ana.client.getSnapshot().endsAt).toBe(0);
     ana.client.enterMap();
-    expect(await intro).toEqual({ type: "dialog_show", dialogId: "d-intro" });
     await until(ana, (snapshot) => snapshot.phase === "playing" && snapshot.endsAt > 0);
 
     // Movimiento autoritativo: pasos por debajo del salto máximo hasta la placa.
@@ -375,6 +372,28 @@ describe("cliente de red contra una GameRoom real", () => {
     expect(JSON.stringify(ana.events)).not.toMatch(new RegExp(LOCK_CODES.join("|")));
   });
 
+  it("una room con players.max jugadores rechaza al siguiente con isRoomFullError", async () => {
+    const host = await join(
+      { kind: "game", packageId: "room-rey-aldric", gameToken: devGameToken() },
+      "Anfitrión",
+    );
+    await until(host, (snapshot) => snapshot.self !== null);
+    for (let i = 1; i < roomPackage.meta.players.max; i += 1) {
+      const guest = await join(
+        { kind: "game", roomId: host.room.roomId, gameToken: devGameToken() },
+        `Jugador ${i}`,
+      );
+      await until(guest, (snapshot) => snapshot.self !== null);
+    }
+    await until(host, (snapshot) => snapshot.players.length === roomPackage.meta.players.max);
+
+    const reason = await joinGameRoom(
+      new Client(url),
+      { kind: "game", roomId: host.room.roomId, gameToken: devGameToken() },
+    ).catch((error: unknown) => error);
+    expect(isRoomFullError(reason)).toBe(true);
+  });
+
   it("dos clientes ven el mismo estado tras una acción de uno (inventario, objetos, chat, posición)", async () => {
     const ana = await join({ kind: "game", packageId: "room-rey-aldric", gameToken: devGameToken() }, "Ana");
     await until(ana, (snapshot) => snapshot.self !== null);
@@ -397,12 +416,10 @@ describe("cliente de red contra una GameRoom real", () => {
     ana.client.startGame();
     expect((await notReady).code).toBe(GAME_PROTOCOL_ERRORS.playersNotReady);
     // …pero SÍ puede forzarlo ("Empezar igualmente", nunca por debajo del mínimo).
-    const forcedStart = nextEvent(ana, "dialog_show");
     ana.client.startGame(true);
     await until(bruno, (snapshot) => snapshot.phase === "starting");
     ana.client.enterMap();
     bruno.client.enterMap();
-    await forcedStart;
     await Promise.all([
       until(ana, (snapshot) => snapshot.phase === "playing"),
       until(bruno, (snapshot) => snapshot.phase === "playing"),

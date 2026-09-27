@@ -1,9 +1,10 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { resolveLocalizedText, type PackAvatar } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import { useLocale, useTranslations } from "next-intl";
-import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "cn";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
@@ -19,22 +20,38 @@ function portraitUrl(pack: RoomScenePack, avatar: PackAvatar): string {
 
 export interface CharacterPickerProps {
   pack: RoomScenePack;
-  /** Personajes ya ocupados por otro jugador conectado (A1: únicos por sesión). */
-  occupiedBy: ReadonlySet<string>;
-  /** Personaje del jugador local, si ya tiene uno asignado. */
+  /** Personaje → nombre y tinte de quien lo tiene (A1: únicos por sesión, solo conectados). */
+  occupiedBy: ReadonlyMap<string, { name: string; tint: string }>;
+  /** Personaje del jugador local, si ya tiene uno asignado (`""`/sin elegir). */
   value?: string;
+  /** Nombre del propio jugador, para mostrarlo bajo su personaje elegido. */
+  selfName: string;
+  /** Color del propio jugador (servidor), para resaltar su selección. */
+  selfTint: string;
+  /** `""` para liberar el personaje (pulsar el propio otra vez lo suelta). */
   onChange: (characterId: string) => void;
 }
 
 /**
- * Selector de personaje del lobby (A1/specs/19, B4): retrato + nombre por
- * `shadcn/ui` (`RadioGroup` + `Card`), con los personajes ocupados por otro
- * jugador deshabilitados. El servidor es la autoridad — este control solo
- * expresa la intención (`select_character`); si dos jugadores pulsan el mismo
- * a la vez, el servidor resuelve la carrera y el estado sincronizado corrige
- * la selección visible.
+ * Selector de personaje del lobby (A1/specs/19, B4, encargo retratos):
+ * rejilla de retratos redondos por `shadcn/ui` (`RadioGroup`, sin tarjetas).
+ * El elegido se resalta con el tinte del jugador y muestra su propio nombre
+ * debajo (pulsarlo otra vez lo libera, `onChange("")`: sin él, el avatar no
+ * se pinta en el mapa). Los personajes ya ocupados por otro conectado se ven
+ * atenuados, con el borde del tinte de quien los tiene, no se pueden elegir
+ * y muestran su nombre debajo. El servidor es la autoridad — este control
+ * solo expresa la intención (`select_character`); si dos jugadores pulsan
+ * el mismo a la vez, el servidor resuelve la carrera y el estado
+ * sincronizado corrige la selección visible.
  */
-export function CharacterPicker({ pack, occupiedBy, value, onChange }: CharacterPickerProps) {
+export function CharacterPicker({
+  pack,
+  occupiedBy,
+  value,
+  selfName,
+  selfTint,
+  onChange,
+}: CharacterPickerProps) {
   const locale = useLocale();
   const t = useTranslations("Game");
   const avatars = pack.manifest.avatars ?? [];
@@ -44,48 +61,82 @@ export function CharacterPicker({ pack, occupiedBy, value, onChange }: Character
 
   return (
     <div className="flex w-full flex-col gap-2 text-left">
-      <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
+      <span className="text-xs uppercase tracking-wide text-muted-foreground">
         {t("lobby.chooseCharacter")}
       </span>
-      <RadioGroup
-        value={value}
-        onValueChange={onChange}
-        className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-      >
+      <RadioGroup value={value} onValueChange={onChange} className="grid grid-cols-4 gap-3">
         {avatars.map((avatar) => {
-          const taken = occupiedBy.has(avatar.id) && value !== avatar.id;
+          const occupant = occupiedBy.get(avatar.id);
+          const taken = occupant !== undefined && value !== avatar.id;
+          const selected = value === avatar.id;
           const label = resolveLocalizedText(avatar.label, locale);
+          const tint = taken ? occupant.tint : selected ? selfTint : undefined;
+
           return (
             <Label
               key={avatar.id}
-              className={`flex-col gap-0 p-0 ${taken ? "cursor-not-allowed opacity-40" : "cursor-pointer"}`}
+              title={taken ? occupant.name : selected ? t("lobby.characterRelease") : label}
+              onClickCapture={(event) => {
+                // Radix no dispara `onValueChange` al pulsar el ya
+                // seleccionado (mismo valor, sin "cambio"): se intercepta
+                // aquí, antes de que el clic llegue al `RadioGroupItem`, y
+                // se libera directamente (`onChange("")`).
+                if (selected) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onChange("");
+                }
+              }}
+              className={cn(
+                "flex flex-col items-center gap-1 p-0",
+                taken ? "cursor-not-allowed opacity-40" : "cursor-pointer",
+              )}
             >
-              <Card
-                className={`w-full gap-1 border-white/10 bg-white/5 py-2 text-white ${
-                  value === avatar.id ? "border-sky-400" : ""
-                }`}
+              <RadioGroupItem
+                value={avatar.id}
+                disabled={taken}
+                className="peer sr-only"
+                data-testid={`character-option-${avatar.id}`}
+              />
+              {/* El `aria-label` no llega al `button[role=radio]` (Radix lo
+                  descarta en esta versión): el nombre accesible del control
+                  sale de este texto, por el envoltorio nativo <label>. */}
+              <span className="sr-only">
+                {taken
+                  ? t("lobby.characterTakenBy", { player: occupant.name })
+                  : selected
+                    ? t("lobby.characterRelease")
+                    : label}
+              </span>
+              <span
+                aria-hidden
+                style={tint ? ({ "--tint": tint } as CSSProperties) : undefined}
+                className={cn(
+                  "block size-14 shrink-0 overflow-hidden rounded-full border-2 border-border transition-shadow peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
+                  (taken || selected) && "tint-border",
+                )}
               >
-                <CardContent className="flex flex-col items-center gap-1 px-2">
-                  <RadioGroupItem
-                    value={avatar.id}
-                    disabled={taken}
-                    className="sr-only"
-                    aria-label={label}
-                    data-testid={`character-option-${avatar.id}`}
-                  />
-                  {/* eslint-disable-next-line @next/next/no-img-element -- retrato del pack gráfico, no una imagen de Next/Image optimizable en build */}
-                  <img
-                    src={portraitUrl(pack, avatar)}
-                    alt=""
-                    aria-hidden
-                    className="h-16 w-auto object-contain"
-                  />
-                  <span className="text-xs">{label}</span>
-                  {taken ? (
-                    <span className="text-[0.6rem] text-white/50">{t("lobby.characterTaken")}</span>
-                  ) : null}
-                </CardContent>
-              </Card>
+                {/* eslint-disable-next-line @next/next/no-img-element -- retrato del pack gráfico, no una imagen de Next/Image optimizable en build */}
+                <img
+                  src={portraitUrl(pack, avatar)}
+                  alt=""
+                  aria-hidden
+                  className="h-full w-full object-cover"
+                />
+              </span>
+              {/* Siempre presente (invisible sin nombre que mostrar): reserva
+                  la misma altura de línea siempre, para que la rejilla no
+                  salte al elegir/liberar un personaje. */}
+              <span
+                aria-hidden
+                data-testid={`character-occupant-${avatar.id}`}
+                className={cn(
+                  "max-w-14 truncate text-center text-[0.6rem] text-muted-foreground",
+                  !taken && !selected && "invisible",
+                )}
+              >
+                {taken ? occupant.name : selected ? selfName : " "}
+              </span>
             </Label>
           );
         })}

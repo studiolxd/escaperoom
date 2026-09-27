@@ -66,7 +66,7 @@ export default async function CheckoutConfirmationPage({ params, searchParams }:
   const kindLabel = t(type ? `kinds.${type}` : "kinds.generic");
 
   return (
-    <main className="relative flex min-h-dvh items-center justify-center bg-slate-950 p-4 text-white">
+    <main className="relative flex min-h-dvh items-center justify-center p-4 text-white">
       <Card className="w-full max-w-md">
         <CardHeader>
           <div className="mb-2 flex items-center gap-2">

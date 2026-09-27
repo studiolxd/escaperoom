@@ -830,7 +830,6 @@
       "createSubtitle": "Maak een spel aan en deel de link met je groep (tot 4 spelers).",
       "joinSubtitle": "Je bent uitgenodigd voor een lopend spel.",
       "nameLabel": "Je naam",
-      "namePlaceholder": "bijv. Ana",
       "create": "Spel aanmaken",
       "join": "Meedoen"
     },
@@ -852,7 +851,6 @@
     "lobby": {
       "title": "Wachtkamer",
       "chooseCharacter": "Kies je personage",
-      "characterTaken": "bezet",
       "players": "{count, plural, one {# speler} other {# spelers}}",
       "start": "Spel starten",
       "waitingHost": "Wachten tot de host start…",
@@ -888,13 +886,11 @@
   },
   "Chat": {
     "title": "Chat",
-    "empty": "Nog geen berichten",
     "placeholder": "Schrijf een bericht…",
     "disconnected": "Maak verbinding om te chatten",
     "send": "Versturen",
     "filtered": "gefilterd",
-    "filteredTitle": "Het taalfilter heeft een deel van dit bericht gecensureerd",
-    "hint": "Max. {max} tekens · 2 berichten per seconde"
+    "filteredTitle": "Het taalfilter heeft een deel van dit bericht gecensureerd"
   },
   "Hints": {
     "title": "Hints",
@@ -1104,10 +1100,10 @@
     "titleLabel": "Titel van het evenement",
     "playersLabel": "Geplande spelers",
     "pricingTitle": "Prijs per speler",
-    "pricingLoading": "Prijsschijven laden\u2026",
+    "pricingLoading": "Prijsschijven laden…",
     "pricingUnavailable": "Kon de prijsschijven niet laden.",
     "pricingRangeOpen": "{min}+ spelers:",
-    "pricingRangeCapped": "{min}\u2013{max} spelers:",
+    "pricingRangeCapped": "{min}–{max} spelers:",
     "submitError": "Kon het evenement niet aanmaken. Probeer het opnieuw.",
     "submit": "Evenement aanmaken",
     "errors": {

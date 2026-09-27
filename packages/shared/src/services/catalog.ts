@@ -116,6 +116,8 @@ export type CatalogSort = (typeof CATALOG_SORTS)[number];
  * - `playersMin`/`playersMax`: rango "de X a Y" pedido; casa cualquier sala
  *   cuyo propio rango `[min,max]` solape con `[playersMin,playersMax]`
  *   (compatible con el antiguo `?players=N`, que equivale a `[N,N]`);
+ * - `minRating`: valoración media de la sala ≥ el umbral pedido; una sala sin
+ *   reseñas (`ratingAvg` `null`) no casa con ningún umbral;
  * - `q`: el título contiene el texto (sin distinguir mayúsculas).
  */
 export type CatalogListFilter = {
@@ -125,6 +127,7 @@ export type CatalogListFilter = {
   maxPrice: number | null;
   playersMin: number | null;
   playersMax: number | null;
+  minRating: number | null;
   q: string | null;
   sort: CatalogSort;
 };
@@ -221,6 +224,9 @@ export const CATALOG_MAX_QUERY_LENGTH = 100;
  */
 export const CATALOG_MAX_PLAYERS = MAX_PLAYERS_PER_ROOM_CEILING;
 
+/** Escalones del filtro "Valoración mínima" (medios puntos, como las reseñas). */
+export const CATALOG_RATING_OPTIONS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5] as const;
+
 type MultiValue = string | readonly string[] | undefined;
 
 /** Un valor, varios repetidos o una lista separada por comas → lista sin duplicados. */
@@ -285,6 +291,19 @@ function parseIntParam(
   return value;
 }
 
+/** Valoración mínima opcional: debe ser uno de `CATALOG_RATING_OPTIONS`. */
+function parseRatingParam(input: string | number | null | undefined): number | null {
+  if (input === undefined || input === null || input === "") return null;
+  const value = typeof input === "number" ? input : Number(input.trim());
+  if (!(CATALOG_RATING_OPTIONS as readonly number[]).includes(value)) {
+    throw new CatalogError(
+      "VALIDATION_ERROR",
+      `"minRating" debe ser uno de: ${CATALOG_RATING_OPTIONS.join(", ")}`,
+    );
+  }
+  return value;
+}
+
 /** Cursor opaco de paginación (specs/13 §1): posición en el orden pedido. */
 export function encodeCatalogCursor(offset: number): string {
   return Buffer.from(JSON.stringify({ o: offset }), "utf8").toString("base64url");
@@ -316,6 +335,7 @@ export type CatalogListInput = {
    * junto a `minPlayers`/`maxPlayers`, estos últimos tienen prioridad.
    */
   players?: string | number | null;
+  minRating?: string | number | null;
   q?: string | null;
   sort?: string | null;
   cursor?: string | null;
@@ -347,7 +367,10 @@ export function parseCatalogQuery(input: CatalogListInput = {}): {
   if (!(CATALOG_SORTS as readonly string[]).includes(sort)) {
     throw new CatalogError("VALIDATION_ERROR", `Orden no válido: "${sort}"`);
   }
-  const legacyPlayers = parseIntParam("players", input.players, { min: 1, max: CATALOG_MAX_PLAYERS });
+  const legacyPlayers = parseIntParam("players", input.players, {
+    min: 1,
+    max: CATALOG_MAX_PLAYERS,
+  });
   const playersMin =
     parseIntParam("minPlayers", input.minPlayers, { min: 1, max: CATALOG_MAX_PLAYERS }) ??
     legacyPlayers;
@@ -365,6 +388,7 @@ export function parseCatalogQuery(input: CatalogListInput = {}): {
       maxPrice,
       playersMin,
       playersMax,
+      minRating: parseRatingParam(input.minRating),
       q: q.length > 0 ? q : null,
       sort: sort as CatalogSort,
     },

@@ -25,7 +25,7 @@ export default async function CreatorPayoutsPage({ params }: Props) {
 
   if (isAnonymous(actor)) {
     return (
-      <main className="mx-auto max-w-md px-4 py-16">
+      <main className="mx-auto w-full max-w-md px-4 py-16">
         <OnboardingLogin callbackURL={`/${locale}/creator/payouts`} />
       </main>
     );

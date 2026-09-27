@@ -28,17 +28,17 @@ export function CookieBanner() {
   if (!hasConsentUI() || !ready || decided) return null;
 
   return (
-    <Card className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-xl">
-      <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <Card className="fixed bottom-4 right-4 z-50 max-w-xl [--card-spacing:--spacing(6)]">
+      <CardContent className="flex flex-col gap-6">
         <p className="text-sm text-foreground">{t("description")}</p>
-        <div className="flex shrink-0 gap-2">
-          <Button variant="outline" size="sm" onClick={rejectAll}>
-            {t("rejectAll")}
-          </Button>
-          <Button variant="outline" size="sm" onClick={openPreferences}>
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" className="w-full sm:w-auto" onClick={openPreferences}>
             {t("preferences")}
           </Button>
-          <Button size="sm" onClick={acceptAll}>
+          <Button className="w-full sm:w-auto" onClick={rejectAll}>
+            {t("rejectAll")}
+          </Button>
+          <Button className="w-full sm:w-auto" onClick={acceptAll}>
             {t("acceptAll")}
           </Button>
         </div>
@@ -85,14 +85,14 @@ export function CookiePreferencesDialog() {
 
   return (
     <Dialog open={prefsOpen} onOpenChange={setPrefsOpen}>
-      <DialogContent>
+      <DialogContent className="gap-6 p-6">
         <DialogHeader>
-          <DialogTitle>{t("dialog.title")}</DialogTitle>
+          <DialogTitle className="text-2xl font-bold">{t("dialog.title")}</DialogTitle>
           <DialogDescription>{t("dialog.description")}</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="flex items-start justify-between gap-4">
-            <div>
+            <div className="flex flex-col gap-1">
               <p className="text-sm font-medium text-foreground">
                 {t("categories.necessary.name")}
               </p>
@@ -104,7 +104,7 @@ export function CookiePreferencesDialog() {
           </div>
           {ACTIVE_OPTIONAL_CATEGORIES.map((id) => (
             <div key={id} className="flex items-start justify-between gap-4">
-              <div>
+              <div className="flex flex-col gap-1">
                 <p className="text-sm font-medium text-foreground">{t(`categories.${id}.name`)}</p>
                 <p className="text-sm text-muted-foreground">
                   {t(`categories.${id}.description`)}

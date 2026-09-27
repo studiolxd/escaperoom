@@ -19,7 +19,11 @@ export function StarRating({ value, className }: { value: number; className?: st
 function Star({ fill }: { fill: "full" | "half" | "empty" }) {
   return (
     <span className="relative inline-block leading-none">
-      <span className="text-muted-foreground/30">★</span>
+      {/* Gris claro fijo (no `text-muted-foreground`, que en fondos oscuros —
+          tema oscuro, o la portada de la ficha de sala— se ve oscuro: a baja
+          opacidad, el mismo color se ve claro sobre blanco y oscuro sobre
+          negro, según lo que haya detrás). */}
+      <span className="text-neutral-300">★</span>
       {fill !== "empty" && (
         <span
           className="absolute inset-0 overflow-hidden text-amber-500"

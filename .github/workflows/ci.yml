@@ -176,6 +176,17 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:6432/escaperoom_e2e
       DIRECT_URL: postgresql://postgres:postgres@localhost:5432/escaperoom_e2e
       REDIS_URL: redis://localhost:6379
+      # SeaweedFS (ver el paso "Arrancar SeaweedFS" más abajo): el seed sube
+      # la portada/introducción de la sala de ejemplo aquí (F-5 en vivo,
+      # `packages/shared/prisma/seed.ts`); sin esto el seed seguía
+      # funcionando (falla suave, sin portada), pero el smoke real la
+      # necesita para probar el flujo completo con portada de verdad.
+      STORAGE_PROVIDER: s3
+      STORAGE_BUCKET: escaperoom-assets
+      STORAGE_REGION: us-east-1
+      STORAGE_ENDPOINT: http://localhost:9002
+      STORAGE_ACCESS_KEY_ID: minioadmin
+      STORAGE_SECRET_ACCESS_KEY: minioadmin
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Colchón de memoria además de arrancar menos procesos (ver
@@ -191,6 +202,26 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      # SeaweedFS: mismas claves fijas de dev que infra/docker-compose.dev.yml
+      # (infra/seaweedfs/s3.json), mismo endpoint que las variables STORAGE_*
+      # de arriba (ver el comentario del job `verify`).
+      - name: Arrancar SeaweedFS (S3 local para el seed)
+        run: |
+          set -e
+          docker run -d --name seaweedfs \
+            -p 9002:8333 \
+            -v "$PWD/infra/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro" \
+            chrislusf/seaweedfs:latest@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882 \
+            server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json -ip=0.0.0.0
+          timeout 30 sh -c 'until curl -sf http://localhost:9002/status >/dev/null; do sleep 1; done'
+          docker run --rm --network host \
+            -e AWS_ACCESS_KEY_ID=minioadmin -e AWS_SECRET_ACCESS_KEY=minioadmin -e AWS_DEFAULT_REGION=us-east-1 \
+            amazon/aws-cli:2.37.2@sha256:e38214027df83cb6631adcf980a092a98d1d29788789bff2a0f424e87e3da8ed \
+            s3api head-bucket --bucket escaperoom-assets --endpoint-url http://localhost:9002 2>/dev/null \
+          || docker run --rm --network host \
+            -e AWS_ACCESS_KEY_ID=minioadmin -e AWS_SECRET_ACCESS_KEY=minioadmin -e AWS_DEFAULT_REGION=us-east-1 \
+            amazon/aws-cli:2.37.2@sha256:e38214027df83cb6631adcf980a092a98d1d29788789bff2a0f424e87e3da8ed \
+            s3 mb s3://escaperoom-assets --endpoint-url http://localhost:9002
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @escaperoom/shared build
       - run: pnpm --filter @escaperoom/e2e e2e:install

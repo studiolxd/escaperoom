@@ -266,11 +266,9 @@ describe("playtest de punta a punta (web → Colyseus real)", () => {
       .poll(() => room.state.roomPackageId)
       .toBe((received[0]!.roomPackage as RoomPackage).meta.id);
 
-    const intro = new Promise((resolve) => room.onMessage(GAME_PROTOCOL.dialogShow, resolve));
     room.send(GAME_PROTOCOL.setReady, { ready: true });
     room.send(GAME_PROTOCOL.startGame, {});
     room.send(GAME_PROTOCOL.enterMap, {});
-    expect(await intro).toEqual({ dialogId: "d-intro" });
     await expect.poll(() => room.state.phase).toBe("playing");
 
     // El autor borra el cuadro del borrador con la partida en curso…

@@ -32,7 +32,7 @@ export interface AvatarControllerOptions {
   start: { x: number; y: number };
   /** Personaje jugable (`manifest.avatars[].id`, o el de reserva). */
   characterId: string;
-  /** Color del jugador (círculo del chat): pinta el anillo bajo los pies, no el sprite (B5/A1). */
+  /** Sin efecto (encargo retratos, quitó el anillo de color bajo los pies). Se mantiene por compatibilidad. */
   tint?: number;
   /** Velocidad en celdas por segundo. */
   speed?: number;
@@ -47,8 +47,7 @@ export interface AvatarMove {
 /**
  * Avatar del runtime: sprite del atlas (o placeholder) con las animaciones
  * `idle`/`walk`/`interact` × 4 direcciones de un personaje concreto (specs/04
- * §2, A1/B4), con anillo de color de jugador bajo los pies (A1/B5) y
- * movimiento con colisión por celda. El servidor será autoritativo en fase 2;
+ * §2, A1/B4) y movimiento con colisión por celda. El servidor será autoritativo en fase 2;
  * aquí basta para la validación visual de 1.2.
  */
 export class AvatarController {
@@ -56,7 +55,6 @@ export class AvatarController {
 
   private readonly scene: Phaser.Scene;
   private readonly sprite: Phaser.GameObjects.Sprite;
-  private readonly ring: Phaser.GameObjects.Ellipse;
   private readonly collision: CollisionGrid;
   private readonly speed: number;
   private readonly characterId: string;
@@ -86,13 +84,10 @@ export class AvatarController {
       AVATAR_SIZE,
     );
     // Sombra de contacto (A5/B5): capa del motor, no del sprite. El anillo de
-    // color del jugador se dibuja justo encima, más pequeño, para no ocultar
-    // la sombra y para reconocer quién es quién sin leer nombres (A1).
+    // color del jugador (bajo los pies) se retiró (encargo retratos): con el
+    // retrato del lobby y el nombre en el HUD ya se distingue a cada jugador,
+    // sin marcarlo también dentro del mundo.
     const shadow = this.scene.add.ellipse(0, 0, 42, 16, 0x000000, 0.32);
-    const ring = this.scene.add.ellipse(0, 0, 30, 11);
-    ring.setStrokeStyle(2, options.tint ?? 0xffffff, 0.9);
-    ring.setFillStyle(options.tint ?? 0xffffff, 0.12);
-    this.ring = ring;
 
     const originY = options.manifest.avatarOrigin?.[1] ?? DEFAULT_AVATAR_ORIGIN[1];
     const originX = options.manifest.avatarOrigin?.[0] ?? DEFAULT_AVATAR_ORIGIN[0];
@@ -103,7 +98,7 @@ export class AvatarController {
     this.sprite.setScale(scale.x, scale.y).setVertexRoundMode("fullAuto");
 
     this.registerAnimations(options.resolver, options.manifest);
-    this.container = this.scene.add.container(0, 0, [shadow, ring, this.sprite]);
+    this.container = this.scene.add.container(0, 0, [shadow, this.sprite]);
     this.play(avatarAnimKey(this.characterId, this.direction, "idle"));
     this.syncPosition();
   }
@@ -174,10 +169,13 @@ export class AvatarController {
     this.syncPosition();
   }
 
-  /** Cambia el color del anillo (color del jugador asignado por el servidor). */
+  /**
+   * No-op (encargo retratos, quitó el anillo de color del avatar): se
+   * mantiene por compatibilidad con quien la llama (`RoomScene.setLocalTint`,
+   * `syncRemoteAvatars`), sin efecto visual.
+   */
   setTint(tint: number): void {
-    this.ring.setStrokeStyle(2, tint, 0.9);
-    this.ring.setFillStyle(tint, 0.12);
+    void tint;
   }
 
   /** Dispara la animación de interacción una vez. */

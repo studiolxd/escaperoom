@@ -830,7 +830,6 @@
       "createSubtitle": "Cria um jogo e partilha o link com o teu grupo (até 4 jogadores).",
       "joinSubtitle": "Foste convidado para um jogo em curso.",
       "nameLabel": "O teu nome",
-      "namePlaceholder": "ex. Ana",
       "create": "Criar jogo",
       "join": "Entrar"
     },
@@ -852,7 +851,6 @@
     "lobby": {
       "title": "Sala de espera",
       "chooseCharacter": "Escolhe a tua personagem",
-      "characterTaken": "ocupado",
       "players": "{count, plural, one {# jogador} other {# jogadores}}",
       "start": "Começar jogo",
       "waitingHost": "À espera que o anfitrião comece…",
@@ -888,13 +886,11 @@
   },
   "Chat": {
     "title": "Chat",
-    "empty": "Ainda não há mensagens",
     "placeholder": "Escreve uma mensagem…",
     "disconnected": "Liga-te para conversar",
     "send": "Enviar",
     "filtered": "filtrado",
-    "filteredTitle": "O filtro de linguagem censurou parte desta mensagem",
-    "hint": "Máx. {max} caracteres · 2 mensagens por segundo"
+    "filteredTitle": "O filtro de linguagem censurou parte desta mensagem"
   },
   "Hints": {
     "title": "Pistas",

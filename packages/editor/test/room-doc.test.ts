@@ -124,13 +124,13 @@ describe("RoomPackage ⇄ doc Yjs — ida y vuelta", () => {
   it("es compatible con las porciones de 3.10 (textos) y 3.6 (reglas)", () => {
     const doc = aldricDoc();
     addRoomLanguage(doc, "en");
-    const intro = ensureLocalizedField(doc, "dialogs", "d-intro");
-    setLocalizedValue(intro, "en", "Prophecy…");
+    const cuadro = ensureLocalizedField(doc, "dialogs", "d-cuadro");
+    setLocalizedValue(cuadro, "en", "Prophecy…");
     createRule(doc, { id: "r-nueva", trigger: { type: "on_game_start" } });
 
     const pkg = roomDocToPackage(doc);
     expect(pkg.meta.languages).toEqual(["es", "en"]);
-    expect(pkg.dialogs.find((d) => d.id === "d-intro")?.text.en?.text).toBe("Prophecy…");
+    expect(pkg.dialogs.find((d) => d.id === "d-cuadro")?.text.en?.text).toBe("Prophecy…");
     expect(pkg.rules.at(-1)?.id).toBe("r-nueva");
     // Un diálogo creado desde 3.10 (sin `order`) va al final.
     ensureLocalizedField(doc, "dialogs", "aaa-nuevo", { es: { text: "Hola" } });

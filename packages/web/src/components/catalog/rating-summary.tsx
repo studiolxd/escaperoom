@@ -12,7 +12,10 @@ export function RatingSummary({
   const t = useTranslations("Catalog");
   const format = useFormatter();
   if (ratingAvg === null || ratingCount === 0) {
-    return <span className="text-muted-foreground">{t("noRatings")}</span>;
+    // Blanco fijo (no `text-muted-foreground`): siempre sobre el degradado
+    // oscuro de la portada (ficha de sala y tarjeta del listado), nunca sobre
+    // un fondo claro donde haría falta el tono atenuado del tema.
+    return <span className="text-white">{t("noRatings")}</span>;
   }
   return (
     <span

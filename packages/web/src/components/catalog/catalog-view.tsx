@@ -1,4 +1,5 @@
 import { CATALOG_DEFAULT_LIMIT, type CatalogListResult } from "@escaperoom/shared/services";
+import { storage } from "@escaperoom/kit/storage";
 import { Suspense } from "react";
 import { SearchX } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -15,7 +16,12 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem } from "@/components/ui/pagination";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+} from "@/components/ui/pagination";
 import { CatalogFilters, type CatalogFilterValues } from "./catalog-filters";
 import { PageSizeSelect } from "./page-size-select";
 import { RoomCard } from "./room-card";
@@ -136,6 +142,10 @@ async function CatalogResults({
     getTranslations({ locale, namespace: "Catalog" }),
     resultPromise,
   ]);
+  // F-37 (mismo patrón que la ficha de sala): un solo lote de URLs firmadas
+  // para todas las portadas de la página, en vez de una petición por tarjeta.
+  const coverKeys = rooms.flatMap((room) => (room.coverImageKey ? [room.coverImageKey] : []));
+  const coverUrls = coverKeys.length > 0 ? await storage.getSignedReadUrls(coverKeys) : new Map();
 
   return (
     <>
@@ -157,16 +167,30 @@ async function CatalogResults({
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rooms.map((room) => (
-            <RoomCard key={room.id} room={room} locale={locale} />
+            <RoomCard
+              key={room.id}
+              room={room}
+              locale={locale}
+              coverImageUrl={room.coverImageKey ? (coverUrls.get(room.coverImageKey) ?? null) : null}
+            />
           ))}
         </div>
       )}
 
       {rooms.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <PageSizeSelect pageSize={pageSize} defaultPageSize={CATALOG_DEFAULT_LIMIT} query={query} />
+          <PageSizeSelect
+            pageSize={pageSize}
+            defaultPageSize={CATALOG_DEFAULT_LIMIT}
+            query={query}
+          />
           {totalPages > 1 ? (
-            <CatalogPagination query={query} page={page} pageSize={pageSize} totalPages={totalPages} />
+            <CatalogPagination
+              query={query}
+              page={page}
+              pageSize={pageSize}
+              totalPages={totalPages}
+            />
           ) : null}
         </div>
       ) : null}
@@ -192,7 +216,7 @@ export function CatalogView({
   );
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-6xl flex-col gap-6 bg-background px-4 py-8 text-foreground">
+    <>
       <header className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold">{t("heading")}</h1>
         <p className="text-muted-foreground">{t("intro")}</p>
@@ -212,6 +236,6 @@ export function CatalogView({
       <Suspense fallback={<CatalogResultsSkeleton />}>
         <CatalogResults resultPromise={resultPromise} locale={locale} query={query} />
       </Suspense>
-    </main>
+    </>
   );
 }

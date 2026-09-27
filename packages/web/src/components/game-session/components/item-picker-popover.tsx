@@ -50,27 +50,27 @@ export function ItemPickerPopover({
         align="center"
         sideOffset={8}
         onEscapeKeyDown={onEscapeKeyDown}
-        className="w-fit max-w-[min(92vw,30rem)] rounded-xl border border-amber-200/30 bg-slate-950/95 px-4 py-3 text-white shadow-xl"
+        className="w-fit max-w-[min(92vw,30rem)] rounded-xl border border-amber-500/30 px-4 py-3 shadow-xl dark:border-amber-200/30"
       >
         {objectId ? (
           <>
-            <PopoverTitle className="block text-[0.65rem] font-normal uppercase tracking-wide text-amber-200/70">
+            <PopoverTitle className="block text-[0.65rem] font-normal uppercase tracking-wide text-amber-700 dark:text-amber-200/70">
               {titleLabel(objectName(objectId))}
             </PopoverTitle>
-            <p className="mt-1 text-[0.7rem] text-white/50">{dragHintLabel}</p>
+            <p className="mt-1 text-[0.7rem] text-muted-foreground">{dragHintLabel}</p>
             {inventory.length === 0 ? (
-              <p className="mt-2 text-xs text-white/40">{noItemsLabel}</p>
+              <p className="mt-2 text-xs text-muted-foreground">{noItemsLabel}</p>
             ) : (
               <div className="mt-2 flex flex-wrap gap-2">
                 {inventory.map((itemId) => (
-                  <Button key={itemId} size="sm" variant="overlay" onClick={() => onChoose(itemId)}>
+                  <Button key={itemId} size="sm" variant="secondary" onClick={() => onChoose(itemId)}>
                     {renderItemIcon(itemId, 28)}
                     {itemName(itemId)}
                   </Button>
                 ))}
               </div>
             )}
-            <Button size="sm" variant="overlayGhost" className="mt-2" onClick={onCancel}>
+            <Button size="sm" variant="ghost" className="mt-2" onClick={onCancel}>
               {cancelLabel}
             </Button>
           </>

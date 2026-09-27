@@ -1,13 +1,21 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
-import { useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
-import { resolveLocalizedText, type RuntimeMeta } from "@escaperoom/game-runtime";
+import type { CSSProperties } from "react";
+import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { FALLBACK_CHARACTER_ID, type RuntimeMeta } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import type { GamePlayerSnapshot } from "@escaperoom/game-runtime/session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { CharacterPicker } from "../character-picker";
 
@@ -34,21 +42,24 @@ export interface LobbyPanelProps {
   inviteUrl?: string | null;
   copied: boolean;
   onCopyInvite: () => void;
-  /** Prueba de micrófono/cámara (solo si la partida usa voz/vídeo). */
-  deviceCheck?: ReactNode;
 }
 
 /**
  * Interfaz de la **sala de espera** (encargo lobby-diseño, specs/11 §4.1 y
  * specs/19): un panel lateral sobre el mapa del lobby — que el creador diseña
  * en el editor o, si no, el generado —, donde los jugadores ya aparecen y se
- * mueven con su avatar. Reúne la cabecera de la sala (portada, título,
- * descripción, dificultad, duración o "sin límite", jugadores mín.–máx.), la
- * lista de jugadores (personaje, conexión, «Listo», anfitrión, expulsar), el
- * selector de personaje (cambiarlo quita el «Listo»), la prueba de
- * micrófono/cámara, "Copiar invitación" y, solo para el anfitrión,
- * «Empezar» / «Empezar igualmente» (C-13, el servidor manda). La partida y
- * el playtest (red y local) pasan por aquí igual.
+ * mueven con su avatar. Reúne el título de la sala, la lista de jugadores
+ * (personaje, conexión, «Listo», anfitrión, expulsar), el selector de
+ * personaje (cambiarlo quita el «Listo»), "Copiar invitación" y, solo para el
+ * anfitrión, «Empezar» / «Empezar igualmente» (C-13, el servidor manda). La
+ * prueba de micrófono/cámara vive en el panel de "Audio y vídeo"
+ * (`MediaOverlay`), no aquí. La partida y el playtest (red y local) pasan por
+ * aquí igual.
+ *
+ * Portada, descripción y badges (dificultad/duración/aforo) se quitaron de
+ * aquí (limpieza del lobby, sobrecargaba el panel): quedan pendientes de un
+ * botón "info" con un popup que reúna esa información, sin implementar
+ * todavía — `coverUrl` se deja declarado en las props por eso mismo.
  *
  * "Todos los grupos comienzan juntos" (evento, ticket "inicio conjunto"):
  * con `organizerControlsStart` activo, el anfitrión no ve "Empezar" en
@@ -58,7 +69,6 @@ export interface LobbyPanelProps {
 export function LobbyPanel({
   meta,
   pack,
-  coverUrl,
   players,
   self,
   isHost,
@@ -70,73 +80,53 @@ export function LobbyPanel({
   inviteUrl,
   copied,
   onCopyInvite,
-  deviceCheck,
 }: LobbyPanelProps) {
   const t = useTranslations("Game");
-  const locale = useLocale();
   const [confirmingForce, setConfirmingForce] = useState(false);
-  const [pendingKickId, setPendingKickId] = useState<string | null>(null);
+  const [kickTarget, setKickTarget] = useState<GamePlayerSnapshot | null>(null);
 
   const connected = players.filter((player) => player.connected);
   const allReady = connected.every((player) => player.ready);
   const belowMinimum = connected.length < meta.players.min;
-  const occupied = new Set(
+  // "Empezar sin esperar" salta la confirmación de los DEMÁS, nunca la propia
+  // del anfitrión: no tendría sentido que forzara la partida sin haberse
+  // confirmado él mismo.
+  const hostReady = self.ready;
+  // Sin pack generado (`pnpm pack:build`, .gitignore — un clon limpio, CI o
+  // producción sin ese paso manual) o sin avatares declarados, no hay nada
+  // que elegir: `CharacterPicker` ni se monta. Bloquear "¡Vamos!" ahí dejaría
+  // la partida sin poder empezar nunca, así que ese caso no exige personaje
+  // (el efecto de abajo pide el maniquí de reserva por su cuenta).
+  const canChooseCharacter = Boolean(pack && (pack.manifest.avatars?.length ?? 0) > 0);
+  const noCharacter = canChooseCharacter && !self.characterId;
+
+  useEffect(() => {
+    if (!canChooseCharacter && !self.characterId) {
+      onSelectCharacter(FALLBACK_CHARACTER_ID);
+    }
+  }, [canChooseCharacter, self.characterId, onSelectCharacter]);
+
+  const occupied = new Map(
     players
       .filter((player) => !player.isSelf && player.connected)
-      .map((player) => player.characterId),
+      .map((player) => [player.characterId, { name: player.name, tint: player.tint }] as const),
   );
-  const characterName = (characterId: string) => {
-    const avatar = pack?.manifest.avatars?.find((candidate) => candidate.id === characterId);
-    return avatar ? resolveLocalizedText(avatar.label, locale) : characterId;
-  };
 
   return (
     <aside
-      className="pointer-events-auto absolute bottom-4 left-4 top-20 z-20 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 overflow-y-auto rounded-xl border border-white/10 bg-slate-950/90 p-4 text-white shadow-xl backdrop-blur"
+      className="pointer-events-auto absolute bottom-4 left-4 top-16 z-20 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 overflow-y-auto rounded-md border border-border bg-card/75 p-4 text-foreground shadow-xl backdrop-blur"
       data-testid="game-lobby"
       aria-label={t("lobby.title")}
     >
       <header className="flex flex-col gap-2" data-testid="lobby-header">
-        {coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- portada firmada del bucket, no optimizable por Next/Image
-          <img
-            src={coverUrl}
-            alt=""
-            aria-hidden
-            className="aspect-video w-full rounded-lg object-cover"
-          />
-        ) : null}
-        <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
-          {t("lobby.title")}
-        </span>
         <h2 className="text-base font-semibold leading-tight">{meta.title}</h2>
-        {meta.description ? (
-          <p className="line-clamp-4 text-xs text-white/70">{meta.description}</p>
-        ) : null}
-        <div className="flex flex-wrap gap-1.5">
-          <Badge variant="outline" className="border-white/20 text-white/80">
-            {t(`lobby.difficulty.${meta.difficulty}`)}
-          </Badge>
-          <Badge
-            variant="outline"
-            className="border-white/20 text-white/80"
-            data-testid="lobby-duration"
-          >
-            {meta.timeLimitMinutes === null
-              ? t("lobby.noTimeLimit")
-              : t("lobby.duration", { minutes: meta.timeLimitMinutes })}
-          </Badge>
-          <Badge variant="outline" className="border-white/20 text-white/80">
-            {t("lobby.playersRange", { min: meta.players.min, max: meta.players.max })}
-          </Badge>
-        </div>
       </header>
 
-      <Separator className="bg-white/10" />
+      <Separator />
 
       <section className="flex flex-col gap-1.5">
-        <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
-          {t("lobby.players", { count: players.length })}
+        <span className="text-xs uppercase tracking-wide text-muted-foreground">
+          {t("lobby.playersOf", { count: players.length, max: meta.players.max })}
         </span>
         <ul className="flex flex-col gap-1 text-xs" data-testid="lobby-players">
           {players.map((player) => (
@@ -151,47 +141,44 @@ export function LobbyPanel({
                 style={{ "--tint": player.tint } as CSSProperties}
               />
               <span
-                className={`min-w-0 flex-1 truncate ${player.connected ? "text-white/90" : "text-white/40"}`}
+                className={`min-w-0 flex-1 truncate ${player.connected ? "text-foreground" : "text-muted-foreground"}`}
               >
                 {player.name}
                 {player.isSelf ? ` (${t("lobby.you")})` : ""}
                 {player.isHost ? ` · ${t("lobby.host")}` : ""}
                 {player.connected ? "" : ` · ${t("lobby.offline")}`}
-                <span className="block text-[0.65rem] text-white/50">
-                  {characterName(player.characterId)}
-                </span>
+                {player.connected && player.ready ? (
+                  <Badge
+                    className="ml-1.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
+                    data-testid={`lobby-ready-${player.id}`}
+                  >
+                    {t("lobby.ready")}
+                  </Badge>
+                ) : null}
               </span>
-              {player.connected && player.ready ? (
-                <Badge
-                  className="bg-emerald-400/20 text-emerald-100"
-                  data-testid={`lobby-ready-${player.id}`}
+              {player.isSelf ? (
+                <Button
+                  size="default"
+                  variant={player.ready ? "secondary" : "default"}
+                  data-testid="lobby-ready"
+                  aria-pressed={player.ready}
+                  disabled={!player.characterId}
+                  title={player.characterId ? undefined : t("lobby.chooseCharacterFirst")}
+                  onClick={() => onToggleReady(!player.ready)}
                 >
-                  {t("lobby.ready")}
-                </Badge>
+                  {player.ready ? t("lobby.ready") : t("lobby.markReady")}
+                </Button>
               ) : null}
               {isHost && !player.isSelf && player.connected && onKick ? (
-                pendingKickId === player.id ? (
-                  <Button
-                    size="xs"
-                    variant="destructive"
-                    data-testid={`game-kick-confirm-${player.id}`}
-                    onClick={() => {
-                      setPendingKickId(null);
-                      onKick(player.id);
-                    }}
-                  >
-                    {t("lobby.kickConfirm", { player: player.name })}
-                  </Button>
-                ) : (
-                  <Button
-                    size="xs"
-                    variant="destructive"
-                    data-testid={`game-kick-${player.id}`}
-                    onClick={() => setPendingKickId(player.id)}
-                  >
-                    {t("lobby.kick")}
-                  </Button>
-                )
+                <Button
+                  size="default"
+                  variant="destructive"
+                  className="bg-destructive text-white hover:bg-destructive/90"
+                  data-testid={`game-kick-${player.id}`}
+                  onClick={() => setKickTarget(player)}
+                >
+                  {t("lobby.kick")}
+                </Button>
               ) : null}
             </li>
           ))}
@@ -203,32 +190,25 @@ export function LobbyPanel({
           pack={pack}
           occupiedBy={occupied}
           value={self.characterId}
+          selfName={self.name}
+          selfTint={self.tint}
           onChange={onSelectCharacter}
         />
       ) : null}
 
-      {deviceCheck}
-
-      <Separator className="bg-white/10" />
-
-      <div className="flex flex-col items-stretch gap-2 text-center">
-        <Button
-          size="sm"
-          variant={self.ready ? "secondary" : "default"}
-          data-testid="lobby-ready"
-          aria-pressed={self.ready}
-          onClick={() => onToggleReady(!self.ready)}
-        >
-          {self.ready ? t("lobby.ready") : t("lobby.markReady")}
-        </Button>
+      <div className="mt-auto flex flex-col items-stretch gap-2 text-center">
         {isHost && organizerControlsStart ? (
-          <p className="text-sm text-white/60" data-testid="lobby-waiting-organizer">
+          <p className="text-sm text-muted-foreground" data-testid="lobby-waiting-organizer">
             {t("lobby.waitingOrganizer")}
           </p>
         ) : isHost ? (
           belowMinimum ? (
-            <p className="text-xs text-amber-200" data-testid="lobby-below-minimum">
+            <p className="text-xs text-destructive" data-testid="lobby-below-minimum">
               {t("lobby.belowMinimum", { min: meta.players.min })}
+            </p>
+          ) : !hostReady ? (
+            <p className="text-xs text-destructive" data-testid="lobby-host-not-ready">
+              {noCharacter ? t("lobby.chooseCharacterFirst") : t("lobby.hostMustConfirm")}
             </p>
           ) : confirmingForce ? (
             <div className="flex flex-col items-center gap-2 text-sm">
@@ -245,7 +225,7 @@ export function LobbyPanel({
                 >
                   {t("lobby.confirmForceConfirm")}
                 </Button>
-                <Button size="sm" variant="overlayGhost" onClick={() => setConfirmingForce(false)}>
+                <Button size="sm" variant="ghost" onClick={() => setConfirmingForce(false)}>
                   {t("lobby.confirmForceCancel")}
                 </Button>
               </div>
@@ -255,11 +235,11 @@ export function LobbyPanel({
               {t("lobby.start")}
             </Button>
           ) : (
-            <div className="flex flex-col items-center gap-1">
-              <p className="text-xs text-white/60">{t("lobby.startNotReady")}</p>
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-xs text-destructive">{t("lobby.startNotReady")}</p>
               <Button
-                size="sm"
-                variant="overlayGhost"
+                size="default"
+                className="w-full"
                 data-testid="lobby-start-force"
                 onClick={() => setConfirmingForce(true)}
               >
@@ -267,20 +247,54 @@ export function LobbyPanel({
               </Button>
             </div>
           )
+        ) : noCharacter ? (
+          <p className="text-xs text-destructive" data-testid="lobby-waiting-host">
+            {t("lobby.chooseCharacterFirst")}
+          </p>
+        ) : !self.ready ? (
+          <p className="text-xs text-destructive" data-testid="lobby-guest-not-ready">
+            {t("lobby.hostMustConfirm")}
+          </p>
         ) : (
-          <p className="text-sm text-white/60">{t("lobby.waitingHost")}</p>
+          <p className="text-xs text-muted-foreground" data-testid="lobby-waiting-host">
+            {t("lobby.waitingHost")}
+          </p>
         )}
-        {inviteUrl ? (
-          <Button
-            size="sm"
-            variant="overlayGhost"
-            onClick={onCopyInvite}
-            data-testid="lobby-invite"
-          >
-            {copied ? t("lobby.copied") : t("lobby.invite")}
-          </Button>
-        ) : null}
       </div>
+
+      {inviteUrl ? (
+        <Button size="default" variant="ghost" onClick={onCopyInvite} data-testid="lobby-invite">
+          {copied ? t("lobby.copied") : t("lobby.invite")}
+        </Button>
+      ) : null}
+
+      <Dialog open={kickTarget !== null} onOpenChange={(open) => !open && setKickTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("lobby.kickTitle")}</DialogTitle>
+            <DialogDescription>
+              {kickTarget ? t("lobby.kickConfirm", { player: kickTarget.name }) : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setKickTarget(null)}>
+              {t("lobby.kickCancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              className="bg-destructive text-white hover:bg-destructive/90"
+              data-testid={kickTarget ? `game-kick-confirm-${kickTarget.id}` : undefined}
+              onClick={() => {
+                if (!kickTarget) return;
+                onKick?.(kickTarget.id);
+                setKickTarget(null);
+              }}
+            >
+              {t("lobby.kick")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

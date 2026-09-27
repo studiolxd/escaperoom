@@ -50,7 +50,7 @@ export default async function RoomEditorPage({ params, searchParams }: Props) {
     const actor = await resolveActorFromHeaders(await headers());
     if (isAnonymous(actor)) {
       return (
-        <main className="mx-auto max-w-md px-4 py-16">
+        <main className="mx-auto w-full max-w-md px-4 py-16">
           <OnboardingLogin callbackURL={`/${locale}/editor/${roomId}`} />
         </main>
       );

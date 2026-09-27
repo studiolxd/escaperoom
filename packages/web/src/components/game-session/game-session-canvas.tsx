@@ -8,6 +8,7 @@ import {
   type ScenePlayer,
   type WorldSceneEvent,
 } from "@escaperoom/game-runtime/phaser";
+import { BACKGROUND_HEX, isDarkThemeActive } from "@/lib/theme";
 
 /** Handle imperativo del canvas para que el shell refleje el estado del servidor. */
 export interface GameSessionCanvasHandle {
@@ -62,6 +63,7 @@ export default function GameSessionCanvas({
       intentOnly: true,
       inputEnabled: false,
       emitAvatarMoves: true,
+      backgroundColor: isDarkThemeActive() ? BACKGROUND_HEX.dark : BACKGROUND_HEX.light,
     });
     runtimeRef.current = runtime;
     const off = runtime.onWorldEvent((event) => onEventRef.current(event));
@@ -85,6 +87,19 @@ export default function GameSessionCanvas({
   useEffect(() => {
     runtimeRef.current?.setInputEnabled(inputEnabled);
   }, [inputEnabled]);
+
+  useEffect(() => {
+    // Nada dispara un evento al cambiar de tema (`ThemeSelect` solo hace
+    // `classList.toggle`): sin esto, el fondo del canvas se quedaría con el
+    // de la carga inicial si el tema cambia con la partida ya en marcha.
+    const observer = new MutationObserver(() => {
+      runtimeRef.current?.setBackgroundColor(
+        isDarkThemeActive() ? BACKGROUND_HEX.dark : BACKGROUND_HEX.light,
+      );
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
