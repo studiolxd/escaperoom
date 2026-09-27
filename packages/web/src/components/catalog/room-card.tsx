@@ -58,16 +58,7 @@ export function RoomCard({
         ) : null}
         <div className="force-light relative z-10 flex flex-col gap-1 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 text-white">
           <h2 className="text-lg font-semibold" lang={room.defaultLanguage}>
-            {/* "Stretched link" (patrón habitual de tarjeta clicable): el
-                `::after` cubre toda la `<article>` (el ancestro `relative`
-                más cercano), así que toda la tarjeta lleva al detalle sin
-                más enlaces sueltos ni onClick propio. */}
-            <Link
-              href={roomPath(room.id)}
-              className="after:absolute after:inset-0 hover:underline"
-            >
-              {room.title}
-            </Link>
+            {room.title}
           </h2>
           <RatingSummary ratingAvg={room.ratingAvg} ratingCount={room.ratingCount} />
         </div>
@@ -103,6 +94,12 @@ export function RoomCard({
           </span>
         </div>
       </div>
+      {/* Enlace "estirado" sobre toda la tarjeta: como hijo directo de la
+          `<article relative>`, no de un `div` interno también `relative`
+          (el del degradado) — si no, solo cubriría esa franja, no la
+          tarjeta entera. Único enlace de la tarjeta (el título ya no lo es),
+          para no duplicar destinos para lector de pantalla/teclado. */}
+      <Link href={roomPath(room.id)} className="absolute inset-0 z-20" aria-label={room.title} />
     </article>
   );
 }
