@@ -148,7 +148,6 @@
     "menu": {
       "inspect": "Bekijken",
       "useItem": "Voorwerp gebruiken…",
-      "openPanel": "Paneel openen",
       "chooseItem": "Kies een voorwerp om op {object} te gebruiken",
       "dragHint": "Sleep het uit de inventaris naar de wereld of kies er hier een.",
       "dropHint": "Laat {item} los op een object in de wereld",

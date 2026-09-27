@@ -331,6 +331,7 @@ function toRuntimeSubRoom(room: SubRoom): RuntimeSubRoom {
       sprite: decoration.sprite,
       x: decoration.x,
       y: decoration.y,
+      ...(decoration.blocks ? { blocks: true } : {}),
     })),
     spawns,
     lighting: room.lighting.map(toRuntimeLight),

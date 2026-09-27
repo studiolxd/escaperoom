@@ -4,17 +4,14 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export interface ContextMenuPopoverProps {
   object: RuntimeObject | undefined;
-  isSolved: boolean;
   onOpenChange: (open: boolean) => void;
   onEscapeKeyDown: (event: { preventDefault: () => void }) => void;
   objectName: (objectId: string) => string;
   onInspect: (objectId: string) => void;
   onPickItem: (objectId: string) => void;
-  onOpenPanel: (puzzleId: string, objectId: string) => void;
   onCancel: () => void;
   inspectLabel: string;
   useItemLabel: string;
-  openPanelLabel: string;
   cancelLabel: string;
 }
 
@@ -22,20 +19,23 @@ export interface ContextMenuPopoverProps {
  * F-17 (revisión en vivo): menú contextual del objeto — `Dialog` modal, como
  * el resto de popups del HUD (bloquea clics de fondo) en vez del `Popover` no
  * modal anterior; su título es el nombre del objeto seleccionado.
+ *
+ * Sin botón "Abrir panel" (revisión en vivo, quitado): "Inspeccionar" ya abre
+ * el panel del puzzle asociado (`useGameHud.inspect`) para cualquier objeto
+ * que no sea un `hidden_key` (ese se revela al inspeccionar, sin panel
+ * manual) — el botón era una segunda vía redundante o, para un `hidden_key`,
+ * abría un panel que no debía existir en absoluto (p. ej. `cuadro-aurelio`).
  */
 export function ContextMenuPopover({
   object,
-  isSolved,
   onOpenChange,
   onEscapeKeyDown,
   objectName,
   onInspect,
   onPickItem,
-  onOpenPanel,
   onCancel,
   inspectLabel,
   useItemLabel,
-  openPanelLabel,
   cancelLabel,
 }: ContextMenuPopoverProps) {
   return (
@@ -62,15 +62,6 @@ export function ContextMenuPopover({
                   {action === "inspect" ? inspectLabel : useItemLabel}
                 </Button>
               ))}
-              {object.panelPuzzleId && !isSolved ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => onOpenPanel(object.panelPuzzleId!, object.id)}
-                >
-                  {openPanelLabel}
-                </Button>
-              ) : null}
               <Button size="sm" variant="ghost" onClick={onCancel}>
                 {cancelLabel}
               </Button>

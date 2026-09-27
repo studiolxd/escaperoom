@@ -265,7 +265,8 @@ describe("colisión desde el manifiesto", () => {
     const grid = buildCollisionGrid(salon, { manifest });
     expect(grid.blocks(0, 0)).toBe(true);
     expect(grid.blocks(5, 5)).toBe(false);
-    expect(grid.blocks(10, 1)).toBe(true);
+    // Trono en (9,1) (revisión en vivo: movido a la pared norte).
+    expect(grid.blocks(9, 1)).toBe(true);
     expect(grid.blocks(10, 13)).toBe(false);
   });
 
@@ -276,7 +277,7 @@ describe("colisión desde el manifiesto", () => {
 
     const grid = buildCollisionGrid(salon);
     expect(grid.blocks(0, 0)).toBe(false);
-    expect(grid.blocks(10, 1)).toBe(true);
+    expect(grid.blocks(9, 1)).toBe(true);
   });
 
   it("trata fuera de la rejilla como bloqueado", () => {

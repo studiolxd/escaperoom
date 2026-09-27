@@ -281,7 +281,6 @@
     "menu": {
       "inspect": "Inspeccionar",
       "useItem": "Usar objeto…",
-      "openPanel": "Abrir panel",
       "chooseItem": "Elige un objeto para usar sobre {object}",
       "dragHint": "Arrástralo del inventario sobre el mundo o elige uno aquí.",
       "dropHint": "Suelta {item} sobre un objeto del mundo",

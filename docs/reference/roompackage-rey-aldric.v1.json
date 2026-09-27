@@ -184,12 +184,14 @@
           {
             "sprite": "columna",
             "x": 2,
-            "y": 3
+            "y": 3,
+            "blocks": true
           },
           {
             "sprite": "columna",
             "x": 17,
-            "y": 3
+            "y": 3,
+            "blocks": true
           },
           {
             "sprite": "estandarte",
@@ -373,17 +375,20 @@
           {
             "sprite": "barriles-der",
             "x": 1,
-            "y": 2
+            "y": 2,
+            "blocks": true
           },
           {
             "sprite": "barriles-der",
             "x": 1,
-            "y": 4
+            "y": 4,
+            "blocks": true
           },
           {
             "sprite": "barriles",
             "x": 16,
-            "y": 2
+            "y": 2,
+            "blocks": true
           },
           {
             "sprite": "antorcha",
@@ -734,6 +739,11 @@
   "objects": [
     {
       "id": "trono",
+      "name": {
+        "es": {
+          "text": "El trono"
+        }
+      },
       "roomId": "salon-trono",
       "type": "decorativo",
       "position": {
@@ -747,6 +757,11 @@
     },
     {
       "id": "cuadro-aurelio",
+      "name": {
+        "es": {
+          "text": "El retrato del Rey Aurelio"
+        }
+      },
       "roomId": "salon-trono",
       "type": "escondite",
       "position": {
@@ -766,6 +781,11 @@
     },
     {
       "id": "retrato-2",
+      "name": {
+        "es": {
+          "text": "El retrato del castillo de cuatro torres"
+        }
+      },
       "roomId": "salon-trono",
       "type": "decorativo",
       "position": {
@@ -779,6 +799,11 @@
     },
     {
       "id": "retrato-3",
+      "name": {
+        "es": {
+          "text": "El retrato del brasero apagado"
+        }
+      },
       "roomId": "salon-trono",
       "type": "decorativo",
       "position": {
@@ -792,6 +817,11 @@
     },
     {
       "id": "retrato-4",
+      "name": {
+        "es": {
+          "text": "El retrato de las dos estatuas"
+        }
+      },
       "roomId": "salon-trono",
       "type": "decorativo",
       "position": {
@@ -805,6 +835,11 @@
     },
     {
       "id": "tapiz-dragones",
+      "name": {
+        "es": {
+          "text": "El tapiz de los siete dragones"
+        }
+      },
       "roomId": "salon-trono",
       "type": "decorativo",
       "position": {
@@ -818,6 +853,11 @@
     },
     {
       "id": "armario",
+      "name": {
+        "es": {
+          "text": "El armario"
+        }
+      },
       "roomId": "salon-trono",
       "type": "cajon",
       "position": {
@@ -834,6 +874,11 @@
     },
     {
       "id": "arca-candado",
+      "name": {
+        "es": {
+          "text": "El arca con candado"
+        }
+      },
       "roomId": "salon-trono",
       "type": "mecanismo",
       "position": {
@@ -851,6 +896,11 @@
     },
     {
       "id": "brasero",
+      "name": {
+        "es": {
+          "text": "El brasero"
+        }
+      },
       "roomId": "salon-trono",
       "type": "mecanismo",
       "position": {
@@ -867,6 +917,11 @@
     },
     {
       "id": "estatua-izq",
+      "name": {
+        "es": {
+          "text": "La estatua del caballero (izquierda)"
+        }
+      },
       "roomId": "salon-trono",
       "type": "decorativo",
       "position": {
@@ -880,6 +935,11 @@
     },
     {
       "id": "estatua-der",
+      "name": {
+        "es": {
+          "text": "La estatua del caballero (derecha)"
+        }
+      },
       "roomId": "salon-trono",
       "type": "decorativo",
       "position": {
@@ -893,6 +953,11 @@
     },
     {
       "id": "placa-izq",
+      "name": {
+        "es": {
+          "text": "La placa de piedra (izquierda)"
+        }
+      },
       "roomId": "salon-trono",
       "type": "mecanismo",
       "position": {
@@ -909,6 +974,11 @@
     },
     {
       "id": "placa-der",
+      "name": {
+        "es": {
+          "text": "La placa de piedra (derecha)"
+        }
+      },
       "roomId": "salon-trono",
       "type": "mecanismo",
       "position": {
@@ -925,6 +995,11 @@
     },
     {
       "id": "puerta-bodega",
+      "name": {
+        "es": {
+          "text": "La puerta de la bodega"
+        }
+      },
       "roomId": "salon-trono",
       "type": "puerta",
       "position": {
@@ -943,6 +1018,11 @@
     },
     {
       "id": "mural-vendimia",
+      "name": {
+        "es": {
+          "text": "El mural de la vendimia"
+        }
+      },
       "roomId": "bodega",
       "type": "mecanismo",
       "position": {
@@ -960,6 +1040,11 @@
     },
     {
       "id": "compartimento-plata",
+      "name": {
+        "es": {
+          "text": "El compartimento secreto"
+        }
+      },
       "roomId": "bodega",
       "type": "cajon",
       "position": {
@@ -976,6 +1061,11 @@
     },
     {
       "id": "mural-ranura",
+      "name": {
+        "es": {
+          "text": "La ranura del mural"
+        }
+      },
       "roomId": "bodega",
       "type": "mecanismo",
       "position": {
@@ -992,6 +1082,11 @@
     },
     {
       "id": "barril-espejo",
+      "name": {
+        "es": {
+          "text": "El barril suelto"
+        }
+      },
       "roomId": "bodega",
       "type": "escondite",
       "position": {
@@ -1011,6 +1106,11 @@
     },
     {
       "id": "mesa-catas",
+      "name": {
+        "es": {
+          "text": "La mesa de catas"
+        }
+      },
       "roomId": "bodega",
       "type": "mecanismo",
       "position": {
@@ -1038,6 +1138,11 @@
     },
     {
       "id": "reja-escalera",
+      "name": {
+        "es": {
+          "text": "La reja de la escalera"
+        }
+      },
       "roomId": "bodega",
       "type": "puerta",
       "position": {
@@ -1056,6 +1161,11 @@
     },
     {
       "id": "mirilla-a",
+      "name": {
+        "es": {
+          "text": "La mirilla (A)"
+        }
+      },
       "roomId": "bodega",
       "type": "mecanismo",
       "position": {
@@ -1069,6 +1179,11 @@
     },
     {
       "id": "mirilla-b",
+      "name": {
+        "es": {
+          "text": "La mirilla (B)"
+        }
+      },
       "roomId": "bodega",
       "type": "mecanismo",
       "position": {
@@ -1082,6 +1197,11 @@
     },
     {
       "id": "sarcofago",
+      "name": {
+        "es": {
+          "text": "El sarcófago"
+        }
+      },
       "roomId": "catacumbas",
       "type": "decorativo",
       "position": {
@@ -1101,6 +1221,11 @@
     },
     {
       "id": "altar",
+      "name": {
+        "es": {
+          "text": "El altar"
+        }
+      },
       "roomId": "catacumbas",
       "type": "mecanismo",
       "position": {
@@ -1123,6 +1248,11 @@
     },
     {
       "id": "canal-entrada",
+      "name": {
+        "es": {
+          "text": "El canal de entrada"
+        }
+      },
       "roomId": "catacumbas",
       "type": "mecanismo",
       "position": {
@@ -1137,6 +1267,11 @@
     },
     {
       "id": "compuerta-oro",
+      "name": {
+        "es": {
+          "text": "La compuerta dorada"
+        }
+      },
       "roomId": "catacumbas",
       "type": "cajon",
       "position": {
@@ -1154,6 +1289,11 @@
     },
     {
       "id": "relicario",
+      "name": {
+        "es": {
+          "text": "El relicario"
+        }
+      },
       "roomId": "catacumbas",
       "type": "mecanismo",
       "position": {
@@ -1171,6 +1311,11 @@
     },
     {
       "id": "vasijas",
+      "name": {
+        "es": {
+          "text": "Las vasijas"
+        }
+      },
       "roomId": "catacumbas",
       "type": "decorativo",
       "position": {

@@ -148,7 +148,6 @@
     "menu": {
       "inspect": "Inspecionar",
       "useItem": "Usar objeto…",
-      "openPanel": "Abrir painel",
       "chooseItem": "Escolhe um objeto para usar em {object}",
       "dragHint": "Arrasta-o do inventário para o mundo ou escolhe um aqui.",
       "dropHint": "Larga {item} sobre um objeto do mundo",

@@ -148,7 +148,6 @@
     "menu": {
       "inspect": "Untersuchen",
       "useItem": "Gegenstand benutzen…",
-      "openPanel": "Panel öffnen",
       "chooseItem": "Wähle einen Gegenstand für {object}",
       "dragHint": "Zieh ihn aus dem Inventar in die Welt oder wähle hier einen aus.",
       "dropHint": "Lege {item} auf ein Objekt der Welt",

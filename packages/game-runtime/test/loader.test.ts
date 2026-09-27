@@ -200,7 +200,15 @@ describe("toRuntimeModel", () => {
   });
 
   it("F-27: deriva el nombre del objeto del diálogo de inspección cuando no tiene uno propio", () => {
-    const model = toRuntimeModel(loadValidPackage());
+    // El fixture real le da nombre propio a `cuadro-aurelio` (revisión en
+    // vivo, F-31): se quita aquí para forzar el caso que prueba este test,
+    // la derivación desde el diálogo de inspección.
+    const roomPackage = loadValidPackage();
+    const object = roomPackage.objects.find((candidate) => candidate.id === "cuadro-aurelio");
+    if (!object) throw new Error("el fixture no tiene cuadro-aurelio");
+    delete object.name;
+
+    const model = toRuntimeModel(roomPackage);
     const cuadro = model.objectsById["cuadro-aurelio"];
 
     expect(cuadro?.name).toContain("Rey Aurelio");
@@ -217,12 +225,18 @@ describe("toRuntimeModel", () => {
   });
 
   it("F-27: sin nombre propio ni diálogo asociado, el objeto no expone `name`", () => {
-    const model = toRuntimeModel(loadValidPackage());
-    const sinDialogo = model.objects.find(
-      (object) => !object.name && !object.inspectDialogId,
-    );
+    // El fixture real ya da nombre propio a todos sus objetos (revisión en
+    // vivo, F-31: título al inspeccionar), así que se fuerza el caso sin
+    // ninguno de los dos quitándoselo a `trono` (sin diálogo de inspección).
+    const roomPackage = loadValidPackage();
+    const object = roomPackage.objects.find((candidate) => candidate.id === "trono");
+    if (!object) throw new Error("el fixture no tiene trono");
+    delete object.name;
 
-    expect(sinDialogo).toBeDefined();
+    const model = toRuntimeModel(roomPackage);
+    const sinDialogo = model.objectsById["trono"];
+
+    expect(sinDialogo?.inspectDialogId).toBeFalsy();
     expect(sinDialogo?.name).toBeUndefined();
   });
 });

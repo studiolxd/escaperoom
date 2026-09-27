@@ -187,13 +187,6 @@ export function GameSessionShell({
     },
     [hud],
   );
-  const onOpenPanelFromMenu = useCallback(
-    (puzzleId: string, objectId: string) => {
-      hud.setSelected(null);
-      hud.openPanel(puzzleId, objectId);
-    },
-    [hud],
-  );
   const onChooseItem = useCallback(
     (itemId: string) => {
       const target = hud.pickerFor;
@@ -439,20 +432,14 @@ export function GameSessionShell({
 
       <ContextMenuPopover
         object={hud.selectedObject}
-        isSolved={
-          Boolean(hud.selectedObject?.panelPuzzleId) &&
-          snapshot.puzzles[hud.selectedObject?.panelPuzzleId ?? ""]?.state === "solved"
-        }
         onOpenChange={(open) => !open && closeMenu()}
         onEscapeKeyDown={preventEscapeIfDialogOpen}
         objectName={hud.objectName}
         onInspect={onInspect}
         onPickItem={onPickItem}
-        onOpenPanel={onOpenPanelFromMenu}
         onCancel={closeMenu}
         inspectLabel={hud.tp("menu.inspect")}
         useItemLabel={hud.tp("menu.useItem")}
-        openPanelLabel={hud.tp("menu.openPanel")}
         cancelLabel={hud.tp("menu.cancel")}
       />
 

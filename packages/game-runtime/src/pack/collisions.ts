@@ -77,6 +77,14 @@ export function buildCollisionGrid(
         }
       }
     }
+    // Decoraciones sólidas (columnas, pilas de barriles…): puro dressing
+    // visual sin contraparte en `objects`, pero marcadas `blocks: true` para
+    // que bloqueen igual que un objeto sólido (revisión en vivo).
+    for (const decoration of room.decorations) {
+      if (decoration.blocks) {
+        block(Math.round(decoration.x), Math.round(decoration.y));
+      }
+    }
   }
 
   const blocks = (tx: number, ty: number): boolean => {
