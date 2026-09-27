@@ -264,16 +264,6 @@ export function GameSessionShell({
             />
           ) : null}
 
-          {showChat ? (
-            <ChatWindow
-              messages={snapshot.chat}
-              selfId={snapshot.selfId || null}
-              connected={connection ? connection.status === "connected" : true}
-              error={hud.chatError}
-              onSend={hud.sendChat}
-            />
-          ) : null}
-
           {inMapStage ? (
             <div className="flex w-64 flex-col gap-2 rounded-xl border border-border bg-card/75 px-4 py-3 text-foreground backdrop-blur">
               <div className="flex items-center justify-between gap-2">
@@ -330,6 +320,19 @@ export function GameSessionShell({
           ) : null}
         </div>
       </div>
+
+      {showChat ? (
+        // A la derecha del aside de jugadores (`left-4 w-56`): mismo hueco
+        // (1rem) que este tiene respecto al borde izquierdo de la pantalla.
+        <ChatWindow
+          messages={snapshot.chat}
+          selfId={snapshot.selfId || null}
+          connected={connection ? connection.status === "connected" : true}
+          error={hud.chatError}
+          onSend={hud.sendChat}
+          className="absolute left-64 top-40"
+        />
+      ) : null}
 
       {variant === "playtest" ? (
         <HudLogCorner log={hud.log} title={hud.tp("log.title")} />
