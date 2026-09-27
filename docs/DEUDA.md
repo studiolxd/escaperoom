@@ -101,6 +101,9 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `public/`, credenciales y quién lo ejecuta (script manual o paso de CI). Decidir
       también el almacenamiento definitivo de los binarios de la herramienta (`fuentes/`,
       `entregas/`, `referencias/`, hoy solo en local y con copia en `pipeline-assets`).
+      **Ojo (#184):** los 7 personajes provisionales del pack `medieval-v1` son enlaces simbólicos
+      (git `120000`) a los frames y el retrato de `caballero-m`: el script de subida debe seguirlos
+      (dereferenciar) o se perderán en R2; desaparecen cuando se generen los personajes reales.
 - [ ] **API pública para terceros (auditoría 2026-09-24, A-8).** `specs/13` describe una superficie
       REST también pensada para integradores externos (Bearer/API key, `Idempotency-Key`,
       `/api/me/purchases`, `/api/me/rooms`, alta de organización y miembros por REST, CRUD de salas
