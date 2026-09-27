@@ -11,4 +11,8 @@ de cuero marrón, **exactamente una espada** envainada en la cadera izquierda, e
 (en la espalda solo el escudo). Principio: simplificar detalles pequeños que la IA o el 3D puedan romper.
 
 ### Caballera, arquero/a, mago/a, campesino/a
-Pendientes.
+Pendientes: sus ids (`caballero-f`, `arquero-m`, `arquero-f`, `mago-m`, `mago-f`, `campesino-m`, `campesina-f`) y
+etiquetas ya están en `pack.json` (`avatar.etiquetas`) y seleccionables en el juego, pero **provisionales**:
+reutilizan los frames y el retrato de `caballero-m` mediante enlaces simbólicos
+(`scripts/empaquetar/empaquetar_avatar_alias.py`, ver `docs/DEUDA.md` del juego). Sustituir por su propio
+master + render cuando se generen (mismo pipeline que el caballero).

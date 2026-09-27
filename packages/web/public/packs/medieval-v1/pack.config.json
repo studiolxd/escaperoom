@@ -18,6 +18,42 @@
   },
   "avatars": [
     {
+      "id": "arquero-f",
+      "label": {
+        "es": {
+          "text": "Arquera"
+        },
+        "en": {
+          "text": "Archer"
+        }
+      },
+      "portrait": "retrato-arquero-f"
+    },
+    {
+      "id": "arquero-m",
+      "label": {
+        "es": {
+          "text": "Arquero"
+        },
+        "en": {
+          "text": "Archer"
+        }
+      },
+      "portrait": "retrato-arquero-m"
+    },
+    {
+      "id": "caballero-f",
+      "label": {
+        "es": {
+          "text": "Caballera"
+        },
+        "en": {
+          "text": "Knight"
+        }
+      },
+      "portrait": "retrato-caballero-f"
+    },
+    {
       "id": "caballero-m",
       "label": {
         "es": {
@@ -26,7 +62,56 @@
         "en": {
           "text": "Knight"
         }
-      }
+      },
+      "portrait": "retrato-caballero-m"
+    },
+    {
+      "id": "campesina-f",
+      "label": {
+        "es": {
+          "text": "Campesina"
+        },
+        "en": {
+          "text": "Peasant"
+        }
+      },
+      "portrait": "retrato-campesina-f"
+    },
+    {
+      "id": "campesino-m",
+      "label": {
+        "es": {
+          "text": "Campesino"
+        },
+        "en": {
+          "text": "Peasant"
+        }
+      },
+      "portrait": "retrato-campesino-m"
+    },
+    {
+      "id": "mago-f",
+      "label": {
+        "es": {
+          "text": "Maga"
+        },
+        "en": {
+          "text": "Witch"
+        }
+      },
+      "portrait": "retrato-mago-f"
+    },
+    {
+      "id": "mago-m",
+      "label": {
+        "es": {
+          "text": "Mago"
+        },
+        "en": {
+          "text": "Wizard"
+        }
+      },
+      "portrait": "retrato-mago-m"
     }
   ],
   "avatarOrigin": [
@@ -220,6 +305,1154 @@
       ],
       "frameRate": 16,
       "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-f-e-idle",
+      "frames": [
+        "avatar-arquero-f-e-idle-1",
+        "avatar-arquero-f-e-idle-2",
+        "avatar-arquero-f-e-idle-3",
+        "avatar-arquero-f-e-idle-4",
+        "avatar-arquero-f-e-idle-5",
+        "avatar-arquero-f-e-idle-6",
+        "avatar-arquero-f-e-idle-7",
+        "avatar-arquero-f-e-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-f-s-idle",
+      "frames": [
+        "avatar-arquero-f-s-idle-1",
+        "avatar-arquero-f-s-idle-2",
+        "avatar-arquero-f-s-idle-3",
+        "avatar-arquero-f-s-idle-4",
+        "avatar-arquero-f-s-idle-5",
+        "avatar-arquero-f-s-idle-6",
+        "avatar-arquero-f-s-idle-7",
+        "avatar-arquero-f-s-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-f-w-idle",
+      "frames": [
+        "avatar-arquero-f-w-idle-1",
+        "avatar-arquero-f-w-idle-2",
+        "avatar-arquero-f-w-idle-3",
+        "avatar-arquero-f-w-idle-4",
+        "avatar-arquero-f-w-idle-5",
+        "avatar-arquero-f-w-idle-6",
+        "avatar-arquero-f-w-idle-7",
+        "avatar-arquero-f-w-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-f-n-idle",
+      "frames": [
+        "avatar-arquero-f-n-idle-1",
+        "avatar-arquero-f-n-idle-2",
+        "avatar-arquero-f-n-idle-3",
+        "avatar-arquero-f-n-idle-4",
+        "avatar-arquero-f-n-idle-5",
+        "avatar-arquero-f-n-idle-6",
+        "avatar-arquero-f-n-idle-7",
+        "avatar-arquero-f-n-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-f-e-walk",
+      "frames": [
+        "avatar-arquero-f-e-walk-1",
+        "avatar-arquero-f-e-walk-2",
+        "avatar-arquero-f-e-walk-3",
+        "avatar-arquero-f-e-walk-4",
+        "avatar-arquero-f-e-walk-5",
+        "avatar-arquero-f-e-walk-6",
+        "avatar-arquero-f-e-walk-7",
+        "avatar-arquero-f-e-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-f-s-walk",
+      "frames": [
+        "avatar-arquero-f-s-walk-1",
+        "avatar-arquero-f-s-walk-2",
+        "avatar-arquero-f-s-walk-3",
+        "avatar-arquero-f-s-walk-4",
+        "avatar-arquero-f-s-walk-5",
+        "avatar-arquero-f-s-walk-6",
+        "avatar-arquero-f-s-walk-7",
+        "avatar-arquero-f-s-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-f-w-walk",
+      "frames": [
+        "avatar-arquero-f-w-walk-1",
+        "avatar-arquero-f-w-walk-2",
+        "avatar-arquero-f-w-walk-3",
+        "avatar-arquero-f-w-walk-4",
+        "avatar-arquero-f-w-walk-5",
+        "avatar-arquero-f-w-walk-6",
+        "avatar-arquero-f-w-walk-7",
+        "avatar-arquero-f-w-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-f-n-walk",
+      "frames": [
+        "avatar-arquero-f-n-walk-1",
+        "avatar-arquero-f-n-walk-2",
+        "avatar-arquero-f-n-walk-3",
+        "avatar-arquero-f-n-walk-4",
+        "avatar-arquero-f-n-walk-5",
+        "avatar-arquero-f-n-walk-6",
+        "avatar-arquero-f-n-walk-7",
+        "avatar-arquero-f-n-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-f-e-interact",
+      "frames": [
+        "avatar-arquero-f-e-interact-1",
+        "avatar-arquero-f-e-interact-2",
+        "avatar-arquero-f-e-interact-3",
+        "avatar-arquero-f-e-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-arquero-f-s-interact",
+      "frames": [
+        "avatar-arquero-f-s-interact-1",
+        "avatar-arquero-f-s-interact-2",
+        "avatar-arquero-f-s-interact-3",
+        "avatar-arquero-f-s-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-arquero-f-w-interact",
+      "frames": [
+        "avatar-arquero-f-w-interact-1",
+        "avatar-arquero-f-w-interact-2",
+        "avatar-arquero-f-w-interact-3",
+        "avatar-arquero-f-w-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-arquero-f-n-interact",
+      "frames": [
+        "avatar-arquero-f-n-interact-1",
+        "avatar-arquero-f-n-interact-2",
+        "avatar-arquero-f-n-interact-3",
+        "avatar-arquero-f-n-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-arquero-m-e-idle",
+      "frames": [
+        "avatar-arquero-m-e-idle-1",
+        "avatar-arquero-m-e-idle-2",
+        "avatar-arquero-m-e-idle-3",
+        "avatar-arquero-m-e-idle-4",
+        "avatar-arquero-m-e-idle-5",
+        "avatar-arquero-m-e-idle-6",
+        "avatar-arquero-m-e-idle-7",
+        "avatar-arquero-m-e-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-m-s-idle",
+      "frames": [
+        "avatar-arquero-m-s-idle-1",
+        "avatar-arquero-m-s-idle-2",
+        "avatar-arquero-m-s-idle-3",
+        "avatar-arquero-m-s-idle-4",
+        "avatar-arquero-m-s-idle-5",
+        "avatar-arquero-m-s-idle-6",
+        "avatar-arquero-m-s-idle-7",
+        "avatar-arquero-m-s-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-m-w-idle",
+      "frames": [
+        "avatar-arquero-m-w-idle-1",
+        "avatar-arquero-m-w-idle-2",
+        "avatar-arquero-m-w-idle-3",
+        "avatar-arquero-m-w-idle-4",
+        "avatar-arquero-m-w-idle-5",
+        "avatar-arquero-m-w-idle-6",
+        "avatar-arquero-m-w-idle-7",
+        "avatar-arquero-m-w-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-m-n-idle",
+      "frames": [
+        "avatar-arquero-m-n-idle-1",
+        "avatar-arquero-m-n-idle-2",
+        "avatar-arquero-m-n-idle-3",
+        "avatar-arquero-m-n-idle-4",
+        "avatar-arquero-m-n-idle-5",
+        "avatar-arquero-m-n-idle-6",
+        "avatar-arquero-m-n-idle-7",
+        "avatar-arquero-m-n-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-m-e-walk",
+      "frames": [
+        "avatar-arquero-m-e-walk-1",
+        "avatar-arquero-m-e-walk-2",
+        "avatar-arquero-m-e-walk-3",
+        "avatar-arquero-m-e-walk-4",
+        "avatar-arquero-m-e-walk-5",
+        "avatar-arquero-m-e-walk-6",
+        "avatar-arquero-m-e-walk-7",
+        "avatar-arquero-m-e-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-m-s-walk",
+      "frames": [
+        "avatar-arquero-m-s-walk-1",
+        "avatar-arquero-m-s-walk-2",
+        "avatar-arquero-m-s-walk-3",
+        "avatar-arquero-m-s-walk-4",
+        "avatar-arquero-m-s-walk-5",
+        "avatar-arquero-m-s-walk-6",
+        "avatar-arquero-m-s-walk-7",
+        "avatar-arquero-m-s-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-m-w-walk",
+      "frames": [
+        "avatar-arquero-m-w-walk-1",
+        "avatar-arquero-m-w-walk-2",
+        "avatar-arquero-m-w-walk-3",
+        "avatar-arquero-m-w-walk-4",
+        "avatar-arquero-m-w-walk-5",
+        "avatar-arquero-m-w-walk-6",
+        "avatar-arquero-m-w-walk-7",
+        "avatar-arquero-m-w-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-m-n-walk",
+      "frames": [
+        "avatar-arquero-m-n-walk-1",
+        "avatar-arquero-m-n-walk-2",
+        "avatar-arquero-m-n-walk-3",
+        "avatar-arquero-m-n-walk-4",
+        "avatar-arquero-m-n-walk-5",
+        "avatar-arquero-m-n-walk-6",
+        "avatar-arquero-m-n-walk-7",
+        "avatar-arquero-m-n-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-arquero-m-e-interact",
+      "frames": [
+        "avatar-arquero-m-e-interact-1",
+        "avatar-arquero-m-e-interact-2",
+        "avatar-arquero-m-e-interact-3",
+        "avatar-arquero-m-e-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-arquero-m-s-interact",
+      "frames": [
+        "avatar-arquero-m-s-interact-1",
+        "avatar-arquero-m-s-interact-2",
+        "avatar-arquero-m-s-interact-3",
+        "avatar-arquero-m-s-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-arquero-m-w-interact",
+      "frames": [
+        "avatar-arquero-m-w-interact-1",
+        "avatar-arquero-m-w-interact-2",
+        "avatar-arquero-m-w-interact-3",
+        "avatar-arquero-m-w-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-arquero-m-n-interact",
+      "frames": [
+        "avatar-arquero-m-n-interact-1",
+        "avatar-arquero-m-n-interact-2",
+        "avatar-arquero-m-n-interact-3",
+        "avatar-arquero-m-n-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-caballero-f-e-idle",
+      "frames": [
+        "avatar-caballero-f-e-idle-1",
+        "avatar-caballero-f-e-idle-2",
+        "avatar-caballero-f-e-idle-3",
+        "avatar-caballero-f-e-idle-4",
+        "avatar-caballero-f-e-idle-5",
+        "avatar-caballero-f-e-idle-6",
+        "avatar-caballero-f-e-idle-7",
+        "avatar-caballero-f-e-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-f-s-idle",
+      "frames": [
+        "avatar-caballero-f-s-idle-1",
+        "avatar-caballero-f-s-idle-2",
+        "avatar-caballero-f-s-idle-3",
+        "avatar-caballero-f-s-idle-4",
+        "avatar-caballero-f-s-idle-5",
+        "avatar-caballero-f-s-idle-6",
+        "avatar-caballero-f-s-idle-7",
+        "avatar-caballero-f-s-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-f-w-idle",
+      "frames": [
+        "avatar-caballero-f-w-idle-1",
+        "avatar-caballero-f-w-idle-2",
+        "avatar-caballero-f-w-idle-3",
+        "avatar-caballero-f-w-idle-4",
+        "avatar-caballero-f-w-idle-5",
+        "avatar-caballero-f-w-idle-6",
+        "avatar-caballero-f-w-idle-7",
+        "avatar-caballero-f-w-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-f-n-idle",
+      "frames": [
+        "avatar-caballero-f-n-idle-1",
+        "avatar-caballero-f-n-idle-2",
+        "avatar-caballero-f-n-idle-3",
+        "avatar-caballero-f-n-idle-4",
+        "avatar-caballero-f-n-idle-5",
+        "avatar-caballero-f-n-idle-6",
+        "avatar-caballero-f-n-idle-7",
+        "avatar-caballero-f-n-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-f-e-walk",
+      "frames": [
+        "avatar-caballero-f-e-walk-1",
+        "avatar-caballero-f-e-walk-2",
+        "avatar-caballero-f-e-walk-3",
+        "avatar-caballero-f-e-walk-4",
+        "avatar-caballero-f-e-walk-5",
+        "avatar-caballero-f-e-walk-6",
+        "avatar-caballero-f-e-walk-7",
+        "avatar-caballero-f-e-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-f-s-walk",
+      "frames": [
+        "avatar-caballero-f-s-walk-1",
+        "avatar-caballero-f-s-walk-2",
+        "avatar-caballero-f-s-walk-3",
+        "avatar-caballero-f-s-walk-4",
+        "avatar-caballero-f-s-walk-5",
+        "avatar-caballero-f-s-walk-6",
+        "avatar-caballero-f-s-walk-7",
+        "avatar-caballero-f-s-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-f-w-walk",
+      "frames": [
+        "avatar-caballero-f-w-walk-1",
+        "avatar-caballero-f-w-walk-2",
+        "avatar-caballero-f-w-walk-3",
+        "avatar-caballero-f-w-walk-4",
+        "avatar-caballero-f-w-walk-5",
+        "avatar-caballero-f-w-walk-6",
+        "avatar-caballero-f-w-walk-7",
+        "avatar-caballero-f-w-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-f-n-walk",
+      "frames": [
+        "avatar-caballero-f-n-walk-1",
+        "avatar-caballero-f-n-walk-2",
+        "avatar-caballero-f-n-walk-3",
+        "avatar-caballero-f-n-walk-4",
+        "avatar-caballero-f-n-walk-5",
+        "avatar-caballero-f-n-walk-6",
+        "avatar-caballero-f-n-walk-7",
+        "avatar-caballero-f-n-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-caballero-f-e-interact",
+      "frames": [
+        "avatar-caballero-f-e-interact-1",
+        "avatar-caballero-f-e-interact-2",
+        "avatar-caballero-f-e-interact-3",
+        "avatar-caballero-f-e-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-caballero-f-s-interact",
+      "frames": [
+        "avatar-caballero-f-s-interact-1",
+        "avatar-caballero-f-s-interact-2",
+        "avatar-caballero-f-s-interact-3",
+        "avatar-caballero-f-s-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-caballero-f-w-interact",
+      "frames": [
+        "avatar-caballero-f-w-interact-1",
+        "avatar-caballero-f-w-interact-2",
+        "avatar-caballero-f-w-interact-3",
+        "avatar-caballero-f-w-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-caballero-f-n-interact",
+      "frames": [
+        "avatar-caballero-f-n-interact-1",
+        "avatar-caballero-f-n-interact-2",
+        "avatar-caballero-f-n-interact-3",
+        "avatar-caballero-f-n-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-campesina-f-e-idle",
+      "frames": [
+        "avatar-campesina-f-e-idle-1",
+        "avatar-campesina-f-e-idle-2",
+        "avatar-campesina-f-e-idle-3",
+        "avatar-campesina-f-e-idle-4",
+        "avatar-campesina-f-e-idle-5",
+        "avatar-campesina-f-e-idle-6",
+        "avatar-campesina-f-e-idle-7",
+        "avatar-campesina-f-e-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesina-f-s-idle",
+      "frames": [
+        "avatar-campesina-f-s-idle-1",
+        "avatar-campesina-f-s-idle-2",
+        "avatar-campesina-f-s-idle-3",
+        "avatar-campesina-f-s-idle-4",
+        "avatar-campesina-f-s-idle-5",
+        "avatar-campesina-f-s-idle-6",
+        "avatar-campesina-f-s-idle-7",
+        "avatar-campesina-f-s-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesina-f-w-idle",
+      "frames": [
+        "avatar-campesina-f-w-idle-1",
+        "avatar-campesina-f-w-idle-2",
+        "avatar-campesina-f-w-idle-3",
+        "avatar-campesina-f-w-idle-4",
+        "avatar-campesina-f-w-idle-5",
+        "avatar-campesina-f-w-idle-6",
+        "avatar-campesina-f-w-idle-7",
+        "avatar-campesina-f-w-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesina-f-n-idle",
+      "frames": [
+        "avatar-campesina-f-n-idle-1",
+        "avatar-campesina-f-n-idle-2",
+        "avatar-campesina-f-n-idle-3",
+        "avatar-campesina-f-n-idle-4",
+        "avatar-campesina-f-n-idle-5",
+        "avatar-campesina-f-n-idle-6",
+        "avatar-campesina-f-n-idle-7",
+        "avatar-campesina-f-n-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesina-f-e-walk",
+      "frames": [
+        "avatar-campesina-f-e-walk-1",
+        "avatar-campesina-f-e-walk-2",
+        "avatar-campesina-f-e-walk-3",
+        "avatar-campesina-f-e-walk-4",
+        "avatar-campesina-f-e-walk-5",
+        "avatar-campesina-f-e-walk-6",
+        "avatar-campesina-f-e-walk-7",
+        "avatar-campesina-f-e-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesina-f-s-walk",
+      "frames": [
+        "avatar-campesina-f-s-walk-1",
+        "avatar-campesina-f-s-walk-2",
+        "avatar-campesina-f-s-walk-3",
+        "avatar-campesina-f-s-walk-4",
+        "avatar-campesina-f-s-walk-5",
+        "avatar-campesina-f-s-walk-6",
+        "avatar-campesina-f-s-walk-7",
+        "avatar-campesina-f-s-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesina-f-w-walk",
+      "frames": [
+        "avatar-campesina-f-w-walk-1",
+        "avatar-campesina-f-w-walk-2",
+        "avatar-campesina-f-w-walk-3",
+        "avatar-campesina-f-w-walk-4",
+        "avatar-campesina-f-w-walk-5",
+        "avatar-campesina-f-w-walk-6",
+        "avatar-campesina-f-w-walk-7",
+        "avatar-campesina-f-w-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesina-f-n-walk",
+      "frames": [
+        "avatar-campesina-f-n-walk-1",
+        "avatar-campesina-f-n-walk-2",
+        "avatar-campesina-f-n-walk-3",
+        "avatar-campesina-f-n-walk-4",
+        "avatar-campesina-f-n-walk-5",
+        "avatar-campesina-f-n-walk-6",
+        "avatar-campesina-f-n-walk-7",
+        "avatar-campesina-f-n-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesina-f-e-interact",
+      "frames": [
+        "avatar-campesina-f-e-interact-1",
+        "avatar-campesina-f-e-interact-2",
+        "avatar-campesina-f-e-interact-3",
+        "avatar-campesina-f-e-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-campesina-f-s-interact",
+      "frames": [
+        "avatar-campesina-f-s-interact-1",
+        "avatar-campesina-f-s-interact-2",
+        "avatar-campesina-f-s-interact-3",
+        "avatar-campesina-f-s-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-campesina-f-w-interact",
+      "frames": [
+        "avatar-campesina-f-w-interact-1",
+        "avatar-campesina-f-w-interact-2",
+        "avatar-campesina-f-w-interact-3",
+        "avatar-campesina-f-w-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-campesina-f-n-interact",
+      "frames": [
+        "avatar-campesina-f-n-interact-1",
+        "avatar-campesina-f-n-interact-2",
+        "avatar-campesina-f-n-interact-3",
+        "avatar-campesina-f-n-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-campesino-m-e-idle",
+      "frames": [
+        "avatar-campesino-m-e-idle-1",
+        "avatar-campesino-m-e-idle-2",
+        "avatar-campesino-m-e-idle-3",
+        "avatar-campesino-m-e-idle-4",
+        "avatar-campesino-m-e-idle-5",
+        "avatar-campesino-m-e-idle-6",
+        "avatar-campesino-m-e-idle-7",
+        "avatar-campesino-m-e-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesino-m-s-idle",
+      "frames": [
+        "avatar-campesino-m-s-idle-1",
+        "avatar-campesino-m-s-idle-2",
+        "avatar-campesino-m-s-idle-3",
+        "avatar-campesino-m-s-idle-4",
+        "avatar-campesino-m-s-idle-5",
+        "avatar-campesino-m-s-idle-6",
+        "avatar-campesino-m-s-idle-7",
+        "avatar-campesino-m-s-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesino-m-w-idle",
+      "frames": [
+        "avatar-campesino-m-w-idle-1",
+        "avatar-campesino-m-w-idle-2",
+        "avatar-campesino-m-w-idle-3",
+        "avatar-campesino-m-w-idle-4",
+        "avatar-campesino-m-w-idle-5",
+        "avatar-campesino-m-w-idle-6",
+        "avatar-campesino-m-w-idle-7",
+        "avatar-campesino-m-w-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesino-m-n-idle",
+      "frames": [
+        "avatar-campesino-m-n-idle-1",
+        "avatar-campesino-m-n-idle-2",
+        "avatar-campesino-m-n-idle-3",
+        "avatar-campesino-m-n-idle-4",
+        "avatar-campesino-m-n-idle-5",
+        "avatar-campesino-m-n-idle-6",
+        "avatar-campesino-m-n-idle-7",
+        "avatar-campesino-m-n-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesino-m-e-walk",
+      "frames": [
+        "avatar-campesino-m-e-walk-1",
+        "avatar-campesino-m-e-walk-2",
+        "avatar-campesino-m-e-walk-3",
+        "avatar-campesino-m-e-walk-4",
+        "avatar-campesino-m-e-walk-5",
+        "avatar-campesino-m-e-walk-6",
+        "avatar-campesino-m-e-walk-7",
+        "avatar-campesino-m-e-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesino-m-s-walk",
+      "frames": [
+        "avatar-campesino-m-s-walk-1",
+        "avatar-campesino-m-s-walk-2",
+        "avatar-campesino-m-s-walk-3",
+        "avatar-campesino-m-s-walk-4",
+        "avatar-campesino-m-s-walk-5",
+        "avatar-campesino-m-s-walk-6",
+        "avatar-campesino-m-s-walk-7",
+        "avatar-campesino-m-s-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesino-m-w-walk",
+      "frames": [
+        "avatar-campesino-m-w-walk-1",
+        "avatar-campesino-m-w-walk-2",
+        "avatar-campesino-m-w-walk-3",
+        "avatar-campesino-m-w-walk-4",
+        "avatar-campesino-m-w-walk-5",
+        "avatar-campesino-m-w-walk-6",
+        "avatar-campesino-m-w-walk-7",
+        "avatar-campesino-m-w-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesino-m-n-walk",
+      "frames": [
+        "avatar-campesino-m-n-walk-1",
+        "avatar-campesino-m-n-walk-2",
+        "avatar-campesino-m-n-walk-3",
+        "avatar-campesino-m-n-walk-4",
+        "avatar-campesino-m-n-walk-5",
+        "avatar-campesino-m-n-walk-6",
+        "avatar-campesino-m-n-walk-7",
+        "avatar-campesino-m-n-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-campesino-m-e-interact",
+      "frames": [
+        "avatar-campesino-m-e-interact-1",
+        "avatar-campesino-m-e-interact-2",
+        "avatar-campesino-m-e-interact-3",
+        "avatar-campesino-m-e-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-campesino-m-s-interact",
+      "frames": [
+        "avatar-campesino-m-s-interact-1",
+        "avatar-campesino-m-s-interact-2",
+        "avatar-campesino-m-s-interact-3",
+        "avatar-campesino-m-s-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-campesino-m-w-interact",
+      "frames": [
+        "avatar-campesino-m-w-interact-1",
+        "avatar-campesino-m-w-interact-2",
+        "avatar-campesino-m-w-interact-3",
+        "avatar-campesino-m-w-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-campesino-m-n-interact",
+      "frames": [
+        "avatar-campesino-m-n-interact-1",
+        "avatar-campesino-m-n-interact-2",
+        "avatar-campesino-m-n-interact-3",
+        "avatar-campesino-m-n-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-mago-f-e-idle",
+      "frames": [
+        "avatar-mago-f-e-idle-1",
+        "avatar-mago-f-e-idle-2",
+        "avatar-mago-f-e-idle-3",
+        "avatar-mago-f-e-idle-4",
+        "avatar-mago-f-e-idle-5",
+        "avatar-mago-f-e-idle-6",
+        "avatar-mago-f-e-idle-7",
+        "avatar-mago-f-e-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-f-s-idle",
+      "frames": [
+        "avatar-mago-f-s-idle-1",
+        "avatar-mago-f-s-idle-2",
+        "avatar-mago-f-s-idle-3",
+        "avatar-mago-f-s-idle-4",
+        "avatar-mago-f-s-idle-5",
+        "avatar-mago-f-s-idle-6",
+        "avatar-mago-f-s-idle-7",
+        "avatar-mago-f-s-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-f-w-idle",
+      "frames": [
+        "avatar-mago-f-w-idle-1",
+        "avatar-mago-f-w-idle-2",
+        "avatar-mago-f-w-idle-3",
+        "avatar-mago-f-w-idle-4",
+        "avatar-mago-f-w-idle-5",
+        "avatar-mago-f-w-idle-6",
+        "avatar-mago-f-w-idle-7",
+        "avatar-mago-f-w-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-f-n-idle",
+      "frames": [
+        "avatar-mago-f-n-idle-1",
+        "avatar-mago-f-n-idle-2",
+        "avatar-mago-f-n-idle-3",
+        "avatar-mago-f-n-idle-4",
+        "avatar-mago-f-n-idle-5",
+        "avatar-mago-f-n-idle-6",
+        "avatar-mago-f-n-idle-7",
+        "avatar-mago-f-n-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-f-e-walk",
+      "frames": [
+        "avatar-mago-f-e-walk-1",
+        "avatar-mago-f-e-walk-2",
+        "avatar-mago-f-e-walk-3",
+        "avatar-mago-f-e-walk-4",
+        "avatar-mago-f-e-walk-5",
+        "avatar-mago-f-e-walk-6",
+        "avatar-mago-f-e-walk-7",
+        "avatar-mago-f-e-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-f-s-walk",
+      "frames": [
+        "avatar-mago-f-s-walk-1",
+        "avatar-mago-f-s-walk-2",
+        "avatar-mago-f-s-walk-3",
+        "avatar-mago-f-s-walk-4",
+        "avatar-mago-f-s-walk-5",
+        "avatar-mago-f-s-walk-6",
+        "avatar-mago-f-s-walk-7",
+        "avatar-mago-f-s-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-f-w-walk",
+      "frames": [
+        "avatar-mago-f-w-walk-1",
+        "avatar-mago-f-w-walk-2",
+        "avatar-mago-f-w-walk-3",
+        "avatar-mago-f-w-walk-4",
+        "avatar-mago-f-w-walk-5",
+        "avatar-mago-f-w-walk-6",
+        "avatar-mago-f-w-walk-7",
+        "avatar-mago-f-w-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-f-n-walk",
+      "frames": [
+        "avatar-mago-f-n-walk-1",
+        "avatar-mago-f-n-walk-2",
+        "avatar-mago-f-n-walk-3",
+        "avatar-mago-f-n-walk-4",
+        "avatar-mago-f-n-walk-5",
+        "avatar-mago-f-n-walk-6",
+        "avatar-mago-f-n-walk-7",
+        "avatar-mago-f-n-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-f-e-interact",
+      "frames": [
+        "avatar-mago-f-e-interact-1",
+        "avatar-mago-f-e-interact-2",
+        "avatar-mago-f-e-interact-3",
+        "avatar-mago-f-e-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-mago-f-s-interact",
+      "frames": [
+        "avatar-mago-f-s-interact-1",
+        "avatar-mago-f-s-interact-2",
+        "avatar-mago-f-s-interact-3",
+        "avatar-mago-f-s-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-mago-f-w-interact",
+      "frames": [
+        "avatar-mago-f-w-interact-1",
+        "avatar-mago-f-w-interact-2",
+        "avatar-mago-f-w-interact-3",
+        "avatar-mago-f-w-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-mago-f-n-interact",
+      "frames": [
+        "avatar-mago-f-n-interact-1",
+        "avatar-mago-f-n-interact-2",
+        "avatar-mago-f-n-interact-3",
+        "avatar-mago-f-n-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-mago-m-e-idle",
+      "frames": [
+        "avatar-mago-m-e-idle-1",
+        "avatar-mago-m-e-idle-2",
+        "avatar-mago-m-e-idle-3",
+        "avatar-mago-m-e-idle-4",
+        "avatar-mago-m-e-idle-5",
+        "avatar-mago-m-e-idle-6",
+        "avatar-mago-m-e-idle-7",
+        "avatar-mago-m-e-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-m-s-idle",
+      "frames": [
+        "avatar-mago-m-s-idle-1",
+        "avatar-mago-m-s-idle-2",
+        "avatar-mago-m-s-idle-3",
+        "avatar-mago-m-s-idle-4",
+        "avatar-mago-m-s-idle-5",
+        "avatar-mago-m-s-idle-6",
+        "avatar-mago-m-s-idle-7",
+        "avatar-mago-m-s-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-m-w-idle",
+      "frames": [
+        "avatar-mago-m-w-idle-1",
+        "avatar-mago-m-w-idle-2",
+        "avatar-mago-m-w-idle-3",
+        "avatar-mago-m-w-idle-4",
+        "avatar-mago-m-w-idle-5",
+        "avatar-mago-m-w-idle-6",
+        "avatar-mago-m-w-idle-7",
+        "avatar-mago-m-w-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-m-n-idle",
+      "frames": [
+        "avatar-mago-m-n-idle-1",
+        "avatar-mago-m-n-idle-2",
+        "avatar-mago-m-n-idle-3",
+        "avatar-mago-m-n-idle-4",
+        "avatar-mago-m-n-idle-5",
+        "avatar-mago-m-n-idle-6",
+        "avatar-mago-m-n-idle-7",
+        "avatar-mago-m-n-idle-8"
+      ],
+      "frameRate": 8,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-m-e-walk",
+      "frames": [
+        "avatar-mago-m-e-walk-1",
+        "avatar-mago-m-e-walk-2",
+        "avatar-mago-m-e-walk-3",
+        "avatar-mago-m-e-walk-4",
+        "avatar-mago-m-e-walk-5",
+        "avatar-mago-m-e-walk-6",
+        "avatar-mago-m-e-walk-7",
+        "avatar-mago-m-e-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-m-s-walk",
+      "frames": [
+        "avatar-mago-m-s-walk-1",
+        "avatar-mago-m-s-walk-2",
+        "avatar-mago-m-s-walk-3",
+        "avatar-mago-m-s-walk-4",
+        "avatar-mago-m-s-walk-5",
+        "avatar-mago-m-s-walk-6",
+        "avatar-mago-m-s-walk-7",
+        "avatar-mago-m-s-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-m-w-walk",
+      "frames": [
+        "avatar-mago-m-w-walk-1",
+        "avatar-mago-m-w-walk-2",
+        "avatar-mago-m-w-walk-3",
+        "avatar-mago-m-w-walk-4",
+        "avatar-mago-m-w-walk-5",
+        "avatar-mago-m-w-walk-6",
+        "avatar-mago-m-w-walk-7",
+        "avatar-mago-m-w-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-m-n-walk",
+      "frames": [
+        "avatar-mago-m-n-walk-1",
+        "avatar-mago-m-n-walk-2",
+        "avatar-mago-m-n-walk-3",
+        "avatar-mago-m-n-walk-4",
+        "avatar-mago-m-n-walk-5",
+        "avatar-mago-m-n-walk-6",
+        "avatar-mago-m-n-walk-7",
+        "avatar-mago-m-n-walk-8"
+      ],
+      "frameRate": 12,
+      "repeat": -1
+    },
+    {
+      "key": "avatar-mago-m-e-interact",
+      "frames": [
+        "avatar-mago-m-e-interact-1",
+        "avatar-mago-m-e-interact-2",
+        "avatar-mago-m-e-interact-3",
+        "avatar-mago-m-e-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-mago-m-s-interact",
+      "frames": [
+        "avatar-mago-m-s-interact-1",
+        "avatar-mago-m-s-interact-2",
+        "avatar-mago-m-s-interact-3",
+        "avatar-mago-m-s-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-mago-m-w-interact",
+      "frames": [
+        "avatar-mago-m-w-interact-1",
+        "avatar-mago-m-w-interact-2",
+        "avatar-mago-m-w-interact-3",
+        "avatar-mago-m-w-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
+    },
+    {
+      "key": "avatar-mago-m-n-interact",
+      "frames": [
+        "avatar-mago-m-n-interact-1",
+        "avatar-mago-m-n-interact-2",
+        "avatar-mago-m-n-interact-3",
+        "avatar-mago-m-n-interact-4"
+      ],
+      "frameRate": 8,
+      "repeat": 0
     }
   ],
   "sizes": {

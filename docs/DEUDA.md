@@ -101,6 +101,9 @@ Tareas pendientes que no bloquean pero hay que resolver.
       `public/`, credenciales y quién lo ejecuta (script manual o paso de CI). Decidir
       también el almacenamiento definitivo de los binarios de la herramienta (`fuentes/`,
       `entregas/`, `referencias/`, hoy solo en local y con copia en `pipeline-assets`).
+      **Ojo (#184):** los 7 personajes provisionales del pack `medieval-v1` son enlaces simbólicos
+      (git `120000`) a los frames y el retrato de `caballero-m`: el script de subida debe seguirlos
+      (dereferenciar) o se perderán en R2; desaparecen cuando se generen los personajes reales.
 - [ ] **API pública para terceros (auditoría 2026-09-24, A-8).** `specs/13` describe una superficie
       REST también pensada para integradores externos (Bearer/API key, `Idempotency-Key`,
       `/api/me/purchases`, `/api/me/rooms`, alta de organización y miembros por REST, CRUD de salas
@@ -115,3 +118,15 @@ Tareas pendientes que no bloquean pero hay que resolver.
       - Documentación pública del contrato (OpenAPI o similar) y un compromiso de estabilidad
         (`specs/13` "el contrato evoluciona de forma aditiva" ya lo anticipa).
       - Las rutas en sí, marcadas "API pública — futura" en `specs/13`.
+- [ ] **Sustituir los 7 personajes provisionales del pack `medieval-v1` por los reales.** Para
+      poder probar la elección de los 8 personajes del reparto (`tools/assets-generator/packs/medieval-v1/docs/personajes.md`)
+      mientras solo existe `caballero-m`, `caballero-f`, `arquero-m`, `arquero-f`, `mago-m`,
+      `mago-f`, `campesino-m` y `campesina-f` son **el mismo personaje**: reutilizan los frames
+      y el retrato de `caballero-m` mediante enlaces simbólicos (`avatar/<id>/*.png` del pack en
+      `packages/web/public/packs/medieval-v1/`, generados con
+      `tools/assets-generator/scripts/empaquetar/empaquetar_avatar_alias.py`; su
+      `pack.config.fragment.json` en `entregas/` lleva `"alias_de": "caballero-m"`). Cuando cada
+      personaje real tenga su master + render (pipeline de `tools/assets-generator/CLAUDE.md`
+      §"Pipeline de personajes jugables"), sustituir su carpeta de enlaces por la entrega real
+      (`empaquetar_avatar.py` + `empaquetar_retrato.py`) y quitar la entrada correspondiente de
+      `tools/assets-generator/packs/medieval-v1/entregas/avatares/`.
