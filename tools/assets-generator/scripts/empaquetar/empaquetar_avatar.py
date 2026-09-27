@@ -80,8 +80,11 @@ if "retrato" in ficha:
     frag["portrait"] = f"retrato-{CHAR_ID}"
 (OUT / CHAR_ID / "pack.config.fragment.json").write_text(json.dumps(frag, indent=2), encoding="utf-8")
 
-# Hoja de previsualización a 2× sobre claro y oscuro
-order = ["s", "e", "n", "w"]
+# Hoja de previsualización a 2× sobre claro y oscuro: las 4 clásicas siempre, +4 diagonales si el
+# personaje las trae (deuda "8 direcciones"), en orden angular de pantalla.
+clasicas = ["s", "e", "n", "w"]
+diagonales = ["se", "ne", "nw", "sw"]
+order = clasicas + [d for d in diagonales if d in DIRS.values()]
 rows = [(a, d) for a in ("idle", "walk", "interact") for d in order]
 W, H = SIZES["2x"]
 cols = 8

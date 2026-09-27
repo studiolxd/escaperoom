@@ -73,11 +73,16 @@
       ],
       "fuerza": 0.6
     },
+    "_direcciones_deg": "las 4 clásicas son las diagonales de pantalla (abajo-izq/abajo-der/arriba-der/arriba-izq); las 4 nuevas (deuda '8 direcciones') caen justo a medio camino entre dos de ellas y son las cardinales de pantalla: abajo=se, derecha=ne, arriba=nw, izquierda=sw (ver docs/pack.config.fragment.json de cada personaje y avatar.direcciones de pack.json).",
     "direcciones_deg": {
       "abajo-izq": 0,
       "abajo-der": 90,
       "arriba-der": 180,
-      "arriba-izq": -90
+      "arriba-izq": -90,
+      "abajo": 45,
+      "derecha": 135,
+      "arriba": 225,
+      "izquierda": 315
     },
     "recorte": [
       62,

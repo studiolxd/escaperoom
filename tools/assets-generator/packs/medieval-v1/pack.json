@@ -27,7 +27,7 @@
     }
   ],
   "avatar": {
-    "_": "animaciones: nombre del FBX de Mixamo -> fotogramas, tramo del clip [inicio, fin) (null = fotogramas clave por la extensión de la mano) y bucle. acciones: FBX -> (acción del runtime, fps). direcciones: dirección del render -> dirección del runtime.",
+    "_": "animaciones: nombre del FBX de Mixamo -> fotogramas, tramo del clip [inicio, fin) (null = fotogramas clave por la extensión de la mano) y bucle. acciones: FBX -> (acción del runtime, fps). direcciones: dirección del render -> dirección del runtime (4 clásicas + 4 diagonales, deuda '8 direcciones'; ver estilo.json).",
     "animaciones": {
       "idle": {
         "fotogramas": 8,
@@ -69,7 +69,11 @@
       "abajo-der": "e",
       "abajo-izq": "s",
       "arriba-izq": "w",
-      "arriba-der": "n"
+      "arriba-der": "n",
+      "abajo": "se",
+      "derecha": "ne",
+      "arriba": "nw",
+      "izquierda": "sw"
     },
     "tamanos": {
       "2x": [
