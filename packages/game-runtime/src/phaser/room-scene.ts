@@ -359,7 +359,6 @@ export class RoomScene extends Phaser.Scene {
    * las antorchas y canales de la sala) en cada `setObjectState`.
    */
   private readonly reactiveAnimated = new Map<string, Phaser.GameObjects.Graphics>();
-  private ambientOverlay?: Phaser.GameObjects.Rectangle;
   private resolver!: PackFrameResolver;
   private collision!: CollisionGrid;
   private avatar?: AvatarController;
@@ -728,7 +727,6 @@ export class RoomScene extends Phaser.Scene {
     }
     this.roomObjects = [];
     this.clearReactive();
-    this.ambientOverlay = undefined;
     this.editCursor = undefined;
     this.editSelection = undefined;
   }
@@ -1388,20 +1386,16 @@ export class RoomScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * `room.lighting` (tipo "ambient") ya no pinta ningún tinte de pantalla
+   * completa: el rectángulo cubría `this.scale.width/height` fijo a la
+   * cámara, así que también teñía (con `MULTIPLY`) el margen vacío fuera
+   * del rombo isométrico de la sala — más visible cuanto más claro el fondo
+   * del canvas (encargo limpieza-entrada), imperceptible en negro. El dato
+   * de `room.lighting` se queda en el esquema/editor (otros usos posibles
+   * más adelante); solo se retira el pintado.
+   */
   private drawLighting(room: RuntimeSubRoom): void {
-    const ambient = room.lighting.find((light) => light.type === "ambient");
-    if (ambient && ambient.type === "ambient") {
-      this.ambientOverlay = this.track(
-        this.add
-          .rectangle(0, 0, this.scale.width, this.scale.height, parseColor(ambient.color), 1)
-          .setOrigin(0, 0)
-          .setScrollFactor(0)
-          .setDepth(DEPTH.ambient)
-          .setBlendMode(Phaser.BlendModes.MULTIPLY)
-          .setAlpha(Phaser.Math.Clamp(ambient.intensity, 0, 1) * 0.7),
-      );
-    }
-
     this.drawReactive(room);
   }
 
@@ -1882,9 +1876,6 @@ export class RoomScene extends Phaser.Scene {
   }
 
   private handleResize(): void {
-    if (this.ambientOverlay) {
-      this.ambientOverlay.setSize(this.scale.width, this.scale.height);
-    }
     const room = this.model.subroomsById[this.activeRoomId];
     if (room) {
       const bounds = gridBounds(room.width, room.height, 1);
@@ -1929,10 +1920,4 @@ function strokeDiamond(
   graphics.lineTo(x - halfW, y);
   graphics.closePath();
   graphics.strokePath();
-}
-
-function parseColor(color: string): number {
-  const normalized = color.startsWith("#") ? color.slice(1) : color;
-  const value = Number.parseInt(normalized, 16);
-  return Number.isNaN(value) ? 0x000000 : value;
 }
