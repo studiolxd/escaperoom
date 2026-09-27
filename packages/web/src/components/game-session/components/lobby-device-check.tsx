@@ -32,11 +32,11 @@ export function LobbyDeviceCheck({ fullWidth = false }: { fullWidth?: boolean })
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="overlayGhost" className={fullWidth ? "w-full" : "w-fit"}>
+        <Button size="sm" variant="ghost" className={fullWidth ? "w-full" : "w-fit"}>
           {t(withCamera ? "lobby.deviceCheck.openWithCamera" : "lobby.deviceCheck.open")}
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-neutral-900 text-white ring-white/10">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>
             {t(withCamera ? "lobby.deviceCheck.openWithCamera" : "lobby.deviceCheck.open")}

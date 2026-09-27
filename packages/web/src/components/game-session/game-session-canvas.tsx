@@ -8,6 +8,7 @@ import {
   type ScenePlayer,
   type WorldSceneEvent,
 } from "@escaperoom/game-runtime/phaser";
+import { BACKGROUND_HEX, isDarkThemeActive } from "@/lib/theme";
 
 /** Handle imperativo del canvas para que el shell refleje el estado del servidor. */
 export interface GameSessionCanvasHandle {
@@ -62,6 +63,7 @@ export default function GameSessionCanvas({
       intentOnly: true,
       inputEnabled: false,
       emitAvatarMoves: true,
+      backgroundColor: isDarkThemeActive() ? BACKGROUND_HEX.dark : BACKGROUND_HEX.light,
     });
     runtimeRef.current = runtime;
     const off = runtime.onWorldEvent((event) => onEventRef.current(event));

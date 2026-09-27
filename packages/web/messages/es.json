@@ -1065,15 +1065,19 @@
       "connected": "En línea",
       "reconnecting": "Reconectando…",
       "disconnected": "Desconectado",
+      "kicked": "Fuera de la partida",
       "expired": "Partida cerrada",
       "error": "Sin conexión",
       "roomFull": "Sala llena",
-      "retry": "Reintentar"
+      "retry": "Reintentar",
+      "exploreRooms": "Explorar salas"
     },
     "status": {
       "connecting": "Conectando con la partida…",
       "error": "No se pudo conectar con el servidor de partidas.",
       "roomFull": "Esta sala ya tiene el número máximo de jugadores.",
+      "disconnected": "Te has desconectado de la partida.",
+      "kicked": "El anfitrión te ha expulsado de la partida.",
       "expired": "Esta partida se ha cerrado."
     },
     "lobby": {

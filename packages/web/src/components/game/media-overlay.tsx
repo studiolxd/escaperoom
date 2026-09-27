@@ -86,7 +86,7 @@ export function MediaOverlay() {
   return (
     <div className="pointer-events-none absolute right-4 top-16 z-10 flex flex-col items-end gap-2">
       {connect && payload ? (
-        <div className="pointer-events-auto flex w-64 flex-col gap-2 rounded-md border border-white/10 bg-black/50 px-3 py-3 text-white backdrop-blur">
+        <div className="pointer-events-auto flex w-64 flex-col gap-2 rounded-md border border-border bg-card/90 px-3 py-3 text-foreground backdrop-blur">
           <ErrorBoundary>
             <LiveKitRoom
               key={attempt}
@@ -113,13 +113,13 @@ export function MediaOverlay() {
       ) : null}
 
       {payload && !payload.configured ? (
-        <span className="pointer-events-none max-w-[16rem] rounded-lg border border-amber-300/30 bg-black/50 px-2 py-1 text-right text-[0.7rem] text-amber-200 backdrop-blur">
+        <span className="pointer-events-none max-w-[16rem] rounded-lg border border-amber-500/30 bg-card/90 px-2 py-1 text-right text-[0.7rem] text-amber-700 backdrop-blur dark:border-amber-300/30 dark:text-amber-200">
           {t("notConfigured")}
         </span>
       ) : null}
 
       {status === "error" || status === "disconnected" ? (
-        <Button size="sm" variant="overlay" className="pointer-events-auto" onClick={retry}>
+        <Button size="sm" variant="secondary" className="pointer-events-auto" onClick={retry}>
           {t("retry")}
         </Button>
       ) : null}

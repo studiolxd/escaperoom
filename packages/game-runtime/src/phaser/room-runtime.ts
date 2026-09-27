@@ -33,6 +33,8 @@ export interface RoomRuntimeOptions {
   emitAvatarMoves?: boolean;
   /** Textos in-canvas (F-10); sin ellos, el castellano de siempre. */
   labels?: Partial<RoomSceneLabels>;
+  /** Color de fondo del `Phaser.Game`; por defecto el fijo de siempre. */
+  backgroundColor?: string;
 }
 
 /**
@@ -67,7 +69,7 @@ export class RoomRuntime {
     this.game = new Phaser.Game({
       type: Phaser.AUTO,
       parent,
-      backgroundColor: "#0b1120",
+      backgroundColor: options.backgroundColor ?? "#0b1120",
       scale: {
         mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH,

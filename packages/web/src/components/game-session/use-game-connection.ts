@@ -158,14 +158,23 @@ export function useGameConnection({
           persistReconnect(joined); // el SDK renueva el token en cada reconexión.
         }
       });
-      joined.onLeave((code) => {
+      joined.onLeave((code, reason) => {
         if (disposed) return;
         useMediaStore.getState().reset();
+        const kicked = reason === "kicked";
         setStatus(isExpiredClose(code) ? "expired" : "disconnected");
-        if (!isConsentedClose(code) && !isExpiredClose(code)) setError(`close ${code}`);
+        if (kicked) {
+          setError("kicked");
+        } else if (!isConsentedClose(code) && !isExpiredClose(code)) {
+          setError(`close ${code}`);
+        }
         // Salida definitiva (consentida o gracia agotada/fin de partida): ya
-        // no hay nada que reconectar con esta room.
-        clearGameReconnect(joined.roomId);
+        // no hay nada que reconectar con esta room — EXCEPTO si fue una
+        // expulsión (C-13): el servidor bloquea el reingreso por `seatKey`
+        // (`kickedIdentities`), así que borrar aquí esa misma identidad
+        // dejaba que el próximo intento generara un `seatKey` nuevo, nunca
+        // bloqueado, y la persona expulsada volvía a entrar sin problema.
+        if (!kicked) clearGameReconnect(joined.roomId);
         // Vacía el cliente: sin esto, `network-game.tsx` seguía pintando el
         // lobby/HUD con el último snapshot (ya congelado, la room real está
         // cerrada) en vez de la pantalla de "desconectado" — p. ej. al
@@ -184,8 +193,12 @@ export function useGameConnection({
       try {
         return (await colyseusClient.reconnect(stored.reconnectionToken)) as GameRoomHandle;
       } catch {
-        // Caducado, rechazado o de otra room: el `seatKey` es el respaldo.
-        if (knownRoomId) clearGameReconnect(knownRoomId);
+        // Caducado, rechazado o de otra room: el `seatKey` (ya leído en
+        // `stored`, capturado antes de esta llamada) es el respaldo — no se
+        // borra la entrada aquí, o una persona expulsada perdería su
+        // `seatKey` bloqueado en el siguiente intento (el token de
+        // reconexión de una expulsión SIEMPRE falla, así que este `catch`
+        // se ejecuta justo después de cada expulsión).
         return null;
       }
     };

@@ -112,17 +112,17 @@ export function DeviceCheck({ withCamera, autoStart }: DeviceCheckProps) {
         />
       ) : null}
       {state === "running" ? (
-        <div className="flex flex-col gap-1 text-xs text-white/70">
+        <div className="flex flex-col gap-1 text-xs text-muted-foreground">
           <span>{t("lobby.deviceCheck.micLevel")}</span>
           <Progress
             value={level}
             aria-label={t("lobby.deviceCheck.micLevel")}
-            className="bg-white/10"
+            className="bg-muted"
           />
         </div>
       ) : null}
       {state === "loading" ? (
-        <div className="flex flex-col items-center gap-2 py-6 text-center text-xs text-white/60">
+        <div className="flex flex-col items-center gap-2 py-6 text-center text-xs text-muted-foreground">
           <Loader2 className="size-6 animate-spin" aria-hidden />
           <p>
             {withCamera ? t("lobby.deviceCheck.loadingWithCamera") : t("lobby.deviceCheck.loading")}
@@ -130,7 +130,7 @@ export function DeviceCheck({ withCamera, autoStart }: DeviceCheckProps) {
         </div>
       ) : null}
       {state === "denied" ? (
-        <p role="alert" className="text-xs text-amber-200">
+        <p role="alert" className="text-xs text-amber-700 dark:text-amber-200">
           {t("lobby.deviceCheck.denied")}
         </p>
       ) : null}

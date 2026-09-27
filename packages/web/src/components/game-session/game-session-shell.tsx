@@ -122,25 +122,32 @@ export function GameSessionShell({
     debugLog: variant === "playtest",
   });
 
+  const lobby = useLobbyFlow({ snapshot, client, hasIntro: Boolean(intro) });
+  const inMapStage = lobby.stage === "map";
+
   const timer =
     hud.remaining !== null ? (
       <span
-        className="rounded-md border border-white/10 bg-black/40 px-4 py-1.5 font-mono text-xs text-white"
+        className="rounded-md border border-border bg-card/90 px-4 py-1.5 font-mono text-xs text-foreground"
         data-testid="game-timer"
       >
         {formatDuration(Math.ceil(hud.remaining / 1000))}
       </span>
     ) : hud.elapsed !== null ? (
       <span
-        className="rounded-md border border-white/10 bg-black/40 px-4 py-1.5 font-mono text-xs text-white"
+        className="rounded-md border border-border bg-card/90 px-4 py-1.5 font-mono text-xs text-foreground"
         data-testid="game-elapsed"
       >
         {formatDuration(Math.floor(hud.elapsed / 1000))}
       </span>
+    ) : lobby.stage === "lobby" && model.meta.timeLimitMinutes !== null ? (
+      <span
+        className="rounded-md border border-border bg-card/90 px-4 py-1.5 font-mono text-xs text-foreground"
+        data-testid="game-timer-preview"
+      >
+        {formatDuration(model.meta.timeLimitMinutes * 60)}
+      </span>
     ) : null;
-
-  const lobby = useLobbyFlow({ snapshot, client, hasIntro: Boolean(intro) });
-  const inMapStage = lobby.stage === "map";
   const sectionRef = useRef<HTMLElement | null>(null);
 
   const { preventEscapeIfDialogOpen } = useHudHotkeys({
@@ -214,7 +221,7 @@ export function GameSessionShell({
 
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4">
         {connection || timer ? (
-          <header className="pointer-events-auto flex w-full items-center justify-between text-white">
+          <header className="pointer-events-auto flex w-full items-center justify-between text-foreground">
             {connection ? (
               <ConnectionBadge
                 status={connection.status}
@@ -268,14 +275,14 @@ export function GameSessionShell({
           ) : null}
 
           {inMapStage ? (
-            <div className="flex w-64 flex-col gap-2 rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-white backdrop-blur">
+            <div className="flex w-64 flex-col gap-2 rounded-xl border border-border bg-card/90 px-4 py-3 text-foreground backdrop-blur">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs uppercase tracking-wide text-white/50">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
                   {hud.tp("inventory")}
                 </span>
                 <Button
                   size="xs"
-                  variant="overlay"
+                  variant="secondary"
                   disabled={hud.introOpen || !hud.playing}
                   onClick={hud.openInventory}
                   data-testid="game-open-inventory"
@@ -285,7 +292,7 @@ export function GameSessionShell({
               </div>
               <ul className="flex flex-wrap gap-1.5" data-testid="game-inventory">
                 {snapshot.inventory.length === 0 ? (
-                  <li className="text-[0.7rem] text-white/40">{hud.tp("emptyInventory")}</li>
+                  <li className="text-[0.7rem] text-muted-foreground">{hud.tp("emptyInventory")}</li>
                 ) : (
                   snapshot.inventory.map((itemId) => (
                     <li
@@ -297,7 +304,7 @@ export function GameSessionShell({
                         event.dataTransfer.effectAllowed = "move";
                       }}
                       onDragEnd={() => hud.setDraggingItem(null)}
-                      className="flex cursor-grab items-center gap-1.5 rounded-full border border-amber-300/40 bg-amber-300/10 py-1 pl-1 pr-2.5 text-[0.7rem] text-amber-100 active:cursor-grabbing"
+                      className="flex cursor-grab items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/10 py-1 pl-1 pr-2.5 text-[0.7rem] text-amber-800 active:cursor-grabbing dark:border-amber-300/40 dark:bg-amber-300/10 dark:text-amber-100"
                     >
                       {hud.renderItemIcon(itemId, 28)}
                       {hud.itemName(itemId)}
@@ -305,15 +312,15 @@ export function GameSessionShell({
                   ))
                 )}
               </ul>
-              <dl className="flex justify-between text-[0.7rem] text-white/60">
+              <dl className="flex justify-between text-[0.7rem] text-muted-foreground">
                 <dt>{hud.tp("stats.puzzles")}</dt>
-                <dd className="font-mono text-white/90">
+                <dd className="font-mono text-foreground">
                   {hud.solvedCount}/{model.puzzles.length}
                 </dd>
               </dl>
               <Button
                 size="sm"
-                variant="overlay"
+                variant="secondary"
                 disabled={!hud.playing || !hud.hintPuzzleId}
                 onClick={() => hud.setPanel("hints")}
               >

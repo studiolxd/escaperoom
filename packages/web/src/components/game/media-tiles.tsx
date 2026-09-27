@@ -60,10 +60,10 @@ export function MediaTiles({
 
   return (
     <>
-      <span className="text-xs uppercase tracking-wide text-white/50">{t("tiles.title")}</span>
+      <span className="text-xs uppercase tracking-wide text-muted-foreground">{t("tiles.title")}</span>
 
       <div className="flex flex-col gap-0.5">
-        <span className="flex items-center gap-1 text-xs text-white">
+        <span className="flex items-center gap-1 text-xs text-foreground">
           <span aria-hidden className={`size-2 rounded-full ${STATUS_DOT[status]}`} />
           {statusLabel}
         </span>
@@ -84,7 +84,7 @@ export function MediaTiles({
         <div className="flex items-center gap-2">
           <Button
             size="icon-sm"
-            variant="overlayGhost"
+            variant="ghost"
             aria-label={isMicrophoneEnabled ? t("tiles.mic.on") : t("tiles.mic.off")}
             onClick={() => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)}
           >
@@ -93,25 +93,25 @@ export function MediaTiles({
           {canPublishVideo ? (
             <Button
               size="icon-sm"
-              variant="overlayGhost"
+              variant="ghost"
               aria-label={isCameraEnabled ? t("tiles.camera.on") : t("tiles.camera.off")}
               onClick={() => void localParticipant.setCameraEnabled(!isCameraEnabled)}
             >
               {isCameraEnabled ? <Video /> : <VideoOff />}
             </Button>
           ) : (
-            <span className="text-[0.7rem] text-white/50">{t("tiles.videoNotAllowed")}</span>
+            <span className="text-[0.7rem] text-muted-foreground">{t("tiles.videoNotAllowed")}</span>
           )}
         </div>
       ) : (
-        <p className="text-[0.7rem] text-white/50">{t("tiles.observer")}</p>
+        <p className="text-[0.7rem] text-muted-foreground">{t("tiles.observer")}</p>
       )}
 
       {role === "player" ? <LobbyDeviceCheck fullWidth /> : null}
 
       {others.length > 0 ? (
         <div
-          className="mt-2 flex flex-col gap-2 border-t border-white/10 py-2"
+          className="mt-2 flex flex-col gap-2 border-t border-border py-2"
           data-testid="media-tiles"
         >
           {others.map((participant) => (
@@ -149,21 +149,21 @@ function MediaTile({ participant, track, forceCameraOff = false }: MediaTileProp
 
   return (
     <div
-      className={`relative aspect-video overflow-hidden rounded-lg border bg-white/10 ${
-        speaking ? "border-emerald-400/70" : "border-white/10"
+      className={`relative aspect-video overflow-hidden rounded-lg border bg-muted ${
+        speaking ? "border-emerald-400/70" : "border-border"
       }`}
     >
       {showVideo ? (
         <VideoTrack trackRef={track!} className="h-full w-full object-cover" />
       ) : (
-        <div className="grid h-full w-full place-items-center text-[0.65rem] text-white/40">
+        <div className="grid h-full w-full place-items-center text-[0.65rem] text-muted-foreground">
           {t("tiles.cameraOff")}
         </div>
       )}
       {/* F-38: color/emoji redundantes con `sr-only` — el hablar solo se veía en el
           borde (color) y el mic solo en `title` (no siempre accesible, p. ej. táctil). */}
       {speaking ? <span className="sr-only">{t("tiles.speaking")}</span> : null}
-      <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/60 px-1.5 py-0.5 text-[0.6rem]">
+      <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/60 px-1.5 py-0.5 text-[0.6rem] text-white">
         <span className="truncate">{label}</span>
         <span aria-hidden title={micLabel}>
           {participant.isMicrophoneEnabled ? (

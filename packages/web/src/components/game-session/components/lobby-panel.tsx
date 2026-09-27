@@ -97,7 +97,7 @@ export function LobbyPanel({
 
   return (
     <aside
-      className="pointer-events-auto absolute bottom-4 left-4 top-16 z-20 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 overflow-y-auto rounded-md border border-white/10 p-4 text-white shadow-xl backdrop-blur"
+      className="pointer-events-auto absolute bottom-4 left-4 top-16 z-20 flex w-[min(22rem,calc(100%-2rem))] flex-col gap-3 overflow-y-auto rounded-md border border-border bg-card/90 p-4 text-foreground shadow-xl backdrop-blur"
       data-testid="game-lobby"
       aria-label={t("lobby.title")}
     >
@@ -111,23 +111,19 @@ export function LobbyPanel({
             className="aspect-video w-full rounded-lg object-cover"
           />
         ) : null}
-        <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
+        <span className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">
           {t("lobby.title")}
         </span>
         <div className="flex flex-wrap gap-1.5">
-          <Badge variant="outline" className="border-white/20 text-white/80">
+          <Badge variant="outline" className="text-muted-foreground">
             {t(`lobby.difficulty.${meta.difficulty}`)}
           </Badge>
-          <Badge
-            variant="outline"
-            className="border-white/20 text-white/80"
-            data-testid="lobby-duration"
-          >
+          <Badge variant="outline" className="text-muted-foreground" data-testid="lobby-duration">
             {meta.timeLimitMinutes === null
               ? t("lobby.noTimeLimit")
               : t("lobby.duration", { minutes: meta.timeLimitMinutes })}
           </Badge>
-          <Badge variant="outline" className="border-white/20 text-white/80">
+          <Badge variant="outline" className="text-muted-foreground">
             {t("lobby.playersRange", { min: meta.players.min, max: meta.players.max })}
           </Badge>
         </div>
@@ -137,10 +133,10 @@ export function LobbyPanel({
         ) : null}
       </header>
 
-      <Separator className="bg-white/10" />
+      <Separator />
 
       <section className="flex flex-col gap-1.5">
-        <span className="text-[0.65rem] uppercase tracking-wide text-white/50">
+        <span className="text-[0.65rem] uppercase tracking-wide text-muted-foreground">
           {t("lobby.playersOf", { count: players.length, max: meta.players.max })}
         </span>
         <ul className="flex flex-col gap-1 text-xs" data-testid="lobby-players">
@@ -156,7 +152,7 @@ export function LobbyPanel({
                 style={{ "--tint": player.tint } as CSSProperties}
               />
               <span
-                className={`min-w-0 flex-1 truncate ${player.connected ? "text-white/90" : "text-white/40"}`}
+                className={`min-w-0 flex-1 truncate ${player.connected ? "text-foreground" : "text-muted-foreground"}`}
               >
                 {player.name}
                 {player.isSelf ? ` (${t("lobby.you")})` : ""}
@@ -164,7 +160,7 @@ export function LobbyPanel({
                 {player.connected ? "" : ` · ${t("lobby.offline")}`}
                 {player.connected && player.ready ? (
                   <Badge
-                    className="ml-1.5 bg-emerald-400/20 text-emerald-100"
+                    className="ml-1.5 bg-emerald-500/15 text-emerald-600 dark:text-emerald-300"
                     data-testid={`lobby-ready-${player.id}`}
                   >
                     {t("lobby.ready")}
@@ -209,7 +205,7 @@ export function LobbyPanel({
 
       <div className="mt-auto flex flex-col items-stretch gap-2 text-center">
         {isHost && organizerControlsStart ? (
-          <p className="text-sm text-white/60" data-testid="lobby-waiting-organizer">
+          <p className="text-sm text-muted-foreground" data-testid="lobby-waiting-organizer">
             {t("lobby.waitingOrganizer")}
           </p>
         ) : isHost ? (
@@ -236,7 +232,7 @@ export function LobbyPanel({
                 >
                   {t("lobby.confirmForceConfirm")}
                 </Button>
-                <Button size="sm" variant="overlayGhost" onClick={() => setConfirmingForce(false)}>
+                <Button size="sm" variant="ghost" onClick={() => setConfirmingForce(false)}>
                   {t("lobby.confirmForceCancel")}
                 </Button>
               </div>
@@ -259,31 +255,26 @@ export function LobbyPanel({
             </div>
           )
         ) : (
-          <p className="text-sm text-white/60">{t("lobby.waitingHost")}</p>
+          <p className="text-xs text-muted-foreground">{t("lobby.waitingHost")}</p>
         )}
       </div>
 
       {inviteUrl ? (
-        <Button
-          size="default"
-          variant="overlayGhost"
-          onClick={onCopyInvite}
-          data-testid="lobby-invite"
-        >
+        <Button size="default" variant="ghost" onClick={onCopyInvite} data-testid="lobby-invite">
           {copied ? t("lobby.copied") : t("lobby.invite")}
         </Button>
       ) : null}
 
       <Dialog open={kickTarget !== null} onOpenChange={(open) => !open && setKickTarget(null)}>
-        <DialogContent className="bg-neutral-900 text-white ring-white/10">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("lobby.kickTitle")}</DialogTitle>
-            <DialogDescription className="text-white/60">
+            <DialogDescription>
               {kickTarget ? t("lobby.kickConfirm", { player: kickTarget.name }) : null}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="overlayGhost" onClick={() => setKickTarget(null)}>
+            <Button variant="ghost" onClick={() => setKickTarget(null)}>
               {t("lobby.kickCancel")}
             </Button>
             <Button
@@ -324,13 +315,13 @@ function RoomDescription({ title, description }: { title: string; description: s
 
   return (
     <>
-      <p ref={ref} className="line-clamp-5 text-xs text-white/70">
+      <p ref={ref} className="line-clamp-5 text-xs text-muted-foreground">
         {description}
       </p>
       {truncated ? (
         <Button
           variant="link"
-          className="h-auto self-start p-0 text-xs text-white underline-offset-2"
+          className="h-auto self-start p-0 text-xs underline-offset-2"
           data-testid="lobby-description-more"
           onClick={() => setOpen(true)}
         >
@@ -338,11 +329,11 @@ function RoomDescription({ title, description }: { title: string; description: s
         </Button>
       ) : null}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="bg-neutral-900 text-white ring-white/10">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
-          <p className="whitespace-pre-line text-sm text-white/80">{description}</p>
+          <p className="whitespace-pre-line text-sm text-muted-foreground">{description}</p>
         </DialogContent>
       </Dialog>
     </>

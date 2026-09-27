@@ -6,9 +6,11 @@ import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CATALOG_PATH } from "@/lib/catalog-seo";
 import { sanitizePlayerName, type GameJoinTarget } from "@/lib/game-net";
 import { readGameReconnect } from "@/lib/game-reconnect";
 import type { IntroModel } from "@/lib/intro-model";
@@ -169,6 +171,7 @@ export function NetworkGame({
 
   if (!connection.client) {
     const connecting = connection.status === "connecting" || connection.status === "reconnecting";
+    const kicked = connection.status === "disconnected" && connection.error === "kicked";
     const description =
       connection.status === "expired"
         ? t("status.expired")
@@ -176,7 +179,17 @@ export function NetworkGame({
           ? connection.error === "room_full"
             ? t("status.roomFull")
             : t("status.error")
-          : t("status.connecting");
+          : connection.status === "disconnected"
+            ? kicked
+              ? t("status.kicked")
+              : t("status.disconnected")
+            : t("status.connecting");
+    const title =
+      connection.status === "error" && connection.error === "room_full"
+        ? t("connection.roomFull")
+        : kicked
+          ? t("connection.kicked")
+          : t(`connection.${connection.status}`);
     return (
       <StatusOverlay>
         <div className="flex flex-col items-center gap-3 text-center">
@@ -188,16 +201,18 @@ export function NetworkGame({
           ) : (
             <>
               <p role="alert" className="text-2xl font-bold">
-                {connection.status === "error" && connection.error === "room_full"
-                  ? t("connection.roomFull")
-                  : t(`connection.${connection.status}`)}
+                {title}
               </p>
               <p className="text-sm text-muted-foreground">{description}</p>
             </>
           )}
           {connection.status === "error" ? (
-            <Button variant="overlay" onClick={connection.retry}>
+            <Button variant="secondary" onClick={connection.retry}>
               {t("connection.retry")}
+            </Button>
+          ) : connection.status === "disconnected" ? (
+            <Button asChild variant="secondary">
+              <Link href={CATALOG_PATH}>{t("connection.exploreRooms")}</Link>
             </Button>
           ) : null}
         </div>

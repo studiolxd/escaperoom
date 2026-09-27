@@ -39,14 +39,14 @@ export function ConnectionBadge({
       data-testid="game-connection"
       data-status={status}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-2 py-0.5 text-[0.7rem] text-white/80",
+        "inline-flex items-center gap-2 rounded-full border border-border bg-card/90 px-2 py-0.5 text-[0.7rem] text-muted-foreground",
         className,
       )}
     >
       <span aria-hidden className={cn("size-2 rounded-full", DOT[status])} />
       {t(status)}
       {onRetry && RETRYABLE.has(status) ? (
-        <Button size="xs" variant="overlay" onClick={onRetry} className="h-5 px-2 text-[0.65rem]">
+        <Button size="xs" variant="secondary" onClick={onRetry} className="h-5 px-2 text-[0.65rem]">
           {t("retry")}
         </Button>
       ) : null}
