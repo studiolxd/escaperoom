@@ -44,10 +44,10 @@ export function InventoryDialog({
       <DialogContent
         container={container}
         showCloseButton={false}
-        overlayClassName="hidden"
+        overlayClassName="absolute inset-0 z-30 bg-background/60 backdrop-blur-sm"
         onEscapeKeyDown={onEscapeKeyDown}
         data-testid="game-inventory-overlay"
-        className="absolute inset-0 top-auto left-auto z-30 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-background/70 p-4 ring-0"
+        className="absolute inset-0 top-auto left-auto z-30 grid w-full max-w-none translate-x-0 translate-y-0 place-items-center overflow-auto rounded-none bg-transparent p-4 shadow-none ring-0"
       >
         <DialogTitle className="sr-only">{inventoryLabel}</DialogTitle>
         <DialogDescription className="sr-only">{dragHintLabel}</DialogDescription>
