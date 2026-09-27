@@ -3,7 +3,9 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { loadRoomPackage, toRuntimeModel, type RuntimeModel } from "../src/loader";
 import {
+  ALL_AVATAR_DIRECTIONS,
   PackManifestSchema,
+  avatarHasDiagonals,
   buildCollisionGrid,
   buildPlaceholderManifest,
   collectRequiredFrames,
@@ -133,6 +135,24 @@ describe("PackManifestSchema (specs/26 §6)", () => {
     const result = PackManifestSchema.safeParse(manifest);
     expect(result.success).toBe(false);
   });
+
+  it("acepta avatars.directions en 4 u 8 (deuda 8 direcciones), rechaza otros valores", () => {
+    const con4 = {
+      ...validManifest(),
+      avatars: [{ id: "caballero-m", label: { es: { text: "Caballero" } }, directions: 4 as const }],
+    };
+    const con8 = {
+      ...validManifest(),
+      avatars: [{ id: "caballero-m", label: { es: { text: "Caballero" } }, directions: 8 as const }],
+    };
+    const invalido = {
+      ...validManifest(),
+      avatars: [{ id: "caballero-m", label: { es: { text: "Caballero" } }, directions: 6 }],
+    };
+    expect(PackManifestSchema.safeParse(con4).success).toBe(true);
+    expect(PackManifestSchema.safeParse(con8).success).toBe(true);
+    expect(PackManifestSchema.safeParse(invalido).success).toBe(false);
+  });
 });
 
 describe("resolución de frames por nombre (specs/26 §3.3)", () => {
@@ -252,6 +272,56 @@ describe("placeholder", () => {
     expect(directionFromGridDelta(-1, 0)).toBe("w");
     expect(directionFromGridDelta(0, 1)).toBe("s");
     expect(directionFromGridDelta(0, -1)).toBe("n");
+  });
+
+  it("con diagonales (deuda 8 direcciones), un paso puramente diagonal da la diagonal exacta", () => {
+    expect(directionFromGridDelta(1, -1, true)).toBe("ne");
+    expect(directionFromGridDelta(1, 1, true)).toBe("se");
+    expect(directionFromGridDelta(-1, 1, true)).toBe("sw");
+    expect(directionFromGridDelta(-1, -1, true)).toBe("nw");
+  });
+
+  it("con diagonales, un paso de un solo eje sigue dando la cardinal (no cambia respecto a sin diagonales)", () => {
+    expect(directionFromGridDelta(1, 0, true)).toBe("e");
+    expect(directionFromGridDelta(-1, 0, true)).toBe("w");
+    expect(directionFromGridDelta(0, 1, true)).toBe("s");
+    expect(directionFromGridDelta(0, -1, true)).toBe("n");
+  });
+
+  it("avatarHasDiagonals: usa manifest.avatars[].directions cuando está declarado", () => {
+    const base = buildPlaceholderManifest(loadModel());
+    const con8 = {
+      ...base,
+      avatars: [{ id: "caballero-m", label: { es: { text: "Caballero" } }, directions: 8 as const }],
+    };
+    const con4 = {
+      ...base,
+      avatars: [{ id: "caballero-m", label: { es: { text: "Caballero" } }, directions: 4 as const }],
+    };
+    expect(avatarHasDiagonals(con8, "caballero-m")).toBe(true);
+    expect(avatarHasDiagonals(con4, "caballero-m")).toBe(false);
+  });
+
+  it("avatarHasDiagonals: sin avatars declarados, mira si hay algún anim diagonal (packs antiguos / placeholder)", () => {
+    const sinDiagonales = buildPlaceholderManifest(loadModel());
+    expect(avatarHasDiagonals(sinDiagonales, "avatar")).toBe(false);
+
+    const conDiagonales = {
+      ...sinDiagonales,
+      anims: [
+        ...sinDiagonales.anims,
+        { key: "avatar-avatar-ne-idle", frames: ["avatar-avatar-ne-idle-1"], frameRate: 8, repeat: -1 },
+      ],
+    };
+    expect(avatarHasDiagonals(conDiagonales, "avatar")).toBe(true);
+  });
+
+  it("defaultAvatarAnims con ALL_AVATAR_DIRECTIONS genera 8 direcciones por personaje", () => {
+    const anims = defaultAvatarAnims(["caballero-m"], ALL_AVATAR_DIRECTIONS);
+    expect(anims).toHaveLength(24); // 8 direcciones × 3 acciones
+    for (const direction of ALL_AVATAR_DIRECTIONS) {
+      expect(anims.map((anim) => anim.key)).toContain(`avatar-caballero-m-${direction}-idle`);
+    }
   });
 });
 
