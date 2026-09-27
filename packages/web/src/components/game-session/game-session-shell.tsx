@@ -113,7 +113,7 @@ export function GameSessionShell({
   objectsBarFooter,
 }: GameSessionShellProps) {
   const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const { handleRef, onReady, sceneRoomRef } = useSceneSync(model, snapshot);
+  const { handleRef, onReady, sceneRoomRef, roomReady } = useSceneSync(model, snapshot);
   const hud = useGameHud({
     model,
     pack,
@@ -426,7 +426,14 @@ export function GameSessionShell({
         <EntryFade>
           <IntroOverlay intro={intro} onClose={lobby.closeIntro} />
         </EntryFade>
-      ) : lobby.stage === "entering" ? (
+      ) : lobby.stage === "entering" || (lobby.stage === "map" && !roomReady) ? (
+        // Se queda montado (sin hijos, opaco) hasta que la escena confirme
+        // que ya muestra la sala real (`roomReady`), no solo que el servidor
+        // ya dio la fase de juego por empezada: entre medias, el canvas
+        // todavía enseña la sala de relleno (`firstRoomId`) con la que
+        // arrancó Phaser mientras no había sala asignada — sin esto, se veía
+        // ese frame de por medio antes del propio fundido de cámara de
+        // `RoomScene.setRoom`.
         <EntryFade />
       ) : null}
 

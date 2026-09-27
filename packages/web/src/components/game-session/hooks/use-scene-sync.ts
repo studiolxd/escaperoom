@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { GameSnapshot } from "@escaperoom/game-runtime/session";
 import type { GameSessionCanvasHandle } from "../game-session-canvas";
@@ -41,6 +41,14 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
   /** Última habitación autoritativa del jugador local. */
   const serverRoomRef = useRef<string | null>(null);
   const appliedObjectsRef = useRef<Record<string, string>>({});
+  /**
+   * `true` cuando la escena ya muestra la sala real del jugador (no el
+   * placeholder inicial). El fundido de entrada (`EntryFade`) se queda
+   * montado hasta que esto pasa a `true`, para no dejar ver un frame de la
+   * sala equivocada entre el fin del fundido de React y el propio fundido de
+   * cámara de Phaser (`RoomScene.setRoom`).
+   */
+  const [roomReady, setRoomReady] = useState(false);
 
   // Objetos: aplica cualquier estado nuevo (también al unirse a mitad de partida).
   useEffect(() => {
@@ -92,6 +100,7 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
       try {
         handle.showRoom(selfRoom);
         sceneRoomRef.current = selfRoom;
+        setRoomReady(true);
       } catch (err) {
         console.error(
           `useSceneSync: no se pudo mostrar la sala "${selfRoom}" (seguía en "${sceneRoomRef.current}")`,
@@ -144,5 +153,5 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
     [model],
   );
 
-  return { handleRef, onReady, sceneRoomRef };
+  return { handleRef, onReady, sceneRoomRef, roomReady };
 }
