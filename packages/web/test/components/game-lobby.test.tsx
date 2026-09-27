@@ -8,7 +8,7 @@ import type {
   GameSnapshot,
 } from "@escaperoom/game-runtime/session";
 import { withLobbyRoom } from "@escaperoom/shared/schemas";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { createElement, type ReactElement } from "react";
@@ -135,12 +135,12 @@ afterEach(() => {
 });
 
 describe("lobbyStageOf", () => {
-  it("lobby → introducción → 3-2-1 → mapa", () => {
+  it("lobby → introducción → entrando → mapa", () => {
     const waiting = player();
     expect(lobbyStageOf("lobby", waiting, true, false)).toBe("lobby");
     expect(lobbyStageOf("starting", waiting, true, false)).toBe("intro");
-    expect(lobbyStageOf("starting", waiting, true, true)).toBe("countdown");
-    expect(lobbyStageOf("starting", waiting, false, false)).toBe("countdown");
+    expect(lobbyStageOf("starting", waiting, true, true)).toBe("entering");
+    expect(lobbyStageOf("starting", waiting, false, false)).toBe("entering");
     expect(lobbyStageOf("playing", player({ inMap: true }), true, false)).toBe("map");
   });
 
@@ -165,24 +165,20 @@ describe("<LobbyPanel>", () => {
     onCopyInvite: vi.fn(),
   };
 
-  it("cabecera con título, dificultad, duración y jugadores mín.–máx.", () => {
+  it("cabecera con el título de la sala", () => {
     renderIntl(createElement(LobbyPanel, { ...baseProps, players: [player()], self: player() }));
     expect(screen.getByText(model.meta.title)).toBeInTheDocument();
-    expect(screen.getByText("Dificultad media")).toBeInTheDocument();
-    expect(screen.getByTestId("lobby-duration")).toHaveTextContent("60 min");
-    expect(screen.getByText("1–8 personas")).toBeInTheDocument();
   });
 
-  it("sala sin duración: «Sin límite de tiempo»", () => {
+  it("X persona(s) de N según los jugadores conectados", () => {
     renderIntl(
       createElement(LobbyPanel, {
         ...baseProps,
-        meta: { ...model.meta, timeLimitMinutes: null },
         players: [player()],
         self: player(),
       }),
     );
-    expect(screen.getByTestId("lobby-duration")).toHaveTextContent("Sin límite de tiempo");
+    expect(screen.getByText("1 persona de 8")).toBeInTheDocument();
   });
 
   it("lista de jugadores con «Listo», anfitrión y expulsar (con confirmación)", async () => {
@@ -282,6 +278,61 @@ describe("<LobbyPanel>", () => {
     expect(onToggleReady).not.toHaveBeenCalled();
   });
 
+  it("anfitrión sin personaje: el aviso es «Elige un personaje», no «Confirma tu participación»", () => {
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        pack,
+        players: [player({ characterId: "" })],
+        self: player({ characterId: "" }),
+      }),
+    );
+    expect(screen.getByTestId("lobby-host-not-ready")).toHaveTextContent(
+      es.Game.lobby.chooseCharacterFirst,
+    );
+  });
+
+  it("invitado sin personaje: el aviso es «Elige un personaje», no «Esperando al anfitrión»", () => {
+    const host = player({ characterId: "caballero-m" });
+    const guest = player({ id: "p2", name: "Bruno", isHost: false, isSelf: true, characterId: "" });
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        isHost: false,
+        pack,
+        players: [host, guest],
+        self: guest,
+      }),
+    );
+    expect(screen.getByTestId("lobby-waiting-host")).toHaveTextContent(
+      es.Game.lobby.chooseCharacterFirst,
+    );
+  });
+
+  it("invitado con personaje pero sin confirmar: el aviso pide confirmar, no esperar al anfitrión", () => {
+    const host = player({ characterId: "caballero-m" });
+    const guest = player({
+      id: "p2",
+      name: "Bruno",
+      isHost: false,
+      isSelf: true,
+      characterId: "mago-f",
+      ready: false,
+    });
+    renderIntl(
+      createElement(LobbyPanel, {
+        ...baseProps,
+        isHost: false,
+        pack,
+        players: [host, guest],
+        self: guest,
+      }),
+    );
+    expect(screen.getByTestId("lobby-guest-not-ready")).toHaveTextContent(
+      es.Game.lobby.hostMustConfirm,
+    );
+  });
+
   it("«Empezar sin esperar» salta la confirmación de los demás, no la del anfitrión", async () => {
     const user = userEvent.setup();
     const onStart = vi.fn();
@@ -309,7 +360,7 @@ describe("<LobbyPanel>", () => {
     expect(screen.getByTestId("game-start")).toBeInTheDocument();
     unmount();
 
-    const guest = player({ id: "p2", isHost: false });
+    const guest = player({ id: "p2", isHost: false, ready: true });
     renderIntl(
       createElement(LobbyPanel, {
         ...baseProps,
@@ -354,7 +405,7 @@ describe("<LobbyPanel>", () => {
   });
 });
 
-describe("<GameSessionShell> — lobby, introducción y 3-2-1", () => {
+describe("<GameSessionShell> — lobby, introducción y entrada al mapa", () => {
   const textIntro: IntroModel = { kind: "text", text: "Érase una vez el rey Aldric…" };
 
   it("en el lobby pinta la sala de espera y oculta objetos e inventario", () => {
@@ -366,34 +417,29 @@ describe("<GameSessionShell> — lobby, introducción y 3-2-1", () => {
     expect(screen.queryByTestId("game-intro")).not.toBeInTheDocument();
   });
 
-  it("tras «Empezar»: introducción de texto, «Continuar», 3-2-1 sin saltar y enter_map", async () => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  it("tras «Empezar»: introducción de texto, «Continuar» y enter_map inmediato, sin cuenta atrás", async () => {
+    const user = userEvent.setup();
     const client = makeClient(makeSnapshot({ phase: "starting" }));
     renderIntl(createElement(GameSessionShell, { model, client, intro: textIntro }));
 
     expect(screen.getByTestId("game-intro-text")).toHaveTextContent("Érase una vez el rey Aldric…");
+    expect(client.enterMap).not.toHaveBeenCalled();
     await user.click(screen.getByTestId("game-intro-continue"));
 
-    expect(screen.getByTestId("game-countdown-value")).toHaveTextContent("3");
-    // Sin botón de saltar.
-    expect(screen.getByTestId("game-countdown").querySelector("button")).toBeNull();
-    await act(async () => {
-      vi.advanceTimersByTime(1000);
-    });
-    expect(screen.getByTestId("game-countdown-value")).toHaveTextContent("2");
-    expect(client.enterMap).not.toHaveBeenCalled();
-    await act(async () => {
-      vi.advanceTimersByTime(2000);
-    });
+    // Sin cuenta atrás de por medio: cerrar la introducción manda enter_map
+    // ya mismo, y el fundido (mismo `EntryFade` de la introducción) se queda
+    // hasta que el servidor confirme `inMap`.
     expect(client.enterMap).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("game-intro")).not.toBeInTheDocument();
+    expect(screen.getByTestId("game-entry-fade")).toBeInTheDocument();
   });
 
-  it("sin introducción: directo al 3-2-1", () => {
+  it("sin introducción: fundido y enter_map inmediato, sin cuenta atrás", () => {
     const client = makeClient(makeSnapshot({ phase: "starting" }));
     renderIntl(createElement(GameSessionShell, { model, client, intro: null }));
     expect(screen.queryByTestId("game-intro")).not.toBeInTheDocument();
-    expect(screen.getByTestId("game-countdown")).toBeInTheDocument();
+    expect(screen.getByTestId("game-entry-fade")).toBeInTheDocument();
+    expect(client.enterMap).toHaveBeenCalledTimes(1);
   });
 
   it("vídeo con subtítulos: controles, sin autoplay y pista por idioma", () => {

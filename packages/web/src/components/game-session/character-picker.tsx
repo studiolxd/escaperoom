@@ -113,8 +113,7 @@ export function CharacterPicker({
                 style={tint ? ({ "--tint": tint } as CSSProperties) : undefined}
                 className={cn(
                   "block size-14 shrink-0 overflow-hidden rounded-full border-2 border-border transition-shadow peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-background",
-                  taken && "tint-border",
-                  selected && "tint-border tint-ring",
+                  (taken || selected) && "tint-border",
                 )}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- retrato del pack gráfico, no una imagen de Next/Image optimizable en build */}
@@ -125,23 +124,19 @@ export function CharacterPicker({
                   className="h-full w-full object-cover"
                 />
               </span>
-              {taken ? (
-                <span
-                  aria-hidden
-                  data-testid={`character-occupant-${avatar.id}`}
-                  className="max-w-14 truncate text-center text-[0.6rem] text-muted-foreground"
-                >
-                  {occupant.name}
-                </span>
-              ) : selected ? (
-                <span
-                  aria-hidden
-                  data-testid={`character-occupant-${avatar.id}`}
-                  className="max-w-14 truncate text-center text-[0.6rem] text-muted-foreground"
-                >
-                  {selfName}
-                </span>
-              ) : null}
+              {/* Siempre presente (invisible sin nombre que mostrar): reserva
+                  la misma altura de línea siempre, para que la rejilla no
+                  salte al elegir/liberar un personaje. */}
+              <span
+                aria-hidden
+                data-testid={`character-occupant-${avatar.id}`}
+                className={cn(
+                  "max-w-14 truncate text-center text-[0.6rem] text-muted-foreground",
+                  !taken && !selected && "invisible",
+                )}
+              >
+                {taken ? occupant.name : selected ? selfName : " "}
+              </span>
             </Label>
           );
         })}

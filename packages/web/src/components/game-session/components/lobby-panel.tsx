@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import type { RuntimeMeta } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
@@ -48,14 +48,18 @@ export interface LobbyPanelProps {
  * Interfaz de la **sala de espera** (encargo lobby-diseño, specs/11 §4.1 y
  * specs/19): un panel lateral sobre el mapa del lobby — que el creador diseña
  * en el editor o, si no, el generado —, donde los jugadores ya aparecen y se
- * mueven con su avatar. Reúne la cabecera de la sala (portada, título,
- * descripción, dificultad, duración o "sin límite", jugadores mín.–máx.), la
- * lista de jugadores (personaje, conexión, «Listo», anfitrión, expulsar), el
- * selector de personaje (cambiarlo quita el «Listo»), "Copiar invitación" y,
- * solo para el anfitrión, «Empezar» / «Empezar igualmente» (C-13, el
- * servidor manda). La prueba de micrófono/cámara vive en el panel de "Audio
- * y vídeo" (`MediaOverlay`), no aquí. La partida y el playtest (red y local)
- * pasan por aquí igual.
+ * mueven con su avatar. Reúne el título de la sala, la lista de jugadores
+ * (personaje, conexión, «Listo», anfitrión, expulsar), el selector de
+ * personaje (cambiarlo quita el «Listo»), "Copiar invitación" y, solo para el
+ * anfitrión, «Empezar» / «Empezar igualmente» (C-13, el servidor manda). La
+ * prueba de micrófono/cámara vive en el panel de "Audio y vídeo"
+ * (`MediaOverlay`), no aquí. La partida y el playtest (red y local) pasan por
+ * aquí igual.
+ *
+ * Portada, descripción y badges (dificultad/duración/aforo) se quitaron de
+ * aquí (limpieza del lobby, sobrecargaba el panel): quedan pendientes de un
+ * botón "info" con un popup que reúna esa información, sin implementar
+ * todavía — `coverUrl` se deja declarado en las props por eso mismo.
  *
  * "Todos los grupos comienzan juntos" (evento, ticket "inicio conjunto"):
  * con `organizerControlsStart` activo, el anfitrión no ve "Empezar" en
@@ -65,7 +69,6 @@ export interface LobbyPanelProps {
 export function LobbyPanel({
   meta,
   pack,
-  coverUrl,
   players,
   self,
   isHost,
@@ -89,6 +92,7 @@ export function LobbyPanel({
   // del anfitrión: no tendría sentido que forzara la partida sin haberse
   // confirmado él mismo.
   const hostReady = self.ready;
+  const noCharacter = !self.characterId;
   const occupied = new Map(
     players
       .filter((player) => !player.isSelf && player.connected)
@@ -102,35 +106,7 @@ export function LobbyPanel({
       aria-label={t("lobby.title")}
     >
       <header className="flex flex-col gap-2" data-testid="lobby-header">
-        {coverUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- portada firmada del bucket, no optimizable por Next/Image
-          <img
-            src={coverUrl}
-            alt=""
-            aria-hidden
-            className="aspect-video w-full rounded-lg object-cover"
-          />
-        ) : null}
-        <span className="text-xs uppercase tracking-wide text-muted-foreground">
-          {t("lobby.title")}
-        </span>
-        <div className="flex flex-wrap gap-1.5">
-          <Badge variant="outline" className="text-muted-foreground">
-            {t(`lobby.difficulty.${meta.difficulty}`)}
-          </Badge>
-          <Badge variant="outline" className="text-muted-foreground" data-testid="lobby-duration">
-            {meta.timeLimitMinutes === null
-              ? t("lobby.noTimeLimit")
-              : t("lobby.duration", { minutes: meta.timeLimitMinutes })}
-          </Badge>
-          <Badge variant="outline" className="text-muted-foreground">
-            {t("lobby.playersRange", { min: meta.players.min, max: meta.players.max })}
-          </Badge>
-        </div>
         <h2 className="text-base font-semibold leading-tight">{meta.title}</h2>
-        {meta.description ? (
-          <RoomDescription title={meta.title} description={meta.description} />
-        ) : null}
       </header>
 
       <Separator />
@@ -214,12 +190,12 @@ export function LobbyPanel({
           </p>
         ) : isHost ? (
           belowMinimum ? (
-            <p className="text-xs text-amber-700 dark:text-amber-200" data-testid="lobby-below-minimum">
+            <p className="text-xs text-destructive" data-testid="lobby-below-minimum">
               {t("lobby.belowMinimum", { min: meta.players.min })}
             </p>
           ) : !hostReady ? (
-            <p className="text-xs text-amber-700 dark:text-amber-200" data-testid="lobby-host-not-ready">
-              {t("lobby.hostMustConfirm")}
+            <p className="text-xs text-destructive" data-testid="lobby-host-not-ready">
+              {noCharacter ? t("lobby.chooseCharacterFirst") : t("lobby.hostMustConfirm")}
             </p>
           ) : confirmingForce ? (
             <div className="flex flex-col items-center gap-2 text-sm">
@@ -258,8 +234,18 @@ export function LobbyPanel({
               </Button>
             </div>
           )
+        ) : noCharacter ? (
+          <p className="text-xs text-destructive" data-testid="lobby-waiting-host">
+            {t("lobby.chooseCharacterFirst")}
+          </p>
+        ) : !self.ready ? (
+          <p className="text-xs text-destructive" data-testid="lobby-guest-not-ready">
+            {t("lobby.hostMustConfirm")}
+          </p>
         ) : (
-          <p className="text-xs text-muted-foreground">{t("lobby.waitingHost")}</p>
+          <p className="text-xs text-muted-foreground" data-testid="lobby-waiting-host">
+            {t("lobby.waitingHost")}
+          </p>
         )}
       </div>
 
@@ -297,49 +283,5 @@ export function LobbyPanel({
         </DialogContent>
       </Dialog>
     </aside>
-  );
-}
-
-/**
- * Descripción de la sala recortada a 5 líneas (`line-clamp-5`): sin una
- * medida nativa de "¿se ha truncado?", comparamos `scrollHeight` contra
- * `clientHeight` tras montar — solo entonces aparece "Leer más", que abre el
- * texto completo en un `Dialog`.
- */
-function RoomDescription({ title, description }: { title: string; description: string }) {
-  const t = useTranslations("Game");
-  const ref = useRef<HTMLParagraphElement | null>(null);
-  const [truncated, setTruncated] = useState(false);
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (el) setTruncated(el.scrollHeight > el.clientHeight + 1);
-  }, [description]);
-
-  return (
-    <>
-      <p ref={ref} className="line-clamp-5 text-xs text-muted-foreground">
-        {description}
-      </p>
-      {truncated ? (
-        <Button
-          variant="link"
-          className="h-auto self-start p-0 text-xs underline-offset-2"
-          data-testid="lobby-description-more"
-          onClick={() => setOpen(true)}
-        >
-          {t("lobby.readMore")}
-        </Button>
-      ) : null}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
-          </DialogHeader>
-          <p className="whitespace-pre-line text-sm text-muted-foreground">{description}</p>
-        </DialogContent>
-      </Dialog>
-    </>
   );
 }
