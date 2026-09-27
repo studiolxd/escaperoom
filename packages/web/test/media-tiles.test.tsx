@@ -43,7 +43,15 @@ afterEach(() => cleanup());
 
 describe("<MediaTiles> — F-38", () => {
   it("expone el mic apagado y el estado de hablando con texto accesible, no solo color/emoji", () => {
-    renderIntl(createElement(MediaTiles, { role: "player", canPublishVideo: true }));
+    renderIntl(
+      createElement(MediaTiles, {
+        role: "player",
+        canPublishVideo: true,
+        status: "connected",
+        statusLabel: "En directo",
+        errorText: null,
+      }),
+    );
 
     expect(screen.getByText("micrófono apagado", { selector: ".sr-only" })).toBeInTheDocument();
     expect(screen.getByText("hablando", { selector: ".sr-only" })).toBeInTheDocument();
