@@ -886,7 +886,6 @@
   },
   "Chat": {
     "title": "Chat",
-    "empty": "Noch keine Nachrichten",
     "placeholder": "Nachricht schreiben…",
     "disconnected": "Verbinde dich zum Chatten",
     "send": "Senden",

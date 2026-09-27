@@ -8,7 +8,6 @@
   },
   "Chat": {
     "title": "Chat",
-    "empty": "Aún no hay mensajes",
     "placeholder": "Escribe un mensaje…",
     "disconnected": "Conéctate para chatear",
     "send": "Enviar",

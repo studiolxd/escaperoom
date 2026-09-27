@@ -286,7 +286,7 @@ describe("GameSessionShell a partir del estado sincronizado", () => {
       expect(html).toContain(tr("fr", "lobby.waitingHost"));
       expect(html).not.toContain('data-testid="game-start"');
       // El chat de la partida (2.1) también sale en el idioma del jugador.
-      expect(html).toContain(tr("fr", "empty", "Chat"));
+      expect(html).toContain(tr("fr", "placeholder", "Chat"));
 
       guest.dispose();
       await guestRoom.leave(true);

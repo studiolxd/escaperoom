@@ -88,26 +88,22 @@ export const ChatWindow = memo(function ChatWindow({
         aria-live="polite"
         className="flex h-48 flex-col gap-1.5 overflow-y-auto pr-1"
       >
-        {messages.length === 0 ? (
-          <li className="text-xs text-muted-foreground">{t("empty")}</li>
-        ) : (
-          messages.map((message) => (
-            <li key={message.id} className="text-xs leading-snug">
-              <span className={message.authorId === selfId ? "text-sky-600 dark:text-sky-300" : "text-muted-foreground"}>
-                {message.authorName}
+        {messages.map((message) => (
+          <li key={message.id} className="text-xs leading-snug">
+            <span className={message.authorId === selfId ? "text-sky-600 dark:text-sky-300" : "text-muted-foreground"}>
+              {message.authorName}
+            </span>
+            {message.filtered ? (
+              <span
+                title={t("filteredTitle")}
+                className="ml-1 rounded bg-rose-500/20 px-1 text-[10px] text-rose-700 dark:text-rose-200"
+              >
+                {t("filtered")}
               </span>
-              {message.filtered ? (
-                <span
-                  title={t("filteredTitle")}
-                  className="ml-1 rounded bg-rose-500/20 px-1 text-[10px] text-rose-700 dark:text-rose-200"
-                >
-                  {t("filtered")}
-                </span>
-              ) : null}
-              <p className="break-words text-foreground">{message.text}</p>
-            </li>
-          ))
-        )}
+            ) : null}
+            <p className="break-words text-foreground">{message.text}</p>
+          </li>
+        ))}
       </ul>
 
       <form onSubmit={submit} className="flex items-center gap-2">

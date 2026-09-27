@@ -988,7 +988,6 @@
   },
   "Chat": {
     "title": "Chat",
-    "empty": "No messages yet",
     "placeholder": "Write a message…",
     "disconnected": "Connect to chat",
     "send": "Send",
