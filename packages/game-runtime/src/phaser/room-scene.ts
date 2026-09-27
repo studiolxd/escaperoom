@@ -942,10 +942,14 @@ export class RoomScene extends Phaser.Scene {
     }
   }
 
-  /** Habilita brillo de pista, cursor y clic sobre un objeto interactuable. */
+  /**
+   * Habilita brillo de pista y clic sobre un objeto interactuable. Encargo
+   * revisión en vivo: sin cursor de mano ni zoom al pasar el ratón por
+   * encima (solo el brillo), a diferencia del modo edición.
+   */
   private wireInteraction(view: ObjectView): void {
     const { sprite, object } = view;
-    sprite.setInteractive({ useHandCursor: true });
+    sprite.setInteractive();
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => this.setHover(object.id));
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => this.clearHover(object.id));
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (pointer: Phaser.Input.Pointer) => {
@@ -1014,7 +1018,6 @@ export class RoomScene extends Phaser.Scene {
       return;
     }
     this.hoveredObjectId = objectId;
-    this.input.setDefaultCursor("pointer");
 
     view.glow.setAlpha(0.55);
     this.tweens.add({
@@ -1024,12 +1027,6 @@ export class RoomScene extends Phaser.Scene {
       yoyo: true,
       repeat: -1,
     });
-    this.tweens.add({
-      targets: view.sprite,
-      scaleX: view.baseScaleX * 1.06,
-      scaleY: view.baseScaleY * 1.06,
-      duration: 140,
-    });
   }
 
   private clearHover(objectId: string): void {
@@ -1037,7 +1034,6 @@ export class RoomScene extends Phaser.Scene {
       return;
     }
     this.hoveredObjectId = undefined;
-    this.input.setDefaultCursor("default");
 
     const view = this.objectViews.get(objectId);
     if (!view) {
@@ -1045,12 +1041,6 @@ export class RoomScene extends Phaser.Scene {
     }
     this.tweens.killTweensOf(view.glow);
     view.glow.setAlpha(0);
-    this.tweens.add({
-      targets: view.sprite,
-      scaleX: view.baseScaleX,
-      scaleY: view.baseScaleY,
-      duration: 140,
-    });
   }
 
   /**
