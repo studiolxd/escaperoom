@@ -186,7 +186,7 @@ export function aldricScript(pkg: RoomPackage): {
     puzzleDraft("p-placas-estatuas", withoutUnlocks);
     object("puerta-bodega");
     // Señuelos decorativos (revisión en vivo): Inspeccionar + imagen, sin efecto.
-    for (const id of ["cofre-real", "mesa-banquete", "barril-aceite"]) object(id);
+    for (const id of ["cofre-real", "mesa-banquete", "barril-aceite", "tapiz-izq", "tapiz-der", "columna-izq", "columna-der", "estandarte-izq", "estandarte-der"]) object(id);
     puzzle("p-placas-estatuas", true);
     rule("r-placas-resueltas");
     // Distractor del ítem 6: la puerta describe su imagen, no el panel de
@@ -197,7 +197,7 @@ export function aldricScript(pkg: RoomPackage): {
     for (const id of ["mural-ranura", "compartimento-plata", "barril-espejo"]) object(id);
     object("mirilla-a");
     object("mirilla-b");
-    for (const id of ["barril-vino-a", "barril-vino-b", "mesa-servicio"]) object(id);
+    for (const id of ["barril-vino-a", "barril-vino-b", "mesa-servicio", "barriles-pila-a", "barriles-pila-b", "barriles-pila-c", "antorcha-bodega-izq", "antorcha-bodega-der"]) object(id);
     puzzle("p-mural-vendimia");
     object("mural-vendimia");
     rule("r-mural-resuelto");
@@ -219,7 +219,7 @@ export function aldricScript(pkg: RoomPackage): {
     object("sarcofago");
     object("altar");
     object("vasijas");
-    for (const id of ["cofre-oxidado", "sarcofago-anonimo", "estatua-desmoronada"]) object(id);
+    for (const id of ["cofre-oxidado", "sarcofago-anonimo", "estatua-desmoronada", "antorcha-cat-a", "antorcha-cat-b", "antorcha-cat-c", "antorcha-cat-d"]) object(id);
     rule("r-entrar-catacumbas");
     rule("r-inspeccionar-sarcofago");
     rule("r-inspeccionar-vasijas");
@@ -237,6 +237,21 @@ export function aldricScript(pkg: RoomPackage): {
       "cofre-oxidado",
       "sarcofago-anonimo",
       "estatua-desmoronada",
+      "tapiz-izq",
+      "tapiz-der",
+      "columna-izq",
+      "columna-der",
+      "estandarte-izq",
+      "estandarte-der",
+      "barriles-pila-a",
+      "barriles-pila-b",
+      "barriles-pila-c",
+      "antorcha-bodega-izq",
+      "antorcha-bodega-der",
+      "antorcha-cat-a",
+      "antorcha-cat-b",
+      "antorcha-cat-c",
+      "antorcha-cat-d",
     ]) {
       rule(`r-inspeccionar-${id}`);
     }

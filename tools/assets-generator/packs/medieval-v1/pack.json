@@ -378,6 +378,21 @@
         "salida": "objetos/inspeccion/barril-cerrado.png",
         "fuente": "entregas/objetos/master/barril-cerrado.png",
         "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/columna.png",
+        "fuente": "entregas/objetos/master/columna.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/barriles.png",
+        "fuente": "entregas/objetos/master/barriles.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/antorcha.png",
+        "fuente": "entregas/objetos/master/antorcha.png",
+        "recorte": "alfa"
       }
     ]
   },

@@ -457,7 +457,7 @@ describe("validador — huérfanos, reglas y referencias", () => {
     expect(report.ok).toBe(false);
     expect(references.status).toBe("error");
     expect(references.issues[0]!.message).toMatch(
-      /^el objeto «salida-bodega» \(en rules\[r-rota\]\.trigger\) no existe\. Disponibles: \[altar, antorcha-apagada-suelo, arca-candado, /u,
+      /^el objeto «salida-bodega» \(en rules\[r-rota\]\.trigger\) no existe\. Disponibles: \[altar, antorcha-apagada-suelo, antorcha-bodega-der, /u,
     );
   });
 

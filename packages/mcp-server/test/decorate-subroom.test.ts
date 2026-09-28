@@ -109,12 +109,14 @@ describe("decorate_subroom (paridad de decoración e iluminación)", () => {
     });
     expect(result.isError, result.text).toBe(false);
     expect(result.text).toMatch(
-      /^✅ decorate_subroom — "salon-trono": 6 decoración\(es\); 1 antorcha\(s\), ambiente #3a2f22 al 0.6/,
+      new RegExp(
+        `^✅ decorate_subroom — "salon-trono": ${salon.decorations.length} decoración\\(es\\); 1 antorcha\\(s\\), ambiente #3a2f22 al 0.6`,
+      ),
     );
     expect(result.structured).toMatchObject({
       roomId,
       subroomId: salon.id,
-      decorations: 6,
+      decorations: salon.decorations.length,
       lights: 2,
     });
     const room = (await draftPackage(drafts)).map.rooms[0]!;
@@ -147,12 +149,16 @@ describe("decorate_subroom (paridad de decoración e iluminación)", () => {
 
     const ok = await call(client, "decorate_subroom", {
       roomId,
-      subroomId: "bodega",
-      decorations: aldric.map.rooms[1]!.decorations,
+      subroomId: "catacumbas",
+      decorations: aldric.map.rooms[2]!.decorations,
       dryRun: true,
     });
     expect(ok.isError, ok.text).toBe(false);
-    expect(ok.text).toMatch(/^🧪 decorate_subroom \(dry-run\) — "bodega": 5 decoración\(es\)/);
+    expect(ok.text).toMatch(
+      new RegExp(
+        `^🧪 decorate_subroom \\(dry-run\\) — "catacumbas": ${aldric.map.rooms[2]!.decorations.length} decoración\\(es\\)`,
+      ),
+    );
     expect(ok.text).toContain("🧪 dryRun: true — no se ha escrito nada en el draft.");
     expect(ok.structured).toMatchObject({ dryRun: true, validation: { ok: true } });
 

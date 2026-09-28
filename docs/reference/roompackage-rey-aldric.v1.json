@@ -170,40 +170,7 @@
             ]
           }
         ],
-        "decorations": [
-          {
-            "sprite": "tapiz-dragones",
-            "x": 4,
-            "y": 0
-          },
-          {
-            "sprite": "tapiz-dragones",
-            "x": 16,
-            "y": 0
-          },
-          {
-            "sprite": "columna",
-            "x": 2,
-            "y": 3,
-            "blocks": true
-          },
-          {
-            "sprite": "columna",
-            "x": 17,
-            "y": 3,
-            "blocks": true
-          },
-          {
-            "sprite": "estandarte",
-            "x": 2,
-            "y": 0
-          },
-          {
-            "sprite": "estandarte",
-            "x": 18,
-            "y": 0
-          }
-        ],
+        "decorations": [],
         "spawnPoints": [
           {
             "id": "spawn-1",
@@ -371,36 +338,7 @@
             ]
           }
         ],
-        "decorations": [
-          {
-            "sprite": "barriles-der",
-            "x": 1,
-            "y": 2,
-            "blocks": true
-          },
-          {
-            "sprite": "barriles-der",
-            "x": 1,
-            "y": 4,
-            "blocks": true
-          },
-          {
-            "sprite": "barriles",
-            "x": 16,
-            "y": 2,
-            "blocks": true
-          },
-          {
-            "sprite": "antorcha",
-            "x": 2,
-            "y": 0
-          },
-          {
-            "sprite": "antorcha",
-            "x": 14,
-            "y": 0
-          }
-        ],
+        "decorations": [],
         "spawnPoints": [
           {
             "id": "spawn-1",
@@ -633,26 +571,6 @@
           }
         ],
         "decorations": [
-          {
-            "sprite": "antorcha",
-            "x": 2,
-            "y": 0
-          },
-          {
-            "sprite": "antorcha",
-            "x": 17,
-            "y": 0
-          },
-          {
-            "sprite": "antorcha-der",
-            "x": 0,
-            "y": 6
-          },
-          {
-            "sprite": "antorcha-der",
-            "x": 0,
-            "y": 13
-          },
           {
             "sprite": "canal-tramo",
             "x": 2,
@@ -1136,6 +1054,114 @@
       "interactable": true
     },
     {
+      "id": "tapiz-izq",
+      "name": {
+        "es": {
+          "text": "Un tapiz de dragones"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 4,
+        "y": 0
+      },
+      "sprite": "tapiz-dragones",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "tapiz-der",
+      "name": {
+        "es": {
+          "text": "Un tapiz de dragones"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 16,
+        "y": 0
+      },
+      "sprite": "tapiz-dragones",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "columna-izq",
+      "name": {
+        "es": {
+          "text": "La columna"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 2,
+        "y": 3
+      },
+      "sprite": "columna",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "columna-der",
+      "name": {
+        "es": {
+          "text": "La columna"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 17,
+        "y": 3
+      },
+      "sprite": "columna",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "estandarte-izq",
+      "name": {
+        "es": {
+          "text": "El estandarte real"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 2,
+        "y": 0
+      },
+      "sprite": "estandarte",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "estandarte-der",
+      "name": {
+        "es": {
+          "text": "El estandarte real"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 18,
+        "y": 0
+      },
+      "sprite": "estandarte",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
       "id": "mural-vendimia",
       "name": {
         "es": {
@@ -1369,6 +1395,96 @@
       "interactable": true
     },
     {
+      "id": "barriles-pila-a",
+      "name": {
+        "es": {
+          "text": "Una pila de barriles"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 1,
+        "y": 2
+      },
+      "sprite": "barriles-der",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "barriles-pila-b",
+      "name": {
+        "es": {
+          "text": "Una pila de barriles"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 1,
+        "y": 4
+      },
+      "sprite": "barriles-der",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "barriles-pila-c",
+      "name": {
+        "es": {
+          "text": "Una pila de barriles"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 16,
+        "y": 2
+      },
+      "sprite": "barriles",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "antorcha-bodega-izq",
+      "name": {
+        "es": {
+          "text": "La antorcha de pared"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 2,
+        "y": 0
+      },
+      "sprite": "antorcha",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "antorcha-bodega-der",
+      "name": {
+        "es": {
+          "text": "La antorcha de pared"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 14,
+        "y": 0
+      },
+      "sprite": "antorcha",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
       "id": "sarcofago",
       "name": {
         "es": {
@@ -1562,6 +1678,78 @@
         "y": 5
       },
       "sprite": "estatua-caballero",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "antorcha-cat-a",
+      "name": {
+        "es": {
+          "text": "La antorcha de pared"
+        }
+      },
+      "roomId": "catacumbas",
+      "type": "decorativo",
+      "position": {
+        "x": 2,
+        "y": 0
+      },
+      "sprite": "antorcha",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "antorcha-cat-b",
+      "name": {
+        "es": {
+          "text": "La antorcha de pared"
+        }
+      },
+      "roomId": "catacumbas",
+      "type": "decorativo",
+      "position": {
+        "x": 17,
+        "y": 0
+      },
+      "sprite": "antorcha",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "antorcha-cat-c",
+      "name": {
+        "es": {
+          "text": "La antorcha de pared"
+        }
+      },
+      "roomId": "catacumbas",
+      "type": "decorativo",
+      "position": {
+        "x": 0,
+        "y": 6
+      },
+      "sprite": "antorcha-der",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "antorcha-cat-d",
+      "name": {
+        "es": {
+          "text": "La antorcha de pared"
+        }
+      },
+      "roomId": "catacumbas",
+      "type": "decorativo",
+      "position": {
+        "x": 0,
+        "y": 13
+      },
+      "sprite": "antorcha-der",
       "states": {},
       "initialState": "",
       "interactable": true
@@ -3005,6 +3193,306 @@
       ]
     },
     {
+      "id": "r-inspeccionar-tapiz-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "tapiz-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-tapiz-izq"
+        },
+        {
+          "type": "show_image",
+          "image": "tapiz-dragones"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-tapiz-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "tapiz-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-tapiz-der"
+        },
+        {
+          "type": "show_image",
+          "image": "tapiz-dragones"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-columna-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "columna-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-columna-izq"
+        },
+        {
+          "type": "show_image",
+          "image": "columna"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-columna-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "columna-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-columna-der"
+        },
+        {
+          "type": "show_image",
+          "image": "columna"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-estandarte-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "estandarte-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-estandarte-izq"
+        },
+        {
+          "type": "show_image",
+          "image": "estandarte"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-estandarte-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "estandarte-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-estandarte-der"
+        },
+        {
+          "type": "show_image",
+          "image": "estandarte"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-barriles-pila-a",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "barriles-pila-a"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-barriles-pila-a"
+        },
+        {
+          "type": "show_image",
+          "image": "barriles"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-barriles-pila-b",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "barriles-pila-b"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-barriles-pila-b"
+        },
+        {
+          "type": "show_image",
+          "image": "barriles"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-barriles-pila-c",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "barriles-pila-c"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-barriles-pila-c"
+        },
+        {
+          "type": "show_image",
+          "image": "barriles"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-antorcha-bodega-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-bodega-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-antorcha-bodega-izq"
+        },
+        {
+          "type": "show_image",
+          "image": "antorcha"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-antorcha-bodega-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-bodega-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-antorcha-bodega-der"
+        },
+        {
+          "type": "show_image",
+          "image": "antorcha"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-antorcha-cat-a",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-cat-a"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-antorcha-cat-a"
+        },
+        {
+          "type": "show_image",
+          "image": "antorcha"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-antorcha-cat-b",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-cat-b"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-antorcha-cat-b"
+        },
+        {
+          "type": "show_image",
+          "image": "antorcha"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-antorcha-cat-c",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-cat-c"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-antorcha-cat-c"
+        },
+        {
+          "type": "show_image",
+          "image": "antorcha"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-antorcha-cat-d",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-cat-d"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-antorcha-cat-d"
+        },
+        {
+          "type": "show_image",
+          "image": "antorcha"
+        }
+      ]
+    },
+    {
       "id": "r-tiempo-agotado",
       "priority": 99,
       "once": true,
@@ -3307,6 +3795,126 @@
       "text": {
         "es": {
           "text": "Un caballero de piedra al que le falta la cabeza. Sus restos yacen esparcidos por el suelo."
+        }
+      }
+    },
+    {
+      "id": "d-tapiz-izq",
+      "text": {
+        "es": {
+          "text": "Un tapiz descolorido con dragones bordados en hilo dorado. Las polillas se han cebado con él; no ocultan nada detrás."
+        }
+      }
+    },
+    {
+      "id": "d-tapiz-der",
+      "text": {
+        "es": {
+          "text": "Otro tapiz de dragones, casi idéntico al de enfrente. El bordado está tan gastado que ya no se distinguen las figuras."
+        }
+      }
+    },
+    {
+      "id": "d-columna-izq",
+      "text": {
+        "es": {
+          "text": "Una gruesa columna de piedra con el capitel agrietado. Sostiene el techo del salón y poco más."
+        }
+      }
+    },
+    {
+      "id": "d-columna-der",
+      "text": {
+        "es": {
+          "text": "Una columna igual que la de la otra pared. Golpeas la piedra: es maciza, sin huecos ni secretos."
+        }
+      }
+    },
+    {
+      "id": "d-estandarte-izq",
+      "text": {
+        "es": {
+          "text": "El estandarte del reino, deshilachado por los años. El emblema del rey Aldric aún se intuye bajo el polvo."
+        }
+      }
+    },
+    {
+      "id": "d-estandarte-der",
+      "text": {
+        "es": {
+          "text": "Un estandarte real que cuelga inmóvil. No corre ni un soplo de aire en el salón."
+        }
+      }
+    },
+    {
+      "id": "d-barriles-pila-a",
+      "text": {
+        "es": {
+          "text": "Barriles apilados contra la pared, vacíos y resecos. Las duelas crujen solo con mirarlas."
+        }
+      }
+    },
+    {
+      "id": "d-barriles-pila-b",
+      "text": {
+        "es": {
+          "text": "Otra pila de barriles. Los aros de hierro están oxidados y no queda ni una gota de vino."
+        }
+      }
+    },
+    {
+      "id": "d-barriles-pila-c",
+      "text": {
+        "es": {
+          "text": "Barriles viejos amontonados en la esquina. Huelen a moho y a uva pasada."
+        }
+      }
+    },
+    {
+      "id": "d-antorcha-bodega-izq",
+      "text": {
+        "es": {
+          "text": "Una antorcha sujeta a la pared. Está fija al soporte y no hay manera de sacarla."
+        }
+      }
+    },
+    {
+      "id": "d-antorcha-bodega-der",
+      "text": {
+        "es": {
+          "text": "Una antorcha de pared que ilumina la bodega con una luz temblorosa. Está soldada a su anilla de hierro."
+        }
+      }
+    },
+    {
+      "id": "d-antorcha-cat-a",
+      "text": {
+        "es": {
+          "text": "Una antorcha que arde en la penumbra de las catacumbas. Nadie ha cambiado su brea en siglos y aun así sigue viva."
+        }
+      }
+    },
+    {
+      "id": "d-antorcha-cat-b",
+      "text": {
+        "es": {
+          "text": "Una antorcha anclada al muro. Su llama no se apaga aunque la roces con la mano."
+        }
+      }
+    },
+    {
+      "id": "d-antorcha-cat-c",
+      "text": {
+        "es": {
+          "text": "Una antorcha en el muro lateral. Las sombras bailan sobre el pasillo."
+        }
+      }
+    },
+    {
+      "id": "d-antorcha-cat-d",
+      "text": {
+        "es": {
+          "text": "Una antorcha más, clavada al muro. No parece haber nada oculto tras ella."
         }
       }
     }
