@@ -136,20 +136,3 @@ Tareas pendientes que no bloquean pero hay que resolver.
       §"Pipeline de personajes jugables"), sustituir su carpeta de enlaces por la entrega real
       (`empaquetar_avatar.py` + `empaquetar_retrato.py`) y quitar la entrada correspondiente de
       `tools/assets-generator/packs/medieval-v1/entregas/avatares/`.
-- [ ] **Smoke E2E (`game.reyaldric.spec.ts`) intermitente en el último paso (cruzar
-      `puerta-bodega`).** El pathfinding real ya está implementado (BFS con
-      simplificado de ruta, `packages/game-runtime/src/world/pathfinding.ts`,
-      `findPath`/`simplifyPath`, revisión en vivo) y sustituye a la vieja heurística de
-      "rectángulo delimitador libre" (`hasClearPath`, insuficiente en salas no
-      rectangulares) — el avatar ya no se queda clavado contra una estatua u otro
-      obstáculo con el destino detrás, ni al ir a `cuadro-aurelio` desde el spawn ni al
-      ir de las placas a la puerta. En 3 ejecuciones seguidas del smoke test tras el
-      arreglo, los pasos 1–5 (candado, cuadro, armario, combinar, brasero) pasaron las
-      3 veces; el registro del juego confirma que ambos jugadores llegan a cruzar de
-      verdad a la Bodega ("Entras en La Bodega de los Vinos Encantados"), pero el
-      `page.waitForFunction` de `UiPlayer.goTo` (`packages/e2e/support/game.ts`) que
-      espera a que la puerta deje de estar en la sala visible falló por timeout en 1 de
-      esas 3 veces pese a que el cruce sí ocurrió — parece timing del propio arnés de
-      pruebas (dos `BrowserContext`, sincronización de red) más que un bug de
-      movimiento. Revisar si `goTo` necesita más margen o una espera distinta antes de
-      dar el smoke test por estable.
