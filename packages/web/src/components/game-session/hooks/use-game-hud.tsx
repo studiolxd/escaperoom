@@ -447,10 +447,20 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
 
   const applyItemUse = useCallback(
     (itemId: string, objectId: string) => {
+      // Sin una regla `on_use_item` real para este ítem sobre este objeto,
+      // "usarlo" no dispara nada (revisión en vivo: la mecánica de algunos
+      // objetos es "tener el ítem en el inventario e interactuar", no
+      // "usarlo sobre el objeto" — p. ej. la antorcha sobre el brasero).
+      // Interactuar en su lugar deja que la condición del propio objeto lo
+      // consuma, igual que clicarlo con el ítem ya en el inventario.
+      if (!model.objectsById[objectId]?.useItemIds?.includes(itemId)) {
+        inspect(objectId);
+        return;
+      }
       client.useItem(itemId, objectId);
       pushLog(tp("log.useItem", { item: itemName(itemId), object: objectName(objectId) }));
     },
-    [client, itemName, objectName, pushLog, tp],
+    [client, inspect, itemName, model, objectName, pushLog, tp],
   );
 
   const enterRoom = useCallback(

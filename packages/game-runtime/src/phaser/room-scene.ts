@@ -397,6 +397,14 @@ export class RoomScene extends Phaser.Scene {
   private path: GridCell[] = [];
   /** Objeto al que el avatar camina para abrir su menú al llegar (clic). */
   private pendingObjectId?: string;
+  /**
+   * Ítem pendiente de usar sobre `pendingObjectId` al llegar (revisión en
+   * vivo: soltar un ítem del inventario sobre un objeto del mundo debe andar
+   * hasta él primero, igual que un clic normal, no usarlo a distancia).
+   * `undefined` cuando `pendingObjectId` es una interacción normal
+   * (Inspeccionar/menú), no un uso de ítem.
+   */
+  private pendingItemId?: string;
 
   private objectState: ObjectStateMap = {};
   private containers: ContainerStateMap = {};
@@ -1018,11 +1026,18 @@ export class RoomScene extends Phaser.Scene {
     );
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => this.setHover(object.id));
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => this.clearHover(object.id));
-    sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (pointer: Phaser.Input.Pointer) => {
-      // Phaser también escucha `mouseup` en `window`: soltar el ratón sobre un
-      // botón o diálogo HTML que tapa el objeto no es un clic en el mundo (al
-      // cerrar un diálogo, el avatar echaba a andar hacia lo que había debajo).
-      if (!this.localInputEnabled || pointer.upElement !== this.sys.game.canvas) {
+    // `GAMEOBJECT_POINTER_DOWN`, no `_UP` (revisión en vivo): `_UP` hace su
+    // propio hit-test en el momento de SOLTAR el ratón, en un punto que
+    // puede no coincidir exactamente con el de bajarlo — con la zona de
+    // clic pequeña a propósito (ver arriba), un temblor de mano/trackpad
+    // entre bajar y soltar bastaba para que no se disparase nada, sin
+    // ningún error visible. Con `_DOWN` solo hace falta acertar una vez.
+    sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
+      // Phaser también escucha `mousedown` en `window`: bajar el ratón sobre
+      // un botón o diálogo HTML que tapa el objeto no es un clic en el
+      // mundo (al cerrar un diálogo, el avatar echaba a andar hacia lo que
+      // había debajo).
+      if (!this.localInputEnabled || pointer.downElement !== this.sys.game.canvas) {
         return;
       }
       this.walkToObject(object.id);
@@ -1056,7 +1071,11 @@ export class RoomScene extends Phaser.Scene {
     this.path = path.slice(1);
   }
 
-  /** Si el avatar ya alcanzó el objeto pendiente, abre su menú/interacción. */
+  /**
+   * Si el avatar ya alcanzó el objeto pendiente, abre su menú/interacción —
+   * o, si venía de soltar un ítem sobre él (`pendingItemId`), usa el ítem
+   * directamente sin pasar por el menú.
+   */
   private resolvePendingInteraction(): void {
     const objectId = this.pendingObjectId;
     if (!objectId || !this.avatar) {
@@ -1065,6 +1084,7 @@ export class RoomScene extends Phaser.Scene {
     const object = this.model.objectsById[objectId];
     if (!object) {
       this.pendingObjectId = undefined;
+      this.pendingItemId = undefined;
       return;
     }
     const cell = this.avatar.gridCell;
@@ -1072,7 +1092,19 @@ export class RoomScene extends Phaser.Scene {
     if (distance <= 1.75) {
       this.pendingObjectId = undefined;
       this.path = [];
-      this.inspectObjectById(objectId);
+      const itemId = this.pendingItemId;
+      this.pendingItemId = undefined;
+      // Sin una regla `on_use_item` real para este ítem, "usarlo" no
+      // dispara nada (revisión en vivo, p. ej. la antorcha sobre el
+      // brasero: su mecánica es "tenerla en el inventario e interactuar",
+      // no "usarla sobre el objeto"). Interactuar en su lugar deja que la
+      // condición del propio objeto la consuma, el mismo resultado que
+      // clicarlo con el ítem ya en el inventario.
+      if (itemId && object.useItemIds?.includes(itemId)) {
+        this.emit({ type: "use-item", itemId, objectId });
+      } else {
+        this.inspectObjectById(objectId);
+      }
     }
   }
 
@@ -1373,8 +1405,11 @@ export class RoomScene extends Phaser.Scene {
 
   /**
    * Suelta un item del inventario sobre el objeto del mundo bajo el puntero
-   * (drag&drop). Convierte coordenadas de pantalla a celda isométrica, busca el
-   * objeto interactuable más cercano y emite `use-item { itemId, objectId }`.
+   * (drag&drop). Convierte coordenadas de pantalla a celda isométrica, busca
+   * el objeto interactuable más cercano al punto de suelta y hace andar al
+   * avatar hasta él (igual que un clic normal) para usar el ítem solo al
+   * llegar — antes se usaba a distancia, sin comprobar dónde estaba el
+   * avatar ni moverlo (revisión en vivo).
    *
    * Devuelve el `objectId` destino, o `undefined` si el puntero no cae sobre
    * ningún objeto interactuable.
@@ -1384,10 +1419,33 @@ export class RoomScene extends Phaser.Scene {
     const world = this.cameras.main.getWorldPoint(screenX - rect.left, screenY - rect.top);
     const tile = worldToTile(world.x, world.y);
     const target = this.findInteractableNear({ x: tile.tx, y: tile.ty });
-    if (!target) {
+    if (!target || !this.avatar) {
       return undefined;
     }
-    this.emit({ type: "use-item", itemId, objectId: target });
+    const object = this.model.objectsById[target];
+    if (!object) {
+      return undefined;
+    }
+    const approach = approachCell(object.position, this.avatar.gridCell, (x, y) =>
+      this.collision.isWalkable(x, y),
+    );
+    const path =
+      approach &&
+      findPath(this.avatar.gridCell, approach, (x, y) => this.collision.isWalkable(x, y));
+    if (!path) {
+      // Sin ruta real hasta ninguna celda de acercamiento: mejor intentarlo
+      // a distancia que dejarlo sin efecto (mismo criterio de
+      // `useItemIds` que en `resolvePendingInteraction`).
+      if (object.useItemIds?.includes(itemId)) {
+        this.emit({ type: "use-item", itemId, objectId: target });
+      } else {
+        this.inspectObjectById(target);
+      }
+      return target;
+    }
+    this.pendingObjectId = target;
+    this.pendingItemId = itemId;
+    this.path = path.slice(1);
     return target;
   }
 

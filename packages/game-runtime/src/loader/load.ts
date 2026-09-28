@@ -161,6 +161,8 @@ export function toRuntimeModel(
     };
     const panelPuzzleId = panelForObject(roomPackage, object);
     if (panelPuzzleId) runtimeObject.panelPuzzleId = panelPuzzleId;
+    const useItemIds = useItemIdsForObject(roomPackage, object.id);
+    if (useItemIds.length > 0) runtimeObject.useItemIds = useItemIds;
     objects.push(runtimeObject);
     objectsById[runtimeObject.id] = runtimeObject;
     room.objects.push(runtimeObject);
@@ -282,6 +284,20 @@ function toRuntimePuzzle(puzzle: PuzzleDefinition): RuntimePuzzle {
     if (puzzle.soloBridgeItemId) base.soloBridgeItemId = puzzle.soloBridgeItemId;
   }
   return base;
+}
+
+/**
+ * Ids de ítem con una regla `on_use_item` real para `objectId` (revisión en
+ * vivo, ver `RuntimeObject.useItemIds`).
+ */
+function useItemIdsForObject(roomPackage: RoomPackage, objectId: string): string[] {
+  const ids = new Set<string>();
+  for (const rule of roomPackage.rules) {
+    if (rule.trigger.type === "on_use_item" && rule.trigger.objectId === objectId) {
+      ids.add(rule.trigger.itemId);
+    }
+  }
+  return [...ids];
 }
 
 /** Mismo criterio que `RoomSession.panelForObject` (escondite, `lockedBy`, mirilla). */

@@ -112,6 +112,16 @@ export interface RuntimeObject {
    * usa como mirilla (lo mismo que `RoomSession.panelForObject`).
    */
   panelPuzzleId?: string;
+  /**
+   * Ids de ítem con una regla `on_use_item` real para este objeto (revisión
+   * en vivo). Arrastrar/soltar un ítem que NO está aquí sobre el objeto no
+   * dispara "usar objeto" (`on_use_item`, que no coincidiría con ninguna
+   * regla y no haría nada): se trata como un `interact` normal, dejando que
+   * la propia condición `item_in_inventory` de la regla de inspección lo
+   * consuma — el mismo resultado que clicar el objeto teniendo el ítem en
+   * el inventario, que ya funcionaba (p. ej. la antorcha sobre el brasero).
+   */
+  useItemIds?: string[];
 }
 
 export interface RuntimeItem {

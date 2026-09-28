@@ -39,7 +39,15 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-black/10 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        // `data-[state=closed]:pointer-events-none` (no `data-closed:`, que
+        // no es una variante real configurada en este proyecto — Radix solo
+        // emite `data-state="open"|"closed"`): sin esto, el overlay a
+        // pantalla completa seguía capturando el primer clic tras cerrarse
+        // un diálogo (p. ej. el menú de acciones de un objeto), porque
+        // seguía montado hasta que terminara su transición de salida — el
+        // clic sobre el canvas del juego, inmediatamente después de cerrar
+        // el menú, no llegaba a disparar nada (revisión en vivo).
+        "fixed inset-0 isolate z-50 bg-black/10 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0 data-[state=closed]:pointer-events-none",
         className
       )}
       {...props}
