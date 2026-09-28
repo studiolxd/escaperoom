@@ -70,11 +70,6 @@ Tareas pendientes que no bloquean pero hay que resolver.
       ni en el lobby ni en la partida. Decidir el criterio exacto: por `meta.players.max === 1` de la sala,
       o por número de jugadores conectados (y qué pasa si alguien entra tarde a una partida que empezó con
       uno). Aplicar también al playtest del editor (un jugador).
-- [ ] **Nightly E2E otra vez en rojo: `expectSolvedAtLeast` busca un contador que el HUD ya no tiene.** Tras
-      la revisión en vivo (#185/#187) el HUD ya no muestra el contador de puzzles resueltos que usa el helper
-      `expectSolvedAtLeast` del recorrido completo de `game.reyaldric.spec.ts` (no smoke), así que el nightly
-      falla después de la bodega (visto el 2026-09-28, también en main). Adaptar el helper a lo que muestra
-      ahora el HUD (o a un `data-testid` estable) y comprobar el nightly en verde.
 - [ ] **Decidir el dominio de producción.** Pendiente operativo, sin fecha. El Aviso
       Legal (`packages/web/src/content/legal/legal-notice.ts`) lleva un `[PENDIENTE]`
       con el dominio; al decidirlo, sustituirlo y revisar el resto de sitios que lo
