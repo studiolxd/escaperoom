@@ -9,6 +9,7 @@ import {
   avatarFrameName,
   avatarHasDiagonals,
   directionFromGridDelta,
+  moveWithCollision,
   type AvatarAction,
   type AvatarDirection,
   type CollisionGrid,
@@ -216,15 +217,7 @@ export class AvatarController {
   }
 
   private tryMove(dx: number, dy: number): void {
-    const nextX = this.cell.x + dx;
-    if (!this.collision.blocks(Math.round(nextX), Math.round(this.cell.y))) {
-      this.cell.x = Phaser.Math.Clamp(nextX, 0, this.collision.width - 1);
-    }
-
-    const nextY = this.cell.y + dy;
-    if (!this.collision.blocks(Math.round(this.cell.x), Math.round(nextY))) {
-      this.cell.y = Phaser.Math.Clamp(nextY, 0, this.collision.height - 1);
-    }
+    this.cell = moveWithCollision(this.collision, this.cell, dx, dy);
   }
 
   private syncPosition(): void {

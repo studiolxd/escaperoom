@@ -109,3 +109,41 @@ export function buildCollisionGrid(
     isWalkable: (tx, ty) => !blocks(tx, ty),
   };
 }
+
+/**
+ * Avanza una posición continua (en celdas) `dx`/`dy` con colisión por celda,
+ * eje a eje (primero X, luego Y, para deslizarse a lo largo de una pared).
+ * Un eje solo se bloquea si el paso **entra** en otra celda que bloquea:
+ * moverse dentro de la celda en la que ya se está siempre se permite.
+ *
+ * Sin esa excepción, un avatar colocado sobre una celda sólida (p. ej. una
+ * placa de presión de `simultaneous_plates`, a la que el botón "Placa" del
+ * panel lo lleva con `walkTo`) no podía salir nunca: con pasos de menos de
+ * media celda (a 60 fps, 4 celdas/s ≈ 0,07 por frame) la celda redondeada de
+ * destino seguía siendo la propia placa, así que cada paso se rechazaba y el
+ * avatar se quedaba andando sin moverse (smoke E2E de la PR #187). Entrar en
+ * una celda sólida desde fuera sigue siendo imposible.
+ */
+export function moveWithCollision(
+  grid: Pick<CollisionGrid, "width" | "height" | "blocks">,
+  position: { x: number; y: number },
+  dx: number,
+  dy: number,
+): { x: number; y: number } {
+  const clampTo = (value: number, max: number): number => Math.min(Math.max(value, 0), max);
+  let { x, y } = position;
+
+  const nextX = x + dx;
+  const cellX = Math.round(nextX);
+  if (cellX === Math.round(x) || !grid.blocks(cellX, Math.round(y))) {
+    x = clampTo(nextX, grid.width - 1);
+  }
+
+  const nextY = y + dy;
+  const cellY = Math.round(nextY);
+  if (cellY === Math.round(y) || !grid.blocks(Math.round(x), cellY)) {
+    y = clampTo(nextY, grid.height - 1);
+  }
+
+  return { x, y };
+}
