@@ -203,6 +203,10 @@ export function GameSessionShell({
       data-testid="game-session"
       data-phase={snapshot.phase}
       data-stage={lobby.stage}
+      // Puzzles que el servidor ha dado por resueltos: el HUD ya no pinta el
+      // contador (revisión en vivo, #185), pero la suite E2E lo necesita como
+      // prueba de progreso confirmado por el servidor (`expectSolvedAtLeast`).
+      data-solved-puzzles={hud.solvedCount}
     >
       <ErrorBoundary
         layout="overlay"

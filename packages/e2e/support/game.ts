@@ -104,14 +104,6 @@ export class UiPlayer {
     await expect(this.session).toHaveAttribute("data-phase", "playing");
   }
 
-  /** Cierra el diálogo abierto (intro, lore): mientras está, el mundo no acepta clics. */
-  async closeDialog(): Promise<void> {
-    const dialog = this.page.getByTestId("game-dialog");
-    await expect(dialog).toBeVisible();
-    await dialog.click();
-    await expect(dialog).toBeHidden();
-  }
-
   /**
    * A partir de aquí, los diálogos de lore (cuadro, brasero, pergamino…) y el
    * panel de imagen de inspección (`show_image`, retratos/tapiz/vasijas) se
@@ -276,17 +268,14 @@ export class UiPlayer {
     );
   }
 
-  /** Objetos que el servidor ha dado por resueltos (contador «Puzzles» del HUD). */
+  /**
+   * Puzzles que el servidor ha dado por resueltos. El HUD ya no muestra el
+   * contador «Puzzles» (revisión en vivo, #185): se lee del
+   * `data-solved-puzzles` de `game-session`, que sale del mismo snapshot.
+   */
   async expectSolvedAtLeast(count: number): Promise<void> {
     await expect
-      .poll(async () => {
-        const text = await this.page
-          .getByTestId("game-inventory")
-          .locator("xpath=..")
-          .locator("dd")
-          .textContent();
-        return Number(text?.split("/")[0] ?? 0);
-      })
+      .poll(async () => Number(await this.session.getAttribute("data-solved-puzzles")))
       .toBeGreaterThanOrEqual(count);
   }
 }

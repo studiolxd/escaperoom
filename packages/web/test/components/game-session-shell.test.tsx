@@ -154,3 +154,20 @@ describe("<GameSessionShell> — F-17", () => {
     expect(screen.queryByRole("dialog", { name: /pistas/i })).not.toBeInTheDocument();
   });
 });
+
+describe("<GameSessionShell> — progreso para la suite E2E", () => {
+  it("expone en `data-solved-puzzles` los puzzles que el servidor da por resueltos", () => {
+    const client = makeClient(
+      makeSnapshot({
+        puzzles: {
+          "p-a": { state: "solved", attempts: 1, solvedBy: "p1" },
+          "p-b": { state: "solved", attempts: 2, solvedBy: "p1" },
+          "p-c": { state: "active", attempts: 0, solvedBy: "" },
+        },
+      }),
+    );
+    renderIntl(createElement(GameSessionShell, { model, client }));
+
+    expect(screen.getByTestId("game-session")).toHaveAttribute("data-solved-puzzles", "2");
+  });
+});

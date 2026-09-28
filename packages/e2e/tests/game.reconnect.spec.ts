@@ -40,7 +40,6 @@ test("recargar la página a mitad de partida conserva inventario y personaje", a
   await a.markReady();
   await page.getByTestId("game-start").click();
   await a.enterMapAfterStart();
-  await a.closeDialog();
 
   await a.inspect("cuadro-aurelio");
   await a.expectItems("Llave de bronce");
@@ -76,7 +75,6 @@ test("cerrar la pestaña y abrir otra a mitad de partida conserva inventario y p
   await a.markReady();
   await firstPage.getByTestId("game-start").click();
   await a.enterMapAfterStart();
-  await a.closeDialog();
   await a.inspect("cuadro-aurelio");
   await a.expectItems("Llave de bronce");
 
