@@ -109,6 +109,28 @@ const CHANGES: Record<PuzzleType, (p: PuzzleDefinition) => { key: string; value:
   pipes: () => ({ key: "endCell", value: { x: 4, y: 4 } }),
 };
 
+describe("code_lock — interruptor «Sin límite» (encargo candado-ilimitado)", () => {
+  it("maxAttempts se describe como unlimitedNumber con el defecto 5 y lockoutSec se oculta a 0", () => {
+    const root = describeTemplateConfig("code_lock");
+    const maxAttempts = findField(root, "maxAttempts");
+    expect(maxAttempts?.kind).toBe("unlimitedNumber");
+    expect(maxAttempts?.meta).toMatchObject({ unlimitedValue: 0, restoredValue: 5 });
+    const lockoutSec = findField(root, "lockoutSec");
+    expect(lockoutSec?.meta).toMatchObject({
+      hiddenWhenEquals: { field: "maxAttempts", value: 0 },
+    });
+  });
+
+  it("el switch guarda 0 y, al restaurar, vuelve a 5", () => {
+    const doc = roomPackageToDoc(fixture);
+    const lock = puzzleOf(fixture, "code_lock");
+    setTemplateConfig(doc, lock, "maxAttempts", 0);
+    expect((readPuzzle(doc, lock.id) as { maxAttempts?: number }).maxAttempts).toBe(0);
+    setTemplateConfig(doc, lock, "maxAttempts", 5);
+    expect((readPuzzle(doc, lock.id) as { maxAttempts?: number }).maxAttempts).toBe(5);
+  });
+});
+
 describe("configuradores de plantillas (3.5) — escritura en el doc Yjs", () => {
   it.each(PUZZLE_TYPES_MVP)(
     "%s: un cambio en el configurador se refleja en roomDocToPackage",

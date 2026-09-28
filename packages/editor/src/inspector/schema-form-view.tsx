@@ -203,6 +203,50 @@ const BooleanRenderer: FieldRenderer = ({ field, value, onChange, ctx, inputId }
   />
 );
 
+/**
+ * Número con un valor "sin límite" (`field.meta.unlimitedValue`) alternado por un interruptor;
+ * al desactivarlo, vuelve a `field.meta.restoredValue`. Solo se usa forzado por `hint.kind`
+ * (`maxAttempts` de `code_lock`, §4 encargo candado-ilimitado).
+ */
+const UnlimitedNumberRenderer: FieldRenderer = ({ field, value, onChange, ctx, inputId }) => {
+  const unlimitedValue = (field.meta?.unlimitedValue as number | undefined) ?? 0;
+  const restoredValue = (field.meta?.restoredValue as number | undefined) ?? 0;
+  const disabled = ctx.readOnly || field.readOnly;
+  const unlimited = value === unlimitedValue;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ ...rowStyle, alignItems: "center" }}>
+        <ctx.uiKit.Switch
+          id={inputId}
+          checked={unlimited}
+          disabled={disabled}
+          aria-label={ctx.t.ui("unlimited")}
+          onCheckedChange={(checked) => onChange(checked ? unlimitedValue : restoredValue)}
+        />
+        <span style={labelStyle}>{ctx.t.ui("unlimited")}</span>
+      </div>
+      {unlimited ? null : (
+        <CommitInput
+          type="number"
+          step={field.integer ? 1 : undefined}
+          min={field.min}
+          value={asString(value)}
+          disabled={disabled}
+          Input={ctx.uiKit.Input}
+          onCommit={(next) => {
+            if (next.trim() === "") {
+              if (field.optional) onChange(undefined);
+              return;
+            }
+            const parsed = Number(next);
+            if (Number.isFinite(parsed)) onChange(field.integer ? Math.trunc(parsed) : parsed);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
 const EnumRenderer: FieldRenderer = ({ field, value, onChange, ctx, inputId }) => (
   <ctx.uiKit.Select
     id={inputId}
@@ -434,6 +478,7 @@ export const BUILTIN_RENDERERS: Readonly<Record<string, FieldRenderer>> = {
   union: UnionRenderer,
   json: JsonRenderer,
   localizedText: JsonRenderer,
+  unlimitedNumber: UnlimitedNumberRenderer,
 };
 
 const CONTAINERS = new Set(["object", "list", "record", "union"]);
@@ -538,19 +583,29 @@ export type SchemaFormProps = {
   ctx: SchemaFormContext;
 };
 
+/** `field.meta.hiddenWhenEquals`: oculta el campo si otra propiedad de primer nivel vale eso. */
+type HiddenWhenEquals = { field: string; value: unknown };
+
+function isHiddenBySibling(field: FormField, value: Record<string, unknown>): boolean {
+  const condition = field.meta?.hiddenWhenEquals as HiddenWhenEquals | undefined;
+  return condition !== undefined && value[condition.field] === condition.value;
+}
+
 /** Formulario generado: una fila por propiedad de primer nivel del esquema. */
 export function SchemaForm({ root, value, onPropertyChange, ctx }: SchemaFormProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }} data-schema-form="">
-      {(root.fields ?? []).map((field) => (
-        <FieldView
-          key={field.key}
-          field={field}
-          value={value[field.key]}
-          onChange={(next) => onPropertyChange(field.key, next)}
-          ctx={ctx}
-        />
-      ))}
+      {(root.fields ?? [])
+        .filter((field) => !isHiddenBySibling(field, value))
+        .map((field) => (
+          <FieldView
+            key={field.key}
+            field={field}
+            value={value[field.key]}
+            onChange={(next) => onPropertyChange(field.key, next)}
+            ctx={ctx}
+          />
+        ))}
     </div>
   );
 }

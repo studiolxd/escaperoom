@@ -49,6 +49,7 @@ export type InspectorLabels = {
     newKey: string;
     invalidJson: string;
     language: string;
+    unlimited: string;
   };
   errors: Record<string, string>;
 };
