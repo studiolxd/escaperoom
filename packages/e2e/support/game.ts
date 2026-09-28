@@ -191,6 +191,18 @@ export class UiPlayer {
     await this.page.getByRole("button", { name: action, exact: true }).click();
   }
 
+  /**
+   * Comprueba que un objeto en estado `"oculto"` (p. ej. la llave del suelo
+   * antes de revelar el cuadro) NO abre el menú contextual al clicarlo — la
+   * zona de clic se desactiva mientras esté oculto (revisión en vivo).
+   */
+  async expectNotInteractable(objectId: string): Promise<void> {
+    await this.clickObjectOnCanvas(objectId);
+    await expect(this.page.getByRole("button", { name: "Cancelar", exact: true })).not.toBeVisible({
+      timeout: 2_000,
+    });
+  }
+
   async inspect(objectId: string): Promise<void> {
     await this.objectAction(objectId, "Inspeccionar");
   }

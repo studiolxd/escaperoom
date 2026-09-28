@@ -65,8 +65,11 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
   });
 
   await test.step("Salón del Trono (pasos 1–6)", async () => {
-    // 1. Inspeccionar el cuadro revela la llave en el suelo (revisión en
-    // vivo, pickupObjectId); hay que inspeccionarla aparte para recogerla.
+    // 1. Antes de inspeccionar el cuadro, la llave del suelo está oculta:
+    // clicar donde estará no abre ningún menú (revisión en vivo).
+    await a.expectNotInteractable("llave-bronce-suelo");
+    // Inspeccionar el cuadro revela la llave en el suelo (pickupObjectId);
+    // hay que inspeccionarla aparte para recogerla.
     await a.inspect("cuadro-aurelio");
     await a.inspect("llave-bronce-suelo");
     await a.expectItems("Llave de bronce");
