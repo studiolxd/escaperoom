@@ -1487,7 +1487,16 @@ export class RoomScene extends Phaser.Scene {
     if (!room) {
       return undefined;
     }
-    return nearestInteractable(room.objects, cell, { radius, facing })?.id;
+    // Un objeto en estado "oculto" (revisión en vivo, p. ej. la llave del
+    // suelo antes de revelarse) no cuenta como interactuable aquí tampoco:
+    // `nearestInteractable` solo mira `object.interactable` (estático), así
+    // que sin este filtro el espacio (`interactNearest`) y soltar un ítem
+    // encima (`dropItemAt`) se lo saltaban y lo interactuaban igual, aunque
+    // la zona de clic ya estuviera desactivada (`updateInteractivity`).
+    const visible = room.objects.filter(
+      (object) => currentObjectState(this.objectState, object) !== "oculto",
+    );
+    return nearestInteractable(visible, cell, { radius, facing })?.id;
   }
 
   private showDialog(text: string): void {
