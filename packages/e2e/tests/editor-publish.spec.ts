@@ -136,7 +136,11 @@ test("editor: 2 pestañas coeditan, validan en verde, publican con confirmación
     await expect(tabA.getByRole("status")).toContainText("¡Publicada!");
 
     await tabA.goto("rooms");
-    await expect(tabA.locator(`[data-room-id="${roomId}"]`)).toBeVisible();
+    // Dentro de `<main>`: durante el streaming, React deja un instante la
+    // parrilla ya transmitida en su búfer oculto (`<div hidden id="S:…">`, al
+    // final del `<body>`) a la vez que la ya revelada, y el locator sin
+    // acotar resolvía a las dos tarjetas (strict mode) en la carga en frío.
+    await expect(tabA.getByRole("main").locator(`[data-room-id="${roomId}"]`)).toBeVisible();
   });
 
   await test.step("la versión publicada lleva lo coeditado en las dos pestañas", async () => {
