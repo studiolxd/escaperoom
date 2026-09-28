@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { cn } from "cn";
 import { Lightbulb } from "lucide-react";
 import { resolveIconFrame, type RuntimeModel } from "@escaperoom/game-runtime";
@@ -164,6 +164,14 @@ export function GameSessionShell({
       </span>
     ) : null;
   const sectionRef = useRef<HTMLElement | null>(null);
+  /**
+   * Tira de inventario siempre visible (abajo-derecha, últimos 3 objetos):
+   * soltar un ítem sobre otro AHÍ combinaba silenciosamente (o ni eso,
+   * revisión en vivo) porque solo eran arrastrables hacia el mundo, sin
+   * `onDrop` propio para combinar entre ellos como sí hace el panel completo
+   * (`InventoryPanel.dropOn`). Solo resalte visual del objetivo del arrastre.
+   */
+  const [inventoryStripDropTarget, setInventoryStripDropTarget] = useState<string | null>(null);
 
   const { preventEscapeIfDialogOpen } = useHudHotkeys({
     dialog: hud.dialog,
@@ -364,8 +372,31 @@ export function GameSessionShell({
                         event.dataTransfer.setData("text/plain", itemId);
                         event.dataTransfer.effectAllowed = "move";
                       }}
-                      onDragEnd={() => hud.setDraggingItem(null)}
-                      className="flex aspect-square size-11 cursor-grab items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 active:cursor-grabbing dark:border-amber-300/40 dark:bg-amber-300/10"
+                      onDragEnd={() => {
+                        hud.setDraggingItem(null);
+                        setInventoryStripDropTarget(null);
+                      }}
+                      onDragOver={(event) => {
+                        if (!hud.draggingItem || hud.draggingItem === itemId) return;
+                        event.preventDefault();
+                        setInventoryStripDropTarget(itemId);
+                      }}
+                      onDragLeave={() =>
+                        setInventoryStripDropTarget((current) => (current === itemId ? null : current))
+                      }
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        setInventoryStripDropTarget(null);
+                        const dragged = event.dataTransfer.getData("text/plain") || hud.draggingItem;
+                        hud.setDraggingItem(null);
+                        if (!dragged || dragged === itemId) return;
+                        hud.combine([dragged, itemId]);
+                        hud.openInventory();
+                      }}
+                      className={cn(
+                        "flex aspect-square size-11 cursor-grab items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 active:cursor-grabbing dark:border-amber-300/40 dark:bg-amber-300/10",
+                        inventoryStripDropTarget === itemId && "border-amber-300 ring-2 ring-amber-300/50",
+                      )}
                     >
                       {hud.renderItemIcon(itemId, 28)}
                       <span className="sr-only">{hud.itemName(itemId)}</span>
