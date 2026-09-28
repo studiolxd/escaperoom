@@ -299,6 +299,51 @@ function encode(board: readonly number[]): number {
   return board.reduce((key, tile) => key * 10 + tile, 0);
 }
 
+/**
+ * Comprueba que las `cols·rows` celdas del tablero (`data-slot="sliding-board"
+ * > *`, en el mismo orden row-major que pinta `SlidingPanel`) ocupan de
+ * verdad una rejilla 2D visible: todas las celdas miden lo mismo (alto y
+ * ancho) y las filas quedan a alturas (`y`) distintas y crecientes, no todas
+ * apiladas en una (regresión: "solo se ve la última fila del mural" — el
+ * `size-16` + `h-auto` de cada ficha dejaba `h-auto` ganar la altura, que sin
+ * texto colapsa a ~0px; solo la fila con el hueco, sin `h-auto`, tenía alto
+ * real). Una celda de 2px de alto pasaría un check que solo mirase "> 0", así
+ * que compara cada celda contra el tamaño de la mayor.
+ */
+export async function expectSlidingBoardLaidOutAsGrid(
+  page: Page,
+  cols: number,
+  rows: number,
+): Promise<void> {
+  const cells = page.locator('[data-slot="sliding-board"] > *');
+  await expect(cells).toHaveCount(cols * rows);
+  const boxes = await cells.evaluateAll((elements) =>
+    elements.map((element) => {
+      const rect = element.getBoundingClientRect();
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+    }),
+  );
+
+  const expectedHeight = Math.max(...boxes.map((box) => box.height));
+  const expectedWidth = Math.max(...boxes.map((box) => box.width));
+  expect(expectedHeight).toBeGreaterThan(8);
+  for (const box of boxes) {
+    expect(box.height).toBeGreaterThan(expectedHeight * 0.9);
+    expect(box.width).toBeGreaterThan(expectedWidth * 0.9);
+  }
+
+  const rowTops = Array.from({ length: rows }, (_, row) => boxes[row * cols]!.y);
+  const distinctRowTops = new Set(rowTops.map((y) => Math.round(y)));
+  expect(distinctRowTops.size).toBe(rows);
+  for (let row = 1; row < rows; row += 1) {
+    expect(rowTops[row]).toBeGreaterThan(rowTops[row - 1]!);
+  }
+
+  const colLefts = Array.from({ length: cols }, (_, col) => boxes[col]!.x);
+  const distinctColLefts = new Set(colLefts.map((x) => Math.round(x)));
+  expect(distinctColLefts.size).toBe(cols);
+}
+
 /** BFS sobre el tablero visible: índices de las piezas a pulsar hasta ordenarlo. */
 export function solveSliding(tiles: number[], cols: number, rows: number): number[] {
   const goal = encode([...Array.from({ length: cols * rows - 1 }, (_, i) => i + 1), 0]);

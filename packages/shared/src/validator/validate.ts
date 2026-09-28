@@ -12,7 +12,12 @@ import {
   checkStructuralInvariants,
   guardLabel,
 } from "./checks";
-import { checkAssets, checkPuzzleHints, checkRecipeConsumption } from "./heuristics";
+import {
+  checkAssets,
+  checkPuzzleHints,
+  checkRecipeConsumption,
+  checkSlidingDifficulty,
+} from "./heuristics";
 import { recipeLabel, RoomIndex, type Move, type StepEffects } from "./model";
 import { createOracle } from "./oracles";
 import {
@@ -732,7 +737,7 @@ function difficultyCheck(pkg: RoomPackage, estimate: DurationEstimate | null): V
       true,
     );
   }
-  const issues: ValidationIssue[] = [];
+  const issues: ValidationIssue[] = [...checkSlidingDifficulty(pkg)];
   const detail = `estimación ~${estimate.minutes} min, rango ${estimate.range.min}–${estimate.range.max}, ruta de ${estimate.routeSteps} pasos`;
   if (Math.abs(estimatedMinutes - estimate.minutes) > estimatedMinutes * DURATION_TOLERANCE) {
     issues.push({

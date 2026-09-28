@@ -153,6 +153,18 @@ interface SlidingPuzzleDefinition extends PuzzleDefinition {
 - **Solvabilidad:** si `random`, el servidor/editor baraja **haciendo movimientos válidos desde
   la posición resuelta** (nunca una permutación impar). Con `fixed_seed`, todos los grupos
   reciben el mismo desorden (justicia competitiva en eventos).
+- **Dificultad mínima garantizada.** No basta con evitar la posición resuelta exacta: una mezcla
+  al azar puede quedar "casi resuelta" (pocas fichas fuera de sitio, poco trabajo para el grupo).
+  `scrambleSlidingTiles` exige que la distancia de Manhattan de la mezcla presentada a la
+  solución llegue a un umbral que escala con la rejilla: la mitad de la distancia media de una
+  mezcla uniformemente aleatoria de ese tamaño (`(cols²-1)/(3·cols) + (rows²-1)/(3·rows)` por
+  ficha, × nº de fichas, ÷ 2; para 3×3 el umbral es 7, sobre una media de ~14.2). Si la mezcla no
+  llega, reintenta (bucle acotado, avanzando el mismo generador) y, si aun así no lo alcanza, cae
+  a un plan B determinista (fichas en orden inverso) que sí lo garantiza — siempre resoluble. Con
+  `fixed_seed` los reintentos consumen la misma secuencia derivada de la semilla: la misma
+  semilla siempre produce la misma mezcla final. El configurador del editor usa la misma función
+  (`preview.ts`) y el validador avisa (🟡, no bloquea) si una definición `fixed_seed` no llegara
+  al umbral — no debería pasar nunca, dada la garantía anterior.
 
 ### 6. `memory` — Memoria · *panel (React)*
 
