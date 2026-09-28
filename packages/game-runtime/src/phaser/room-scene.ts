@@ -1715,6 +1715,16 @@ export class RoomScene extends Phaser.Scene {
       y -= 1;
     }
 
+    // Cada tecla sola ya suma ±1 en los dos ejes de rejilla (para que "arriba"
+    // sea arriba en pantalla pese a la proyección isométrica): con dos teclas
+    // adyacentes pulsadas a la vez (p. ej. arriba+derecha) las sumas se
+    // acumulan sin tope (`x`/`y` podían llegar a ±2), y como `AvatarController`
+    // multiplica esto directamente por la velocidad, el avatar se movía más
+    // rápido de lo normal en vez de en diagonal a la velocidad de siempre
+    // (revisión en vivo). Se topa cada eje a -1/0/1 antes de devolverlo.
+    x = Math.sign(x);
+    y = Math.sign(y);
+
     return x === 0 && y === 0 ? null : { x, y };
   }
 
