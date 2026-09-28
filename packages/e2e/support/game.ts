@@ -248,6 +248,36 @@ export class UiPlayer {
    * `inspect`/`openPanel`.
    */
   async goTo(doorObjectId: string): Promise<void> {
+    // Carrera cliente/servidor (encargo revisión en vivo): si el avatar llega
+    // a la puerta antes de que el cliente haya aplicado el parche que la
+    // marca "open" (p. ej. justo tras resolver un puzzle que la desbloquea),
+    // `onWorldEvent` abre su menú contextual en vez de cruzarla sola. En ese
+    // caso se cancela el menú y se reintenta el clic — para entonces el
+    // estado ya habrá llegado.
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await this.clickObjectOnCanvas(doorObjectId);
+      const cancel = this.page.getByRole("button", { name: "Cancelar", exact: true });
+      const crossed = await Promise.race([
+        this.page
+          .waitForFunction(
+            (id) => window.__escaperoomGame?.getObjectScreenFraction(id) === undefined,
+            doorObjectId,
+            { timeout: 5_000 },
+          )
+          .then(() => true)
+          .catch(() => false),
+        cancel
+          .waitFor({ state: "visible", timeout: 5_000 })
+          .then(() => false)
+          .catch(() => false),
+      ]);
+      if (crossed) return;
+      if (await cancel.isVisible().catch(() => false)) {
+        await cancel.click();
+        continue;
+      }
+    }
+    // Último intento "normal", con el timeout completo, para dar el error real si sigue fallando.
     await this.clickObjectOnCanvas(doorObjectId);
     await this.page.waitForFunction(
       (id) => window.__escaperoomGame?.getObjectScreenFraction(id) === undefined,

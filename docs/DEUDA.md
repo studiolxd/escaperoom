@@ -137,19 +137,24 @@ Tareas pendientes que no bloquean pero hay que resolver.
       (`empaquetar_avatar.py` + `empaquetar_retrato.py`) y quitar la entrada correspondiente de
       `tools/assets-generator/packs/medieval-v1/entregas/avatares/`.
 - [ ] **Smoke E2E (`game.reyaldric.spec.ts`) intermitente en el último paso (cruzar
-      `puerta-bodega`).** El pathfinding real ya está implementado (BFS con
-      simplificado de ruta, `packages/game-runtime/src/world/pathfinding.ts`,
-      `findPath`/`simplifyPath`, revisión en vivo) y sustituye a la vieja heurística de
-      "rectángulo delimitador libre" (`hasClearPath`, insuficiente en salas no
-      rectangulares) — el avatar ya no se queda clavado contra una estatua u otro
-      obstáculo con el destino detrás, ni al ir a `cuadro-aurelio` desde el spawn ni al
-      ir de las placas a la puerta. En 3 ejecuciones seguidas del smoke test tras el
-      arreglo, los pasos 1–5 (candado, cuadro, armario, combinar, brasero) pasaron las
-      3 veces; el registro del juego confirma que ambos jugadores llegan a cruzar de
-      verdad a la Bodega ("Entras en La Bodega de los Vinos Encantados"), pero el
-      `page.waitForFunction` de `UiPlayer.goTo` (`packages/e2e/support/game.ts`) que
-      espera a que la puerta deje de estar en la sala visible falló por timeout en 1 de
-      esas 3 veces pese a que el cruce sí ocurrió — parece timing del propio arnés de
-      pruebas (dos `BrowserContext`, sincronización de red) más que un bug de
-      movimiento. Revisar si `goTo` necesita más margen o una espera distinta antes de
-      dar el smoke test por estable.
+      `puerta-bodega`).** El pathfinding real (BFS + simplificado de ruta,
+      `packages/game-runtime/src/world/pathfinding.ts`) ya está confirmado NO ser la
+      causa: un script de comprobación directo (`findPath`/`approachCell` contra el
+      grid de colisión real de `salon-trono`) encuentra ruta en 2–3 waypoints desde
+      cualquier punto plausible de la sala hasta la puerta, sin ningún atasco. El
+      candidato más probable ahora es una carrera entre el cliente y el servidor al
+      cruzar justo después de resolver las placas: `onWorldEvent` (`use-game-hud.tsx`,
+      caso `"interact"`) solo cruza la puerta sola si
+      `snapshot.objects[objectId] === "open"` en el momento exacto en que el avatar
+      llega — si el cliente aún no ha aplicado el parche del servidor que marca la
+      puerta como abierta (justo tras `puzzle_solved` de las placas), llegar a su
+      celda abre el menú contextual en vez de cruzar, y `UiPlayer.goTo` (que solo
+      espera a que la puerta desaparezca de la vista, sin manejar ese caso) se queda
+      esperando hasta el timeout. En 2 de 3 ejecuciones completas del smoke test tras
+      el pathfinding real, los pasos 1–5 pasaron las 3 veces y el registro del juego
+      confirma que ambos jugadores SÍ llegan a cruzar de verdad a la Bodega ("Entras en
+      La Bodega de los Vinos Encantados"); solo el `goTo` final dio timeout de forma
+      intermitente. Pendiente: confirmar la carrera con logs del cliente en el momento
+      del fallo, y decidir el arreglo — o bien `goTo` cierra un menú contextual
+      inesperado y reintenta el clic, o bien el cliente reintenta el cruce cuando llega
+      a una puerta que su propio estado aún no ve abierta (en vez de abrir el menú).
