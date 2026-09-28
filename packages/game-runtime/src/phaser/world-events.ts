@@ -19,6 +19,16 @@ export type WorldSceneEvent =
   /** Intención: el jugador ha soltado un item del inventario sobre un objeto. */
   | { type: "use-item"; itemId: string; objectId: string }
   /**
+   * Intención: el jugador soltó un ítem sobre un objeto que NO tiene una
+   * regla `on_use_item` para ese ítem (revisión en vivo, p. ej. la antorcha
+   * sobre el brasero: su mecánica es "tenerla en el inventario e
+   * interactuar", no "usarla sobre el objeto"). Al arrastrar y soltar, la
+   * intención de la persona ya es clara — interactúa directo, sin abrir el
+   * menú a elegir Inspeccionar/Usar objeto (eso es solo para el clic
+   * normal, sin ítem de por medio).
+   */
+  | { type: "interact-direct"; objectId: string }
+  /**
    * Posición del avatar local (celdas, con decimales) mientras se mueve. Solo
    * con `emitAvatarMoves`: el cliente de red la envía al servidor, que es el
    * autoritativo (placas y mirillas dependen de ella).

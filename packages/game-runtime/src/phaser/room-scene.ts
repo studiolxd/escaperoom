@@ -1098,13 +1098,18 @@ export class RoomScene extends Phaser.Scene {
       const itemId = this.pendingItemId;
       this.pendingItemId = undefined;
       // Sin una regla `on_use_item` real para este ítem, "usarlo" no
-      // dispara nada (revisión en vivo, p. ej. la antorcha sobre el
-      // brasero: su mecánica es "tenerla en el inventario e interactuar",
-      // no "usarla sobre el objeto"). Interactuar en su lugar deja que la
-      // condición del propio objeto la consuma, el mismo resultado que
-      // clicarlo con el ítem ya en el inventario.
+      // dispara nada por sí solo (revisión en vivo, p. ej. la antorcha
+      // sobre el brasero: su mecánica es "tenerla en el inventario e
+      // interactuar", no "usarla sobre el objeto"). Interactuar en su
+      // lugar deja que la condición del propio objeto la consuma, el mismo
+      // resultado que clicarlo con el ítem ya en el inventario — pero
+      // DIRECTO, sin abrir el menú a elegir Inspeccionar/Usar objeto: al
+      // soltar el ítem aquí la persona ya dijo lo que quería hacer, el
+      // menú era una elección de más (revisión en vivo).
       if (itemId && object.useItemIds?.includes(itemId)) {
         this.emit({ type: "use-item", itemId, objectId });
+      } else if (itemId) {
+        this.emit({ type: "interact-direct", objectId });
       } else {
         this.inspectObjectById(objectId);
       }
@@ -1445,7 +1450,7 @@ export class RoomScene extends Phaser.Scene {
       if (object.useItemIds?.includes(itemId)) {
         this.emit({ type: "use-item", itemId, objectId: target });
       } else {
-        this.inspectObjectById(target);
+        this.emit({ type: "interact-direct", objectId: target });
       }
       return target;
     }

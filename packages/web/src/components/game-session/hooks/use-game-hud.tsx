@@ -580,6 +580,14 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
         setSelected(null);
         setPickerFor(null);
         applyItemUse(event.itemId, event.objectId);
+      } else if (event.type === "interact-direct") {
+        // Soltar un ítem sobre un objeto sin `on_use_item` para él (revisión
+        // en vivo, p. ej. la antorcha sobre el brasero): interactuar
+        // directo, sin el menú Inspeccionar/Usar objeto — al arrastrar y
+        // soltar la persona ya dijo lo que quería hacer.
+        setSelected(null);
+        setPickerFor(null);
+        inspect(event.objectId);
       } else if (event.type === "enter-room") {
         // La escena ya muestra la sala nueva; el servidor confirma o corrige.
         sceneRoomRef.current = event.roomId;
@@ -593,7 +601,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
         }
       }
     },
-    [client, applyItemUse, enterRoom, sceneRoomRef, model],
+    [client, applyItemUse, enterRoom, inspect, sceneRoomRef, model],
   );
 
   const togglePlate = useCallback(
