@@ -237,6 +237,7 @@ export function aldricScript(pkg: RoomPackage): {
     // ── Fase C — victoria y reloj ─────────────────────────────────────────
     rule("r-sello-resuelto");
     rule("r-aviso-10min");
+    rule("r-aviso-5min");
     rule("r-tiempo-agotado");
     return out;
   };

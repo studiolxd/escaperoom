@@ -2345,6 +2345,26 @@
       ]
     },
     {
+      "id": "r-aviso-5min",
+      "priority": 50,
+      "once": true,
+      "trigger": {
+        "type": "on_time_remaining_below",
+        "seconds": 300
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-aviso-5min"
+        },
+        {
+          "type": "play_sound",
+          "soundId": "fx-tension"
+        }
+      ]
+    },
+    {
       "id": "r-inspeccionar-trono",
       "priority": 0,
       "once": false,
@@ -2602,7 +2622,7 @@
       "id": "d-aviso",
       "text": {
         "es": {
-          "text": "La arena casi ha caído. ¡Diez minutos!"
+          "text": "¡Diez minutos! Corred o el mago Malrec se saldrá con la suya."
         }
       }
     },
@@ -2683,6 +2703,14 @@
       "text": {
         "es": {
           "text": "Recoges la llave de bronce del suelo."
+        }
+      }
+    },
+    {
+      "id": "d-aviso-5min",
+      "text": {
+        "es": {
+          "text": "¡Cinco minutos! Si nos dais prisa, el alma del rey Aldric quedará sellada para siempre."
         }
       }
     }
