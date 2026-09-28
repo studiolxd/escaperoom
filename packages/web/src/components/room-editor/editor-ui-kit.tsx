@@ -1,6 +1,12 @@
 "use client";
 
-import type { EditorUiKit, UiButtonProps, UiCheckboxProps, UiSelectProps } from "@escaperoom/editor";
+import type {
+  EditorUiKit,
+  UiButtonProps,
+  UiCheckboxProps,
+  UiSelectProps,
+  UiSwitchProps,
+} from "@escaperoom/editor";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -11,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 
 /**
@@ -89,10 +96,33 @@ function KitCheckbox({
   );
 }
 
+function KitSwitch({
+  checked,
+  onCheckedChange,
+  disabled,
+  id,
+  className,
+  style,
+  ...rest
+}: UiSwitchProps) {
+  return (
+    <Switch
+      id={id}
+      className={className}
+      style={style}
+      checked={checked}
+      disabled={disabled}
+      onCheckedChange={(next) => onCheckedChange(next === true)}
+      {...rest}
+    />
+  );
+}
+
 export const EDITOR_UI_KIT: Partial<EditorUiKit> = {
   Button: KitButton,
   Input,
   Textarea,
   Select: KitSelect,
   Checkbox: KitCheckbox,
+  Switch: KitSwitch,
 };

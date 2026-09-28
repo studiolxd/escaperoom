@@ -125,7 +125,9 @@
     "submit": "Abrir",
     "pending": "Comprobando…",
     "attempts": "Intentos: {used}/{max}",
+    "attemptsUnlimited": "Intentos: {used}",
     "wrong": "Código incorrecto · quedan {count} intentos",
+    "wrongUnlimited": "Código incorrecto",
     "lockedOut": "Bloqueado · inténtalo de nuevo en {seconds} s",
     "locked": "El candado aún no está disponible",
     "unavailable": "El candado no acepta más intentos",
@@ -911,7 +913,8 @@
         "key": "Nombre",
         "newKey": "Nuevo nombre",
         "invalidJson": "JSON no válido: revisa el texto.",
-        "language": "Idioma"
+        "language": "Idioma",
+        "unlimited": "Sin límite"
       },
       "errors": {
         "UNKNOWN_TARGET": "El elemento ya no existe.",

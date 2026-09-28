@@ -50,12 +50,16 @@ export type UiCheckboxProps = {
   "aria-label"?: string;
 };
 
+/** Mismo contrato que `UiCheckboxProps`: un interruptor on/off (`Switch` en shadcn/ui). */
+export type UiSwitchProps = UiCheckboxProps;
+
 export type EditorUiKit = {
   Button: (props: UiButtonProps) => ReactNode;
   Input: (props: UiInputProps) => ReactNode;
   Textarea: (props: UiTextareaProps) => ReactNode;
   Select: (props: UiSelectProps) => ReactNode;
   Checkbox: (props: UiCheckboxProps) => ReactNode;
+  Switch: (props: UiSwitchProps) => ReactNode;
 };
 
 function NativeButton({ variant, size, ...rest }: UiButtonProps) {
@@ -133,6 +137,8 @@ export const DEFAULT_UI_KIT: EditorUiKit = {
   Textarea: NativeTextarea,
   Select: NativeSelect,
   Checkbox: NativeCheckbox,
+  // Sin control nativo de interruptor: un checkbox nativo se comporta igual.
+  Switch: NativeCheckbox,
 };
 
 export function resolveUiKit(components?: Partial<EditorUiKit>): EditorUiKit {

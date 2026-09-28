@@ -24,7 +24,8 @@ export type BuiltinFormFieldKind =
   | "record"
   | "union"
   | "localizedText"
-  | "json";
+  | "json"
+  | "unlimitedNumber";
 
 export type FormFieldKind = BuiltinFormFieldKind | (string & {});
 
@@ -140,6 +141,22 @@ export const BUILTIN_FIELD_KINDS: readonly FieldKindDefinition[] = [
         return field.integer ? Math.floor(field.min) + 1 : field.min + 1;
       return field.integer ? Math.ceil(field.min) : field.min;
     },
+  },
+  {
+    // Nunca se auto-selecciona: solo por `hint.kind` (`maxAttempts` de `code_lock`, §4 encargo
+    // candado-ilimitado). Un número con un valor "sin límite" (`meta.unlimitedValue`) alternado
+    // por un interruptor; al desactivarlo vuelve a `meta.restoredValue`.
+    kind: "unlimitedNumber",
+    match: () => false,
+    build: (s) => {
+      const n = s as z.ZodNumber;
+      const min = n.minValue;
+      return {
+        integer: typeof n.format === "string" && n.format.includes("int"),
+        ...(min !== null && Number.isFinite(min) ? { min } : {}),
+      };
+    },
+    defaultValue: (field) => (field.meta?.restoredValue as number | undefined) ?? 0,
   },
   { kind: "boolean", match: (s) => s instanceof z.ZodBoolean, defaultValue: () => false },
   {

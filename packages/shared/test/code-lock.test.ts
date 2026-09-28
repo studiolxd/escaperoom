@@ -28,6 +28,20 @@ function makeDef(overrides: Partial<CodeLockDefinition> = {}): CodeLockDefinitio
   });
 }
 
+describe("code_lock · esquema de maxAttempts", () => {
+  it("acepta 0 (sin límite)", () => {
+    expect(() => makeDef({ maxAttempts: 0 })).not.toThrow();
+  });
+
+  it("rechaza valores negativos", () => {
+    expect(() => makeDef({ maxAttempts: -1 })).toThrow();
+  });
+
+  it("sigue rechazando lockoutSec negativo", () => {
+    expect(() => makeDef({ lockoutSec: -1 })).toThrow();
+  });
+});
+
 describe("code_lock · estado inicial", () => {
   it("arranca disponible sin requiresSolved pendientes", () => {
     const state = createCodeLockState(makeDef());
@@ -124,6 +138,34 @@ describe("code_lock · validación", () => {
 
     const reopened = attemptCode(second.state, def, "4732", 50_000);
     expect(reopened.outcome).toBe("correct");
+  });
+
+  it("maxAttempts: 0 es sin límite — nunca bloquea ni agota intentos", () => {
+    const def = makeDef({ maxAttempts: 0, lockoutSec: 30 });
+    let state = createCodeLockState(def);
+
+    for (let i = 1; i <= 20; i += 1) {
+      const result = attemptCode(state, def, "0000", 1_000 * i);
+      expect(result.outcome).toBe("wrong");
+      expect(result.state.state).toBe("in_progress");
+      expect(result.state.lockedUntil).toBeNull();
+      state = result.state;
+    }
+    expect(state.attempts).toBe(20);
+
+    const correct = attemptCode(state, def, "4732", 100_000);
+    expect(correct.outcome).toBe("correct");
+    expect(correct.state.state).toBe("solved");
+  });
+
+  it("la vista pública de un candado sin límite marca unlimited y no muestra 0 restantes", () => {
+    const def = makeDef({ maxAttempts: 0, lockoutSec: 0 });
+    const wrong = attemptCode(createCodeLockState(def), def, "0000", 1_000);
+    const view = toCodeLockPublicView(wrong.state, def);
+    expect(view.unlimited).toBe(true);
+    expect(view.maxAttempts).toBe(0);
+    expect(view.remainingAttempts).toBeGreaterThan(0);
+    expect(wrong.remainingAttempts).toBeGreaterThan(0);
   });
 
   it("con lockoutSec 0 el fallo es definitivo", () => {

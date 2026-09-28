@@ -4,6 +4,7 @@ import { clueRequirements, computeCodeClues } from "./clues";
 import {
   analyzeDoubleUse,
   analyzeRepeatableRules,
+  checkCodeLockUnlimitedLockout,
   checkCooperativeBridges,
   checkGeometry,
   checkReferences,
@@ -140,6 +141,7 @@ export function validateRoomPackage(
     geometryCheck(pkg),
     structureCheck(pkg),
     spawnCapacityCheck(pkg),
+    codeLockUnlimitedLockoutCheck(pkg),
     orphansCheck(
       index,
       closures.map((closure) => closure.state),
@@ -434,6 +436,17 @@ function spawnCapacityCheck(pkg: RoomPackage): ValidationCheck {
     issues,
     "spawnPoints suficientes para players.max en toda habitación",
     `Habitaciones con spawnPoints insuficientes: ${issues.map((issue) => issue.ids[0]).join(", ")}`,
+  );
+}
+
+function codeLockUnlimitedLockoutCheck(pkg: RoomPackage): ValidationCheck {
+  const issues = checkCodeLockUnlimitedLockout(pkg);
+  return check(
+    "code_lock_unlimited_lockout",
+    "warning",
+    issues,
+    "Sin candados ilimitados con lockoutSec muerto",
+    `Candados sin límite con lockoutSec que nunca se aplica: ${issues.map((issue) => issue.ids[0]).join(", ")}`,
   );
 }
 

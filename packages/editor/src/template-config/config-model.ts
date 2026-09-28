@@ -3,6 +3,7 @@ import {
   type PuzzleDefinition,
   type PuzzleType,
 } from "@escaperoom/shared/schemas";
+import { CODE_LOCK_DEFAULT_MAX_ATTEMPTS } from "@escaperoom/shared/templates";
 import { isTemplateSolvable } from "@escaperoom/shared/validator";
 import type * as Y from "yjs";
 import { z } from "zod";
@@ -11,6 +12,7 @@ import { PUZZLE_TYPE_REFS } from "../inspector/references";
 import {
   describeSchema,
   refHints,
+  type FieldHint,
   type FieldKindDefinition,
   type FormField,
 } from "../inspector/schema-form";
@@ -53,6 +55,19 @@ export type TemplateConfigFormOptions = {
 };
 
 /**
+ * `code_lock`: interruptor "Sin límite" sobre `maxAttempts` (kind `unlimitedNumber`, §4 encargo
+ * candado-ilimitado) que guarda 0 y, al desactivarlo, vuelve al defecto (5); con 0, `lockoutSec`
+ * no se aplica (§2), así que su campo se oculta (`hiddenWhenEquals`).
+ */
+const CODE_LOCK_HINTS: Record<string, FieldHint> = {
+  maxAttempts: {
+    kind: "unlimitedNumber",
+    meta: { unlimitedValue: 0, restoredValue: CODE_LOCK_DEFAULT_MAX_ATTEMPTS },
+  },
+  lockoutSec: { meta: { hiddenWhenEquals: { field: "maxAttempts", value: 0 } } },
+};
+
+/**
  * Formulario de la configuración de una plantilla, generado de su esquema Zod
  * (mismo generador que el inspector). Los campos que apuntan a otros elementos
  * (placas, ítems-puente, compuertas…) llevan su `ref` de `PUZZLE_TYPE_REFS`.
@@ -64,7 +79,10 @@ export function describeTemplateConfig(
   const keys = Object.fromEntries(templateConfigKeys(type).map((key) => [key, true as const]));
   return describeSchema(templateVariant(type).pick(keys as never), {
     kinds: options.kinds,
-    hints: refHints(PUZZLE_TYPE_REFS[type]),
+    hints: {
+      ...refHints(PUZZLE_TYPE_REFS[type]),
+      ...(type === "code_lock" ? CODE_LOCK_HINTS : {}),
+    },
   });
 }
 

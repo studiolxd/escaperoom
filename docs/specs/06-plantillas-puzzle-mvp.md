@@ -71,13 +71,14 @@ interface CodeLockDefinition extends PuzzleDefinition {
   type: 'code_lock';
   length: number;                    // 4–6 dígitos
   code: string;                      // "4732" (solo en servidor, jamás en el cliente)
-  maxAttempts?: number;
-  lockoutSec?: number;
+  maxAttempts?: number;               // 0 = sin límite (nunca se agota, ignora lockoutSec); sin declarar, 5
+  lockoutSec?: number;                // sin efecto si maxAttempts es 0; sin declarar, 30
   hints: string[];                   // ids de HintDef
 }
 ```
 
-- **Estados:** `locked → available → in_progress → solved` (o `failed` si agota intentos).
+- **Estados:** `locked → available → in_progress → solved` (o `failed` si agota intentos; con
+  `maxAttempts: 0` nunca se llega a `failed` por agotamiento).
 - **Componente:** `<CodeLockPuzzle length={4} maxAttempts={5} />`. Renderiza casillas y envía
   `attempt("4732")`; **nunca conoce el código**. El servidor responde
   `correct | wrong | locked_out(30s)`.
@@ -85,6 +86,10 @@ interface CodeLockDefinition extends PuzzleDefinition {
   lo revela.
 - **Variante símbolos:** misma plantilla con alfabeto de símbolos (`inputUI`), usada por la pista
   dividida.
+- **Sin límite (`maxAttempts: 0`, decisión 2026-09-28):** el panel no muestra "Intentos: X/Y" ni
+  "quedan N intentos" (la vista pública añade `unlimited: true`); el editor ofrece un interruptor
+  "Sin límite" que guarda 0 y oculta "Bloqueo tras fallar (s)" (sin efecto en ese caso); el
+  validador avisa (no bloquea) si un candado ilimitado declara `lockoutSec > 0`.
 
 ### 3. `simultaneous_plates` — Botones simultáneos · *world (Phaser)*
 

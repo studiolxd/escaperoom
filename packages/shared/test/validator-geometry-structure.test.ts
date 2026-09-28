@@ -34,6 +34,7 @@ describe("validador — Rey Aldric pasa limpio los checks nuevos", () => {
     expect(checkOf(report, "geometry").status).toBe("ok");
     expect(checkOf(report, "structure").status).toBe("ok");
     expect(checkOf(report, "spawn_capacity").status).toBe("ok");
+    expect(checkOf(report, "code_lock_unlimited_lockout").status).toBe("ok");
   });
 });
 
@@ -144,5 +145,32 @@ describe("validador — cupo de spawnPoints (D-10)", () => {
     const check = checkOf(validateRoomPackage(pkg), "spawn_capacity");
     expect(check.status).toBe("warning");
     expect(check.issues.length).toBeGreaterThan(0);
+  });
+});
+
+describe("validador — candado sin límite con lockoutSec muerto (encargo candado-ilimitado)", () => {
+  it("maxAttempts: 0 con lockoutSec > 0 es un aviso, no un error", () => {
+    const pkg = cloneFixture();
+    const lock = pkg.puzzles.find((p) => p.type === "code_lock");
+    if (lock && lock.type === "code_lock") {
+      lock.maxAttempts = 0;
+      lock.lockoutSec = 30;
+      const report = validateRoomPackage(pkg);
+      const check = checkOf(report, "code_lock_unlimited_lockout");
+      expect(check.status).toBe("warning");
+      expect(check.issues.some((issue) => issue.code === "code_lock_dead_lockout")).toBe(true);
+      expect(report.ok).toBe(true);
+    }
+  });
+
+  it("maxAttempts: 0 con lockoutSec 0 (o sin declarar) no avisa", () => {
+    const pkg = cloneFixture();
+    const lock = pkg.puzzles.find((p) => p.type === "code_lock");
+    if (lock && lock.type === "code_lock") {
+      lock.maxAttempts = 0;
+      lock.lockoutSec = 0;
+      const check = checkOf(validateRoomPackage(pkg), "code_lock_unlimited_lockout");
+      expect(check.status).toBe("ok");
+    }
   });
 });

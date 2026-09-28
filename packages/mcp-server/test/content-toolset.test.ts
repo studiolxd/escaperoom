@@ -325,6 +325,31 @@ describe("errores legibles", () => {
     expect(pkg.map.rooms.find((room) => room.id === LAB)?.grid).toEqual({ cols: 10, rows: 8 });
   });
 
+  it("add_puzzle acepta maxAttempts: 0 (candado sin límite)", async () => {
+    const { client, drafts, roomId } = await withSmallRoom();
+    const puzzle = await call(client, "add_puzzle", {
+      roomId,
+      puzzle: {
+        id: "p-candado-libre",
+        type: "code_lock",
+        roomId: LAB,
+        layer: "panel",
+        requiresSolved: [],
+        grantsItems: [],
+        unlocks: [],
+        length: 3,
+        code: "314",
+        maxAttempts: 0,
+        hints: [],
+      },
+    });
+    expect(puzzle.isError).toBeFalsy();
+    const pkg = await draftPackage(drafts, roomId);
+    expect(pkg.puzzles).toContainEqual(
+      expect.objectContaining({ id: "p-candado-libre", maxAttempts: 0 }),
+    );
+  });
+
   it("la entrada se valida con los esquemas Zod compartidos", async () => {
     const { client, roomId } = await withSmallRoom();
     const puzzle = await call(client, "add_puzzle", {

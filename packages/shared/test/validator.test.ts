@@ -59,6 +59,8 @@ describe("validador — Rey Aldric", () => {
     // las notas: el Rey Aldric solo tiene HintDef para sus dos candados.
     // La auditoría D-3/D-10 añade tres checks nuevos (geometría, invariantes
     // estructurales, cupo de spawnPoints) que tampoco estaban en las notas.
+    // El encargo candado-ilimitado añade el aviso de `lockoutSec` muerto en
+    // candados sin límite (§1), tampoco presente en las notas originales.
     const withoutNewLines = text
       .split("\n")
       .filter(
@@ -66,7 +68,8 @@ describe("validador — Rey Aldric", () => {
           !line.startsWith("🟡 Puzzles sin pista asociada") &&
           !line.startsWith("✅ Geometría íntegra") &&
           !line.startsWith("✅ Invariantes estructurales") &&
-          !line.startsWith("✅ spawnPoints suficientes"),
+          !line.startsWith("✅ spawnPoints suficientes") &&
+          !line.startsWith("✅ Sin candados ilimitados"),
       )
       .join("\n");
     expect(icons(withoutNewLines)).toEqual(expected);

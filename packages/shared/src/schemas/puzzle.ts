@@ -63,8 +63,22 @@ export const CodeLockDefinitionSchema = z.object({
   // Tope bajo a propósito: es el nº de dígitos de un candado, no un texto libre.
   length: z.number().int().positive().max(64),
   code: z.string().max(MAX_CONTENT_STRING_LENGTH),
-  maxAttempts: z.number().int().positive().optional(),
-  lockoutSec: z.number().int().nonnegative().optional(),
+  maxAttempts: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe(
+      "Intentos antes de bloquear el candado. 0 = sin límite: nunca se agota, ignora lockoutSec. Sin declarar, usa el defecto (5).",
+    )
+    .optional(),
+  lockoutSec: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe(
+      "Bloqueo temporal en segundos tras agotar los intentos; 0 = fallo definitivo. Sin efecto si maxAttempts es 0 (sin límite).",
+    )
+    .optional(),
   hints: z.array(z.string()).max(MAX_CONTENT_ARRAY_ITEMS).optional(),
 });
 
