@@ -7,6 +7,7 @@ import { Lightbulb } from "lucide-react";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import type { GameClient } from "@escaperoom/game-runtime/session";
+import type { MemoryPublicView } from "@escaperoom/shared/templates";
 import { Button } from "@/components/ui/button";
 import { ChatWindow } from "@/components/chat/chat-panel";
 import { ResultsScreen } from "@/components/game/results-screen";
@@ -195,6 +196,16 @@ export function GameSessionShell({
     },
     [hud],
   );
+
+  // El `memory` solo conoce el `sessionId` del turno (`currentPlayerId`); el
+  // nombre sale de `snapshot.players` (reasignaciones al instante: cambia en
+  // cuanto llega la vista nueva del panel, encargo memory-turnos).
+  const memoryCurrentPlayerName =
+    hud.activePuzzle?.type === "memory" && hud.activeView
+      ? (snapshot.players.find(
+          (player) => player.id === (hud.activeView as MemoryPublicView).currentPlayerId,
+        )?.name ?? null)
+      : null;
 
   return (
     <section
@@ -516,6 +527,7 @@ export function GameSessionShell({
         onTogglePlate={hud.togglePlate}
         onPlacePlatesBridge={hud.placePlatesBridge}
         onPlaceMirror={hud.placeMirror}
+        memoryCurrentPlayerName={memoryCurrentPlayerName}
         platesGetNow={hud.serverNow}
         panelTitle={(panel) => {
           if (panel === "hints") return hud.tp("action.hints");

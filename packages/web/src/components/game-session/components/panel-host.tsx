@@ -42,6 +42,8 @@ export interface PanelHostProps {
   onTogglePlate: (puzzleId: string, objectId: string, active: boolean) => void;
   onPlacePlatesBridge: (puzzleId: string) => void;
   onPlaceMirror: (puzzleId: string) => void;
+  /** Nombre del jugador con el turno de un `memory` (`per_player`); `null` si no se conoce o el turno está libre. */
+  memoryCurrentPlayerName: string | null;
   /**
    * Reloj para la cuenta atrás de `PlatesPanel` (F-43..47 punto 1): el reloj
    * del servidor compensado con el desfase del jugador, nunca `Date.now()` a
@@ -73,6 +75,7 @@ export function PanelHost({
   onTogglePlate,
   onPlacePlatesBridge,
   onPlaceMirror,
+  memoryCurrentPlayerName,
   platesGetNow,
   panelTitle,
   closeLabel,
@@ -136,6 +139,7 @@ export function PanelHost({
               view={activeView as MemoryPublicView}
               onFlip={(flip) => onAttempt(activePuzzle.id, { flip })}
               feedback={feedback.memory as MemoryFeedback}
+              currentPlayerName={memoryCurrentPlayerName}
             />
           ) : null}
           {activePuzzle?.type === "split_clue" && activeView ? (

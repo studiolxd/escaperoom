@@ -25,6 +25,7 @@ import {
   pipesSeedFromId,
   placeSoloBridge,
   placeSplitClueBridge,
+  reassignMemoryTurn as reassignMemoryTurnState,
   revealHiddenKey,
   rotatePipe,
   setPlateActive,
@@ -844,25 +845,48 @@ export class RoomSession {
     return this.applyPlate(puzzleId, plateObjectId, active, now, playerId);
   }
 
-  /** Voltea una carta de `memory` (turnos y aciertos en la plantilla). */
+  /**
+   * Voltea una carta de `memory` (turnos y aciertos en la plantilla).
+   * `eligiblePlayers` (`per_player`): jugadores conectados con el panel de
+   * este puzzle abierto ahora mismo, en orden estable — quien llama decide
+   * (`GameRoom`/`refreshOpenPanels`); por defecto, todos los jugadores de la
+   * partida (playtest local de 1 jugador, o llamadas de test sin sala real).
+   */
   flipMemoryCard(
     puzzleId: string,
     cardId: string,
     now: number = this.now,
     playerId: string = this.playerId,
+    eligiblePlayers: readonly string[] = this.players(),
   ): RoomMemoryFlipResult {
     const def = this.definition(puzzleId, "memory");
     if (this.ended) return { outcome: "unavailable", engine: null, revealedSymbol: null };
-    // La rotación de turno en `turnMode: "per_player"` necesita conocer a los
-    // jugadores reales de la partida (auditoría D-8): antes leía `def.players`,
-    // un campo que el esquema Zod elimina, así que nunca rotaba.
     const flip = flipCard(this.templates.memory.get(puzzleId)!, def, cardId, playerId, now, {
-      players: this.players(),
+      eligiblePlayers,
     });
     this.templates.memory.set(puzzleId, flip.state);
     this.syncRuntime(puzzleId, flip.state);
     const engine = flip.solved ? this.completePuzzle(puzzleId, def, now, playerId) : null;
     return { outcome: flip.outcome, engine, revealedSymbol: flip.revealedSymbol };
+  }
+
+  /**
+   * Reasigna el turno de un `memory` en `turnMode: "per_player"` cuando
+   * cambia la elegibilidad del dueño actual SIN que medie un volteo (cierra
+   * el panel, se desconecta, sale o es expulsado) — evita que el resto de
+   * jugadores elegibles se quede bloqueado esperando su turno para siempre.
+   * `true` si cambió algo (el host debe avisar a los clientes con el panel
+   * abierto); `false` si el dueño actual sigue siendo elegible o no hay
+   * turno que reasignar.
+   */
+  reassignMemoryTurn(puzzleId: string, eligiblePlayers: readonly string[]): boolean {
+    const def = this.definition(puzzleId, "memory");
+    const current = this.templates.memory.get(puzzleId)!;
+    const next = reassignMemoryTurnState(current, def, eligiblePlayers);
+    if (next === current) return false;
+    this.templates.memory.set(puzzleId, next);
+    this.syncRuntime(puzzleId, next);
+    return true;
   }
 
   /** Desliza una ficha del `sliding_puzzle` hacia el hueco. */

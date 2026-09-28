@@ -172,6 +172,20 @@ interface MemoryPuzzleDefinition extends PuzzleDefinition {
 - **Servidor:** lleva estado por grupo (cartas volteadas este turno, parejas encontradas) y
   valida turnos. **Anti-trampa:** el servidor asigna los símbolos a posiciones al crear la
   sesión; el cliente solo recibe "carta 3 volteada = símbolo X" cuando se voltea de verdad.
+- **Turnos en `per_player` (encargo memory-turnos):** el turno rota SOLO entre los jugadores
+  **elegibles** en ese momento — conectados y con el panel de ese `memory` abierto —, nunca hacia
+  alguien que no puede jugarlo (el servidor ya sabe quién por `GameRoom.openPanels` y
+  `player.connected`). La plantilla (`packages/shared/src/templates/memory.ts`) sigue siendo
+  pura: no conoce conexión ni paneles, así que es el host quien le pasa la lista de elegibles en
+  cada volteo (`FlipCardOptions.eligiblePlayers`) y la reasigna cuando cambia SIN que medie un
+  volteo (`reassignMemoryTurn`) — el dueño del turno cierra el panel, se desconecta, sale o es
+  expulsado. Reglas resultantes:
+  - Con un solo jugador elegible, el turno siempre vuelve a él (nunca se bloquea esperando a
+    alguien sin el panel abierto o en otra sala).
+  - Si el dueño del turno deja de ser elegible y no queda nadie más, el turno queda libre
+    (`currentPlayerId: null`); lo toma el primero que voltee.
+  - El modo local (playtest de 1 jugador) sigue igual: al ser el único jugador de la partida,
+    siempre es el único elegible.
 
 ### 7. `split_clue` — Pista dividida · *híbrido (Phaser mecanismo + React entrada)*
 

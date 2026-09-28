@@ -486,6 +486,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     on(GAME_MESSAGES.puzzleClose, (client, payload) =>
       this.withPayload(client, puzzlePayload, payload, (data) => {
         this.openPanels.get(client.sessionId)?.delete(data.puzzleId);
+        this.reassignMemoryTurns();
       }),
     );
     on(GAME_MESSAGES.puzzleAttempt, (client, payload) =>
@@ -928,6 +929,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   override onDrop(client: Client, code?: number): void {
     const player = this.state.players.get(client.sessionId);
     if (player) player.connected = false;
+    // Deja de ser elegible para el turno de cualquier `memory` en curso
+    // (encargo memory-turnos): si lo tenía, pasa a otro elegible o queda
+    // libre, en vez de bloquear al resto esperando a alguien desconectado.
+    this.reassignMemoryTurns();
     if (client.sessionId === this.state.hostId) this.scheduleHostReassignment(client.sessionId);
     if (this.ended) return; // `onLeave` purga: tras `game_ended` no hay reconexión.
     // Partida lanzada (`starting`/`playing`): la plaza se reserva hasta el fin.
@@ -983,6 +988,9 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       });
     }
     this.purgePlayer(client.sessionId);
+    // Ya no es elegible para ningún turno de `memory` (encargo memory-turnos):
+    // cubre la salida consentida y el `kick`, que no pasan por `onDrop`.
+    this.reassignMemoryTurns();
     this.scheduleAbandonedGameCheck();
   }
 
@@ -1058,6 +1066,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     this.pendingReconnections.delete(previousSessionId);
     this.clients.get(previousSessionId)?.leave(CloseCode.CONSENTED, "duplicate_session");
     this.cancelAbandonedGameCheck();
+    // La identidad sigue igual, pero el `sessionId` que tenía el turno de un
+    // `memory` ya no existe (encargo memory-turnos): reasigna de inmediato al
+    // nuevo, sin esperar al `onLeave` (asíncrono) de la sesión anterior.
+    this.reassignMemoryTurns();
   }
 
   /** Libera por completo la plaza de `sessionId` (purga tras la gracia, o salida consentida). */
@@ -1636,7 +1648,13 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       case "memory": {
         const parsed = memoryAttempt.safeParse(attempt);
         if (!parsed.success) return null;
-        return session.flipMemoryCard(puzzle.id, parsed.data.flip, now, actor);
+        return session.flipMemoryCard(
+          puzzle.id,
+          parsed.data.flip,
+          now,
+          actor,
+          this.eligibleMemoryPlayers(puzzle.id),
+        );
       }
       case "pipes": {
         const parsed = pipesAttempt.safeParse(attempt);
@@ -1973,6 +1991,45 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       this.sentPanelViews.set(sessionId, sent);
     }
     sent.set(puzzleId, serializedView);
+  }
+
+  /**
+   * Jugadores elegibles para el turno de un `memory` (`turnMode:
+   * "per_player"`, encargo memory-turnos): conectados Y con el panel de ESE
+   * puzzle abierto ahora mismo, en el orden estable de `session.players()`.
+   * El resto (desconectados, o en la sala pero con otro panel abierto) no
+   * cuenta: si el turno rotara hacia ellos, se quedarían bloqueados sin
+   * poder jugarlo.
+   */
+  private eligibleMemoryPlayers(puzzleId: string): string[] {
+    const session = this.session;
+    if (!session) return [];
+    return session
+      .players()
+      .filter((sessionId) => this.state.players.get(sessionId)?.connected === true)
+      .filter((sessionId) => this.openPanels.get(sessionId)?.has(puzzleId) === true);
+  }
+
+  /**
+   * Reasigna el turno de todos los `memory` en juego cuando cambia la
+   * elegibilidad de alguien SIN que medie un volteo: cierra el panel, se
+   * desconecta, sale o es expulsado (encargo memory-turnos). Sin esto, el
+   * turno podía quedarse en alguien que ya no puede jugarlo y bloquear al
+   * resto indefinidamente. Se llama tras cerrar un panel y tras cualquier
+   * cambio de conexión/plaza; `refreshOpenPanels` ya sabe no reenviar nada si
+   * al final la vista de un cliente no cambió.
+   */
+  private reassignMemoryTurns(): void {
+    const session = this.session;
+    if (!session) return;
+    let changed = false;
+    for (const puzzle of this.roomPackage.puzzles) {
+      if (puzzle.type !== "memory") continue;
+      if (session.reassignMemoryTurn(puzzle.id, this.eligibleMemoryPlayers(puzzle.id))) {
+        changed = true;
+      }
+    }
+    if (changed) this.refreshOpenPanels();
   }
 
   private announceEnd(): void {
