@@ -126,9 +126,18 @@ export function serverEnv(): Record<string, string> {
     EMAIL_PROVIDER: "nodemailer",
     EMAIL_FROM: "no-reply@escaperoom.local",
     EMAIL_FROM_NAME: "EscapeRoom E2E",
-    // Dummy: ningún test de la suite ejercita subida/lectura real a S3/R2
-    // (solo hace falta que requireInProduction vea la variable presente).
-    STORAGE_BUCKET: "escaperoom-e2e-dummy",
+    // El mismo storage en el que el seed sube la portada de Rey Aldric
+    // (`packages/shared/prisma/seed.ts`, SeaweedFS de dev con claves fijas —
+    // `pnpm infra:up` en local, paso "Arrancar SeaweedFS" en CI). Antes era
+    // un bucket ficticio sin credenciales: en cuanto la base tenía
+    // `coverImageKey` (seed con SeaweedFS levantado), la ficha y el catálogo
+    // fallaban al firmar la URL de la portada (`CredentialsProviderError`).
+    STORAGE_PROVIDER: "s3",
+    STORAGE_BUCKET: "escaperoom-assets",
+    STORAGE_REGION: "us-east-1",
+    STORAGE_ENDPOINT: "http://localhost:9002",
+    STORAGE_ACCESS_KEY_ID: "minioadmin",
+    STORAGE_SECRET_ACCESS_KEY: "minioadmin",
     LIVEKIT_URL: "",
     LIVEKIT_API_KEY: "",
     LIVEKIT_API_SECRET: "",

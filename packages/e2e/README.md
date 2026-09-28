@@ -43,7 +43,10 @@ log); `support/auth.ts` lee su token de la tabla `verification` de Postgres para
 sesión. Web y colyseus arrancan con `NODE_ENV=production`, así que necesitan `REDIS_URL`
 (rate limiting, como en producción) además de la base de datos — `support/env.ts` usa
 `REDIS_URL`/`E2E_REDIS_URL` exportada o, por defecto, `redis://localhost:6379` (el
-servicio Redis sin contraseña que levantan `e2e-smoke`/`e2e-nightly` en CI). LiveKit va
+servicio Redis sin contraseña que levantan `e2e-smoke`/`e2e-nightly` en CI). El storage es
+el SeaweedFS de dev (`localhost:9002`, bucket `escaperoom-assets`, claves fijas): el mismo
+en el que el seed sube la portada de Rey Aldric (`pnpm infra:up` en local; paso "Arrancar
+SeaweedFS" de los dos jobs en CI). LiveKit va
 sin configurar (la partida degrada a «sin medios»). Los límites anti-abuso del ticket 6.3
 **siguen encendidos**: los jugadores de los tests van a ritmo de persona (≥ 550 ms entre
 intentos del mismo puzzle).
