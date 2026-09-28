@@ -1016,14 +1016,6 @@ export class RoomScene extends Phaser.Scene {
    */
   private wireInteraction(view: ObjectView): void {
     const { sprite, object } = view;
-    const halfW = OBJECT_HIT_HALF_WIDTH / sprite.scaleX;
-    const halfH = OBJECT_HIT_HALF_HEIGHT / sprite.scaleY;
-    const anchorLocalX = sprite.originX * sprite.frame.width;
-    const anchorLocalY = sprite.originY * sprite.frame.height;
-    sprite.setInteractive(
-      new Phaser.Geom.Rectangle(anchorLocalX - halfW, anchorLocalY - halfH, halfW * 2, halfH * 2),
-      Phaser.Geom.Rectangle.Contains,
-    );
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => this.setHover(object.id));
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => this.clearHover(object.id));
     // `GAMEOBJECT_POINTER_DOWN`, no `_UP` (revisión en vivo): `_UP` hace su
@@ -1042,6 +1034,35 @@ export class RoomScene extends Phaser.Scene {
       }
       this.walkToObject(object.id);
     });
+    this.updateInteractivity(view);
+  }
+
+  /**
+   * Activa o desactiva la zona de clic de un objeto según su estado ACTUAL
+   * (revisión en vivo): un objeto en estado `"oculto"` (la llave/yesquero
+   * antes de revelarse) no debe poder clicarse ni dar brillo de pista —
+   * antes se podía "interactuar" con él estando invisible porque
+   * `interactable` es estático y `wireInteraction` solo se llamaba una vez
+   * al construir la escena. Se reevalúa aquí y desde `syncObjectView` en
+   * cada `set_object_state`, así que un objeto que se oculta de nuevo tras
+   * recogerse (`r-recoger-llave-cuadro`) también deja de ser clicable.
+   */
+  private updateInteractivity(view: ObjectView): void {
+    const { sprite, object } = view;
+    const state = currentObjectState(this.objectState, object);
+    if (!object.interactable || state === "oculto") {
+      sprite.disableInteractive();
+      this.clearHover(object.id);
+      return;
+    }
+    const halfW = OBJECT_HIT_HALF_WIDTH / sprite.scaleX;
+    const halfH = OBJECT_HIT_HALF_HEIGHT / sprite.scaleY;
+    const anchorLocalX = sprite.originX * sprite.frame.width;
+    const anchorLocalY = sprite.originY * sprite.frame.height;
+    sprite.setInteractive(
+      new Phaser.Geom.Rectangle(anchorLocalX - halfW, anchorLocalY - halfH, halfW * 2, halfH * 2),
+      Phaser.Geom.Rectangle.Contains,
+    );
   }
 
   /**
@@ -1203,6 +1224,9 @@ export class RoomScene extends Phaser.Scene {
     const animation = resolveObjectStateAnimation(object, state);
     if (animation) {
       this.playTransition(view.sprite, animation);
+    }
+    if (this.mode !== "edit") {
+      this.updateInteractivity(view);
     }
   }
 
