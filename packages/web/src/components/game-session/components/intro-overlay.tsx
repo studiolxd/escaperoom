@@ -48,9 +48,9 @@ function useSubtitleUrls(subtitles: readonly { lang: string; vtt: string }[]) {
  * (`useLobbyFlow`), así que «Continuar» ya no lleva a un paso intermedio.
  *
  * El vídeo usa el `<video>` nativo (elemento de medios, permitido junto a
- * shadcn/ui) con controles accesibles del navegador, **sin autoplay** (nunca
- * suena solo) y subtítulos opcionales por idioma, con el del jugador por
- * defecto.
+ * shadcn/ui) con controles accesibles del navegador, **sin autoplay**, y
+ * subtítulos opcionales por idioma, con el del jugador por defecto. La
+ * narración de la introducción de texto, en cambio, arranca sola.
  */
 export function IntroOverlay({ intro, onClose }: IntroOverlayProps) {
   const t = useTranslations("Game");
@@ -83,12 +83,15 @@ export function IntroOverlay({ intro, onClose }: IntroOverlayProps) {
           </div>
           {intro.audioUrl ? (
             // Narración opcional (encargo "audio de la introducción"): elemento
-            // de medios nativo, sin autoplay (nunca suena solo), controles del
-            // navegador.
+            // de medios nativo con controles del navegador. Arranca solo
+            // (decisión del usuario): la introducción aparece tras pulsar
+            // «Empezar», así que ya hay gesto del jugador y el navegador lo
+            // permite; si aun así lo bloquea, queda el reproductor.
             // eslint-disable-next-line jsx-a11y/media-has-caption
             <audio
               controls
-              preload="metadata"
+              autoPlay
+              preload="auto"
               src={intro.audioUrl}
               aria-label={t("intro.audioLabel")}
               className="w-full"

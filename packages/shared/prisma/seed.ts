@@ -72,6 +72,28 @@ async function seedCoverImageKey(roomId: string, fileName: string): Promise<stri
   }
 }
 
+/**
+ * Narración de la introducción (ElevenLabs, voz "Gabriel Blanco"): sube
+ * `seed-assets/rey-aldric-intro.mp3` y devuelve la referencia publicada
+ * (`r2://<clave>`) para `meta.intro.audioUrl`, o `undefined` sin storage de
+ * dev — la introducción se muestra igual, solo sin narración.
+ */
+async function seedIntroAudioRef(roomId: string): Promise<string | undefined> {
+  if (!devStorage) return undefined;
+  const key = `rooms/${roomId}/intro.mp3`;
+  try {
+    await devStorage.putObject({
+      key,
+      body: readFileSync(path.join(seedAssetsDir, "rey-aldric-intro.mp3")),
+      contentType: "audio/mpeg",
+    });
+    return `r2://${key}`;
+  } catch (error) {
+    console.warn("⚠️  No se pudo subir la narración de la intro al storage de dev, se sigue sin ella:", error);
+    return undefined;
+  }
+}
+
 type RoomPackageFixture = {
   meta: { title: string; theme: string; version: string };
 };
@@ -178,11 +200,16 @@ async function main() {
   });
 
   const mainCoverImageKey = await seedCoverImageKey(ID.room, "rey-aldric-cover.jpg");
+  const mainIntroAudioRef = await seedIntroAudioRef(ID.room);
   const mainRoomPackage = {
     ...roomPackage,
     meta: {
       ...roomPackage.meta,
-      intro: { type: "text", text: { es: { text: MAIN_ROOM_INTRO_TEXT } } },
+      intro: {
+        type: "text",
+        text: { es: { text: MAIN_ROOM_INTRO_TEXT } },
+        ...(mainIntroAudioRef ? { audioUrl: mainIntroAudioRef } : {}),
+      },
     },
   };
 

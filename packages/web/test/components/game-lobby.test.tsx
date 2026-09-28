@@ -442,6 +442,18 @@ describe("<GameSessionShell> — lobby, introducción y entrada al mapa", () => 
     expect(client.enterMap).toHaveBeenCalledTimes(1);
   });
 
+  it("texto con narración: reproductor bajo el texto que arranca solo", () => {
+    const client = makeClient(makeSnapshot({ phase: "starting" }));
+    const intro: IntroModel = { ...textIntro, audioUrl: "https://bucket.example/intro.mp3" };
+    renderIntl(createElement(GameSessionShell, { model, client, intro }));
+    const audio = screen.getByTestId("game-intro-audio") as HTMLAudioElement;
+    expect(audio).toHaveAttribute("controls");
+    expect(audio.autoplay).toBe(true);
+    expect(audio).toHaveAttribute("src", "https://bucket.example/intro.mp3");
+    const text = screen.getByTestId("game-intro-text");
+    expect(text.compareDocumentPosition(audio) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("vídeo con subtítulos: controles, sin autoplay y pista por idioma", () => {
     const client = makeClient(makeSnapshot({ phase: "starting" }));
     const intro: IntroModel = {
