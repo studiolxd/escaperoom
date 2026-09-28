@@ -27,8 +27,13 @@ export const MEMORY_DECOY_PAIR_PREFIX = "decoy:";
  *
  * Reglas cubiertas (specs/06 §2.6):
  * - **Turnos:** `turnMode: "shared"` es cooperativo (el turno no cambia solo);
- *   `turnMode: "per_player"` pasa el turno al fallar un par, en el orden de
- *   `players` si el host lo conoce.
+ *   `turnMode: "per_player"` pasa el turno al fallar un par, rotando solo
+ *   entre los `eligiblePlayers` que el host conoce en ese momento (conectados
+ *   y con el panel abierto — nunca a alguien que no puede jugarlo, o se
+ *   bloquearía indefinidamente). Si el dueño del turno deja de ser elegible
+ *   sin que medie un volteo (cierra el panel, se desconecta, sale, lo
+ *   expulsan), el host llama a `reassignMemoryTurn` para pasarlo sin esperar
+ *   a que falle una pareja.
  * - **`maxFlipsPerTurn`** (2 por defecto): se acumulan volteos mientras no se
  *   forme pareja; al alcanzar el máximo sin acierto se resuelve el turno
  *   (fallo → pasa el turno en `per_player`; acierto → se reinicia el contador).
@@ -258,12 +263,18 @@ export function findMemoryCard(state: MemoryState, cardId: string): MemoryCard |
  */
 export interface FlipCardOptions {
   /**
-   * Jugadores de la partida, en orden estable (`RoomSession.players()`), para
-   * rotar el turno en `turnMode: "per_player"` (auditoría D-8). Sin ella, el
-   * turno no rota (mismo comportamiento que antes de conocer a los
-   * jugadores: el creador puede probar el puzzle sin partida real).
+   * Jugadores ELEGIBLES para tomar el turno en `turnMode: "per_player"`
+   * (conectados y con el panel de este `memory` abierto), en orden estable.
+   * El turno solo rota entre ellos — nunca a alguien sin el panel abierto o
+   * desconectado, que se quedaría bloqueado esperando su turno sin poder
+   * jugarlo (bloqueo indefinido: partida de varios jugadores con solo uno en
+   * el puzzle, o el dueño del turno se va). La plantilla es pura: no conoce
+   * conexión ni paneles, así que es el host (`RoomSession`/`GameRoom`, o el
+   * cliente local del playtest) quien calcula esta lista en cada acción. Sin
+   * ella, el turno no rota solo (mismo comportamiento que antes de conocer a
+   * los jugadores: el creador puede probar el puzzle sin partida real).
    */
-  players?: readonly string[];
+  eligiblePlayers?: readonly string[];
 }
 
 export function flipCard(
@@ -333,7 +344,7 @@ export function flipCard(
   }
 
   const turnChanged = def.turnMode === "per_player";
-  const nextPlayerId = turnChanged ? nextTurnOwner(state, options.players, actorId) : null;
+  const nextPlayerId = turnChanged ? nextTurnOwner(options.eligiblePlayers, actorId) : null;
   const next: MemoryState = {
     ...state,
     state: "in_progress",
@@ -435,20 +446,49 @@ function findMatchingPairId(cards: MemoryCard[]): string | null {
 }
 
 /**
- * Siguiente dueño del turno en `per_player`: rota respecto a `currentPlayerId`
- * (o `actorId`, quien acaba de fallar) en el orden de `players`, si el host lo
- * conoce. Sin lista de jugadores, no cambia el dueño.
+ * Siguiente dueño del turno en `per_player`: rota al siguiente de
+ * `eligiblePlayers` tras `actorId` (quien acaba de fallar), saltando a
+ * cualquiera que no esté en la lista (desconectado o sin el panel abierto).
+ * Con un solo jugador elegible, el turno siempre vuelve a él. Sin lista (o
+ * vacía), el turno queda libre — lo toma el primero que voltee.
  */
 function nextTurnOwner(
-  state: MemoryState,
-  players: readonly string[] | undefined,
+  eligiblePlayers: readonly string[] | undefined,
   actorId: string,
 ): string | null {
-  const current = state.currentPlayerId ?? actorId;
-  if (players === undefined || players.length === 0) return null;
-  const index = players.indexOf(current);
-  if (index < 0) return players[0] ?? null;
-  return players[(index + 1) % players.length] ?? null;
+  if (eligiblePlayers === undefined || eligiblePlayers.length === 0) return null;
+  if (eligiblePlayers.length === 1) return eligiblePlayers[0] ?? null;
+  const index = eligiblePlayers.indexOf(actorId);
+  if (index < 0) return eligiblePlayers[0] ?? null;
+  return eligiblePlayers[(index + 1) % eligiblePlayers.length] ?? null;
+}
+
+/**
+ * Reasigna el turno de un `memory` en `turnMode: "per_player"` cuando cambia
+ * la elegibilidad SIN que medie un volteo: el dueño del turno cierra el
+ * panel, se desconecta, sale de la partida o es expulsado. Evita el bloqueo
+ * indefinido (el resto de jugadores elegibles quedaría esperando para
+ * siempre a alguien que ya no puede jugar). Si el dueño actual sigue siendo
+ * elegible, o el turno ya está libre, o el modo no es `per_player`, no
+ * cambia nada (misma referencia de `state`, para que el host detecte con
+ * `!==` si tiene que avisar a los clientes). Si reasigna, también descarta
+ * los volteos a medias del turno abandonado.
+ */
+export function reassignMemoryTurn(
+  state: MemoryState,
+  def: MemoryPuzzleDefinition,
+  eligiblePlayers: readonly string[],
+): MemoryState {
+  if (def.turnMode !== "per_player") return state;
+  if (state.currentPlayerId === null) return state;
+  if (eligiblePlayers.includes(state.currentPlayerId)) return state;
+
+  return {
+    ...state,
+    flippedCardIds: [],
+    flipsThisTurn: 0,
+    currentPlayerId: eligiblePlayers[0] ?? null,
+  };
 }
 
 /** Volteo de Fisher–Yates con `rng` inyectable (determinista con semilla fija). */

@@ -9,6 +9,7 @@ import {
   memoryCardCount,
   memoryCols,
   memoryRows,
+  reassignMemoryTurn,
   shuffleMemoryCards,
   toMemoryPublicView,
   type MemoryRng,
@@ -299,21 +300,117 @@ describe("memory · turnMode", () => {
     expect(next.state.currentPlayerId).toBe("p3");
   });
 
-  it("per_player rota al siguiente jugador de la partida cuando se conoce la lista (D-8)", () => {
+  it("per_player rota al siguiente jugador de la partida cuando se conoce la lista", () => {
     const def = makeDef({ turnMode: "per_player" });
     const state = makeState(def);
     const uva = cardIdsForSymbol(state, def).get("uva")![0]!;
     const sol = cardIdsForSymbol(state, def).get("sol")![0]!;
-    const players = ["p1", "p2", "p3"];
+    const eligiblePlayers = ["p1", "p2", "p3"];
 
-    const first = flipCard(state, def, uva, "p1", 1_000, { players });
-    const second = flipCard(first.state, def, sol, "p1", 1_100, { players });
+    const first = flipCard(state, def, uva, "p1", 1_000, { eligiblePlayers });
+    const second = flipCard(first.state, def, sol, "p1", 1_100, { eligiblePlayers });
     expect(second.outcome).toBe("turn_ended");
-    // Con la lista de jugadores, el turno rota a p2 aunque nadie de p2/p3 haya
-    // jugado todavía (antes de D-8, sin `players`, el turno solo cambiaba si
-    // OTRO jugador tomaba la iniciativa por su cuenta).
+    // Con la lista de elegibles, el turno rota a p2 aunque nadie de p2/p3 haya
+    // jugado todavía (sin lista, el turno solo cambiaba si OTRO jugador tomaba
+    // la iniciativa por su cuenta).
     expect(second.state.currentPlayerId).toBe("p2");
     expect(second.nextPlayerId).toBe("p2");
+  });
+
+  it("per_player rota SOLO entre los elegibles: salta a quien no tiene el panel abierto o está desconectado", () => {
+    const def = makeDef({ turnMode: "per_player" });
+    const state = makeState(def);
+    const uva = cardIdsForSymbol(state, def).get("uva")![0]!;
+    const sol = cardIdsForSymbol(state, def).get("sol")![0]!;
+    // p2 está en la partida pero no tiene el panel de este memory abierto (o
+    // está desconectado): el host solo pasa a p1 y p3 como elegibles.
+    const eligiblePlayers = ["p1", "p3"];
+
+    const first = flipCard(state, def, uva, "p1", 1_000, { eligiblePlayers });
+    const second = flipCard(first.state, def, sol, "p1", 1_100, { eligiblePlayers });
+    expect(second.outcome).toBe("turn_ended");
+    expect(second.state.currentPlayerId).toBe("p3");
+  });
+
+  it("per_player con un solo jugador elegible: el turno siempre vuelve a él, sin bloquearse", () => {
+    const def = makeDef({ turnMode: "per_player" });
+    const state = makeState(def);
+    const uva = cardIdsForSymbol(state, def).get("uva")![0]!;
+    const sol = cardIdsForSymbol(state, def).get("sol")![0]!;
+    const eligiblePlayers = ["p1"];
+
+    const first = flipCard(state, def, uva, "p1", 1_000, { eligiblePlayers });
+    const second = flipCard(first.state, def, sol, "p1", 1_100, { eligiblePlayers });
+    expect(second.outcome).toBe("turn_ended");
+    expect(second.state.currentPlayerId).toBe("p1");
+
+    // Sigue jugando sin esperar a nadie: puede voltear de inmediato.
+    const third = flipCard(second.state, def, state.cards[2]!.id, "p1", 1_200, { eligiblePlayers });
+    expect(third.outcome).toBe("flipped");
+  });
+
+  it("per_player con la lista de elegibles vacía: el turno queda libre, lo toma el primero que voltee", () => {
+    const def = makeDef({ turnMode: "per_player" });
+    const state = makeState(def);
+    const uva = cardIdsForSymbol(state, def).get("uva")![0]!;
+    const sol = cardIdsForSymbol(state, def).get("sol")![0]!;
+
+    const first = flipCard(state, def, uva, "p1", 1_000, { eligiblePlayers: ["p1"] });
+    const second = flipCard(first.state, def, sol, "p1", 1_100, { eligiblePlayers: [] });
+    expect(second.outcome).toBe("turn_ended");
+    expect(second.state.currentPlayerId).toBeNull();
+
+    const next = flipCard(second.state, def, state.cards[2]!.id, "p2", 1_200, {
+      eligiblePlayers: [],
+    });
+    expect(next.outcome).toBe("flipped");
+    expect(next.state.currentPlayerId).toBe("p2");
+  });
+});
+
+describe("memory · reassignMemoryTurn (elegibilidad sin volteo)", () => {
+  it("no hace nada si el turno es de `shared` (no rota solo)", () => {
+    const def = makeDef({ turnMode: "shared" });
+    const state = { ...makeState(def), currentPlayerId: "p1" };
+    const next = reassignMemoryTurn(state, def, []);
+    expect(next).toBe(state);
+  });
+
+  it("no hace nada si el turno ya está libre", () => {
+    const def = makeDef({ turnMode: "per_player" });
+    const state = makeState(def);
+    expect(state.currentPlayerId).toBeNull();
+    const next = reassignMemoryTurn(state, def, ["p2"]);
+    expect(next).toBe(state);
+  });
+
+  it("no hace nada si el dueño del turno sigue siendo elegible", () => {
+    const def = makeDef({ turnMode: "per_player" });
+    const state = { ...makeState(def), currentPlayerId: "p1" };
+    const next = reassignMemoryTurn(state, def, ["p1", "p2"]);
+    expect(next).toBe(state);
+  });
+
+  it("pasa el turno al siguiente elegible cuando el dueño cierra el panel, se desconecta o sale", () => {
+    const def = makeDef({ turnMode: "per_player" });
+    const state = {
+      ...makeState(def),
+      currentPlayerId: "p1",
+      flippedCardIds: ["carta-0"],
+      flipsThisTurn: 1,
+    };
+    const next = reassignMemoryTurn(state, def, ["p2", "p3"]);
+    expect(next.currentPlayerId).toBe("p2");
+    // Descarta los volteos a medias del turno abandonado.
+    expect(next.flippedCardIds).toEqual([]);
+    expect(next.flipsThisTurn).toBe(0);
+  });
+
+  it("deja el turno libre si el dueño se va y no queda nadie elegible", () => {
+    const def = makeDef({ turnMode: "per_player" });
+    const state = { ...makeState(def), currentPlayerId: "p1" };
+    const next = reassignMemoryTurn(state, def, []);
+    expect(next.currentPlayerId).toBeNull();
   });
 });
 
