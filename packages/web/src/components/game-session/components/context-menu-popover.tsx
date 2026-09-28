@@ -20,6 +20,8 @@ export interface ContextMenuPopoverProps {
   inspectLabel: string;
   useItemLabel: string;
   cancelLabel: string;
+  /** Objeto "caído en el suelo" (`pickupObjectId` de un `hidden_key`): solo Recoger + Cancelar. */
+  pickupLabel: string;
   alternativesLabel?: string;
 }
 
@@ -49,6 +51,7 @@ export function ContextMenuPopover({
   inspectLabel,
   useItemLabel,
   cancelLabel,
+  pickupLabel,
   alternatives = [],
   onSelectObject,
   alternativesLabel,
@@ -88,11 +91,11 @@ export function ContextMenuPopover({
                   size="sm"
                   variant={action === "use_item" ? "default" : "secondary"}
                   onClick={() => {
-                    if (action === "inspect") onInspect(object.id);
-                    else onPickItem(object.id);
+                    if (action === "use_item") onPickItem(object.id);
+                    else onInspect(object.id);
                   }}
                 >
-                  {action === "inspect" ? inspectLabel : useItemLabel}
+                  {action === "use_item" ? useItemLabel : action === "pickup" ? pickupLabel : inspectLabel}
                 </Button>
               ))}
               <Button size="sm" variant="ghost" onClick={onCancel}>

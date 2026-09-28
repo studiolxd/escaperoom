@@ -147,6 +147,7 @@
     "close": "Fermer",
     "menu": {
       "inspect": "Examiner",
+      "pickup": "Ramasser",
       "here": "Objets à cet endroit",
       "useItem": "Utiliser un objet…",
       "chooseItem": "Choisissez un objet à utiliser sur {object}",

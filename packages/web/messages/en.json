@@ -179,6 +179,7 @@
     "close": "Close",
     "menu": {
       "inspect": "Inspect",
+      "pickup": "Pick up",
       "here": "Objects here",
       "useItem": "Use item…",
       "chooseItem": "Choose an item to use on {object}",

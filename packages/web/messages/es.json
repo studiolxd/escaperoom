@@ -282,6 +282,7 @@
     "close": "Cerrar",
     "menu": {
       "inspect": "Inspeccionar",
+      "pickup": "Recoger",
       "here": "Objetos en este sitio",
       "useItem": "Usar objeto…",
       "chooseItem": "Elige un objeto para usar sobre {object}",

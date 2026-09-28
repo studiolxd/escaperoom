@@ -54,8 +54,15 @@ export interface RuntimeAmbientLight {
 
 export type RuntimeLight = RuntimeTorchLight | RuntimeAmbientLight;
 
-/** Acción del menú contextual de un objeto (specs/05 §3). */
-export type RuntimeObjectAction = "inspect" | "use_item";
+/**
+ * Acción del menú contextual de un objeto (specs/05 §3). `"pickup"`
+ * (revisión en vivo): el `pickupObjectId` de un `hidden_key` — un objeto que
+ * "cayó al suelo" para recogerlo (la llave del cuadro) — no ofrece
+ * Inspeccionar/Usar objeto como el resto, solo Recoger (mismo gesto que
+ * Inspeccionar por debajo: dispara `on_interact`, que el motor resuelve como
+ * la recogida).
+ */
+export type RuntimeObjectAction = "inspect" | "use_item" | "pickup";
 
 /**
  * `WorldObject` con el sprite del estado inicial ya resuelto.

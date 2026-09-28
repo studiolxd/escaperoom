@@ -157,7 +157,11 @@ export function toRuntimeModel(
       // ofrece las dos acciones (Inspeccionar/Usar objeto), no solo la que
       // tenga regla — antes, un objeto con únicamente `on_use_item` (p. ej.
       // "usa la llave sobre el armario") se quedaba sin "Inspeccionar".
-      actions: ["inspect", "use_item"],
+      // Excepción: el `pickupObjectId` de un `hidden_key` (la llave "caída"
+      // en el suelo) solo ofrece Recoger — no tiene sentido "usar objeto"
+      // sobre algo que aún no se ha recogido, ni un "Inspeccionar" separado
+      // de recogerlo.
+      actions: isPickupObject(roomPackage, object.id) ? ["pickup"] : ["inspect", "use_item"],
     };
     const panelPuzzleId = panelForObject(roomPackage, object);
     if (panelPuzzleId) runtimeObject.panelPuzzleId = panelPuzzleId;
@@ -298,6 +302,13 @@ function useItemIdsForObject(roomPackage: RoomPackage, objectId: string): string
     }
   }
   return [...ids];
+}
+
+/** `true` si `objectId` es el `pickupObjectId` de algún `hidden_key` (revisión en vivo). */
+function isPickupObject(roomPackage: RoomPackage, objectId: string): boolean {
+  return roomPackage.puzzles.some(
+    (puzzle) => puzzle.type === "hidden_key" && puzzle.pickupObjectId === objectId,
+  );
 }
 
 /** Mismo criterio que `RoomSession.panelForObject` (escondite, `lockedBy`, mirilla). */

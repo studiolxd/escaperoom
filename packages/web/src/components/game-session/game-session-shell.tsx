@@ -503,6 +503,7 @@ export function GameSessionShell({
         inspectLabel={hud.tp("menu.inspect")}
         useItemLabel={hud.tp("menu.useItem")}
         cancelLabel={hud.tp("menu.cancel")}
+        pickupLabel={hud.tp("menu.pickup")}
         alternativesLabel={hud.tp("menu.here")}
       />
 
