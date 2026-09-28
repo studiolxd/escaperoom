@@ -92,23 +92,6 @@ function formatLabel(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (match, key: string) => vars[key] ?? match);
 }
 
-/**
- * Semiancho/semialto (px del mundo) de la zona de clic fija de
- * `wireInteraction`, centrada en el ancla de cada objeto. Cotas
- * MATEMÁTICAMENTE seguras (revisión en vivo): dos celdas de grid DISTINTAS
- * nunca comparten ancla de pantalla (`tileAnchor`, proyección isométrica), y
- * la separación mínima entre dos anclas distintas es `ISO_TILE_WIDTH` en X
- * (pares con la misma pantalla-Y) o `ISO_TILE_HEIGHT` en Y (pares con la
- * misma pantalla-X, p. ej. `trono` en (9,1) y `retrato-2` en (8,0): su
- * `tx-ty` coincide, así que comparten X de pantalla y solo separan
- * `ISO_TILE_HEIGHT` en Y). Manteniendo el semiancho/semialto por debajo de la
- * MITAD de esa separación mínima, dos zonas de clic de celdas distintas
- * JAMÁS se solapan — antes, con un cuadrado fijo de 44px (semilado 22, mayor
- * que la mitad de `ISO_TILE_HEIGHT`, 16), un clic sobre el trono podía
- * activar el retrato de al lado.
- */
-const OBJECT_HIT_HALF_WIDTH = ISO_TILE_WIDTH / 2 - 6;
-const OBJECT_HIT_HALF_HEIGHT = ISO_TILE_HEIGHT / 2 - 3;
 
 /**
  * El teclado de Phaser escucha en `document`, no en el canvas: sin esto, el
@@ -397,6 +380,14 @@ export class RoomScene extends Phaser.Scene {
   private path: GridCell[] = [];
   /** Objeto al que el avatar camina para abrir su menú al llegar (clic). */
   private pendingObjectId?: string;
+  /**
+   * Ítem pendiente de usar sobre `pendingObjectId` al llegar (revisión en
+   * vivo: soltar un ítem del inventario sobre un objeto del mundo debe andar
+   * hasta él primero, igual que un clic normal, no usarlo a distancia).
+   * `undefined` cuando `pendingObjectId` es una interacción normal
+   * (Inspeccionar/menú), no un uso de ítem.
+   */
+  private pendingItemId?: string;
 
   private objectState: ObjectStateMap = {};
   private containers: ContainerStateMap = {};
@@ -995,38 +986,82 @@ export class RoomScene extends Phaser.Scene {
    * revisión en vivo: sin cursor de mano ni zoom al pasar el ratón por
    * encima (solo el brillo), a diferencia del modo edición.
    *
-   * Área de clic PEQUEÑA y FIJA (`OBJECT_HIT_SIZE`), centrada en el ancla del
-   * objeto (`tileAnchor`) — no el rectángulo completo del frame (el que usa
-   * Phaser por defecto): en isométrico, un sprite alto (una estatua, el
-   * trono) tiene un frame mucho más alto que su propia celda, y ese
-   * rectángulo por defecto puede "tapar" invisiblemente el área de clic de
-   * OTRO objeto lejano con menos profundidad de render (un cuadro de la
-   * pared) sin que se vea nada solapado en pantalla — el jugador clica donde
-   * ve el cuadro y activa la estatua. Una zona fija y pequeña por ancla,
-   * en cambio, no se sale de su propia celda: nunca se solapa con la de otro
-   * objeto en una celda distinta.
+   * Zona de clic por PÍXEL REAL del sprite (`pixelPerfect`, revisión en
+   * vivo) — no un rectángulo del frame completo (el que usa Phaser por
+   * defecto): en isométrico, un sprite alto (una estatua, el trono) tiene un
+   * frame mucho más alto que su propia celda, y ese rectángulo por defecto
+   * podía "tapar" invisiblemente el área de clic de OTRO objeto lejano con
+   * menos profundidad de render (un cuadro de la pared) sin que se viera
+   * nada solapado en pantalla — el jugador clicaba donde veía el cuadro y
+   * activaba la estatua. Antes de esto, la zona era un rectángulo pequeño y
+   * fijo centrado en el ancla del objeto (`tileAnchor`): evitaba el
+   * solapamiento, pero para un objeto colgado en la pared (el cuadro) esa
+   * ancla está en el suelo, lejos de donde se ve — el clic solo acertaba
+   * "sobre su base", nada intuitivo. Con `pixelPerfect`, Phaser prueba el
+   * canal alfa del propio sprite en el punto exacto del clic: se acierta
+   * clicando donde se VE el objeto (colgado en la pared incluido), y el
+   * orden de profundidad ya resuelve el desempate entre dos sprites que se
+   * solapan en pantalla sin necesitar una zona artificialmente pequeña.
    */
   private wireInteraction(view: ObjectView): void {
     const { sprite, object } = view;
-    const halfW = OBJECT_HIT_HALF_WIDTH / sprite.scaleX;
-    const halfH = OBJECT_HIT_HALF_HEIGHT / sprite.scaleY;
-    const anchorLocalX = sprite.originX * sprite.frame.width;
-    const anchorLocalY = sprite.originY * sprite.frame.height;
-    sprite.setInteractive(
-      new Phaser.Geom.Rectangle(anchorLocalX - halfW, anchorLocalY - halfH, halfW * 2, halfH * 2),
-      Phaser.Geom.Rectangle.Contains,
-    );
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OVER, () => this.setHover(object.id));
     sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_OUT, () => this.clearHover(object.id));
-    sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_UP, (pointer: Phaser.Input.Pointer) => {
-      // Phaser también escucha `mouseup` en `window`: soltar el ratón sobre un
-      // botón o diálogo HTML que tapa el objeto no es un clic en el mundo (al
-      // cerrar un diálogo, el avatar echaba a andar hacia lo que había debajo).
-      if (!this.localInputEnabled || pointer.upElement !== this.sys.game.canvas) {
+    // `GAMEOBJECT_POINTER_DOWN`, no `_UP` (revisión en vivo): `_UP` hace su
+    // propio hit-test en el momento de SOLTAR el ratón, en un punto que
+    // puede no coincidir exactamente con el de bajarlo — con la zona de
+    // clic pequeña a propósito (ver arriba), un temblor de mano/trackpad
+    // entre bajar y soltar bastaba para que no se disparase nada, sin
+    // ningún error visible. Con `_DOWN` solo hace falta acertar una vez.
+    sprite.on(Phaser.Input.Events.GAMEOBJECT_POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
+      // Phaser también escucha `mousedown` en `window`: bajar el ratón sobre
+      // un botón o diálogo HTML que tapa el objeto no es un clic en el
+      // mundo (al cerrar un diálogo, el avatar echaba a andar hacia lo que
+      // había debajo).
+      if (!this.localInputEnabled || pointer.downElement !== this.sys.game.canvas) {
         return;
       }
       this.walkToObject(object.id);
     });
+    this.updateInteractivity(view);
+  }
+
+  /**
+   * Activa o desactiva la zona de clic de un objeto según su estado ACTUAL
+   * (revisión en vivo): un objeto en estado `"oculto"` (la llave/yesquero
+   * antes de revelarse) no debe poder clicarse ni dar brillo de pista —
+   * antes se podía "interactuar" con él estando invisible porque
+   * `interactable` es estático y `wireInteraction` solo se llamaba una vez
+   * al construir la escena. Se reevalúa aquí y desde `syncObjectView` en
+   * cada `set_object_state`, así que un objeto que se oculta de nuevo tras
+   * recogerse (`r-recoger-llave-cuadro`) también deja de ser clicable.
+   */
+  private updateInteractivity(view: ObjectView): void {
+    const { sprite, object } = view;
+    const state = currentObjectState(this.objectState, object);
+    if (!object.interactable || state === "oculto") {
+      sprite.disableInteractive();
+      this.clearHover(object.id);
+      return;
+    }
+    // Phaser conserva el área de clic (el rectángulo del frame) mientras el
+    // objeto siga siendo interactivo: si un cambio de estado cambia el frame
+    // (una puerta que se abre, un armario), el área quedaba con el tamaño del
+    // frame anterior. Se ajusta al frame actual en el sitio — recrearla con
+    // `removeInteractive` + `setInteractive` en el mismo tick no vale: Phaser
+    // retira los objetos en la cola del siguiente frame y se llevaría por
+    // delante también la zona recién creada.
+    const input = sprite.input;
+    if (input) {
+      const area = input.hitArea as { x: number; y: number; width: number; height: number };
+      area.x = 0;
+      area.y = 0;
+      area.width = sprite.width;
+      area.height = sprite.height;
+      input.enabled = true;
+      return;
+    }
+    sprite.setInteractive({ pixelPerfect: true, alphaTolerance: 1 });
   }
 
   /**
@@ -1039,9 +1074,15 @@ export class RoomScene extends Phaser.Scene {
     if (!object || !object.interactable || !this.avatar) {
       return;
     }
-    const target = approachCell(object.position, this.avatar.gridCell, (x, y) =>
-      this.collision.isWalkable(x, y),
-    );
+    // Una placa de presión se pisa: el destino es su propia celda, no una
+    // contigua (el servidor la activa mientras alguien esté encima).
+    const ownCell = { x: Math.round(object.position.x), y: Math.round(object.position.y) };
+    const target =
+      object.stepOn && this.collision.isWalkable(ownCell.x, ownCell.y)
+        ? ownCell
+        : approachCell(object.position, this.avatar.gridCell, (x, y) =>
+            this.collision.isWalkable(x, y),
+          );
     const path =
       target &&
       findPath(this.avatar.gridCell, target, (x, y) => this.collision.isWalkable(x, y));
@@ -1056,7 +1097,11 @@ export class RoomScene extends Phaser.Scene {
     this.path = path.slice(1);
   }
 
-  /** Si el avatar ya alcanzó el objeto pendiente, abre su menú/interacción. */
+  /**
+   * Si el avatar ya alcanzó el objeto pendiente, abre su menú/interacción —
+   * o, si venía de soltar un ítem sobre él (`pendingItemId`), usa el ítem
+   * directamente sin pasar por el menú.
+   */
   private resolvePendingInteraction(): void {
     const objectId = this.pendingObjectId;
     if (!objectId || !this.avatar) {
@@ -1065,14 +1110,32 @@ export class RoomScene extends Phaser.Scene {
     const object = this.model.objectsById[objectId];
     if (!object) {
       this.pendingObjectId = undefined;
+      this.pendingItemId = undefined;
       return;
     }
     const cell = this.avatar.gridCell;
     const distance = Math.hypot(object.position.x - cell.x, object.position.y - cell.y);
-    if (distance <= 1.75) {
+    if (distance <= (object.stepOn ? 0.35 : 1.75)) {
       this.pendingObjectId = undefined;
       this.path = [];
-      this.inspectObjectById(objectId);
+      const itemId = this.pendingItemId;
+      this.pendingItemId = undefined;
+      // Sin una regla `on_use_item` real para este ítem, "usarlo" no
+      // dispara nada por sí solo (revisión en vivo, p. ej. la antorcha
+      // sobre el brasero: su mecánica es "tenerla en el inventario e
+      // interactuar", no "usarla sobre el objeto"). Interactuar en su
+      // lugar deja que la condición del propio objeto la consuma, el mismo
+      // resultado que clicarlo con el ítem ya en el inventario — pero
+      // DIRECTO, sin abrir el menú a elegir Inspeccionar/Usar objeto: al
+      // soltar el ítem aquí la persona ya dijo lo que quería hacer, el
+      // menú era una elección de más (revisión en vivo).
+      if (itemId && object.useItemIds?.includes(itemId)) {
+        this.emit({ type: "use-item", itemId, objectId });
+      } else if (itemId) {
+        this.emit({ type: "interact-direct", objectId });
+      } else {
+        this.inspectObjectById(objectId);
+      }
     }
   }
 
@@ -1172,6 +1235,9 @@ export class RoomScene extends Phaser.Scene {
     if (animation) {
       this.playTransition(view.sprite, animation);
     }
+    if (this.mode !== "edit") {
+      this.updateInteractivity(view);
+    }
   }
 
   private playTransition(sprite: Phaser.GameObjects.Sprite, animation: string): void {
@@ -1236,14 +1302,28 @@ export class RoomScene extends Phaser.Scene {
     return true;
   }
 
+  /** ¿Responde ahora al clic? (visible y con zona de clic activa; E2E). */
+  isObjectInteractive(objectId: string): boolean {
+    return this.objectViews.get(objectId)?.sprite.input?.enabled === true;
+  }
+
   /**
-   * Posición en pantalla del ANCLA de un objeto interactuable (`tileAnchor`,
-   * el mismo punto en el que `wireInteraction` centra su zona de clic), como
-   * fracción (0–1) del lienzo (independiente de resolución/zoom del
-   * navegador): para clicar el objeto directamente sobre el canvas
-   * isométrico desde fuera del motor (E2E, `packages/e2e/support/game.ts`,
-   * ya que no hay lista de botones por objeto en la partida real).
-   * `undefined` si el objeto no está en la sala visible.
+   * Punto donde un clic real llega a este objeto, como fracción (0–1) del
+   * lienzo (independiente de resolución/zoom del navegador): para clicar el
+   * objeto directamente sobre el canvas isométrico desde fuera del motor
+   * (E2E, `packages/e2e/support/game.ts`, ya que no hay lista de botones por
+   * objeto en la partida real). `undefined` si el objeto no está en la sala
+   * visible.
+   *
+   * - Objeto interactivo: un punto interior y opaco donde sea el de más
+   *   arriba (el clic real usa el hit-test por píxel, `pixelPerfect`).
+   * - Objeto NO interactivo (p. ej. oculto): un punto dentro de su dibujo
+   *   donde ningún OTRO objeto recoja el clic, para comprobar que clicarlo
+   *   no hace nada. Sin esto se devolvía el ancla, que según el arte puede
+   *   caer bajo otro objeto: con los placeholders de CI (rectángulos opacos
+   *   del tamaño del frame) el ancla de la llave oculta queda dentro de la
+   *   estatua de al lado, el clic abría la estatua y su menú se quedaba
+   *   abierto, tragándose el clic siguiente.
    */
   getObjectScreenFraction(objectId: string): { x: number; y: number } | undefined {
     const view = this.objectViews.get(objectId);
@@ -1253,10 +1333,73 @@ export class RoomScene extends Phaser.Scene {
     const sprite = view.sprite;
     const camera = this.cameras.main;
     const worldView = camera.worldView;
-    return {
-      x: (sprite.x - worldView.x) / worldView.width,
-      y: (sprite.y - worldView.y) / worldView.height,
+    const toFraction = (worldX: number, worldY: number) => ({
+      x: (worldX - worldView.x) / worldView.width,
+      y: (worldY - worldView.y) / worldView.height,
+    });
+
+    // Candidatos en rejilla sobre el dibujo del sprite, del centro visible
+    // hacia fuera (solo los que caen dentro de la vista de la cámara).
+    const bounds = sprite.getBounds();
+    const step = Math.max(2, Math.min(bounds.width, bounds.height) / 24);
+    const cx = bounds.centerX;
+    const cy = bounds.centerY;
+    const candidates: { x: number; y: number; d: number }[] = [];
+    for (let y = bounds.top + step / 2; y < bounds.bottom; y += step) {
+      for (let x = bounds.left + step / 2; x < bounds.right; x += step) {
+        if (x < worldView.x || x > worldView.right || y < worldView.y || y > worldView.bottom) {
+          continue;
+        }
+        candidates.push({ x, y, d: (x - cx) ** 2 + (y - cy) ** 2 });
+      }
+    }
+    candidates.sort((a, b) => a.d - b.d);
+    const interactive = [...this.objectViews.values()]
+      .map((candidate) => candidate.sprite)
+      .filter((candidate) => candidate.input?.enabled);
+    // El mismo hit-test de Phaser que resuelve el clic real, ordenado por
+    // profundidad (y orden en la escena a igual profundidad).
+    const topmostAt = (worldX: number, worldY: number): Phaser.GameObjects.GameObject | null => {
+      const at = toFraction(worldX, worldY);
+      const pointer = { x: at.x * camera.width, y: at.y * camera.height };
+      const hits = this.input.manager.hitTest(
+        pointer as unknown as Phaser.Input.Pointer,
+        interactive,
+        camera,
+        [],
+      ) as Phaser.GameObjects.Sprite[];
+      if (hits.length === 0) {
+        return null;
+      }
+      return hits.reduce((best, hit) =>
+        hit.depth > best.depth ||
+        (hit.depth === best.depth && this.children.getIndex(hit) > this.children.getIndex(best))
+          ? hit
+          : best,
+      );
     };
+    // Un punto en el borde del dibujo (antialias, alfa mínimo) puede valer
+    // para esta prueba y no para el clic real: se exige además que los
+    // cuatro vecinos, a unos píxeles, también valgan (punto interior).
+    const margin = Math.max(3, step);
+    const interior = (x: number, y: number, ok: (wx: number, wy: number) => boolean): boolean =>
+      ok(x, y) && ok(x - margin, y) && ok(x + margin, y) && ok(x, y - margin) && ok(x, y + margin);
+
+    const accept = sprite.input?.enabled
+      ? (x: number, y: number) => topmostAt(x, y) === sprite
+      : (x: number, y: number) => topmostAt(x, y) === null;
+    for (const candidate of candidates) {
+      if (interior(candidate.x, candidate.y, accept)) {
+        return toFraction(candidate.x, candidate.y);
+      }
+    }
+    // Sprite muy fino (sin punto interior): el más cercano al centro que valga.
+    for (const candidate of candidates) {
+      if (accept(candidate.x, candidate.y)) {
+        return toFraction(candidate.x, candidate.y);
+      }
+    }
+    return toFraction(sprite.x, sprite.y);
   }
 
   /** Inspecciona un objeto: diálogo, reparto de inventario y panel asociado. */
@@ -1373,8 +1516,11 @@ export class RoomScene extends Phaser.Scene {
 
   /**
    * Suelta un item del inventario sobre el objeto del mundo bajo el puntero
-   * (drag&drop). Convierte coordenadas de pantalla a celda isométrica, busca el
-   * objeto interactuable más cercano y emite `use-item { itemId, objectId }`.
+   * (drag&drop). Convierte coordenadas de pantalla a celda isométrica, busca
+   * el objeto interactuable más cercano al punto de suelta y hace andar al
+   * avatar hasta él (igual que un clic normal) para usar el ítem solo al
+   * llegar — antes se usaba a distancia, sin comprobar dónde estaba el
+   * avatar ni moverlo (revisión en vivo).
    *
    * Devuelve el `objectId` destino, o `undefined` si el puntero no cae sobre
    * ningún objeto interactuable.
@@ -1384,10 +1530,33 @@ export class RoomScene extends Phaser.Scene {
     const world = this.cameras.main.getWorldPoint(screenX - rect.left, screenY - rect.top);
     const tile = worldToTile(world.x, world.y);
     const target = this.findInteractableNear({ x: tile.tx, y: tile.ty });
-    if (!target) {
+    if (!target || !this.avatar) {
       return undefined;
     }
-    this.emit({ type: "use-item", itemId, objectId: target });
+    const object = this.model.objectsById[target];
+    if (!object) {
+      return undefined;
+    }
+    const approach = approachCell(object.position, this.avatar.gridCell, (x, y) =>
+      this.collision.isWalkable(x, y),
+    );
+    const path =
+      approach &&
+      findPath(this.avatar.gridCell, approach, (x, y) => this.collision.isWalkable(x, y));
+    if (!path) {
+      // Sin ruta real hasta ninguna celda de acercamiento: mejor intentarlo
+      // a distancia que dejarlo sin efecto (mismo criterio de
+      // `useItemIds` que en `resolvePendingInteraction`).
+      if (object.useItemIds?.includes(itemId)) {
+        this.emit({ type: "use-item", itemId, objectId: target });
+      } else {
+        this.emit({ type: "interact-direct", objectId: target });
+      }
+      return target;
+    }
+    this.pendingObjectId = target;
+    this.pendingItemId = itemId;
+    this.path = path.slice(1);
     return target;
   }
 
@@ -1405,7 +1574,16 @@ export class RoomScene extends Phaser.Scene {
     if (!room) {
       return undefined;
     }
-    return nearestInteractable(room.objects, cell, { radius, facing })?.id;
+    // Un objeto en estado "oculto" (revisión en vivo, p. ej. la llave del
+    // suelo antes de revelarse) no cuenta como interactuable aquí tampoco:
+    // `nearestInteractable` solo mira `object.interactable` (estático), así
+    // que sin este filtro el espacio (`interactNearest`) y soltar un ítem
+    // encima (`dropItemAt`) se lo saltaban y lo interactuaban igual, aunque
+    // la zona de clic ya estuviera desactivada (`updateInteractivity`).
+    const visible = room.objects.filter(
+      (object) => currentObjectState(this.objectState, object) !== "oculto",
+    );
+    return nearestInteractable(visible, cell, { radius, facing })?.id;
   }
 
   private showDialog(text: string): void {

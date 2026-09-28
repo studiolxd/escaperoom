@@ -147,6 +147,7 @@
     "close": "Fechar",
     "menu": {
       "inspect": "Inspecionar",
+      "pickup": "Apanhar",
       "here": "Objetos neste sítio",
       "useItem": "Usar objeto…",
       "chooseItem": "Escolhe um objeto para usar em {object}",

@@ -20,6 +20,16 @@ export interface HiddenKeyState {
   revealedAt?: number;
   /** Autor del reveal, si el host lo registra. */
   revealedBy?: string;
+  /**
+   * Revisión en vivo (`pickupObjectId`): instante ms en que se recogió el
+   * objeto de su `pickupObjectId` en el mundo, o ausente si aún no se ha
+   * recogido (o si el escondite no usa recogida diferida). Sin
+   * `pickupObjectId` en la definición, este campo nunca se rellena: el
+   * reveal sigue entregando al momento, como hasta ahora.
+   */
+  pickedUpAt?: number;
+  /** Autor de la recogida, si el host lo registra. */
+  pickedUpBy?: string;
 }
 
 /** Resultado que el servidor devuelve tras revelar el escondite. */
@@ -66,6 +76,11 @@ export function isHiddenKeyRevealed(state: HiddenKeyState): boolean {
   return state.state === "solved" || state.revealedAt !== undefined;
 }
 
+/** `true` si ya se recogió el objeto de su `pickupObjectId` (revisión en vivo). */
+export function isHiddenKeyPickedUp(state: HiddenKeyState): boolean {
+  return state.pickedUpAt !== undefined;
+}
+
 /**
  * Revela el escondite una única vez: marca `solved`, estampa `revealedAt` y
  * otorga el objeto. Es idempotente: un segundo reveal no vuelve a otorgar nada.
@@ -90,6 +105,43 @@ export function revealHiddenKey(
     ...(revealedBy !== undefined ? { revealedBy } : {}),
   };
   return { outcome: "revealed", state: next, grantedItemId: hiddenKeyGrantedItem(def) };
+}
+
+/** Resultado de recoger el objeto de un escondite con `pickupObjectId`. */
+export type HiddenKeyPickupOutcome = "picked_up" | "already_picked_up" | "not_revealed";
+
+export interface HiddenKeyPickupResult {
+  outcome: HiddenKeyPickupOutcome;
+  /** Estado resultante (nuevo objeto; `state` de entrada no se muta). */
+  state: HiddenKeyState;
+  /** Objeto que se entrega con esta recogida; `null` si no aplica. */
+  grantedItemId: string | null;
+}
+
+/**
+ * Recoge el objeto de un escondite con recogida diferida (`pickupObjectId`):
+ * idempotente, solo entrega la primera vez y solo si ya se reveló. Un
+ * escondite SIN `pickupObjectId` no usa esta función — su reveal ya entrega
+ * directamente (`revealHiddenKey`).
+ */
+export function pickUpHiddenKey(
+  state: HiddenKeyState,
+  def: HiddenKeyDefinition,
+  now: number,
+  pickedUpBy?: string,
+): HiddenKeyPickupResult {
+  if (!isHiddenKeyRevealed(state)) {
+    return { outcome: "not_revealed", state, grantedItemId: null };
+  }
+  if (isHiddenKeyPickedUp(state)) {
+    return { outcome: "already_picked_up", state, grantedItemId: null };
+  }
+  const next: HiddenKeyState = {
+    ...state,
+    pickedUpAt: now,
+    ...(pickedUpBy !== undefined ? { pickedUpBy } : {}),
+  };
+  return { outcome: "picked_up", state: next, grantedItemId: hiddenKeyGrantedItem(def) };
 }
 
 /**

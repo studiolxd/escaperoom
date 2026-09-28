@@ -54,8 +54,15 @@ export interface RuntimeAmbientLight {
 
 export type RuntimeLight = RuntimeTorchLight | RuntimeAmbientLight;
 
-/** Acción del menú contextual de un objeto (specs/05 §3). */
-export type RuntimeObjectAction = "inspect" | "use_item";
+/**
+ * Acción del menú contextual de un objeto (specs/05 §3). `"pickup"`
+ * (revisión en vivo): el `pickupObjectId` de un `hidden_key` — un objeto que
+ * "cayó al suelo" para recogerlo (la llave del cuadro) — no ofrece
+ * Inspeccionar/Usar objeto como el resto, solo Recoger (mismo gesto que
+ * Inspeccionar por debajo: dispara `on_interact`, que el motor resuelve como
+ * la recogida).
+ */
+export type RuntimeObjectAction = "inspect" | "use_item" | "pickup";
 
 /**
  * `WorldObject` con el sprite del estado inicial ya resuelto.
@@ -112,6 +119,22 @@ export interface RuntimeObject {
    * usa como mirilla (lo mismo que `RoomSession.panelForObject`).
    */
   panelPuzzleId?: string;
+  /**
+   * Ids de ítem con una regla `on_use_item` real para este objeto (revisión
+   * en vivo). Arrastrar/soltar un ítem que NO está aquí sobre el objeto no
+   * dispara "usar objeto" (`on_use_item`, que no coincidiría con ninguna
+   * regla y no haría nada): se trata como un `interact` normal, dejando que
+   * la propia condición `item_in_inventory` de la regla de inspección lo
+   * consuma — el mismo resultado que clicar el objeto teniendo el ítem en
+   * el inventario, que ya funcionaba (p. ej. la antorcha sobre el brasero).
+   */
+  useItemIds?: string[];
+  /**
+   * `true` si el objeto es una placa de presión (`simultaneous_plates`): se
+   * pisa, así que NO bloquea el paso, y al clicarla el avatar camina hasta
+   * quedarse encima (el servidor la activa mientras alguien esté en su celda).
+   */
+  stepOn?: boolean;
 }
 
 export interface RuntimeItem {
@@ -119,6 +142,8 @@ export interface RuntimeItem {
   /** `name` resuelto al idioma activo (con fallback al primer locale disponible). */
   name: string;
   icon: string;
+  /** `content` resuelto al idioma activo; `undefined` si el ítem no lleva texto. */
+  content?: string;
 }
 
 export interface RuntimeDialog {

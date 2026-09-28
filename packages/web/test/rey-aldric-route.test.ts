@@ -28,8 +28,11 @@ describe("ruta crítica del playtest (2.8)", () => {
     const session = createRoomSession(room, { playerIds: ["p1"] });
     session.start(0);
     session.interact("cuadro-aurelio", 1);
+    session.interact("llave-bronce-suelo", 1);
     session.useItemOnObject("llave-bronce", "armario", 2);
-    session.combine("p-combina", ["yesquero", "vela"], 3);
+    session.interact("yesquero-suelo", 2);
+    session.interact("antorcha-apagada-suelo", 2);
+    session.combine("p-combina", ["yesquero", "antorcha-apagada"], 3);
     session.interact("brasero", 4);
     session.attemptCode("p-candado-arca", "4732", 5);
     expect(done(session)).toEqual(["cuadro", "armario", "antorcha", "brasero", "arca"]);

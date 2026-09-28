@@ -7,12 +7,14 @@ import type { CombinationOutcome, CombineItemsPublicView } from "@escaperoom/sha
 import { Button } from "@/components/ui/button";
 import { combineInputs, toggleSelection } from "@/lib/playtest-state";
 
-/** Item del catálogo resuelto para pintar (el host localiza `name`). */
+/** Item del catálogo resuelto para pintar (el host localiza `name`/`content`). */
 export interface InventoryItemView {
   id: string;
   name: string;
   /** Frame del pack (`ItemDef.icon`); sin él se pinta un monograma. */
   icon?: string;
+  /** Texto que lleva el objeto (p. ej. la pista de un pergamino), si tiene. */
+  content?: string;
 }
 
 /** Resultado del último intento, tal como lo devolvió el servidor. */
@@ -189,7 +191,7 @@ export function InventoryPanel({
               onDrop={(event) => itemId && dropOn(itemId, event)}
               onClick={() => itemId && toggleStaged(itemId)}
               className={cn(
-                "flex aspect-square h-auto flex-col items-center justify-center gap-1 rounded-lg border p-1 text-center transition-colors",
+                "flex aspect-square h-auto items-center justify-center rounded-lg border p-1.5 text-center transition-colors",
                 itemId === undefined
                   ? "border-dashed border-border bg-muted/20"
                   : "border-border bg-muted/50 hover:border-amber-300/50 hover:bg-muted",
@@ -199,21 +201,21 @@ export function InventoryPanel({
               )}
             >
               {itemId ? (
-                <>
-                  {renderIcon ? (
-                    renderIcon({ id: itemId, name: labelFor(itemId), icon: item?.icon })
-                  ) : (
-                    <span
-                      aria-hidden
-                      className="grid size-7 place-items-center rounded-md bg-amber-500/15 text-xs font-semibold text-amber-700 dark:bg-amber-200/15 dark:text-amber-100"
-                    >
-                      {labelFor(itemId).slice(0, 1).toUpperCase()}
-                    </span>
-                  )}
-                  <span className="line-clamp-2 text-[0.65rem] leading-tight text-foreground/80">
-                    {item?.name ?? t("unknownItem")}
+                renderIcon ? (
+                  renderIcon({
+                    id: itemId,
+                    name: labelFor(itemId),
+                    icon: item?.icon,
+                    content: item?.content,
+                  })
+                ) : (
+                  <span
+                    aria-hidden
+                    className="grid size-full place-items-center rounded-md bg-amber-500/15 text-lg font-semibold text-amber-700 dark:bg-amber-200/15 dark:text-amber-100"
+                  >
+                    {labelFor(itemId).slice(0, 1).toUpperCase()}
                   </span>
-                </>
+                )
               ) : (
                 <span className="text-[0.6rem] text-muted-foreground">·</span>
               )}
@@ -221,6 +223,18 @@ export function InventoryPanel({
           );
         })}
       </div>
+
+      {staged.length === 1 && staged[0] !== undefined ? (
+        <div
+          data-slot="item-details"
+          className="flex flex-col gap-1 rounded-lg border border-border bg-muted/30 p-2"
+        >
+          <p className="text-xs font-medium text-foreground">{labelFor(staged[0])}</p>
+          {catalog.get(staged[0])?.content ? (
+            <p className="text-xs text-muted-foreground">{catalog.get(staged[0])?.content}</p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="flex items-center gap-2">
         <Button

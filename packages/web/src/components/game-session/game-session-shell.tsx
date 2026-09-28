@@ -1,10 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { cn } from "cn";
 import { Lightbulb } from "lucide-react";
-import type { RuntimeModel } from "@escaperoom/game-runtime";
+import { resolveIconFrame, type RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import type { GameClient } from "@escaperoom/game-runtime/session";
 import type { MemoryPublicView } from "@escaperoom/shared/templates";
@@ -20,6 +20,7 @@ import { DialogButton, ImageDialog } from "./components/dialog-and-image";
 import { HudLogCorner } from "./components/hud-log-corner";
 import { InventoryDialog } from "./components/inventory-dialog";
 import { ItemPickerPopover } from "./components/item-picker-popover";
+import { ItemPickupPop } from "./components/item-pickup-pop";
 import type { IntroModel } from "@/lib/intro-model";
 import { EntryFade } from "./components/entry-fade";
 import { IntroOverlay } from "./components/intro-overlay";
@@ -133,6 +134,7 @@ export function GameSessionShell({
   useEffect(() => {
     window.__escaperoomGame = {
       getObjectScreenFraction: (objectId) => handleRef.current?.getObjectScreenFraction(objectId),
+      isObjectInteractive: (objectId) => handleRef.current?.isObjectInteractive(objectId) ?? false,
     };
     return () => {
       delete window.__escaperoomGame;
@@ -163,6 +165,14 @@ export function GameSessionShell({
       </span>
     ) : null;
   const sectionRef = useRef<HTMLElement | null>(null);
+  /**
+   * Tira de inventario siempre visible (abajo-derecha, últimos 3 objetos):
+   * soltar un ítem sobre otro AHÍ combinaba silenciosamente (o ni eso,
+   * revisión en vivo) porque solo eran arrastrables hacia el mundo, sin
+   * `onDrop` propio para combinar entre ellos como sí hace el panel completo
+   * (`InventoryPanel.dropOn`). Solo resalte visual del objetivo del arrastre.
+   */
+  const [inventoryStripDropTarget, setInventoryStripDropTarget] = useState<string | null>(null);
 
   const { preventEscapeIfDialogOpen } = useHudHotkeys({
     dialog: hud.dialog,
@@ -233,6 +243,17 @@ export function GameSessionShell({
           onReady={onReady}
         />
       </ErrorBoundary>
+
+      {hud.pickups.map((pickup) => (
+        <ItemPickupPop
+          key={pickup.id}
+          x={pickup.x}
+          y={pickup.y}
+          frame={resolveIconFrame(pack?.manifest, model.itemsById[pickup.itemId]?.icon ?? "")}
+          baseUrl={pack?.baseUrl}
+          name={hud.itemName(pickup.itemId)}
+        />
+      ))}
 
       {hud.draggingItem ? (
         <div className="pointer-events-none absolute inset-x-4 top-24 z-30 mx-auto w-fit rounded-full border border-amber-500/40 px-4 py-1.5 text-xs text-amber-700 shadow-lg dark:border-amber-200/40 dark:text-amber-100">
@@ -352,8 +373,33 @@ export function GameSessionShell({
                         event.dataTransfer.setData("text/plain", itemId);
                         event.dataTransfer.effectAllowed = "move";
                       }}
-                      onDragEnd={() => hud.setDraggingItem(null)}
-                      className="flex aspect-square size-11 cursor-grab items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 active:cursor-grabbing dark:border-amber-300/40 dark:bg-amber-300/10"
+                      onDragEnd={() => {
+                        hud.setDraggingItem(null);
+                        setInventoryStripDropTarget(null);
+                      }}
+                      onDragOver={(event) => {
+                        if (!hud.draggingItem || hud.draggingItem === itemId) return;
+                        event.preventDefault();
+                        setInventoryStripDropTarget(itemId);
+                      }}
+                      onDragLeave={() =>
+                        setInventoryStripDropTarget((current) => (current === itemId ? null : current))
+                      }
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        setInventoryStripDropTarget(null);
+                        const dragged = event.dataTransfer.getData("text/plain") || hud.draggingItem;
+                        hud.setDraggingItem(null);
+                        if (!dragged || dragged === itemId) return;
+                        // No se abre el inventario grande al combinar desde
+                        // aquí (revisión en vivo): la tira pequeña se queda
+                        // en su sitio, igual que arrastrar un ítem al mundo.
+                        hud.combine([dragged, itemId]);
+                      }}
+                      className={cn(
+                        "flex aspect-square size-11 cursor-grab items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 active:cursor-grabbing dark:border-amber-300/40 dark:bg-amber-300/10",
+                        inventoryStripDropTarget === itemId && "border-amber-300 ring-2 ring-amber-300/50",
+                      )}
                     >
                       {hud.renderItemIcon(itemId, 28)}
                       <span className="sr-only">{hud.itemName(itemId)}</span>
@@ -458,6 +504,7 @@ export function GameSessionShell({
         inspectLabel={hud.tp("menu.inspect")}
         useItemLabel={hud.tp("menu.useItem")}
         cancelLabel={hud.tp("menu.cancel")}
+        pickupLabel={hud.tp("menu.pickup")}
         alternativesLabel={hud.tp("menu.here")}
       />
 
@@ -502,7 +549,7 @@ export function GameSessionShell({
         view={hud.combineView}
         onCombine={hud.combine}
         feedback={hud.combineFeedback}
-        renderIcon={(itemId) => hud.renderItemIcon(itemId)}
+        renderIcon={(itemId) => hud.renderItemIcon(itemId, 48)}
         inventoryLabel={hud.tp("inventory")}
         dragHintLabel={hud.tp("menu.dragHint")}
         loadingLabel={hud.t("hud.loadingPanel")}
@@ -565,6 +612,7 @@ declare global {
      */
     __escaperoomGame?: {
       getObjectScreenFraction: (objectId: string) => { x: number; y: number } | undefined;
+      isObjectInteractive: (objectId: string) => boolean;
     };
   }
 }

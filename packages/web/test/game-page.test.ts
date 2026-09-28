@@ -231,6 +231,9 @@ describe("GameSessionShell a partir del estado sincronizado", () => {
     client.startGame(true);
     client.enterMap();
     client.interact("cuadro-aurelio");
+    // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+    // sola — hace falta inspeccionar la llave que aparece en el suelo.
+    client.interact("llave-bronce-suelo");
     const html = shell(client, "en", "disconnected");
     expect(html).toContain('data-phase="playing"');
     expect(html).toContain('data-status="disconnected"');

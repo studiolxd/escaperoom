@@ -127,7 +127,10 @@ describe("validador — Rey Aldric", () => {
     const route = report.criticalRoute!;
     expect(route.playerCount).toBe(1);
     expect(route.steps.length).toBeGreaterThanOrEqual(12);
-    expect(route.steps.length).toBeLessThanOrEqual(16);
+    // Revisión en vivo (recogida diferida): la llave, el yesquero y la
+    // antorcha apagada ahora cada uno suma su propio paso de "recogerlo del
+    // suelo", aparte de revelarlo — de ahí el margen más alto.
+    expect(route.steps.length).toBeLessThanOrEqual(18);
 
     const at = (predicate: (s: (typeof route.steps)[number]) => boolean, label: string): number => {
       const position = route.steps.findIndex(predicate);
@@ -141,7 +144,7 @@ describe("validador — Rey Aldric", () => {
     const order = [
       solve("p-llave-cuadro"), // 1. llave-bronce
       gained("yesquero"), // 2. armario
-      gained("antorcha"), // 3. yesquero+vela
+      gained("antorcha"), // 3. yesquero+antorcha-apagada
       at((s) => s.rulesFired.includes("r-encender-brasero"), "brasero"), // 4. dígito 3
       solve("p-candado-arca"), // 5. "4732" → cáliz + busto de piedra
       solve("p-placas-estatuas"), // 6. placas (en solitario con el busto de piedra)
@@ -244,7 +247,7 @@ describe("validador — dead ends artificiales", () => {
     );
     // Lo que colgaba del armario queda huérfano.
     expect(checkOf(report, "orphans").issues.map((issue) => issue.ids[0])).toEqual(
-      expect.arrayContaining(["llave-bronce", "yesquero", "vela", "antorcha"]),
+      expect.arrayContaining(["llave-bronce", "yesquero", "antorcha-apagada", "antorcha"]),
     );
     expect(renderValidationReport(report)).toMatch(/^❌ Dead ends/mu);
   });
@@ -454,7 +457,7 @@ describe("validador — huérfanos, reglas y referencias", () => {
     expect(report.ok).toBe(false);
     expect(references.status).toBe("error");
     expect(references.issues[0]!.message).toMatch(
-      /^el objeto «salida-bodega» \(en rules\[r-rota\]\.trigger\) no existe\. Disponibles: \[altar, arca-candado, /u,
+      /^el objeto «salida-bodega» \(en rules\[r-rota\]\.trigger\) no existe\. Disponibles: \[altar, antorcha-apagada-suelo, antorcha-bodega-der, /u,
     );
   });
 
@@ -503,3 +506,19 @@ describe("validador — huérfanos, reglas y referencias", () => {
     expect(report.solvability[0]).toMatchObject({ playerCount: 1, solvable: true });
   });
 });
+
+describe("validador — coste de la búsqueda con muchos señuelos", () => {
+  it("las reglas de inspección con imagen no multiplican los estados del BFS", () => {
+    const report = validateRoomPackage(reyAldric);
+    // Los ~25 señuelos decorativos (diálogo + imagen, sin efecto) no deben
+    // añadir estados: `show_image` es presentación pura, como `show_dialog`.
+    // Contarlos como cambio de estado llegó a encarecer la validación ~10×.
+    // Tampoco la recogida de la llave del suelo, que solo oculta un objeto
+    // cuyo estado nada lee (`readObjectStates`): hecha o pendiente es el
+    // mismo estado de juego (sin esto, ~360 estados por búsqueda).
+    for (const result of report.solvability) {
+      expect(result.exploredStates).toBeLessThan(300);
+    }
+  });
+});
+

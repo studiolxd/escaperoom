@@ -55,8 +55,13 @@ export function resolveRoomPreviewPack(
   model: RuntimeModel,
   options: ResolveRoomPreviewPackOptions = {},
 ): RoomPreviewPackResult {
+  // `PACKS_ROOT`: la suite E2E lo apunta a un directorio vacío para jugar
+  // siempre en modo placeholder, como en CI (el pack no se versiona y allí
+  // no hay `pnpm pack:build`), aunque el worktree local tenga uno generado.
   const packsRoot =
-    options.packsRoot ?? join(findRepoRoot(options.cwd ?? process.cwd()), PACKS_PUBLIC_DIR);
+    options.packsRoot ??
+    process.env.PACKS_ROOT ??
+    join(findRepoRoot(options.cwd ?? process.cwd()), PACKS_PUBLIC_DIR);
   const cacheKey = `${packsRoot}\0${tileset}`;
   const cached = packCache.get(cacheKey);
   if (cached) return cached;

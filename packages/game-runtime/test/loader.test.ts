@@ -87,10 +87,17 @@ describe("toRuntimeModel", () => {
     }
 
     const salon = model.subroomsById["salon-trono"];
-    expect(salon?.objects).toHaveLength(14);
-    expect(model.subroomsById["bodega"]?.objects).toHaveLength(8);
-    expect(model.subroomsById["catacumbas"]?.objects).toHaveLength(6);
-    expect(model.objects).toHaveLength(28);
+    expect(salon?.objects).toHaveLength(26);
+    expect(model.subroomsById["bodega"]?.objects).toHaveLength(16);
+    expect(model.subroomsById["catacumbas"]?.objects).toHaveLength(13);
+    expect(model.objects).toHaveLength(55);
+  });
+
+  it("marca como `stepOn` las placas de presión (y solo ellas)", () => {
+    const model = toRuntimeModel(loadValidPackage());
+    expect(model.objectsById["placa-izq"]?.stepOn).toBe(true);
+    expect(model.objectsById["placa-der"]?.stepOn).toBe(true);
+    expect(model.objectsById["brasero"]?.stepOn).toBeUndefined();
   });
 
   it("resuelve el sprite del estado inicial y el mapa estado→sprite", () => {
@@ -122,7 +129,7 @@ describe("toRuntimeModel", () => {
     const model = toRuntimeModel(loadValidPackage(), { locale: "en" });
 
     expect(model.locale).toBe("en");
-    expect(model.dialogs).toHaveLength(13);
+    expect(model.dialogs).toHaveLength(51);
     expect(model.dialogsById["d-cuadro"]?.text).toContain("Rey Aurelio");
     expect(model.dialogsById["d-cuadro"]?.localized.es?.text).toContain("Rey Aurelio");
   });
@@ -227,14 +234,17 @@ describe("toRuntimeModel", () => {
   it("F-27: sin nombre propio ni diálogo asociado, el objeto no expone `name`", () => {
     // El fixture real ya da nombre propio a todos sus objetos (revisión en
     // vivo, F-31: título al inspeccionar), así que se fuerza el caso sin
-    // ninguno de los dos quitándoselo a `trono` (sin diálogo de inspección).
+    // ninguno de los dos quitándoselo a `arca-candado` (no declara ninguna
+    // regla propia: su "Inspeccionar" abre el panel del candado directo, sin
+    // diálogo de inspección — a diferencia de `trono`, que desde el ítem 6 de
+    // la revisión en vivo (distractores) sí tiene uno).
     const roomPackage = loadValidPackage();
-    const object = roomPackage.objects.find((candidate) => candidate.id === "trono");
-    if (!object) throw new Error("el fixture no tiene trono");
+    const object = roomPackage.objects.find((candidate) => candidate.id === "arca-candado");
+    if (!object) throw new Error("el fixture no tiene arca-candado");
     delete object.name;
 
     const model = toRuntimeModel(roomPackage);
-    const sinDialogo = model.objectsById["trono"];
+    const sinDialogo = model.objectsById["arca-candado"];
 
     expect(sinDialogo?.inspectDialogId).toBeFalsy();
     expect(sinDialogo?.name).toBeUndefined();

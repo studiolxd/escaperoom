@@ -34,6 +34,8 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
     dispatch({ type: "on_interact", objectId: "cuadro-aurelio", playerId: "p1" });
     grant("llave-bronce");
     dispatch({ type: "on_use_item", objectId: "armario", itemId: "llave-bronce", playerId: "p1" });
+    dispatch({ type: "on_interact", objectId: "yesquero-suelo", playerId: "p1" });
+    dispatch({ type: "on_interact", objectId: "antorcha-apagada-suelo", playerId: "p1" });
     grant("antorcha");
     dispatch({ type: "on_interact", objectId: "brasero", playerId: "p1" });
 
@@ -42,13 +44,16 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
       "r-inspeccionar-cuadro",
       "r-imagen-cuadro",
       "r-abrir-armario",
+      "r-recoger-yesquero",
+      "r-recoger-antorcha-apagada",
+      "r-inspeccionar-brasero",
       "r-encender-brasero",
     ]);
     expect(engine.state.flags.digito3).toBe(3);
     expect(engine.state.objectStates.brasero).toBe("lit");
     expect(engine.state.timers.cronometro?.running).toBe(true);
     expect(engine.state.inventory.p1).toContain("yesquero");
-    expect(engine.state.inventory.p1).toContain("vela");
+    expect(engine.state.inventory.p1).toContain("antorcha-apagada");
     expect(engine.state.inventory.p1).not.toContain("llave-bronce");
     expect(engine.state.inventory.p1).not.toContain("antorcha");
   });
@@ -78,16 +83,17 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
       replay.push(...engine.dispatch(event, 0).fired.map((f) => f.ruleId));
     }
 
-    // r-imagen-cuadro es repeatable (`once: false`): vuelve a dispararse en el
-    // replay (no muta estado, es solo `show_image`), a diferencia del resto
-    // (todas `once: true`) — su contador de disparos sube, el resto del
-    // estado no cambia.
-    expect(replay).toEqual(["r-imagen-cuadro"]);
+    // r-imagen-cuadro y r-inspeccionar-brasero son repeatable (`once: false`):
+    // vuelven a dispararse en el replay (no mutan estado, son solo
+    // show_image/show_dialog), a diferencia del resto (todas `once: true`) —
+    // su contador de disparos sube, el resto del estado no cambia.
+    expect(replay).toEqual(["r-imagen-cuadro", "r-inspeccionar-brasero"]);
     expect(engine.snapshot()).toEqual({
       ...before,
       ruleRuns: {
         ...before.ruleRuns,
         "r-imagen-cuadro": { ...before.ruleRuns["r-imagen-cuadro"], count: 2 },
+        "r-inspeccionar-brasero": { ...before.ruleRuns["r-inspeccionar-brasero"], count: 2 },
       },
     });
   });
@@ -148,6 +154,7 @@ describe("motor de reglas — ruta crítica del Rey Aldric", () => {
       "r-inspeccionar-cuadro",
       "r-imagen-cuadro",
       "r-abrir-armario",
+      "r-inspeccionar-brasero",
       "r-encender-brasero",
       "r-leer-pergamino",
       "r-abrir-arca",

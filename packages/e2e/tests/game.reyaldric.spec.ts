@@ -65,25 +65,34 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
   });
 
   await test.step("Salón del Trono (pasos 1–6)", async () => {
-    // 1. Inspeccionar el cuadro → llave de bronce
+    // 1. Antes de inspeccionar el cuadro, la llave del suelo está oculta:
+    // clicar donde estará no abre ningún menú (revisión en vivo).
+    await a.expectNotInteractable("llave-bronce-suelo");
+    // Inspeccionar el cuadro revela la llave en el suelo (pickupObjectId);
+    // hay que inspeccionarla aparte para recogerla.
     await a.inspect("cuadro-aurelio");
+    await a.pickUp("llave-bronce-suelo");
     await a.expectItems("Llave de bronce");
-    // 2. Abrir el armario con la llave → yesquero + vela
+    // 2. Abrir el armario revela el yesquero y la antorcha apagada en el
+    // suelo (recogida diferida, revisión en vivo) — hay que recogerlos.
     await a.useItemOn("armario", "Llave de bronce");
-    await a.expectItems("Yesquero", "Vela");
-    // 3. Combinar yesquero + vela → antorcha
-    await a.combine(["Yesquero", "Vela"], "Antorcha encendida");
+    await a.pickUp("yesquero-suelo");
+    await a.pickUp("antorcha-apagada-suelo");
+    await a.expectItems("Yesquero", "Antorcha apagada");
+    // 3. Combinar yesquero + antorcha apagada → antorcha
+    await a.combine(["Yesquero", "Antorcha apagada"], "Antorcha encendida");
     // 4. Encender el brasero con la antorcha → dígito 3
     await a.inspect("brasero");
     // 5. Candado del arca «4732» → cáliz + pergamino
     await a.openPanel("arca-candado");
     await a.typeCode("4732");
     await a.expectItems("Cáliz real", "Pergamino de los vinos");
-    // 6. Placas simultáneas: cada jugador sobre una placa → puerta de la bodega
-    await a.openPanel("puerta-bodega");
-    await b.openPanel("puerta-bodega");
-    await a.page.getByRole("button", { name: "Placa placa-izq" }).click();
-    await b.page.getByRole("button", { name: "Placa placa-der" }).click();
+    // 6. Placas simultáneas: se accionan de pie, sin panel ni botones —
+    // cada jugador se sube a SU placa y, con las dos pisadas a la vez, se
+    // abre la puerta de la bodega.
+    await a.standOn("placa-izq");
+    await b.standOn("placa-der");
+    await a.expectSolvedAtLeast(3);
     for (const player of [a, b]) {
       await player.goTo("puerta-bodega");
     }

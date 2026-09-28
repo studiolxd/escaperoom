@@ -49,7 +49,11 @@ const ONCE_RULES = [
   "r-inspeccionar-cuadro",
   "r-imagen-cuadro",
   "r-revelar-cuadro",
+  "r-recoger-llave-cuadro",
   "r-abrir-armario",
+  "r-recoger-yesquero",
+  "r-recoger-antorcha-apagada",
+  "r-inspeccionar-brasero",
   "r-encender-brasero",
   "r-abrir-arca",
   "r-leer-pergamino",
@@ -431,22 +435,30 @@ describe("E2E de protocolo — Rey Aldric con 2 clientes de Colyseus", () => {
     await until(b, (state) => state.phase === "playing");
 
     // — Salón del Trono (pasos 1–6) ——————————————————————————————————
-    // 1. Inspeccionar el cuadro → llave-bronce
+    // 1. Inspeccionar el cuadro revela la llave en el suelo (pickupObjectId,
+    // revisión en vivo); hay que inspeccionarla aparte para recogerla.
     a.client.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    a.client.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
     await hasItems(a, ["llave-bronce"]);
-    // 2. Abrir el armario con la llave → yesquero + vela
+    // 2. Abrir el armario revela el yesquero y la antorcha apagada en el
+    // suelo (recogida diferida, revisión en vivo) — hay que recogerlos.
     a.client.send(GAME_MESSAGES.useItem, { itemId: "llave-bronce", objectId: "armario" });
-    await hasItems(a, ["yesquero", "vela"]);
-    // 3. Combinar yesquero + vela → antorcha
+    a.client.send(GAME_MESSAGES.interact, { objectId: "yesquero-suelo" });
+    a.client.send(GAME_MESSAGES.interact, { objectId: "antorcha-apagada-suelo" });
+    await hasItems(a, ["yesquero", "antorcha-apagada"]);
+    // 3. Combinar yesquero + antorcha apagada → antorcha
     const torch = await request<AttemptResult & { output?: string }>(
       a,
       GAME_MESSAGES.combine,
-      { puzzleId: "p-combina", inputs: ["yesquero", "vela"] },
+      { puzzleId: "p-combina", inputs: ["yesquero", "antorcha-apagada"] },
       GAME_MESSAGES.attemptResult,
     );
     expect(torch).toMatchObject({ ok: true, output: "antorcha" });
     await hasItems(a, ["antorcha"]);
-    // 4. Encender el brasero → dígito 3 visible
+    // 4. Encender el brasero → dígito 3 visible. Límite de `interact` (4
+    // msg/s, specs/11 §9): ya van 4 antes de este (cuadro, llave, yesquero,
+    // antorcha apagada) — hay que repartirlo en otra ventana.
+    await new Promise((resolve) => setTimeout(resolve, 1100));
     a.client.send(GAME_MESSAGES.interact, { objectId: "brasero" });
     await until(a, (state) => state.flags.get("digito3") === "3");
     // 5. Candado del arca "4732" → cáliz + pergamino

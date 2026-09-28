@@ -111,11 +111,12 @@ describe("toolset de lógica y consulta (4.3)", () => {
         "set_flag(flag=digito3, value=3)",
         "show_dialog(dialogId=d-brasero)",
         "play_sound(soundId=fx-fuego)",
+        "show_image(image=brasero-encendido)",
       ],
     });
     expect(graph.puzzles.find((puzzle) => puzzle.id === "p-combina")).toMatchObject({
       type: "combine_items",
-      recipes: ["yesquero+vela→antorcha", "llave-plata→llave-oro"],
+      recipes: ["yesquero+antorcha-apagada→antorcha", "llave-plata→llave-oro"],
     });
     expect(graph.edges).toEqual(
       expect.arrayContaining([
@@ -126,10 +127,13 @@ describe("toolset de lógica y consulta (4.3)", () => {
         ["puerta-bodega", "lleva_a", "bodega"],
       ]),
     );
-    // La estatua aún no tiene reglas.
-    expect(graph.edges.some((edge) => edge.includes("estatua-izq") && edge[1] === "dispara")).toBe(
-      false,
-    );
+    // La estatua ya tiene su regla de inspección (distractor, ítem 6 de la
+    // revisión en vivo), pero aún no la que añade este test.
+    expect(
+      graph.edges.some(
+        (edge) => edge[0] === "estatua-izq" && edge[1] === "dispara" && edge[2] === "r-estatua-izq",
+      ),
+    ).toBe(false);
 
     // 2. Añade la regla (sin id: se propone a partir del trigger).
     const added = await call(client, "add_rule", { roomId, rule: STATUE_RULE });
@@ -143,9 +147,14 @@ describe("toolset de lógica y consulta (4.3)", () => {
 
     const expected: Rule = { id: "r-estatua-izq", priority: 0, once: true, ...STATUE_RULE } as Rule;
 
-    // 3. Aparece en get_rules_for…
+    // 3. Aparece en get_rules_for…, junto a la regla de inspección/distractor
+    // que ya traía la estatua (ítem 6 de la revisión en vivo).
+    const existingStatueRule = aldric.rules.find((r) => r.id === "r-inspeccionar-estatua-izq")!;
     const forStatue = await call(client, "get_rules_for", { roomId, objectId: "estatua-izq" });
-    expect(forStatue.structured).toEqual({ objectId: "estatua-izq", rules: [expected] });
+    expect(forStatue.structured).toEqual({
+      objectId: "estatua-izq",
+      rules: [existingStatueRule, expected],
+    });
 
     // …en el RoomPackage del draft (mismo modelo `rules` que el grafo de 3.6), al final…
     const pkg = await draftPackage(drafts);
@@ -274,7 +283,7 @@ describe("errores accionables (specs/10 §3)", () => {
 
     const item = await add({ trigger: { type: "on_item_collected", itemId: "copa" } });
     expect(item.text).toMatch(
-      /^❌ add_rule: No existe el item "copa" \(en trigger\.itemId\)\. Items disponibles: \[yesquero, vela,/,
+      /^❌ add_rule: No existe el item "copa" \(en trigger\.itemId\)\. Items disponibles: \[yesquero, antorcha-apagada,/,
     );
 
     const dialog = await add({

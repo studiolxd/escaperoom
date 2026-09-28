@@ -25,11 +25,11 @@ function renderIntl(element: ReactElement) {
 
 const fixture = loadRoomPackage(readReyAldricRoomPackageJson());
 
-function setup() {
+function setup(roomId = "salon-trono") {
   const doc = roomPackageToDoc(fixture);
   const pkg = roomDocToPackage(doc);
-  const room = pkg.map.rooms.find((r) => r.id === "salon-trono")!;
-  const objects = pkg.objects.filter((o) => o.roomId === "salon-trono");
+  const room = pkg.map.rooms.find((r) => r.id === roomId)!;
+  const objects = pkg.objects.filter((o) => o.roomId === roomId);
   const { palette } = resolveEditorPalette("medieval-v1");
   const sprites = palette.sprites.map((entry) => entry.sprite);
   return { doc, room, objects, sprites };
@@ -49,12 +49,8 @@ describe("<RoomEditorRoomPanel> — selectores de sprite y objeto que gobierna l
       }),
     );
 
-    // Decoración: cada trigger cerrado ya muestra el sprite actual.
-    const decorationSelects = screen.getAllByLabelText("Sprite");
-    expect(decorationSelects).toHaveLength(room.decorations.length);
-    decorationSelects.forEach((select, index) => {
-      expect(select).toHaveTextContent(room.decorations[index]!.sprite);
-    });
+    // El Salón ya no tiene decoración suelta: todo es objeto inspeccionable.
+    expect(screen.queryAllByLabelText("Sprite")).toHaveLength(room.decorations.length);
 
     // Antorcha del brasero: el trigger cerrado ya muestra el objeto que la gobierna.
     const governedBy = screen.getByLabelText("Objeto que la gobierna");
@@ -66,5 +62,23 @@ describe("<RoomEditorRoomPanel> — selectores de sprite y objeto que gobierna l
     for (const object of objects) {
       expect(within(listbox).getByRole("option", { name: object.id })).toBeInTheDocument();
     }
+  });
+
+  it("muestra el sprite de cada decoración de una habitación que aún las tiene", () => {
+    const { doc, room, objects, sprites } = setup("catacumbas");
+    renderIntl(
+      createElement(RoomEditorRoomPanel, {
+        doc,
+        room,
+        objects,
+        sprites,
+        errorText: (error) => error.message,
+      }),
+    );
+    const decorationSelects = screen.getAllByLabelText("Sprite");
+    expect(decorationSelects).toHaveLength(room.decorations.length);
+    decorationSelects.forEach((select, index) => {
+      expect(select).toHaveTextContent(room.decorations[index]!.sprite);
+    });
   });
 });

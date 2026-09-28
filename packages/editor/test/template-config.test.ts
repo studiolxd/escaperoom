@@ -257,7 +257,7 @@ describe("configuradores de plantillas (3.5) — vista previa jugable en local",
   it("combine_items: se empieza con los ingredientes base y aplicar las recetas lo resuelve", () => {
     const combine = puzzleOf(fixture, "combine_items");
     expect(combineItemsStartingInventory(combine).sort()).toEqual(
-      ["llave-plata", "yesquero", "vela"].sort(),
+      ["llave-plata", "yesquero", "antorcha-apagada"].sort(),
     );
     const preview = play(
       createTemplatePreview(combine),

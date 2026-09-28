@@ -271,13 +271,30 @@ async function start(client: TestClient): Promise<void> {
 const hasItem = (client: TestClient, item: string) =>
   Boolean(client.state.inventories.get(client.sessionId)?.items.includes(item));
 
-/** Del cuadro al candado del arca: deja el candado listo para intentar el código. */
+/**
+ * Del cuadro al candado del arca: deja el candado listo para intentar el
+ * código. El límite de `interact` es 4 msg/s (specs/11 §9): esta ruta manda 5
+ * (cuadro, llave, yesquero, antorcha apagada, brasero), así que hay que
+ * repartirlas en más de una ventana — de ahí la pausa antes del brasero.
+ */
 async function reachArcaLock(client: TestClient): Promise<void> {
   client.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+  // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+  // sola — hace falta inspeccionar la llave que aparece en el suelo.
+  client.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
   client.send(GAME_MESSAGES.useItem, { itemId: "llave-bronce", objectId: "armario" });
-  await until(client, () => hasItem(client, "yesquero") && hasItem(client, "vela"));
-  client.send(GAME_MESSAGES.combine, { puzzleId: "p-combina", inputs: ["yesquero", "vela"] });
+  client.send(GAME_MESSAGES.interact, { objectId: "yesquero-suelo" });
+  client.send(GAME_MESSAGES.interact, { objectId: "antorcha-apagada-suelo" });
+  await until(
+    client,
+    () => hasItem(client, "yesquero") && hasItem(client, "antorcha-apagada"),
+  );
+  client.send(GAME_MESSAGES.combine, {
+    puzzleId: "p-combina",
+    inputs: ["yesquero", "antorcha-apagada"],
+  });
   await until(client, () => hasItem(client, "antorcha"));
+  await new Promise((resolve) => setTimeout(resolve, 1100));
   client.send(GAME_MESSAGES.interact, { objectId: "brasero" });
   await until(client, (state) => state.flags.get("digito3") === "3");
 }

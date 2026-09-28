@@ -428,6 +428,9 @@ describe("cliente de red contra una GameRoom real", () => {
     // Ana inspecciona el cuadro: los dos ven la llave en el inventario de Ana.
     const granted = nextEvent(bruno, "item_granted");
     ana.client.interact("cuadro-aurelio");
+    // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+    // sola — hace falta inspeccionar la llave que aparece en el suelo.
+    ana.client.interact("llave-bronce-suelo");
     expect(await granted).toMatchObject({ playerId: ana.room.sessionId, itemId: "llave-bronce" });
     await until(ana, (snapshot) => snapshot.inventory.includes("llave-bronce"));
     await until(bruno, (snapshot) =>

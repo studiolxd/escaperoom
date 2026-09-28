@@ -39,6 +39,7 @@ function renderMenu(selected: string, alternatives: RuntimeObject[]) {
       inspectLabel="Inspeccionar"
       useItemLabel="Usar objeto…"
       cancelLabel="Cancelar"
+      pickupLabel="Recoger"
       alternativesLabel="Objetos en este sitio"
     />,
   );

@@ -127,6 +127,16 @@ export const WorldObjectSchema = z.object({
    * depth-sort sigue usando solo la celda del ancla.
    */
   footprint: z.array(PositionSchema).max(8).optional(),
+  /**
+   * `true` si este objeto es "algo que se recoge del suelo" (revisión en
+   * vivo, p. ej. el yesquero o la antorcha apagada del armario): su menú
+   * contextual ofrece solo Recoger + Cancelar, no Inspeccionar/Usar objeto.
+   * Igual que el `pickupObjectId` de un `hidden_key`, pero para objetos que
+   * NO nacen de un escondite — los revela una regla normal (`set_object_state`
+   * a un estado "visible"), y su propia regla de `on_interact` es la que
+   * entrega el ítem al inspeccionarlo (recogerlo).
+   */
+  pickupOnly: z.boolean().optional(),
 });
 
 /** Catálogo de objetos del inventario — specs/08 §2.4. */
@@ -134,6 +144,13 @@ export const ItemDefSchema = z.object({
   id: z.string(),
   name: LocalizedTextSchema,
   icon: z.string().regex(ID_PATTERN),
+  /**
+   * Texto que lleva el objeto (revisión en vivo: el pergamino de la Bodega),
+   * consultable en cualquier momento seleccionándolo en el inventario —
+   * aparte del diálogo que ya lo muestra la primera vez que se recoge. Sin
+   * él, el panel de inventario no muestra ese bloque.
+   */
+  content: LocalizedTextSchema.optional(),
 });
 
 export type TileLayer = z.infer<typeof TileLayerSchema>;

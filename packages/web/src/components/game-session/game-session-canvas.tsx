@@ -22,6 +22,8 @@ export interface GameSessionCanvasHandle {
   setLocalCharacter(characterId: string): void;
   /** Fracción (0–1) del lienzo donde está un objeto interactuable, para clicarlo desde fuera (E2E). */
   getObjectScreenFraction(objectId: string): { x: number; y: number } | undefined;
+  /** ¿El objeto responde ahora al clic? (E2E: esperar a que se revele antes de clicarlo). */
+  isObjectInteractive(objectId: string): boolean;
 }
 
 /**
@@ -79,6 +81,7 @@ export default function GameSessionCanvas({
       setLocalTint: (tint) => runtime.setLocalTint(tint),
       setLocalCharacter: (characterId) => runtime.setLocalCharacter(characterId),
       getObjectScreenFraction: (objectId) => runtime.getObjectScreenFraction(objectId),
+      isObjectInteractive: (objectId) => runtime.isObjectInteractive(objectId),
     });
 
     return () => {

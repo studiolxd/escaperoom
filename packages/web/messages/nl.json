@@ -147,6 +147,7 @@
     "close": "Sluiten",
     "menu": {
       "inspect": "Bekijken",
+      "pickup": "Oprapen",
       "here": "Voorwerpen op deze plek",
       "useItem": "Voorwerp gebruiken…",
       "chooseItem": "Kies een voorwerp om op {object} te gebruiken",

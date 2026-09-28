@@ -206,14 +206,21 @@ function rotateCanal(script: Script, playerId: string): void {
 /** Pasos 1–5: Salón del Trono hasta abrir el arca (los hace `p1`). */
 function playSalonHastaArca(script: Script): void {
   const { session, clock, record } = script;
-  // 1. Inspeccionar el cuadro → llave-bronce
+  // 1. Inspeccionar el cuadro revela la llave en el suelo; hay que
+  // recogerla aparte (revisión en vivo, pickupObjectId).
   record(session.interact("cuadro-aurelio", clock.next(), "p1").engine);
+  record(session.interact("llave-bronce-suelo", clock.next(), "p1").engine);
   expect(session.inventory("p1")).toContain("llave-bronce");
-  // 2. Abrir el armario con la llave → yesquero + vela
+  // 2. Abrir el armario con la llave revela el yesquero y la antorcha
+  // apagada en el suelo; hay que recogerlos aparte (recogida diferida).
   record(session.useItemOnObject("llave-bronce", "armario", clock.next(), "p1").engine);
-  expect(session.inventory("p1")).toEqual(expect.arrayContaining(["yesquero", "vela"]));
-  // 3. Combinar yesquero + vela → antorcha
-  record(session.combine("p-combina", ["yesquero", "vela"], clock.next(), "p1").engine);
+  record(session.interact("yesquero-suelo", clock.next(), "p1").engine);
+  record(session.interact("antorcha-apagada-suelo", clock.next(), "p1").engine);
+  expect(session.inventory("p1")).toEqual(
+    expect.arrayContaining(["yesquero", "antorcha-apagada"]),
+  );
+  // 3. Combinar yesquero + antorcha apagada → antorcha
+  record(session.combine("p-combina", ["yesquero", "antorcha-apagada"], clock.next(), "p1").engine);
   expect(session.inventory("p1")).toContain("antorcha");
   // 4. Encender el brasero → dígito 3 visible
   record(session.interact("brasero", clock.next(), "p1").engine);

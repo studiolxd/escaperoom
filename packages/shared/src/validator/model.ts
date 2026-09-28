@@ -35,6 +35,10 @@ import type { RouteStepKind } from "./types";
 /** Acciones que no alteran el estado de juego (solo narrativa/presentación). */
 const NARRATIVE_ACTIONS = new Set<RuleAction["type"]>([
   "show_dialog",
+  // Presentación pura, como el diálogo: sin este, cada regla de inspección
+  // `once` con imagen contaba como cambio de estado y multiplicaba los
+  // estados distintos del BFS (un decorativo con diálogo+imagen = un bit más).
+  "show_image",
   "play_sound",
   "spawn_effect",
   "open_panel_puzzle",
@@ -79,6 +83,13 @@ export class RoomIndex {
   readonly itemSources = new Map<string, ItemSource[]>();
   /** Timers con alguna regla `on_timer` (su arranque sí cambia el estado). */
   readonly periodicTimers = new Set<string>();
+  /**
+   * Objetos cuyo estado lee el modelo: los que aparecen en una condición
+   * `object_state_is` de alguna regla y las puertas (`doorPassable`). Cambiar
+   * el estado de cualquier otro objeto (la llave del suelo que se oculta al
+   * recogerla, un cuadro que se abre) es presentación: no decide nada.
+   */
+  readonly readObjectStates = new Set<string>();
 
   constructor(pkg: RoomPackage) {
     this.pkg = pkg;
@@ -117,6 +128,13 @@ export class RoomIndex {
             repeatable: recipe.consumeInputs,
           });
         }
+      }
+    }
+
+    for (const door of this.doors) this.readObjectStates.add(door.id);
+    for (const rule of pkg.rules) {
+      for (const condition of rule.conditions) {
+        if (condition.type === "object_state_is") this.readObjectStates.add(condition.objectId);
       }
     }
 
@@ -224,6 +242,24 @@ export function isNarrativeRule(index: RoomIndex, rule: Rule): boolean {
   );
 }
 
+/**
+ * `true` si dispararla no cambia nada que el modelo consulte: narrativa o
+ * cambios de estado de objetos que nada lee (`RoomIndex.readObjectStates`).
+ * Solo decide si una regla `once` ya disparada entra en la clave del estado:
+ * recoger la llave del suelo solo la oculta, y contarlo duplicaba los estados
+ * del BFS (recogida hecha o pendiente) sin decidir nada. Para los informes
+ * (`isGameplayRule`) sigue contando como regla de juego: que la llave no
+ * llegue a revelarse sí importa a quien diseña la sala.
+ */
+function isStateInertRule(index: RoomIndex, rule: Rule): boolean {
+  return flattenActions(rule.actions).every(
+    (action) =>
+      NARRATIVE_ACTIONS.has(action.type) ||
+      (action.type === "start_timer" && !index.periodicTimers.has(action.id)) ||
+      (action.type === "set_object_state" && !index.readObjectStates.has(action.objectId)),
+  );
+}
+
 /** `true` si la regla termina la partida con victoria. */
 export function isVictoryRule(rule: Rule): boolean {
   return flattenActions(rule.actions).some(
@@ -286,12 +322,33 @@ export class ExactState implements ModelState {
     private unlocked = new Set<string>(),
     private applied = new Set<string>(),
     private timers = new Set<string>(),
+    /**
+     * Objetos cuyo estado se sigue (`RoomIndex.readObjectStates`): el resto
+     * no decide nada, y copiar y serializar decenas de objetos decorativos
+     * en cada `clone()`/`key()` encarecía cada estado del BFS.
+     */
+    private readonly trackedObjects: ReadonlySet<string> = new Set(),
   ) {}
 
   static initial(index: RoomIndex, playerCount: number): ExactState {
-    const state = new ExactState(playerCount);
+    const state = new ExactState(
+      playerCount,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      index.readObjectStates,
+    );
     for (const object of index.pkg.objects) {
-      state.objectStates.set(object.id, object.initialState);
+      if (index.readObjectStates.has(object.id)) {
+        state.objectStates.set(object.id, object.initialState);
+      }
     }
     state.flags.set(RESERVED_FLAGS.GAME_STARTED, true);
     state.flags.set(RESERVED_FLAGS.GAME_ENDED, false);
@@ -311,6 +368,7 @@ export class ExactState implements ModelState {
       new Set(this.unlocked),
       new Set(this.applied),
       new Set(this.timers),
+      this.trackedObjects,
     );
     copy.victory = this.victory;
     copy.lost = this.lost;
@@ -357,7 +415,8 @@ export class ExactState implements ModelState {
     return this.objectStates.get(objectId) === state;
   }
   setObjectState(objectId: string, state: string): void {
-    this.objectStates.set(objectId, state);
+    // Nadie consulta el estado de un objeto que no se sigue: no se guarda.
+    if (this.trackedObjects.has(objectId)) this.objectStates.set(objectId, state);
   }
   flagIs(flag: string, value: unknown): boolean {
     return this.flags.get(flag) === value;
@@ -703,7 +762,7 @@ export function dispatchEvent(
           effects.itemsConsumed.push(condition.itemId);
         }
       }
-      state.markFired(rule.id, rule.once && !isNarrativeRule(index, rule));
+      state.markFired(rule.id, rule.once && !isStateInertRule(index, rule));
       effects.rulesFired.push(rule.id);
       applyActions(index, state, rule.actions, effects, queue);
     }
@@ -785,6 +844,43 @@ export function startGame(index: RoomIndex, state: ModelState): void {
 }
 
 /** Movimientos candidatos en el estado (orden determinista). */
+const inertInteractCache = new WeakMap<RoomIndex, Set<string>>();
+
+/**
+ * Objetos cuyo `interact` no puede cambiar el modelo: todas sus reglas
+ * `on_interact` son puramente narrativas (diálogo, imagen, sonido), no gastan
+ * ningún ítem al comprobar sus condiciones y el objeto no reparte nada ni es
+ * un escondite. Es el caso de los señuelos decorativos: sin este filtro cada
+ * uno añade un movimiento por estado a la búsqueda (clonar, aplicar, calcular
+ * la clave) que siempre acaba en un estado ya visitado, y el BFS se encarece
+ * con cada decorativo nuevo.
+ */
+function inertInteractObjects(index: RoomIndex): Set<string> {
+  const cached = inertInteractCache.get(index);
+  if (cached) return cached;
+  const rulesByObject = new Map<string, Rule[]>();
+  for (const rule of index.rules) {
+    if (rule.trigger.type !== "on_interact") continue;
+    const list = rulesByObject.get(rule.trigger.objectId) ?? [];
+    list.push(rule);
+    rulesByObject.set(rule.trigger.objectId, list);
+  }
+  const inert = new Set<string>();
+  for (const [objectId, rules] of rulesByObject) {
+    const object = index.objects.get(objectId);
+    if (!object || index.hiddenKeyByObject.has(objectId) || objectGrants(index, object).length > 0) {
+      continue;
+    }
+    const spends = (rule: Rule) =>
+      (rule.conditions ?? []).some(
+        (condition) => condition.type === "item_in_inventory" && condition.consumed,
+      );
+    if (rules.every((rule) => isNarrativeRule(index, rule) && !spends(rule))) inert.add(objectId);
+  }
+  inertInteractCache.set(index, inert);
+  return inert;
+}
+
 export function candidateMoves(index: RoomIndex, state: ModelState): Move[] {
   const moves: Move[] = [];
   if (state.terminal) return moves;
@@ -802,6 +898,7 @@ export function candidateMoves(index: RoomIndex, state: ModelState): Move[] {
 
   const seenUse = new Set<string>();
   const seenInteract = new Set<string>();
+  const inert = inertInteractObjects(index);
   for (const rule of index.rules) {
     const trigger = rule.trigger;
     if (trigger.type === "on_use_item") {
@@ -810,7 +907,7 @@ export function candidateMoves(index: RoomIndex, state: ModelState): Move[] {
       seenUse.add(key);
       moves.push({ kind: "use_item", objectId: trigger.objectId, itemId: trigger.itemId });
     } else if (trigger.type === "on_interact") {
-      if (seenInteract.has(trigger.objectId)) continue;
+      if (seenInteract.has(trigger.objectId) || inert.has(trigger.objectId)) continue;
       seenInteract.add(trigger.objectId);
       moves.push({ kind: "interact", objectId: trigger.objectId });
     } else if (trigger.type === "on_all_players_in_zone") {

@@ -170,40 +170,7 @@
             ]
           }
         ],
-        "decorations": [
-          {
-            "sprite": "tapiz-dragones",
-            "x": 4,
-            "y": 0
-          },
-          {
-            "sprite": "tapiz-dragones",
-            "x": 16,
-            "y": 0
-          },
-          {
-            "sprite": "columna",
-            "x": 2,
-            "y": 3,
-            "blocks": true
-          },
-          {
-            "sprite": "columna",
-            "x": 17,
-            "y": 3,
-            "blocks": true
-          },
-          {
-            "sprite": "estandarte",
-            "x": 2,
-            "y": 0
-          },
-          {
-            "sprite": "estandarte",
-            "x": 18,
-            "y": 0
-          }
-        ],
+        "decorations": [],
         "spawnPoints": [
           {
             "id": "spawn-1",
@@ -371,36 +338,7 @@
             ]
           }
         ],
-        "decorations": [
-          {
-            "sprite": "barriles-der",
-            "x": 1,
-            "y": 2,
-            "blocks": true
-          },
-          {
-            "sprite": "barriles-der",
-            "x": 1,
-            "y": 4,
-            "blocks": true
-          },
-          {
-            "sprite": "barriles",
-            "x": 16,
-            "y": 2,
-            "blocks": true
-          },
-          {
-            "sprite": "antorcha",
-            "x": 2,
-            "y": 0
-          },
-          {
-            "sprite": "antorcha",
-            "x": 14,
-            "y": 0
-          }
-        ],
+        "decorations": [],
         "spawnPoints": [
           {
             "id": "spawn-1",
@@ -634,26 +572,6 @@
         ],
         "decorations": [
           {
-            "sprite": "antorcha",
-            "x": 2,
-            "y": 0
-          },
-          {
-            "sprite": "antorcha",
-            "x": 17,
-            "y": 0
-          },
-          {
-            "sprite": "antorcha-der",
-            "x": 0,
-            "y": 6
-          },
-          {
-            "sprite": "antorcha-der",
-            "x": 0,
-            "y": 13
-          },
-          {
             "sprite": "canal-tramo",
             "x": 2,
             "y": 4
@@ -780,6 +698,27 @@
       }
     },
     {
+      "id": "llave-bronce-suelo",
+      "name": {
+        "es": {
+          "text": "La llave de bronce"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "objeto",
+      "position": {
+        "x": 6,
+        "y": 1
+      },
+      "sprite": "llave-bronce-suelo",
+      "states": {
+        "oculto": "oculto",
+        "visible": "llave-bronce-suelo"
+      },
+      "initialState": "oculto",
+      "interactable": true
+    },
+    {
       "id": "retrato-2",
       "name": {
         "es": {
@@ -873,6 +812,50 @@
       "interactable": true
     },
     {
+      "id": "yesquero-suelo",
+      "name": {
+        "es": {
+          "text": "El yesquero"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "objeto",
+      "position": {
+        "x": 2,
+        "y": 4
+      },
+      "sprite": "yesquero-suelo",
+      "states": {
+        "oculto": "oculto",
+        "visible": "yesquero-suelo"
+      },
+      "initialState": "oculto",
+      "interactable": true,
+      "pickupOnly": true
+    },
+    {
+      "id": "antorcha-apagada-suelo",
+      "name": {
+        "es": {
+          "text": "La antorcha apagada"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "objeto",
+      "position": {
+        "x": 1,
+        "y": 5
+      },
+      "sprite": "antorcha-apagada-suelo",
+      "states": {
+        "oculto": "oculto",
+        "visible": "antorcha-apagada-suelo"
+      },
+      "initialState": "oculto",
+      "interactable": true,
+      "pickupOnly": true
+    },
+    {
       "id": "arca-candado",
       "name": {
         "es": {
@@ -955,7 +938,7 @@
       "id": "placa-izq",
       "name": {
         "es": {
-          "text": "La placa de piedra (izquierda)"
+          "text": "Placa de piedra"
         }
       },
       "roomId": "salon-trono",
@@ -976,7 +959,7 @@
       "id": "placa-der",
       "name": {
         "es": {
-          "text": "La placa de piedra (derecha)"
+          "text": "Placa de piedra"
         }
       },
       "roomId": "salon-trono",
@@ -1015,6 +998,168 @@
       "interactable": true,
       "lockedBy": "p-placas-estatuas",
       "leadsTo": "bodega"
+    },
+    {
+      "id": "cofre-real",
+      "name": {
+        "es": {
+          "text": "El cofre del tesoro"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 17,
+        "y": 9
+      },
+      "sprite": "arca-cerrada",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "mesa-banquete",
+      "name": {
+        "es": {
+          "text": "La mesa del banquete"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 17,
+        "y": 6
+      },
+      "sprite": "mesa",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "barril-aceite",
+      "name": {
+        "es": {
+          "text": "El barril de aceite"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 17,
+        "y": 11
+      },
+      "sprite": "barril-cerrado",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "tapiz-izq",
+      "name": {
+        "es": {
+          "text": "Un tapiz de dragones"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 4,
+        "y": 0
+      },
+      "sprite": "tapiz-dragones",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "tapiz-der",
+      "name": {
+        "es": {
+          "text": "Un tapiz de dragones"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 16,
+        "y": 0
+      },
+      "sprite": "tapiz-dragones",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "columna-izq",
+      "name": {
+        "es": {
+          "text": "La columna"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 2,
+        "y": 3
+      },
+      "sprite": "columna",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "columna-der",
+      "name": {
+        "es": {
+          "text": "La columna"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 17,
+        "y": 3
+      },
+      "sprite": "columna",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "estandarte-izq",
+      "name": {
+        "es": {
+          "text": "El estandarte real"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 2,
+        "y": 0
+      },
+      "sprite": "estandarte",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "estandarte-der",
+      "name": {
+        "es": {
+          "text": "El estandarte real"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "decorativo",
+      "position": {
+        "x": 18,
+        "y": 0
+      },
+      "sprite": "estandarte",
+      "states": {},
+      "initialState": "",
+      "interactable": true
     },
     {
       "id": "mural-vendimia",
@@ -1196,6 +1341,150 @@
       "interactable": true
     },
     {
+      "id": "barril-vino-a",
+      "name": {
+        "es": {
+          "text": "El barril de vino"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 3,
+        "y": 6
+      },
+      "sprite": "barril-cerrado",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "barril-vino-b",
+      "name": {
+        "es": {
+          "text": "El barril vacío"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 6,
+        "y": 8
+      },
+      "sprite": "barril-cerrado",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "mesa-servicio",
+      "name": {
+        "es": {
+          "text": "La mesa de servicio"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 13,
+        "y": 4
+      },
+      "sprite": "mesa",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "barriles-pila-a",
+      "name": {
+        "es": {
+          "text": "Una pila de barriles"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 1,
+        "y": 2
+      },
+      "sprite": "barriles-der",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "barriles-pila-b",
+      "name": {
+        "es": {
+          "text": "Una pila de barriles"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 1,
+        "y": 4
+      },
+      "sprite": "barriles-der",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "barriles-pila-c",
+      "name": {
+        "es": {
+          "text": "Una pila de barriles"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 16,
+        "y": 2
+      },
+      "sprite": "barriles",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "antorcha-bodega-izq",
+      "name": {
+        "es": {
+          "text": "La antorcha de pared"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 2,
+        "y": 0
+      },
+      "sprite": "antorcha",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "antorcha-bodega-der",
+      "name": {
+        "es": {
+          "text": "La antorcha de pared"
+        }
+      },
+      "roomId": "bodega",
+      "type": "decorativo",
+      "position": {
+        "x": 14,
+        "y": 0
+      },
+      "sprite": "antorcha",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
       "id": "sarcofago",
       "name": {
         "es": {
@@ -1332,6 +1621,138 @@
           "y": 10
         }
       ]
+    },
+    {
+      "id": "cofre-oxidado",
+      "name": {
+        "es": {
+          "text": "El cofre oxidado"
+        }
+      },
+      "roomId": "catacumbas",
+      "type": "decorativo",
+      "position": {
+        "x": 3,
+        "y": 10
+      },
+      "sprite": "arca-cerrada",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "sarcofago-anonimo",
+      "name": {
+        "es": {
+          "text": "Sarcófago sin nombre"
+        }
+      },
+      "roomId": "catacumbas",
+      "type": "decorativo",
+      "position": {
+        "x": 5,
+        "y": 14
+      },
+      "sprite": "sarcofago",
+      "states": {},
+      "initialState": "",
+      "interactable": true,
+      "footprint": [
+        {
+          "x": 6,
+          "y": 14
+        }
+      ]
+    },
+    {
+      "id": "estatua-desmoronada",
+      "name": {
+        "es": {
+          "text": "La estatua desmoronada"
+        }
+      },
+      "roomId": "catacumbas",
+      "type": "decorativo",
+      "position": {
+        "x": 17,
+        "y": 5
+      },
+      "sprite": "estatua-caballero",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "antorcha-cat-a",
+      "name": {
+        "es": {
+          "text": "La antorcha de pared"
+        }
+      },
+      "roomId": "catacumbas",
+      "type": "decorativo",
+      "position": {
+        "x": 2,
+        "y": 0
+      },
+      "sprite": "antorcha",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "antorcha-cat-b",
+      "name": {
+        "es": {
+          "text": "La antorcha de pared"
+        }
+      },
+      "roomId": "catacumbas",
+      "type": "decorativo",
+      "position": {
+        "x": 17,
+        "y": 0
+      },
+      "sprite": "antorcha",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "antorcha-cat-c",
+      "name": {
+        "es": {
+          "text": "La antorcha de pared"
+        }
+      },
+      "roomId": "catacumbas",
+      "type": "decorativo",
+      "position": {
+        "x": 0,
+        "y": 6
+      },
+      "sprite": "antorcha-der",
+      "states": {},
+      "initialState": "",
+      "interactable": true
+    },
+    {
+      "id": "antorcha-cat-d",
+      "name": {
+        "es": {
+          "text": "La antorcha de pared"
+        }
+      },
+      "roomId": "catacumbas",
+      "type": "decorativo",
+      "position": {
+        "x": 0,
+        "y": 13
+      },
+      "sprite": "antorcha-der",
+      "states": {},
+      "initialState": "",
+      "interactable": true
     }
   ],
   "items": [
@@ -1345,13 +1766,13 @@
       "icon": "icon-yesquero"
     },
     {
-      "id": "vela",
+      "id": "antorcha-apagada",
       "name": {
         "es": {
-          "text": "Vela"
+          "text": "Antorcha apagada"
         }
       },
-      "icon": "icon-vela"
+      "icon": "icon-antorcha-apagada"
     },
     {
       "id": "antorcha",
@@ -1423,7 +1844,12 @@
           "text": "Pergamino de los vinos"
         }
       },
-      "icon": "icon-pergamino"
+      "icon": "icon-pergamino",
+      "content": {
+        "es": {
+          "text": "La uva con la uva, el sol con el sol, la llave con la llave."
+        }
+      }
     }
   ],
   "puzzles": [
@@ -1441,7 +1867,7 @@
         {
           "inputs": [
             "yesquero",
-            "vela"
+            "antorcha-apagada"
           ],
           "output": "antorcha",
           "consumeInputs": true
@@ -1473,7 +1899,8 @@
       "hidingSpot": {
         "objectId": "cuadro-aurelio"
       },
-      "revealAnimation": "shake"
+      "revealAnimation": "shake",
+      "pickupObjectId": "llave-bronce-suelo"
     },
     {
       "id": "p-candado-arca",
@@ -1683,8 +2110,7 @@
       ],
       "length": 4,
       "code": "4538",
-      "maxAttempts": 999,
-      "lockoutSec": 0,
+      "maxAttempts": 0,
       "hints": [
         "hint-sello-1",
         "hint-sello-2",
@@ -1822,6 +2248,26 @@
       ]
     },
     {
+      "id": "r-inspeccionar-brasero",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "brasero"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-brasero-apagado"
+        },
+        {
+          "type": "show_image",
+          "image": "brasero-apagado"
+        }
+      ]
+    },
+    {
       "id": "r-encender-brasero",
       "priority": 0,
       "once": true,
@@ -1854,6 +2300,10 @@
         {
           "type": "play_sound",
           "soundId": "fx-fuego"
+        },
+        {
+          "type": "show_image",
+          "image": "brasero-encendido"
         }
       ]
     },
@@ -1880,14 +2330,78 @@
           "state": "open"
         },
         {
+          "type": "set_object_state",
+          "objectId": "yesquero-suelo",
+          "state": "visible"
+        },
+        {
+          "type": "set_object_state",
+          "objectId": "antorcha-apagada-suelo",
+          "state": "visible"
+        }
+      ]
+    },
+    {
+      "id": "r-recoger-yesquero",
+      "priority": 0,
+      "once": true,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "yesquero-suelo"
+      },
+      "conditions": [
+        {
+          "type": "object_state_is",
+          "objectId": "armario",
+          "state": "open"
+        }
+      ],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-recoger-yesquero"
+        },
+        {
           "type": "grant_item",
           "itemId": "yesquero",
           "to": "interactor"
         },
         {
+          "type": "set_object_state",
+          "objectId": "yesquero-suelo",
+          "state": "oculto"
+        }
+      ]
+    },
+    {
+      "id": "r-recoger-antorcha-apagada",
+      "priority": 0,
+      "once": true,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-apagada-suelo"
+      },
+      "conditions": [
+        {
+          "type": "object_state_is",
+          "objectId": "armario",
+          "state": "open"
+        }
+      ],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-recoger-antorcha-apagada"
+        },
+        {
           "type": "grant_item",
-          "itemId": "vela",
+          "itemId": "antorcha-apagada",
           "to": "interactor"
+        },
+        {
+          "type": "set_object_state",
+          "objectId": "antorcha-apagada-suelo",
+          "state": "oculto"
         }
       ]
     },
@@ -1905,6 +2419,38 @@
           "type": "set_object_state",
           "objectId": "cuadro-aurelio",
           "state": "open"
+        },
+        {
+          "type": "set_object_state",
+          "objectId": "llave-bronce-suelo",
+          "state": "visible"
+        }
+      ]
+    },
+    {
+      "id": "r-recoger-llave-cuadro",
+      "priority": 0,
+      "once": true,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "llave-bronce-suelo"
+      },
+      "conditions": [
+        {
+          "type": "puzzle_state_is",
+          "puzzleId": "p-llave-cuadro",
+          "state": "solved"
+        }
+      ],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-recoger-llave-cuadro"
+        },
+        {
+          "type": "set_object_state",
+          "objectId": "llave-bronce-suelo",
+          "state": "oculto"
         }
       ]
     },
@@ -1922,6 +2468,66 @@
           "type": "set_object_state",
           "objectId": "arca-candado",
           "state": "open"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-puerta-bodega",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "puerta-bodega"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-puerta-bodega"
+        },
+        {
+          "type": "show_image",
+          "image": "puerta-cerrada"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-placa-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "placa-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-placa-piedra"
+        },
+        {
+          "type": "show_image",
+          "image": "placa-piedra"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-placa-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "placa-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-placa-piedra"
+        },
+        {
+          "type": "show_image",
+          "image": "placa-piedra"
         }
       ]
     },
@@ -2076,6 +2682,26 @@
       ]
     },
     {
+      "id": "r-inspeccionar-reja-escalera",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "reja-escalera"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-reja-escalera"
+        },
+        {
+          "type": "show_image",
+          "image": "reja-cerrada"
+        }
+      ]
+    },
+    {
       "id": "r-entrar-catacumbas",
       "priority": 0,
       "once": true,
@@ -2104,6 +2730,10 @@
         {
           "type": "show_dialog",
           "dialogId": "d-sarcofago"
+        },
+        {
+          "type": "show_image",
+          "image": "sarcofago"
         }
       ]
     },
@@ -2219,6 +2849,646 @@
         {
           "type": "play_sound",
           "soundId": "fx-tension"
+        }
+      ]
+    },
+    {
+      "id": "r-aviso-5min",
+      "priority": 50,
+      "once": true,
+      "trigger": {
+        "type": "on_time_remaining_below",
+        "seconds": 300
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-aviso-5min"
+        },
+        {
+          "type": "play_sound",
+          "soundId": "fx-tension"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-trono",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "trono"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-trono"
+        },
+        {
+          "type": "show_image",
+          "image": "trono"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-armario",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "armario"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-armario"
+        },
+        {
+          "type": "show_image",
+          "image": "armario"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-estatua-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "estatua-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-estatua-caballero"
+        },
+        {
+          "type": "show_image",
+          "image": "estatua-caballero"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-estatua-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "estatua-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-estatua-caballero"
+        },
+        {
+          "type": "show_image",
+          "image": "estatua-caballero"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-compartimento-plata",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "compartimento-plata"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-compartimento-plata"
+        },
+        {
+          "type": "show_image",
+          "image": "compartimento"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-barril-espejo",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "barril-espejo"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-barril-espejo"
+        },
+        {
+          "type": "show_image",
+          "image": "barril-suelto"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-altar",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "altar"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-altar"
+        },
+        {
+          "type": "show_image",
+          "image": "altar-seco"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-cofre-real",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "cofre-real"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-cofre-real"
+        },
+        {
+          "type": "show_image",
+          "image": "arca-cerrada"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-mesa-banquete",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "mesa-banquete"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-mesa-banquete"
+        },
+        {
+          "type": "show_image",
+          "image": "mesa"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-barril-aceite",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "barril-aceite"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-barril-aceite"
+        },
+        {
+          "type": "show_image",
+          "image": "barril-cerrado"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-barril-vino-a",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "barril-vino-a"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-barril-vino-a"
+        },
+        {
+          "type": "show_image",
+          "image": "barril-cerrado"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-barril-vino-b",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "barril-vino-b"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-barril-vino-b"
+        },
+        {
+          "type": "show_image",
+          "image": "barril-cerrado"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-mesa-servicio",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "mesa-servicio"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-mesa-servicio"
+        },
+        {
+          "type": "show_image",
+          "image": "mesa"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-cofre-oxidado",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "cofre-oxidado"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-cofre-oxidado"
+        },
+        {
+          "type": "show_image",
+          "image": "arca-cerrada"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-sarcofago-anonimo",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "sarcofago-anonimo"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-sarcofago-anonimo"
+        },
+        {
+          "type": "show_image",
+          "image": "sarcofago"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-estatua-desmoronada",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "estatua-desmoronada"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-estatua-desmoronada"
+        },
+        {
+          "type": "show_image",
+          "image": "estatua-caballero"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-tapiz-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "tapiz-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-tapiz-izq"
+        },
+        {
+          "type": "show_image",
+          "image": "tapiz-dragones"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-tapiz-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "tapiz-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-tapiz-der"
+        },
+        {
+          "type": "show_image",
+          "image": "tapiz-dragones"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-columna-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "columna-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-columna-izq"
+        },
+        {
+          "type": "show_image",
+          "image": "columna"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-columna-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "columna-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-columna-der"
+        },
+        {
+          "type": "show_image",
+          "image": "columna"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-estandarte-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "estandarte-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-estandarte-izq"
+        },
+        {
+          "type": "show_image",
+          "image": "estandarte"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-estandarte-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "estandarte-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-estandarte-der"
+        },
+        {
+          "type": "show_image",
+          "image": "estandarte"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-barriles-pila-a",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "barriles-pila-a"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-barriles-pila-a"
+        },
+        {
+          "type": "show_image",
+          "image": "barriles"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-barriles-pila-b",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "barriles-pila-b"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-barriles-pila-b"
+        },
+        {
+          "type": "show_image",
+          "image": "barriles"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-barriles-pila-c",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "barriles-pila-c"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-barriles-pila-c"
+        },
+        {
+          "type": "show_image",
+          "image": "barriles"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-antorcha-bodega-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-bodega-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-antorcha-bodega-izq"
+        },
+        {
+          "type": "show_image",
+          "image": "antorcha"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-antorcha-bodega-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-bodega-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-antorcha-bodega-der"
+        },
+        {
+          "type": "show_image",
+          "image": "antorcha"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-antorcha-cat-a",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-cat-a"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-antorcha-cat-a"
+        },
+        {
+          "type": "show_image",
+          "image": "antorcha"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-antorcha-cat-b",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-cat-b"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-antorcha-cat-b"
+        },
+        {
+          "type": "show_image",
+          "image": "antorcha"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-antorcha-cat-c",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-cat-c"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-antorcha-cat-c"
+        },
+        {
+          "type": "show_image",
+          "image": "antorcha"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-antorcha-cat-d",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-cat-d"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-antorcha-cat-d"
+        },
+        {
+          "type": "show_image",
+          "image": "antorcha"
         }
       ]
     },
@@ -2340,7 +3610,311 @@
       "id": "d-aviso",
       "text": {
         "es": {
-          "text": "La arena casi ha caído. ¡Diez minutos!"
+          "text": "¡Diez minutos! Corred o el mago Malrec se saldrá con la suya."
+        }
+      }
+    },
+    {
+      "id": "d-trono",
+      "text": {
+        "es": {
+          "text": "El trono del Rey Aldric, vacío desde hace generaciones. La madera está astillada, pero el escudo tallado en el respaldo sigue intacto."
+        }
+      }
+    },
+    {
+      "id": "d-armario",
+      "text": {
+        "es": {
+          "text": "Un armario de roble cerrado con llave. Por la rendija de la puerta se intuye algo dentro."
+        }
+      }
+    },
+    {
+      "id": "d-estatua-caballero",
+      "text": {
+        "es": {
+          "text": "La estatua de un caballero en guardia, con la espada envainada. El musgo cubre parte de la armadura de piedra."
+        }
+      }
+    },
+    {
+      "id": "d-compartimento-plata",
+      "text": {
+        "es": {
+          "text": "Un compartimento secreto tallado en la piedra de la bodega, cerrado por ahora."
+        }
+      }
+    },
+    {
+      "id": "d-barril-espejo",
+      "text": {
+        "es": {
+          "text": "Un barril de vino, suelto entre los demás. Algo repiquetea dentro al moverlo."
+        }
+      }
+    },
+    {
+      "id": "d-altar",
+      "text": {
+        "es": {
+          "text": "Un altar de piedra seca, con un canal tallado que serpentea hacia un desagüe."
+        }
+      }
+    },
+    {
+      "id": "d-puerta-bodega",
+      "text": {
+        "es": {
+          "text": "Una pesada puerta de madera reforzada con hierro, cerrada. No parece que se pueda forzar a mano."
+        }
+      }
+    },
+    {
+      "id": "d-reja-escalera",
+      "text": {
+        "es": {
+          "text": "Una reja de hierro bloquea la escalera hacia abajo. El mecanismo del cerrojo no está a la vista."
+        }
+      }
+    },
+    {
+      "id": "d-brasero-apagado",
+      "text": {
+        "es": {
+          "text": "Un brasero de hierro forjado, frío y apagado. Alguien tendría que prenderlo."
+        }
+      }
+    },
+    {
+      "id": "d-recoger-llave-cuadro",
+      "text": {
+        "es": {
+          "text": "Recoges la llave de bronce del suelo."
+        }
+      }
+    },
+    {
+      "id": "d-aviso-5min",
+      "text": {
+        "es": {
+          "text": "¡Cinco minutos! Si nos dais prisa, el alma del rey Aldric quedará sellada para siempre."
+        }
+      }
+    },
+    {
+      "id": "d-recoger-yesquero",
+      "text": {
+        "es": {
+          "text": "Recoges el yesquero del suelo."
+        }
+      }
+    },
+    {
+      "id": "d-recoger-antorcha-apagada",
+      "text": {
+        "es": {
+          "text": "Recoges la antorcha apagada del suelo."
+        }
+      }
+    },
+    {
+      "id": "d-placa-piedra",
+      "text": {
+        "es": {
+          "text": "Una placa que se acciona con el peso."
+        }
+      }
+    },
+    {
+      "id": "d-cofre-real",
+      "text": {
+        "es": {
+          "text": "Un cofre con herrajes dorados. Está cerrado a cal y canto y no tiene cerradura: por lo visto solo era de adorno."
+        }
+      }
+    },
+    {
+      "id": "d-mesa-banquete",
+      "text": {
+        "es": {
+          "text": "Una larga mesa donde el rey banqueteaba con su corte. Solo quedan platos rotos y restos de cera de las velas."
+        }
+      }
+    },
+    {
+      "id": "d-barril-aceite",
+      "text": {
+        "es": {
+          "text": "Un barril sellado con brea. Huele a aceite rancio de lámpara; desde luego no es vino."
+        }
+      }
+    },
+    {
+      "id": "d-barril-vino-a",
+      "text": {
+        "es": {
+          "text": "Un barril de roble con el aro oxidado. Por el tapón asoma un olor agrio: el vino se echó a perder hace siglos."
+        }
+      }
+    },
+    {
+      "id": "d-barril-vino-b",
+      "text": {
+        "es": {
+          "text": "En la tapa hay una uva tallada con descuido. Golpeas el barril: está vacío."
+        }
+      }
+    },
+    {
+      "id": "d-mesa-servicio",
+      "text": {
+        "es": {
+          "text": "Una mesa de trabajo cubierta de polvo, con marcas de copas. No hay nada útil sobre ella."
+        }
+      }
+    },
+    {
+      "id": "d-cofre-oxidado",
+      "text": {
+        "es": {
+          "text": "Un cofre carcomido por la humedad. La tapa está soldada por el óxido y no hay forma de abrirla."
+        }
+      }
+    },
+    {
+      "id": "d-sarcofago-anonimo",
+      "text": {
+        "es": {
+          "text": "Un sarcófago sin inscripción alguna. La tapa pesa demasiado para moverla y no se oye nada dentro."
+        }
+      }
+    },
+    {
+      "id": "d-estatua-desmoronada",
+      "text": {
+        "es": {
+          "text": "Un caballero de piedra al que le falta la cabeza. Sus restos yacen esparcidos por el suelo."
+        }
+      }
+    },
+    {
+      "id": "d-tapiz-izq",
+      "text": {
+        "es": {
+          "text": "Un tapiz descolorido con dragones bordados en hilo dorado. Las polillas se han cebado con él; no ocultan nada detrás."
+        }
+      }
+    },
+    {
+      "id": "d-tapiz-der",
+      "text": {
+        "es": {
+          "text": "Otro tapiz de dragones, casi idéntico al de enfrente. El bordado está tan gastado que ya no se distinguen las figuras."
+        }
+      }
+    },
+    {
+      "id": "d-columna-izq",
+      "text": {
+        "es": {
+          "text": "Una gruesa columna de piedra con el capitel agrietado. Sostiene el techo del salón y poco más."
+        }
+      }
+    },
+    {
+      "id": "d-columna-der",
+      "text": {
+        "es": {
+          "text": "Una columna igual que la de la otra pared. Golpeas la piedra: es maciza, sin huecos ni secretos."
+        }
+      }
+    },
+    {
+      "id": "d-estandarte-izq",
+      "text": {
+        "es": {
+          "text": "El estandarte del reino, deshilachado por los años. El emblema del rey Aldric aún se intuye bajo el polvo."
+        }
+      }
+    },
+    {
+      "id": "d-estandarte-der",
+      "text": {
+        "es": {
+          "text": "Un estandarte real que cuelga inmóvil. No corre ni un soplo de aire en el salón."
+        }
+      }
+    },
+    {
+      "id": "d-barriles-pila-a",
+      "text": {
+        "es": {
+          "text": "Barriles apilados contra la pared, vacíos y resecos. Las duelas crujen solo con mirarlas."
+        }
+      }
+    },
+    {
+      "id": "d-barriles-pila-b",
+      "text": {
+        "es": {
+          "text": "Otra pila de barriles. Los aros de hierro están oxidados y no queda ni una gota de vino."
+        }
+      }
+    },
+    {
+      "id": "d-barriles-pila-c",
+      "text": {
+        "es": {
+          "text": "Barriles viejos amontonados en la esquina. Huelen a moho y a uva pasada."
+        }
+      }
+    },
+    {
+      "id": "d-antorcha-bodega-izq",
+      "text": {
+        "es": {
+          "text": "Una antorcha sujeta a la pared. Está fija al soporte y no hay manera de sacarla."
+        }
+      }
+    },
+    {
+      "id": "d-antorcha-bodega-der",
+      "text": {
+        "es": {
+          "text": "Una antorcha de pared que ilumina la bodega con una luz temblorosa. Está soldada a su anilla de hierro."
+        }
+      }
+    },
+    {
+      "id": "d-antorcha-cat-a",
+      "text": {
+        "es": {
+          "text": "Una antorcha que arde en la penumbra de las catacumbas. Nadie ha cambiado su brea en siglos y aun así sigue viva."
+        }
+      }
+    },
+    {
+      "id": "d-antorcha-cat-b",
+      "text": {
+        "es": {
+          "text": "Una antorcha anclada al muro. Su llama no se apaga aunque la roces con la mano."
+        }
+      }
+    },
+    {
+      "id": "d-antorcha-cat-c",
+      "text": {
+        "es": {
+          "text": "Una antorcha en el muro lateral. Las sombras bailan sobre el pasillo."
+        }
+      }
+    },
+    {
+      "id": "d-antorcha-cat-d",
+      "text": {
+        "es": {
+          "text": "Una antorcha más, clavada al muro. No parece haber nada oculto tras ella."
         }
       }
     }

@@ -110,7 +110,9 @@ describe("validador del editor — mapeo de hallazgos a ids", () => {
     // Lo que colgaba del armario queda huérfano (items).
     expect(
       state.issues.filter((issue) => issue.checkId === "orphans").map((issue) => issue.id),
-    ).toEqual(expect.arrayContaining(["llave-bronce", "yesquero", "vela", "antorcha"]));
+    ).toEqual(
+      expect.arrayContaining(["llave-bronce", "yesquero", "antorcha-apagada", "antorcha"]),
+    );
   });
 
   it("un doc que aún no forma un RoomPackage deja el estado en `invalid` sin lanzar", () => {

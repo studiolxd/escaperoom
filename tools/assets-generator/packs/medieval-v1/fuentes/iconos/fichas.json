@@ -51,6 +51,26 @@
       }
     ]
   },
+  "antorcha-apagada": {
+    "asset": "iconos/antorcha-apagada.png",
+    "pasos": [
+      {
+        "paso": "master",
+        "herramienta": "text-to-image",
+        "modelo": "GPT 2",
+        "resolucion": "1k",
+        "aspecto": "1:1",
+        "creditos": 100,
+        "referencias": ["master de la antorcha apagada (objetos/antorcha-apagada)"],
+        "magnific": "0euAFLITfW",
+        "prompt": "Game inventory icon of an unlit hand-held wooden torch for a medieval castle escape room game. A wooden stick handle wrapped near the top with dark cloth strips and a bundle of dry straw forming the torch head, unlit: no fire, no flame, no glow. Toon 3D style, chunky simple bold shapes, saturated colors, soft upper-left lighting, no outline, no contact shadow. Positioned diagonally, head at upper-left, handle tip at lower-right, occupying about 80% of the canvas. Isolated on a fully transparent background, no floor, no text."
+      },
+      {
+        "paso": "recorte + relleno cuadrado (local)",
+        "notas": "alfa-recortado y centrado en lienzo 128×128 al 90% (mismo criterio que el resto de iconos)"
+      }
+    ]
+  },
   "hoja_iconos": {
     "asset": "iconos/hoja_iconos.png",
     "pasos": [

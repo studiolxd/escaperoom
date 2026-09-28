@@ -1,0 +1,28 @@
+{
+  "asset": "objetos/antorcha-apagada",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Antorcha apagada (sustituye a la vela, revisión en vivo): master → 3D",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-28T13:56:22+00:00",
+      "magnific": "8axcrf1IrU",
+      "prompt": "Game prop design of an unlit hand-held wooden torch (antorcha apagada) for the throne room of a castle, for an isometric escape room game. A sturdy wooden stick handle, wrapped near the top with dark cloth strips and a bundle of dry straw and tow soaked in resin forming the torch head, ready to be lit but currently unlit: no fire, no flame, no glow, no embers, no smoke, no sparks. Same warm dark wood tone as other wooden props, dark grey-brown cloth wrap. Chunky simple bold shapes, no fine engravings, no text. Resting diagonally as if lying on the ground, handle end at lower-right, torch head at upper-left. Seen in a three-quarter view slightly from above, whole object visible and centered. Exactly the same stylized 3D toon rendering, soft shading, saturated colors and soft upper-left lighting as the reference image. Edges defined only by light and shading, no outline. Isolated on a flat uniform light grey background, no floor, no shadow, no text."
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-p1",
+      "creditos": 580,
+      "fecha": "2026-09-28T14:01:00+00:00",
+      "magnific": "ksia2x516B"
+    }
+  ],
+  "creditos_total": 760
+}

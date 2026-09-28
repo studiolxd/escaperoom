@@ -118,7 +118,10 @@ describe("fin de partida — stats", () => {
       hintsUsed: 3,
       puzzlesSolved: 6,
       puzzlesTotal: TOTAL_PUZZLES,
-      itemsCollected: 5,
+      // Revisión en vivo (recogida diferida): abrir el armario ya no entrega
+      // yesquero/antorcha-apagada directo — este guion los salta (concede
+      // "antorcha" a mano en vez de combinarlos), así que ya no cuentan.
+      itemsCollected: 3,
     });
     expect(summary?.solvedPuzzles).toEqual([
       "p-candado-arca",

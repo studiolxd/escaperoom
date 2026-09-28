@@ -161,6 +161,12 @@ export function serverEnv(): Record<string, string> {
     // arranque). Vacíos aquí, el build del e2e nunca depende de lo que haya
     // en ese `.env` local.
     ANALYTICS_DISABLED: "1",
+    // Sin pack gráfico, como en CI: `packages/web/public/packs` no se versiona
+    // (lo genera `pnpm pack:build` con fuentes locales) y el job `e2e-smoke`
+    // juega con los placeholders. Si el worktree local tiene un pack generado,
+    // la partida cambiaba de sprites, zonas de clic y colisiones y el smoke
+    // local pasaba donde el de CI fallaba. Directorio inexistente a propósito.
+    PACKS_ROOT: resolve(RUN_DIR, "no-packs"),
     NEXT_PUBLIC_PLAUSIBLE_DOMAIN: "",
     NEXT_PUBLIC_PLAUSIBLE_SRC: "",
     NEXT_PUBLIC_GA_MEASUREMENT_ID: "",

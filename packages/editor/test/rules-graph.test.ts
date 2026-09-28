@@ -129,6 +129,7 @@ describe("grafo de reglas — crear la regla del brasero desde cero", () => {
       { ...defaultAction("set_flag"), flag: "digito3", value: 3 },
       { ...defaultAction("show_dialog"), dialogId: "d-brasero" },
       { ...defaultAction("play_sound"), soundId: "fx-fuego" },
+      { ...defaultAction("show_image"), image: "brasero-encendido" },
     ];
     for (const action of actions) {
       expect(connectDraft(doc, conditionNode, { kind: "action", action })).toBe(true);
@@ -197,7 +198,7 @@ describe("grafo de reglas — el doc Yjs es la fuente de verdad", () => {
     Y.applyUpdate(a, Y.encodeStateAsUpdate(b));
     Y.applyUpdate(b, Y.encodeStateAsUpdate(a));
     expect(readRules(a)).toEqual(readRules(b));
-    expect(readRules(a)[0]?.actions).toHaveLength(6);
+    expect(readRules(a)[0]?.actions).toHaveLength(7);
   });
 });
 

@@ -75,9 +75,26 @@ describe("motor de reglas — on_use_item", () => {
     );
     expect(ok.fired.map((fired) => fired.ruleId)).toEqual(["r-abrir-armario"]);
     expect(engine.state.objectStates.armario).toBe("open");
-    expect(engine.state.inventory.p1).toContain("yesquero");
-    expect(engine.state.inventory.p1).toContain("vela");
+    // Revisión en vivo (recogida diferida): abrir el armario revela el
+    // yesquero y la antorcha apagada "en el suelo" — no los entrega solo.
+    expect(engine.state.objectStates["yesquero-suelo"]).toBe("visible");
+    expect(engine.state.objectStates["antorcha-apagada-suelo"]).toBe("visible");
+    expect(engine.state.inventory.p1).not.toContain("yesquero");
+    expect(engine.state.inventory.p1).not.toContain("antorcha-apagada");
     expect(engine.state.inventory.p1).not.toContain("llave-bronce");
+
+    const pickedYesquero = engine.dispatch(
+      { type: "on_interact", objectId: "yesquero-suelo", playerId: "p1" },
+      0,
+    );
+    expect(pickedYesquero.fired.map((fired) => fired.ruleId)).toEqual(["r-recoger-yesquero"]);
+    const pickedTorch = engine.dispatch(
+      { type: "on_interact", objectId: "antorcha-apagada-suelo", playerId: "p1" },
+      0,
+    );
+    expect(pickedTorch.fired.map((fired) => fired.ruleId)).toEqual(["r-recoger-antorcha-apagada"]);
+    expect(engine.state.inventory.p1).toContain("yesquero");
+    expect(engine.state.inventory.p1).toContain("antorcha-apagada");
   });
 
   it("es idempotente: repetir el evento no cambia el estado", () => {
@@ -100,16 +117,25 @@ describe("motor de reglas — on_use_item", () => {
 });
 
 describe("RoomSession.useItemOnObject — tres vías lógicas", () => {
-  it("con la llave: abre el armario y otorga yesquero + vela", () => {
+  it("con la llave: abre el armario y revela yesquero + antorcha apagada para recoger", () => {
     const session = newSession();
     session.start(0);
     session.interact("cuadro-aurelio", 0);
+    session.interact("llave-bronce-suelo", 0);
 
     const result = session.useItemOnObject("llave-bronce", "armario", 0);
 
     expect(result.engine.fired.map((fired) => fired.ruleId)).toEqual(["r-abrir-armario"]);
     expect(session.objectState("armario")).toBe("open");
-    expect(session.inventory()).toEqual(["yesquero", "vela"]);
+    // Revisión en vivo (recogida diferida): abrir el armario no entrega
+    // solo — revela el yesquero y la antorcha apagada en el suelo.
+    expect(session.objectState("yesquero-suelo")).toBe("visible");
+    expect(session.objectState("antorcha-apagada-suelo")).toBe("visible");
+    expect(session.inventory()).toEqual([]);
+
+    session.interact("yesquero-suelo", 0);
+    session.interact("antorcha-apagada-suelo", 0);
+    expect(session.inventory()).toEqual(["yesquero", "antorcha-apagada"]);
   });
 
   it("sin la llave: no hace nada", () => {
@@ -127,6 +153,7 @@ describe("RoomSession.useItemOnObject — tres vías lógicas", () => {
     const session = newSession();
     session.start(0);
     session.interact("cuadro-aurelio", 0);
+    session.interact("llave-bronce-suelo", 0);
     session.useItemOnObject("llave-bronce", "armario", 0);
 
     const before = session.snapshot();
@@ -143,8 +170,15 @@ describe("inspeccionar el cuadro dos veces", () => {
     const session = newSession();
     session.start(0);
 
+    // Revisión en vivo (pickupObjectId): inspeccionar el cuadro revela el
+    // escondite (diálogo, estado "open", la llave aparece en el suelo) pero
+    // ya NO la entrega — hace falta inspeccionar la llave del suelo aparte.
     const first = session.interact("cuadro-aurelio", 0);
     expect(first.dialogIds).toEqual(["d-cuadro"]);
+    expect(session.inventory()).toEqual([]);
+
+    const picked = session.interact("llave-bronce-suelo", 0);
+    expect(picked.dialogIds).toEqual(["d-recoger-llave-cuadro"]);
     expect(session.inventory()).toEqual(["llave-bronce"]);
 
     const second = session.interact("cuadro-aurelio", 0);
@@ -153,20 +187,31 @@ describe("inspeccionar el cuadro dos veces", () => {
     // se puede reabrir, a diferencia del diálogo y de la llave.
     expect(second.engine.fired.map((f) => f.ruleId)).toEqual(["r-imagen-cuadro"]);
     expect(session.inventory()).toEqual(["llave-bronce"]);
+
+    // Recoger la llave del suelo otra vez no repite ni el diálogo ni la
+    // entrega (regla `once` + `pickUpHiddenKeyItem` idempotente).
+    const pickedAgain = session.interact("llave-bronce-suelo", 0);
+    expect(pickedAgain.dialogIds).toEqual([]);
+    expect(session.inventory()).toEqual(["llave-bronce"]);
   });
 });
 
 describe("RoomSession.availableActions — menú derivado del motor", () => {
   it("deriva las acciones de las reglas declaradas para el objeto", () => {
     const session = newSession();
-    // El armario solo declara `on_use_item`: el menú ofrece únicamente "Usar objeto…".
-    expect(session.availableActions("armario")).toEqual(["use_item"]);
+    // El armario declara `on_use_item` (la llave) y, desde la revisión en
+    // vivo (distractores, ítem 6), también `on_interact` (describirlo antes
+    // de abrirlo): el menú ofrece las dos.
+    expect(session.availableActions("armario")).toEqual(["use_item", "inspect"]);
     // El cuadro solo declara `on_interact`: el menú ofrece "Inspeccionar".
     expect(session.availableActions("cuadro-aurelio")).toEqual(["inspect"]);
   });
 
   it("cae al set base si el objeto no declara ninguna regla", () => {
     const session = newSession();
-    expect(session.availableActions("trono")).toEqual(["inspect", "use_item"]);
+    // El arca del candado no declara ninguna regla propia: su "Inspeccionar"
+    // abre directamente el panel del candado (`lockedBy`), sin pasar por el
+    // motor de reglas.
+    expect(session.availableActions("arca-candado")).toEqual(["inspect", "use_item"]);
   });
 });

@@ -131,6 +131,11 @@ export function toRuntimeModel(
     dialogTextById[dialog.id] = resolveLocalizedText(dialog.text, locale);
   }
 
+  const plateObjectIds = new Set(
+    roomPackage.puzzles.flatMap((puzzle) =>
+      puzzle.type === "simultaneous_plates" ? puzzle.plates.map((plate) => plate.objectId) : [],
+    ),
+  );
   for (const object of roomPackage.objects) {
     const room = subroomsById[object.roomId];
     if (!room) {
@@ -157,10 +162,22 @@ export function toRuntimeModel(
       // ofrece las dos acciones (Inspeccionar/Usar objeto), no solo la que
       // tenga regla — antes, un objeto con únicamente `on_use_item` (p. ej.
       // "usa la llave sobre el armario") se quedaba sin "Inspeccionar".
-      actions: ["inspect", "use_item"],
+      // Excepción: un objeto "caído en el suelo" para recoger — el
+      // `pickupObjectId` de un `hidden_key` (la llave del cuadro) o un
+      // objeto marcado `pickupOnly` a mano (el yesquero/la antorcha apagada
+      // del armario, revelados por una regla normal, sin `hidden_key`) —
+      // solo ofrece Recoger: no tiene sentido "usar objeto" sobre algo que
+      // aún no se ha recogido, ni un "Inspeccionar" separado de recogerlo.
+      actions:
+        isPickupObject(roomPackage, object.id) || object.pickupOnly
+          ? ["pickup"]
+          : ["inspect", "use_item"],
     };
+    if (plateObjectIds.has(object.id)) runtimeObject.stepOn = true;
     const panelPuzzleId = panelForObject(roomPackage, object);
     if (panelPuzzleId) runtimeObject.panelPuzzleId = panelPuzzleId;
+    const useItemIds = useItemIdsForObject(roomPackage, object.id);
+    if (useItemIds.length > 0) runtimeObject.useItemIds = useItemIds;
     objects.push(runtimeObject);
     objectsById[runtimeObject.id] = runtimeObject;
     room.objects.push(runtimeObject);
@@ -170,6 +187,7 @@ export function toRuntimeModel(
     id: item.id,
     name: resolveLocalizedText(item.name, locale),
     icon: item.icon,
+    ...(item.content ? { content: resolveLocalizedText(item.content, locale) } : {}),
   }));
 
   const dialogs: RuntimeDialog[] = roomPackage.dialogs.map((dialog) => ({
@@ -284,13 +302,50 @@ function toRuntimePuzzle(puzzle: PuzzleDefinition): RuntimePuzzle {
   return base;
 }
 
+/**
+ * Ids de ítem con una regla `on_use_item` real para `objectId` (revisión en
+ * vivo, ver `RuntimeObject.useItemIds`).
+ */
+function useItemIdsForObject(roomPackage: RoomPackage, objectId: string): string[] {
+  const ids = new Set<string>();
+  for (const rule of roomPackage.rules) {
+    if (rule.trigger.type === "on_use_item" && rule.trigger.objectId === objectId) {
+      ids.add(rule.trigger.itemId);
+    }
+  }
+  return [...ids];
+}
+
+/** `true` si `objectId` es el `pickupObjectId` de algún `hidden_key` (revisión en vivo). */
+function isPickupObject(roomPackage: RoomPackage, objectId: string): boolean {
+  return roomPackage.puzzles.some(
+    (puzzle) => puzzle.type === "hidden_key" && puzzle.pickupObjectId === objectId,
+  );
+}
+
 /** Mismo criterio que `RoomSession.panelForObject` (escondite, `lockedBy`, mirilla). */
 function panelForObject(roomPackage: RoomPackage, object: WorldObject): string | undefined {
   const hiding = roomPackage.puzzles.find(
     (puzzle) => puzzle.type === "hidden_key" && puzzle.hidingSpot.objectId === object.id,
   );
   if (hiding) return hiding.id;
-  if (object.lockedBy) return object.lockedBy;
+  if (object.lockedBy) {
+    const locking = roomPackage.puzzles.find((puzzle) => puzzle.id === object.lockedBy);
+    // Revisión en vivo: un candado propio del objeto (`layer: "panel"`, su
+    // interfaz es un panel autocontenido — code_lock, memory, sliding_puzzle,
+    // pipes, combine_items) sí abre su panel al inspeccionar. Un mecanismo
+    // espacial resuelto en OTROS objetos (`layer: "world"` — las placas de
+    // `puerta-bodega`, las mirillas de `reja-escalera`) no: abrirlo aquí
+    // sería decir cómo abrirla sin que quien juega descubra el mecanismo
+    // real — la puerta/reja solo debe describirse (diálogo + imagen).
+    return locking?.layer === "panel" ? object.lockedBy : undefined;
+  }
+  // El objeto que ES el mecanismo espacial (la mirilla de un `split_clue`) sí
+  // abre el panel al inspeccionarlo — a diferencia de la puerta/reja que
+  // bloquea (rama de arriba): es su propia interfaz, no revela dónde está el
+  // mecanismo de otro objeto. Las placas de `simultaneous_plates` (revisión
+  // en vivo) ya NO abren panel: se accionan de pie, sin botones que pulsar —
+  // inspeccionarlas solo describe la placa (dialog+image normales).
   return roomPackage.puzzles.find(
     (puzzle) =>
       puzzle.type === "split_clue" &&

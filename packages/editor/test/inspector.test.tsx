@@ -92,6 +92,7 @@ describe("generador de formularios desde los esquemas Zod", () => {
       "hidingSpot",
       "leadsTo",
       "footprint",
+      "pickupOnly",
     ]);
     const field = (path: string) => findField(root, path);
     expect(field("roomId")).toMatchObject({ kind: "text", ref: "room", optional: false });

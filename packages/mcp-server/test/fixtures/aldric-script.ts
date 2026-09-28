@@ -125,10 +125,14 @@ export function aldricScript(pkg: RoomPackage): {
     for (const { id } of pkg.dialogs) dialog(id);
 
     // ── Salón del Trono ───────────────────────────────────────────────────
-    for (const id of ["trono", "cuadro-aurelio", "retrato-2", "retrato-3", "retrato-4"]) object(id);
+    for (const id of ["trono", "cuadro-aurelio", "llave-bronce-suelo", "retrato-2", "retrato-3", "retrato-4"]) {
+      object(id);
+    }
     for (const id of ["tapiz-dragones", "armario", "brasero", "estatua-izq", "estatua-der"]) {
       object(id);
     }
+    object("yesquero-suelo");
+    object("antorcha-apagada-suelo");
     object("placa-izq");
     object("placa-der");
     rule("r-inicio");
@@ -140,14 +144,35 @@ export function aldricScript(pkg: RoomPackage): {
     rule("r-inspeccionar-retrato-4");
     rule("r-inspeccionar-tapiz-dragones");
     rule("r-revelar-cuadro");
+    // Recogida diferida de la llave (revisión en vivo, pickupObjectId):
+    // revelar el escondite ya no entrega — hay que inspeccionar la llave
+    // que aparece en el suelo.
+    rule("r-recoger-llave-cuadro");
+    // Distractores del ítem 6 (revisión en vivo): objetos puramente
+    // decorativos o sin regla propia hasta ahora, con su Inspeccionar +
+    // imagen — no cambian la ruta crítica.
+    rule("r-inspeccionar-trono");
+    rule("r-inspeccionar-armario");
+    rule("r-inspeccionar-estatua-izq");
+    rule("r-inspeccionar-estatua-der");
+    // Las placas ya no abren panel al inspeccionarlas (revisión en vivo: se
+    // accionan de pie, sin botones que pulsar) — solo describen la placa.
+    rule("r-inspeccionar-placa-izq");
+    rule("r-inspeccionar-placa-der");
     rule("r-abrir-armario");
+    // Recogida diferida (mismo patrón que la llave del cuadro): abrir el
+    // armario solo revela el yesquero y la antorcha apagada en el suelo —
+    // hace falta inspeccionarlos aparte para obtenerlos.
+    rule("r-recoger-yesquero");
+    rule("r-recoger-antorcha-apagada");
     // La mesa de combinar: de momento solo la receta cuyos ingredientes ya se
-    // obtienen (yesquero + vela del armario). La llave de plata y la compuerta
-    // de oro llegan en la Bodega y las Catacumbas.
+    // obtienen (yesquero + antorcha apagada del armario). La llave de plata y
+    // la compuerta de oro llegan en la Bodega y las Catacumbas.
     puzzleDraft("p-combina", (p) => {
       if (p.type !== "combine_items") throw new Error("p-combina debe ser combine_items");
       return { ...p, unlocks: [], recipes: p.recipes.slice(0, 1) };
     });
+    rule("r-inspeccionar-brasero");
     rule("r-encender-brasero");
     // Candado del arca ↔ sus pistas; puzzle ↔ arca que abre.
     puzzleDraft("p-candado-arca", (p) => withoutUnlocks(withoutHints(p)));
@@ -160,33 +185,76 @@ export function aldricScript(pkg: RoomPackage): {
     // Placas ↔ puerta de la Bodega.
     puzzleDraft("p-placas-estatuas", withoutUnlocks);
     object("puerta-bodega");
+    // Señuelos decorativos (revisión en vivo): Inspeccionar + imagen, sin efecto.
+    for (const id of ["cofre-real", "mesa-banquete", "barril-aceite", "tapiz-izq", "tapiz-der", "columna-izq", "columna-der", "estandarte-izq", "estandarte-der"]) object(id);
     puzzle("p-placas-estatuas", true);
     rule("r-placas-resueltas");
+    // Distractor del ítem 6: la puerta describe su imagen, no el panel de
+    // placas (eso lo abren las placas mismas — revisión en vivo).
+    rule("r-inspeccionar-puerta-bodega");
 
     // ── Bodega de los Vinos Encantados ────────────────────────────────────
     for (const id of ["mural-ranura", "compartimento-plata", "barril-espejo"]) object(id);
     object("mirilla-a");
     object("mirilla-b");
+    for (const id of ["barril-vino-a", "barril-vino-b", "mesa-servicio", "barriles-pila-a", "barriles-pila-b", "barriles-pila-c", "antorcha-bodega-izq", "antorcha-bodega-der"]) object(id);
     puzzle("p-mural-vendimia");
     object("mural-vendimia");
     rule("r-mural-resuelto");
     rule("r-caliz-en-ranura");
     rule("r-recoger-caliz");
+    // Distractores del ítem 6.
+    rule("r-inspeccionar-compartimento-plata");
+    rule("r-inspeccionar-barril-espejo");
     puzzle("p-copas-memoria");
     object("mesa-catas");
     rule("r-copas-resueltas");
     puzzleDraft("p-reja-mirillas", withoutUnlocks);
     object("reja-escalera");
     puzzle("p-reja-mirillas", true);
+    // Distractor del ítem 6: la misma lógica que la puerta de arriba.
+    rule("r-inspeccionar-reja-escalera");
 
     // ── Catacumbas del Rey ────────────────────────────────────────────────
     object("sarcofago");
     object("altar");
     object("vasijas");
+    for (const id of ["cofre-oxidado", "sarcofago-anonimo", "estatua-desmoronada", "antorcha-cat-a", "antorcha-cat-b", "antorcha-cat-c", "antorcha-cat-d"]) object(id);
     rule("r-entrar-catacumbas");
     rule("r-inspeccionar-sarcofago");
     rule("r-inspeccionar-vasijas");
     rule("r-imagen-vasijas");
+    // Distractor del ítem 6.
+    rule("r-inspeccionar-altar");
+    // Señuelos decorativos de las tres salas (revisión en vivo).
+    for (const id of [
+      "cofre-real",
+      "mesa-banquete",
+      "barril-aceite",
+      "barril-vino-a",
+      "barril-vino-b",
+      "mesa-servicio",
+      "cofre-oxidado",
+      "sarcofago-anonimo",
+      "estatua-desmoronada",
+      "tapiz-izq",
+      "tapiz-der",
+      "columna-izq",
+      "columna-der",
+      "estandarte-izq",
+      "estandarte-der",
+      "barriles-pila-a",
+      "barriles-pila-b",
+      "barriles-pila-c",
+      "antorcha-bodega-izq",
+      "antorcha-bodega-der",
+      "antorcha-cat-a",
+      "antorcha-cat-b",
+      "antorcha-cat-c",
+      "antorcha-cat-d",
+    ]) {
+      rule(`r-inspeccionar-${id}`);
+    }
     object("compuerta-oro");
     // Ya hay llave de plata (mural) y compuerta: la mesa de combinar completa.
     puzzle("p-combina", true);
@@ -210,6 +278,7 @@ export function aldricScript(pkg: RoomPackage): {
     // ── Fase C — victoria y reloj ─────────────────────────────────────────
     rule("r-sello-resuelto");
     rule("r-aviso-10min");
+    rule("r-aviso-5min");
     rule("r-tiempo-agotado");
     return out;
   };

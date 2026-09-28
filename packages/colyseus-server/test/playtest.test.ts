@@ -328,6 +328,9 @@ describe("POST /internal/playtests", () => {
 
     const granted = client.waitForMessage(GAME_MESSAGES.itemGranted);
     client.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+    // sola — hace falta inspeccionar la llave que aparece en el suelo.
+    client.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
     expect(await granted).toEqual({ playerId: client.sessionId, itemId: "llave-bronce" });
   });
 

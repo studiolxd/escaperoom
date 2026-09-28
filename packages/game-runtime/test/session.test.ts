@@ -262,6 +262,10 @@ describe("createLocalGameClient (misma interfaz que la red)", () => {
     client.startGame(true);
     client.enterMap();
     client.interact("cuadro-aurelio");
+    // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+    // sola — hace falta inspeccionar la llave que aparece en el suelo.
+    expect(client.getSnapshot().inventory).toEqual([]);
+    client.interact("llave-bronce-suelo");
     expect(events).toContainEqual({ type: "item_granted", playerId: "p1", itemId: "llave-bronce" });
     expect(client.getSnapshot().inventory).toEqual(["llave-bronce"]);
 

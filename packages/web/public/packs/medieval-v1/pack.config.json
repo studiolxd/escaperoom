@@ -1814,8 +1814,16 @@
       64
     ],
     "llave-bronce-suelo": [
-      64,
-      64
+      20,
+      22
+    ],
+    "yesquero-suelo": [
+      20,
+      22
+    ],
+    "antorcha-apagada-suelo": [
+      17,
+      22
     ],
     "mesa": [
       126,
@@ -2341,7 +2349,15 @@
     ],
     "llave-bronce-suelo": [
       0.5,
-      0.75
+      0.7
+    ],
+    "yesquero-suelo": [
+      0.5,
+      0.7
+    ],
+    "antorcha-apagada-suelo": [
+      0.5,
+      0.7
     ],
     "mesa": [
       0.5,
