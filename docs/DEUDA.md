@@ -136,43 +136,34 @@ Tareas pendientes que no bloquean pero hay que resolver.
       §"Pipeline de personajes jugables"), sustituir su carpeta de enlaces por la entrega real
       (`empaquetar_avatar.py` + `empaquetar_retrato.py`) y quitar la entrada correspondiente de
       `tools/assets-generator/packs/medieval-v1/entregas/avatares/`.
-- [ ] **Smoke E2E (`game.reyaldric.spec.ts`) intermitente en CI — mitigado
-      (`bringToFront` antes de cada clic), causa probable identificada, sin
-      confirmación 100% cerrada.** Mi primer diagnóstico (contención de CPU de la
-      máquina de desarrollo) era incorrecto: la propia CI, en una máquina
-      dedicada sin esa contención, falló 3/3 siempre en el mismo punto exacto
-      (`inspect(cuadro-aurelio)`, el primer paso del test). Antes de encontrar la
-      causa probable, se descartaron con evidencia directa dos hipótesis de
-      código: (1) el pathfinding real (BFS + simplificado de ruta,
+- [ ] **Smoke E2E (`game.reyaldric.spec.ts`) intermitente, con causa raíz ya
+      identificada: contención de CPU de la máquina, no un bug de juego.**
+      Descartadas dos hipótesis de código con evidencia directa antes de llegar a
+      esta: (1) el pathfinding real (BFS + simplificado de ruta,
       `packages/game-runtime/src/world/pathfinding.ts`) — un script de comprobación
       directo (`findPath`/`approachCell` contra el grid de colisión real de
-      `salon-trono`) encuentra ruta en 2–3 waypoints desde cualquier punto
-      plausible de la sala hasta la puerta, sin ningún atasco; (2) que el puzzle de
-      las placas (`p-placas-estatuas`, `holdMode: "stand"`) se revirtiera al
-      bajarse de la placa — confirmado en
-      `packages/shared/src/templates/simultaneous-plates.ts`/
+      `salon-trono`) encuentra ruta en 2–3 waypoints desde cualquier punto plausible
+      de la sala hasta la puerta, sin ningún atasco; (2) que el puzzle de las placas
+      (`p-placas-estatuas`, `holdMode: "stand"`) se revirtiera al bajarse de la
+      placa — confirmado en `packages/shared/src/templates/simultaneous-plates.ts`/
       `packages/shared/src/session/room-session.ts` que `"solved"` es un estado
-      terminal sin camino de vuelta.
-      También se descartó que el pack no cargara en CI (`manifest.json`/
-      `atlas-*.png` están en `.gitignore`, así que CI siempre corre en modo
-      "placeholder", `buildPlaceholderManifest`) como causa por sí sola: reproducido
-      ese mismo modo en local (moviendo el manifiesto/atlas fuera aparte) con logs
-      de cliente instrumentados (`wireInteraction`/`pointerup`, retirados tras la
-      prueba), el clic SÍ dispara `walkToObject` correctamente (área de clic e
-      hit-test verificados sanos) — en local, en ese modo, el fallo era intermitente
-      y en pasos distintos de la partida, no determinista en el primer paso como en
-      CI.
-      La captura del fallo de CI muestra la clave: el avatar está a mitad de
-      **animación de caminar** (no quieto ni con el menú abierto) en el momento del
-      timeout — el clic funcionó y el andar empezó, solo que no llega a tiempo.
-      Causa más probable: con 2 páginas de Playwright (una por jugador), la que no
-      está en primer plano puede sufrir el *throttling* de `requestAnimationFrame`
-      de Chromium para pestañas en segundo plano (hasta 1fps) — un fenómeno que el
-      propio código ya reconoce en otro sitio
-      (`use-scene-sync.ts`, comentario "pestaña en segundo plano"), agravado en un
-      runner de CI ya limitado de CPU/RAM. Mitigado con
-      `UiPlayer.clickObjectOnCanvas` llamando a `page.bringToFront()` antes de cada
-      clic que hace andar al avatar (commit "e2e: bringToFront..."), pero sin una
-      ejecución de CI que lo confirme del todo en el momento de escribir esto — si
-      vuelve a fallar en el mismo punto tras este cambio, la pista del throttling de
-      pestañas en segundo plano queda descartada y hay que seguir mirando.
+      terminal sin camino de vuelta, y que el botón "Placa" del panel SÍ mueve al
+      jugador de verdad a su celda (`use-game-hud.tsx: togglePlate → walkTo →
+      client.move`), no es una acción de UI aislada.
+      Con logs de cliente instrumentados en vivo (`onWorldEvent`/`enterRoom`,
+      retirados tras la prueba) se reprodujo un fallo ya en el PRIMER paso del test
+      (`inspect(cuadro-aurelio)`, que en ejecuciones normales pasa sin problema): los
+      avatares se quedaban clavados en el spawn sin ni siquiera empezar a andar. En
+      ese mismo momento, `uptime` mostraba **load average 74.79 en una máquina de 10
+      CPUs** (8 usuarios conectados), muy por encima de lo que cualquier timeout de
+      15–30s puede absorber — coincide con el aviso ya documentado en
+      `docs/reference/verify-pr.md` ("Timeouts de CI: contención de CPU"). El pack
+      de avatar corregido (commit "el avatar salía negro...") ya deja ver el
+      sprite real en las capturas de estos intentos, confirmando que esa parte
+      funciona bien; el cuello de botella es la máquina, no el código.
+      No hay arreglo de código pendiente aquí — solo repetir el smoke test cuando la
+      máquina tenga menos carga (o subir los timeouts de `packages/e2e`, que ya se
+      intentó con un reintento en `UiPlayer.goTo` sin que sirviera de mucho bajo esta
+      carga). `UiPlayer.goTo` sigue con su lógica de reintento (commit "goTo
+      reintenta...") por si ayuda en cargas moderadas, aunque no evitó el fallo bajo
+      esta carga extrema.
