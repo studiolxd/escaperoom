@@ -1754,8 +1754,7 @@
       ],
       "length": 4,
       "code": "4538",
-      "maxAttempts": 999,
-      "lockoutSec": 0,
+      "maxAttempts": 0,
       "hints": [
         "hint-sello-1",
         "hint-sello-2",
