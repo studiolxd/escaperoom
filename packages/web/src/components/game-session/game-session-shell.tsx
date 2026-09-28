@@ -510,9 +510,15 @@ export function GameSessionShell({
         onPlacePlatesBridge={hud.placePlatesBridge}
         onPlaceMirror={hud.placeMirror}
         platesGetNow={hud.serverNow}
-        panelTitle={(panel) =>
-          panel === "hints" ? hud.tp("action.hints") : hud.tp("menu.openPanel")
-        }
+        panelTitle={(panel) => {
+          if (panel === "hints") return hud.tp("action.hints");
+          // El título del panel es el nombre del objeto que lo abre (revisión
+          // en vivo, quitado `menu.openPanel`: ya no hay botón "Abrir panel"
+          // con esa etiqueta). Varios objetos pueden compartir el mismo
+          // puzzle (las dos placas de `puerta-bodega`); el primero vale.
+          const object = model.objects.find((candidate) => candidate.panelPuzzleId === panel);
+          return object ? hud.objectName(object.id) : hud.tp("genericObject");
+        }}
         closeLabel={hud.tp("close")}
         loadingLabel={hud.t("hud.loadingPanel")}
       />
