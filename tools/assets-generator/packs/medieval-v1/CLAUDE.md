@@ -16,6 +16,9 @@ Estilo `castillo-toon` (`../../estilos/castillo-toon/`). Herramienta y estructur
   llave en el suelo salen de "derivados" de `pack.json`; los iconos, de "iconos.hojas"; el brillo `fx-spark` se
   dibujó a mano (su código se perdió): la fuente es `fuentes/fx/fx-spark/` y se copia. Para uno nuevo,
   `scripts/fx/fx_brillo.py`.
+- Sprites de objetos pequeños en el suelo (`llave-bronce-suelo`, `yesquero-suelo`, `antorcha-apagada-suelo`): `scripts/blender/render_prop_suelo.py`
+  sobre el `tripo.glb` de `fuentes/objetos/<id>/` (inclinación ~20°), recorte por alfa y copia a `web/public/.../sprites/`.
+  OJO: la llave en el suelo de `derivados` (sala-prueba) quedó sustituida por este render, más volumétrico.
 - Fichas de cada master (Spaces "Objetos · Sala del trono" y "Personajes jugables" de Magnific): `ficha.json` en
   `fuentes/personajes/<id>/` y `fuentes/objetos/<id>/`, `fuentes/pared/fichas.json`, `fuentes/iconos/fichas.json`.
   Resumen y créditos: `python3 scripts/fichas.py`.
