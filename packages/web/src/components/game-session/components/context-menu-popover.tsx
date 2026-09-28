@@ -4,6 +4,13 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export interface ContextMenuPopoverProps {
   object: RuntimeObject | undefined;
+  /**
+   * Objetos interactuables en la misma celda que `object` (él incluido,
+   * `colocatedInteractables`). Con más de uno, el menú deja elegir a cuál se
+   * aplica la acción: un clic en el canvas solo acierta al de encima.
+   */
+  alternatives?: readonly RuntimeObject[];
+  onSelectObject?: (objectId: string) => void;
   onOpenChange: (open: boolean) => void;
   onEscapeKeyDown: (event: { preventDefault: () => void }) => void;
   objectName: (objectId: string) => string;
@@ -13,6 +20,7 @@ export interface ContextMenuPopoverProps {
   inspectLabel: string;
   useItemLabel: string;
   cancelLabel: string;
+  alternativesLabel?: string;
 }
 
 /**
@@ -25,6 +33,10 @@ export interface ContextMenuPopoverProps {
  * que no sea un `hidden_key` (ese se revela al inspeccionar, sin panel
  * manual) — el botón era una segunda vía redundante o, para un `hidden_key`,
  * abría un panel que no debía existir en absoluto (p. ej. `cuadro-aurelio`).
+ *
+ * Si hay varios objetos apilados en la misma celda (`alternatives`), un
+ * grupo de botones con sus nombres deja cambiar a cuál se aplica la acción
+ * (sin panel de objetos, era la única forma de llegar a los de debajo).
  */
 export function ContextMenuPopover({
   object,
@@ -37,6 +49,9 @@ export function ContextMenuPopover({
   inspectLabel,
   useItemLabel,
   cancelLabel,
+  alternatives = [],
+  onSelectObject,
+  alternativesLabel,
 }: ContextMenuPopoverProps) {
   return (
     <Dialog open={object !== undefined} onOpenChange={onOpenChange}>
@@ -48,6 +63,24 @@ export function ContextMenuPopover({
         {object ? (
           <>
             <DialogTitle className="font-mono text-sm">{objectName(object.id)}</DialogTitle>
+            {alternatives.length > 1 ? (
+              <div role="group" aria-label={alternativesLabel} className="mt-2 flex flex-wrap gap-1.5">
+                {alternatives.map((candidate) => {
+                  const current = candidate.id === object.id;
+                  return (
+                    <Button
+                      key={candidate.id}
+                      size="sm"
+                      variant={current ? "secondary" : "outline"}
+                      aria-pressed={current}
+                      onClick={() => onSelectObject?.(candidate.id)}
+                    >
+                      {objectName(candidate.id)}
+                    </Button>
+                  );
+                })}
+              </div>
+            ) : null}
             <div className="mt-2 flex flex-wrap gap-2">
               {(object.actions ?? ["inspect", "use_item"]).map((action) => (
                 <Button

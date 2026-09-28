@@ -432,6 +432,8 @@ export function GameSessionShell({
 
       <ContextMenuPopover
         object={hud.selectedObject}
+        alternatives={hud.selectedAlternatives}
+        onSelectObject={hud.setSelected}
         onOpenChange={(open) => !open && closeMenu()}
         onEscapeKeyDown={preventEscapeIfDialogOpen}
         objectName={hud.objectName}
@@ -441,6 +443,7 @@ export function GameSessionShell({
         inspectLabel={hud.tp("menu.inspect")}
         useItemLabel={hud.tp("menu.useItem")}
         cancelLabel={hud.tp("menu.cancel")}
+        alternativesLabel={hud.tp("menu.here")}
       />
 
       <ItemPickerPopover

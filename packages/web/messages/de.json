@@ -147,6 +147,7 @@
     "close": "Schließen",
     "menu": {
       "inspect": "Untersuchen",
+      "here": "Objekte an dieser Stelle",
       "useItem": "Gegenstand benutzen…",
       "chooseItem": "Wähle einen Gegenstand für {object}",
       "dragHint": "Zieh ihn aus dem Inventar in die Welt oder wähle hier einen aus.",

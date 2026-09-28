@@ -28,6 +28,14 @@ export const REY_ALDRIC: RoomPackage = JSON.parse(
   readFileSync(resolve(REPO_ROOT, "docs/reference/roompackage-rey-aldric.v1.json"), "utf8"),
 ) as RoomPackage;
 
+/** Nombre visible (es) de un objeto de Rey Aldric, tal como lo muestra el menú contextual. */
+function objectName(objectId: string): string {
+  const object = REY_ALDRIC.objects.find((candidate) => candidate.id === objectId);
+  const name = object?.name?.es?.text;
+  if (!name) throw new Error(`Objeto sin nombre en español: ${objectId}`);
+  return name;
+}
+
 /**
  * Ritmo de persona en los paneles: la `GameRoom` admite 2 `puzzle_attempt`/s
  * por puzzle (specs/11 §9, ticket 6.3) y descarta el resto con `RATE_LIMITED`.
@@ -173,9 +181,21 @@ export class UiPlayer {
     await this.page.mouse.click(box.x + point.x * box.width, box.y + point.y * box.height);
   }
 
-  /** Clic en el objeto → acción del menú contextual. */
+  /**
+   * Clic en el objeto → acción del menú contextual. Si en esa celda hay
+   * varios objetos apilados (bodega (3,0): mural, ranura y compartimento),
+   * el clic acierta al de encima y el menú ofrece los demás por su nombre:
+   * se elige el pedido, como haría una persona.
+   */
   private async objectAction(objectId: string, action: string): Promise<void> {
     await this.clickObjectOnCanvas(objectId);
+    await expect(this.page.getByRole("button", { name: "Cancelar", exact: true })).toBeVisible();
+    const here = this.page.getByRole("group", { name: "Objetos en este sitio" });
+    if (await here.isVisible()) {
+      const choice = here.getByRole("button", { name: objectName(objectId), exact: true });
+      if ((await choice.getAttribute("aria-pressed")) !== "true") await choice.click();
+      await expect(choice).toHaveAttribute("aria-pressed", "true");
+    }
     await this.page.getByRole("button", { name: action, exact: true }).click();
   }
 

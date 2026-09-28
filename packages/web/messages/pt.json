@@ -147,6 +147,7 @@
     "close": "Fechar",
     "menu": {
       "inspect": "Inspecionar",
+      "here": "Objetos neste sítio",
       "useItem": "Usar objeto…",
       "chooseItem": "Escolhe um objeto para usar em {object}",
       "dragHint": "Arrasta-o do inventário para o mundo ou escolhe um aqui.",

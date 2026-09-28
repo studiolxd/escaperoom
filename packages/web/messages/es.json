@@ -280,6 +280,7 @@
     "close": "Cerrar",
     "menu": {
       "inspect": "Inspeccionar",
+      "here": "Objetos en este sitio",
       "useItem": "Usar objeto…",
       "chooseItem": "Elige un objeto para usar sobre {object}",
       "dragHint": "Arrástralo del inventario sobre el mundo o elige uno aquí.",

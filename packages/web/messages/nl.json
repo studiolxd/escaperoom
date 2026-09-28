@@ -147,6 +147,7 @@
     "close": "Sluiten",
     "menu": {
       "inspect": "Bekijken",
+      "here": "Voorwerpen op deze plek",
       "useItem": "Voorwerp gebruiken…",
       "chooseItem": "Kies een voorwerp om op {object} te gebruiken",
       "dragHint": "Sleep het uit de inventaris naar de wereld of kies er hier een.",

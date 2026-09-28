@@ -179,6 +179,7 @@
     "close": "Close",
     "menu": {
       "inspect": "Inspect",
+      "here": "Objects here",
       "useItem": "Use item…",
       "chooseItem": "Choose an item to use on {object}",
       "dragHint": "Drag it from the inventory onto the world or pick one here.",

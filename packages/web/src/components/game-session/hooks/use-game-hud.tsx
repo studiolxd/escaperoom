@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { resolveIconFrame, type RuntimeModel } from "@escaperoom/game-runtime";
+import { colocatedInteractables, resolveIconFrame, type RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack, WorldSceneEvent } from "@escaperoom/game-runtime/phaser";
 import {
   buildHintView,
@@ -613,6 +613,18 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
   // badge, solo cambia el contenido.
   const elapsed = remaining === null ? elapsedMs(snapshot) : null;
   const selectedObject = selected ? model.objectsById[selected] : undefined;
+  // Objetos apilados en la celda del seleccionado (él incluido): el menú
+  // deja elegir entre ellos (`colocatedInteractables`).
+  const selectedAlternatives = useMemo(
+    () =>
+      selectedObject
+        ? colocatedInteractables(
+            model.subroomsById[selectedObject.roomId]?.objects ?? [],
+            selectedObject.id,
+          )
+        : [],
+    [model, selectedObject],
+  );
   const solvedCount = Object.values(snapshot.puzzles).filter((p) => p.state === "solved").length;
   const renderItemIcon = useCallback(
     (itemId: string, size?: number) => (
@@ -640,6 +652,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
     elapsed,
     serverNow,
     selectedObject,
+    selectedAlternatives,
     dialog,
     setDialog,
     closeDialog,

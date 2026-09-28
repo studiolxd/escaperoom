@@ -149,3 +149,33 @@ export function approachCell(
 
   return candidates.find((c) => isReachable(from, c, isWalkable)) ?? candidates[0];
 }
+
+/**
+ * Objetos interactuables que comparten celda con `objectId` (él incluido, en
+ * el orden de `objects`), o `[]` si `objectId` no está en `objects`.
+ *
+ * Varios objetos pueden ocupar la misma celda como capas de un mismo
+ * elemento (Rey Aldric, bodega (3,0): `mural-vendimia`, `mural-ranura` y
+ * `compartimento-plata`, tres calcomanías sobre el mismo muro con el mismo
+ * frame). Un clic en el canvas solo puede acertar a uno (el de encima: sus
+ * zonas de clic son idénticas), así que el menú contextual usa esta lista
+ * para dejar elegir a cuál se aplica la acción — sin ella, el mural del paso
+ * 7 era inalcanzable al quitar el panel de objetos (smoke E2E, PR #187).
+ */
+export function colocatedInteractables<T extends SelectableObject>(
+  objects: readonly T[],
+  objectId: string,
+): T[] {
+  const target = objects.find((object) => object.id === objectId);
+  if (!target) {
+    return [];
+  }
+  const x = Math.round(target.position.x);
+  const y = Math.round(target.position.y);
+  return objects.filter(
+    (object) =>
+      (object.interactable || object.id === objectId) &&
+      Math.round(object.position.x) === x &&
+      Math.round(object.position.y) === y,
+  );
+}
