@@ -111,6 +111,9 @@ describe("GameRoom — reconexión con gracia (C-2)", () => {
 
     const granted = b.waitForMessage(GAME_MESSAGES.itemGranted);
     a.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+    // sola — hace falta inspeccionar la llave que aparece en el suelo.
+    a.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
     await granted;
     await expect
       .poll(() => [...(room.state.inventories.get(a.sessionId)?.items ?? [])])
@@ -142,6 +145,9 @@ describe("GameRoom — reconexión con gracia (C-2)", () => {
 
     const granted = b.waitForMessage(GAME_MESSAGES.itemGranted);
     a.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+    // sola — hace falta inspeccionar la llave que aparece en el suelo.
+    a.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
     await granted;
     const beforeCharacter = room.state.players.get(a.sessionId)!.characterId;
     const beforeSessionId = a.sessionId;

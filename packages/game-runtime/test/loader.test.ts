@@ -87,10 +87,10 @@ describe("toRuntimeModel", () => {
     }
 
     const salon = model.subroomsById["salon-trono"];
-    expect(salon?.objects).toHaveLength(14);
+    expect(salon?.objects).toHaveLength(15);
     expect(model.subroomsById["bodega"]?.objects).toHaveLength(8);
     expect(model.subroomsById["catacumbas"]?.objects).toHaveLength(6);
-    expect(model.objects).toHaveLength(28);
+    expect(model.objects).toHaveLength(29);
   });
 
   it("resuelve el sprite del estado inicial y el mapa estado→sprite", () => {
@@ -122,7 +122,7 @@ describe("toRuntimeModel", () => {
     const model = toRuntimeModel(loadValidPackage(), { locale: "en" });
 
     expect(model.locale).toBe("en");
-    expect(model.dialogs).toHaveLength(22);
+    expect(model.dialogs).toHaveLength(23);
     expect(model.dialogsById["d-cuadro"]?.text).toContain("Rey Aurelio");
     expect(model.dialogsById["d-cuadro"]?.localized.es?.text).toContain("Rey Aurelio");
   });

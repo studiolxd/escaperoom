@@ -280,6 +280,9 @@ describe("playtest de punta a punta (web → Colyseus real)", () => {
     // …pero la partida ya creada juega con el paquete congelado.
     const granted = new Promise((resolve) => room.onMessage(GAME_PROTOCOL.itemGranted, resolve));
     room.send(GAME_PROTOCOL.interact, { objectId: "cuadro-aurelio" });
+    // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+    // sola — hace falta inspeccionar la llave que aparece en el suelo.
+    room.send(GAME_PROTOCOL.interact, { objectId: "llave-bronce-suelo" });
     expect(await granted).toEqual({ playerId: room.sessionId, itemId: "llave-bronce" });
     await expect
       .poll(() => toGameSnapshot(room.state, room.sessionId).inventory)

@@ -274,6 +274,9 @@ const hasItem = (client: TestClient, item: string) =>
 /** Del cuadro al candado del arca: deja el candado listo para intentar el código. */
 async function reachArcaLock(client: TestClient): Promise<void> {
   client.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+  // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+  // sola — hace falta inspeccionar la llave que aparece en el suelo.
+  client.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
   client.send(GAME_MESSAGES.useItem, { itemId: "llave-bronce", objectId: "armario" });
   await until(client, () => hasItem(client, "yesquero") && hasItem(client, "vela"));
   client.send(GAME_MESSAGES.combine, { puzzleId: "p-combina", inputs: ["yesquero", "vela"] });

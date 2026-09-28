@@ -23,6 +23,7 @@ import {
   moveSlidingTile,
   openPipesGate,
   pipesSeedFromId,
+  pickUpHiddenKey,
   placeSoloBridge,
   placeSplitClueBridge,
   reassignMemoryTurn as reassignMemoryTurnState,
@@ -141,6 +142,13 @@ export type RoomObjectAction = "inspect" | "use_item";
 /** Resultado de un reveal de `hidden_key`, con el estado reconciliado. */
 export interface RoomHiddenKeyResult {
   outcome: "revealed" | "already_revealed" | "unavailable";
+  grantedItemId: string | null;
+  engine: EngineResult | null;
+}
+
+/** Resultado de recoger un `hidden_key` con `pickupObjectId` (revisión en vivo). */
+export interface RoomHiddenKeyPickupResult {
+  outcome: "picked_up" | "already_picked_up" | "not_revealed" | "unavailable";
   grantedItemId: string | null;
   engine: EngineResult | null;
 }
@@ -696,6 +704,14 @@ export class RoomSession {
       const loot = this.emptyHidingSpot(objectId, now, playerId);
       if (loot) results.push(loot);
     }
+    // Recogida diferida (revisión en vivo): el objeto interactuado puede ser
+    // el `pickupObjectId` de un escondite YA revelado — entonces entrega
+    // ahora, no antes.
+    for (const puzzle of this.puzzlesOfType("hidden_key")) {
+      if (puzzle.pickupObjectId !== objectId) continue;
+      const pickup = this.pickUpHiddenKeyItem(puzzle.id, now, playerId);
+      if (pickup.engine) results.push(pickup.engine);
+    }
 
     const engine = mergeResults(now, results);
     return { engine, dialogIds: dialogIdsOf(engine) };
@@ -768,6 +784,40 @@ export class RoomSession {
 
     const engine = this.completePuzzle(puzzleId, def, now, playerId);
     return { outcome: "revealed", grantedItemId: reveal.grantedItemId, engine };
+  }
+
+  /**
+   * Recoge el objeto de un `hidden_key` con recogida diferida
+   * (`pickupObjectId`, revisión en vivo): entrega `grantsItems` la PRIMERA
+   * vez que se interactúa con ese objeto, ya revelado. `interact()` la
+   * llama sola cuando el objeto interactuado es el `pickupObjectId` de algún
+   * escondite; nunca hace falta llamarla a mano.
+   */
+  pickUpHiddenKeyItem(
+    puzzleId: string,
+    now: number = this.now,
+    playerId: string = this.playerId,
+  ): RoomHiddenKeyPickupResult {
+    const def = this.definition(puzzleId, "hidden_key");
+    if (this.ended || !def.pickupObjectId) {
+      return { outcome: "unavailable", grantedItemId: null, engine: null };
+    }
+    const pickup = pickUpHiddenKey(this.templates.hidden_key.get(puzzleId)!, def, now, playerId);
+    this.templates.hidden_key.set(puzzleId, pickup.state);
+
+    if (pickup.outcome !== "picked_up") {
+      return { outcome: pickup.outcome, grantedItemId: null, engine: null };
+    }
+
+    const events: EngineResult[] = [];
+    for (const itemId of def.grantsItems) {
+      events.push(this.engine.grantItem(itemId, playerId, now));
+    }
+    return {
+      outcome: "picked_up",
+      grantedItemId: pickup.grantedItemId,
+      engine: events.length > 0 ? mergeResults(now, events) : emptyResult(now),
+    };
   }
 
   /** Intenta abrir un `code_lock` con la plantilla (validación pura). */
@@ -1267,8 +1317,16 @@ export class RoomSession {
       this.dispatch({ type: "on_puzzle_solved", puzzleId, playerId }, now),
     ];
 
-    for (const itemId of def.grantsItems) {
-      events.push(this.engine.grantItem(itemId, playerId, now));
+    // Recogida diferida (revisión en vivo): un `hidden_key` con
+    // `pickupObjectId` no entrega al resolverse (revelarse) — solo cuando se
+    // interactúa con ese objeto en el mundo (`pickUpHiddenKeyItem`, llamado
+    // desde `interact()`). El resto de plantillas, y un `hidden_key` sin
+    // `pickupObjectId`, entregan aquí como siempre.
+    const deferGrant = def.type === "hidden_key" && Boolean(def.pickupObjectId);
+    if (!deferGrant) {
+      for (const itemId of def.grantsItems) {
+        events.push(this.engine.grantItem(itemId, playerId, now));
+      }
     }
 
     const doors: EngineEffect[] = [];

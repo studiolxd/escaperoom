@@ -104,6 +104,7 @@ describe("RoomSession.useItemOnObject — tres vías lógicas", () => {
     const session = newSession();
     session.start(0);
     session.interact("cuadro-aurelio", 0);
+    session.interact("llave-bronce-suelo", 0);
 
     const result = session.useItemOnObject("llave-bronce", "armario", 0);
 
@@ -127,6 +128,7 @@ describe("RoomSession.useItemOnObject — tres vías lógicas", () => {
     const session = newSession();
     session.start(0);
     session.interact("cuadro-aurelio", 0);
+    session.interact("llave-bronce-suelo", 0);
     session.useItemOnObject("llave-bronce", "armario", 0);
 
     const before = session.snapshot();
@@ -143,8 +145,15 @@ describe("inspeccionar el cuadro dos veces", () => {
     const session = newSession();
     session.start(0);
 
+    // Revisión en vivo (pickupObjectId): inspeccionar el cuadro revela el
+    // escondite (diálogo, estado "open", la llave aparece en el suelo) pero
+    // ya NO la entrega — hace falta inspeccionar la llave del suelo aparte.
     const first = session.interact("cuadro-aurelio", 0);
     expect(first.dialogIds).toEqual(["d-cuadro"]);
+    expect(session.inventory()).toEqual([]);
+
+    const picked = session.interact("llave-bronce-suelo", 0);
+    expect(picked.dialogIds).toEqual(["d-recoger-llave-cuadro"]);
     expect(session.inventory()).toEqual(["llave-bronce"]);
 
     const second = session.interact("cuadro-aurelio", 0);
@@ -152,6 +161,12 @@ describe("inspeccionar el cuadro dos veces", () => {
     // r-imagen-cuadro es repeatable (`once: false`): la imagen de inspección
     // se puede reabrir, a diferencia del diálogo y de la llave.
     expect(second.engine.fired.map((f) => f.ruleId)).toEqual(["r-imagen-cuadro"]);
+    expect(session.inventory()).toEqual(["llave-bronce"]);
+
+    // Recoger la llave del suelo otra vez no repite ni el diálogo ni la
+    // entrega (regla `once` + `pickUpHiddenKeyItem` idempotente).
+    const pickedAgain = session.interact("llave-bronce-suelo", 0);
+    expect(pickedAgain.dialogIds).toEqual([]);
     expect(session.inventory()).toEqual(["llave-bronce"]);
   });
 });

@@ -372,6 +372,9 @@ describe("GameRoom — sala de espera, introducción y reloj (encargo lobby-dise
 
     const granted = late.waitForMessage(GAME_MESSAGES.itemGranted);
     late.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+    // sola — hace falta inspeccionar la llave que aparece en el suelo.
+    late.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
     expect(await granted).toMatchObject({ itemId: "llave-bronce" });
   });
 

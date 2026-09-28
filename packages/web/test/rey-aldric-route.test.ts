@@ -28,6 +28,7 @@ describe("ruta crítica del playtest (2.8)", () => {
     const session = createRoomSession(room, { playerIds: ["p1"] });
     session.start(0);
     session.interact("cuadro-aurelio", 1);
+    session.interact("llave-bronce-suelo", 1);
     session.useItemOnObject("llave-bronce", "armario", 2);
     session.combine("p-combina", ["yesquero", "vela"], 3);
     session.interact("brasero", 4);

@@ -65,8 +65,10 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
   });
 
   await test.step("Salón del Trono (pasos 1–6)", async () => {
-    // 1. Inspeccionar el cuadro → llave de bronce
+    // 1. Inspeccionar el cuadro revela la llave en el suelo (revisión en
+    // vivo, pickupObjectId); hay que inspeccionarla aparte para recogerla.
     await a.inspect("cuadro-aurelio");
+    await a.inspect("llave-bronce-suelo");
     await a.expectItems("Llave de bronce");
     // 2. Abrir el armario con la llave → yesquero + vela
     await a.useItemOn("armario", "Llave de bronce");

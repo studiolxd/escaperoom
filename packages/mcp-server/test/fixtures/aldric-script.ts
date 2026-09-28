@@ -125,7 +125,9 @@ export function aldricScript(pkg: RoomPackage): {
     for (const { id } of pkg.dialogs) dialog(id);
 
     // ── Salón del Trono ───────────────────────────────────────────────────
-    for (const id of ["trono", "cuadro-aurelio", "retrato-2", "retrato-3", "retrato-4"]) object(id);
+    for (const id of ["trono", "cuadro-aurelio", "llave-bronce-suelo", "retrato-2", "retrato-3", "retrato-4"]) {
+      object(id);
+    }
     for (const id of ["tapiz-dragones", "armario", "brasero", "estatua-izq", "estatua-der"]) {
       object(id);
     }
@@ -140,6 +142,10 @@ export function aldricScript(pkg: RoomPackage): {
     rule("r-inspeccionar-retrato-4");
     rule("r-inspeccionar-tapiz-dragones");
     rule("r-revelar-cuadro");
+    // Recogida diferida de la llave (revisión en vivo, pickupObjectId):
+    // revelar el escondite ya no entrega — hay que inspeccionar la llave
+    // que aparece en el suelo.
+    rule("r-recoger-llave-cuadro");
     // Distractores del ítem 6 (revisión en vivo): objetos puramente
     // decorativos o sin regla propia hasta ahora, con su Inspeccionar +
     // imagen — no cambian la ruta crítica.

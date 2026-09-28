@@ -289,6 +289,9 @@ describe("panel del organizador con 2 grupos jugando", () => {
 
     // Ana alcanza a Bruno y además resuelve el candado: vuelve a cambiar el orden.
     ana.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+    // sola — hace falta inspeccionar la llave que aparece en el suelo.
+    ana.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
     ana.send(GAME_MESSAGES.useItem, { itemId: "llave-bronce", objectId: "armario" });
     await until(ana, () =>
       ["yesquero", "vela"].every((item) =>
@@ -405,6 +408,9 @@ describe("modo observador", () => {
 
     // Ana juega hasta abrir el arca (código incluido); el observador ve el progreso…
     ana.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+    // sola — hace falta inspeccionar la llave que aparece en el suelo.
+    ana.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
     ana.send(GAME_MESSAGES.useItem, { itemId: "llave-bronce", objectId: "armario" });
     await until(ana, () =>
       Boolean(ana.state.inventories.get(ana.sessionId)?.items.includes("vela")),

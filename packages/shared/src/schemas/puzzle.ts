@@ -55,6 +55,17 @@ export const HiddenKeyDefinitionSchema = z.object({
   }),
   revealAnimation: z.enum(["slide", "fade", "shake"]),
   keyItemId: z.string().optional(),
+  /**
+   * Revisión en vivo: id de un `WorldObject` normal (con su propio
+   * `on_interact` de contenido en las reglas) que representa el objeto
+   * escondido "en el suelo". Con él, revelar el escondite YA NO entrega
+   * `grantsItems` de inmediato: solo marca el puzzle resuelto (sigue
+   * disparando `on_puzzle_solved`, para que una regla muestre el objeto en
+   * el suelo con `set_object_state`); la entrega real ocurre al inspeccionar
+   * ese objeto. Sin este campo, el escondite entrega al revelar como hasta
+   * ahora (compatible con las salas existentes).
+   */
+  pickupObjectId: z.string().optional(),
 });
 
 export const CodeLockDefinitionSchema = z.object({

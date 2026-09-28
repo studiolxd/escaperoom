@@ -206,8 +206,10 @@ function rotateCanal(script: Script, playerId: string): void {
 /** Pasos 1–5: Salón del Trono hasta abrir el arca (los hace `p1`). */
 function playSalonHastaArca(script: Script): void {
   const { session, clock, record } = script;
-  // 1. Inspeccionar el cuadro → llave-bronce
+  // 1. Inspeccionar el cuadro revela la llave en el suelo; hay que
+  // recogerla aparte (revisión en vivo, pickupObjectId).
   record(session.interact("cuadro-aurelio", clock.next(), "p1").engine);
+  record(session.interact("llave-bronce-suelo", clock.next(), "p1").engine);
   expect(session.inventory("p1")).toContain("llave-bronce");
   // 2. Abrir el armario con la llave → yesquero + vela
   record(session.useItemOnObject("llave-bronce", "armario", clock.next(), "p1").engine);

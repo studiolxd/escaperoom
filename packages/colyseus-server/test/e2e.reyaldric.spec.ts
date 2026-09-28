@@ -49,6 +49,7 @@ const ONCE_RULES = [
   "r-inspeccionar-cuadro",
   "r-imagen-cuadro",
   "r-revelar-cuadro",
+  "r-recoger-llave-cuadro",
   "r-abrir-armario",
   "r-inspeccionar-brasero",
   "r-encender-brasero",
@@ -432,8 +433,10 @@ describe("E2E de protocolo — Rey Aldric con 2 clientes de Colyseus", () => {
     await until(b, (state) => state.phase === "playing");
 
     // — Salón del Trono (pasos 1–6) ——————————————————————————————————
-    // 1. Inspeccionar el cuadro → llave-bronce
+    // 1. Inspeccionar el cuadro revela la llave en el suelo (pickupObjectId,
+    // revisión en vivo); hay que inspeccionarla aparte para recogerla.
     a.client.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    a.client.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
     await hasItems(a, ["llave-bronce"]);
     // 2. Abrir el armario con la llave → yesquero + vela
     a.client.send(GAME_MESSAGES.useItem, { itemId: "llave-bronce", objectId: "armario" });

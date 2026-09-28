@@ -268,6 +268,9 @@ describe("GameRoom — Rey Aldric sobre Colyseus", () => {
 
     const granted = b.waitForMessage(GAME_MESSAGES.itemGranted);
     a.send(GAME_MESSAGES.interact, { objectId: "cuadro-aurelio" });
+    // Revisión en vivo (pickupObjectId): revelar el escondite ya no entrega
+    // sola — hace falta inspeccionar la llave que aparece en el suelo.
+    a.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
     expect(await granted).toEqual({ playerId: a.sessionId, itemId: "llave-bronce" });
     await expect
       .poll(() => [...(b.state.inventories.get(a.sessionId)?.items ?? [])])

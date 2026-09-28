@@ -78,6 +78,7 @@ function playSala1(): ScriptResult {
   collectEngine(session.start(0));
 
   collectInteraction(session.interact("cuadro-aurelio", 0));
+  collectInteraction(session.interact("llave-bronce-suelo", 0));
   collectInteraction(session.useItemOnObject("llave-bronce", "armario", 0));
   const combined = session.combine("p-combina", ["yesquero", "vela"], 0);
   if (combined.engine) collectEngine(combined.engine);

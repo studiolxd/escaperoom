@@ -780,6 +780,27 @@
       }
     },
     {
+      "id": "llave-bronce-suelo",
+      "name": {
+        "es": {
+          "text": "La llave de bronce"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "objeto",
+      "position": {
+        "x": 6,
+        "y": 1
+      },
+      "sprite": "llave-bronce-suelo",
+      "states": {
+        "oculto": "oculto",
+        "visible": "llave-bronce-suelo"
+      },
+      "initialState": "oculto",
+      "interactable": true
+    },
+    {
       "id": "retrato-2",
       "name": {
         "es": {
@@ -1473,7 +1494,8 @@
       "hidingSpot": {
         "objectId": "cuadro-aurelio"
       },
-      "revealAnimation": "shake"
+      "revealAnimation": "shake",
+      "pickupObjectId": "llave-bronce-suelo"
     },
     {
       "id": "p-candado-arca",
@@ -1929,6 +1951,38 @@
           "type": "set_object_state",
           "objectId": "cuadro-aurelio",
           "state": "open"
+        },
+        {
+          "type": "set_object_state",
+          "objectId": "llave-bronce-suelo",
+          "state": "visible"
+        }
+      ]
+    },
+    {
+      "id": "r-recoger-llave-cuadro",
+      "priority": 0,
+      "once": true,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "llave-bronce-suelo"
+      },
+      "conditions": [
+        {
+          "type": "puzzle_state_is",
+          "puzzleId": "p-llave-cuadro",
+          "state": "solved"
+        }
+      ],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-recoger-llave-cuadro"
+        },
+        {
+          "type": "set_object_state",
+          "objectId": "llave-bronce-suelo",
+          "state": "oculto"
         }
       ]
     },
@@ -2621,6 +2675,14 @@
       "text": {
         "es": {
           "text": "Un brasero de hierro forjado, frío y apagado. Alguien tendría que prenderlo."
+        }
+      }
+    },
+    {
+      "id": "d-recoger-llave-cuadro",
+      "text": {
+        "es": {
+          "text": "Recoges la llave de bronce del suelo."
         }
       }
     }
