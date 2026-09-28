@@ -153,6 +153,14 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
   const [draggingItem, setDraggingItem] = useState<string | null>(null);
   const [summary, setSummary] = useState<SessionSummary | null>(null);
   const [copied, setCopied] = useState(false);
+  /**
+   * Ítems que se conceden con `item_granted` mostrándose un instante "en el
+   * suelo" (revisión en vivo, items 4/5): antes se sumaban al inventario en
+   * silencio (solo el registro del HUD). `x`/`y` son la fracción de pantalla
+   * del objeto que lo concede (`getObjectScreenFraction`), no coordenadas del
+   * mundo — el mismo sistema que ya usaba el E2E para clicar objetos.
+   */
+  const [pickups, setPickups] = useState<{ id: string; itemId: string; x: number; y: number }[]>([]);
   const { log, pushLog } = useHudLog();
 
   const panelRef = useRef<string | null>(null);
@@ -177,6 +185,48 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
     setDialog(pendingDialogRef.current);
     pendingDialogRef.current = null;
   }, [inMap]);
+
+  /**
+   * Revisión en vivo: `dialog_show` e `image_show` de un mismo `interact()`
+   * (p. ej. `cuadro-aurelio`: una regla con el texto de lore y otra, o la
+   * misma, con la imagen grande) llegaban como dos eventos independientes y
+   * abrían DOS `Dialog` de shadcn a la vez — el de texto quedaba tapado
+   * detrás del de la imagen. Se amortiguan aquí un instante (el tiempo de
+   * sobra para que ambos, si los hay, lleguen) y se presentan como uno solo:
+   * si hay imagen, el texto pasa a ser su pie de foto; si no hay imagen, el
+   * texto se muestra como el diálogo de siempre.
+   */
+  const dialogBufferRef = useRef<{ id: string; text: string; title?: string } | null>(null);
+  const imageBufferRef = useRef<{ image: string; caption?: string; title?: string } | null>(null);
+  const presentTimerRef = useRef<number | null>(null);
+
+  const presentInspection = useCallback(() => {
+    if (presentTimerRef.current !== null) {
+      window.clearTimeout(presentTimerRef.current);
+      presentTimerRef.current = null;
+    }
+    const dlg = dialogBufferRef.current;
+    const img = imageBufferRef.current;
+    dialogBufferRef.current = null;
+    imageBufferRef.current = null;
+    if (img) {
+      setImagePanel({ ...img, ...(dlg?.text ? { caption: dlg.text } : {}) });
+    } else if (dlg) {
+      if (!inMapRef.current) pendingDialogRef.current = dlg;
+      else setDialog(dlg);
+    }
+  }, []);
+
+  const scheduleInspectionPresentation = useCallback(() => {
+    if (presentTimerRef.current !== null) return;
+    presentTimerRef.current = window.setTimeout(presentInspection, 60);
+  }, [presentInspection]);
+
+  useEffect(() => {
+    return () => {
+      if (presentTimerRef.current !== null) window.clearTimeout(presentTimerRef.current);
+    };
+  }, []);
 
   const combinePuzzleId = useMemo(
     () => model.puzzles.find((puzzle) => puzzle.type === "combine_items")?.id,
@@ -225,22 +275,27 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
           const known = model.dialogsById[event.dialogId];
           const inspectedId = lastInspectedObjectIdRef.current;
           const title = inspectedId ? objectName(inspectedId) : undefined;
-          const next = { id: event.dialogId, text: known?.text ?? event.dialogId, ...(title ? { title } : {}) };
-          // Quien aún lee la introducción o está en su 3-2-1 no está en el
-          // mapa: el diálogo (p. ej. la intro de las reglas `on_game_start`,
-          // que dispara el PRIMERO en entrar) se le muestra al entrar.
-          if (!inMapRef.current) pendingDialogRef.current = next;
-          else setDialog(next);
+          dialogBufferRef.current = {
+            id: event.dialogId,
+            text: known?.text ?? event.dialogId,
+            ...(title ? { title } : {}),
+          };
+          // Si la imagen de esta misma inspección ya llegó, se presentan
+          // juntas ya mismo; si no, se espera un instante por si llega.
+          if (imageBufferRef.current) presentInspection();
+          else scheduleInspectionPresentation();
           break;
         }
         case "image_show": {
           const inspectedId = lastInspectedObjectIdRef.current;
           const title = inspectedId ? objectName(inspectedId) : undefined;
-          setImagePanel({
+          imageBufferRef.current = {
             image: event.image,
             ...(event.caption ? { caption: event.caption } : {}),
             ...(title ? { title } : {}),
-          });
+          };
+          if (dialogBufferRef.current) presentInspection();
+          else scheduleInspectionPresentation();
           break;
         }
         case "object_state_changed":
@@ -261,6 +316,17 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
               ? t("log.itemGranted", { item: itemName(event.itemId) })
               : t("log.itemGrantedOther", { player: who ?? "?", item: itemName(event.itemId) }),
           );
+          if (mine) {
+            const sourceObjectId = lastInspectedObjectIdRef.current;
+            const fraction = sourceObjectId ? handleRef.current?.getObjectScreenFraction(sourceObjectId) : undefined;
+            if (fraction) {
+              const id = `${event.itemId}-${Date.now()}`;
+              setPickups((prev) => [...prev, { id, itemId: event.itemId, ...fraction }]);
+              window.setTimeout(() => {
+                setPickups((prev) => prev.filter((pickup) => pickup.id !== id));
+              }, 1400);
+            }
+          }
           break;
         }
         case "puzzle_solved":
@@ -365,6 +431,8 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
     tp,
     handleRef,
     sceneRoomRef,
+    presentInspection,
+    scheduleInspectionPresentation,
   ]);
 
   // — Intenciones del jugador ————————————————————————————————————————
@@ -457,6 +525,15 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
         inspect(objectId);
         return;
       }
+      // Igual que `inspect()`: recuerda el objeto para poder titular un
+      // `dialog_show`/`image_show` que dispare la regla y, sobre todo, para
+      // saber dónde hacer aparecer visualmente un `item_granted` (revisión
+      // en vivo, items 4/5: la llave del cuadro, la vela y el yesquero del
+      // armario).
+      lastInspectedObjectIdRef.current = objectId;
+      window.setTimeout(() => {
+        if (lastInspectedObjectIdRef.current === objectId) lastInspectedObjectIdRef.current = undefined;
+      }, 500);
       client.useItem(itemId, objectId);
       pushLog(tp("log.useItem", { item: itemName(itemId), object: objectName(objectId) }));
     },
@@ -689,6 +766,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
     setPickerFor,
     draggingItem,
     setDraggingItem,
+    pickups,
     summary,
     copied,
     copyInvite,

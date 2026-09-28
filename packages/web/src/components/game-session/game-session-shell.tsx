@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { cn } from "cn";
 import { Lightbulb } from "lucide-react";
-import type { RuntimeModel } from "@escaperoom/game-runtime";
+import { resolveIconFrame, type RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import type { GameClient } from "@escaperoom/game-runtime/session";
 import type { MemoryPublicView } from "@escaperoom/shared/templates";
@@ -20,6 +20,7 @@ import { DialogButton, ImageDialog } from "./components/dialog-and-image";
 import { HudLogCorner } from "./components/hud-log-corner";
 import { InventoryDialog } from "./components/inventory-dialog";
 import { ItemPickerPopover } from "./components/item-picker-popover";
+import { ItemPickupPop } from "./components/item-pickup-pop";
 import type { IntroModel } from "@/lib/intro-model";
 import { EntryFade } from "./components/entry-fade";
 import { IntroOverlay } from "./components/intro-overlay";
@@ -233,6 +234,17 @@ export function GameSessionShell({
           onReady={onReady}
         />
       </ErrorBoundary>
+
+      {hud.pickups.map((pickup) => (
+        <ItemPickupPop
+          key={pickup.id}
+          x={pickup.x}
+          y={pickup.y}
+          frame={resolveIconFrame(pack?.manifest, model.itemsById[pickup.itemId]?.icon ?? "")}
+          baseUrl={pack?.baseUrl}
+          name={hud.itemName(pickup.itemId)}
+        />
+      ))}
 
       {hud.draggingItem ? (
         <div className="pointer-events-none absolute inset-x-4 top-24 z-30 mx-auto w-fit rounded-full border border-amber-500/40 px-4 py-1.5 text-xs text-amber-700 shadow-lg dark:border-amber-200/40 dark:text-amber-100">
