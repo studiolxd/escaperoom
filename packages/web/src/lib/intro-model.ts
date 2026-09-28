@@ -9,7 +9,7 @@ import { MAX_INTRO_SUBTITLES_BYTES, type RoomIntro } from "@escaperoom/shared/sc
  * bucket de una versión publicada) a URLs firmadas de vida corta.
  */
 export type IntroModel =
-  | { kind: "text"; text: string }
+  | { kind: "text"; text: string; audioUrl?: string }
   | {
       kind: "video";
       videoUrl: string;
@@ -29,6 +29,14 @@ export type IntroModel =
 export type IntroMediaUrlResolver = (ref: string) => Promise<string | null>;
 
 /**
+ * Resuelve una referencia de audio (`library:<id>` / `upload:<uuid>` del
+ * borrador, o clave del bucket de una versión publicada) a una URL firmada;
+ * `null` si no existe o no se puede servir — la introducción se muestra igual,
+ * solo sin narración.
+ */
+export type IntroAudioUrlResolver = (ref: string) => Promise<string | null>;
+
+/**
  * `IntroModel` de `intro` para `locale`; `null` sin introducción (o con un
  * vídeo que no se puede servir: la partida sigue, directo al 3-2-1).
  */
@@ -39,6 +47,7 @@ export async function resolveIntroModel(
     defaultLanguage: string;
     languages: readonly string[];
     resolveMediaUrl?: IntroMediaUrlResolver;
+    resolveAudioUrl?: IntroAudioUrlResolver;
     /** Lee el texto de un WebVTT a partir de su URL (por defecto, `fetch`); inyectable en tests. */
     readMediaText?: (url: string) => Promise<string | null>;
   },
@@ -46,7 +55,11 @@ export async function resolveIntroModel(
   if (!intro) return null;
   if (intro.type === "text") {
     const text = resolveLocalizedText(intro.text, options.locale, options.defaultLanguage);
-    return text.trim() ? { kind: "text", text } : null;
+    if (!text.trim()) return null;
+    const audioUrl = intro.audioUrl
+      ? ((await options.resolveAudioUrl?.(intro.audioUrl).catch(() => null)) ?? undefined)
+      : undefined;
+    return { kind: "text", text, ...(audioUrl ? { audioUrl } : {}) };
   }
   const resolve = options.resolveMediaUrl;
   if (!resolve) return null;

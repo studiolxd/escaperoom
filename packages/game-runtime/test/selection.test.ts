@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   approachCell,
+  colocatedInteractables,
   nearestInteractable,
   nearestInteractableId,
   type SelectableObject,
@@ -48,6 +49,27 @@ describe("nearestInteractable", () => {
   it("devuelve el objeto completo (no solo el id)", () => {
     expect(nearestInteractable(SALON, { x: 4, y: 7 })?.id).toBe("brasero");
   });
+
+  it("con `facing`, ignora un objeto más cercano que queda a la espalda", () => {
+    const objects = [object("delante", 1, 5), object("detras", -1, 5)];
+    // Mirando hacia +x: "detras" (-x) queda a la espalda y se descarta pese a
+    // estar a la misma distancia — tecla Espacio, revisión en vivo.
+    expect(nearestInteractable(objects, { x: 0, y: 5 }, { facing: { x: 1, y: 0 } })?.id).toBe(
+      "delante",
+    );
+  });
+
+  it("con `facing`, un objeto justo perpendicular sigue contando (semiplano, no cono estrecho)", () => {
+    const objects = [object("lado", 0, 6)];
+    expect(nearestInteractable(objects, { x: 0, y: 5 }, { facing: { x: 1, y: 0 } })?.id).toBe(
+      "lado",
+    );
+  });
+
+  it("sin `facing`, el filtro de dirección no aplica (drag&drop de items, omnidireccional)", () => {
+    const objects = [object("detras", -1, 5)];
+    expect(nearestInteractable(objects, { x: 0, y: 5 })?.id).toBe("detras");
+  });
 });
 
 describe("approachCell", () => {
@@ -60,5 +82,57 @@ describe("approachCell", () => {
 
   it("devuelve undefined si no hay ninguna celda adyacente caminable", () => {
     expect(approachCell({ x: 0, y: 0 }, { x: 2, y: 2 }, () => false)).toBeUndefined();
+  });
+
+  it("descarta la celda adyacente más cercana si está aislada (BFS, no solo distancia)", () => {
+    // Anillo bloqueado alrededor de (4,5): esa celda es caminable pero
+    // inalcanzable desde cualquier otro punto (sus 8 vecinos están todos
+    // bloqueados). Es la celda MÁS CERCANA al avatar entre las candidatas de
+    // `target`, así que la vieja heurística de "rectángulo delimitador"
+    // (que también fallaba para ella, por (3,5) bloqueado de por medio) caía
+    // a "la más cercana sin más" y devolvía igualmente esa celda inalcanzable
+    // — el bug real de la revisión en vivo (avatar clavado contra un
+    // obstáculo con el destino "detrás"). Con BFS real debe saltarse a la
+    // siguiente candidata que sí tiene un camino de verdad, aunque dé un
+    // rodeo.
+    const blocked = new Set([
+      "3,4",
+      "4,4",
+      "5,4",
+      "3,5",
+      "5,5",
+      "3,6",
+      "4,6",
+      "5,6",
+    ]);
+    const isWalkable = (x: number, y: number) =>
+      x >= 0 && x <= 10 && y >= 0 && y <= 10 && !blocked.has(`${x},${y}`);
+    expect(approachCell({ x: 5, y: 5 }, { x: 0, y: 5 }, isWalkable)).toEqual({ x: 6, y: 5 });
+  });
+});
+
+describe("colocatedInteractables (objetos apilados en la misma celda)", () => {
+  const BODEGA = [
+    object("mural-vendimia", 3, 0),
+    object("compartimento-plata", 3, 0),
+    object("mural-ranura", 3, 0),
+    object("decorado", 3, 0, false),
+    object("mesa-catas", 9, 6),
+  ];
+
+  it("devuelve todos los interactuables de la celda, en el orden de la sala", () => {
+    expect(colocatedInteractables(BODEGA, "mural-ranura").map((o) => o.id)).toEqual([
+      "mural-vendimia",
+      "compartimento-plata",
+      "mural-ranura",
+    ]);
+  });
+
+  it("un objeto solo en su celda: solo él", () => {
+    expect(colocatedInteractables(BODEGA, "mesa-catas").map((o) => o.id)).toEqual(["mesa-catas"]);
+  });
+
+  it("objeto desconocido: lista vacía", () => {
+    expect(colocatedInteractables(BODEGA, "no-existe")).toEqual([]);
   });
 });

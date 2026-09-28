@@ -2,16 +2,26 @@ import { z } from "zod";
 import {
   AUDIO_KINDS,
   AUDIO_LIBRARY,
+  DEFAULT_AUDIO_UPLOAD_LIMITS,
   findLibraryTrack,
   parseAudioRef,
   parseMp3,
   uploadAudioRef,
   type AudioKind,
   type AudioLibraryTrack,
+  type AudioUploadLimits,
 } from "../audio";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
 import { type Actor } from "./actor";
 import { requireUser } from "./common";
+
+/**
+ * Re-exportados desde `../audio` (subpath seguro para cliente, sin BullMQ ni
+ * el resto de dependencias solo-servidor de este barril): quien ya los
+ * importaba de `@escaperoom/shared/services` sigue funcionando igual.
+ */
+export { DEFAULT_AUDIO_UPLOAD_LIMITS };
+export type { AudioUploadLimits };
 
 /**
  * Audio del creador (ticket 3.11, specs/15 §1, specs/17 §1): biblioteca
@@ -116,14 +126,6 @@ export class AudioError extends Error {
     this.rejectionReason = extra.rejectionReason ?? null;
   }
 }
-
-/** Límites de subida (specs/15 §1). */
-export type AudioUploadLimits = { maxBytes: number; maxDurationMs: number };
-
-export const DEFAULT_AUDIO_UPLOAD_LIMITS: AudioUploadLimits = {
-  maxBytes: 10 * 1024 * 1024,
-  maxDurationMs: 10 * 60 * 1000,
-};
 
 /** MIME que los navegadores declaran para un `.mp3` (el contenido se verifica aparte). */
 export const MP3_DECLARED_MIME = ["audio/mpeg", "audio/mp3", "audio/mpeg3", "audio/x-mpeg-3"];

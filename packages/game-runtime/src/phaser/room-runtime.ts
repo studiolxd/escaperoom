@@ -88,9 +88,9 @@ export class RoomRuntime {
     return this.scene.currentRoomId;
   }
 
-  /** Cambia la habitación activa con un fundido. */
-  showRoom(roomId: string): void {
-    this.scene.setRoom(roomId);
+  /** Cambia la habitación activa con un fundido. `onBuilt`: ver `RoomScene.setRoom`. */
+  showRoom(roomId: string, onBuilt?: () => void): void {
+    this.scene.setRoom(roomId, onBuilt);
   }
 
   /** Recoloca el avatar local en la posición autoritativa del servidor. */
@@ -131,6 +131,11 @@ export class RoomRuntime {
   /** Inspecciona un objeto como si el jugador lo hubiera pulsado. */
   inspectObject(objectId: string): void {
     this.scene.inspectObjectById(objectId);
+  }
+
+  /** Posición en pantalla (fracción 0–1 del lienzo) de un objeto interactuable, o `undefined`. */
+  getObjectScreenFraction(objectId: string): { x: number; y: number } | undefined {
+    return this.scene.getObjectScreenFraction(objectId);
   }
 
   /**

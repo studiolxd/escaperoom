@@ -136,16 +136,11 @@ export function InventoryPanel({
     >
       <header className="flex items-baseline justify-between gap-2">
         <h2 className="text-sm font-medium">{t("title")}</h2>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            {t("recipes", { found: view.appliedRecipeCount, total: view.recipeCount })}
-          </span>
-          {onClose ? (
-            <Button size="xs" variant="ghost" onClick={onClose}>
-              {t("close")}
-            </Button>
-          ) : null}
-        </div>
+        {onClose ? (
+          <Button size="xs" variant="ghost" onClick={onClose}>
+            {t("close")}
+          </Button>
+        ) : null}
       </header>
 
       <div

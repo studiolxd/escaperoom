@@ -128,6 +128,7 @@ export function buildIntroRecord(intro: RoomIntro): Y.Map<unknown> {
   record.set("type", intro.type);
   if (intro.type === "text") {
     record.set("text", createYLocalizedText(intro.text));
+    if (intro.audioUrl) record.set("audioUrl", intro.audioUrl);
     return record;
   }
   record.set("video", intro.video);
@@ -152,9 +153,11 @@ export function readIntroRecord(
   const type = record.get("type");
   if (type === "text") {
     const text = record.get("text");
+    const audioUrl = record.get("audioUrl");
     return {
       type: "text",
       text: text instanceof Y.Map ? yLocalizedTextToJSON(text as YLocalizedText, languages) : {},
+      ...(typeof audioUrl === "string" && audioUrl.length > 0 ? { audioUrl } : {}),
     };
   }
   if (type === "video") {

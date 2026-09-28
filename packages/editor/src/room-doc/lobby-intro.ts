@@ -1,4 +1,5 @@
 import * as Y from "yjs";
+import { parseAudioRef } from "@escaperoom/shared/audio";
 import {
   DEFAULT_LOBBY_ROOM_ID,
   DEFAULT_LOBBY_ROOM_NAME,
@@ -274,6 +275,12 @@ export function setRoomIntro(doc: Y.Doc, intro: RoomIntro | null): void {
         );
       }
     }
+    if (intro.audioUrl !== undefined && !parseAudioRef(intro.audioUrl)) {
+      throw new RoomDocError(
+        "INVALID_VALUE",
+        `Referencia de audio de la introducción no válida: "${intro.audioUrl}"`,
+      );
+    }
   } else {
     assertMediaRef(intro.video, "El vídeo de la introducción");
     const subtitles = intro.subtitles ?? {};
@@ -329,5 +336,31 @@ export function setRoomIntroSubtitles(doc: Y.Doc, lang: string, ref: string | nu
       record.set("subtitles", subtitles);
     }
     (subtitles as Y.Map<string>).set(lang, ref);
+  });
+}
+
+/**
+ * Fija (o quita, con `null`) el audio de una introducción de tipo texto: una
+ * referencia estable (`library:<id>` / `upload:<uuid>`, como el `audioUrl` de
+ * diálogos/pistas) — subida a mano o generada con ElevenLabs desde el
+ * creador. Una sola pista para toda la introducción, no por idioma.
+ */
+export function setRoomIntroAudio(doc: Y.Doc, ref: string | null): void {
+  doc.transact(() => {
+    const record = metaMap(doc).get(INTRO_KEY);
+    if (!(record instanceof Y.Map) || record.get("type") !== "text") {
+      throw new RoomDocError(
+        "INVALID_VALUE",
+        "La introducción no es un texto: no se le puede poner audio",
+      );
+    }
+    if (ref === null) {
+      record.delete("audioUrl");
+      return;
+    }
+    if (!parseAudioRef(ref)) {
+      throw new RoomDocError("INVALID_VALUE", `Referencia de audio no válida: "${ref}"`);
+    }
+    record.set("audioUrl", ref);
   });
 }

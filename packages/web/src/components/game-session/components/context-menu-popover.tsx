@@ -1,70 +1,86 @@
 import type { RuntimeObject } from "@escaperoom/game-runtime";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverAnchor, PopoverContent, PopoverTitle } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export interface ContextMenuPopoverProps {
   object: RuntimeObject | undefined;
-  isSolved: boolean;
+  /**
+   * Objetos interactuables en la misma celda que `object` (él incluido,
+   * `colocatedInteractables`). Con más de uno, el menú deja elegir a cuál se
+   * aplica la acción: un clic en el canvas solo acierta al de encima.
+   */
+  alternatives?: readonly RuntimeObject[];
+  onSelectObject?: (objectId: string) => void;
   onOpenChange: (open: boolean) => void;
   onEscapeKeyDown: (event: { preventDefault: () => void }) => void;
   objectName: (objectId: string) => string;
   onInspect: (objectId: string) => void;
   onPickItem: (objectId: string) => void;
-  onOpenPanel: (puzzleId: string, objectId: string) => void;
   onCancel: () => void;
-  titleLabel: string;
-  objectLabel: (object: string) => string;
   inspectLabel: string;
   useItemLabel: string;
-  openPanelLabel: string;
   cancelLabel: string;
+  alternativesLabel?: string;
 }
 
 /**
- * F-17: menú contextual del objeto — `Popover` no modal (el jugador sigue
- * viendo el mundo; el input ya se desactiva mientras está abierto vía
- * `worldInputEnabled`), en vez de un `div` sin foco ni rol.
+ * F-17 (revisión en vivo): menú contextual del objeto — `Dialog` modal, como
+ * el resto de popups del HUD (bloquea clics de fondo) en vez del `Popover` no
+ * modal anterior; su título es el nombre del objeto seleccionado.
+ *
+ * Sin botón "Abrir panel" (revisión en vivo, quitado): "Inspeccionar" ya abre
+ * el panel del puzzle asociado (`useGameHud.inspect`) para cualquier objeto
+ * que no sea un `hidden_key` (ese se revela al inspeccionar, sin panel
+ * manual) — el botón era una segunda vía redundante o, para un `hidden_key`,
+ * abría un panel que no debía existir en absoluto (p. ej. `cuadro-aurelio`).
+ *
+ * Si hay varios objetos apilados en la misma celda (`alternatives`), un
+ * grupo de botones con sus nombres deja cambiar a cuál se aplica la acción
+ * (sin panel de objetos, era la única forma de llegar a los de debajo).
  */
 export function ContextMenuPopover({
   object,
-  isSolved,
   onOpenChange,
   onEscapeKeyDown,
   objectName,
   onInspect,
   onPickItem,
-  onOpenPanel,
   onCancel,
-  titleLabel,
-  objectLabel,
   inspectLabel,
   useItemLabel,
-  openPanelLabel,
   cancelLabel,
+  alternatives = [],
+  onSelectObject,
+  alternativesLabel,
 }: ContextMenuPopoverProps) {
   return (
-    <Popover open={object !== undefined} onOpenChange={onOpenChange}>
-      <PopoverAnchor asChild>
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-x-4 bottom-52 mx-auto block h-px w-full max-w-[min(92vw,26rem)]"
-        />
-      </PopoverAnchor>
-      <PopoverContent
-        side="top"
-        align="center"
-        sideOffset={8}
+    <Dialog open={object !== undefined} onOpenChange={onOpenChange}>
+      <DialogContent
+        showCloseButton={false}
         onEscapeKeyDown={onEscapeKeyDown}
         className="w-fit max-w-[min(92vw,26rem)] rounded-xl border border-amber-500/30 px-4 py-3 shadow-xl dark:border-amber-200/30"
       >
         {object ? (
           <>
-            <PopoverTitle className="block text-[0.65rem] font-normal uppercase tracking-wide text-amber-700 dark:text-amber-200/70">
-              {titleLabel}
-            </PopoverTitle>
-            <span className="block font-mono text-xs text-muted-foreground">
-              {objectLabel(objectName(object.id))}
-            </span>
+            <DialogTitle className="font-mono text-sm">{objectName(object.id)}</DialogTitle>
+            {alternatives.length > 1 ? (
+              <div role="group" aria-label={alternativesLabel} className="mt-2 flex flex-wrap gap-1.5">
+                {alternatives.map((candidate) => {
+                  const current = candidate.id === object.id;
+                  return (
+                    <Button
+                      key={candidate.id}
+                      size="sm"
+                      variant={current ? "secondary" : "outline"}
+                      aria-pressed={current}
+                      onClick={() => onSelectObject?.(candidate.id)}
+                    >
+                      {objectName(candidate.id)}
+                    </Button>
+                  );
+                })}
+              </div>
+            ) : null}
             <div className="mt-2 flex flex-wrap gap-2">
               {(object.actions ?? ["inspect", "use_item"]).map((action) => (
                 <Button
@@ -79,22 +95,13 @@ export function ContextMenuPopover({
                   {action === "inspect" ? inspectLabel : useItemLabel}
                 </Button>
               ))}
-              {object.panelPuzzleId && !isSolved ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => onOpenPanel(object.panelPuzzleId!, object.id)}
-                >
-                  {openPanelLabel}
-                </Button>
-              ) : null}
               <Button size="sm" variant="ghost" onClick={onCancel}>
                 {cancelLabel}
               </Button>
             </div>
           </>
         ) : null}
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
 }

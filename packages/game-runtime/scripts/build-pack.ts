@@ -517,6 +517,7 @@ async function main(): Promise<void> {
       padding: config.padding ?? 2,
     });
     atlases.push({ key: kind, atlas });
+    issues.push(...checkAtlasSize(kind, atlas));
     if (!options.check) {
       await writeFile(join(options.packDir, `atlas-${kind}.png`), encodePng(atlas));
       await writeFile(
@@ -563,6 +564,48 @@ async function main(): Promise<void> {
   if (blocking.length > 0) {
     process.exitCode = 1;
   }
+}
+
+/**
+ * `packAtlas` (`../src/pack/atlas.ts`) limita el ANCHO (`maxWidth`) pero deja
+ * crecer el ALTO sin tope: con muchos frames y un `maxWidth` bajo, el atlas
+ * puede acabar más alto que el tamaño máximo de textura que WebGL admite en
+ * el hardware/navegador de destino — la textura no se puede subir y el
+ * sprite sale como un cuadrado sólido negro en vez de crashear o avisar
+ * (bug real, PR #186 "8 direcciones": al duplicar los frames de avatar, su
+ * atlas pasó a 1952×17396px con el `atlasMaxWidth` de 2048 por defecto).
+ * `MAX_SAFE_ATLAS_DIMENSION` (8192) es una base que soporta prácticamente
+ * cualquier GPU/navegador real de la última década; por debajo, aviso pero
+ * no bloquea (podría no llegar a pintarse en hardware muy antiguo/limitado,
+ * pero no hay evidencia de que vaya a fallar). `MAX_ATLAS_DIMENSION`
+ * (16384) es el límite típico incluso en GPUs potentes: por encima, error
+ * bloqueante — casi seguro que no va a poder subirse a la GPU en ningún
+ * dispositivo real.
+ */
+const MAX_SAFE_ATLAS_DIMENSION = 8192;
+const MAX_ATLAS_DIMENSION = 16384;
+
+function checkAtlasSize(kind: Kind, atlas: PackedAtlas): PackValidationIssue[] {
+  const dimension = Math.max(atlas.width, atlas.height);
+  if (dimension > MAX_ATLAS_DIMENSION) {
+    return [
+      {
+        path: `atlas-${kind}.png`,
+        message: `atlas de ${dimension}px: supera el límite típico de textura WebGL (${MAX_ATLAS_DIMENSION}px) y probablemente no se pueda subir a la GPU en ningún dispositivo real — sube \`atlasMaxWidth\` en pack.config.json o reparte el kind en varios atlas.`,
+        severity: "error",
+      },
+    ];
+  }
+  if (dimension > MAX_SAFE_ATLAS_DIMENSION) {
+    return [
+      {
+        path: `atlas-${kind}.png`,
+        message: `atlas de ${dimension}px: por encima de ${MAX_SAFE_ATLAS_DIMENSION}px, el tamaño de textura mínimo garantizado en la práctica — puede no subirse en hardware antiguo/limitado. Revisa \`atlasMaxWidth\` en pack.config.json.`,
+        severity: "warning",
+      },
+    ];
+  }
+  return [];
 }
 
 function isMissingFrame(issue: PackValidationIssue): boolean {

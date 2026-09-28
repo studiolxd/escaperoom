@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import {
+  calculateAudioGenerationCost,
+  CHARACTERS_PER_CREDIT,
+  MAX_GENERATION_CHARACTERS,
+} from "../audio/limits";
 import { parseMp3 } from "../audio/mp3";
 import { uploadAudioRef } from "../audio/refs";
 import type { Actor } from "./actor";
@@ -20,29 +25,13 @@ import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
  *
  * La previsualización llama a ElevenLabs pero no toca el ledger ni almacena
  * nada (specs/15 §3): solo devuelve los bytes para escuchar antes de confirmar.
+ *
+ * El coste (`calculateAudioGenerationCost`) y el límite de caracteres viven en
+ * `../audio/limits` (subpath seguro para cliente, `@escaperoom/shared/audio`)
+ * y se re-exportan aquí para no romper a quien ya los importaba de este
+ * módulo.
  */
-
-/**
- * Coste contable (specs/15 §2, specs/02 §6): caracteres × tarifa ElevenLabs →
- * créditos internos, redondeo a la unidad, mínimo 1 crédito. Aquí se fija como
- * "1 crédito por cada `CHARACTERS_PER_CREDIT` caracteres" — la tarifa exacta
- * de ElevenLabs y el precio en euros de un crédito (packs de 5/10/25 €,
- * specs/02 §1) dependen del ticket 5.2 (compra de packs de créditos), aún sin
- * implementar — Stripe ya está cableado (5.1) para salas, licencias y
- * eventos, pero no hay checkout de packs de créditos. **Decisión abierta a
- * revisar** (ver ADR en `docs/reference/registro-de-decisiones.md`).
- */
-export const CHARACTERS_PER_CREDIT = 40;
-
-/** Límite de caracteres por generación (evita una factura de ElevenLabs desbocada). */
-export const MAX_GENERATION_CHARACTERS = 5000;
-
-export function calculateAudioGenerationCost(characterCount: number): number {
-  if (characterCount <= 0) {
-    throw new RangeError("El texto no puede estar vacío");
-  }
-  return Math.max(1, Math.ceil(characterCount / CHARACTERS_PER_CREDIT));
-}
+export { calculateAudioGenerationCost, CHARACTERS_PER_CREDIT, MAX_GENERATION_CHARACTERS };
 
 export type AudioGenerationErrorCode =
   | "UNAUTHORIZED"

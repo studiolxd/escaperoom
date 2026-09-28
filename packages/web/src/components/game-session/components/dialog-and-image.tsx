@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 export interface DialogButtonProps {
-  dialog: { id: string; text: string } | null;
+  /** `title`: nombre del objeto inspeccionado (revisión en vivo), si se conoce. */
+  dialog: { id: string; text: string; title?: string } | null;
   isIntro: boolean;
   onClose: () => void;
   introLabel: string;
@@ -33,14 +34,18 @@ export function DialogButton({
       <span className="block text-[0.65rem] uppercase tracking-wide text-amber-700 dark:text-amber-200/70">
         {isIntro ? introLabel : dialogLabel}
       </span>
-      {dialog.text}
+      {dialog.title ? (
+        <span className="font-heading block text-sm font-medium">{dialog.title}</span>
+      ) : null}
+      <span className="block">{dialog.text}</span>
       <span className="mt-1 block text-[0.65rem] text-muted-foreground">{closeLabel}</span>
     </Button>
   );
 }
 
 export interface ImageDialogProps {
-  imagePanel: { image: string; caption?: string } | null;
+  /** `title`: nombre del objeto inspeccionado (revisión en vivo), si se conoce. */
+  imagePanel: { image: string; caption?: string; title?: string } | null;
   pack?: RoomScenePack;
   onOpenChange: (open: boolean) => void;
   inspectImageLabel: string;
@@ -59,10 +64,12 @@ export function ImageDialog({
         data-testid="game-image-panel"
         className="flex w-[min(92vw,40rem)] max-w-none flex-col items-center gap-3 rounded-2xl border-amber-500/30 p-5 text-center shadow-2xl dark:border-amber-200/30"
       >
-        <DialogTitle className="sr-only">{inspectImageLabel}</DialogTitle>
-        <DialogDescription className="sr-only">
-          {imagePanel?.caption ?? inspectImageLabel}
-        </DialogDescription>
+        {imagePanel?.title ? (
+          <DialogTitle className="font-heading text-sm font-medium">{imagePanel.title}</DialogTitle>
+        ) : (
+          <DialogTitle className="sr-only">{inspectImageLabel}</DialogTitle>
+        )}
+        <DialogDescription className="sr-only">{imagePanel?.caption ?? inspectImageLabel}</DialogDescription>
         {imagePanel && pack ? (
           // eslint-disable-next-line @next/next/no-img-element -- imagen de inspección servida por el pack, fuera de next/image
           <img

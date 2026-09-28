@@ -184,3 +184,31 @@ export function avatarHasDiagonals(manifest: PackManifest, character: string): b
     manifest.anims.some((anim) => anim.key === avatarAnimKey(character, direction, "idle")),
   );
 }
+
+/**
+ * Inversa de {@link directionFromGridDelta} (8 direcciones): vector unitario
+ * en celdas de rejilla hacia el que mira esa dirección. Usado para el
+ * interactuar "de frente" con la tecla Espacio (revisión en vivo). Cada
+ * vector es el paso de rejilla que, proyectado a pantalla, cae exactamente
+ * en el octante de esa dirección (ver `directionFromGridDelta8`).
+ */
+export function directionToGridDelta(direction: AvatarDirection): { x: number; y: number } {
+  switch (direction) {
+    case "e":
+      return { x: 1, y: 0 };
+    case "w":
+      return { x: -1, y: 0 };
+    case "s":
+      return { x: 0, y: 1 };
+    case "n":
+      return { x: 0, y: -1 };
+    case "ne":
+      return { x: 1, y: -1 };
+    case "se":
+      return { x: 1, y: 1 };
+    case "sw":
+      return { x: -1, y: 1 };
+    case "nw":
+      return { x: -1, y: -1 };
+  }
+}

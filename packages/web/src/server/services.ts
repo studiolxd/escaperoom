@@ -46,6 +46,8 @@ import {
   createPrismaIntroMediaStore,
   type IntroMediaBlobStore,
   type IntroMediaService,
+  createIntroAudioUrlResolver,
+  type IntroAudioAccess,
   createCreditsService,
   createPrismaCreditAccountStore,
   type CreditsService,
@@ -286,6 +288,23 @@ export function getAudioAssetService(): AudioAssetService {
     blobs: audioBlobs,
   });
   return audioAssets;
+}
+
+let introAudioAssetStore: ReturnType<typeof createPrismaAudioAssetStore> | undefined;
+
+/**
+ * Resolver de la narración de la introducción (`RoomIntro` de tipo texto,
+ * `audioUrl`): mismo `audioAsset`/biblioteca que 3.11/4.9, pero con una URL
+ * firmada de vida LARGA (como el vídeo de la introducción, 6 h) — el jugador
+ * puede quedarse en la sala de espera mucho rato antes de llegar a la
+ * introducción, a diferencia de una escucha puntual en el editor (10 min).
+ */
+export function getIntroAudioUrlResolver(access: IntroAudioAccess): (ref: string) => Promise<string | null> {
+  introAudioAssetStore ??= createPrismaAudioAssetStore(prisma);
+  return createIntroAudioUrlResolver(access, {
+    store: introAudioAssetStore,
+    blobs: { signedReadUrl: (key) => storage.getSignedReadUrl(key, { expiresIn: 6 * 60 * 60 }) },
+  });
 }
 
 /**

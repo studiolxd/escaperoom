@@ -59,9 +59,11 @@ class FakeXhr {
   }
 }
 
+const AUDIO_UPLOAD_REF = "upload:44444444-4444-4444-8444-444444444444";
+
 const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = String(input);
-  const ok = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
+  const ok = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
   if (url.endsWith("/intro-media/video") && init?.method === "POST") {
     return ok({ assetId: "asset-1", uploadUrl: "https://s3.test/put", headers: { "x-amz": "1" } });
   }
@@ -70,6 +72,24 @@ const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => 
   if (url.includes("/intro-media/url?ref=")) {
     const ref = new URL(url, "http://localhost").searchParams.get("ref");
     return ok({ url: `https://s3.test/get/${ref}` });
+  }
+  if (url.endsWith("/api/audio/library")) return ok({ items: [] });
+  if (url.endsWith("/api/audio/uploads") && (!init || init.method === undefined)) {
+    return ok({ items: [], nextCursor: null });
+  }
+  if (url.endsWith("/api/audio/generate/preview")) {
+    return ok({ costCredits: 3, characterCount: 11, contentType: "audio/mpeg", audioBase64: "AAAA" });
+  }
+  if (url.endsWith("/api/audio/generate/confirm")) {
+    return ok(
+      {
+        ref: AUDIO_UPLOAD_REF,
+        costCredits: 3,
+        balanceAfter: 997,
+        asset: { id: "asset-audio-1", status: "approved", durationMs: 4000, createdAt: new Date().toISOString() },
+      },
+      201,
+    );
   }
   return new Response("{}", { status: 404 });
 });
@@ -223,6 +243,32 @@ describe("<RoomLobbyIntroDialog> — introducción", () => {
 
     await user.click(within(dialog).getByRole("radio", { name: "Sin introducción" }));
     expect(readRoomIntro(doc)).toBeUndefined();
+  });
+
+  it("texto: genera la narración con ElevenLabs (previsualizar y confirmar) y la guarda", async () => {
+    const { doc, user } = setup();
+    const dialog = await open(user);
+    await user.click(within(dialog).getByRole("radio", { name: "Texto" }));
+    await user.type(within(dialog).getByRole("tabpanel"), "Bienvenidos a la sala");
+
+    await user.click(within(dialog).getByRole("button", { name: "Generar con ElevenLabs" }));
+    await within(dialog).findByRole("button", { name: /Usar este audio/u });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/audio/generate/preview",
+      expect.objectContaining({ method: "POST" }),
+    );
+
+    await user.click(within(dialog).getByRole("button", { name: /Usar este audio/u }));
+    await waitFor(() =>
+      expect(readRoomIntro(doc)).toMatchObject({ audioUrl: AUDIO_UPLOAD_REF }),
+    );
+    const [, confirmInit] = fetchMock.mock.calls.find(([reqUrl]) =>
+      String(reqUrl).endsWith("/api/audio/generate/confirm"),
+    )!;
+    expect(JSON.parse(String((confirmInit as RequestInit).body))).toEqual({
+      text: "Bienvenidos a la sala",
+      referenceId: `intro:${fixture.meta.id}`,
+    });
   });
 
   it("vídeo: sube con progreso por PUT presignado, lo guarda y lo previsualiza con subtítulos", async () => {

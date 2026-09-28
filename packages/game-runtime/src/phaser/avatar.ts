@@ -9,6 +9,7 @@ import {
   avatarFrameName,
   avatarHasDiagonals,
   directionFromGridDelta,
+  moveWithCollision,
   type AvatarAction,
   type AvatarDirection,
   type CollisionGrid,
@@ -41,9 +42,21 @@ export interface AvatarControllerOptions {
 }
 
 export interface AvatarMove {
-  /** Componente en celdas (no hace falta normalizar). */
+  /** Signo del movimiento en cada eje (-1, 0 o 1; no hace falta normalizar). */
   x: number;
   y: number;
+  /**
+   * Distancia restante máxima a mover este frame en cada eje (celdas), para
+   * no sobrepasar un waypoint de la ruta si `speed * delta` es mayor que lo
+   * que queda (bajón de fps, pestaña que recupera el foco…): sin este tope,
+   * un paso más grande que la distancia restante nunca converge al umbral de
+   * llegada de `RoomScene.readMove` y el avatar se queda oscilando sin
+   * llegar nunca — la interacción pendiente jamás se resolvía y su diálogo
+   * no se abría (revisión en vivo). `undefined` = sin tope (movimiento libre
+   * por teclado).
+   */
+  maxX?: number;
+  maxY?: number;
 }
 
 /**
@@ -118,6 +131,11 @@ export class AvatarController {
     return { x: Math.round(this.cell.x), y: Math.round(this.cell.y) };
   }
 
+  /** Última dirección de movimiento no nula (revisión en vivo: interactuar solo de frente). */
+  get facing(): AvatarDirection {
+    return this.direction;
+  }
+
   /** Reposiciona el avatar (p. ej. al entrar en una sala nueva). */
   setCell(x: number, y: number): void {
     this.cell = { x, y };
@@ -130,7 +148,9 @@ export class AvatarController {
       this.moving = true;
       this.direction = directionFromGridDelta(move.x, move.y, this.hasDiagonals);
       const step = this.speed * (delta / 1000);
-      this.tryMove(move.x * step, move.y * step);
+      const stepX = move.x * Math.min(step, move.maxX ?? Infinity);
+      const stepY = move.y * Math.min(step, move.maxY ?? Infinity);
+      this.tryMove(stepX, stepY);
     } else {
       this.moving = false;
     }
@@ -197,15 +217,7 @@ export class AvatarController {
   }
 
   private tryMove(dx: number, dy: number): void {
-    const nextX = this.cell.x + dx;
-    if (!this.collision.blocks(Math.round(nextX), Math.round(this.cell.y))) {
-      this.cell.x = Phaser.Math.Clamp(nextX, 0, this.collision.width - 1);
-    }
-
-    const nextY = this.cell.y + dy;
-    if (!this.collision.blocks(Math.round(this.cell.x), Math.round(nextY))) {
-      this.cell.y = Phaser.Math.Clamp(nextY, 0, this.collision.height - 1);
-    }
+    this.cell = moveWithCollision(this.collision, this.cell, dx, dy);
   }
 
   private syncPosition(): void {

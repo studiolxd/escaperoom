@@ -87,7 +87,6 @@
   },
   "Inventory": {
     "title": "Inventaris",
-    "recipes": "Recepten: {found}/{total}",
     "gridLabel": "Inventarisraster",
     "emptySlot": "Leeg vak",
     "unknownItem": "Onbekend voorwerp",
@@ -147,11 +146,9 @@
     "intro": "Introductie",
     "close": "Sluiten",
     "menu": {
-      "title": "Acties voor het object",
-      "object": "Object: {object}",
       "inspect": "Bekijken",
+      "here": "Voorwerpen op deze plek",
       "useItem": "Voorwerp gebruiken…",
-      "openPanel": "Paneel openen",
       "chooseItem": "Kies een voorwerp om op {object} te gebruiken",
       "dragHint": "Sleep het uit de inventaris naar de wereld of kies er hier een.",
       "dropHint": "Laat {item} los op een object in de wereld",

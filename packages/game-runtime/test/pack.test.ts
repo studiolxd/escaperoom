@@ -11,6 +11,7 @@ import {
   collectRequiredFrames,
   defaultAvatarAnims,
   directionFromGridDelta,
+  moveWithCollision,
   parsePackManifest,
   resolveIconFrame,
   resolveSpriteFrame,
@@ -325,6 +326,58 @@ describe("placeholder", () => {
   });
 });
 
+describe("moveWithCollision (paso continuo con colisión por celda)", () => {
+  function salonGrid() {
+    const model = loadModel();
+    const salon = model.subroomsById["salon-trono"];
+    if (!salon) throw new Error("falta la habitación salon-trono");
+    return buildCollisionGrid(salon, { manifest: buildPlaceholderManifest(model) });
+  }
+
+  it("sale andando de una placa sólida sobre la que el panel colocó al avatar (pasos de 60 fps)", () => {
+    const grid = salonGrid();
+    // placa-izq (6,11): objeto sólido, pero el botón "Placa" lleva al avatar encima.
+    expect(grid.blocks(6, 11)).toBe(true);
+    let position = { x: 6, y: 11 };
+    // 4 celdas/s a 60 fps ≈ 0,067 celdas por frame: 15 frames, una celda en diagonal.
+    for (let frame = 0; frame < 15; frame += 1) {
+      position = moveWithCollision(grid, position, 0.067, 0.067);
+    }
+    expect(Math.round(position.x)).toBe(7);
+    expect(Math.round(position.y)).toBe(12);
+  });
+
+  it("no deja entrar en una celda sólida desde fuera", () => {
+    const grid = salonGrid();
+    let position = { x: 5, y: 11 };
+    for (let frame = 0; frame < 30; frame += 1) {
+      position = moveWithCollision(grid, position, 0.067, 0);
+    }
+    // Llega hasta el borde de su celda (5,11) sin pisar la placa en (6,11).
+    expect(Math.round(position.x)).toBe(5);
+    expect(position.x).toBeLessThan(5.5);
+  });
+
+  it("se desliza a lo largo de un obstáculo por el eje libre", () => {
+    const grid = salonGrid();
+    const position = moveWithCollision(grid, { x: 5.45, y: 10 }, 0.1, 0.1);
+    // X entraría en (6,10)? libre → avanza; Y a (…,10.1) sigue en su fila.
+    expect(position).toEqual({ x: 5.55, y: 10.1 });
+    const blocked = moveWithCollision(grid, { x: 5.45, y: 11 }, 0.1, 0.1);
+    // X entraría en la placa (6,11): se queda; Y avanza.
+    expect(blocked.x).toBe(5.45);
+    expect(blocked.y).toBeCloseTo(11.1);
+  });
+
+  it("no sale de los límites de la rejilla", () => {
+    const grid = salonGrid();
+    expect(moveWithCollision({ ...grid, blocks: () => false }, { x: 0.2, y: 0.2 }, -1, -1)).toEqual({
+      x: 0,
+      y: 0,
+    });
+  });
+});
+
 describe("colisión desde el manifiesto", () => {
   it("bloquea celdas de muro y objetos, y deja libres suelo y puertas", () => {
     const model = loadModel();
@@ -335,7 +388,8 @@ describe("colisión desde el manifiesto", () => {
     const grid = buildCollisionGrid(salon, { manifest });
     expect(grid.blocks(0, 0)).toBe(true);
     expect(grid.blocks(5, 5)).toBe(false);
-    expect(grid.blocks(10, 1)).toBe(true);
+    // Trono en (9,1) (revisión en vivo: movido a la pared norte).
+    expect(grid.blocks(9, 1)).toBe(true);
     expect(grid.blocks(10, 13)).toBe(false);
   });
 
@@ -346,7 +400,7 @@ describe("colisión desde el manifiesto", () => {
 
     const grid = buildCollisionGrid(salon);
     expect(grid.blocks(0, 0)).toBe(false);
-    expect(grid.blocks(10, 1)).toBe(true);
+    expect(grid.blocks(9, 1)).toBe(true);
   });
 
   it("trata fuera de la rejilla como bloqueado", () => {

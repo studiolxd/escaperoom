@@ -70,7 +70,12 @@ export function listDecorations(doc: Y.Doc, roomId: string): Decoration[] {
 function checkDecoration(doc: Y.Doc, roomId: string, decoration: Decoration): Decoration {
   assertSprite(decoration.sprite);
   assertInside(doc, roomId, decoration);
-  return { sprite: decoration.sprite, x: decoration.x, y: decoration.y };
+  return {
+    sprite: decoration.sprite,
+    x: decoration.x,
+    y: decoration.y,
+    ...(decoration.blocks ? { blocks: true } : {}),
+  };
 }
 
 /** Coloca una decoración (sprite de la palette) en una celda. Devuelve su índice. */

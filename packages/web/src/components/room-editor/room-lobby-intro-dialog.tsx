@@ -9,11 +9,18 @@ import {
   addLobbyRoom,
   getRoomIntroText,
   setRoomIntro,
+  setRoomIntroAudio,
   setRoomIntroSubtitles,
   setSubRoomKind,
   toToolError,
 } from "@escaperoom/editor";
 import { toRuntimeModel, type RuntimeModel } from "@escaperoom/game-runtime";
+import {
+  calculateAudioGenerationCost,
+  DEFAULT_AUDIO_UPLOAD_LIMITS,
+  MAX_GENERATION_CHARACTERS,
+  type AudioLibraryTrack,
+} from "@escaperoom/shared/audio";
 import {
   DEFAULT_LOBBY_GRID,
   DEFAULT_LOBBY_ROOM_NAME,
@@ -45,7 +52,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import {
+  AudioSourceSelect,
+  AudioUploadButton,
+  type AudioUploadSummary,
+} from "@/components/editor/audio-field";
 import { LocalizedTextField, languageLabel } from "@/components/editor/localized-text-field";
+import {
+  AudioGenerationClientError,
+  confirmAudioGeneration,
+  fetchAudioLibrary,
+  fetchAudioUploads,
+  previewAudioGeneration,
+  uploadAudioFile,
+  type AudioGenerationPreview,
+} from "@/lib/audio-generation-client";
 import {
   checkIntroSubtitlesFile,
   checkIntroVideoFile,
@@ -393,17 +414,20 @@ function IntroSection({ roomId, doc, pkg, uploadsEnabled }: RoomLobbyIntroDialog
       )}
 
       {value === "text" && introText && (
-        <div className="space-y-1">
-          <LocalizedTextField
-            text={introText}
-            languages={pkg.meta.languages}
-            defaultLanguage={pkg.meta.defaultLanguage}
-            label={t("textLabel")}
-            rows={6}
-          />
-          <p className="text-xs text-muted-foreground">
-            {t("textLimit", { max: MAX_INTRO_TEXT_LENGTH })}
-          </p>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <LocalizedTextField
+              text={introText}
+              languages={pkg.meta.languages}
+              defaultLanguage={pkg.meta.defaultLanguage}
+              label={t("textLabel")}
+              rows={6}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("textLimit", { max: MAX_INTRO_TEXT_LENGTH })}
+            </p>
+          </div>
+          <IntroAudioEditor doc={doc} pkg={pkg} uploadsEnabled={uploadsEnabled} />
         </div>
       )}
 
@@ -417,6 +441,186 @@ function IntroSection({ roomId, doc, pkg, uploadsEnabled }: RoomLobbyIntroDialog
         />
       )}
     </section>
+  );
+}
+
+/**
+ * Narración de la introducción de texto (encargo "audio de la introducción"):
+ * una pista para toda la introducción (no por idioma, a diferencia del
+ * texto). Igual que el audio de diálogos/pistas (`AudioSourceSelect`,
+ * biblioteca incluida + subida propia), más un botón para generarla con
+ * ElevenLabs (ticket 4.9): previsualización gratis (escuchar antes de
+ * confirmar) y confirmación, que cobra créditos y la deja lista al instante.
+ */
+function IntroAudioEditor({
+  doc,
+  pkg,
+  uploadsEnabled,
+}: {
+  doc: Y.Doc;
+  pkg: RoomPackage;
+  uploadsEnabled: boolean;
+}) {
+  const t = useTranslations("RoomEditor.lobbyIntro.intro.audio");
+  const intro = pkg.meta.intro?.type === "text" ? pkg.meta.intro : undefined;
+  const { error, run } = useCommandError();
+  const [library, setLibrary] = useState<AudioLibraryTrack[]>([]);
+  const [uploads, setUploads] = useState<AudioUploadSummary[]>([]);
+  const [generation, setGeneration] = useState<
+    | { status: "idle" }
+    | { status: "loading" }
+    | { status: "ready"; preview: AudioGenerationPreview; text: string }
+    | { status: "confirming"; preview: AudioGenerationPreview; text: string }
+    | { status: "error"; message: string }
+  >({ status: "idle" });
+
+  useEffect(() => {
+    if (!uploadsEnabled) return;
+    let cancelled = false;
+    Promise.all([fetchAudioLibrary(), fetchAudioUploads()])
+      .then(([lib, up]) => {
+        if (!cancelled) {
+          setLibrary(lib);
+          setUploads(up);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [uploadsEnabled]);
+
+  const text = intro?.text[pkg.meta.defaultLanguage]?.text.trim() ?? "";
+  const generationDisabled = !uploadsEnabled || text.length === 0 || text.length > MAX_GENERATION_CHARACTERS;
+
+  const onUpload = async (file: File) => {
+    try {
+      const asset = await uploadAudioFile(file);
+      setUploads((current) => [asset, ...current]);
+      run(() => setRoomIntroAudio(doc, asset.ref));
+    } catch (err) {
+      throw err instanceof AudioGenerationClientError ? { code: err.code } : err;
+    }
+  };
+
+  const onGenerate = async () => {
+    setGeneration({ status: "loading" });
+    try {
+      const preview = await previewAudioGeneration(text);
+      setGeneration({ status: "ready", preview, text });
+    } catch (err) {
+      setGeneration({
+        status: "error",
+        message: err instanceof AudioGenerationClientError ? err.message : t("generateError"),
+      });
+    }
+  };
+
+  const onConfirm = async () => {
+    if (generation.status !== "ready") return;
+    setGeneration({ status: "confirming", preview: generation.preview, text: generation.text });
+    try {
+      const result = await confirmAudioGeneration(generation.text, `intro:${pkg.meta.id}`);
+      setUploads((current) => [
+        {
+          ref: result.ref,
+          originalFilename: t("generatedFilename"),
+          status: "approved",
+          rejectionReason: null,
+        },
+        ...current,
+      ]);
+      run(() => setRoomIntroAudio(doc, result.ref));
+      setGeneration({ status: "idle" });
+    } catch (err) {
+      setGeneration({
+        status: "error",
+        message: err instanceof AudioGenerationClientError ? err.message : t("generateError"),
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-2 rounded-md border border-border p-3" data-intro-audio="">
+      <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {t("heading")}
+      </Label>
+      {!uploadsEnabled ? (
+        <p className="text-muted-foreground">{t("uploadsDisabled")}</p>
+      ) : (
+        <>
+          <AudioSourceSelect
+            value={intro?.audioUrl}
+            onChange={(ref) => run(() => setRoomIntroAudio(doc, ref ?? null))}
+            library={library}
+            uploads={uploads}
+          />
+          <AudioUploadButton
+            onUpload={onUpload}
+            maxBytes={DEFAULT_AUDIO_UPLOAD_LIMITS.maxBytes}
+            maxDurationMs={DEFAULT_AUDIO_UPLOAD_LIMITS.maxDurationMs}
+          />
+
+          <Separator />
+
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              {text
+                ? t("generateHint", {
+                    cost: calculateAudioGenerationCost(text.length),
+                  })
+                : t("generateNeedsText")}
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={generationDisabled || generation.status === "loading"}
+              onClick={() => void onGenerate()}
+            >
+              {generation.status === "loading" ? t("generating") : t("generate")}
+            </Button>
+            {(generation.status === "ready" || generation.status === "confirming") && (
+              <div className="space-y-2 rounded-md border border-border p-2">
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <audio controls src={generation.preview.audioDataUrl} className="w-full" />
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={generation.status === "confirming"}
+                    onClick={() => void onConfirm()}
+                  >
+                    {generation.status === "confirming"
+                      ? t("confirming")
+                      : t("confirm", { cost: generation.preview.costCredits })}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={generation.status === "confirming"}
+                    onClick={() => setGeneration({ status: "idle" })}
+                  >
+                    {t("discard")}
+                  </Button>
+                </div>
+              </div>
+            )}
+            {generation.status === "error" && (
+              <p role="alert" className="text-xs text-destructive">
+                {generation.message}
+              </p>
+            )}
+          </div>
+        </>
+      )}
+      {error && (
+        <p role="alert" className="text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }
 

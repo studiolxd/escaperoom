@@ -22,6 +22,7 @@ import {
   roomPackageToDoc,
   setLocalizedValue,
   setRoomIntro,
+  setRoomIntroAudio,
   setRoomIntroSubtitles,
   setSubRoomKind,
 } from "../src";
@@ -211,6 +212,30 @@ describe("introducción (meta.intro)", () => {
   it("subtítulos sin vídeo: error claro", () => {
     const doc = roomPackageToDoc(fixture);
     expect(code(() => setRoomIntroSubtitles(doc, "es", VTT_ES))).toBe("INVALID_VALUE");
+  });
+
+  it("narración de una intro de texto: se fija, se lee, se quita y viaja en la ida y vuelta", () => {
+    const doc = roomPackageToDoc(fixture);
+    setRoomIntro(doc, { type: "text", text: { es: { text: "Bienvenidos" } } });
+    setRoomIntroAudio(doc, "upload:3f1c1b8e-2d7a-4a57-9c1f-6f5f0b4c2a11");
+    expect(readRoomIntro(doc)).toEqual({
+      type: "text",
+      text: { es: { text: "Bienvenidos" } },
+      audioUrl: "upload:3f1c1b8e-2d7a-4a57-9c1f-6f5f0b4c2a11",
+    });
+    expect(roomDocToPackage(doc).meta.intro).toEqual(readRoomIntro(doc));
+    setRoomIntroAudio(doc, "library:narrador-neutro");
+    expect(readRoomIntro(doc)).toMatchObject({ audioUrl: "library:narrador-neutro" });
+    setRoomIntroAudio(doc, null);
+    expect(readRoomIntro(doc)).toEqual({ type: "text", text: { es: { text: "Bienvenidos" } } });
+  });
+
+  it("narración: rechaza una referencia no válida y una intro que no es texto", () => {
+    const doc = roomPackageToDoc(fixture);
+    setRoomIntro(doc, { type: "text", text: { es: { text: "Hola" } } });
+    expect(code(() => setRoomIntroAudio(doc, "no-es-una-ref"))).toBe("INVALID_VALUE");
+    setRoomIntro(doc, { type: "video", video: VIDEO });
+    expect(code(() => setRoomIntroAudio(doc, "library:narrador-neutro"))).toBe("INVALID_VALUE");
   });
 
   it("un idioma retirado deja sus textos/subtítulos en el borrador pero no se empaquetan", () => {

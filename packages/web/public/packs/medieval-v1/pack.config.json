@@ -2,6 +2,7 @@
   "id": "medieval-v1",
   "version": "1.0.0-rc.1",
   "packageFormat": "roompackage/v1",
+  "atlasMaxWidth": 8192,
   "projection": {
     "tileWidth": 64,
     "tileHeight": 32,

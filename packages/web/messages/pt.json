@@ -87,7 +87,6 @@
   },
   "Inventory": {
     "title": "Inventário",
-    "recipes": "Receitas: {found}/{total}",
     "gridLabel": "Grelha de inventário",
     "emptySlot": "Espaço vazio",
     "unknownItem": "Objeto desconhecido",
@@ -147,11 +146,9 @@
     "intro": "Introdução",
     "close": "Fechar",
     "menu": {
-      "title": "Ações sobre o objeto",
-      "object": "Objeto: {object}",
       "inspect": "Inspecionar",
+      "here": "Objetos neste sítio",
       "useItem": "Usar objeto…",
-      "openPanel": "Abrir painel",
       "chooseItem": "Escolhe um objeto para usar em {object}",
       "dragHint": "Arrasta-o do inventário para o mundo ou escolhe um aqui.",
       "dropHint": "Larga {item} sobre um objeto do mundo",

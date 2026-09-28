@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { resolveIconFrame, type RuntimeModel } from "@escaperoom/game-runtime";
+import { colocatedInteractables, resolveIconFrame, type RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack, WorldSceneEvent } from "@escaperoom/game-runtime/phaser";
 import {
   buildHintView,
@@ -134,8 +134,12 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
   const walkingLobby = snapshot.phase === "lobby" && Boolean(self);
   const isHost = snapshot.hostId !== "" && snapshot.hostId === snapshot.selfId;
 
-  const [dialog, setDialog] = useState<{ id: string; text: string } | null>(null);
-  const [imagePanel, setImagePanel] = useState<{ image: string; caption?: string } | null>(null);
+  const [dialog, setDialog] = useState<{ id: string; text: string; title?: string } | null>(null);
+  const [imagePanel, setImagePanel] = useState<{
+    image: string;
+    caption?: string;
+    title?: string;
+  } | null>(null);
   const [panel, setPanel] = useState<string | null>(null);
   const [views, setViews] = useState<Record<string, RoomPuzzlePublicView>>({});
   const [inventoryOpen, setInventoryOpen] = useState(false);
@@ -153,7 +157,20 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
 
   const panelRef = useRef<string | null>(null);
   panelRef.current = panel;
-  const pendingDialogRef = useRef<{ id: string; text: string } | null>(null);
+  const pendingDialogRef = useRef<{ id: string; text: string; title?: string } | null>(null);
+  /**
+   * Id del objeto que ESTE jugador acaba de inspeccionar (revisión en vivo):
+   * ni `dialog_show` ni `image_show` llevan el `objectId` que los disparó
+   * (pueden venir de una regla sin objeto, como la intro), así que se
+   * recuerda aquí justo al pulsar "Inspeccionar" para poder titular el
+   * diálogo/panel de imagen con el nombre del objeto — un mismo `interact()`
+   * puede disparar los DOS eventos seguidos (p. ej. `cuadro-aurelio`: diálogo
+   * + imagen), así que no se limpia al leerlo desde uno solo; se limpia sola
+   * a los 500ms (tiempo de sobra para que ambos eventos, si los hay, lleguen)
+   * para no quedar pegada a un diálogo posterior no relacionado (resuelto de
+   * puzzle emitido a todos, intro…).
+   */
+  const lastInspectedObjectIdRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (!inMap || !pendingDialogRef.current) return;
@@ -206,7 +223,9 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
       switch (event.type) {
         case "dialog_show": {
           const known = model.dialogsById[event.dialogId];
-          const next = { id: event.dialogId, text: known?.text ?? event.dialogId };
+          const inspectedId = lastInspectedObjectIdRef.current;
+          const title = inspectedId ? objectName(inspectedId) : undefined;
+          const next = { id: event.dialogId, text: known?.text ?? event.dialogId, ...(title ? { title } : {}) };
           // Quien aún lee la introducción o está en su 3-2-1 no está en el
           // mapa: el diálogo (p. ej. la intro de las reglas `on_game_start`,
           // que dispara el PRIMERO en entrar) se le muestra al entrar.
@@ -215,7 +234,13 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
           break;
         }
         case "image_show": {
-          setImagePanel({ image: event.image, ...(event.caption ? { caption: event.caption } : {}) });
+          const inspectedId = lastInspectedObjectIdRef.current;
+          const title = inspectedId ? objectName(inspectedId) : undefined;
+          setImagePanel({
+            image: event.image,
+            ...(event.caption ? { caption: event.caption } : {}),
+            ...(title ? { title } : {}),
+          });
           break;
         }
         case "object_state_changed":
@@ -328,7 +353,19 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
           break;
       }
     });
-  }, [client, model, combinePuzzleId, itemName, pushLog, errorText, t, tp, handleRef, sceneRoomRef]);
+  }, [
+    client,
+    model,
+    combinePuzzleId,
+    itemName,
+    objectName,
+    pushLog,
+    errorText,
+    t,
+    tp,
+    handleRef,
+    sceneRoomRef,
+  ]);
 
   // — Intenciones del jugador ————————————————————————————————————————
 
@@ -394,6 +431,10 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
 
   const inspect = useCallback(
     (objectId: string) => {
+      lastInspectedObjectIdRef.current = objectId;
+      window.setTimeout(() => {
+        if (lastInspectedObjectIdRef.current === objectId) lastInspectedObjectIdRef.current = undefined;
+      }, 500);
       client.interact(objectId);
       if (debugLog) pushLog(tp("log.interact", { object: objectId }));
       const panelId = model.objectsById[objectId]?.panelPuzzleId;
@@ -437,7 +478,17 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
       // En la sala de espera solo se camina: sin objetos, ítems ni puertas.
       if (!inMapRef.current && event.type !== "avatar-move") return;
       if (event.type === "interact") {
-        setSelected(event.objectId);
+        // Puerta ya abierta: cruzarla directo (como el "Ir a X" del
+        // playtest), no tiene sentido ofrecerle Inspeccionar/Usar objeto. El
+        // click normal nunca la alcanza por sí solo (su baldosa bloquea el
+        // movimiento local): solo `walkTo` (autoritativo en el servidor) la
+        // cruza de verdad.
+        const object = model.objectsById[event.objectId];
+        if (object?.leadsTo !== undefined && snapshotRef.current.objects[event.objectId] === "open") {
+          enterRoom(object.leadsTo, object.position);
+        } else {
+          setSelected(event.objectId);
+        }
       } else if (event.type === "use-item") {
         setSelected(null);
         setPickerFor(null);
@@ -455,7 +506,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
         }
       }
     },
-    [client, applyItemUse, enterRoom, sceneRoomRef],
+    [client, applyItemUse, enterRoom, sceneRoomRef, model],
   );
 
   const togglePlate = useCallback(
@@ -562,6 +613,18 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
   // badge, solo cambia el contenido.
   const elapsed = remaining === null ? elapsedMs(snapshot) : null;
   const selectedObject = selected ? model.objectsById[selected] : undefined;
+  // Objetos apilados en la celda del seleccionado (él incluido): el menú
+  // deja elegir entre ellos (`colocatedInteractables`).
+  const selectedAlternatives = useMemo(
+    () =>
+      selectedObject
+        ? colocatedInteractables(
+            model.subroomsById[selectedObject.roomId]?.objects ?? [],
+            selectedObject.id,
+          )
+        : [],
+    [model, selectedObject],
+  );
   const solvedCount = Object.values(snapshot.puzzles).filter((p) => p.state === "solved").length;
   const renderItemIcon = useCallback(
     (itemId: string, size?: number) => (
@@ -589,6 +652,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
     elapsed,
     serverNow,
     selectedObject,
+    selectedAlternatives,
     dialog,
     setDialog,
     closeDialog,

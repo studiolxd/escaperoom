@@ -17,6 +17,14 @@ export const DecorationSchema = z.object({
   sprite: z.string().regex(ID_PATTERN),
   x: z.number(),
   y: z.number(),
+  /**
+   * `true` si es un obstáculo sólido (columna, pila de barriles…) y debe
+   * bloquear su celda como un objeto sólido (revisión en vivo: las columnas
+   * decorativas, sin contraparte en `objects`, se podían atravesar porque
+   * `buildCollisionGrid` nunca miraba `decorations`). Por defecto `false`
+   * (dressing puramente visual: alfombras, gallardetes, antorchas de pared…).
+   */
+  blocks: z.boolean().optional(),
 });
 
 /** Punto de aparición: uno por jugador + observador. */

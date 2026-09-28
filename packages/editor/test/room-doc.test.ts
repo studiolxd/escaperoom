@@ -320,7 +320,7 @@ describe("comandos de objetos", () => {
 
   it("arrastrar mueve el objeto (también a otra habitación) y valida la celda", () => {
     const doc = aldricDoc();
-    expect(moveObject(doc, "trono", { x: 10, y: 1 })).toBe(false);
+    expect(moveObject(doc, "trono", { x: 9, y: 1 })).toBe(false);
     expect(moveObject(doc, "trono", { x: 11, y: 2 })).toBe(true);
     expect(readObject(doc, "trono")?.position).toEqual({ x: 11, y: 2 });
     expect(() => moveObject(doc, "trono", { x: 30, y: 2 })).toThrow(/fuera/);
@@ -441,11 +441,11 @@ describe("controlador de herramientas (eventos del runtime → doc)", () => {
     const updates: Uint8Array[] = [];
     doc.on("update", (u: Uint8Array) => updates.push(u));
 
-    // Se agarra el trono (10,1) pulsando en la celda (10,0) de su sprite.
-    tools.pointer(down(10, 0, "trono"));
+    // Se agarra el trono (9,1) pulsando en la celda (9,0) de su sprite.
+    tools.pointer(down(9, 0, "trono"));
     tools.pointer(move(12, 1));
     expect(tools.getState().drag).toMatchObject({ objectId: "trono", cell: { x: 12, y: 2 } });
-    expect(readObject(doc, "trono")?.position).toEqual({ x: 10, y: 1 });
+    expect(readObject(doc, "trono")?.position).toEqual({ x: 9, y: 1 });
     expect(updates).toHaveLength(0);
     tools.pointer(up(12, 1));
     expect(tools.getState().drag).toBeUndefined();
@@ -457,14 +457,14 @@ describe("controlador de herramientas (eventos del runtime → doc)", () => {
   it("un clic sin mover solo selecciona; clic en vacío deselecciona; Supr borra", () => {
     const doc = aldricDoc();
     const tools = new EditToolController(doc, { roomId: "salon-trono" });
-    tools.pointer(down(10, 0, "trono"));
-    tools.pointer(up(10, 0));
-    expect(readObject(doc, "trono")?.position).toEqual({ x: 10, y: 1 });
+    tools.pointer(down(9, 0, "trono"));
+    tools.pointer(up(9, 0));
+    expect(readObject(doc, "trono")?.position).toEqual({ x: 9, y: 1 });
     expect(tools.getState().selectedObjectId).toBe("trono");
     tools.pointer(down(5, 5));
     expect(tools.getState().selectedObjectId).toBeUndefined();
-    tools.pointer(down(10, 0, "trono"));
-    tools.pointer(up(10, 0));
+    tools.pointer(down(9, 0, "trono"));
+    tools.pointer(up(9, 0));
     tools.deleteSelection();
     expect(readObject(doc, "trono")).toBeUndefined();
     expect(tools.getState().selectedObjectId).toBeUndefined();
@@ -473,7 +473,7 @@ describe("controlador de herramientas (eventos del runtime → doc)", () => {
   it("un arrastre fuera de la rejilla se queda en la última celda válida", () => {
     const doc = aldricDoc();
     const tools = new EditToolController(doc, { roomId: "salon-trono" });
-    tools.pointer(down(10, 1, "trono"));
+    tools.pointer(down(9, 1, "trono"));
     tools.pointer(move(19, 1));
     tools.pointer(move(25, 1));
     tools.pointer(up(25, 1));

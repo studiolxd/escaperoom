@@ -186,7 +186,6 @@
   },
   "Inventory": {
     "title": "Inventario",
-    "recipes": "Recetas: {found}/{total}",
     "gridLabel": "Rejilla de inventario",
     "emptySlot": "Hueco vacío",
     "unknownItem": "Objeto desconocido",
@@ -280,11 +279,9 @@
     "intro": "Introducción",
     "close": "Cerrar",
     "menu": {
-      "title": "Acciones sobre el objeto",
-      "object": "Objeto: {object}",
       "inspect": "Inspeccionar",
+      "here": "Objetos en este sitio",
       "useItem": "Usar objeto…",
-      "openPanel": "Abrir panel",
       "chooseItem": "Elige un objeto para usar sobre {object}",
       "dragHint": "Arrástralo del inventario sobre el mundo o elige uno aquí.",
       "dropHint": "Suelta {item} sobre un objeto del mundo",
@@ -664,6 +661,19 @@
           "videoTooLarge": "El vídeo supera el máximo de 200 MB.",
           "subtitlesType": "Los subtítulos deben ser un fichero WebVTT (.vtt).",
           "subtitlesTooLarge": "Los subtítulos superan el máximo de 512 KB."
+        },
+        "audio": {
+          "heading": "Narración (audio)",
+          "uploadsDisabled": "El audio no está disponible en este modo (sin servidor).",
+          "generateHint": "Genera la narración con ElevenLabs a partir de este texto ({cost} créditos).",
+          "generateNeedsText": "Escribe el texto de la introducción para poder generar su narración.",
+          "generate": "Generar con ElevenLabs",
+          "generating": "Generando…",
+          "generateError": "No se pudo generar el audio. Inténtalo de nuevo.",
+          "confirm": "Usar este audio ({cost} créditos)",
+          "confirming": "Confirmando…",
+          "discard": "Descartar",
+          "generatedFilename": "Narración generada con ElevenLabs"
         }
       },
       "errors": {
@@ -1130,7 +1140,8 @@
     "intro": {
       "title": "Introducción",
       "continue": "Continuar",
-      "videoLabel": "Vídeo de introducción de la sala"
+      "videoLabel": "Vídeo de introducción de la sala",
+      "audioLabel": "Narración de la introducción de la sala"
     },
     "hud": {
       "loadingPanel": "Cargando…"

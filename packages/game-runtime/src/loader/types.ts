@@ -27,6 +27,8 @@ export interface RuntimeDecoration {
   sprite: string;
   x: number;
   y: number;
+  /** `true` si bloquea su celda como un objeto sólido (columna, barriles…). */
+  blocks?: boolean;
 }
 
 /** Punto de aparición con el índice de jugador derivado de su orden (1..N). */
