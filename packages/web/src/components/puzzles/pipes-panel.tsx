@@ -149,7 +149,7 @@ export function PipesPanel({
                 else if (canOpen) onOpenGate?.(cell.index);
               }}
               className={cn(
-                "relative size-14 h-auto overflow-hidden rounded-md border p-0 transition",
+                "relative size-14 overflow-hidden rounded-md border p-0 transition",
                 cell.index === startIndex || cell.index === endIndex
                   ? "border-sky-300/50"
                   : "border-border",

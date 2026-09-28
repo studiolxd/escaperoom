@@ -1,5 +1,6 @@
 import { expect, test, type Browser } from "@playwright/test";
 import {
+  expectSlidingBoardLaidOutAsGrid,
   UiPlayer,
   readSplitFragments,
   solveCanal,
@@ -106,6 +107,12 @@ test("Rey Aldric: 2 jugadores se unen y abren la bodega por clics (pasos 1–6) 
   // solo existe ahí (sin panel de objetos, ya no hay testid que mirar).
   await a.openPanel("mural-vendimia");
   await expect(a.page.locator('[data-slot="sliding-board"]')).toBeVisible();
+  // Regresión: `size-16 h-auto` en cada ficha dejaba `h-auto` ganar la altura
+  // (sin contenido de texto, colapsaba a ~0px) salvo en la fila con el hueco
+  // (único `div` sin `h-auto`), así que solo esa fila se veía con tamaño real
+  // ("solo me sale la última fila"). Comprueba que las 9 celdas forman una
+  // rejilla 2D visible de verdad.
+  await expectSlidingBoardLaidOutAsGrid(a.page, 3, 3);
   await a.closePanel();
   await b.inspect("mural-ranura");
 });

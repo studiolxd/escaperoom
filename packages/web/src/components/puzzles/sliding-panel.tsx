@@ -158,7 +158,7 @@ export function SlidingPanel({
               onDragEnd={() => setDragIndex(null)}
               onClick={() => tryMove(index)}
               className={cn(
-                "relative size-16 h-auto overflow-hidden rounded-md border p-0 text-sm font-semibold transition",
+                "relative size-16 overflow-hidden rounded-md border p-0 text-sm font-semibold transition",
                 canMove
                   ? "cursor-pointer border-amber-200/40 hover:border-amber-200/80"
                   : "cursor-default border-border",
