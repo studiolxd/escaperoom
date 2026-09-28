@@ -23,6 +23,8 @@ import {
   currentObjectState,
   findPath,
   inspectObject,
+  MAX_FRAME_ELAPSED_MS,
+  movementSubsteps,
   nearestInteractable,
   reactiveObjectIds,
   resolveObjectStateAnimation,
@@ -509,22 +511,28 @@ export class RoomScene extends Phaser.Scene {
     });
   }
 
-  update(time: number, delta: number): void {
+  update(time: number): void {
     if (this.dialogBox && time > this.dialogHideAt) {
       this.hideDialog();
     }
     if (!this.built || this.transitioning) {
       return;
     }
-    this.updateRemoteAvatars(delta);
+    // Tiempo REAL del frame, no el `delta` suavizado/recortado de Phaser
+    // (ver `world/frame-time`): con pocos fps, o tras un cambio de foco, ese
+    // `delta` hacía andar a los avatares a una fracción de su velocidad.
+    const elapsed = Math.min(this.game.loop.rawDelta, MAX_FRAME_ELAPSED_MS);
+    this.updateRemoteAvatars(elapsed);
     if (!this.avatar) {
       return;
     }
     if (!this.localInputEnabled) {
-      this.avatar.update(delta, null);
+      this.avatar.update(elapsed, null);
       return;
     }
-    this.avatar.update(delta, this.readMove());
+    for (const step of movementSubsteps(elapsed)) {
+      this.avatar.update(step, this.readMove());
+    }
     this.emitAvatarMove(time);
     this.resolvePendingInteraction();
     this.checkDoor(time);

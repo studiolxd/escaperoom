@@ -12,4 +12,5 @@ export * from "./distribution";
 export * from "./inspection";
 export * from "./selection";
 export * from "./pathfinding";
+export * from "./frame-time";
 export * from "./reactive";
