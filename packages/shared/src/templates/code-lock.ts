@@ -53,6 +53,8 @@ export interface CodeLockPublicView {
   state: PuzzleState;
   attempts: number;
   maxAttempts: number;
+  /** `true` si `maxAttempts` es 0 (sin límite): `remainingAttempts` deja de ser significativo. */
+  unlimited: boolean;
   remainingAttempts: number;
   lockoutSec: number;
   lockedUntil: number | null;
@@ -65,11 +67,18 @@ function maxAttemptsOf(def: CodeLockDefinition): number {
   return def.maxAttempts ?? CODE_LOCK_DEFAULT_MAX_ATTEMPTS;
 }
 
+/** `maxAttempts: 0` = sin límite: nunca se agotan los intentos, `lockoutSec` no se aplica. */
+function isUnlimited(def: CodeLockDefinition): boolean {
+  return maxAttemptsOf(def) === 0;
+}
+
 function lockoutSecOf(def: CodeLockDefinition): number {
   return def.lockoutSec ?? CODE_LOCK_DEFAULT_LOCKOUT_SEC;
 }
 
+/** Sin límite no hay "intentos restantes": se usa un valor grande y estable, nunca `Infinity`. */
 function remainingAttemptsOf(state: CodeLockState, def: CodeLockDefinition): number {
+  if (isUnlimited(def)) return Number.MAX_SAFE_INTEGER;
   return Math.max(0, maxAttemptsOf(def) - state.attempts);
 }
 
@@ -126,7 +135,7 @@ export function attemptCode(
   const attempts = current.attempts + 1;
   const maxAttempts = maxAttemptsOf(def);
 
-  if (attempts >= maxAttempts) {
+  if (!isUnlimited(def) && attempts >= maxAttempts) {
     const lockoutSec = lockoutSecOf(def);
     if (lockoutSec > 0) {
       const lockedUntil = now + lockoutSec * 1000;
@@ -161,7 +170,8 @@ export function toCodeLockPublicView(
     length: def.length,
     attempts: state.attempts,
     maxAttempts,
-    remainingAttempts: Math.max(0, maxAttempts - state.attempts),
+    unlimited: isUnlimited(def),
+    remainingAttempts: remainingAttemptsOf(state, def),
     lockoutSec: lockoutSecOf(def),
     lockedUntil: state.lockedUntil,
     hints: [...(def.hints ?? [])],
