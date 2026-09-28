@@ -1822,6 +1822,26 @@
       ]
     },
     {
+      "id": "r-inspeccionar-brasero",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "brasero"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-brasero-apagado"
+        },
+        {
+          "type": "show_image",
+          "image": "brasero-apagado"
+        }
+      ]
+    },
+    {
       "id": "r-encender-brasero",
       "priority": 0,
       "once": true,
@@ -1854,6 +1874,10 @@
         {
           "type": "play_sound",
           "soundId": "fx-fuego"
+        },
+        {
+          "type": "show_image",
+          "image": "brasero-encendido"
         }
       ]
     },
@@ -1922,6 +1946,26 @@
           "type": "set_object_state",
           "objectId": "arca-candado",
           "state": "open"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-puerta-bodega",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "puerta-bodega"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-puerta-bodega"
+        },
+        {
+          "type": "show_image",
+          "image": "puerta-cerrada"
         }
       ]
     },
@@ -2072,6 +2116,26 @@
         {
           "type": "show_dialog",
           "dialogId": "d-pergamino"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-reja-escalera",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "reja-escalera"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-reja-escalera"
+        },
+        {
+          "type": "show_image",
+          "image": "reja-cerrada"
         }
       ]
     },
@@ -2307,46 +2371,6 @@
       ]
     },
     {
-      "id": "r-inspeccionar-placa-izq",
-      "priority": 0,
-      "once": false,
-      "trigger": {
-        "type": "on_interact",
-        "objectId": "placa-izq"
-      },
-      "conditions": [],
-      "actions": [
-        {
-          "type": "show_dialog",
-          "dialogId": "d-placa-piedra"
-        },
-        {
-          "type": "show_image",
-          "image": "placa-piedra"
-        }
-      ]
-    },
-    {
-      "id": "r-inspeccionar-placa-der",
-      "priority": 0,
-      "once": false,
-      "trigger": {
-        "type": "on_interact",
-        "objectId": "placa-der"
-      },
-      "conditions": [],
-      "actions": [
-        {
-          "type": "show_dialog",
-          "dialogId": "d-placa-piedra"
-        },
-        {
-          "type": "show_image",
-          "image": "placa-piedra"
-        }
-      ]
-    },
-    {
       "id": "r-inspeccionar-compartimento-plata",
       "priority": 0,
       "once": false,
@@ -2553,14 +2577,6 @@
       }
     },
     {
-      "id": "d-placa-piedra",
-      "text": {
-        "es": {
-          "text": "Una placa de piedra encajada en el suelo. Parece ceder ligeramente bajo el peso."
-        }
-      }
-    },
-    {
       "id": "d-compartimento-plata",
       "text": {
         "es": {
@@ -2581,6 +2597,30 @@
       "text": {
         "es": {
           "text": "Un altar de piedra seca, con un canal tallado que serpentea hacia un desagüe."
+        }
+      }
+    },
+    {
+      "id": "d-puerta-bodega",
+      "text": {
+        "es": {
+          "text": "Una pesada puerta de madera reforzada con hierro, cerrada. No parece que se pueda forzar a mano."
+        }
+      }
+    },
+    {
+      "id": "d-reja-escalera",
+      "text": {
+        "es": {
+          "text": "Una reja de hierro bloquea la escalera hacia abajo. El mecanismo del cerrojo no está a la vista."
+        }
+      }
+    },
+    {
+      "id": "d-brasero-apagado",
+      "text": {
+        "es": {
+          "text": "Un brasero de hierro forjado, frío y apagado. Alguien tendría que prenderlo."
         }
       }
     }

@@ -79,9 +79,12 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
     await a.openPanel("arca-candado");
     await a.typeCode("4732");
     await a.expectItems("Cáliz real", "Pergamino de los vinos");
-    // 6. Placas simultáneas: cada jugador sobre una placa → puerta de la bodega
-    await a.openPanel("puerta-bodega");
-    await b.openPanel("puerta-bodega");
+    // 6. Placas simultáneas: cada jugador abre el panel desde SU placa (no
+    // desde la puerta — revisión en vivo: la puerta ya no revela el
+    // mecanismo que la desbloquea, solo se describe a sí misma) → puerta de
+    // la bodega.
+    await a.openPanel("placa-izq");
+    await b.openPanel("placa-der");
     await a.page.getByRole("button", { name: "Placa placa-izq" }).click();
     await b.page.getByRole("button", { name: "Placa placa-der" }).click();
     for (const player of [a, b]) {

@@ -111,6 +111,7 @@ describe("toolset de lógica y consulta (4.3)", () => {
         "set_flag(flag=digito3, value=3)",
         "show_dialog(dialogId=d-brasero)",
         "play_sound(soundId=fx-fuego)",
+        "show_image(image=brasero-encendido)",
       ],
     });
     expect(graph.puzzles.find((puzzle) => puzzle.id === "p-combina")).toMatchObject({

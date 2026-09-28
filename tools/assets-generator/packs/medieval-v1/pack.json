@@ -302,6 +302,26 @@
         "recorte": "alfa"
       },
       {
+        "salida": "objetos/inspeccion/brasero-apagado.png",
+        "fuente": "entregas/objetos/master/brasero-apagado.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/brasero-encendido.png",
+        "fuente": "entregas/objetos/master/brasero-encendido.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/puerta-cerrada.png",
+        "fuente": "entregas/objetos/master/puerta-cerrada.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/reja-cerrada.png",
+        "fuente": "entregas/objetos/master/reja-cerrada.png",
+        "recorte": "alfa"
+      },
+      {
         "salida": "objetos/inspeccion/altar-seco.png",
         "fuente": "entregas/objetos/master/altar-seco.png",
         "recorte": "alfa"

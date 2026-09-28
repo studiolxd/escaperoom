@@ -50,6 +50,7 @@ const ONCE_RULES = [
   "r-imagen-cuadro",
   "r-revelar-cuadro",
   "r-abrir-armario",
+  "r-inspeccionar-brasero",
   "r-encender-brasero",
   "r-abrir-arca",
   "r-leer-pergamino",

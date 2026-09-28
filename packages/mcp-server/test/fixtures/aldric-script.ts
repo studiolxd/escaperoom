@@ -147,8 +147,9 @@ export function aldricScript(pkg: RoomPackage): {
     rule("r-inspeccionar-armario");
     rule("r-inspeccionar-estatua-izq");
     rule("r-inspeccionar-estatua-der");
-    rule("r-inspeccionar-placa-izq");
-    rule("r-inspeccionar-placa-der");
+    // Las placas NO llevan diálogo/imagen propios: al inspeccionarlas abren
+    // directamente el panel de `p-placas-estatuas` (son su propio mecanismo,
+    // revisión en vivo) — con ambas cosas a la vez se solapaban.
     rule("r-abrir-armario");
     // La mesa de combinar: de momento solo la receta cuyos ingredientes ya se
     // obtienen (yesquero + vela del armario). La llave de plata y la compuerta
@@ -157,6 +158,7 @@ export function aldricScript(pkg: RoomPackage): {
       if (p.type !== "combine_items") throw new Error("p-combina debe ser combine_items");
       return { ...p, unlocks: [], recipes: p.recipes.slice(0, 1) };
     });
+    rule("r-inspeccionar-brasero");
     rule("r-encender-brasero");
     // Candado del arca ↔ sus pistas; puzzle ↔ arca que abre.
     puzzleDraft("p-candado-arca", (p) => withoutUnlocks(withoutHints(p)));
@@ -171,6 +173,9 @@ export function aldricScript(pkg: RoomPackage): {
     object("puerta-bodega");
     puzzle("p-placas-estatuas", true);
     rule("r-placas-resueltas");
+    // Distractor del ítem 6: la puerta describe su imagen, no el panel de
+    // placas (eso lo abren las placas mismas — revisión en vivo).
+    rule("r-inspeccionar-puerta-bodega");
 
     // ── Bodega de los Vinos Encantados ────────────────────────────────────
     for (const id of ["mural-ranura", "compartimento-plata", "barril-espejo"]) object(id);
@@ -190,6 +195,8 @@ export function aldricScript(pkg: RoomPackage): {
     puzzleDraft("p-reja-mirillas", withoutUnlocks);
     object("reja-escalera");
     puzzle("p-reja-mirillas", true);
+    // Distractor del ítem 6: la misma lógica que la puerta de arriba.
+    rule("r-inspeccionar-reja-escalera");
 
     // ── Catacumbas del Rey ────────────────────────────────────────────────
     object("sarcofago");

@@ -122,7 +122,7 @@ describe("toRuntimeModel", () => {
     const model = toRuntimeModel(loadValidPackage(), { locale: "en" });
 
     expect(model.locale).toBe("en");
-    expect(model.dialogs).toHaveLength(20);
+    expect(model.dialogs).toHaveLength(22);
     expect(model.dialogsById["d-cuadro"]?.text).toContain("Rey Aurelio");
     expect(model.dialogsById["d-cuadro"]?.localized.es?.text).toContain("Rey Aurelio");
   });

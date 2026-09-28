@@ -319,7 +319,12 @@ describe("inspección: diálogo por idioma con fallback (specs/04 §4)", () => {
 
   it("marca las inspecciones condicionadas (las evalúa el motor de 1.4)", () => {
     const model = loadFixtureModel();
-    expect(inspectObject(model, "brasero")?.conditioned).toBe(true);
+    // El brasero ahora tiene, ANTES de la regla condicionada de encenderlo,
+    // una regla de ambientación sin condiciones (ítem 6 de la revisión en
+    // vivo: distractor con imagen siempre disponible) — la primera regla que
+    // deriva su inspección "representativa" pasa a ser esa.
+    expect(inspectObject(model, "brasero")?.conditioned).toBe(false);
+    expect(inspectObject(model, "mural-ranura")?.conditioned).toBe(true);
     expect(inspectObject(model, "mural-ranura")?.dialogId).toBe("d-ranura");
     expect(inspectObject(model, "arca-candado")?.dialogId).toBeUndefined();
   });
@@ -355,8 +360,14 @@ describe("loader: proyección de inspección sin filtrar secretos", () => {
 
   it("marca condicionadas las reglas que dependen del estado de la partida", () => {
     const model = loadFixtureModel();
-    expect(model.objectsById["brasero"]?.inspectDialogId).toBe("d-brasero");
-    expect(model.objectsById["brasero"]?.inspectConditioned).toBe(true);
+    // El brasero: su regla de ambientación (sin condiciones) va primero, así
+    // que la que representa su inspección ya no es la condicionada de
+    // encenderlo (ítem 6 de la revisión en vivo). `mural-ranura` sigue
+    // teniendo como primera regla una condicionada.
+    expect(model.objectsById["brasero"]?.inspectDialogId).toBe("d-brasero-apagado");
+    expect(model.objectsById["brasero"]?.inspectConditioned).toBeUndefined();
+    expect(model.objectsById["mural-ranura"]?.inspectDialogId).toBe("d-ranura");
+    expect(model.objectsById["mural-ranura"]?.inspectConditioned).toBe(true);
   });
 
   it("no inventa inspección para objetos sin regla on_interact con diálogo", () => {

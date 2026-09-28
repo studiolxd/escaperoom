@@ -306,11 +306,27 @@ function panelForObject(roomPackage: RoomPackage, object: WorldObject): string |
     (puzzle) => puzzle.type === "hidden_key" && puzzle.hidingSpot.objectId === object.id,
   );
   if (hiding) return hiding.id;
-  if (object.lockedBy) return object.lockedBy;
+  if (object.lockedBy) {
+    const locking = roomPackage.puzzles.find((puzzle) => puzzle.id === object.lockedBy);
+    // Revisión en vivo: un candado propio del objeto (`layer: "panel"`, su
+    // interfaz es un panel autocontenido — code_lock, memory, sliding_puzzle,
+    // pipes, combine_items) sí abre su panel al inspeccionar. Un mecanismo
+    // espacial resuelto en OTROS objetos (`layer: "world"` — las placas de
+    // `puerta-bodega`, las mirillas de `reja-escalera`) no: abrirlo aquí
+    // sería decir cómo abrirla sin que quien juega descubra el mecanismo
+    // real — la puerta/reja solo debe describirse (diálogo + imagen).
+    return locking?.layer === "panel" ? object.lockedBy : undefined;
+  }
+  // El objeto que ES el mecanismo espacial (la mirilla de un `split_clue`, la
+  // placa de un `simultaneous_plates`) sí abre el panel al inspeccionarlo —
+  // a diferencia de la puerta/reja que bloquea (rama de arriba): es su
+  // propia interfaz, no revela dónde está el mecanismo de otro objeto.
   return roomPackage.puzzles.find(
     (puzzle) =>
-      puzzle.type === "split_clue" &&
-      puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === object.id),
+      (puzzle.type === "split_clue" &&
+        puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === object.id)) ||
+      (puzzle.type === "simultaneous_plates" &&
+        puzzle.plates.some((plate) => plate.objectId === object.id)),
   )?.id;
 }
 

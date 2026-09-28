@@ -497,13 +497,24 @@ export class RoomSession {
     );
     if (hiding) return hiding.id;
     const object = this.objectsById.get(objectId);
-    if (object?.lockedBy) return object.lockedBy;
-    const split = this.roomPackage.puzzles.find(
+    if (object?.lockedBy) {
+      const locking = this.roomPackage.puzzles.find((puzzle) => puzzle.id === object.lockedBy);
+      // Mismo criterio que el loader del game-runtime (revisión en vivo):
+      // solo un candado autocontenido (`layer: "panel"`) abre su panel al
+      // inspeccionar el objeto que bloquea.
+      return locking?.layer === "panel" ? object.lockedBy : undefined;
+    }
+    // Mismo criterio que el loader del game-runtime: el objeto que ES el
+    // mecanismo espacial (mirilla, placa) abre su panel; la puerta/reja que
+    // bloquea, no.
+    const anchor = this.roomPackage.puzzles.find(
       (puzzle) =>
-        puzzle.type === "split_clue" &&
-        puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === objectId),
+        (puzzle.type === "split_clue" &&
+          puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === objectId)) ||
+        (puzzle.type === "simultaneous_plates" &&
+          puzzle.plates.some((plate) => plate.objectId === objectId)),
     );
-    return split?.id;
+    return anchor?.id;
   }
 
   /**

@@ -176,13 +176,15 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
     session.attemptCode("p-candado-arca", "4732", 0);
     session.solveWorldPuzzle("p-placas-estatuas", 0);
 
-    // r-imagen-cuadro es repeatable (`once: false`): su contador de disparos
-    // sube en el replay (no muta estado, es solo `show_image`).
+    // r-imagen-cuadro y r-inspeccionar-brasero son repeatable (`once: false`):
+    // su contador de disparos sube en el replay (no mutan estado, son solo
+    // show_image/show_dialog).
     expect(session.snapshot()).toEqual({
       ...before,
       ruleRuns: {
         ...before.ruleRuns,
         "r-imagen-cuadro": { ...before.ruleRuns["r-imagen-cuadro"], count: 2 },
+        "r-inspeccionar-brasero": { ...before.ruleRuns["r-inspeccionar-brasero"], count: 2 },
       },
     });
     expect(session.hiddenKeyView("p-llave-cuadro")).toEqual(beforeViews.hiddenKey);
