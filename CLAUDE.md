@@ -116,8 +116,8 @@ el flujo por defecto para cualquier tarea de código es:
    la rama `main` local (commits aún no pusheados). Antes de darle trabajo al
    agente, decirle que compruebe con `git log` y haga `git merge main` (rama
    local, mismo `.git`, no hace falta red) si le falta algún commit reciente.
-3. Lanzar un agente Orca de Claude con modelo **Sonnet 5** en ese worktree
-   (`orca terminal create --worktree <id> --command "claude --model sonnet"`
+3. Lanzar un agente Orca de Claude con modelo **Sonnet 5.5** en ese worktree
+   (`orca terminal create --worktree <id> --command "claude --model claude-sonnet-5-5"`
    + `orca terminal send` con el brief de la tarea).
 4. Ese agente trabaja ahí y, al terminar, **abre una Pull Request** (no basta
    con comitear en su rama local).
