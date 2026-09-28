@@ -390,8 +390,10 @@ export function GameSessionShell({
                         const dragged = event.dataTransfer.getData("text/plain") || hud.draggingItem;
                         hud.setDraggingItem(null);
                         if (!dragged || dragged === itemId) return;
+                        // No se abre el inventario grande al combinar desde
+                        // aquí (revisión en vivo): la tira pequeña se queda
+                        // en su sitio, igual que arrastrar un ítem al mundo.
                         hud.combine([dragged, itemId]);
-                        hud.openInventory();
                       }}
                       className={cn(
                         "flex aspect-square size-11 cursor-grab items-center justify-center rounded-lg border border-amber-500/40 bg-amber-500/10 active:cursor-grabbing dark:border-amber-300/40 dark:bg-amber-300/10",
