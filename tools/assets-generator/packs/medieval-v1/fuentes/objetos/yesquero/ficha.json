@@ -1,0 +1,28 @@
+{
+  "asset": "objetos/yesquero",
+  "space": {
+    "nombre": "Objetos · Sala del trono",
+    "url": "https://www.magnific.com/app/spaces/a2d48179-fd11-4048-8133-307790c28157"
+  },
+  "proceso": "Yesquero en el suelo (revisión en vivo, recogida diferida): master → 3D",
+  "pasos": [
+    {
+      "paso": "master",
+      "herramienta": "text-to-image",
+      "modelo": "GPT 2",
+      "creditos": 180,
+      "fecha": "2026-09-28T17:47:00+00:00",
+      "magnific": "YMfRfaVWeC",
+      "prompt": "Game prop design of a fire-starting flint and steel striker (yesquero) for the throne room of a castle, for an isometric escape room game. A small hand-sized fire-steel: a curved dark grey iron striker loop with a wrapped leather-brown grip on one side, and a chunky grey flint stone nested against it, both resting together as one compact object. Chunky simple bold shapes, no fine engravings, no text. Resting diagonally as if lying on the ground, handle end at lower-right. Seen in a three-quarter view slightly from above, whole object visible and centered. Exactly the same stylized 3D toon rendering, soft shading, saturated colors and soft upper-left lighting as the reference image. Edges defined only by light and shading, no outline. Isolated on a flat uniform light grey background, no floor, no shadow, no text."
+    },
+    {
+      "paso": "3d",
+      "herramienta": "image-to-3d",
+      "modelo": "tripo-p1",
+      "creditos": 580,
+      "fecha": "2026-09-28T17:49:00+00:00",
+      "magnific": "SyYrWYyUb8"
+    }
+  ],
+  "creditos_total": 760
+}

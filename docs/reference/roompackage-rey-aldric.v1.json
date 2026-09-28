@@ -894,6 +894,50 @@
       "interactable": true
     },
     {
+      "id": "yesquero-suelo",
+      "name": {
+        "es": {
+          "text": "El yesquero"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "objeto",
+      "position": {
+        "x": 2,
+        "y": 4
+      },
+      "sprite": "yesquero-suelo",
+      "states": {
+        "oculto": "oculto",
+        "visible": "yesquero-suelo"
+      },
+      "initialState": "oculto",
+      "interactable": true,
+      "pickupOnly": true
+    },
+    {
+      "id": "antorcha-apagada-suelo",
+      "name": {
+        "es": {
+          "text": "La antorcha apagada"
+        }
+      },
+      "roomId": "salon-trono",
+      "type": "objeto",
+      "position": {
+        "x": 1,
+        "y": 5
+      },
+      "sprite": "antorcha-apagada-suelo",
+      "states": {
+        "oculto": "oculto",
+        "visible": "antorcha-apagada-suelo"
+      },
+      "initialState": "oculto",
+      "interactable": true,
+      "pickupOnly": true
+    },
+    {
       "id": "arca-candado",
       "name": {
         "es": {
@@ -1366,13 +1410,13 @@
       "icon": "icon-yesquero"
     },
     {
-      "id": "vela",
+      "id": "antorcha-apagada",
       "name": {
         "es": {
-          "text": "Vela"
+          "text": "Antorcha apagada"
         }
       },
-      "icon": "icon-vela"
+      "icon": "icon-antorcha-apagada"
     },
     {
       "id": "antorcha",
@@ -1462,7 +1506,7 @@
         {
           "inputs": [
             "yesquero",
-            "vela"
+            "antorcha-apagada"
           ],
           "output": "antorcha",
           "consumeInputs": true
@@ -1926,14 +1970,78 @@
           "state": "open"
         },
         {
+          "type": "set_object_state",
+          "objectId": "yesquero-suelo",
+          "state": "visible"
+        },
+        {
+          "type": "set_object_state",
+          "objectId": "antorcha-apagada-suelo",
+          "state": "visible"
+        }
+      ]
+    },
+    {
+      "id": "r-recoger-yesquero",
+      "priority": 0,
+      "once": true,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "yesquero-suelo"
+      },
+      "conditions": [
+        {
+          "type": "object_state_is",
+          "objectId": "armario",
+          "state": "open"
+        }
+      ],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-recoger-yesquero"
+        },
+        {
           "type": "grant_item",
           "itemId": "yesquero",
           "to": "interactor"
         },
         {
+          "type": "set_object_state",
+          "objectId": "yesquero-suelo",
+          "state": "oculto"
+        }
+      ]
+    },
+    {
+      "id": "r-recoger-antorcha-apagada",
+      "priority": 0,
+      "once": true,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "antorcha-apagada-suelo"
+      },
+      "conditions": [
+        {
+          "type": "object_state_is",
+          "objectId": "armario",
+          "state": "open"
+        }
+      ],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-recoger-antorcha-apagada"
+        },
+        {
           "type": "grant_item",
-          "itemId": "vela",
+          "itemId": "antorcha-apagada",
           "to": "interactor"
+        },
+        {
+          "type": "set_object_state",
+          "objectId": "antorcha-apagada-suelo",
+          "state": "oculto"
         }
       ]
     },
@@ -2711,6 +2819,22 @@
       "text": {
         "es": {
           "text": "¡Cinco minutos! Si nos dais prisa, el alma del rey Aldric quedará sellada para siempre."
+        }
+      }
+    },
+    {
+      "id": "d-recoger-yesquero",
+      "text": {
+        "es": {
+          "text": "Recoges el yesquero del suelo."
+        }
+      }
+    },
+    {
+      "id": "d-recoger-antorcha-apagada",
+      "text": {
+        "es": {
+          "text": "Recoges la antorcha apagada del suelo."
         }
       }
     }

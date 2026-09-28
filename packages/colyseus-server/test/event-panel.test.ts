@@ -293,15 +293,26 @@ describe("panel del organizador con 2 grupos jugando", () => {
     // sola — hace falta inspeccionar la llave que aparece en el suelo.
     ana.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
     ana.send(GAME_MESSAGES.useItem, { itemId: "llave-bronce", objectId: "armario" });
+    // Revisión en vivo (recogida diferida): abrir el armario solo revela el
+    // yesquero y la antorcha apagada en el suelo — hace falta recogerlos.
+    ana.send(GAME_MESSAGES.interact, { objectId: "yesquero-suelo" });
+    ana.send(GAME_MESSAGES.interact, { objectId: "antorcha-apagada-suelo" });
     await until(ana, () =>
-      ["yesquero", "vela"].every((item) =>
+      ["yesquero", "antorcha-apagada"].every((item) =>
         ana.state.inventories.get(ana.sessionId)?.items.includes(item),
       ),
     );
-    ana.send(GAME_MESSAGES.combine, { puzzleId: "p-combina", inputs: ["yesquero", "vela"] });
+    ana.send(GAME_MESSAGES.combine, {
+      puzzleId: "p-combina",
+      inputs: ["yesquero", "antorcha-apagada"],
+    });
     await until(ana, () =>
       Boolean(ana.state.inventories.get(ana.sessionId)?.items.includes("antorcha")),
     );
+    // Límite de `interact` (4 msg/s, specs/11 §9): esta ruta ya mandó 4 antes
+    // del brasero (cuadro, llave, yesquero, antorcha apagada) — hay que
+    // repartirlo en otra ventana.
+    await new Promise((resolve) => setTimeout(resolve, 1100));
     ana.send(GAME_MESSAGES.interact, { objectId: "brasero" });
     await until(ana, (state) => state.flags.get("digito3") === "3");
     ana.send(GAME_MESSAGES.puzzleAttempt, {
@@ -412,13 +423,21 @@ describe("modo observador", () => {
     // sola — hace falta inspeccionar la llave que aparece en el suelo.
     ana.send(GAME_MESSAGES.interact, { objectId: "llave-bronce-suelo" });
     ana.send(GAME_MESSAGES.useItem, { itemId: "llave-bronce", objectId: "armario" });
+    ana.send(GAME_MESSAGES.interact, { objectId: "yesquero-suelo" });
+    ana.send(GAME_MESSAGES.interact, { objectId: "antorcha-apagada-suelo" });
     await until(ana, () =>
-      Boolean(ana.state.inventories.get(ana.sessionId)?.items.includes("vela")),
+      Boolean(ana.state.inventories.get(ana.sessionId)?.items.includes("antorcha-apagada")),
     );
-    ana.send(GAME_MESSAGES.combine, { puzzleId: "p-combina", inputs: ["yesquero", "vela"] });
+    ana.send(GAME_MESSAGES.combine, {
+      puzzleId: "p-combina",
+      inputs: ["yesquero", "antorcha-apagada"],
+    });
     await until(ana, () =>
       Boolean(ana.state.inventories.get(ana.sessionId)?.items.includes("antorcha")),
     );
+    // Límite de `interact` (4 msg/s, specs/11 §9): repartir el del brasero en
+    // otra ventana, como en el guion de arriba.
+    await new Promise((resolve) => setTimeout(resolve, 1100));
     ana.send(GAME_MESSAGES.interact, { objectId: "brasero" });
     await until(ana, (state) => state.flags.get("digito3") === "3");
     const view = next(ana, GAME_MESSAGES.puzzleView);

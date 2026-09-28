@@ -205,10 +205,12 @@ describe("paridad editor ↔ MCP: el Rey Aldric construido por MCP (4.8)", () =>
 
     const route = report.criticalRoute!;
     expect(route.playerCount).toBe(1);
-    expect(route.steps).toHaveLength(16);
+    expect(route.steps).toHaveLength(18);
     expect(route.steps.map((step) => step.subjectId)).toEqual([
       "p-llave-cuadro",
       "armario",
+      "yesquero-suelo",
+      "antorcha-apagada-suelo",
       "p-combina",
       "brasero",
       "p-candado-arca",

@@ -131,6 +131,8 @@ export function aldricScript(pkg: RoomPackage): {
     for (const id of ["tapiz-dragones", "armario", "brasero", "estatua-izq", "estatua-der"]) {
       object(id);
     }
+    object("yesquero-suelo");
+    object("antorcha-apagada-suelo");
     object("placa-izq");
     object("placa-der");
     rule("r-inicio");
@@ -157,9 +159,14 @@ export function aldricScript(pkg: RoomPackage): {
     // directamente el panel de `p-placas-estatuas` (son su propio mecanismo,
     // revisión en vivo) — con ambas cosas a la vez se solapaban.
     rule("r-abrir-armario");
+    // Recogida diferida (mismo patrón que la llave del cuadro): abrir el
+    // armario solo revela el yesquero y la antorcha apagada en el suelo —
+    // hace falta inspeccionarlos aparte para obtenerlos.
+    rule("r-recoger-yesquero");
+    rule("r-recoger-antorcha-apagada");
     // La mesa de combinar: de momento solo la receta cuyos ingredientes ya se
-    // obtienen (yesquero + vela del armario). La llave de plata y la compuerta
-    // de oro llegan en la Bodega y las Catacumbas.
+    // obtienen (yesquero + antorcha apagada del armario). La llave de plata y
+    // la compuerta de oro llegan en la Bodega y las Catacumbas.
     puzzleDraft("p-combina", (p) => {
       if (p.type !== "combine_items") throw new Error("p-combina debe ser combine_items");
       return { ...p, unlocks: [], recipes: p.recipes.slice(0, 1) };

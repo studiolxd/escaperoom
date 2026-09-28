@@ -34,6 +34,8 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
     dispatch({ type: "on_interact", objectId: "cuadro-aurelio", playerId: "p1" });
     grant("llave-bronce");
     dispatch({ type: "on_use_item", objectId: "armario", itemId: "llave-bronce", playerId: "p1" });
+    dispatch({ type: "on_interact", objectId: "yesquero-suelo", playerId: "p1" });
+    dispatch({ type: "on_interact", objectId: "antorcha-apagada-suelo", playerId: "p1" });
     grant("antorcha");
     dispatch({ type: "on_interact", objectId: "brasero", playerId: "p1" });
 
@@ -42,6 +44,8 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
       "r-inspeccionar-cuadro",
       "r-imagen-cuadro",
       "r-abrir-armario",
+      "r-recoger-yesquero",
+      "r-recoger-antorcha-apagada",
       "r-inspeccionar-brasero",
       "r-encender-brasero",
     ]);
@@ -49,7 +53,7 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
     expect(engine.state.objectStates.brasero).toBe("lit");
     expect(engine.state.timers.cronometro?.running).toBe(true);
     expect(engine.state.inventory.p1).toContain("yesquero");
-    expect(engine.state.inventory.p1).toContain("vela");
+    expect(engine.state.inventory.p1).toContain("antorcha-apagada");
     expect(engine.state.inventory.p1).not.toContain("llave-bronce");
     expect(engine.state.inventory.p1).not.toContain("antorcha");
   });

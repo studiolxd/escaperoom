@@ -198,7 +198,7 @@ describe("collectRequiredFrames y validador de pack", () => {
     expect(issues.every((issue) => issue.severity === "error")).toBe(true);
     expect(paths).toContain("tiles.2");
     expect(paths).toContain("sprites.arca-cerrada-der");
-    expect(paths).toContain("ui.icons.icon-vela");
+    expect(paths).toContain("ui.icons.icon-antorcha-apagada");
   });
 
   it("el manifiesto sintético cubre todo el modelo y pasa la validación", () => {

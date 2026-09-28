@@ -157,11 +157,16 @@ export function toRuntimeModel(
       // ofrece las dos acciones (Inspeccionar/Usar objeto), no solo la que
       // tenga regla — antes, un objeto con únicamente `on_use_item` (p. ej.
       // "usa la llave sobre el armario") se quedaba sin "Inspeccionar".
-      // Excepción: el `pickupObjectId` de un `hidden_key` (la llave "caída"
-      // en el suelo) solo ofrece Recoger — no tiene sentido "usar objeto"
-      // sobre algo que aún no se ha recogido, ni un "Inspeccionar" separado
-      // de recogerlo.
-      actions: isPickupObject(roomPackage, object.id) ? ["pickup"] : ["inspect", "use_item"],
+      // Excepción: un objeto "caído en el suelo" para recoger — el
+      // `pickupObjectId` de un `hidden_key` (la llave del cuadro) o un
+      // objeto marcado `pickupOnly` a mano (el yesquero/la antorcha apagada
+      // del armario, revelados por una regla normal, sin `hidden_key`) —
+      // solo ofrece Recoger: no tiene sentido "usar objeto" sobre algo que
+      // aún no se ha recogido, ni un "Inspeccionar" separado de recogerlo.
+      actions:
+        isPickupObject(roomPackage, object.id) || object.pickupOnly
+          ? ["pickup"]
+          : ["inspect", "use_item"],
     };
     const panelPuzzleId = panelForObject(roomPackage, object);
     if (panelPuzzleId) runtimeObject.panelPuzzleId = panelPuzzleId;
