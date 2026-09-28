@@ -206,3 +206,29 @@ describe("validador — assets referenciados que no existen en el manifest", () 
     expect(report.ok).toBe(true);
   });
 });
+
+describe("sliding_difficulty (checkSlidingDifficulty)", () => {
+  it("el mural del Rey Aldric (semilla 812) ya cumple el mínimo: sin aviso", () => {
+    const report = validateRoomPackage(reyAldric);
+    const difficulty = checkOf(report, "difficulty");
+    expect(difficulty.issues.map((issue) => issue.code)).not.toContain(
+      "sliding_below_min_difficulty",
+    );
+  });
+
+  it("una semilla distinta que sí cumpla tampoco avisa (`scrambleSlidingTiles` lo garantiza)", () => {
+    const pkg = cloneFixture();
+    const mural = pkg.puzzles.find((puzzle) => puzzle.id === "p-mural-vendimia");
+    if (!mural || mural.type !== "sliding_puzzle") throw new Error("falta p-mural-vendimia");
+    mural.seed = 999;
+
+    const difficulty = checkOf(validateRoomPackage(pkg), "difficulty");
+    // No hay forma de forzar el aviso desde una definición válida: la
+    // garantía de `scrambleSlidingTiles` (reintento + plan B determinista) lo
+    // hace inalcanzable en la práctica (specs/06 §2.5) — este check cubre el
+    // caso de que esa garantía se rompiera en el futuro.
+    expect(difficulty.issues.map((issue) => issue.code)).not.toContain(
+      "sliding_below_min_difficulty",
+    );
+  });
+});

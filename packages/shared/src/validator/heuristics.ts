@@ -1,4 +1,10 @@
 import type { RoomPackage } from "../schemas";
+import {
+  createSlidingState,
+  isCoherentSlidingPuzzleDefinition,
+  slidingManhattanDistance,
+  slidingMinDifficultyThreshold,
+} from "../templates";
 import type { RoomIndex } from "./model";
 import type { AssetManifestInput, ValidationIssue } from "./types";
 
@@ -150,6 +156,36 @@ export function checkAssets(pkg: RoomPackage, manifest: AssetManifestInput): Val
       code: "missing_icon_asset",
       message: `el icono «${icon}» (${where(owners)}) no existe en manifest.ui.icons`,
       ids: owners,
+    });
+  }
+  return issues;
+}
+
+// ---------------------------------------------------------------------------
+// Dificultad mínima de `sliding_puzzle` con `fixed_seed`
+// ---------------------------------------------------------------------------
+
+/**
+ * `sliding_puzzle` con `scramble: "fixed_seed"` cuya mezcla no llega al umbral
+ * mínimo de dificultad (specs/06 §2.5). `scrambleSlidingTiles` ya lo garantiza
+ * (reintenta y cae a un plan B determinista), así que esto no debería pasar
+ * nunca en la práctica; el aviso es un cinturón de seguridad para el
+ * configurador del editor (3.5), no un error que bloquee publicar.
+ */
+export function checkSlidingDifficulty(pkg: RoomPackage): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  for (const puzzle of pkg.puzzles) {
+    if (puzzle.type !== "sliding_puzzle") continue;
+    if (puzzle.scramble !== "fixed_seed") continue;
+    if (!isCoherentSlidingPuzzleDefinition(puzzle)) continue;
+    const state = createSlidingState(puzzle);
+    const distance = slidingManhattanDistance(state.tiles, puzzle);
+    const threshold = slidingMinDifficultyThreshold(puzzle);
+    if (distance >= threshold) continue;
+    issues.push({
+      code: "sliding_below_min_difficulty",
+      message: `«${puzzle.id}» (sliding_puzzle, semilla ${puzzle.seed}): la mezcla queda a distancia ${distance} de la solución, por debajo del mínimo ${threshold} para una rejilla de ${puzzle.grid.cols}×${puzzle.grid.rows}`,
+      ids: [puzzle.id],
     });
   }
   return issues;
