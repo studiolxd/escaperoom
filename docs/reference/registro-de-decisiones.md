@@ -1516,3 +1516,60 @@ cierra:
 resultado `aborted` y `dispose` posterior; reconexión antes de N cancela la cuenta atrás; con un
 jugador conectado nunca se cierra; sala sin duración; compra liberada (no consumida); `EventRoom`
 con `session.status = "aborted"` y sin `group.completedAt`.
+
+## ADR-044 — `code_lock.maxAttempts: 0` es "sin límite" explícito (2026-09-28)
+
+**Contexto:** "sin límite" en un candado numérico se simulaba con un número alto (`999`, el sello
+final del Rey Aldric): el esquema exigía `maxAttempts` positivo, así que 0 no era una opción, y
+`999` no deja de ser un límite (ficticio) que la lógica, el panel y el validador tratan como
+cualquier otro.
+
+**Decisión (usuario, 2026-09-28):** `maxAttempts: 0` significa explícitamente sin límite.
+
+1. **Esquema** (`packages/shared/src/schemas/puzzle.ts`): `maxAttempts` pasa de
+   `.positive()` a `.nonnegative()`, con `.describe(...)` (lo leen el editor genérico y
+   `get_template_catalog` del MCP, que ya expone el esquema Zod tal cual). Sin declarar, sigue el
+   defecto (5). Retrocompatible: cualquier paquete existente (incluido un `999`) sigue siendo válido
+   y se comporta igual que antes.
+2. **Lógica** (`packages/shared/src/templates/code-lock.ts`, toda en `shared`, sin duplicado en
+   servidor ni en el modo local de vista previa): `attemptCode` nunca entra en la rama de agotar
+   intentos si `maxAttempts` es 0 (antes, con 0, el primer fallo agotaba de inmediato — `1 >= 0` —,
+   el bug que hacía falta blindar). `lockoutSec` queda sin efecto porque esa rama nunca se alcanza.
+   `CodeLockPublicView` añade `unlimited: boolean`; `remainingAttempts` usa
+   `Number.MAX_SAFE_INTEGER` en vez de `Infinity` cuando es ilimitado (evita pérdida de precisión al
+   serializar por cualquier transporte que no sea JSON-safe).
+3. **Panel** (`code-lock-panel.tsx`): con `unlimited`, no muestra "Intentos: X/Y" (nueva clave
+   `attemptsUnlimited: "Intentos: {used}"`) ni "quedan N intentos" en el fallo (`wrongUnlimited:
+   "Código incorrecto"`).
+4. **Editor:** interruptor "Sin límite" sobre `maxAttempts` que guarda 0 y, al desactivarlo, vuelve
+   al defecto (5); con 0 se oculta "Bloqueo tras fallar (s)" (sin efecto). Implementado como
+   mecanismo **genérico** del generador de formularios dirigido por esquema
+   (`packages/editor/src/inspector/schema-form.ts`/`schema-form-view.tsx`, specs/09 §4.1), no como
+   parche específico de `code_lock` en la vista: un nuevo tipo de campo `unlimitedNumber` (solo se
+   activa por `hint.kind`, nunca se auto-selecciona) con un interruptor (`meta.unlimitedValue`/
+   `meta.restoredValue`) y un mecanismo `field.meta.hiddenWhenEquals` en `<SchemaForm>` para ocultar
+   un campo hermano según el valor de otro — ambos reutilizables por cualquier plantilla futura con
+   la misma forma. `code_lock` los activa con dos `FieldHint` en
+   `packages/editor/src/template-config/config-model.ts`. Requirió añadir `Switch` al
+   `EditorUiKit` (auditoría F-6): `packages/web` lo resuelve al `Switch` de shadcn/ui,
+   `DEFAULT_UI_KIT` cae a un checkbox nativo (mismo contrato que `Checkbox`).
+5. **Validador** (`packages/shared/src/validator/`): nuevo check `code_lock_unlimited_lockout`
+   (aviso, no error — como `spawn_capacity`, no reutiliza `structure` porque ese check es de
+   severidad `error`) que avisa si un candado con `maxAttempts: 0` declara `lockoutSec > 0` (dato
+   muerto: nunca se aplica).
+6. **MCP:** sin cambios de código — `add_puzzle` ya valida contra el esquema compartido y
+   `get_template_catalog` ya expone `z.toJSONSchema`, así que ambos reflejan el `.describe()` nuevo
+   automáticamente. Test nuevo: `add_puzzle` con `maxAttempts: 0`.
+
+**Fuera de alcance:** los defectos (5 intentos / 30 s de bloqueo) no cambian; los candados que ya
+declaran un número (incluido el `999` del sello del Rey Aldric) siguen igual — ese `999 → 0` lo
+hace el ticket que trae la sala del Rey Aldric a `main` (encargo aparte, `docs/reference/
+roompackage-rey-aldric.v1.json` no se toca aquí).
+
+**Consecuencias:** `specs/06` §2 documenta `maxAttempts: 0`. Tests: esquema (acepta 0, rechaza
+negativos), lógica (`packages/shared/test/code-lock.test.ts`: 0 nunca bloquea tras N fallos; sigue
+bloqueando con 5), validador (`validator-geometry-structure.test.ts`: aviso con `lockoutSec > 0` e
+ilimitado, sin aviso si es 0), editor (`packages/editor/test/template-config.test.ts`: el campo se
+describe como `unlimitedNumber` con el defecto correcto, el switch guarda 0 y restaura 5), panel
+(`packages/web/test/code-lock-panel.test.tsx`, nuevo: sin contador de restantes si es ilimitado),
+MCP (`add_puzzle` con `maxAttempts: 0`).
