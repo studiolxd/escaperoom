@@ -880,3 +880,22 @@ export function checkSpawnCapacity(pkg: RoomPackage): ValidationIssue[] {
   }
   return issues;
 }
+
+/**
+ * Aviso (no error, §1 encargo candado-ilimitado): un `code_lock` con
+ * `maxAttempts: 0` (sin límite) nunca agota intentos, así que `lockoutSec`
+ * nunca llega a aplicarse — declararlo mayor que 0 es un dato muerto.
+ */
+export function checkCodeLockUnlimitedLockout(pkg: RoomPackage): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  for (const puzzle of pkg.puzzles) {
+    if (puzzle.type === "code_lock" && puzzle.maxAttempts === 0 && (puzzle.lockoutSec ?? 0) > 0) {
+      issues.push({
+        code: "code_lock_dead_lockout",
+        message: `«${puzzle.id}»: maxAttempts es 0 (sin límite), así que lockoutSec (${puzzle.lockoutSec}) nunca se aplica`,
+        ids: [puzzle.id],
+      });
+    }
+  }
+  return issues;
+}

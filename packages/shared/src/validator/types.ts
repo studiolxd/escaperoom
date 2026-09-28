@@ -14,6 +14,7 @@ export type ValidationCheckId =
   | "geometry"
   | "structure"
   | "spawn_capacity"
+  | "code_lock_unlimited_lockout"
   | "orphans"
   | "dead_ends"
   | "solvability"
