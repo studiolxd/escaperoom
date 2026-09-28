@@ -203,12 +203,15 @@ export class UiPlayer {
    * Comprueba que un objeto en estado `"oculto"` (p. ej. la llave del suelo
    * antes de revelar el cuadro) NO abre el menú contextual al clicarlo — la
    * zona de clic se desactiva mientras esté oculto (revisión en vivo).
+   * El punto clicado cae sobre el objeto y fuera de cualquier otro objeto
+   * clicable (`getObjectScreenFraction`), y el menú se abriría al llegar el
+   * avatar, no en el acto: se deja caminar antes de comprobar que no hay
+   * menú (un `not.toBeVisible` inmediato pasaba siempre).
    */
   async expectNotInteractable(objectId: string): Promise<void> {
     await this.clickObjectOnCanvas(objectId, false);
-    await expect(this.page.getByRole("button", { name: "Cancelar", exact: true })).not.toBeVisible({
-      timeout: 2_000,
-    });
+    await this.page.waitForTimeout(3_000);
+    await expect(this.page.getByRole("button", { name: "Cancelar", exact: true })).not.toBeVisible();
   }
 
   async inspect(objectId: string): Promise<void> {

@@ -1302,20 +1302,29 @@ export class RoomScene extends Phaser.Scene {
     return true;
   }
 
-  /**
-   * Posición en pantalla del ANCLA de un objeto interactuable (`tileAnchor`,
-   * el mismo punto en el que `wireInteraction` centra su zona de clic), como
-   * fracción (0–1) del lienzo (independiente de resolución/zoom del
-   * navegador): para clicar el objeto directamente sobre el canvas
-   * isométrico desde fuera del motor (E2E, `packages/e2e/support/game.ts`,
-   * ya que no hay lista de botones por objeto en la partida real).
-   * `undefined` si el objeto no está en la sala visible.
-   */
   /** ¿Responde ahora al clic? (visible y con zona de clic activa; E2E). */
   isObjectInteractive(objectId: string): boolean {
     return this.objectViews.get(objectId)?.sprite.input?.enabled === true;
   }
 
+  /**
+   * Punto donde un clic real llega a este objeto, como fracción (0–1) del
+   * lienzo (independiente de resolución/zoom del navegador): para clicar el
+   * objeto directamente sobre el canvas isométrico desde fuera del motor
+   * (E2E, `packages/e2e/support/game.ts`, ya que no hay lista de botones por
+   * objeto en la partida real). `undefined` si el objeto no está en la sala
+   * visible.
+   *
+   * - Objeto interactivo: un punto interior y opaco donde sea el de más
+   *   arriba (el clic real usa el hit-test por píxel, `pixelPerfect`).
+   * - Objeto NO interactivo (p. ej. oculto): un punto dentro de su dibujo
+   *   donde ningún OTRO objeto recoja el clic, para comprobar que clicarlo
+   *   no hace nada. Sin esto se devolvía el ancla, que según el arte puede
+   *   caer bajo otro objeto: con los placeholders de CI (rectángulos opacos
+   *   del tamaño del frame) el ancla de la llave oculta queda dentro de la
+   *   estatua de al lado, el clic abría la estatua y su menú se quedaba
+   *   abierto, tragándose el clic siguiente.
+   */
   getObjectScreenFraction(objectId: string): { x: number; y: number } | undefined {
     const view = this.objectViews.get(objectId);
     if (!view) {
@@ -1329,70 +1338,65 @@ export class RoomScene extends Phaser.Scene {
       y: (worldY - worldView.y) / worldView.height,
     });
 
-    // El clic real usa el hit-test por píxel (`pixelPerfect`), así que el
-    // punto devuelto tiene que caer en un píxel OPACO del sprite y donde este
-    // sea el objeto de más arriba: el ancla (`sprite.x/y`) de un cuadro de
-    // pared o de un objeto alto cae en un píxel transparente, o bajo otro
-    // objeto, y el clic no activaba nada. Se prueba con el mismo hit-test de
-    // Phaser, empezando por el centro visible del sprite.
-    if (sprite.input?.enabled) {
-      const bounds = sprite.getBounds();
-      const step = Math.max(2, Math.min(bounds.width, bounds.height) / 24);
-      const cx = bounds.centerX;
-      const cy = bounds.centerY;
-      const candidates: { x: number; y: number; d: number }[] = [];
-      for (let y = bounds.top + step / 2; y < bounds.bottom; y += step) {
-        for (let x = bounds.left + step / 2; x < bounds.right; x += step) {
-          if (x < worldView.x || x > worldView.right || y < worldView.y || y > worldView.bottom) {
-            continue;
-          }
-          candidates.push({ x, y, d: (x - cx) ** 2 + (y - cy) ** 2 });
+    // Candidatos en rejilla sobre el dibujo del sprite, del centro visible
+    // hacia fuera (solo los que caen dentro de la vista de la cámara).
+    const bounds = sprite.getBounds();
+    const step = Math.max(2, Math.min(bounds.width, bounds.height) / 24);
+    const cx = bounds.centerX;
+    const cy = bounds.centerY;
+    const candidates: { x: number; y: number; d: number }[] = [];
+    for (let y = bounds.top + step / 2; y < bounds.bottom; y += step) {
+      for (let x = bounds.left + step / 2; x < bounds.right; x += step) {
+        if (x < worldView.x || x > worldView.right || y < worldView.y || y > worldView.bottom) {
+          continue;
         }
+        candidates.push({ x, y, d: (x - cx) ** 2 + (y - cy) ** 2 });
       }
-      candidates.sort((a, b) => a.d - b.d);
-      const interactive = [...this.objectViews.values()]
-        .map((candidate) => candidate.sprite)
-        .filter((candidate) => candidate.input?.enabled);
-      const isTopmostAt = (worldX: number, worldY: number): boolean => {
-        const at = toFraction(worldX, worldY);
-        const pointer = { x: at.x * camera.width, y: at.y * camera.height };
-        const hits = this.input.manager.hitTest(
-          pointer as unknown as Phaser.Input.Pointer,
-          interactive,
-          camera,
-          [],
-        );
-        if (hits.length === 0) {
-          return false;
-        }
-        const top = hits.reduce((best, hit) =>
-          hit.depth > best.depth ||
-          (hit.depth === best.depth && this.children.getIndex(hit) > this.children.getIndex(best))
-            ? hit
-            : best,
-        );
-        return top === sprite;
-      };
-      // Un punto en el borde del dibujo (antialias, alfa mínimo) puede ser
-      // "opaco" para esta prueba y no para el clic real: se exige además que
-      // los cuatro vecinos, a unos píxeles, también lo sean (punto interior).
-      const margin = Math.max(3, step);
-      for (const candidate of candidates) {
-        if (
-          isTopmostAt(candidate.x, candidate.y) &&
-          isTopmostAt(candidate.x - margin, candidate.y) &&
-          isTopmostAt(candidate.x + margin, candidate.y) &&
-          isTopmostAt(candidate.x, candidate.y - margin) &&
-          isTopmostAt(candidate.x, candidate.y + margin)
-        ) {
-          return toFraction(candidate.x, candidate.y);
-        }
+    }
+    candidates.sort((a, b) => a.d - b.d);
+    const interactive = [...this.objectViews.values()]
+      .map((candidate) => candidate.sprite)
+      .filter((candidate) => candidate.input?.enabled);
+    // El mismo hit-test de Phaser que resuelve el clic real, ordenado por
+    // profundidad (y orden en la escena a igual profundidad).
+    const topmostAt = (worldX: number, worldY: number): Phaser.GameObjects.GameObject | null => {
+      const at = toFraction(worldX, worldY);
+      const pointer = { x: at.x * camera.width, y: at.y * camera.height };
+      const hits = this.input.manager.hitTest(
+        pointer as unknown as Phaser.Input.Pointer,
+        interactive,
+        camera,
+        [],
+      ) as Phaser.GameObjects.Sprite[];
+      if (hits.length === 0) {
+        return null;
       }
-      // Sprite muy fino (sin punto interior): el más cercano al centro que valga.
-      for (const candidate of candidates) {
-        if (isTopmostAt(candidate.x, candidate.y)) {
-          return toFraction(candidate.x, candidate.y);
-        }
+      return hits.reduce((best, hit) =>
+        hit.depth > best.depth ||
+        (hit.depth === best.depth && this.children.getIndex(hit) > this.children.getIndex(best))
+          ? hit
+          : best,
+      );
+    };
+    // Un punto en el borde del dibujo (antialias, alfa mínimo) puede valer
+    // para esta prueba y no para el clic real: se exige además que los
+    // cuatro vecinos, a unos píxeles, también valgan (punto interior).
+    const margin = Math.max(3, step);
+    const interior = (x: number, y: number, ok: (wx: number, wy: number) => boolean): boolean =>
+      ok(x, y) && ok(x - margin, y) && ok(x + margin, y) && ok(x, y - margin) && ok(x, y + margin);
+
+    const accept = sprite.input?.enabled
+      ? (x: number, y: number) => topmostAt(x, y) === sprite
+      : (x: number, y: number) => topmostAt(x, y) === null;
+    for (const candidate of candidates) {
+      if (interior(candidate.x, candidate.y, accept)) {
+        return toFraction(candidate.x, candidate.y);
+      }
+    }
+    // Sprite muy fino (sin punto interior): el más cercano al centro que valga.
+    for (const candidate of candidates) {
+      if (accept(candidate.x, candidate.y)) {
+        return toFraction(candidate.x, candidate.y);
       }
     }
     return toFraction(sprite.x, sprite.y);

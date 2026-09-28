@@ -133,11 +133,12 @@ export class RoomRuntime {
     this.scene.inspectObjectById(objectId);
   }
 
-  /** Posición en pantalla (fracción 0–1 del lienzo) de un objeto interactuable, o `undefined`. */
+  /** ¿El objeto responde ahora al clic? (E2E). */
   isObjectInteractive(objectId: string): boolean {
     return this.scene.isObjectInteractive(objectId);
   }
 
+  /** Punto (fracción 0–1 del lienzo) donde un clic llega a un objeto, o `undefined` (E2E). */
   getObjectScreenFraction(objectId: string): { x: number; y: number } | undefined {
     return this.scene.getObjectScreenFraction(objectId);
   }

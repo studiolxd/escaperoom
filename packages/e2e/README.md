@@ -35,6 +35,10 @@ Playwright arranca solo los tres procesos (`scripts/serve.ts`) con el entorno de
   `pnpm exec tsx scripts/serve.ts web` en otra terminal) y `E2E_SKIP_DB_SETUP=1` salta
   migraciones y seed.
 - Base de datos: `DATABASE_URL` exportada o, si no, la de `packages/shared/.env`.
+- Sin pack gráfico, igual que en CI: `PACKS_ROOT` apunta a un directorio vacío, así que la
+  partida se juega con los placeholders aunque el worktree tenga uno generado con
+  `pnpm pack:build` (con él cambian sprites, zonas de clic y colisiones, y el smoke local
+  pasaba donde el de CI fallaba).
 - Prueba de carga contra un servidor ya levantado: `E2E_LOAD_URL=ws://localhost:2667`.
 
 Sin servicios externos: los emails van por `jsonTransport` y las colas están apagadas. El
