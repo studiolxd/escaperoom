@@ -136,25 +136,34 @@ Tareas pendientes que no bloquean pero hay que resolver.
       §"Pipeline de personajes jugables"), sustituir su carpeta de enlaces por la entrega real
       (`empaquetar_avatar.py` + `empaquetar_retrato.py`) y quitar la entrada correspondiente de
       `tools/assets-generator/packs/medieval-v1/entregas/avatares/`.
-- [ ] **Smoke E2E (`game.reyaldric.spec.ts`) intermitente en el último paso (cruzar
-      `puerta-bodega`).** El pathfinding real (BFS + simplificado de ruta,
-      `packages/game-runtime/src/world/pathfinding.ts`) ya está confirmado NO ser la
-      causa: un script de comprobación directo (`findPath`/`approachCell` contra el
-      grid de colisión real de `salon-trono`) encuentra ruta en 2–3 waypoints desde
-      cualquier punto plausible de la sala hasta la puerta, sin ningún atasco. El
-      candidato más probable ahora es una carrera entre el cliente y el servidor al
-      cruzar justo después de resolver las placas: `onWorldEvent` (`use-game-hud.tsx`,
-      caso `"interact"`) solo cruza la puerta sola si
-      `snapshot.objects[objectId] === "open"` en el momento exacto en que el avatar
-      llega — si el cliente aún no ha aplicado el parche del servidor que marca la
-      puerta como abierta (justo tras `puzzle_solved` de las placas), llegar a su
-      celda abre el menú contextual en vez de cruzar, y `UiPlayer.goTo` (que solo
-      espera a que la puerta desaparezca de la vista, sin manejar ese caso) se queda
-      esperando hasta el timeout. En 2 de 3 ejecuciones completas del smoke test tras
-      el pathfinding real, los pasos 1–5 pasaron las 3 veces y el registro del juego
-      confirma que ambos jugadores SÍ llegan a cruzar de verdad a la Bodega ("Entras en
-      La Bodega de los Vinos Encantados"); solo el `goTo` final dio timeout de forma
-      intermitente. Pendiente: confirmar la carrera con logs del cliente en el momento
-      del fallo, y decidir el arreglo — o bien `goTo` cierra un menú contextual
-      inesperado y reintenta el clic, o bien el cliente reintenta el cruce cuando llega
-      a una puerta que su propio estado aún no ve abierta (en vez de abrir el menú).
+- [ ] **Smoke E2E (`game.reyaldric.spec.ts`) intermitente, con causa raíz ya
+      identificada: contención de CPU de la máquina, no un bug de juego.**
+      Descartadas dos hipótesis de código con evidencia directa antes de llegar a
+      esta: (1) el pathfinding real (BFS + simplificado de ruta,
+      `packages/game-runtime/src/world/pathfinding.ts`) — un script de comprobación
+      directo (`findPath`/`approachCell` contra el grid de colisión real de
+      `salon-trono`) encuentra ruta en 2–3 waypoints desde cualquier punto plausible
+      de la sala hasta la puerta, sin ningún atasco; (2) que el puzzle de las placas
+      (`p-placas-estatuas`, `holdMode: "stand"`) se revirtiera al bajarse de la
+      placa — confirmado en `packages/shared/src/templates/simultaneous-plates.ts`/
+      `packages/shared/src/session/room-session.ts` que `"solved"` es un estado
+      terminal sin camino de vuelta, y que el botón "Placa" del panel SÍ mueve al
+      jugador de verdad a su celda (`use-game-hud.tsx: togglePlate → walkTo →
+      client.move`), no es una acción de UI aislada.
+      Con logs de cliente instrumentados en vivo (`onWorldEvent`/`enterRoom`,
+      retirados tras la prueba) se reprodujo un fallo ya en el PRIMER paso del test
+      (`inspect(cuadro-aurelio)`, que en ejecuciones normales pasa sin problema): los
+      avatares se quedaban clavados en el spawn sin ni siquiera empezar a andar. En
+      ese mismo momento, `uptime` mostraba **load average 74.79 en una máquina de 10
+      CPUs** (8 usuarios conectados), muy por encima de lo que cualquier timeout de
+      15–30s puede absorber — coincide con el aviso ya documentado en
+      `docs/reference/verify-pr.md` ("Timeouts de CI: contención de CPU"). El pack
+      de avatar corregido (commit "el avatar salía negro...") ya deja ver el
+      sprite real en las capturas de estos intentos, confirmando que esa parte
+      funciona bien; el cuello de botella es la máquina, no el código.
+      No hay arreglo de código pendiente aquí — solo repetir el smoke test cuando la
+      máquina tenga menos carga (o subir los timeouts de `packages/e2e`, que ya se
+      intentó con un reintento en `UiPlayer.goTo` sin que sirviera de mucho bajo esta
+      carga). `UiPlayer.goTo` sigue con su lógica de reintento (commit "goTo
+      reintenta...") por si ayuda en cargas moderadas, aunque no evitó el fallo bajo
+      esta carga extrema.
