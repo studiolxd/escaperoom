@@ -34,9 +34,11 @@ usuario (25/09/2026) que prevalecen sobre esos docs:
   Reparto propuesto: caballero/a, arquero/a, mago/a, campesino/a.
 - Sprite en juego pequeño (spec: 64×96 a 1×, 128×192 a 2×), pero **generar en alta calidad** y guardar el
   master para reutilizarlo (retrato/cara para avatar, referencias, etc.).
-- Isométrico 2:1, 4 direcciones (n/e/s/w). Animaciones (decisión 25/09/2026): **idle 8 fotogramas y andar
-  8 fotogramas por dirección**; si da problemas, bajar a 6. "Interactuar" por definir (propuesta: alcanzar/
-  manipular, 3-4 fotogramas). Total por personaje ≈ 4 × (8 + 8 + 4) = 80 fotogramas.
+- Isométrico 2:1, 4 direcciones (n/e/s/w) — 8 con las diagonales (ne/se/sw/nw), opcionales por
+  personaje (deuda "8 direcciones", `docs/DEUDA.md`; ya en `caballero-m` y sus 7 alias). Animaciones
+  (decisión 25/09/2026): **idle 8 fotogramas y andar 8 fotogramas por dirección**; si da problemas,
+  bajar a 6. "Interactuar" por definir (propuesta: alcanzar/manipular, 3-4 fotogramas). Total por
+  personaje ≈ 4 × (8 + 8 + 4) = 80 fotogramas (160 con diagonales).
 - Luz coherente en todo el pack. Paredes visibles: planos Y-Z y Z-X (las dos del fondo).
 - Fondo oscuro `#0b1120` solo en algunos casos: los sprites deben leerse sobre fondo claro y oscuro.
 - Producción 3D (pre-render) posible pero no obligatoria.

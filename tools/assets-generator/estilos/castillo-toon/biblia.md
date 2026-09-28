@@ -54,7 +54,8 @@ master ancla (en medieval-v1: `packs/medieval-v1/fuentes/personajes/caballero-m/
 
 ## 4. Sprites de juego
 
-- Isométrico 2:1, 4 direcciones (n/e/s/w), **renderizados desde el 3D** (luz y proyección exactas; no se espeja).
+- Isométrico 2:1, 4 direcciones (n/e/s/w) — 8 con las diagonales (ne/se/sw/nw), opcionales por
+  personaje —, **renderizados desde el 3D** (luz y proyección exactas; no se espeja).
 - Tamaños: 128×192 (2×) y 64×96 (1×), PNG con alfa, pivote abajo-centro.
 - Animaciones: `idle` 8 fotogramas, `andar` 8 por dirección, `alcanzar` 4 (brazo hacia el objeto a la altura del pecho, una vez, vuelve a idle). Si 8 da problemas, bajar a 6.
 

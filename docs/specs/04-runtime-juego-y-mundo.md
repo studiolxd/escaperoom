@@ -45,7 +45,9 @@ interacciones con el servidor está en `11-protocolo-multijugador.md`; la lógic
   (el sprite SVG tintado por color que existía antes de esta decisión), que no es único — varios
   jugadores pueden compartirlo, distinguibles por el anillo.
 - Animaciones por personaje: `idle` (8 frames), `andar` (4 direcciones × 8 frames), `interactuar`
-  (4 frames) — 80 frames por personaje.
+  (4 frames) — 80 frames por personaje. Un personaje puede traer también las 4 diagonales
+  (160 frames); el runtime elige entre las 8 si están, o cae a la más cercana de las 4 si no
+  (`specs/26` §4.4, deuda "8 direcciones").
 - El movimiento es **autoritativo en servidor**: el cliente pide, el servidor valida distancia
   máxima por tick (anti-teletransporte), el resto de clientes interpolan.
 - El sistema deriva `enter_room` server-side al cruzar umbrales; el cliente no lo envía.
