@@ -92,23 +92,6 @@ function formatLabel(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (match, key: string) => vars[key] ?? match);
 }
 
-/**
- * Semiancho/semialto (px del mundo) de la zona de clic fija de
- * `wireInteraction`, centrada en el ancla de cada objeto. Cotas
- * MATEMÁTICAMENTE seguras (revisión en vivo): dos celdas de grid DISTINTAS
- * nunca comparten ancla de pantalla (`tileAnchor`, proyección isométrica), y
- * la separación mínima entre dos anclas distintas es `ISO_TILE_WIDTH` en X
- * (pares con la misma pantalla-Y) o `ISO_TILE_HEIGHT` en Y (pares con la
- * misma pantalla-X, p. ej. `trono` en (9,1) y `retrato-2` en (8,0): su
- * `tx-ty` coincide, así que comparten X de pantalla y solo separan
- * `ISO_TILE_HEIGHT` en Y). Manteniendo el semiancho/semialto por debajo de la
- * MITAD de esa separación mínima, dos zonas de clic de celdas distintas
- * JAMÁS se solapan — antes, con un cuadrado fijo de 44px (semilado 22, mayor
- * que la mitad de `ISO_TILE_HEIGHT`, 16), un clic sobre el trono podía
- * activar el retrato de al lado.
- */
-const OBJECT_HIT_HALF_WIDTH = ISO_TILE_WIDTH / 2 - 6;
-const OBJECT_HIT_HALF_HEIGHT = ISO_TILE_HEIGHT / 2 - 3;
 
 /**
  * El teclado de Phaser escucha en `document`, no en el canvas: sin esto, el
@@ -1003,16 +986,22 @@ export class RoomScene extends Phaser.Scene {
    * revisión en vivo: sin cursor de mano ni zoom al pasar el ratón por
    * encima (solo el brillo), a diferencia del modo edición.
    *
-   * Área de clic PEQUEÑA y FIJA (`OBJECT_HIT_SIZE`), centrada en el ancla del
-   * objeto (`tileAnchor`) — no el rectángulo completo del frame (el que usa
-   * Phaser por defecto): en isométrico, un sprite alto (una estatua, el
-   * trono) tiene un frame mucho más alto que su propia celda, y ese
-   * rectángulo por defecto puede "tapar" invisiblemente el área de clic de
-   * OTRO objeto lejano con menos profundidad de render (un cuadro de la
-   * pared) sin que se vea nada solapado en pantalla — el jugador clica donde
-   * ve el cuadro y activa la estatua. Una zona fija y pequeña por ancla,
-   * en cambio, no se sale de su propia celda: nunca se solapa con la de otro
-   * objeto en una celda distinta.
+   * Zona de clic por PÍXEL REAL del sprite (`pixelPerfect`, revisión en
+   * vivo) — no un rectángulo del frame completo (el que usa Phaser por
+   * defecto): en isométrico, un sprite alto (una estatua, el trono) tiene un
+   * frame mucho más alto que su propia celda, y ese rectángulo por defecto
+   * podía "tapar" invisiblemente el área de clic de OTRO objeto lejano con
+   * menos profundidad de render (un cuadro de la pared) sin que se viera
+   * nada solapado en pantalla — el jugador clicaba donde veía el cuadro y
+   * activaba la estatua. Antes de esto, la zona era un rectángulo pequeño y
+   * fijo centrado en el ancla del objeto (`tileAnchor`): evitaba el
+   * solapamiento, pero para un objeto colgado en la pared (el cuadro) esa
+   * ancla está en el suelo, lejos de donde se ve — el clic solo acertaba
+   * "sobre su base", nada intuitivo. Con `pixelPerfect`, Phaser prueba el
+   * canal alfa del propio sprite en el punto exacto del clic: se acierta
+   * clicando donde se VE el objeto (colgado en la pared incluido), y el
+   * orden de profundidad ya resuelve el desempate entre dos sprites que se
+   * solapan en pantalla sin necesitar una zona artificialmente pequeña.
    */
   private wireInteraction(view: ObjectView): void {
     const { sprite, object } = view;
@@ -1055,14 +1044,7 @@ export class RoomScene extends Phaser.Scene {
       this.clearHover(object.id);
       return;
     }
-    const halfW = OBJECT_HIT_HALF_WIDTH / sprite.scaleX;
-    const halfH = OBJECT_HIT_HALF_HEIGHT / sprite.scaleY;
-    const anchorLocalX = sprite.originX * sprite.frame.width;
-    const anchorLocalY = sprite.originY * sprite.frame.height;
-    sprite.setInteractive(
-      new Phaser.Geom.Rectangle(anchorLocalX - halfW, anchorLocalY - halfH, halfW * 2, halfH * 2),
-      Phaser.Geom.Rectangle.Contains,
-    );
+    sprite.setInteractive({ pixelPerfect: true, alphaTolerance: 1 });
   }
 
   /**
