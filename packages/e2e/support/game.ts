@@ -160,6 +160,16 @@ export class UiPlayer {
    * (p. ej. justo tras cruzar a otra sala).
    */
   private async clickObjectOnCanvas(objectId: string): Promise<void> {
+    // Con 2 páginas (un jugador cada una), la que no está en primer plano
+    // puede sufrir el throttling de `requestAnimationFrame` de Chromium para
+    // pestañas en segundo plano (hasta 1fps) — el propio código ya lo
+    // reconoce en otro sitio (`use-scene-sync.ts`, "pestaña en segundo
+    // plano"). El bucle de Phaser sigue siendo correcto en tiempo real (usa
+    // `delta`, no cuenta de frames), pero un CI ya limitado de CPU/RAM puede
+    // no darle ni ese frame ocasional a tiempo. Traer la página a primer
+    // plano justo antes de un clic que va a hacer andar al avatar evita
+    // competir con eso.
+    await this.page.bringToFront();
     const canvas = this.page.locator("canvas").first();
     await expect(canvas).toBeVisible();
     const fraction = await this.page.waitForFunction(
