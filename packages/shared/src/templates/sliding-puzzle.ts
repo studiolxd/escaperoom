@@ -19,6 +19,18 @@ import { guardPlayable, initialPuzzleState, publicBase } from "./base";
  * un PRNG determinista (`createSlidingRng`, mulberry32) para que todos los
  * grupos reciban el mismo desorden (justicia competitiva).
  *
+ * **Dificultad mínima garantizada.** No basta con evitar la posición resuelta
+ * exacta: una mezcla al azar puede quedar "casi resuelta" (pocas fichas fuera
+ * de sitio). `scrambleSlidingTiles` exige que la distancia de Manhattan de la
+ * mezcla a la solución (`slidingManhattanDistance`) llegue a un umbral que
+ * escala con la rejilla (`slidingMinDifficultyThreshold`: la mitad de la
+ * distancia media de una mezcla uniformemente aleatoria); si no llega,
+ * reintenta baraja (acotado a `MAX_SCRAMBLE_ATTEMPTS`, avanzando el mismo
+ * `random`) y, si aun así no lo alcanza, cae a una disposición determinista
+ * que sí lo garantiza. Con `fixed_seed` los reintentos consumen la misma
+ * secuencia derivada de la semilla, así que el resultado sigue siendo
+ * determinista por semilla.
+ *
  * **Representación.** `tiles` es row-major: índice de celda → ficha
  * (`1..N-1`); `0` es el hueco. La posición resuelta es `[1, 2, …, N-1, 0]`.
  * `blankPosition` fija en qué celda queda el hueco en la mezcla presentada.
@@ -300,29 +312,76 @@ export function isCoherentSlidingPuzzleDefinition(def: SlidingPuzzleDefinition):
 }
 
 /**
- * Mezcla resoluble: baraja las fichas (sin tocar el hueco) y corrige la
- * paridad con una transposición si hiciera falta. Un resultado "ya resuelto"
- * se rompe con un movimiento válido para que el puzle tenga trabajo.
+ * Distancia media esperada entre dos posiciones uniformes e independientes en
+ * `{0, …, n-1}`: `E|i-j| = (n²-1) / (3n)`. Base de {@link slidingMinDifficultyThreshold}.
  */
-function scrambleSlidingTiles(def: SlidingPuzzleDefinition, rng?: SlidingRng): number[] {
+function averageAxisDistance(n: number): number {
+  return (n * n - 1) / (3 * n);
+}
+
+/**
+ * Suma de Manhattan de cada ficha a su celda de destino (fila/columna en
+ * `slidingSolvedTiles`); ignora el hueco. Medida barata (O(n)) de "cuánto
+ * trabajo" le queda al jugador — 0 en la posición resuelta.
+ */
+export function slidingManhattanDistance(tiles: number[], def: SlidingPuzzleDefinition): number {
+  const { cols } = def.grid;
+  let total = 0;
+  for (let index = 0; index < tiles.length; index += 1) {
+    const tile = tiles[index] ?? 0;
+    if (tile === 0) continue;
+    const goalIndex = tile - 1;
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    const goalCol = goalIndex % cols;
+    const goalRow = Math.floor(goalIndex / cols);
+    total += Math.abs(col - goalCol) + Math.abs(row - goalRow);
+  }
+  return total;
+}
+
+/**
+ * Umbral mínimo de {@link slidingManhattanDistance} que debe alcanzar la
+ * mezcla presentada (specs/06 §2.5, "dificultad mínima garantizada"): la
+ * mitad de la distancia media de una mezcla uniformemente aleatoria de esa
+ * rejilla (para 3×3: media ≈14.2 → umbral 7), con un mínimo de 1 ficha fuera
+ * de sitio para que rejillas diminutas (2×2) sigan exigiendo al menos un
+ * movimiento. Escala con el tamaño porque la media también escala (más
+ * celdas → más distancia posible).
+ */
+export function slidingMinDifficultyThreshold(def: SlidingPuzzleDefinition): number {
   const count = slidingCellCount(def);
-  const goal = slidingSolvedTiles(def);
-  if (count <= 1) return goal;
+  if (count <= 1) return 0;
+  const { cols, rows } = def.grid;
+  const averagePerTile = averageAxisDistance(cols) + averageAxisDistance(rows);
+  const averageTotal = averagePerTile * (count - 1);
+  return Math.max(1, Math.floor(averageTotal / 2));
+}
 
-  const random =
-    def.scramble === "fixed_seed" ? createSlidingRng(def.seed ?? 0) : (rng ?? Math.random);
-  const blankTarget =
-    def.blankPosition === "last" ? count - 1 : Math.floor(random() * count) % count;
+/** Tope de reintentos de mezcla aleatoria antes de caer al plan B determinista. */
+const MAX_SCRAMBLE_ATTEMPTS = 25;
 
-  const movable: number[] = [];
-  for (let tile = 1; tile < count; tile += 1) movable.push(tile);
-  shuffleInPlace(movable, random);
+/** Celda del hueco en la mezcla presentada, según `blankPosition`. */
+function pickBlankTarget(def: SlidingPuzzleDefinition, count: number, random: SlidingRng): number {
+  return def.blankPosition === "last" ? count - 1 : Math.floor(random() * count) % count;
+}
 
+/**
+ * Coloca `order` (una permutación de `1..count-1`) en las celdas distintas de
+ * `blankTarget`, en orden row-major, y corrige la paridad con una
+ * transposición si el resultado no fuera alcanzable por movimientos válidos.
+ */
+function buildArrangement(
+  def: SlidingPuzzleDefinition,
+  count: number,
+  blankTarget: number,
+  order: readonly number[],
+): number[] {
   const tiles = new Array<number>(count).fill(0);
   let cursor = 0;
   for (let index = 0; index < count; index += 1) {
     if (index === blankTarget) continue;
-    tiles[index] = movable[cursor] ?? 0;
+    tiles[index] = order[cursor] ?? 0;
     cursor += 1;
   }
 
@@ -340,15 +399,62 @@ function scrambleSlidingTiles(def: SlidingPuzzleDefinition, rng?: SlidingRng): n
     }
   }
 
-  // La reserva puede caer en la propia posición resuelta (probabilidad ínfima,
-  // pero determinista con semilla): un movimiento válido la rompe.
-  if (tilesEqual(tiles, goal)) {
-    const neighbor = slidingNeighborIndices(def.grid, blankTarget)[0];
-    if (neighbor !== undefined) {
-      const held = tiles[blankTarget] as number;
-      tiles[blankTarget] = tiles[neighbor] as number;
-      tiles[neighbor] = held;
-    }
+  return tiles;
+}
+
+/** Una mezcla al azar (Fisher-Yates) sobre las fichas móviles. */
+function randomArrangement(def: SlidingPuzzleDefinition, random: SlidingRng): number[] {
+  const count = slidingCellCount(def);
+  const blankTarget = pickBlankTarget(def, count, random);
+  const movable: number[] = [];
+  for (let tile = 1; tile < count; tile += 1) movable.push(tile);
+  shuffleInPlace(movable, random);
+  return buildArrangement(def, count, blankTarget, movable);
+}
+
+/**
+ * Plan B determinista (specs/06 §2.5): las fichas móviles en orden inverso
+ * (`count-1, …, 1`), la disposición que más se aleja en promedio de la
+ * resuelta. Solo se usa si `MAX_SCRAMBLE_ATTEMPTS` mezclas al azar no
+ * alcanzaron el umbral (en la práctica no debería hacer falta: la media de
+ * una mezcla al azar duplica el umbral).
+ */
+function reversedArrangement(def: SlidingPuzzleDefinition, random: SlidingRng): number[] {
+  const count = slidingCellCount(def);
+  const blankTarget = pickBlankTarget(def, count, random);
+  const movable: number[] = [];
+  for (let tile = count - 1; tile >= 1; tile -= 1) movable.push(tile);
+  return buildArrangement(def, count, blankTarget, movable);
+}
+
+/**
+ * Mezcla resoluble y con dificultad mínima garantizada (specs/06 §2.5): baraja
+ * las fichas, corrige la paridad si hiciera falta y reintenta (avanzando el
+ * mismo `random`, determinista con semilla) mientras la distancia a la
+ * solución (`slidingManhattanDistance`) no llegue al umbral
+ * (`slidingMinDifficultyThreshold`) — así una mezcla "ya resuelta" o "casi
+ * resuelta" por azar nunca llega al jugador. Con `fixed_seed`, la semilla fija
+ * toda la secuencia de reintentos: la misma semilla siempre produce la misma
+ * mezcla final (justicia entre grupos).
+ */
+function scrambleSlidingTiles(def: SlidingPuzzleDefinition, rng?: SlidingRng): number[] {
+  const count = slidingCellCount(def);
+  if (count <= 1) return slidingSolvedTiles(def);
+
+  const random =
+    def.scramble === "fixed_seed" ? createSlidingRng(def.seed ?? 0) : (rng ?? Math.random);
+  const threshold = slidingMinDifficultyThreshold(def);
+
+  let tiles = randomArrangement(def, random);
+  for (
+    let attempt = 1;
+    attempt < MAX_SCRAMBLE_ATTEMPTS && slidingManhattanDistance(tiles, def) < threshold;
+    attempt += 1
+  ) {
+    tiles = randomArrangement(def, random);
+  }
+  if (slidingManhattanDistance(tiles, def) < threshold) {
+    tiles = reversedArrangement(def, random);
   }
 
   return tiles;
@@ -363,8 +469,4 @@ function shuffleInPlace(values: number[], random: SlidingRng): number[] {
     values[j] = held;
   }
   return values;
-}
-
-function tilesEqual(a: number[], b: number[]): boolean {
-  return a.length === b.length && a.every((tile, index) => tile === b[index]);
 }

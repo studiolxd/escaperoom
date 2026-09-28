@@ -9,6 +9,8 @@ import {
   isSlidingPuzzleSolvable,
   move,
   slidingBlankIndex,
+  slidingManhattanDistance,
+  slidingMinDifficultyThreshold,
   slidingMovableIndices,
   slidingNeighborIndices,
   slidingSolvedTiles,
@@ -186,6 +188,75 @@ describe("sliding_puzzle · mezcla determinista", () => {
     const sample = Array.from({ length: 2000 }, (_, i) => (i === 0 ? 0 : i)).reverse();
     expect(countSlidingInversions(sample)).toBe(countInversionsBruteForce(sample));
     expect(inversions).toBeGreaterThan(0);
+  });
+});
+
+describe("sliding_puzzle · dificultad mínima garantizada", () => {
+  const grids = [
+    { cols: 2, rows: 2 },
+    { cols: 3, rows: 3 },
+    { cols: 4, rows: 4 },
+  ];
+
+  it("el umbral escala con el tamaño de la rejilla (3×3 ≈ mitad de la distancia media)", () => {
+    const def2 = makeDef({ grid: { cols: 2, rows: 2 } });
+    const def3 = makeDef({ grid: { cols: 3, rows: 3 } });
+    const def4 = makeDef({ grid: { cols: 4, rows: 4 } });
+    expect(slidingMinDifficultyThreshold(def2)).toBe(1);
+    expect(slidingMinDifficultyThreshold(def3)).toBe(7);
+    expect(slidingMinDifficultyThreshold(def4)).toBe(18);
+  });
+
+  it("toda mezcla `random` (muchas semillas y rejillas) es resoluble y llega al umbral", () => {
+    for (const grid of grids) {
+      const def = makeDef({ grid, scramble: "random" });
+      const threshold = slidingMinDifficultyThreshold(def);
+      for (let seed = 1; seed <= 60; seed += 1) {
+        const state = createSlidingState(def, createSlidingRng(seed));
+        expect(isSlidingArrangementSolvable(state.tiles, def)).toBe(true);
+        expect(slidingManhattanDistance(state.tiles, def)).toBeGreaterThanOrEqual(threshold);
+      }
+    }
+  });
+
+  it("toda mezcla `fixed_seed` (muchas semillas y rejillas) es resoluble y llega al umbral", () => {
+    for (const grid of grids) {
+      for (let seed = 1; seed <= 60; seed += 1) {
+        const def = makeDef({ grid, scramble: "fixed_seed", seed });
+        const state = createSlidingState(def);
+        const threshold = slidingMinDifficultyThreshold(def);
+        expect(isSlidingArrangementSolvable(state.tiles, def)).toBe(true);
+        expect(slidingManhattanDistance(state.tiles, def)).toBeGreaterThanOrEqual(threshold);
+      }
+    }
+  });
+
+  it("`fixed_seed` es determinista: la misma semilla siempre produce la misma mezcla", () => {
+    const def = makeDef({ scramble: "fixed_seed", seed: 4321 });
+    const first = createSlidingState(def);
+    const second = createSlidingState(def);
+    expect(first.tiles).toEqual(second.tiles);
+  });
+
+  it("`random` varía entre partidas (rng distinto)", () => {
+    const def = makeDef({ scramble: "random" });
+    const a = createSlidingState(def, createSlidingRng(1));
+    const b = createSlidingState(def, createSlidingRng(2));
+    expect(a.tiles).not.toEqual(b.tiles);
+  });
+
+  it("el caso que antes salía resuelta (o a 1 movimiento) ahora queda por encima del umbral", () => {
+    // rng constante: sin la garantía de dificultad mínima, `blankTarget` y el
+    // shuffle degeneran y la mezcla puede terminar igual (o casi igual) a la
+    // resuelta; con la garantía, el plan B determinista la aleja del umbral.
+    const constantRng = (): number => 0;
+    const def = makeDef({ scramble: "random" });
+    const state = createSlidingState(def, constantRng);
+    expect(isSlidingPuzzleSolved(state, def)).toBe(false);
+    expect(isSlidingArrangementSolvable(state.tiles, def)).toBe(true);
+    expect(slidingManhattanDistance(state.tiles, def)).toBeGreaterThanOrEqual(
+      slidingMinDifficultyThreshold(def),
+    );
   });
 });
 
