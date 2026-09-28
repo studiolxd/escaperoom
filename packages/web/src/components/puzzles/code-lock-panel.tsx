@@ -85,7 +85,8 @@ export function CodeLockPanel({
   else if (lockedOut) status = t("lockedOut", { seconds });
   else if (view.state === "locked") status = t("locked");
   else if (view.state === "failed") status = t("unavailable");
-  else if (feedback === "wrong") status = t("wrong", { count: view.remainingAttempts });
+  else if (feedback === "wrong")
+    status = view.unlimited ? t("wrongUnlimited") : t("wrong", { count: view.remainingAttempts });
   else if (feedback === "locked_out") status = t("lockedOut", { seconds: view.lockoutSec });
   else if (feedback === "unavailable") status = t("unavailable");
 
@@ -97,7 +98,9 @@ export function CodeLockPanel({
       <header className="flex flex-col gap-0.5">
         <h2 className="text-sm font-medium">{t("title")}</h2>
         <p className="text-xs text-muted-foreground">
-          {t("attempts", { used: view.attempts, max: view.maxAttempts })}
+          {view.unlimited
+            ? t("attemptsUnlimited", { used: view.attempts })
+            : t("attempts", { used: view.attempts, max: view.maxAttempts })}
         </p>
       </header>
 
