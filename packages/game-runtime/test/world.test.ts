@@ -321,7 +321,7 @@ describe("inspección: diálogo por idioma con fallback (specs/04 §4)", () => {
     const model = loadFixtureModel();
     expect(inspectObject(model, "brasero")?.conditioned).toBe(true);
     expect(inspectObject(model, "mural-ranura")?.dialogId).toBe("d-ranura");
-    expect(inspectObject(model, "armario")?.dialogId).toBeUndefined();
+    expect(inspectObject(model, "arca-candado")?.dialogId).toBeUndefined();
   });
 
   it("devuelve el panel asociado a la inspección", () => {
@@ -361,8 +361,8 @@ describe("loader: proyección de inspección sin filtrar secretos", () => {
 
   it("no inventa inspección para objetos sin regla on_interact con diálogo", () => {
     const model = loadFixtureModel();
-    expect(model.objectsById["armario"]?.inspectDialogId).toBeUndefined();
-    expect(model.objectsById["armario"]?.inspectPanelPuzzleId).toBeUndefined();
+    expect(model.objectsById["arca-candado"]?.inspectDialogId).toBeUndefined();
+    expect(model.objectsById["arca-candado"]?.inspectPanelPuzzleId).toBeUndefined();
   });
 
   it("deriva la imagen de inspección de las reglas on_interact + show_image (specs/26 §3.4)", () => {
@@ -372,8 +372,10 @@ describe("loader: proyección de inspección sin filtrar secretos", () => {
       image: "cuadro-reino-4torres",
     });
     expect(model.objectsById["vasijas"]?.inspectImage).toEqual({ image: "vasijas-8" });
-    // Objetos sin `show_image` en su regla no tienen imagen.
-    expect(model.objectsById["armario"]?.inspectImage).toBeUndefined();
+    // El armario ahora sí lleva imagen (ítem 6 de la revisión en vivo,
+    // distractores); un objeto sin `show_image` en su regla sigue sin ella.
+    expect(model.objectsById["armario"]?.inspectImage).toEqual({ image: "armario" });
+    expect(model.objectsById["arca-candado"]?.inspectImage).toBeUndefined();
   });
 
   it("show_image llega también a InspectionResult.image, junto al diálogo", () => {

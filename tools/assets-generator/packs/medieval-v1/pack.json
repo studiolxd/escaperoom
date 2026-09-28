@@ -272,6 +272,46 @@
         "recorte": "alfa"
       },
       {
+        "salida": "objetos/inspeccion/trono.png",
+        "fuente": "entregas/objetos/master/trono.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/armario.png",
+        "fuente": "entregas/objetos/master/armario.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/estatua-caballero.png",
+        "fuente": "entregas/objetos/master/estatua-caballero.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/placa-piedra.png",
+        "fuente": "entregas/objetos/master/placa-piedra.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/compartimento.png",
+        "fuente": "entregas/objetos/master/compartimento.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/barril-suelto.png",
+        "fuente": "entregas/objetos/master/barril-suelto.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/altar-seco.png",
+        "fuente": "entregas/objetos/master/altar-seco.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/sarcofago.png",
+        "fuente": "entregas/objetos/master/sarcofago.png",
+        "recorte": "alfa"
+      },
+      {
         "salida": "objetos/puzles/mural-vendimia-3x3.png",
         "fuente": "fuentes/pared/mural-completo.png",
         "recorte": [

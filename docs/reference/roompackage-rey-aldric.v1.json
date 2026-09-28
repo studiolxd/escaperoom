@@ -2104,6 +2104,10 @@
         {
           "type": "show_dialog",
           "dialogId": "d-sarcofago"
+        },
+        {
+          "type": "show_image",
+          "image": "sarcofago"
         }
       ]
     },
@@ -2219,6 +2223,186 @@
         {
           "type": "play_sound",
           "soundId": "fx-tension"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-trono",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "trono"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-trono"
+        },
+        {
+          "type": "show_image",
+          "image": "trono"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-armario",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "armario"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-armario"
+        },
+        {
+          "type": "show_image",
+          "image": "armario"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-estatua-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "estatua-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-estatua-caballero"
+        },
+        {
+          "type": "show_image",
+          "image": "estatua-caballero"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-estatua-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "estatua-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-estatua-caballero"
+        },
+        {
+          "type": "show_image",
+          "image": "estatua-caballero"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-placa-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "placa-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-placa-piedra"
+        },
+        {
+          "type": "show_image",
+          "image": "placa-piedra"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-placa-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "placa-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-placa-piedra"
+        },
+        {
+          "type": "show_image",
+          "image": "placa-piedra"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-compartimento-plata",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "compartimento-plata"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-compartimento-plata"
+        },
+        {
+          "type": "show_image",
+          "image": "compartimento"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-barril-espejo",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "barril-espejo"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-barril-espejo"
+        },
+        {
+          "type": "show_image",
+          "image": "barril-suelto"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-altar",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "altar"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-altar"
+        },
+        {
+          "type": "show_image",
+          "image": "altar-seco"
         }
       ]
     },
@@ -2341,6 +2525,62 @@
       "text": {
         "es": {
           "text": "La arena casi ha caído. ¡Diez minutos!"
+        }
+      }
+    },
+    {
+      "id": "d-trono",
+      "text": {
+        "es": {
+          "text": "El trono del Rey Aldric, vacío desde hace generaciones. La madera está astillada, pero el escudo tallado en el respaldo sigue intacto."
+        }
+      }
+    },
+    {
+      "id": "d-armario",
+      "text": {
+        "es": {
+          "text": "Un armario de roble cerrado con llave. Por la rendija de la puerta se intuye algo dentro."
+        }
+      }
+    },
+    {
+      "id": "d-estatua-caballero",
+      "text": {
+        "es": {
+          "text": "La estatua de un caballero en guardia, con la espada envainada. El musgo cubre parte de la armadura de piedra."
+        }
+      }
+    },
+    {
+      "id": "d-placa-piedra",
+      "text": {
+        "es": {
+          "text": "Una placa de piedra encajada en el suelo. Parece ceder ligeramente bajo el peso."
+        }
+      }
+    },
+    {
+      "id": "d-compartimento-plata",
+      "text": {
+        "es": {
+          "text": "Un compartimento secreto tallado en la piedra de la bodega, cerrado por ahora."
+        }
+      }
+    },
+    {
+      "id": "d-barril-espejo",
+      "text": {
+        "es": {
+          "text": "Un barril de vino, suelto entre los demás. Algo repiquetea dentro al moverlo."
+        }
+      }
+    },
+    {
+      "id": "d-altar",
+      "text": {
+        "es": {
+          "text": "Un altar de piedra seca, con un canal tallado que serpentea hacia un desagüe."
         }
       }
     }

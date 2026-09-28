@@ -159,14 +159,19 @@ describe("inspeccionar el cuadro dos veces", () => {
 describe("RoomSession.availableActions — menú derivado del motor", () => {
   it("deriva las acciones de las reglas declaradas para el objeto", () => {
     const session = newSession();
-    // El armario solo declara `on_use_item`: el menú ofrece únicamente "Usar objeto…".
-    expect(session.availableActions("armario")).toEqual(["use_item"]);
+    // El armario declara `on_use_item` (la llave) y, desde la revisión en
+    // vivo (distractores, ítem 6), también `on_interact` (describirlo antes
+    // de abrirlo): el menú ofrece las dos.
+    expect(session.availableActions("armario")).toEqual(["use_item", "inspect"]);
     // El cuadro solo declara `on_interact`: el menú ofrece "Inspeccionar".
     expect(session.availableActions("cuadro-aurelio")).toEqual(["inspect"]);
   });
 
   it("cae al set base si el objeto no declara ninguna regla", () => {
     const session = newSession();
-    expect(session.availableActions("trono")).toEqual(["inspect", "use_item"]);
+    // El arca del candado no declara ninguna regla propia: su "Inspeccionar"
+    // abre directamente el panel del candado (`lockedBy`), sin pasar por el
+    // motor de reglas.
+    expect(session.availableActions("arca-candado")).toEqual(["inspect", "use_item"]);
   });
 });

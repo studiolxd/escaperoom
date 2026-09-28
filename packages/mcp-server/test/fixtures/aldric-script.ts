@@ -140,6 +140,15 @@ export function aldricScript(pkg: RoomPackage): {
     rule("r-inspeccionar-retrato-4");
     rule("r-inspeccionar-tapiz-dragones");
     rule("r-revelar-cuadro");
+    // Distractores del ítem 6 (revisión en vivo): objetos puramente
+    // decorativos o sin regla propia hasta ahora, con su Inspeccionar +
+    // imagen — no cambian la ruta crítica.
+    rule("r-inspeccionar-trono");
+    rule("r-inspeccionar-armario");
+    rule("r-inspeccionar-estatua-izq");
+    rule("r-inspeccionar-estatua-der");
+    rule("r-inspeccionar-placa-izq");
+    rule("r-inspeccionar-placa-der");
     rule("r-abrir-armario");
     // La mesa de combinar: de momento solo la receta cuyos ingredientes ya se
     // obtienen (yesquero + vela del armario). La llave de plata y la compuerta
@@ -172,6 +181,9 @@ export function aldricScript(pkg: RoomPackage): {
     rule("r-mural-resuelto");
     rule("r-caliz-en-ranura");
     rule("r-recoger-caliz");
+    // Distractores del ítem 6.
+    rule("r-inspeccionar-compartimento-plata");
+    rule("r-inspeccionar-barril-espejo");
     puzzle("p-copas-memoria");
     object("mesa-catas");
     rule("r-copas-resueltas");
@@ -187,6 +199,8 @@ export function aldricScript(pkg: RoomPackage): {
     rule("r-inspeccionar-sarcofago");
     rule("r-inspeccionar-vasijas");
     rule("r-imagen-vasijas");
+    // Distractor del ítem 6.
+    rule("r-inspeccionar-altar");
     object("compuerta-oro");
     // Ya hay llave de plata (mural) y compuerta: la mesa de combinar completa.
     puzzle("p-combina", true);
