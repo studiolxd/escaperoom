@@ -687,17 +687,30 @@ export class RoomScene extends Phaser.Scene {
    * reintentarlo nunca (el ref que marca "sala ya mostrada" se actualizaba
    * ANTES de comprobar si la llamada había funcionado).
    */
-  setRoom(roomId: string): void {
+  /**
+   * `onBuilt`, si se da, se llama justo cuando la sala nueva ya está
+   * reconstruida (antes del `fadeIn` de cámara, que es solo cosmético) —
+   * `useSceneSync` lo usa para saber cuándo ha dejado de verse la sala
+   * ANTERIOR en pantalla (revisión en vivo: al pulsar "Continuar" en la
+   * intro, se veía un instante la sala de espera todavía, porque antes se
+   * daba la sala por "lista" nada más LLAMAR a `setRoom`, no cuando de
+   * verdad terminaba de reconstruirse). Si la sala pedida ya es la activa,
+   * o la escena aún no está construida (primera vez), se llama enseguida:
+   * no hay fundido que esperar.
+   */
+  setRoom(roomId: string, onBuilt?: () => void): void {
     if (!this.model.subroomsById[roomId]) {
       console.error(`RoomScene: la habitación "${roomId}" no existe en el modelo.`);
       return;
     }
     if (roomId === this.activeRoomId && this.built) {
+      onBuilt?.();
       return;
     }
 
     this.activeRoomId = roomId;
     if (!this.built) {
+      onBuilt?.();
       return;
     }
 
@@ -705,6 +718,7 @@ export class RoomScene extends Phaser.Scene {
     const camera = this.cameras.main;
     camera.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
       this.buildRoom();
+      onBuilt?.();
       camera.fadeIn(200, 11, 17, 32);
       this.transitioning = false;
     });

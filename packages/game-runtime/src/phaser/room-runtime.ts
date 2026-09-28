@@ -88,9 +88,9 @@ export class RoomRuntime {
     return this.scene.currentRoomId;
   }
 
-  /** Cambia la habitación activa con un fundido. */
-  showRoom(roomId: string): void {
-    this.scene.setRoom(roomId);
+  /** Cambia la habitación activa con un fundido. `onBuilt`: ver `RoomScene.setRoom`. */
+  showRoom(roomId: string, onBuilt?: () => void): void {
+    this.scene.setRoom(roomId, onBuilt);
   }
 
   /** Recoloca el avatar local en la posición autoritativa del servidor. */

@@ -42,13 +42,22 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
   const serverRoomRef = useRef<string | null>(null);
   const appliedObjectsRef = useRef<Record<string, string>>({});
   /**
-   * `true` cuando la escena ya muestra la sala real del jugador (no el
-   * placeholder inicial). El fundido de entrada (`EntryFade`) se queda
+   * `true` cuando la escena ya terminó de reconstruir la sala real del
+   * jugador (revisión en vivo). El fundido de entrada (`EntryFade`) se queda
    * montado hasta que esto pasa a `true`, para no dejar ver un frame de la
-   * sala equivocada entre el fin del fundido de React y el propio fundido de
-   * cámara de Phaser (`RoomScene.setRoom`).
+   * sala ANTERIOR (la de la sala de espera: el jugador ya tiene ahí un
+   * `roomId`/posición reales, no un placeholder, así que este paso a `true`
+   * puede ocurrir mucho antes de entrar al mapa) mientras dura el fundido de
+   * cámara de `RoomScene.setRoom` (~340ms) al cruzar a la sala real.
+   *
+   * Solo protege esa PRIMERA entrada: `enteredMapRef` hace que, para cruces
+   * de sala posteriores (puertas dentro de la partida), `roomReady` se quede
+   * en `true` sin más — esas transiciones ya las cubre el propio fundido de
+   * cámara de Phaser, sin `EntryFade` de por medio, y taparlas con un fundido
+   * de React aparte sería una regresión (una sala nueva de golpe cada vez).
    */
   const [roomReady, setRoomReady] = useState(false);
+  const enteredMapRef = useRef(false);
 
   // Objetos: aplica cualquier estado nuevo (también al unirse a mitad de partida).
   useEffect(() => {
@@ -98,9 +107,12 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
       // partida en marcha. Al no depender de `serverRoomRef` (abajo), sigue
       // reintentando en cada movimiento posterior hasta que funcione.
       try {
-        handle.showRoom(selfRoom);
+        if (!enteredMapRef.current) setRoomReady(false);
+        handle.showRoom(selfRoom, () => {
+          enteredMapRef.current = true;
+          setRoomReady(true);
+        });
         sceneRoomRef.current = selfRoom;
-        setRoomReady(true);
       } catch (err) {
         console.error(
           `useSceneSync: no se pudo mostrar la sala "${selfRoom}" (seguía en "${sceneRoomRef.current}")`,

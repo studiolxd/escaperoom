@@ -12,7 +12,8 @@ import { BACKGROUND_HEX, isDarkThemeActive } from "@/lib/theme";
 
 /** Handle imperativo del canvas para que el shell refleje el estado del servidor. */
 export interface GameSessionCanvasHandle {
-  showRoom(roomId: string): void;
+  /** `onBuilt`, si se da, se llama cuando la sala nueva ya está reconstruida (ver `RoomScene.setRoom`). */
+  showRoom(roomId: string, onBuilt?: () => void): void;
   placeAvatar(x: number, y: number): void;
   avatarCell(): { x: number; y: number } | undefined;
   setObjectState(objectId: string, state: string): void;
@@ -70,7 +71,7 @@ export default function GameSessionCanvas({
     runtimeRef.current = runtime;
     const off = runtime.onWorldEvent((event) => onEventRef.current(event));
     onReadyRef.current?.({
-      showRoom: (next) => runtime.showRoom(next),
+      showRoom: (next, onBuilt) => runtime.showRoom(next, onBuilt),
       placeAvatar: (x, y) => runtime.placeAvatar(x, y),
       avatarCell: () => runtime.avatarCell,
       setObjectState: (objectId, state) => runtime.setObjectState(objectId, state),
