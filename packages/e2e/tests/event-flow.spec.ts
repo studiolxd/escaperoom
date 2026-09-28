@@ -115,7 +115,6 @@ test("evento: claves en lote, PDF, canje sin cuenta y progreso en el panel del o
     await player.markReady();
     await player.page.getByTestId("game-start").click();
     await player.enterMapAfterStart();
-    await player.closeDialog();
     await player.dismissDialogsWhenBlocking();
     await player.inspect("cuadro-aurelio");
     await player.expectItems("Llave de bronce");
