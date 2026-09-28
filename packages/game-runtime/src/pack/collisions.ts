@@ -29,9 +29,9 @@ export interface CollisionGrid {
   isWalkable(tx: number, ty: number): boolean;
 }
 
-/** Objeto sólido por defecto: todo menos las puertas (`leadsTo`). */
+/** Objeto sólido por defecto: todo menos las puertas (`leadsTo`) y las placas que se pisan. */
 export function defaultObjectBlocks(object: RuntimeObject): boolean {
-  return object.type !== "puerta" && !object.leadsTo;
+  return object.type !== "puerta" && !object.leadsTo && !object.stepOn;
 }
 
 /** Construye la rejilla de colisión de una `SubRoom` a partir del manifiesto. */

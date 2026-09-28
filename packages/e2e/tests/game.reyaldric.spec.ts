@@ -71,13 +71,13 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
     // Inspeccionar el cuadro revela la llave en el suelo (pickupObjectId);
     // hay que inspeccionarla aparte para recogerla.
     await a.inspect("cuadro-aurelio");
-    await a.inspect("llave-bronce-suelo");
+    await a.pickUp("llave-bronce-suelo");
     await a.expectItems("Llave de bronce");
     // 2. Abrir el armario revela el yesquero y la antorcha apagada en el
     // suelo (recogida diferida, revisión en vivo) — hay que recogerlos.
     await a.useItemOn("armario", "Llave de bronce");
-    await a.inspect("yesquero-suelo");
-    await a.inspect("antorcha-apagada-suelo");
+    await a.pickUp("yesquero-suelo");
+    await a.pickUp("antorcha-apagada-suelo");
     await a.expectItems("Yesquero", "Antorcha apagada");
     // 3. Combinar yesquero + antorcha apagada → antorcha
     await a.combine(["Yesquero", "Antorcha apagada"], "Antorcha encendida");
@@ -87,14 +87,12 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
     await a.openPanel("arca-candado");
     await a.typeCode("4732");
     await a.expectItems("Cáliz real", "Pergamino de los vinos");
-    // 6. Placas simultáneas: cada jugador abre el panel desde SU placa (no
-    // desde la puerta — revisión en vivo: la puerta ya no revela el
-    // mecanismo que la desbloquea, solo se describe a sí misma) → puerta de
-    // la bodega.
-    await a.openPanel("placa-izq");
-    await b.openPanel("placa-der");
-    await a.page.getByRole("button", { name: "Placa placa-izq" }).click();
-    await b.page.getByRole("button", { name: "Placa placa-der" }).click();
+    // 6. Placas simultáneas: se accionan de pie, sin panel ni botones —
+    // cada jugador se sube a SU placa y, con las dos pisadas a la vez, se
+    // abre la puerta de la bodega.
+    await a.standOn("placa-izq");
+    await b.standOn("placa-der");
+    await a.expectSolvedAtLeast(3);
     for (const player of [a, b]) {
       await player.goTo("puerta-bodega");
     }

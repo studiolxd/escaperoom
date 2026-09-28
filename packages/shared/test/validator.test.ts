@@ -506,3 +506,16 @@ describe("validador — huérfanos, reglas y referencias", () => {
     expect(report.solvability[0]).toMatchObject({ playerCount: 1, solvable: true });
   });
 });
+
+describe("validador — coste de la búsqueda con muchos señuelos", () => {
+  it("las reglas de inspección con imagen no multiplican los estados del BFS", () => {
+    const report = validateRoomPackage(reyAldric);
+    // Los ~25 señuelos decorativos (diálogo + imagen, sin efecto) no deben
+    // añadir estados: `show_image` es presentación pura, como `show_dialog`.
+    // Contarlos como cambio de estado llegó a encarecer la validación ~10×.
+    for (const result of report.solvability) {
+      expect(result.exploredStates).toBeLessThan(600);
+    }
+  });
+});
+

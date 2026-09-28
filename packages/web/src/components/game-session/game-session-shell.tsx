@@ -134,6 +134,7 @@ export function GameSessionShell({
   useEffect(() => {
     window.__escaperoomGame = {
       getObjectScreenFraction: (objectId) => handleRef.current?.getObjectScreenFraction(objectId),
+      isObjectInteractive: (objectId) => handleRef.current?.isObjectInteractive(objectId) ?? false,
     };
     return () => {
       delete window.__escaperoomGame;
@@ -611,6 +612,7 @@ declare global {
      */
     __escaperoomGame?: {
       getObjectScreenFraction: (objectId: string) => { x: number; y: number } | undefined;
+      isObjectInteractive: (objectId: string) => boolean;
     };
   }
 }

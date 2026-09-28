@@ -129,6 +129,12 @@ export interface RuntimeObject {
    * el inventario, que ya funcionaba (p. ej. la antorcha sobre el brasero).
    */
   useItemIds?: string[];
+  /**
+   * `true` si el objeto es una placa de presión (`simultaneous_plates`): se
+   * pisa, así que NO bloquea el paso, y al clicarla el avatar camina hasta
+   * quedarse encima (el servidor la activa mientras alguien esté en su celda).
+   */
+  stepOn?: boolean;
 }
 
 export interface RuntimeItem {

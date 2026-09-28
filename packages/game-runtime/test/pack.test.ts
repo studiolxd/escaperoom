@@ -334,39 +334,49 @@ describe("moveWithCollision (paso continuo con colisión por celda)", () => {
     return buildCollisionGrid(salon, { manifest: buildPlaceholderManifest(model) });
   }
 
-  it("sale andando de una placa sólida sobre la que el panel colocó al avatar (pasos de 60 fps)", () => {
+  it("las placas de presión se pisan: no bloquean el paso", () => {
     const grid = salonGrid();
-    // placa-izq (6,11): objeto sólido, pero el botón "Placa" lleva al avatar encima.
-    expect(grid.blocks(6, 11)).toBe(true);
-    let position = { x: 6, y: 11 };
+    // placa-izq (6,11) y placa-der (14,11): se accionan de pie.
+    expect(grid.blocks(6, 11)).toBe(false);
+    expect(grid.blocks(14, 11)).toBe(false);
+    // Una estatua (7,3), en cambio, sí es sólida.
+    expect(grid.blocks(7, 3)).toBe(true);
+  });
+
+  it("sale andando de una celda sólida sobre la que se colocó al avatar (pasos de 60 fps)", () => {
+    const grid = salonGrid();
+    // estatua-izq (7,3): objeto sólido, pero un avatar colocado encima ha de poder salir.
+    expect(grid.blocks(7, 3)).toBe(true);
+    let position = { x: 7, y: 3 };
     // 4 celdas/s a 60 fps ≈ 0,067 celdas por frame: 15 frames, una celda en diagonal.
     for (let frame = 0; frame < 15; frame += 1) {
       position = moveWithCollision(grid, position, 0.067, 0.067);
     }
-    expect(Math.round(position.x)).toBe(7);
-    expect(Math.round(position.y)).toBe(12);
+    expect(Math.round(position.x)).toBe(8);
+    expect(Math.round(position.y)).toBe(4);
   });
 
   it("no deja entrar en una celda sólida desde fuera", () => {
     const grid = salonGrid();
-    let position = { x: 5, y: 11 };
+    let position = { x: 6, y: 3 };
     for (let frame = 0; frame < 30; frame += 1) {
       position = moveWithCollision(grid, position, 0.067, 0);
     }
-    // Llega hasta el borde de su celda (5,11) sin pisar la placa en (6,11).
-    expect(Math.round(position.x)).toBe(5);
-    expect(position.x).toBeLessThan(5.5);
+    // Llega hasta el borde de su celda (6,3) sin pisar la estatua en (7,3).
+    expect(Math.round(position.x)).toBe(6);
+    expect(position.x).toBeLessThan(6.5);
   });
 
   it("se desliza a lo largo de un obstáculo por el eje libre", () => {
     const grid = salonGrid();
-    const position = moveWithCollision(grid, { x: 5.45, y: 10 }, 0.1, 0.1);
-    // X entraría en (6,10)? libre → avanza; Y a (…,10.1) sigue en su fila.
-    expect(position).toEqual({ x: 5.55, y: 10.1 });
-    const blocked = moveWithCollision(grid, { x: 5.45, y: 11 }, 0.1, 0.1);
-    // X entraría en la placa (6,11): se queda; Y avanza.
-    expect(blocked.x).toBe(5.45);
-    expect(blocked.y).toBeCloseTo(11.1);
+    const position = moveWithCollision(grid, { x: 6.45, y: 2 }, 0.1, 0.1);
+    // X entraría en (7,2)? libre → avanza; Y a (…,2.1) sigue en su fila.
+    expect(position.x).toBeCloseTo(6.55);
+    expect(position.y).toBeCloseTo(2.1);
+    const blocked = moveWithCollision(grid, { x: 6.45, y: 3 }, 0.1, 0.1);
+    // X entraría en la estatua (7,3): se queda; Y avanza.
+    expect(blocked.x).toBe(6.45);
+    expect(blocked.y).toBeCloseTo(3.1);
   });
 
   it("no sale de los límites de la rejilla", () => {

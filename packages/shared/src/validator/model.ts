@@ -35,6 +35,10 @@ import type { RouteStepKind } from "./types";
 /** Acciones que no alteran el estado de juego (solo narrativa/presentación). */
 const NARRATIVE_ACTIONS = new Set<RuleAction["type"]>([
   "show_dialog",
+  // Presentación pura, como el diálogo: sin este, cada regla de inspección
+  // `once` con imagen contaba como cambio de estado y multiplicaba los
+  // estados distintos del BFS (un decorativo con diálogo+imagen = un bit más).
+  "show_image",
   "play_sound",
   "spawn_effect",
   "open_panel_puzzle",
@@ -785,6 +789,43 @@ export function startGame(index: RoomIndex, state: ModelState): void {
 }
 
 /** Movimientos candidatos en el estado (orden determinista). */
+const inertInteractCache = new WeakMap<RoomIndex, Set<string>>();
+
+/**
+ * Objetos cuyo `interact` no puede cambiar el modelo: todas sus reglas
+ * `on_interact` son puramente narrativas (diálogo, imagen, sonido), no gastan
+ * ningún ítem al comprobar sus condiciones y el objeto no reparte nada ni es
+ * un escondite. Es el caso de los señuelos decorativos: sin este filtro cada
+ * uno añade un movimiento por estado a la búsqueda (clonar, aplicar, calcular
+ * la clave) que siempre acaba en un estado ya visitado, y el BFS se encarece
+ * con cada decorativo nuevo.
+ */
+function inertInteractObjects(index: RoomIndex): Set<string> {
+  const cached = inertInteractCache.get(index);
+  if (cached) return cached;
+  const rulesByObject = new Map<string, Rule[]>();
+  for (const rule of index.rules) {
+    if (rule.trigger.type !== "on_interact") continue;
+    const list = rulesByObject.get(rule.trigger.objectId) ?? [];
+    list.push(rule);
+    rulesByObject.set(rule.trigger.objectId, list);
+  }
+  const inert = new Set<string>();
+  for (const [objectId, rules] of rulesByObject) {
+    const object = index.objects.get(objectId);
+    if (!object || index.hiddenKeyByObject.has(objectId) || objectGrants(index, object).length > 0) {
+      continue;
+    }
+    const spends = (rule: Rule) =>
+      (rule.conditions ?? []).some(
+        (condition) => condition.type === "item_in_inventory" && condition.consumed,
+      );
+    if (rules.every((rule) => isNarrativeRule(index, rule) && !spends(rule))) inert.add(objectId);
+  }
+  inertInteractCache.set(index, inert);
+  return inert;
+}
+
 export function candidateMoves(index: RoomIndex, state: ModelState): Move[] {
   const moves: Move[] = [];
   if (state.terminal) return moves;
@@ -802,6 +843,7 @@ export function candidateMoves(index: RoomIndex, state: ModelState): Move[] {
 
   const seenUse = new Set<string>();
   const seenInteract = new Set<string>();
+  const inert = inertInteractObjects(index);
   for (const rule of index.rules) {
     const trigger = rule.trigger;
     if (trigger.type === "on_use_item") {
@@ -810,7 +852,7 @@ export function candidateMoves(index: RoomIndex, state: ModelState): Move[] {
       seenUse.add(key);
       moves.push({ kind: "use_item", objectId: trigger.objectId, itemId: trigger.itemId });
     } else if (trigger.type === "on_interact") {
-      if (seenInteract.has(trigger.objectId)) continue;
+      if (seenInteract.has(trigger.objectId) || inert.has(trigger.objectId)) continue;
       seenInteract.add(trigger.objectId);
       moves.push({ kind: "interact", objectId: trigger.objectId });
     } else if (trigger.type === "on_all_players_in_zone") {

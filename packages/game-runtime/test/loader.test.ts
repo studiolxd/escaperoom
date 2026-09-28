@@ -93,6 +93,13 @@ describe("toRuntimeModel", () => {
     expect(model.objects).toHaveLength(55);
   });
 
+  it("marca como `stepOn` las placas de presión (y solo ellas)", () => {
+    const model = toRuntimeModel(loadValidPackage());
+    expect(model.objectsById["placa-izq"]?.stepOn).toBe(true);
+    expect(model.objectsById["placa-der"]?.stepOn).toBe(true);
+    expect(model.objectsById["brasero"]?.stepOn).toBeUndefined();
+  });
+
   it("resuelve el sprite del estado inicial y el mapa estado→sprite", () => {
     const model = toRuntimeModel(loadValidPackage());
     const cuadro = model.objectsById["cuadro-aurelio"];

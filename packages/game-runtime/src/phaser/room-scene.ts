@@ -1044,6 +1044,23 @@ export class RoomScene extends Phaser.Scene {
       this.clearHover(object.id);
       return;
     }
+    // Phaser conserva el área de clic (el rectángulo del frame) mientras el
+    // objeto siga siendo interactivo: si un cambio de estado cambia el frame
+    // (una puerta que se abre, un armario), el área quedaba con el tamaño del
+    // frame anterior. Se ajusta al frame actual en el sitio — recrearla con
+    // `removeInteractive` + `setInteractive` en el mismo tick no vale: Phaser
+    // retira los objetos en la cola del siguiente frame y se llevaría por
+    // delante también la zona recién creada.
+    const input = sprite.input;
+    if (input) {
+      const area = input.hitArea as { x: number; y: number; width: number; height: number };
+      area.x = 0;
+      area.y = 0;
+      area.width = sprite.width;
+      area.height = sprite.height;
+      input.enabled = true;
+      return;
+    }
     sprite.setInteractive({ pixelPerfect: true, alphaTolerance: 1 });
   }
 
@@ -1057,9 +1074,15 @@ export class RoomScene extends Phaser.Scene {
     if (!object || !object.interactable || !this.avatar) {
       return;
     }
-    const target = approachCell(object.position, this.avatar.gridCell, (x, y) =>
-      this.collision.isWalkable(x, y),
-    );
+    // Una placa de presión se pisa: el destino es su propia celda, no una
+    // contigua (el servidor la activa mientras alguien esté encima).
+    const ownCell = { x: Math.round(object.position.x), y: Math.round(object.position.y) };
+    const target =
+      object.stepOn && this.collision.isWalkable(ownCell.x, ownCell.y)
+        ? ownCell
+        : approachCell(object.position, this.avatar.gridCell, (x, y) =>
+            this.collision.isWalkable(x, y),
+          );
     const path =
       target &&
       findPath(this.avatar.gridCell, target, (x, y) => this.collision.isWalkable(x, y));
@@ -1092,7 +1115,7 @@ export class RoomScene extends Phaser.Scene {
     }
     const cell = this.avatar.gridCell;
     const distance = Math.hypot(object.position.x - cell.x, object.position.y - cell.y);
-    if (distance <= 1.75) {
+    if (distance <= (object.stepOn ? 0.35 : 1.75)) {
       this.pendingObjectId = undefined;
       this.path = [];
       const itemId = this.pendingItemId;
@@ -1288,6 +1311,11 @@ export class RoomScene extends Phaser.Scene {
    * ya que no hay lista de botones por objeto en la partida real).
    * `undefined` si el objeto no está en la sala visible.
    */
+  /** ¿Responde ahora al clic? (visible y con zona de clic activa; E2E). */
+  isObjectInteractive(objectId: string): boolean {
+    return this.objectViews.get(objectId)?.sprite.input?.enabled === true;
+  }
+
   getObjectScreenFraction(objectId: string): { x: number; y: number } | undefined {
     const view = this.objectViews.get(objectId);
     if (!view) {
@@ -1296,10 +1324,78 @@ export class RoomScene extends Phaser.Scene {
     const sprite = view.sprite;
     const camera = this.cameras.main;
     const worldView = camera.worldView;
-    return {
-      x: (sprite.x - worldView.x) / worldView.width,
-      y: (sprite.y - worldView.y) / worldView.height,
-    };
+    const toFraction = (worldX: number, worldY: number) => ({
+      x: (worldX - worldView.x) / worldView.width,
+      y: (worldY - worldView.y) / worldView.height,
+    });
+
+    // El clic real usa el hit-test por píxel (`pixelPerfect`), así que el
+    // punto devuelto tiene que caer en un píxel OPACO del sprite y donde este
+    // sea el objeto de más arriba: el ancla (`sprite.x/y`) de un cuadro de
+    // pared o de un objeto alto cae en un píxel transparente, o bajo otro
+    // objeto, y el clic no activaba nada. Se prueba con el mismo hit-test de
+    // Phaser, empezando por el centro visible del sprite.
+    if (sprite.input?.enabled) {
+      const bounds = sprite.getBounds();
+      const step = Math.max(2, Math.min(bounds.width, bounds.height) / 24);
+      const cx = bounds.centerX;
+      const cy = bounds.centerY;
+      const candidates: { x: number; y: number; d: number }[] = [];
+      for (let y = bounds.top + step / 2; y < bounds.bottom; y += step) {
+        for (let x = bounds.left + step / 2; x < bounds.right; x += step) {
+          if (x < worldView.x || x > worldView.right || y < worldView.y || y > worldView.bottom) {
+            continue;
+          }
+          candidates.push({ x, y, d: (x - cx) ** 2 + (y - cy) ** 2 });
+        }
+      }
+      candidates.sort((a, b) => a.d - b.d);
+      const interactive = [...this.objectViews.values()]
+        .map((candidate) => candidate.sprite)
+        .filter((candidate) => candidate.input?.enabled);
+      const isTopmostAt = (worldX: number, worldY: number): boolean => {
+        const at = toFraction(worldX, worldY);
+        const pointer = { x: at.x * camera.width, y: at.y * camera.height };
+        const hits = this.input.manager.hitTest(
+          pointer as unknown as Phaser.Input.Pointer,
+          interactive,
+          camera,
+          [],
+        );
+        if (hits.length === 0) {
+          return false;
+        }
+        const top = hits.reduce((best, hit) =>
+          hit.depth > best.depth ||
+          (hit.depth === best.depth && this.children.getIndex(hit) > this.children.getIndex(best))
+            ? hit
+            : best,
+        );
+        return top === sprite;
+      };
+      // Un punto en el borde del dibujo (antialias, alfa mínimo) puede ser
+      // "opaco" para esta prueba y no para el clic real: se exige además que
+      // los cuatro vecinos, a unos píxeles, también lo sean (punto interior).
+      const margin = Math.max(3, step);
+      for (const candidate of candidates) {
+        if (
+          isTopmostAt(candidate.x, candidate.y) &&
+          isTopmostAt(candidate.x - margin, candidate.y) &&
+          isTopmostAt(candidate.x + margin, candidate.y) &&
+          isTopmostAt(candidate.x, candidate.y - margin) &&
+          isTopmostAt(candidate.x, candidate.y + margin)
+        ) {
+          return toFraction(candidate.x, candidate.y);
+        }
+      }
+      // Sprite muy fino (sin punto interior): el más cercano al centro que valga.
+      for (const candidate of candidates) {
+        if (isTopmostAt(candidate.x, candidate.y)) {
+          return toFraction(candidate.x, candidate.y);
+        }
+      }
+    }
+    return toFraction(sprite.x, sprite.y);
   }
 
   /** Inspecciona un objeto: diálogo, reparto de inventario y panel asociado. */

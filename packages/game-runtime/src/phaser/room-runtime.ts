@@ -134,6 +134,10 @@ export class RoomRuntime {
   }
 
   /** Posición en pantalla (fracción 0–1 del lienzo) de un objeto interactuable, o `undefined`. */
+  isObjectInteractive(objectId: string): boolean {
+    return this.scene.isObjectInteractive(objectId);
+  }
+
   getObjectScreenFraction(objectId: string): { x: number; y: number } | undefined {
     return this.scene.getObjectScreenFraction(objectId);
   }

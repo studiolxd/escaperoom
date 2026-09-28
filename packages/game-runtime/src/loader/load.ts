@@ -131,6 +131,11 @@ export function toRuntimeModel(
     dialogTextById[dialog.id] = resolveLocalizedText(dialog.text, locale);
   }
 
+  const plateObjectIds = new Set(
+    roomPackage.puzzles.flatMap((puzzle) =>
+      puzzle.type === "simultaneous_plates" ? puzzle.plates.map((plate) => plate.objectId) : [],
+    ),
+  );
   for (const object of roomPackage.objects) {
     const room = subroomsById[object.roomId];
     if (!room) {
@@ -168,6 +173,7 @@ export function toRuntimeModel(
           ? ["pickup"]
           : ["inspect", "use_item"],
     };
+    if (plateObjectIds.has(object.id)) runtimeObject.stepOn = true;
     const panelPuzzleId = panelForObject(roomPackage, object);
     if (panelPuzzleId) runtimeObject.panelPuzzleId = panelPuzzleId;
     const useItemIds = useItemIdsForObject(roomPackage, object.id);

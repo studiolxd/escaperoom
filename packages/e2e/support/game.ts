@@ -19,6 +19,7 @@ declare global {
     /** Expuesto por `GameSessionShell` solo para E2E — ver `clickObjectOnCanvas`. */
     __escaperoomGame?: {
       getObjectScreenFraction: (objectId: string) => { x: number; y: number } | undefined;
+      isObjectInteractive: (objectId: string) => boolean;
     };
   }
 }
@@ -159,12 +160,19 @@ export class UiPlayer {
    * pantalla. Reintenta mientras el objeto no esté en la sala visible
    * (p. ej. justo tras cruzar a otra sala).
    */
-  private async clickObjectOnCanvas(objectId: string): Promise<void> {
+  private async clickObjectOnCanvas(objectId: string, waitInteractive = true): Promise<void> {
     const canvas = this.page.locator("canvas").first();
     await expect(canvas).toBeVisible();
+    // Espera a que el objeto responda al clic: un objeto recién revelado (la
+    // llave tras inspeccionar el cuadro) llega por el servidor un instante
+    // después, y mientras está oculto no tiene zona de clic ni un punto
+    // opaco donde clicar.
     const fraction = await this.page.waitForFunction(
-      (id) => window.__escaperoomGame?.getObjectScreenFraction(id) ?? null,
-      objectId,
+      ([id, interactive]) =>
+        (interactive && !window.__escaperoomGame?.isObjectInteractive(id as string)
+          ? null
+          : window.__escaperoomGame?.getObjectScreenFraction(id as string)) ?? null,
+      [objectId, waitInteractive] as const,
       { timeout: 15_000 },
     );
     const point = (await fraction.jsonValue()) as { x: number; y: number };
@@ -197,7 +205,7 @@ export class UiPlayer {
    * zona de clic se desactiva mientras esté oculto (revisión en vivo).
    */
   async expectNotInteractable(objectId: string): Promise<void> {
-    await this.clickObjectOnCanvas(objectId);
+    await this.clickObjectOnCanvas(objectId, false);
     await expect(this.page.getByRole("button", { name: "Cancelar", exact: true })).not.toBeVisible({
       timeout: 2_000,
     });
@@ -205,6 +213,28 @@ export class UiPlayer {
 
   async inspect(objectId: string): Promise<void> {
     await this.objectAction(objectId, "Inspeccionar");
+  }
+
+  /**
+   * Se sube a una placa de presión (`simultaneous_plates`): clic en la placa →
+   * el avatar camina hasta quedar sobre su celda y se abre su menú, que se
+   * cierra con «Cancelar» sin moverse (la placa se acciona mientras alguien
+   * esté encima, sin botones ni panel).
+   */
+  async standOn(objectId: string): Promise<void> {
+    await this.clickObjectOnCanvas(objectId);
+    const cancel = this.page.getByRole("button", { name: "Cancelar", exact: true });
+    await expect(cancel).toBeVisible();
+    await cancel.click();
+  }
+
+  /**
+   * Recoge un objeto caído en el suelo (la llave del cuadro, el yesquero, la
+   * antorcha apagada): su menú ofrece solo «Recoger» + «Cancelar», sin
+   * «Inspeccionar» ni «Usar objeto».
+   */
+  async pickUp(objectId: string): Promise<void> {
+    await this.objectAction(objectId, "Recoger");
   }
 
   /**
