@@ -548,7 +548,7 @@ export function GameSessionShell({
         view={hud.combineView}
         onCombine={hud.combine}
         feedback={hud.combineFeedback}
-        renderIcon={(itemId) => hud.renderItemIcon(itemId)}
+        renderIcon={(itemId) => hud.renderItemIcon(itemId, 48)}
         inventoryLabel={hud.tp("inventory")}
         dragHintLabel={hud.tp("menu.dragHint")}
         loadingLabel={hud.t("hud.loadingPanel")}

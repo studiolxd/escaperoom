@@ -155,9 +155,10 @@ export function aldricScript(pkg: RoomPackage): {
     rule("r-inspeccionar-armario");
     rule("r-inspeccionar-estatua-izq");
     rule("r-inspeccionar-estatua-der");
-    // Las placas NO llevan diálogo/imagen propios: al inspeccionarlas abren
-    // directamente el panel de `p-placas-estatuas` (son su propio mecanismo,
-    // revisión en vivo) — con ambas cosas a la vez se solapaban.
+    // Las placas ya no abren panel al inspeccionarlas (revisión en vivo: se
+    // accionan de pie, sin botones que pulsar) — solo describen la placa.
+    rule("r-inspeccionar-placa-izq");
+    rule("r-inspeccionar-placa-der");
     rule("r-abrir-armario");
     // Recogida diferida (mismo patrón que la llave del cuadro): abrir el
     // armario solo revela el yesquero y la antorcha apagada en el suelo —

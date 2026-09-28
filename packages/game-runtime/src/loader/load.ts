@@ -181,6 +181,7 @@ export function toRuntimeModel(
     id: item.id,
     name: resolveLocalizedText(item.name, locale),
     icon: item.icon,
+    ...(item.content ? { content: resolveLocalizedText(item.content, locale) } : {}),
   }));
 
   const dialogs: RuntimeDialog[] = roomPackage.dialogs.map((dialog) => ({
@@ -333,16 +334,16 @@ function panelForObject(roomPackage: RoomPackage, object: WorldObject): string |
     // real — la puerta/reja solo debe describirse (diálogo + imagen).
     return locking?.layer === "panel" ? object.lockedBy : undefined;
   }
-  // El objeto que ES el mecanismo espacial (la mirilla de un `split_clue`, la
-  // placa de un `simultaneous_plates`) sí abre el panel al inspeccionarlo —
-  // a diferencia de la puerta/reja que bloquea (rama de arriba): es su
-  // propia interfaz, no revela dónde está el mecanismo de otro objeto.
+  // El objeto que ES el mecanismo espacial (la mirilla de un `split_clue`) sí
+  // abre el panel al inspeccionarlo — a diferencia de la puerta/reja que
+  // bloquea (rama de arriba): es su propia interfaz, no revela dónde está el
+  // mecanismo de otro objeto. Las placas de `simultaneous_plates` (revisión
+  // en vivo) ya NO abren panel: se accionan de pie, sin botones que pulsar —
+  // inspeccionarlas solo describe la placa (dialog+image normales).
   return roomPackage.puzzles.find(
     (puzzle) =>
-      (puzzle.type === "split_clue" &&
-        puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === object.id)) ||
-      (puzzle.type === "simultaneous_plates" &&
-        puzzle.plates.some((plate) => plate.objectId === object.id)),
+      puzzle.type === "split_clue" &&
+      puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === object.id),
   )?.id;
 }
 

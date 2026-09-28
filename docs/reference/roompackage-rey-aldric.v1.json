@@ -1020,7 +1020,7 @@
       "id": "placa-izq",
       "name": {
         "es": {
-          "text": "La placa de piedra (izquierda)"
+          "text": "Placa de piedra"
         }
       },
       "roomId": "salon-trono",
@@ -1041,7 +1041,7 @@
       "id": "placa-der",
       "name": {
         "es": {
-          "text": "La placa de piedra (derecha)"
+          "text": "Placa de piedra"
         }
       },
       "roomId": "salon-trono",
@@ -1488,7 +1488,12 @@
           "text": "Pergamino de los vinos"
         }
       },
-      "icon": "icon-pergamino"
+      "icon": "icon-pergamino",
+      "content": {
+        "es": {
+          "text": "La uva con la uva, el sol con el sol, la llave con la llave."
+        }
+      }
     }
   ],
   "puzzles": [
@@ -2128,6 +2133,46 @@
         {
           "type": "show_image",
           "image": "puerta-cerrada"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-placa-izq",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "placa-izq"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-placa-piedra"
+        },
+        {
+          "type": "show_image",
+          "image": "placa-arriba"
+        }
+      ]
+    },
+    {
+      "id": "r-inspeccionar-placa-der",
+      "priority": 0,
+      "once": false,
+      "trigger": {
+        "type": "on_interact",
+        "objectId": "placa-der"
+      },
+      "conditions": [],
+      "actions": [
+        {
+          "type": "show_dialog",
+          "dialogId": "d-placa-piedra"
+        },
+        {
+          "type": "show_image",
+          "image": "placa-arriba"
         }
       ]
     },
@@ -2835,6 +2880,14 @@
       "text": {
         "es": {
           "text": "Recoges la antorcha apagada del suelo."
+        }
+      }
+    },
+    {
+      "id": "d-placa-piedra",
+      "text": {
+        "es": {
+          "text": "Una placa que se acciona con el peso."
         }
       }
     }

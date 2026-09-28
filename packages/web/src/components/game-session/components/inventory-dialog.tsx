@@ -50,7 +50,12 @@ export function InventoryDialog({
         {view ? (
           <InventoryPanel
             view={view}
-            items={model.items.map((item) => ({ id: item.id, name: item.name, icon: item.icon }))}
+            items={model.items.map((item) => ({
+              id: item.id,
+              name: item.name,
+              icon: item.icon,
+              content: item.content,
+            }))}
             onCombine={onCombine}
             feedback={feedback}
             renderIcon={(item) => renderIcon(item.id)}

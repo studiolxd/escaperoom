@@ -144,6 +144,13 @@ export const ItemDefSchema = z.object({
   id: z.string(),
   name: LocalizedTextSchema,
   icon: z.string().regex(ID_PATTERN),
+  /**
+   * Texto que lleva el objeto (revisión en vivo: el pergamino de la Bodega),
+   * consultable en cualquier momento seleccionándolo en el inventario —
+   * aparte del diálogo que ya lo muestra la primera vez que se recoge. Sin
+   * él, el panel de inventario no muestra ese bloque.
+   */
+  content: LocalizedTextSchema.optional(),
 });
 
 export type TileLayer = z.infer<typeof TileLayerSchema>;

@@ -513,14 +513,13 @@ export class RoomSession {
       return locking?.layer === "panel" ? object.lockedBy : undefined;
     }
     // Mismo criterio que el loader del game-runtime: el objeto que ES el
-    // mecanismo espacial (mirilla, placa) abre su panel; la puerta/reja que
-    // bloquea, no.
+    // mecanismo espacial (la mirilla) abre su panel; la puerta/reja que
+    // bloquea, no. Las placas ya no abren panel (revisión en vivo): se
+    // accionan de pie, sin botones que pulsar.
     const anchor = this.roomPackage.puzzles.find(
       (puzzle) =>
-        (puzzle.type === "split_clue" &&
-          puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === objectId)) ||
-        (puzzle.type === "simultaneous_plates" &&
-          puzzle.plates.some((plate) => plate.objectId === objectId)),
+        puzzle.type === "split_clue" &&
+        puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === objectId),
     );
     return anchor?.id;
   }

@@ -136,6 +136,8 @@ export interface RuntimeItem {
   /** `name` resuelto al idioma activo (con fallback al primer locale disponible). */
   name: string;
   icon: string;
+  /** `content` resuelto al idioma activo; `undefined` si el ítem no lleva texto. */
+  content?: string;
 }
 
 export interface RuntimeDialog {
