@@ -363,6 +363,21 @@
             "master": 512
           }
         }
+      },
+      {
+        "salida": "objetos/inspeccion/arca-cerrada.png",
+        "fuente": "entregas/objetos/master/arca-cerrada.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/mesa.png",
+        "fuente": "entregas/objetos/master/mesa.png",
+        "recorte": "alfa"
+      },
+      {
+        "salida": "objetos/inspeccion/barril-cerrado.png",
+        "fuente": "entregas/objetos/master/barril-cerrado.png",
+        "recorte": "alfa"
       }
     ]
   },

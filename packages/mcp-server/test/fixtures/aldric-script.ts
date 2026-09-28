@@ -185,6 +185,8 @@ export function aldricScript(pkg: RoomPackage): {
     // Placas ↔ puerta de la Bodega.
     puzzleDraft("p-placas-estatuas", withoutUnlocks);
     object("puerta-bodega");
+    // Señuelos decorativos (revisión en vivo): Inspeccionar + imagen, sin efecto.
+    for (const id of ["cofre-real", "mesa-banquete", "barril-aceite"]) object(id);
     puzzle("p-placas-estatuas", true);
     rule("r-placas-resueltas");
     // Distractor del ítem 6: la puerta describe su imagen, no el panel de
@@ -195,6 +197,7 @@ export function aldricScript(pkg: RoomPackage): {
     for (const id of ["mural-ranura", "compartimento-plata", "barril-espejo"]) object(id);
     object("mirilla-a");
     object("mirilla-b");
+    for (const id of ["barril-vino-a", "barril-vino-b", "mesa-servicio"]) object(id);
     puzzle("p-mural-vendimia");
     object("mural-vendimia");
     rule("r-mural-resuelto");
@@ -216,12 +219,27 @@ export function aldricScript(pkg: RoomPackage): {
     object("sarcofago");
     object("altar");
     object("vasijas");
+    for (const id of ["cofre-oxidado", "sarcofago-anonimo", "estatua-desmoronada"]) object(id);
     rule("r-entrar-catacumbas");
     rule("r-inspeccionar-sarcofago");
     rule("r-inspeccionar-vasijas");
     rule("r-imagen-vasijas");
     // Distractor del ítem 6.
     rule("r-inspeccionar-altar");
+    // Señuelos decorativos de las tres salas (revisión en vivo).
+    for (const id of [
+      "cofre-real",
+      "mesa-banquete",
+      "barril-aceite",
+      "barril-vino-a",
+      "barril-vino-b",
+      "mesa-servicio",
+      "cofre-oxidado",
+      "sarcofago-anonimo",
+      "estatua-desmoronada",
+    ]) {
+      rule(`r-inspeccionar-${id}`);
+    }
     object("compuerta-oro");
     // Ya hay llave de plata (mural) y compuerta: la mesa de combinar completa.
     puzzle("p-combina", true);
