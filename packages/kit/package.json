@@ -53,7 +53,7 @@
     "@escaperoom/config": "workspace:*",
     "@sentry/nextjs": "^10.69.0",
     "@sentry/node": "^10.69.0",
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.3",
     "eslint": "^10.11.0",
     "pino-pretty": "^13.1.3",
     "typescript": "^6.0.3",
