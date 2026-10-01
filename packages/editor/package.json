@@ -34,7 +34,7 @@
   "dependencies": {
     "@escaperoom/shared": "workspace:*",
     "@xyflow/react": "^12.11.6",
-    "lib0": "^0.2.117",
+    "lib0": "^0.2.119",
     "ws": "^8.21.3",
     "y-protocols": "^1.0.7",
     "yjs": "^13.6.32",
