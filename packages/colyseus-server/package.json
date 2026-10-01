@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@colyseus/core": "0.18.16",
-    "@colyseus/schema": "5.0.33",
+    "@colyseus/schema": "5.0.34",
     "@colyseus/ws-transport": "0.18.2",
     "@escaperoom/env": "workspace:*",
     "@escaperoom/kit": "workspace:*",
