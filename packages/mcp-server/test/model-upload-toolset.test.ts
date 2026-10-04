@@ -255,7 +255,7 @@ describe("MCP: modelos 3D propios (encargo 7.8a)", () => {
     const ctx = await connect();
     const roomId = await create3dRoom(ctx);
     expect(CREATOR_TOOL_NAMES).toContain("remove_model");
-    for (const modelId of ["mesa", "libre"]) {
+    for (const modelId of ["taburete", "libre"]) {
       await ok(ctx.client, "upload", {
         kind: "model3d",
         roomId,
@@ -268,13 +268,13 @@ describe("MCP: modelos 3D propios (encargo 7.8a)", () => {
     await ok(ctx.client, "place_pieces", {
       roomId,
       subroomId: "salon",
-      pieces: [{ model: "mesa", x: 1, y: 1, h: 0, yaw: 0 }],
+      pieces: [{ model: "taburete", x: 1, y: 1, h: 0, yaw: 0 }],
     });
 
-    const inUse = await call(ctx.client, "remove_model", { roomId, modelId: "mesa" });
+    const inUse = await call(ctx.client, "remove_model", { roomId, modelId: "taburete" });
     expect(inUse.isError).toBe(true);
     expect((inUse.structured?.error as { reason?: string }).reason).toBe("REFERENCED_ID");
-    expect(inUse.text).toContain("mesa");
+    expect(inUse.text).toContain("taburete");
 
     const dry = await ok(ctx.client, "remove_model", { roomId, modelId: "libre", dryRun: true });
     expect(dry.text).toContain("dry-run");

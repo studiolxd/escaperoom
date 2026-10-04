@@ -55,7 +55,7 @@ afterEach(() => {
 });
 
 function paletteWith(doc = roomPackageToDoc(pkg)) {
-  setCustomModel3D(doc, "mesa", mesa);
+  setCustomModel3D(doc, "taburete", mesa);
   const view = render(
     intl(
       createElement(RoomEditorPalette3D, {
@@ -76,31 +76,31 @@ describe("«Mis modelos»: bloqueo y borrado", () => {
     const user = userEvent.setup();
     const { doc } = paletteWith();
     await user.click(screen.getByRole("tab", { name: "Mis modelos" }));
-    const toggle = document.querySelector<HTMLElement>('[data-blocks="mesa"]')!;
+    const toggle = document.querySelector<HTMLElement>('[data-blocks="taburete"]')!;
     expect(toggle).toHaveAttribute("aria-checked", "true");
     await user.click(toggle);
-    expect(listCustomModels3D(doc).find((m) => m.id === "mesa")!.colliders).toEqual([]);
+    expect(listCustomModels3D(doc).find((m) => m.id === "taburete")!.colliders).toEqual([]);
   });
 
   it("al activarlo pone una caja de su tamaño", async () => {
     const user = userEvent.setup();
     const doc = roomPackageToDoc(pkg);
-    setCustomModel3D(doc, "mesa", { ...mesa, colliders: [] });
+    setCustomModel3D(doc, "taburete", { ...mesa, colliders: [] });
     render(
       intl(
         createElement(RoomEditorPalette3D, {
           doc,
           roomId,
           catalog,
-          customModels: { mesa: { ...mesa, colliders: [] } },
+          customModels: { taburete: { ...mesa, colliders: [] } },
           placing: undefined,
           onSelectModel: vi.fn(),
         }),
       ),
     );
     await user.click(screen.getByRole("tab", { name: "Mis modelos" }));
-    await user.click(document.querySelector('[data-blocks="mesa"]')!);
-    expect(listCustomModels3D(doc).find((m) => m.id === "mesa")!.colliders).toEqual([
+    await user.click(document.querySelector('[data-blocks="taburete"]')!);
+    expect(listCustomModels3D(doc).find((m) => m.id === "taburete")!.colliders).toEqual([
       { type: "box", cx: 0, cy: 0, ch: 0.3, sx: 1, sy: 0.6, sh: 0.6 },
     ]);
   });
@@ -108,12 +108,12 @@ describe("«Mis modelos»: bloqueo y borrado", () => {
   it("borrar quita el modelo; si está en uso muestra el error REFERENCED_ID", async () => {
     const user = userEvent.setup();
     const doc = roomPackageToDoc(pkg);
-    placePieces3D(doc, roomId, [{ model: "mesa", x: 1, y: 1, h: 0, yaw: 0 }]);
+    placePieces3D(doc, roomId, [{ model: "taburete", x: 1, y: 1, h: 0, yaw: 0 }]);
     const { doc: same } = paletteWith(doc);
     await user.click(screen.getByRole("tab", { name: "Mis modelos" }));
     await user.click(screen.getByRole("button", { name: "Borrar modelo" }));
     expect(document.querySelector("[data-mine-error]")).toHaveTextContent(/se usa en la pieza/);
-    expect(listCustomModels3D(same).some((m) => m.id === "mesa")).toBe(true);
+    expect(listCustomModels3D(same).some((m) => m.id === "taburete")).toBe(true);
   });
 
   it("borrar un modelo libre lo quita del documento", async () => {
@@ -121,7 +121,7 @@ describe("«Mis modelos»: bloqueo y borrado", () => {
     const { doc } = paletteWith();
     await user.click(screen.getByRole("tab", { name: "Mis modelos" }));
     await user.click(screen.getByRole("button", { name: "Borrar modelo" }));
-    expect(listCustomModels3D(doc).some((m) => m.id === "mesa")).toBe(false);
+    expect(listCustomModels3D(doc).some((m) => m.id === "taburete")).toBe(false);
   });
 });
 

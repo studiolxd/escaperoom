@@ -17,16 +17,38 @@
       #informe th, #informe td { text-align: left; padding: 2px 4px 2px 0; vertical-align: top; }
       #informe .mal { color: #fca5a5; }
       #estado { margin-top: 8px; color: #fca5a5; white-space: pre-wrap; }
+      #panel button { background: #1e293b; color: inherit; border: 1px solid #475569; border-radius: 4px; padding: 2px 10px; cursor: pointer; }
+      #panel button:hover { background: #334155; }
+      #navegacion { display: flex; gap: 6px; margin: 6px 0; }
+      #navegacion select { flex: 1; min-width: 0; }
+      #datos { margin-top: 8px; border-top: 1px solid #334155; padding-top: 8px; font-size: 12px; }
+      #datos dt { color: #94a3b8; float: left; clear: left; width: 92px; }
+      #datos dd { margin: 0 0 2px 96px; }
+      #leyenda { margin-top: 8px; color: #94a3b8; font-size: 11px; }
     </style>
   </head>
   <body>
     <div id="panel">
       <h1>Visor 3D · medieval-v1</h1>
+      <label>Modo <select id="modo"><option value="galeria">galería de modelos</option><option value="muestra">escena de muestra</option></select></label>
+      <div id="galeria">
+        <div id="navegacion">
+          <button id="anterior" title="Modelo anterior (←)">‹ anterior</button>
+          <select id="modelo"></select>
+          <button id="siguiente" title="Modelo siguiente (→)">siguiente ›</button>
+        </div>
+        <label>Caballero de referencia <select id="referencia"><option value="si">sí</option><option value="no">no</option></select></label>
+        <label>Colisionador (alambre) <select id="colision"><option value="si">sí</option><option value="no">no</option></select></label>
+        <dl id="datos"></dl>
+        <div id="leyenda">Rejilla de 1 m · flecha amarilla = frente (+Z) · alambre verde = colisionador</div>
+      </div>
+      <div id="muestra">
       <label>Arca <select id="arca"><option value="cerrada">cerrada</option><option value="abierta">abierta</option></select></label>
       <label>Brasero <select id="brasero"><option value="apagado">apagado</option><option value="encendido">encendido</option></select></label>
       <label>Caballero <select id="caballero"><option>idle</option><option>walk</option><option>interact</option></select></label>
-      <label>Material <select id="material"><option value="toon">toon</option><option value="original">original del GLB</option></select></label>
       <label>Ejes y rejilla de 1 m <select id="ayudas"><option value="no">no</option><option value="si">sí</option></select></label>
+      </div>
+      <label>Material <select id="material"><option value="toon">toon</option><option value="original">original del GLB</option></select></label>
       <div id="estado"></div>
       <div id="informe"></div>
     </div>

@@ -85,21 +85,38 @@ python3 scripts/comun/validar.py --pack <pack>
   referencias, créditos e id de Magnific de cada paso; ver `scripts/fichas.py`); pruebas y versiones descartadas
   fuera de git (o en `archivo/` de pipeline-assets), nunca aquí.
 
-## Exportación 3D (modo 3D, encargo 7.3)
+## Exportación 3D (modo 3D, encargos 7.3 y 7.10a)
 GLB para Three.js a partir de los mismos constructores de `blender/objetos.py` (sin tocar los scripts de render 2D):
 ```bash
+python3 scripts/exportar_3d.py --todo               # TODO: 24 objetos, kit, paredes, objetos de suelo, caballero + catálogo
 python3 scripts/exportar_3d.py --muestra            # arca, brasero, muro, suelo-piedra-1 y caballero-m (7 GLB)
-python3 scripts/exportar_3d.py --objeto arca        # o --kit / --avatar <id>; un GLB por estado de objetos.json
+python3 scripts/exportar_3d.py --objeto arca        # o --kit / --pared / --suelo / --avatar <id>; un GLB por estado
+python3 scripts/exportar_3d.py --catalogo           # solo regenera el catálogo (node scripts/generar_catalogo_3d.mjs)
+node scripts/generar_catalogo_3d.mjs --check        # falla si el catálogo versionado no coincide con modelos3d.json
 pnpm visor                                           # http://localhost:5199 (Vite + Three.js, toon como el juego)
-pnpm test                                            # node --test del optimizador
+pnpm test                                            # node --test del optimizador y del generador del catálogo
 ```
-- `scripts/blender/construir.py` (copia de la lógica de `render_objeto.py`), `exportar_glb.py`, `exportar_kit.py`,
-  `exportar_avatar.py` y `glb_comun.py` (hornea materiales procedurales a textura con Cycles, `DIFFUSE` solo color).
-  `scripts/optimizar_glb.mjs` (gltf-transform: dedup, prune, weld, simplify, WebP, meshopt) deja los GLB en
-  `packages/web/public/packs/<pack>/models|avatars/` (fuera de git) y `renders/glb/informe.json`.
+- `scripts/blender/construir.py` (copia de la lógica de `render_objeto.py`), `exportar_glb.py` (objetos de
+  `objetos.json`), `exportar_kit.py` (kit de la spec §4.1 por código; `KIT=muro,rampa` exporta solo esas),
+  `exportar_pared_glb.py` (piezas de `pared.json`, `cuadro-rey-torcido` y, con la geometría de `blender/pared.py`,
+  `compartimento-*` y `ranura-*`), `exportar_prop_suelo_glb.py` (llave, yesquero y antorcha apagada tumbados, a su
+  tamaño real), `exportar_avatar.py` y `glb_comun.py` (hornea materiales procedurales a textura con Cycles, `DIFFUSE`
+  solo color). `scripts/optimizar_glb.mjs` (gltf-transform: dedup, prune, weld, simplify, WebP, meshopt) deja los GLB
+  en `packages/web/public/packs/<pack>/models|avatars/` (fuera de git) y `renders/glb/informe.json`.
 - Convenciones (specs/27 §2 y §4): metros, origen en el centro de la base, frente a +Z, escala en la malla, PBR con
   metallic 0 / roughness 1, emisivo solo en fuego y agua. Presupuesto: objeto ≤ 2 MB / 30.000 tris / 1024 px; avatar
-  ≤ 4 MB / 40.000 tris.
+  ≤ 4 MB / 40.000 tris. Excepciones de origen: piezas de suelo (cara superior en h = 0) y de pared (en el suelo, bajo
+  el centro, en el plano trasero, a su `altura_centro_m`; ver la cabecera de `exportar_pared_glb.py`). Rampas y
+  escaleras suben hacia −Z del GLB.
+- **Catálogo generado** (`packages/shared/src/packs/<pack>.models3d.json`, no se edita a mano): lo escribe
+  `scripts/generar_catalogo_3d.mjs` a partir de `packs/<pack>/modelos3d.json` (categoría, grupo, nombre es/en,
+  colisionadores, alias, `suelo` y la tabla `sprites2d` sprite 2D → modelo y giro del conversor) y de las medidas de los
+  GLB optimizados. Tras medir, el script escribe de vuelta `size`, `centro` y `clips` en `modelos3d.json` para que
+  `--check` funcione en un clon sin binarios. Sin `colliders` declarados, el colisionador es la caja envolvente; `[]` = no
+  bloquea. Las piezas de kit (`snap`) ocupan celdas enteras (planta redondeada hacia arriba al metro).
+- Un modelo nuevo = su exportador + su entrada en `modelos3d.json` + `exportar_3d.py --catalogo`.
+- `visor/`: modo **galería** (un modelo del catálogo solo, rejilla de 1 m, caballero de referencia, flecha del frente
+  +Z, colisionador en alambre y datos) y modo escena de muestra.
 
 ## Pipeline de personajes jugables (validado con caballero-m, 25/09/2026)
 1. Master 2D en Magnific (Space "Personajes jugables", GPT 2, 2K, hojas de `estilos/<estilo>/referencias/`) → retoque
