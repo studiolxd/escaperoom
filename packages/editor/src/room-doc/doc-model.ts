@@ -10,6 +10,7 @@ import * as Y from "yjs";
  *     id, title, authorId, version, packageFormat, theme, description,
  *     estimatedMinutes, timeLimitMinutes (número | null = sin duración),
  *     difficulty, players (JSON), assetsManifest
+     dimension?: "3d"                   solo en salas 3D (specs/27 §3.3); ausente = 2D
  *     languages: Y.Array<string>, defaultLanguage   (3.10, `room-languages.ts`)
  *     intro?: Y.Map                      introducción (lobby-diseño, `lobby-intro.ts`):
  *       type "text": text (YLocalizedText) | type "video": video (ref), subtitles: Y.Map<idioma, ref>
@@ -26,6 +27,10 @@ import * as Y from "yjs";
  *   rules:   (3.6, `rules-graph/yjs-rules.ts`)
  *   dialogs: Y.Map<dialogId, Y.Map>      id, text (YLocalizedText), conditions?, order
  *   hints:   Y.Map<hintId, Y.Map>        id, puzzleId, tier, cost, text (YLocalizedText), order
+ *   pieces3d: Y.Map<pieceId, Y.Map>      modo 3D: roomId, model, x, y, h, yaw, scale?, order
+ *                                        (plana por id, no anidada por habitación: dos personas
+ *                                        editando piezas distintas nunca chocan)
+ *   models3d: Y.Map<modelId, Y.Map>      modo 3D: ref, label, size, colliders, clips, order
  *
  * `order` es el orden de alta (conserva el orden de los arrays del RoomPackage
  * al exportar) y no se exporta. Las celdas de tiles van en un mapa disperso por
@@ -42,6 +47,8 @@ export const ROOM_DOC_KEYS = {
   rules: "rules",
   dialogs: "dialogs",
   hints: "hints",
+  pieces3d: "pieces3d",
+  models3d: "models3d",
   /** Versión de la FORMA del doc (auditoría D-24), no de `meta.packageFormat`. */
   docFormat: "docFormat",
 } as const;
@@ -67,7 +74,7 @@ export function writeRoomDocFormat(doc: Y.Doc): void {
 }
 
 /** Colecciones cuyas entradas son un `Y.Map` por id. */
-export type RecordCollection = "subrooms" | "objects" | "items" | "puzzles" | "dialogs" | "hints";
+export type RecordCollection = "subrooms" | "objects" | "items" | "puzzles" | "dialogs" | "hints" | "pieces3d" | "models3d";
 
 export type RecordMap = Y.Map<unknown>;
 

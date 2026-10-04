@@ -14,7 +14,9 @@ import { LOBBY_ROOM_KIND, MAX_GRID_DIMENSION } from "@escaperoom/shared/schemas"
 import { getRoomLanguages } from "../i18n-fields/room-languages";
 import {
   RoomDocError,
+  assertDimension,
   assertFreeId,
+  roomDimension,
   isValidObjectId,
   packAssetsManifest,
   subRoom,
@@ -125,11 +127,25 @@ function assertGridWithinLimits(grid: Grid): void {
 function assertNothingLeftOutside(doc: Y.Doc, roomId: string, grid: Grid): void {
   const room = buildRoomMap(doc).rooms.find((candidate) => candidate.id === roomId);
   if (!room) return;
-  const outside = (x: number, y: number) => x < 0 || y < 0 || x >= grid.cols || y >= grid.rows;
+  const is3D = roomDimension(doc) === "3d";
+  // 3D: la caja de la habitación es continua (`0 ≤ x ≤ cols`); 2D: celdas enteras.
+  const outside = is3D
+    ? (x: number, y: number) => x < 0 || y < 0 || x > grid.cols || y > grid.rows
+    : (x: number, y: number) => x < 0 || y < 0 || x >= grid.cols || y >= grid.rows;
   const offenders: string[] = [];
 
+  if (is3D) {
+    let pieces = 0;
+    for (const piece of collection(doc, "pieces3d").values()) {
+      if (piece.get("roomId") !== roomId) continue;
+      if (outside(Number(piece.get("x")), Number(piece.get("y")))) pieces += 1;
+    }
+    if (pieces > 0) offenders.push(`${pieces} pieza${pieces === 1 ? "" : "s"}`);
+  }
+
   for (const object of buildRoomObjects(doc)) {
-    if (object.roomId === roomId && outside(object.position.x, object.position.y)) {
+    const at = is3D && object.transform ? object.transform : object.position;
+    if (object.roomId === roomId && outside(at.x, at.y)) {
       offenders.push(`objeto «${object.id}»`);
     }
   }
@@ -171,6 +187,7 @@ export function setSubRoomGrid(
   grid: Grid,
   layers?: readonly TileLayer[],
 ): void {
+  if (layers) assertDimension(doc, "2d", "setSubRoomGrid con capas");
   assertGridWithinLimits(grid);
   assertNothingLeftOutside(doc, roomId, grid);
   doc.transact(() => {
@@ -289,13 +306,15 @@ export function defineSubRooms(
           ? buildLobbyRoom(doc, { id: spec.id, name: spec.name, ...spec.grid }).spawnPoints
           : hasAnySpawnPoint(doc)
             ? []
-            : [
-                {
-                  id: "spawn-1",
-                  x: Math.floor(spec.grid.cols / 2),
-                  y: Math.max(0, spec.grid.rows - 2),
-                },
-              ]);
+            : roomDimension(doc) === "3d"
+              ? [{ id: "spawn-1", x: spec.grid.cols / 2, y: spec.grid.rows / 2, h: 0, yaw: 0 }]
+              : [
+                  {
+                    id: "spawn-1",
+                    x: Math.floor(spec.grid.cols / 2),
+                    y: Math.max(0, spec.grid.rows - 2),
+                  },
+                ]);
       subrooms.set(
         spec.id,
         buildSubRoomRecord(

@@ -5,13 +5,16 @@ import {
   type DialogDef,
   type Difficulty,
   type HintDef,
+  type CustomModel3D,
   type ItemDef,
+  type Piece3D,
   type LocalizedText,
   type PuzzleDefinition,
   type RoomIntro,
   type RoomPackage,
   type RoomPackageMeta,
   type SubRoom,
+  type World3D,
   type WorldObject,
 } from "@escaperoom/shared/schemas";
 import {
@@ -70,6 +73,8 @@ const ROOT_COLLECTIONS: RecordCollection[] = [
   "puzzles",
   "dialogs",
   "hints",
+  "pieces3d",
+  "models3d",
 ];
 
 // ---------------------------------------------------------------------------
@@ -211,6 +216,7 @@ export function roomPackageToDoc(pkg: RoomPackage, doc: Y.Doc = new Y.Doc()): Y.
     );
     initRoomLanguages(doc, pkg.meta.languages, pkg.meta.defaultLanguage);
     if (pkg.meta.intro) meta.set(INTRO_KEY, buildIntroRecord(pkg.meta.intro));
+    if (pkg.meta.dimension !== undefined) meta.set("dimension", pkg.meta.dimension);
     writeRoomDocFormat(doc);
 
     const map = doc.getMap<unknown>(ROOM_DOC_KEYS.map);
@@ -232,6 +238,18 @@ export function roomPackageToDoc(pkg: RoomPackage, doc: Y.Doc = new Y.Doc()): Y.
 
     const puzzles = collection(doc, "puzzles");
     pkg.puzzles.forEach((puzzle, i) => puzzles.set(puzzle.id, buildFlatRecord(puzzle, i)));
+
+    const pieces3d = collection(doc, "pieces3d");
+    let pieceOrder = 0;
+    for (const room of pkg.map.rooms) {
+      for (const piece of pkg.world3d?.rooms[room.id]?.pieces ?? []) {
+        pieces3d.set(piece.id, buildFlatRecord({ ...piece, roomId: room.id }, pieceOrder++));
+      }
+    }
+    const models3d = collection(doc, "models3d");
+    Object.entries(pkg.world3d?.models ?? {}).forEach(([id, model], i) =>
+      models3d.set(id, buildFlatRecord(model, i)),
+    );
 
     writeRules(doc, pkg.rules);
 
@@ -292,6 +310,8 @@ function readMeta(doc: Y.Doc): RoomPackageMeta {
     ...(dimension === "2d" || dimension === "3d" ? { dimension } : {}),
     // Solo si la hay: una sala sin introducción no lleva la clave (ida y vuelta exacta).
     ...(intro ? { intro } : {}),
+    // Solo si la clave existe (ida y vuelta exacta: una sala 2D no la gana).
+    ...(dimension === "2d" || dimension === "3d" ? { dimension } : {}),
   };
 }
 
@@ -436,6 +456,28 @@ export function buildRoomHints(doc: Y.Doc, languages: readonly string[]): HintDe
   );
 }
 
+/**
+ * Mundo 3D del doc (specs/27 §3): piezas agrupadas por habitación (en orden
+ * `order`, sin `roomId` ni `order`) y modelos propios. Incluye una entrada por
+ * cada habitación del doc, aunque no tenga piezas.
+ */
+export function buildRoomWorld3D(doc: Y.Doc): World3D {
+  const rooms: World3D["rooms"] = {};
+  for (const id of orderedIds(collection(doc, "subrooms"))) rooms[id] = { pieces: [] };
+  const pieces = collection(doc, "pieces3d");
+  for (const id of orderedIds(pieces)) {
+    const { roomId, ...piece } = readFlatRecord(pieces.get(id) as RecordMap);
+    const room = (rooms[str(roomId)] ??= { pieces: [] });
+    room.pieces.push({ ...piece, id } as Piece3D);
+  }
+  const models: World3D["models"] = {};
+  const customModels = collection(doc, "models3d");
+  for (const id of orderedIds(customModels)) {
+    models[id] = readFlatRecord(customModels.get(id) as RecordMap) as CustomModel3D;
+  }
+  return { rooms, models };
+}
+
 export function roomDocToPackage(doc: Y.Doc): RoomPackage {
   migrateRoomDoc(doc);
   const meta = readMeta(doc);
@@ -450,6 +492,7 @@ export function roomDocToPackage(doc: Y.Doc): RoomPackage {
     rules: readRules(doc),
     dialogs: buildRoomDialogs(doc, languages),
     hints: buildRoomHints(doc, languages),
+    ...(meta.dimension === "3d" ? { world3d: buildRoomWorld3D(doc) } : {}),
   };
 }
 

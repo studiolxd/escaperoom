@@ -8,6 +8,8 @@ import {
   MAX_INTRO_MEDIA_REF_LENGTH,
   MAX_INTRO_TEXT_LENGTH,
   buildDefaultLobbyRoom,
+  buildDefaultLobbyRoom3D,
+  type Piece3D,
   type RoomIntro,
   type SubRoom,
   type SubRoomKind,
@@ -15,8 +17,9 @@ import {
 } from "@escaperoom/shared/schemas";
 import type { YLocalizedText } from "../i18n-fields/localized-text";
 import { getRoomLanguages } from "../i18n-fields/room-languages";
-import { RoomDocError, assertFreeId, subRoom, usedIds } from "./commands";
-import { ROOM_DOC_KEYS, collection, nextOrder } from "./doc-model";
+import { RoomDocError, assertFreeId, roomDimension, subRoom, usedIds } from "./commands";
+import { newPieceId } from "./commands3d";
+import { ROOM_DOC_KEYS, buildFlatRecord, collection, nextOrder } from "./doc-model";
 import {
   INTRO_KEY,
   buildIntroRecord,
@@ -127,6 +130,7 @@ export function buildLobbyRoom(
   doc: Y.Doc,
   input: { id: string; name: string; cols: number; rows: number },
 ): SubRoom {
+  if (roomDimension(doc) === "3d") return buildLobbyRoom3D(doc, input).room;
   const players = doc.getMap<unknown>(ROOM_DOC_KEYS.meta).get("players") as
     { max?: unknown } | undefined;
   const maxPlayers = typeof players?.max === "number" ? players.max : 4;
@@ -179,6 +183,71 @@ export function buildLobbyRoom(
 }
 
 /**
+ * Lobby 3D de `cols × rows` m (specs/27 §3): sin capas, con la misma
+ * disposición que `buildDefaultLobbyRoom3D` de `shared` (suelo `suelo-piedra-1`
+ * en cada celda interior y bloque `muro` en cada celda del perímetro) ajustada
+ * al tamaño pedido. Los puntos de aparición (uno por jugador, hasta 8) se
+ * reparten en filas de 4 centradas, dentro del suelo libre. Las piezas llevan
+ * ids aleatorios libres en el doc (no los deterministas de `shared`).
+ */
+function buildLobbyRoom3D(
+  doc: Y.Doc,
+  input: { id: string; name: string; cols: number; rows: number },
+): { room: SubRoom; pieces: Piece3D[] } {
+  const players = doc.getMap<unknown>(ROOM_DOC_KEYS.meta).get("players") as
+    { max?: unknown } | undefined;
+  const maxPlayers = typeof players?.max === "number" ? players.max : 4;
+  const base = buildDefaultLobbyRoom3D(buildRoomMap(doc), maxPlayers).room;
+  const { cols, rows } = input;
+  const count = base.spawnPoints.length;
+  const perRow = Math.min(4, Math.max(1, cols - 2));
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+  const spawnPoints = Array.from({ length: count }, (_, i) => {
+    const inRow = Math.min(perRow, count - Math.floor(i / perRow) * perRow);
+    return {
+      id: `spawn-${i + 1}`,
+      x: clamp(cols / 2 - inRow / 2 + (i % perRow) + 0.5, 1.5, cols - 1.5),
+      y: clamp(rows / 2 + Math.floor(i / perRow) - 0.5, 1.5, rows - 1.5),
+      h: 0,
+      yaw: 0,
+    };
+  });
+
+  const taken = new Set<string>();
+  const pieces: Piece3D[] = [];
+  const floors: Piece3D[] = [];
+  for (let j = 0; j < rows; j += 1) {
+    for (let i = 0; i < cols; i += 1) {
+      const perimeter = i === 0 || j === 0 || i === cols - 1 || j === rows - 1;
+      let id = newPieceId(doc);
+      while (taken.has(id)) id = newPieceId(doc);
+      taken.add(id);
+      (perimeter ? pieces : floors).push({
+        id,
+        model: perimeter ? "muro" : "suelo-piedra-1",
+        x: i + 0.5,
+        y: j + 0.5,
+        h: 0,
+        yaw: 0,
+      });
+    }
+  }
+  return {
+    room: {
+      id: input.id,
+      name: input.name,
+      kind: LOBBY_ROOM_KIND,
+      grid: { cols, rows },
+      layers: [],
+      decorations: [],
+      spawnPoints,
+      lighting: base.lighting,
+    },
+    pieces: [...floors, ...pieces],
+  };
+}
+
+/**
  * Crea la sala de espera como una habitación nueva del mapa (al final: la
  * habitación inicial sigue siendo la primera de juego), con suelo, muros y
  * puntos de aparición por defecto para decorarla después en el lienzo.
@@ -208,8 +277,18 @@ export function addLobbyRoom(doc: Y.Doc, input: AddLobbyRoomInput): string {
   const name = input.name?.trim() || DEFAULT_LOBBY_ROOM_NAME;
   doc.transact(() => {
     assertFreeId(doc, id);
-    const room = buildLobbyRoom(doc, { id, name, cols, rows });
     const subrooms = collection(doc, "subrooms");
+    if (roomDimension(doc) === "3d") {
+      const { room, pieces } = buildLobbyRoom3D(doc, { id, name, cols, rows });
+      subrooms.set(id, buildSubRoomRecord(room, nextOrder(subrooms)));
+      const pieces3d = collection(doc, "pieces3d");
+      let order = nextOrder(pieces3d);
+      for (const piece of pieces) {
+        pieces3d.set(piece.id, buildFlatRecord({ ...piece, roomId: id }, order++));
+      }
+      return;
+    }
+    const room = buildLobbyRoom(doc, { id, name, cols, rows });
     subrooms.set(id, buildSubRoomRecord(room, nextOrder(subrooms)));
   });
   return id;

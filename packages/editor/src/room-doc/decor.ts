@@ -1,7 +1,7 @@
 import * as Y from "yjs";
 import type { Decoration, LightConfig } from "@escaperoom/shared/schemas";
 import { collection, plain, type RecordMap } from "./doc-model";
-import { assertInside, RoomDocError, subRoom, type Cell } from "./commands";
+import { assertDimension, assertInside, RoomDocError, subRoom, type Cell } from "./commands";
 
 /**
  * Decoración e iluminación de una habitación interna (`SubRoom.decorations` y
@@ -82,6 +82,7 @@ function checkDecoration(doc: Y.Doc, roomId: string, decoration: Decoration): De
 export function addDecoration(doc: Y.Doc, roomId: string, decoration: Decoration): number {
   let index = -1;
   doc.transact(() => {
+    assertDimension(doc, "2d", "addDecoration");
     const list = listOf(subRoom(doc, roomId), "decorations");
     list.push([plain(checkDecoration(doc, roomId, decoration))]);
     index = list.length - 1;
@@ -93,6 +94,7 @@ export function addDecoration(doc: Y.Doc, roomId: string, decoration: Decoration
 export function moveDecoration(doc: Y.Doc, roomId: string, index: number, cell: Cell): boolean {
   let moved = false;
   doc.transact(() => {
+    assertDimension(doc, "2d", "moveDecoration");
     const list = listOf(subRoom(doc, roomId), "decorations");
     assertIndex(list, index, "decoration");
     const current = list.get(index) as Decoration;
@@ -111,6 +113,7 @@ export function setDecorationSprite(
   sprite: string,
 ): void {
   doc.transact(() => {
+    assertDimension(doc, "2d", "setDecorationSprite");
     const list = listOf(subRoom(doc, roomId), "decorations");
     assertIndex(list, index, "decoration");
     const current = list.get(index) as Decoration;
@@ -121,6 +124,7 @@ export function setDecorationSprite(
 
 export function removeDecoration(doc: Y.Doc, roomId: string, index: number): void {
   doc.transact(() => {
+    assertDimension(doc, "2d", "removeDecoration");
     const list = listOf(subRoom(doc, roomId), "decorations");
     assertIndex(list, index, "decoration");
     list.delete(index, 1);
@@ -137,6 +141,7 @@ export function setDecorations(
   decorations: readonly Decoration[],
 ): void {
   doc.transact(() => {
+    assertDimension(doc, "2d", "setDecorations");
     const room = subRoom(doc, roomId);
     const checked = decorations.map((decoration) => checkDecoration(doc, roomId, decoration));
     const list = listOf(room, "decorations");
