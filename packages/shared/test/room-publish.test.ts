@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import { createSilentMp3 } from "../src/audio";
 import { parseRoomPackage, type RoomPackage } from "../src/schemas";
+import type { RoomDimension } from "../src/schemas/world3d";
 import {
   ANONYMOUS_ACTOR,
   audioAssetRef,
@@ -27,6 +28,7 @@ import {
   type RoomPackageSerializer,
 } from "../src/services";
 import type { AssetManifestInput } from "../src/validator";
+import { makeRoom3D } from "./fixtures/room-3d";
 
 const ROOM_ID = "11111111-1111-4111-8111-111111111111";
 const AUDIO_OK = "upload:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -81,12 +83,20 @@ function setup(
     serializer?: RoomPackageSerializer | null;
     loadAssetManifest?: (pkg: RoomPackage) => Promise<AssetManifestInput | undefined>;
     runtimeModelCheck?: (pkg: RoomPackage) => void;
+    dimension?: RoomDimension;
   } = {},
 ) {
   const draftStore = createInMemoryRoomDraftStore([{ id: ROOM_ID, authorId: author.userId }]);
   const drafts = createRoomDraftService({ store: draftStore });
   const store = createInMemoryRoomPublishStore(
-    [{ id: ROOM_ID, authorId: author.userId, status: "draft" }],
+    [
+      {
+        id: ROOM_ID,
+        authorId: author.userId,
+        status: "draft",
+        ...(opts.dimension ? { dimension: opts.dimension } : {}),
+      },
+    ],
     [admin.userId],
   );
   const storage = createInMemoryPublishedAssetStorage();
@@ -576,5 +586,31 @@ describe("publicación — smoke test del runtime (D-3)", () => {
     const result = await service.publish(author, ROOM_ID);
     expect(result.report.ok).toBe(true);
     expect(calls).toHaveLength(1);
+  });
+});
+
+describe("publicación — dimensión fija (modo 3D)", () => {
+  it("publicar un documento 3D en una sala 3D funciona", async () => {
+    const { service, writeDraft } = setup({ dimension: "3d" });
+    await writeDraft(makeRoom3D());
+    const result = await service.publish(author, ROOM_ID);
+    expect(result.report.ok).toBe(true);
+  });
+
+  it("un documento 3D en una sala 2D no se publica", async () => {
+    const { service, writeDraft } = setup();
+    await writeDraft(makeRoom3D());
+    const err = await publishError(service.publish(author, ROOM_ID));
+    expect(err.code).toBe("UNSUPPORTED_PACKAGE_FORMAT");
+    expect(err.message).toBe("La dimensión del documento (3d) no coincide con la de la sala (2d)");
+    expect(await service.listVersions(author, ROOM_ID)).toHaveLength(0);
+  });
+
+  it("un documento 2D en una sala 3D no se publica", async () => {
+    const { service, writeDraft } = setup({ dimension: "3d" });
+    await writeDraft(clone());
+    const err = await publishError(service.publish(author, ROOM_ID));
+    expect(err.code).toBe("UNSUPPORTED_PACKAGE_FORMAT");
+    expect(err.message).toBe("La dimensión del documento (2d) no coincide con la de la sala (3d)");
   });
 });

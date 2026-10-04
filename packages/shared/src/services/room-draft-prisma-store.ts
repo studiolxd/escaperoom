@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "../../generated/client/client";
+import { toRoomDimension } from "../schemas/world3d";
 import type {
   DraftSnapshot,
   DraftSnapshotMeta,
@@ -99,15 +100,16 @@ export function createPrismaRoomDraftStore(prisma: PrismaClient): RoomDraftStore
     async findRoom(roomId) {
       const room = await prisma.room.findFirst({
         where: { id: roomId, deletedAt: null },
-        select: { id: true, authorId: true },
+        select: { id: true, authorId: true, dimension: true },
       });
-      return room ?? null;
+      return room ? { ...room, dimension: toRoomDimension(room.dimension) } : null;
     },
-    createRoom({ authorId, title }) {
-      return prisma.room.create({
-        data: { authorId, title, status: "draft" },
-        select: { id: true, authorId: true },
+    async createRoom({ authorId, title, dimension }) {
+      const room = await prisma.room.create({
+        data: { authorId, title, status: "draft", dimension },
+        select: { id: true, authorId: true, dimension: true },
       });
+      return { ...room, dimension: toRoomDimension(room.dimension) };
     },
     findSnapshot(roomId, snapshotId) {
       return prisma.roomSnapshot.findFirst({

@@ -74,7 +74,14 @@ import {
   type HintRequestResult,
   type HintState,
 } from "../hints";
-import { initialRoomOf, type PuzzleDefinition, type PuzzleState, type RoomPackage, type WorldObject } from "../schemas";
+import {
+  dimensionOf,
+  initialRoomOf,
+  type PuzzleDefinition,
+  type PuzzleState,
+  type RoomPackage,
+  type WorldObject,
+} from "../schemas";
 import { buildSessionSummary, endSession, type SessionSummary } from "./end-game";
 
 /**
@@ -185,6 +192,9 @@ export interface RoomPlayerPosition {
   roomId: string;
   x: number;
   y: number;
+  /** Modo 3D: altura y giro (grados) del jugador; ausentes en salas 2D. */
+  h?: number;
+  yaw?: number;
 }
 
 /** Desenlace de mover a un jugador. */
@@ -452,7 +462,20 @@ export class RoomSession {
     const def = this.definition(puzzleId, "split_clue");
     const position = this.positions.get(playerId);
     if (!position || position.roomId !== def.roomId) return null;
-    return viewpointAt(def, Math.round(position.x), Math.round(position.y));
+    const objectId = viewpointAt(def, Math.round(position.x), Math.round(position.y));
+    if (objectId !== null && !this.sameHeightAs(position, objectId)) return null;
+    return objectId;
+  }
+
+  /**
+   * Solo en salas 3D (specs/27 §6.4): el jugador está a ≤ 1 m de altura del
+   * `transform.h` del objeto de una placa o mirilla (`0` si falta alguno).
+   * En 2D siempre `true`.
+   */
+  private sameHeightAs(position: { h?: number }, objectId: string): boolean {
+    if (dimensionOf(this.roomPackage.meta) !== "3d") return true;
+    const objectHeight = this.objectsById.get(objectId)?.transform?.h ?? 0;
+    return Math.abs((position.h ?? 0) - objectHeight) <= 1;
   }
 
   /** Proyección pública de un `pipes` (sin `solution` ni semilla). */
@@ -603,8 +626,20 @@ export class RoomSession {
       return { outcome: "unknown_room", enteredRoom: false, engine: emptyResult(now), plates: [] };
     }
     const index = [...this.positions.values()].filter((p) => p.roomId === room.id).length;
-    const spawn = room.spawnPoints[index % Math.max(1, room.spawnPoints.length)] ?? { x: 0, y: 0 };
-    return this.placePlayer(playerId, { roomId: room.id, x: spawn.x, y: spawn.y }, now);
+    const spawn: { x: number; y: number; h?: number; yaw?: number } = room.spawnPoints[
+      index % Math.max(1, room.spawnPoints.length)
+    ] ?? { x: 0, y: 0 };
+    return this.placePlayer(
+      playerId,
+      {
+        roomId: room.id,
+        x: spawn.x,
+        y: spawn.y,
+        ...(spawn.h !== undefined ? { h: spawn.h } : {}),
+        ...(spawn.yaw !== undefined ? { yaw: spawn.yaw } : {}),
+      },
+      now,
+    );
   }
 
   /**
@@ -637,6 +672,7 @@ export class RoomSession {
     x: number,
     y: number,
     now: number = this.now,
+    extra?: { h?: number; yaw?: number },
   ): RoomMoveResult {
     this.now = now;
     if (this.ended) {
@@ -649,7 +685,17 @@ export class RoomSession {
     if (!this.canEnterRoom(current?.roomId, roomId)) {
       return { outcome: "room_locked", enteredRoom: false, engine: emptyResult(now), plates: [] };
     }
-    return this.placePlayer(playerId, { roomId, x, y }, now);
+    return this.placePlayer(
+      playerId,
+      {
+        roomId,
+        x,
+        y,
+        ...(extra?.h !== undefined ? { h: extra.h } : {}),
+        ...(extra?.yaw !== undefined ? { yaw: extra.yaw } : {}),
+      },
+      now,
+    );
   }
 
   // — Acciones de jugador ——————————————————————————————————————————
@@ -899,7 +945,12 @@ export class RoomSession {
     const position = this.positions.get(playerId);
     // C-6: exigir estar sobre la placa también para DESACTIVARLA (antes solo
     // se comprobaba al activar); si no, cualquiera la apaga a distancia.
-    if (position && (position.roomId !== def.roomId || !isOnCell(position, plate.x, plate.y))) {
+    if (
+      position &&
+      (position.roomId !== def.roomId ||
+        !isOnCell(position, plate.x, plate.y) ||
+        !this.sameHeightAs(position, plate.objectId))
+    ) {
       return { outcome: "unavailable", engine: null };
     }
     return this.applyPlate(puzzleId, plateObjectId, active, now, playerId);
@@ -1136,7 +1187,10 @@ export class RoomSession {
       if (state.state === "solved" || state.state === "locked") continue;
       for (const plate of def.plates) {
         const occupant = [...this.positions.entries()].find(
-          ([, position]) => position.roomId === def.roomId && isOnCell(position, plate.x, plate.y),
+          ([, position]) =>
+            position.roomId === def.roomId &&
+            isOnCell(position, plate.x, plate.y) &&
+            this.sameHeightAs(position, plate.objectId),
         );
         const runtime = this.templates.simultaneous_plates.get(def.id)!.plates[plate.objectId];
         if (!runtime || runtime.bridged) continue;

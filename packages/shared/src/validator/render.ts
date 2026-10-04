@@ -9,6 +9,8 @@ const SILENT_WHEN_PASSED = new Set([
   "puzzle_hints",
   "recipe_consumption",
   "assets",
+  "world3d",
+  "world3d_models",
 ]);
 
 /**

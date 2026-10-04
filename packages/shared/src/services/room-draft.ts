@@ -1,4 +1,5 @@
 import * as Y from "yjs";
+import type { RoomDimension } from "../schemas/world3d";
 import { type Actor } from "./actor";
 import { UUID_RE, requireUser } from "./common";
 
@@ -35,7 +36,12 @@ export type DraftUpdate = {
 export type DraftSnapshotMeta = Omit<DraftSnapshot, "state"> & { byteSize: number };
 
 /** Lo mínimo de `room` que necesita la autorización del draft. */
-export type DraftRoomRef = { id: string; authorId: string };
+export type DraftRoomRef = {
+  id: string;
+  authorId: string;
+  /** Modo 3D (specs/27 §3.3): fijada al crear la sala; ausente = `"2d"`. */
+  dimension?: RoomDimension;
+};
 
 /** Operaciones de lectura/escritura sobre las tablas del draft. */
 export interface RoomDraftTx {
@@ -68,7 +74,11 @@ export interface RoomDraftStore extends RoomDraftTx {
   /** La sala viva (sin `deletedAt`), o `null` si no existe o está borrada. */
   findRoom(roomId: string): Promise<DraftRoomRef | null>;
   /** Da de alta una sala en borrador (`room` con `status = draft`) sin updates. */
-  createRoom(input: { authorId: string; title: string }): Promise<DraftRoomRef>;
+  createRoom(input: {
+    authorId: string;
+    title: string;
+    dimension: RoomDimension;
+  }): Promise<DraftRoomRef>;
   /** Metadata de un snapshot concreto de la sala (sin estado), o `null`. */
   findSnapshot(roomId: string, snapshotId: bigint): Promise<Omit<DraftSnapshot, "state"> | null>;
   listSnapshots(roomId: string, limit: number): Promise<DraftSnapshotMeta[]>;
@@ -368,10 +378,19 @@ export function createRoomDraftService(deps: {
      */
     async createDraft(
       actor: Actor,
-      input: { title: string; initialUpdate?: (roomId: string) => Uint8Array },
+      input: {
+        title: string;
+        /** Dimensión de la sala, fija desde la creación (por defecto `"2d"`). */
+        dimension?: RoomDimension;
+        initialUpdate?: (roomId: string) => Uint8Array;
+      },
     ): Promise<DraftRoomRef> {
       requireUser(actor, RoomDraftError);
-      const room = await store.createRoom({ authorId: actor.userId, title: input.title });
+      const room = await store.createRoom({
+        authorId: actor.userId,
+        title: input.title,
+        dimension: input.dimension ?? "2d",
+      });
       if (input.initialUpdate) {
         const data = input.initialUpdate(room.id);
         if (!isValidYjsUpdate(data)) {
@@ -574,8 +593,8 @@ export function createInMemoryRoomDraftStore(
     addRoom(room) {
       roomById.set(room.id, room);
     },
-    async createRoom({ authorId }) {
-      const room = { id: globalThis.crypto.randomUUID(), authorId };
+    async createRoom({ authorId, dimension }) {
+      const room: DraftRoomRef = { id: globalThis.crypto.randomUUID(), authorId, dimension };
       roomById.set(room.id, room);
       return room;
     },

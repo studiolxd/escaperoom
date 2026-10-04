@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { GridSchema, ID_PATTERN, LocalizedTextSchema, PositionSchema } from "./common";
-import { MAX_CONTENT_ARRAY_ITEMS, MAX_RLE_ENTRIES } from "./limits";
+import { MAX_CONTENT_ARRAY_ITEMS, MAX_RLE_ENTRIES, MAX_WORLD3D_HEIGHT } from "./limits";
+import { Transform3DSchema } from "./world3d";
 
 /**
  * Capa de tilemap serializada en RLE `[cantidad, tileId, ...]` (specs/04 §1).
@@ -32,6 +33,9 @@ export const SpawnPointSchema = z.object({
   id: z.string(),
   x: z.number(),
   y: z.number(),
+  /** Modo 3D (specs/27 §3): altura y giro del punto de aparición; ausentes = 0. */
+  h: z.number().finite().min(0).max(MAX_WORLD3D_HEIGHT).optional(),
+  yaw: z.number().finite().min(0).lt(360).optional(),
 });
 
 /**
@@ -43,6 +47,8 @@ export const LightConfigSchema = z.discriminatedUnion("type", [
     type: z.literal("torch"),
     x: z.number(),
     y: z.number(),
+    /** Modo 3D: altura de la antorcha (ausente = 1.6). */
+    h: z.number().finite().min(0).max(MAX_WORLD3D_HEIGHT).optional(),
     objectId: z.string().optional(),
   }),
   z.object({
@@ -137,6 +143,8 @@ export const WorldObjectSchema = z.object({
    * entrega el ítem al inspeccionarlo (recogerlo).
    */
   pickupOnly: z.boolean().optional(),
+  /** Modo 3D (specs/27 §3): colocación libre; obligatorio en salas 3D, prohibido en 2D. */
+  transform: Transform3DSchema.optional(),
 });
 
 /** Catálogo de objetos del inventario — specs/08 §2.4. */

@@ -1,5 +1,6 @@
 import { assertNever } from "../exhaustive";
 import { MAX_VALIDATE_PLAYER_COUNTS, type RoomPackage } from "../schemas";
+import { checkWorld3D, checkWorld3DModels } from "./checks3d";
 import { clueRequirements, computeCodeClues } from "./clues";
 import {
   analyzeDoubleUse,
@@ -144,6 +145,8 @@ export function validateRoomPackage(
   const checks: ValidationCheck[] = [
     referencesCheck(pkg),
     geometryCheck(pkg),
+    world3dCheck(pkg),
+    world3dModelsCheck(pkg),
     structureCheck(pkg),
     spawnCapacityCheck(pkg),
     codeLockUnlimitedLockoutCheck(pkg),
@@ -228,7 +231,10 @@ function describeMove(
           // No se incluye el código en el informe (auditoría D-14): hoy solo
           // lo ve el autor, pero cualquier pantalla futura de moderación o
           // colaborador que reutilice `describeMove` filtraría el secreto.
-          return { ...base, description: `Resolver ${puzzle.id} (candado de ${puzzle.length} dígitos)` };
+          return {
+            ...base,
+            description: `Resolver ${puzzle.id} (candado de ${puzzle.length} dígitos)`,
+          };
         case "simultaneous_plates":
           return {
             ...base,
@@ -419,6 +425,28 @@ function geometryCheck(pkg: RoomPackage): ValidationCheck {
     issues,
     "Geometría íntegra: toda posición cae dentro de la rejilla de su habitación",
     `Geometría: ${issues.length} posición(es) fuera de la rejilla de su habitación`,
+  );
+}
+
+function world3dCheck(pkg: RoomPackage): ValidationCheck {
+  const issues = checkWorld3D(pkg);
+  return check(
+    "world3d",
+    "error",
+    issues,
+    "Mundo 3D íntegro",
+    `Mundo 3D: ${issues.length} problema(s)`,
+  );
+}
+
+function world3dModelsCheck(pkg: RoomPackage): ValidationCheck {
+  const issues = checkWorld3DModels(pkg);
+  return check(
+    "world3d_models",
+    "warning",
+    issues,
+    "Modelos 3D conocidos",
+    `Modelos 3D desconocidos: ${issues.length}`,
   );
 }
 

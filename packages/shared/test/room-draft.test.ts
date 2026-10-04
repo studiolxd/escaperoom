@@ -417,6 +417,16 @@ describe("createDraft (alta de una sala en borrador, 4.2)", () => {
     await expect(service.loadDraft(intruder, room.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
+  it("guarda la dimensión de la sala (2d por defecto) y findRoom la devuelve", async () => {
+    const { store, service } = setup();
+    const plain = await service.createDraft(author, { title: "Plana" });
+    expect(plain.dimension).toBe("2d");
+    expect((await store.findRoom(plain.id))?.dimension).toBe("2d");
+    const room3d = await service.createDraft(author, { title: "Sala 3D", dimension: "3d" });
+    expect(room3d.dimension).toBe("3d");
+    expect((await store.findRoom(room3d.id))?.dimension).toBe("3d");
+  });
+
   it("sin sesión no crea nada", async () => {
     const { service } = setup();
     await expect(service.createDraft(ANONYMOUS_ACTOR, { title: "x" })).rejects.toBeInstanceOf(

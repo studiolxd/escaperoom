@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from "../../generated/client/client";
 import { createPrismaAdminDirectory } from "./admin-prisma-store";
 import type { RoomPackage } from "../schemas";
+import { toRoomDimension } from "../schemas/world3d";
 import type {
   RoomPublishStore,
   RoomPublishTx,
@@ -83,11 +84,12 @@ export function createPrismaRoomPublishStore(prisma: PrismaClient): RoomPublishS
     listSemvers: listSemvers(prisma),
     findLatestVersion: findLatestVersion(prisma),
     ...createPrismaAdminDirectory(prisma),
-    findRoom(roomId) {
-      return prisma.room.findFirst({
+    async findRoom(roomId) {
+      const room = await prisma.room.findFirst({
         where: { id: roomId, deletedAt: null },
-        select: { id: true, authorId: true, status: true },
+        select: { id: true, authorId: true, status: true, dimension: true },
       });
+      return room ? { ...room, dimension: toRoomDimension(room.dimension) } : null;
     },
     async listVersions(roomId): Promise<RoomVersionMeta[]> {
       return prisma.$queryRaw<RoomVersionMeta[]>`

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type * as Y from "yjs";
 import { safeParseRoomPackage, type RoomPackage } from "../schemas";
+import { dimensionOf, type RoomDimension } from "../schemas/world3d";
 import { toReadableIssues, type ReadableIssue } from "../schemas/errors";
 import {
   renderValidationReport,
@@ -94,6 +95,8 @@ export type PublishRoomRef = {
   id: string;
   authorId: string;
   status: "draft" | "published" | "unlisted" | "archived" | "removed";
+  /** Modo 3D (specs/27 §3.3): fijada al crear la sala; ausente = `"2d"`. */
+  dimension?: RoomDimension;
 };
 
 /** Fila de `roomVersion` (el `package` es el JSONB congelado). */
@@ -641,6 +644,15 @@ export function createRoomPublishService(deps: {
       throw new RoomPublishError(
         "UNSUPPORTED_PACKAGE_FORMAT",
         `packageFormat "${format}" no soportado (se admite: ${supportedFormats.join(", ")})`,
+      );
+    }
+
+    const documentDimension = dimensionOf(draftPackage.meta);
+    const roomDimension = room.dimension ?? "2d";
+    if (documentDimension !== roomDimension) {
+      throw new RoomPublishError(
+        "UNSUPPORTED_PACKAGE_FORMAT",
+        `La dimensión del documento (${documentDimension}) no coincide con la de la sala (${roomDimension})`,
       );
     }
 
