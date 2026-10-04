@@ -534,7 +534,12 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
       // `on_use_item` o objeto-puente). En cualquier otro caso: aviso y nada
       // más, sin llamar al servidor ni convertirlo en inspeccionar.
       if (!model.objectsById[objectId]?.useItemIds?.includes(itemId)) {
-        pushLog(tp("log.cannotUseHere"));
+        const title = objectName(objectId);
+        setDialog({
+          id: "cannot-use-here",
+          text: tp("log.cannotUseHere"),
+          ...(title ? { title } : {}),
+        });
         return;
       }
       // Igual que `inspect()`: recuerda el objeto para poder titular un
