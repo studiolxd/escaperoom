@@ -82,7 +82,12 @@ export class UiPlayer {
    */
   async markReady(): Promise<void> {
     const options = this.page.locator('[data-testid^="character-option-"]:not([disabled])');
-    if (await options.first().isVisible({ timeout: 2_000 }).catch(() => false)) {
+    if (
+      await options
+        .first()
+        .isVisible({ timeout: 2_000 })
+        .catch(() => false)
+    ) {
       // El radio real es `sr-only` (oculto); es su <label> visible quien
       // recibe el clic real (y lo reenvía al radio por debajo), así que se
       // clica la etiqueta en vez del radio directamente. El primero LIBRE
@@ -175,10 +180,63 @@ export class UiPlayer {
       [objectId, waitInteractive] as const,
       { timeout: 15_000 },
     );
-    const point = (await fraction.jsonValue()) as { x: number; y: number };
+    let point = (await fraction.jsonValue()) as { x: number; y: number };
     const box = await canvas.boundingBox();
     if (!box) throw new Error("El canvas del juego no tiene tamaño en pantalla.");
+    if (await this.page.locator("[data-dimension='3d']").count()) {
+      point = await this.freeCanvasPoint(objectId, point, box);
+    }
     await this.page.mouse.click(box.x + point.x * box.width, box.y + point.y * box.height);
+  }
+
+  /**
+   * Solo 3D: el objeto puede quedar bajo un panel de la interfaz (jugadores, chat, inventario…),
+   * y entonces el clic no llega al canvas. Si el punto no es el `<canvas>` (`elementFromPoint`),
+   * se gira la cámara arrastrando (como una persona) alternando de lado y se vuelve a pedir el
+   * punto al runtime, hasta un tope de intentos.
+   */
+  private async freeCanvasPoint(
+    objectId: string,
+    first: { x: number; y: number },
+    box: { x: number; y: number; width: number; height: number },
+  ): Promise<{ x: number; y: number }> {
+    const MAX_ATTEMPTS = 12;
+    const isCanvasAt = (p: { x: number; y: number }) =>
+      this.page.evaluate(
+        ([px, py]) => document.elementFromPoint(px as number, py as number)?.tagName === "CANVAS",
+        [box.x + p.x * box.width, box.y + p.y * box.height],
+      );
+    let point: { x: number; y: number } | undefined = first;
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    // Sentido del giro (+1/-1) que acerca el objeto al centro de la pantalla; se invierte si
+    // el último giro lo aleja o lo saca de plano (se vuelve atrás con el giro contrario).
+    let direction = point.x < 0.5 ? 1 : -1;
+    const drag = async (dx: number) => {
+      await this.page.mouse.move(cx, cy);
+      await this.page.mouse.down();
+      await this.page.mouse.move(cx + dx, cy, { steps: 6 });
+      await this.page.mouse.up();
+      await this.page.waitForTimeout(400); // la cámara sigue al avatar con un pequeño retardo
+    };
+    const readPoint = () =>
+      this.page.evaluate((id) => window.__escaperoomGame?.getObjectScreenFraction(id), objectId);
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      if (point && (await isCanvasAt(point))) return point;
+      const before: { x: number; y: number } | undefined = point;
+      await drag(direction * 40);
+      point = await readPoint();
+      const worse =
+        !point || (before !== undefined && Math.abs(point.x - 0.5) > Math.abs(before.x - 0.5));
+      if (worse) {
+        direction = -direction;
+        await drag(direction * 40); // deshace el giro
+        point = await readPoint();
+      }
+    }
+    throw new Error(
+      `«${objectId}» queda siempre bajo la interfaz o fuera de plano tras ${MAX_ATTEMPTS} giros de cámara: no hay punto del canvas donde clicar.`,
+    );
   }
 
   /**
@@ -211,7 +269,9 @@ export class UiPlayer {
   async expectNotInteractable(objectId: string): Promise<void> {
     await this.clickObjectOnCanvas(objectId, false);
     await this.page.waitForTimeout(3_000);
-    await expect(this.page.getByRole("button", { name: "Cancelar", exact: true })).not.toBeVisible();
+    await expect(
+      this.page.getByRole("button", { name: "Cancelar", exact: true }),
+    ).not.toBeVisible();
   }
 
   async inspect(objectId: string): Promise<void> {
