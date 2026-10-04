@@ -1,7 +1,15 @@
 import * as Y from "yjs";
 import type { Decoration, LightConfig } from "@escaperoom/shared/schemas";
 import { collection, plain, type RecordMap } from "./doc-model";
-import { assertDimension, assertInside, RoomDocError, subRoom, type Cell } from "./commands";
+import {
+  assertDimension,
+  assertInside,
+  RoomDocError,
+  roomDimension,
+  subRoom,
+  type Cell,
+} from "./commands";
+import { assertInside3D } from "./commands3d";
 
 /**
  * Decoración e iluminación de una habitación interna (`SubRoom.decorations` y
@@ -165,8 +173,14 @@ export function getAmbientLight(doc: Y.Doc, roomId: string): Ambient | undefined
   return listLights(doc, roomId).find((light): light is Ambient => light.type === "ambient");
 }
 
+/** Altura por defecto de una antorcha 3D (la misma que asume el runtime). */
+const DEFAULT_TORCH_HEIGHT = 1.6;
+
 function checkTorch(doc: Y.Doc, roomId: string, torch: Omit<Torch, "type">): Torch {
-  assertInside(doc, roomId, torch);
+  // En 3D la posición se comprueba en metros y con altura; en 2D, por celda (y `h` se ignora).
+  const is3d = roomDimension(doc) === "3d";
+  if (is3d) assertInside3D(doc, roomId, { x: torch.x, y: torch.y, h: torch.h ?? DEFAULT_TORCH_HEIGHT });
+  else assertInside(doc, roomId, torch);
   if (torch.objectId !== undefined && !collection(doc, "objects").has(torch.objectId)) {
     throw new RoomDocError(
       "UNKNOWN_OBJECT",
@@ -177,8 +191,15 @@ function checkTorch(doc: Y.Doc, roomId: string, torch: Omit<Torch, "type">): Tor
     type: "torch",
     x: torch.x,
     y: torch.y,
+    ...(is3d && torch.h !== undefined ? { h: torch.h } : {}),
     ...(torch.objectId !== undefined ? { objectId: torch.objectId } : {}),
   };
+}
+
+/** Comprueba una antorcha 3D (con su altura) y devuelve su forma normalizada. */
+export function checkTorch3D(doc: Y.Doc, roomId: string, torch: Omit<Torch, "type">): Torch {
+  assertDimension(doc, "3d", "checkTorch3D");
+  return checkTorch(doc, roomId, torch);
 }
 
 function checkAmbient(ambient: Omit<Ambient, "type">): Ambient {
@@ -218,6 +239,8 @@ export function addTorch(doc: Y.Doc, roomId: string, torch: Omit<Torch, "type">)
 export type TorchPatch = {
   x?: number;
   y?: number;
+  /** Solo en salas 3D (en 2D se ignora). */
+  h?: number;
   /** `null` desliga la antorcha de su objeto. */
   objectId?: string | null;
 };
@@ -235,6 +258,7 @@ export function updateTorch(doc: Y.Doc, roomId: string, index: number, patch: To
     const next = checkTorch(doc, roomId, {
       x: patch.x ?? current.x,
       y: patch.y ?? current.y,
+      ...(patch.h !== undefined ? { h: patch.h } : current.h !== undefined ? { h: current.h } : {}),
       ...(objectId !== undefined ? { objectId } : {}),
     });
     if (JSON.stringify(next) === JSON.stringify(current)) return;
