@@ -35,6 +35,8 @@ pinta, cómo se mueve el avatar y cómo se edita.
 | Dispositivos | Escritorio y táctil (tablet y móvil). |
 | Avatares | `caballero-m` y un maniquí tintado de reserva. Los otros 7 personajes son un encargo de assets aparte. |
 | Sala de espera | También en 3D (una habitación `kind: "lobby"`). |
+| Assets | Se generan a medida que se necesitan, no todo el pack por adelantado. Un modelo que aún no existe se ve como una caja. |
+| Observador | El organizador u observador elige entre cámara libre y seguir a un jugador. |
 | Binarios del pack | Los GLB se quedan en local, sin versionar. El catálogo de modelos sí se versiona. Sin GLB, el runtime pinta cajas. |
 | Piloto | «La Maldición del Rey Aldric» en 3D: sala aparte, gratis, generada con un conversor interno 2D→3D y retocada. |
 | Catálogo | Filtro 2D/3D. Etiqueta 2D/3D en las tarjetas y en la ficha de la sala. |
@@ -206,10 +208,14 @@ mirillas) se colocan pegados a la cara interior del bloque.
 
 ### 4.2 Objetos del pack
 
+Los modelos se generan **bajo demanda**: cada vez que una sala (la primera, el Rey Aldric 3D)
+necesita un modelo, se exporta con el pipeline de `tools/assets-generator` y se añade su entrada
+al catálogo. Un id que todavía no está en el catálogo se pinta como caja y el validador lo avisa
+(`unknown_model`), sin bloquear.
+
 Un modelo por cada sprite 2D sin sufijo de orientación. Los estados que hoy son frames
 distintos (`arca-cerrada` / `arca-abierta`) son modelos distintos. Las imágenes planas de pared
-(cuadros, tapices, mural, estandarte) son un tablero con la imagen como textura. La lista
-completa y la correspondencia sprite→modelo está en `docs/plan/modo-3d/7.3-assets-3d.md`.
+(cuadros, tapices, mural, estandarte) son un tablero con la imagen como textura.
 
 ## 5. Navmesh y movimiento
 
@@ -317,6 +323,14 @@ altura). El jugador aparece en un `spawnPoint` de la habitación destino.
 - **Calidad:** alta o baja. Empieza en alta y baja sola si la media cae por debajo de 30 FPS
   durante 5 s. En baja: sin sombras, sin contorno por postproceso (se usa un tinte), y
   resolución de render a 1×.
+- **Modo observador** (organizador de un evento y cualquier cliente sin avatar propio): dos
+  cámaras, con un selector en el HUD.
+  - *Seguir a un jugador:* la misma cámara en órbita, centrada en el jugador elegido de una
+    lista; cambia de habitación con él.
+  - *Cámara libre:* vuela por la habitación elegida (WASD para moverse, arrastrar para girar,
+    rueda para acercar), sin colisión y limitada a la caja de la habitación más 5 m. Un selector
+    elige la habitación.
+  El observador no envía `move` ni interactúa.
 - **Modo edición:** ver §8.
 
 ### 7.1 Presupuestos
@@ -331,7 +345,11 @@ altura). El jugador aparece en un `spawnPoint` de la habitación destino.
 ## 8. Editor 3D
 
 El editor de una sala 3D usa el mismo `RoomEditorShell` (inspector, reglas, plantillas,
-idiomas, validación, playtest) con otro lienzo y otra paleta.
+idiomas, validación, playtest) con otro lienzo y otra paleta. **La distribución es la del editor
+2D**: paleta y herramientas donde están hoy, lienzo en el centro, panel de habitación e inspector
+en su sitio. Lo propio del 3D (selector de altura, modos del gizmo, ver navmesh) va en la misma
+barra de herramientas. No hay maqueta previa: el usuario lo valida visualmente una vez
+implementado.
 
 - **Lienzo:** `RoomRuntime3D` en `mode: "edit"`, con cámara libre de editor (órbita, paneo y
   zoom) y rejilla de suelo de 1 m en la altura de trabajo.
@@ -401,7 +419,11 @@ idiomas, validación, playtest) con otro lienzo y otra paleta.
   `ref = "model:<uuid>"` en el borrador y la clave del bucket en una versión publicada (la
   publicación copia y reescribe, como con audio y vídeo). El `id` cumple `ID_PATTERN` y se usa
   igual que un modelo del pack en `sprite`, `states` y `pieces[].model`.
-- **Moderación:** sin revisión previa. Se puede reportar la sala; el moderador ve los modelos.
+- **Moderación:** sin revisión previa. Se puede reportar la sala. En el panel de moderación
+  (`/admin/moderation`), el detalle de un reporte sobre una sala 3D lista sus modelos propios y
+  abre cada uno en un **visor 3D** (órbita, zoom, material original y toon, medidas, triángulos
+  y peso), con el mismo cargador que el runtime. Retirar la sala al confirmar el reporte funciona
+  como con cualquier otro contenido.
 - **Cuota:** 40 modelos propios por sala.
 
 ## 10. Catálogo y creación
@@ -442,17 +464,15 @@ idiomas, validación, playtest) con otro lienzo y otra paleta.
 
 ## 13. Puntos abiertos
 
-Lo que falta por cerrar antes de poder encargar cada parte. El estado de cada encargo está en
-`docs/plan/fase-7-modo-3d.md`.
-
-| # | Punto | Bloquea | Cómo se cierra |
+| # | Punto | Afecta a | Cómo se cierra |
 |---|---|---|---|
-| A1 | **Los materiales de Blender no se exportan solos a GLB.** Los modelos de Tripo traen textura, pero lo que añaden los constructores (piedra procedural, fuego del brasero, agua del altar, llama de la antorcha, sello del relicario) son materiales de nodos. Hay que hornearlos a textura o sustituirlos por efectos del runtime. | 7.3 completo, 7.5 | Prototipo 7.3a: exportar arca, brasero, muro, suelo y caballero y verlos en un visor. Lo valida el usuario. |
-| A2 | **El kit de suelos y muros no existe en 3D.** Hoy son tiles SVG. Hay que modelarlo por código en Blender con las texturas del estilo. | 7.3 completo | Mismo prototipo 7.3a (muro y suelo). |
-| A3 | **Peso y aspecto de cerca.** `trono/tripo.glb` pesa 31 MB y `caballero-m/tripo.glb`, 41 MB. Hay que comprobar que, reducidos al presupuesto de §7.1, siguen viéndose bien en tercera persona. | 7.3 completo | Mismo prototipo 7.3a. |
-| A4 | **Animación «interactuar» del avatar.** El clip `alcanzar` de Mixamo está pensado para 4 fotogramas en 2D. Falta ver si vale como clip continuo. | 7.5 | Prototipo 7.3a (caballero con sus tres clips). |
-| A5 | **recast-navigation en Node.** Hay que confirmar que el WASM arranca en el proceso de Colyseus y en Vitest, y que cliente y servidor generan la misma malla. | 7.4 | Primer paso del encargo 7.4 (prueba en Node antes de seguir). |
-| A6 | **Observador y organizador en 3D.** Hoy ven el mapa 2D. En 3D: ¿cámara que sigue a un jugador elegido, o cámara libre? | 7.6 | Decisión del usuario. |
-| A7 | **Diseño de la interfaz del editor 3D.** La distribución de la paleta, los gizmos y el selector de altura está descrita (§8), pero no dibujada. | 7.7 | Maqueta para aprobar antes del encargo. |
-| A8 | **Panel de moderación con visor 3D** para revisar modelos reportados. | 7.8 | Decidir si entra en 7.8 o queda como deuda. |
-| A9 | **Retoques del Rey Aldric 3D.** Qué se cambia respecto a la conversión automática (por ejemplo, usar desniveles) lo decide el usuario al verla. | 7.10 | Revisión en vivo, como la del 2D. |
+| A1 | **Los materiales de Blender no se exportan solos a GLB.** Los modelos de Tripo traen textura, pero lo que añaden los constructores (piedra y madera procedurales, fuego, agua, sello del relicario) son materiales de nodos: hay que hornearlos a textura. | Aspecto de los assets, no el código | Con los primeros modelos que se exporten (7.3). Lo valida el usuario en el visor. |
+| A2 | **El kit de suelos y muros no existe en 3D** (hoy son tiles SVG). Se modela por código en Blender cuando haga falta. | Rey Aldric 3D (7.10) | Al generar las piezas que necesite la sala. |
+| A3 | **Peso y aspecto de cerca.** `trono/tripo.glb` pesa 31 MB y `caballero-m/tripo.glb`, 41 MB. Hay que ver cómo quedan reducidos al presupuesto de §7.1. | Aspecto de los assets | Al exportar cada uno. |
+| A4 | **Clip «interactuar» del avatar:** el `alcanzar` de Mixamo se hizo para 4 fotogramas en 2D. | Avatar | Al exportar el caballero (7.3). |
+| A5 | **recast-navigation en Node:** confirmar que el WASM arranca en Colyseus y en Vitest. | 7.4 | Primer paso de 7.4. Si falla, el agente para y avisa. |
+| A9 | **Retoques del Rey Aldric 3D** respecto a la conversión automática. | 7.10 | Revisión en vivo del usuario, como la del 2D. |
+
+Ninguno bloquea el código: runtime, editor y partida se construyen y se prueban con cajas de
+sustitución. Cerrados el 2026-10-04: cámara del observador (§7), distribución del editor (§8) y
+visor 3D en moderación (§9).
