@@ -58,6 +58,8 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
    */
   const [roomReady, setRoomReady] = useState(false);
   const enteredMapRef = useRef(false);
+  /** `true` cuando el canvas ya entregó su handle (`onReady`). */
+  const [handleReady, setHandleReady] = useState(false);
 
   // Objetos: aplica cualquier estado nuevo (también al unirse a mitad de partida).
   useEffect(() => {
@@ -95,6 +97,8 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
   const selfRoom = self?.roomId;
   const selfX = self?.x;
   const selfY = self?.y;
+  const selfH = self?.h;
+  const selfYaw = self?.yaw;
   const selfTint = self?.tint;
   useEffect(() => {
     const handle = handleRef.current;
@@ -125,15 +129,17 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
     if (serverRoomRef.current !== selfRoom) {
       // Primera posición o cruce aceptado: coloca al jugador en la sala del servidor.
       serverRoomRef.current = selfRoom;
-      handle.placeAvatar(selfX, selfY);
+      handle.placeAvatar(selfX, selfY, selfH, selfYaw);
       return;
     }
     const local = handle.avatarCell();
     if (local && sceneRoomRef.current === selfRoom) {
       // Desfase grande (movimiento rechazado, pestaña en segundo plano): manda el servidor.
-      if (Math.hypot(local.x - selfX, local.y - selfY) > 3.5) handle.placeAvatar(selfX, selfY);
+      if (Math.hypot(local.x - selfX, local.y - selfY) > 3.5) {
+        handle.placeAvatar(selfX, selfY, selfH, selfYaw);
+      }
     }
-  }, [selfRoom, selfX, selfY]);
+  }, [selfRoom, selfX, selfY, selfH, selfYaw]);
 
   useEffect(() => {
     if (selfTint) handleRef.current?.setLocalTint(selfTint);
@@ -150,6 +156,7 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
   const onReady = useCallback(
     (handle: GameSessionCanvasHandle) => {
       handleRef.current = handle;
+      setHandleReady(true);
       // Estado que llegó antes de montar Phaser.
       const current = snapshotRef.current;
       appliedObjectsRef.current = {};
@@ -161,11 +168,11 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
         serverRoomRef.current = current.self.roomId;
         if (current.self.tint) handle.setLocalTint(current.self.tint);
         handle.setLocalCharacter(current.self.characterId);
-        handle.placeAvatar(current.self.x, current.self.y);
+        handle.placeAvatar(current.self.x, current.self.y, current.self.h, current.self.yaw);
       }
     },
     [model],
   );
 
-  return { handleRef, onReady, sceneRoomRef, roomReady };
+  return { handleRef, onReady, sceneRoomRef, roomReady, handleReady };
 }

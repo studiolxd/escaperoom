@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { WorldSceneEvent } from "@escaperoom/game-runtime/phaser";
 import { Button } from "@/components/ui/button";
+import { Preview3DUnavailable } from "../room-preview/preview-3d-unavailable";
 import type { WorldPreviewHandle } from "./world-preview-canvas";
 
 const WorldPreviewCanvas = dynamic(() => import("./world-preview-canvas"), {
@@ -56,6 +57,8 @@ export function WorldPreviewShell({ model }: { model: RuntimeModel }) {
   const onReady = useCallback((handle: WorldPreviewHandle) => {
     handleRef.current = handle;
   }, []);
+
+  if (model.dimension === "3d") return <Preview3DUnavailable message={t("preview3dUnavailable")} />;
 
   return (
     <section className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10">

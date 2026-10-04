@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { Loader2 } from "lucide-react";
 import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
+import type { Pack3D } from "@/lib/game-model";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ const NAME_STORAGE_KEY = "escaperoom:player-name";
 export interface NetworkGameProps {
   model: PublicRuntimeModel;
   pack?: RoomScenePack;
+  pack3d?: Pack3D;
   target: GameJoinTarget;
   title?: string;
   subtitle?: string;
@@ -65,6 +67,7 @@ export interface NetworkGameProps {
 export function NetworkGame({
   model,
   pack,
+  pack3d,
   target,
   title,
   subtitle,
@@ -242,6 +245,7 @@ export function NetworkGame({
       key={connection.client.selfId}
       model={model}
       pack={pack}
+      pack3d={pack3d}
       client={connection.client}
       connection={{ status: connection.status, onRetry: connection.retry }}
       title={title}

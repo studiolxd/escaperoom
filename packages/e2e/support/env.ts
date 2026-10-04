@@ -60,6 +60,8 @@ export const SEED = {
   creatorEmail: "creador@escaperoom.local",
   organizationId: "seed-org",
   reyAldricRoomId: "00000000-0000-0000-0000-000000000301",
+  /** «Sala de pruebas 3D» (`docs/reference/roompackage-demo-3d.v1.json`), gratis y solo de desarrollo/CI. */
+  demo3dRoomId: "00000000-0000-0000-0000-000000003001",
 } as const;
 
 /**

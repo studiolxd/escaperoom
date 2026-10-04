@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
+import type { Pack3D } from "@/lib/game-model";
 import { readJoinTokenFromHash } from "@/lib/game-net";
 import { AlertStatus, LoadingStatus } from "./components/status-overlay";
 import { NetworkGame } from "./network-game";
@@ -20,11 +21,13 @@ const tokenKey = (sessionId: string) => `escaperoom:join-token:${sessionId}`;
 export function EventGame({
   model,
   pack,
+  pack3d,
   sessionId,
   subtitle,
 }: {
   model: PublicRuntimeModel;
   pack?: RoomScenePack;
+  pack3d?: Pack3D;
   sessionId: string;
   subtitle?: string;
 }) {
@@ -64,5 +67,7 @@ export function EventGame({
   if (!token) {
     return <AlertStatus message={t("event.missingToken")} />;
   }
-  return <NetworkGame model={model} pack={pack} target={target} subtitle={subtitle} />;
+  return (
+    <NetworkGame model={model} pack={pack} pack3d={pack3d} target={target} subtitle={subtitle} />
+  );
 }

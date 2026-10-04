@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
+import type { Pack3D } from "@/lib/game-model";
 import type { IntroModel } from "@/lib/intro-model";
 import { readGameTokenFromHash } from "@/lib/game-net";
 import { AlertStatus, LoadingStatus } from "./components/status-overlay";
@@ -23,6 +24,7 @@ const tokenKey = (roomId: string) => `escaperoom:game-token:${roomId}`;
 export function RoomGame({
   model,
   pack,
+  pack3d,
   roomId,
   joinRoomId,
   subtitle,
@@ -32,6 +34,7 @@ export function RoomGame({
 }: {
   model: PublicRuntimeModel;
   pack?: RoomScenePack;
+  pack3d?: Pack3D;
   roomId: string;
   joinRoomId?: string;
   subtitle?: string;
@@ -104,6 +107,7 @@ export function RoomGame({
     <NetworkGame
       model={model}
       pack={pack}
+      pack3d={pack3d}
       target={target}
       subtitle={subtitle}
       signInHref={signInHref}

@@ -15,7 +15,8 @@
     "spawns": "Spawnpunkte",
     "packLoaded": "Grafikpaket „{packId}“",
     "packPlaceholder": "automatischer Platzhalter (kein Pack)",
-    "controls": "WASD/Pfeiltasten zum Bewegen · Leertaste zum Interagieren"
+    "controls": "WASD/Pfeiltasten zum Bewegen · Leertaste zum Interagieren",
+    "preview3dUnavailable": "Die Vorschau von 3D-Räumen ist mit dem 3D-Editor verfügbar."
   },
   "CodeLock": {
     "title": "Zahlenschloss",
@@ -885,6 +886,11 @@
     },
     "room": {
       "missingToken": "Der Spielzugangscode fehlt. Kehre zur Raumseite zurück, um zu spielen."
+    },
+    "touch": {
+      "interact": "Interagieren",
+      "interactWith": "Mit {object} interagieren",
+      "hintKey": "E — {object}"
     }
   },
   "Chat": {
@@ -1224,7 +1230,11 @@
       "log": "Aktivität",
       "noLog": "Noch keine Aktivität.",
       "logSolved": "Gelöst: {puzzle}",
-      "logEnded": "Spielende: {result}"
+      "logEnded": "Spielende: {result}",
+      "camera": "Kamera",
+      "cameraFree": "Freie Kamera",
+      "cameraFollow": "{player} folgen",
+      "room": "Raum"
     },
     "puzzleTypes": {
       "code_lock": "Schloss",

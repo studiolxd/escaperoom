@@ -15,7 +15,8 @@
     "spawns": "Spawns",
     "packLoaded": "graphics pack «{packId}»",
     "packPlaceholder": "automatic placeholder (no pack)",
-    "controls": "WASD/arrows to move · Space to interact"
+    "controls": "WASD/arrows to move · Space to interact",
+    "preview3dUnavailable": "3D room preview will be available with the 3D editor."
   },
   "CodeLock": {
     "title": "Number lock",
@@ -987,6 +988,11 @@
     },
     "room": {
       "missingToken": "The game access code is missing. Go back to the room page to play."
+    },
+    "touch": {
+      "interact": "Interact",
+      "interactWith": "Interact with {object}",
+      "hintKey": "E — {object}"
     }
   },
   "Chat": {
@@ -1235,7 +1241,11 @@
       "log": "Activity",
       "noLog": "No activity yet.",
       "logSolved": "Solved: {puzzle}",
-      "logEnded": "Game over: {result}"
+      "logEnded": "Game over: {result}",
+      "camera": "Camera",
+      "cameraFree": "Free camera",
+      "cameraFollow": "Follow {player}",
+      "room": "Room"
     },
     "puzzleTypes": {
       "code_lock": "Lock",

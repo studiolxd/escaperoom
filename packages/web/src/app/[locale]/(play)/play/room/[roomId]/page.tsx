@@ -50,7 +50,7 @@ export default async function RoomGamePage({ params, searchParams }: Props) {
   const roomPackage = await getGameAccessStore().loadRoomVersionPackage(room.latestVersion.id);
   if (!roomPackage) notFound();
 
-  const { model, pack } = buildGameModel(roomPackage, locale);
+  const { model, pack, pack3d } = buildGameModel(roomPackage, locale);
   // Encargo lobby-diseño: introducción (texto o vídeo con URLs firmadas) y
   // portada para la cabecera del lobby. Ninguna de las dos impide jugar.
   const [intro, coverUrl] = await Promise.all([
@@ -78,6 +78,7 @@ export default async function RoomGamePage({ params, searchParams }: Props) {
       <RoomGame
         model={model}
         pack={pack}
+        pack3d={pack3d}
         roomId={room.id}
         joinRoomId={joinRoomId}
         subtitle={t("page.subtitle")}

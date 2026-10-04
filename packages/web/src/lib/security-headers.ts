@@ -171,6 +171,9 @@ export function buildContentSecurityPolicy(nonce: string, env: SecurityEnv = {})
         "'self'",
         `'nonce-${nonce}'`,
         "'strict-dynamic'",
+        // Modo 3D: la navmesh (`@escaperoom/nav3d`, Recast compilado a WebAssembly) lo exige.
+        // Solo autoriza compilar WASM, no `eval` de JavaScript.
+        "'wasm-unsafe-eval'",
         ...(dev ? ["'unsafe-eval'"] : []),
         ...plausible,
         ...googleAnalyticsScript,

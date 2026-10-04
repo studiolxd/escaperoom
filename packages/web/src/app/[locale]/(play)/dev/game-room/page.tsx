@@ -44,7 +44,7 @@ export default async function DevGameRoomPage({ params, searchParams }: Props) {
 
   const t = await getTranslations("Game");
   const roomPackage = loadRoomPackage(readReyAldricRoomPackageJson());
-  const { model, pack } = buildGameModel(roomPackage, locale);
+  const { model, pack, pack3d } = buildGameModel(roomPackage, locale);
   const roomId = typeof room === "string" && /^[\w-]{1,64}$/u.test(room) ? room : undefined;
   const gameToken = signDevTestGameToken();
 
@@ -53,6 +53,7 @@ export default async function DevGameRoomPage({ params, searchParams }: Props) {
       <NetworkGameDev
         model={model}
         pack={pack}
+        pack3d={pack3d}
         target={{ kind: "game", packageId: PACKAGE_ID, ...(roomId ? { roomId } : {}), gameToken }}
         subtitle={t("page.subtitle")}
       />

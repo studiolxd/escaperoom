@@ -103,7 +103,8 @@
     "clickToClose": "Clic para cerrar",
     "panelMountedTitle": "Panel React montado desde Phaser",
     "panelExplain": "El diálogo de la palanca abrió un panel: la escena emitió open-panel y React lo montó (specs/03 §3).",
-    "closePanel": "Cerrar panel"
+    "closePanel": "Cerrar panel",
+    "preview3dUnavailable": "La previsualización de salas 3D estará disponible con el editor 3D."
   },
   "RoomPreview": {
     "badge": "previsualización isométrica (1.2)",
@@ -114,7 +115,8 @@
     "spawns": "Spawns",
     "packLoaded": "pack gráfico «{packId}»",
     "packPlaceholder": "placeholder automático (sin pack)",
-    "controls": "WASD/flechas para mover · Espacio para interactuar"
+    "controls": "WASD/flechas para mover · Espacio para interactuar",
+    "preview3dUnavailable": "La previsualización de salas 3D estará disponible con el editor 3D."
   },
   "CodeLock": {
     "title": "Candado numérico",
@@ -634,7 +636,8 @@
         "preview": "Previsualizar lobby",
         "hidePreview": "Ocultar previsualización",
         "previewError": "No se puede previsualizar el lobby con el estado actual de la sala.",
-        "sizeInvalid": "El ancho y el alto deben ser números enteros entre {min} y {max}."
+        "sizeInvalid": "El ancho y el alto deben ser números enteros entre {min} y {max}.",
+        "preview3dUnavailable": "La previsualización de salas 3D estará disponible con el editor 3D."
       },
       "intro": {
         "heading": "Introducción",
@@ -1179,6 +1182,11 @@
     },
     "room": {
       "missingToken": "Falta el código de acceso de la partida. Vuelve a la ficha de la sala para jugar."
+    },
+    "touch": {
+      "interact": "Interactuar",
+      "interactWith": "Interactuar con {object}",
+      "hintKey": "E — {object}"
     }
   },
   "TemplateConfig": {
@@ -1523,7 +1531,11 @@
       "log": "Actividad",
       "noLog": "Sin actividad todavía.",
       "logSolved": "Resuelto: {puzzle}",
-      "logEnded": "Fin de la partida: {result}"
+      "logEnded": "Fin de la partida: {result}",
+      "camera": "Cámara",
+      "cameraFree": "Cámara libre",
+      "cameraFollow": "Seguir a {player}",
+      "room": "Habitación"
     },
     "puzzleTypes": {
       "code_lock": "Candado",

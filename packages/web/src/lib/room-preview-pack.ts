@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
   validatePack,
@@ -49,6 +49,40 @@ export interface ResolveRoomPreviewPackOptions {
  * no incluya el `locale` aunque `model` cambie por petición.
  */
 const packCache = new Map<string, RoomPreviewPackResult>();
+const pack3DCache = new Map<string, string | undefined>();
+
+function resolvePacksRoot(options: ResolveRoomPreviewPackOptions): string {
+  return (
+    options.packsRoot ??
+    process.env.PACKS_ROOT ??
+    join(findRepoRoot(options.cwd ?? process.cwd()), PACKS_PUBLIC_DIR)
+  );
+}
+
+/**
+ * URL base de los modelos 3D del pack (`/packs/<tileset>`), o `undefined` si la carpeta
+ * `<packsRoot>/<tileset>/models` no existe (E2E y CI: el runtime pinta cajas). Misma resolución
+ * de `packsRoot` (incl. `PACKS_ROOT`) y misma caché por `(packsRoot, tileset)` que
+ * `resolveRoomPreviewPack`.
+ */
+export function resolvePack3DBaseUrl(
+  tileset: string,
+  options: ResolveRoomPreviewPackOptions = {},
+): string | undefined {
+  const packsRoot = resolvePacksRoot(options);
+  const cacheKey = `${packsRoot}\0${tileset}`;
+  if (pack3DCache.has(cacheKey)) return pack3DCache.get(cacheKey);
+  const modelsDir = join(packsRoot, tileset, "models");
+  let present: boolean;
+  try {
+    present = statSync(modelsDir).isDirectory();
+  } catch {
+    present = false;
+  }
+  const result = present ? `/packs/${tileset}` : undefined;
+  pack3DCache.set(cacheKey, result);
+  return result;
+}
 
 export function resolveRoomPreviewPack(
   tileset: string,
@@ -58,10 +92,7 @@ export function resolveRoomPreviewPack(
   // `PACKS_ROOT`: la suite E2E lo apunta a un directorio vacío para jugar
   // siempre en modo placeholder, como en CI (el pack no se versiona y allí
   // no hay `pnpm pack:build`), aunque el worktree local tenga uno generado.
-  const packsRoot =
-    options.packsRoot ??
-    process.env.PACKS_ROOT ??
-    join(findRepoRoot(options.cwd ?? process.cwd()), PACKS_PUBLIC_DIR);
+  const packsRoot = resolvePacksRoot(options);
   const cacheKey = `${packsRoot}\0${tileset}`;
   const cached = packCache.get(cacheKey);
   if (cached) return cached;

@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
+import type { Pack3D } from "@/lib/game-model";
 import type { GameJoinTarget } from "@/lib/game-net";
 import { NetworkGame } from "./network-game";
 
@@ -17,11 +18,13 @@ import { NetworkGame } from "./network-game";
 export function NetworkGameDev({
   model,
   pack,
+  pack3d,
   target,
   subtitle,
 }: {
   model: PublicRuntimeModel;
   pack?: RoomScenePack;
+  pack3d?: Pack3D;
   target: GameJoinTarget;
   subtitle?: string;
 }) {
@@ -32,5 +35,12 @@ export function NetworkGameDev({
     window.history.replaceState(window.history.state, "", url);
   }, []);
 
-  return <NetworkGame model={model} pack={pack} target={target} subtitle={subtitle} onJoined={onJoined} />;
+  return <NetworkGame
+      model={model}
+      pack={pack}
+      pack3d={pack3d}
+      target={target}
+      subtitle={subtitle}
+      onJoined={onJoined}
+    />;
 }

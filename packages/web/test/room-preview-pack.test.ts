@@ -9,7 +9,7 @@ import {
   type RuntimeModel,
 } from "@escaperoom/game-runtime";
 import { findRepoRoot } from "../src/lib/repo-root";
-import { resolveRoomPreviewPack } from "../src/lib/room-preview-pack";
+import { resolvePack3DBaseUrl, resolveRoomPreviewPack } from "../src/lib/room-preview-pack";
 
 const fixturePath = join(
   findRepoRoot(process.cwd()),
@@ -88,5 +88,31 @@ describe("resolveRoomPreviewPack", () => {
     const result = resolveRoomPreviewPack("medieval-v1", model, { packsRoot });
     expect(result.pack).toBeDefined();
     expect(result.issues.some((issue) => /falta/i.test(issue.message))).toBe(true);
+  });
+});
+
+describe("resolvePack3DBaseUrl", () => {
+  it("devuelve la URL base si existe la carpeta models", () => {
+    const root = makeTempPacksRoot();
+    mkdirSync(join(root, "medieval-v1", "models"), { recursive: true });
+    expect(resolvePack3DBaseUrl("medieval-v1", { packsRoot: root })).toBe("/packs/medieval-v1");
+  });
+
+  it("devuelve undefined si no existe la carpeta models", () => {
+    const root = makeTempPacksRoot();
+    mkdirSync(join(root, "medieval-v1"), { recursive: true });
+    expect(resolvePack3DBaseUrl("medieval-v1", { packsRoot: root })).toBeUndefined();
+  });
+
+  it("devuelve undefined con PACKS_ROOT apuntando a una carpeta vacía", () => {
+    const root = makeTempPacksRoot();
+    const previous = process.env.PACKS_ROOT;
+    process.env.PACKS_ROOT = root;
+    try {
+      expect(resolvePack3DBaseUrl("medieval-v1")).toBeUndefined();
+    } finally {
+      if (previous === undefined) delete process.env.PACKS_ROOT;
+      else process.env.PACKS_ROOT = previous;
+    }
   });
 });

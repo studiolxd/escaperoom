@@ -77,6 +77,7 @@ import {
   introSubtitlesUrl,
 } from "@/lib/intro-media-client";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
+import { Preview3DUnavailable } from "@/components/room-preview/preview-3d-unavailable";
 
 const RoomPreviewCanvas = dynamic(() => import("../room-preview/room-preview-canvas"), {
   ssr: false,
@@ -347,7 +348,11 @@ function LobbySection({
               className="relative h-64 overflow-hidden rounded-md border"
               data-lobby-preview={preview.roomId}
             >
-              {renderPreview({ model: preview.model, roomId: preview.roomId, pack })}
+              {preview.model.dimension === "3d" ? (
+                <Preview3DUnavailable message={t("preview3dUnavailable")} />
+              ) : (
+                renderPreview({ model: preview.model, roomId: preview.roomId, pack })
+              )}
             </div>
           ))}
       </div>

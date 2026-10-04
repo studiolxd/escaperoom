@@ -5,7 +5,7 @@ import {
 } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
 import { withLobbyRoom, type RoomPackage } from "@escaperoom/shared/schemas";
-import { resolveRoomPreviewPack } from "./room-preview-pack";
+import { resolvePack3DBaseUrl, resolveRoomPreviewPack } from "./room-preview-pack";
 
 /**
  * Lo que la página de partida manda al navegador (fase 2): el **modelo del
@@ -21,7 +21,22 @@ import { resolveRoomPreviewPack } from "./room-preview-pack";
  */
 export interface GameModelPayload {
   model: PublicRuntimeModel;
+  /** Pack 2D. En una sala 3D se sigue devolviendo si existe: el HUD lo usa para iconos y retratos. */
   pack?: RoomScenePack;
+  /** Pack 3D (modelos GLB); solo en salas 3D. Sin `baseUrl`, el runtime pinta cajas. */
+  pack3d?: Pack3D;
+}
+
+export interface Pack3D {
+  baseUrl?: string;
+  packId: string;
+}
+
+/** `pack3d` de una sala: solo existe si el modelo es 3D. */
+export function buildPack3D(model: { dimension: string }, tileset: string): Pack3D | undefined {
+  if (model.dimension !== "3d") return undefined;
+  const baseUrl = resolvePack3DBaseUrl(tileset);
+  return baseUrl ? { baseUrl, packId: tileset } : { packId: tileset };
 }
 
 export function buildGameModel(roomPackage: RoomPackage, locale: string): GameModelPayload {
@@ -30,5 +45,10 @@ export function buildGameModel(roomPackage: RoomPackage, locale: string): GameMo
   const fullModel = toRuntimeModel(withLobbyRoom(roomPackage), { locale });
   const { pack } = resolveRoomPreviewPack(roomPackage.map.tileset, fullModel);
   const model = toPublicRuntimeModel(fullModel);
-  return pack ? { model, pack } : { model };
+  const pack3d = buildPack3D(fullModel, roomPackage.map.tileset);
+  return {
+    model,
+    ...(pack ? { pack } : {}),
+    ...(pack3d ? { pack3d } : {}),
+  };
 }

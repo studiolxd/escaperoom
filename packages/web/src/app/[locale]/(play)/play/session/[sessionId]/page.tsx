@@ -30,11 +30,11 @@ export default async function EventSessionPage({ params }: Props) {
 
   const t = await getTranslations("Game");
   const roomPackage = loadRoomPackage(readReyAldricRoomPackageJson());
-  const { model, pack } = buildGameModel(roomPackage, locale);
+  const { model, pack, pack3d } = buildGameModel(roomPackage, locale);
 
   return (
     <main className="relative min-h-dvh p-4">
-      <EventGame model={model} pack={pack} sessionId={sessionId} subtitle={t("page.subtitle")} />
+      <EventGame model={model} pack={pack} pack3d={pack3d} sessionId={sessionId} subtitle={t("page.subtitle")} />
       <div className="absolute right-4 top-4 z-50">
         <LocaleSwitcher />
       </div>

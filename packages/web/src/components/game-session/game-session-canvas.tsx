@@ -14,7 +14,8 @@ import { BACKGROUND_HEX, isDarkThemeActive } from "@/lib/theme";
 export interface GameSessionCanvasHandle {
   /** `onBuilt`, si se da, se llama cuando la sala nueva ya está reconstruida (ver `RoomScene.setRoom`). */
   showRoom(roomId: string, onBuilt?: () => void): void;
-  placeAvatar(x: number, y: number): void;
+  /** `h` y `yaw` solo los usa el canvas 3D. */
+  placeAvatar(x: number, y: number, h?: number, yaw?: number): void;
   avatarCell(): { x: number; y: number } | undefined;
   setObjectState(objectId: string, state: string): void;
   setPlayers(players: readonly ScenePlayer[]): void;
@@ -24,6 +25,13 @@ export interface GameSessionCanvasHandle {
   getObjectScreenFraction(objectId: string): { x: number; y: number } | undefined;
   /** ¿El objeto responde ahora al clic? (E2E: esperar a que se revele antes de clicarlo). */
   isObjectInteractive(objectId: string): boolean;
+
+  // — Solo los implementa el canvas 3D (`game-session-canvas-3d.tsx`) —
+  avatarPose?(): { x: number; y: number; h: number; yaw: number } | undefined;
+  walkTo?(point: { x: number; y: number; h?: number }, onArrive?: () => void): boolean;
+  setMoveVector?(v: { x: number; y: number } | null): void;
+  interactHighlighted?(): boolean;
+  onHighlightChange?(handler: (objectId: string | undefined) => void): () => void;
 }
 
 /**
