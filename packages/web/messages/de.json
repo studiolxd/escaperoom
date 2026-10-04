@@ -495,7 +495,7 @@
       "OUT_OF_BOUNDS": "Dieses Feld liegt außerhalb des Raums.",
       "DUPLICATE_ID": "Diese ID wird bereits verwendet.",
       "INVALID_ID": "Nur Kleinbuchstaben, Ziffern und Bindestriche (z. B. truhe-thron).",
-      "REFERENCED_ID": "Dieses Objekt wird bereits von Regeln oder Rätseln verwendet; benenne es im Inspektor um.",
+      "REFERENCED_ID": "Dieses Element wird in Regeln oder Rätseln verwendet. Entferne zuerst diese Verweise.",
       "UNKNOWN_DECORATION": "Diese Dekoration existiert nicht mehr.",
       "UNKNOWN_LIGHT": "Dieses Licht existiert nicht mehr.",
       "INVALID_VALUE": "Ungültiger Wert: Die Farbe ist #rrggbb und die Intensität reicht von 0 bis 1."

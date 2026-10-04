@@ -495,7 +495,7 @@
       "OUT_OF_BOUNDS": "Dat vak ligt buiten de kamer.",
       "DUPLICATE_ID": "Die ID is al in gebruik.",
       "INVALID_ID": "Gebruik alleen kleine letters, cijfers en koppeltekens (bijv. kist-troon).",
-      "REFERENCED_ID": "Dat object wordt al gebruikt in regels of puzzels; hernoem het vanuit de inspector.",
+      "REFERENCED_ID": "Dit element wordt gebruikt in regels of puzzels. Verwijder eerst die verwijzingen.",
       "UNKNOWN_DECORATION": "Die decoratie bestaat niet meer.",
       "UNKNOWN_LIGHT": "Dat licht bestaat niet meer.",
       "INVALID_VALUE": "Ongeldige waarde: de kleur is #rrggbb en de intensiteit loopt van 0 tot 1."

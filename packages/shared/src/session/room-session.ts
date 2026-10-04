@@ -462,7 +462,10 @@ export class RoomSession {
     const def = this.definition(puzzleId, "split_clue");
     const position = this.positions.get(playerId);
     if (!position || position.roomId !== def.roomId) return null;
-    const objectId = viewpointAt(def, Math.round(position.x), Math.round(position.y));
+    // 2D: posiciones = centros de celda (la celda `i` va de `i − 0,5` a `i + 0,5`) → redondeo.
+    // 3D: origen en la esquina (la celda `i` va de `i` a `i + 1`) → suelo (specs/27 §2).
+    const snap = dimensionOf(this.roomPackage.meta) === "3d" ? Math.floor : Math.round;
+    const objectId = viewpointAt(def, snap(position.x), snap(position.y));
     if (objectId !== null && !this.sameHeightAs(position, objectId)) return null;
     return objectId;
   }

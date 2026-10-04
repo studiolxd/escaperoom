@@ -325,6 +325,32 @@ export class UiPlayer {
   }
 }
 
+/**
+ * Salas 3D: la cámara va detrás del avatar y a veces deja un objeto fuera de plano (pegada a un muro,
+ * de espaldas…). Como haría una persona, se arrastra el ratón para girarla hasta verlo.
+ */
+export async function rotateCameraUntilVisible(page: Page, objectId: string): Promise<void> {
+  const canvas = page.locator("canvas").first();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("El canvas del juego no tiene tamaño en pantalla.");
+  for (let turn = 0; turn < 12; turn += 1) {
+    const fraction = await page.evaluate(
+      (id) => window.__escaperoomGame?.getObjectScreenFraction(id) ?? null,
+      objectId,
+    );
+    if (fraction && fraction.x > 0.1 && fraction.x < 0.9 && fraction.y > 0.1 && fraction.y < 0.9) {
+      return;
+    }
+    const cx = box.x + box.width / 2;
+    const cy = box.y + box.height / 2;
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.move(cx + 120, cy, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+  }
+}
+
 // — Plantillas que exigen «pensar»: el test razona sobre lo que ve el DOM ——
 
 /** Tablero del puzle deslizante tal como lo pinta el panel (0 = hueco). */

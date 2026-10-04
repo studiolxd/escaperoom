@@ -1,32 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { SEED } from "../support/env";
-import { UiPlayer } from "../support/game";
-
-/**
- * Al cruzar, la cámara (detrás del avatar) queda pegada a un muro de la cámara, que es pequeña, y
- * el trono no se ve: como haría una persona, se arrastra el ratón para girarla hasta verlo.
- */
-async function rotateCameraUntilVisible(page: Page, objectId: string): Promise<void> {
-  const canvas = page.locator("canvas").first();
-  const box = await canvas.boundingBox();
-  if (!box) throw new Error("El canvas del juego no tiene tamaño en pantalla.");
-  for (let turn = 0; turn < 12; turn += 1) {
-    const fraction = await page.evaluate(
-      (id) => window.__escaperoomGame?.getObjectScreenFraction(id) ?? null,
-      objectId,
-    );
-    if (fraction && fraction.x > 0.1 && fraction.x < 0.9 && fraction.y > 0.1 && fraction.y < 0.9) {
-      return;
-    }
-    const cx = box.x + box.width / 2;
-    const cy = box.y + box.height / 2;
-    await page.mouse.move(cx, cy);
-    await page.mouse.down();
-    await page.mouse.move(cx + 120, cy, { steps: 6 });
-    await page.mouse.up();
-    await page.waitForTimeout(300);
-  }
-}
+import { rotateCameraUntilVisible, UiPlayer } from "../support/game";
 
 /**
  * `game.demo3d.spec.ts` (encargo 7.6): la «Sala de pruebas 3D» (gratis, del seed) se juega en el

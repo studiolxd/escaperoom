@@ -196,6 +196,12 @@ describe("validador 3D — checkWorld3DModels (avisos)", () => {
     expect(report.ok).toBe(true);
   });
 
+  it("el sprite del estado «no visible» (`oculto`) no es un modelo desconocido", () => {
+    const pkg = makeRoom3D();
+    pkg.objects[0]!.states = { closed: "arca-test", oculto: "oculto", visible: { sprite: "oculto" } };
+    expect(checkWorld3DModels(pkg)).toEqual([]);
+  });
+
   it("resuelve contra el catálogo del pack cuando se le pasa uno", () => {
     const pkg = makeRoom3D();
     pkg.world3d!.rooms["sala"]!.pieces[0]!.model = "muro-de-prueba";
