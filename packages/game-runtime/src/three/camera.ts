@@ -2,11 +2,11 @@ import * as THREE from "three";
 
 export const CAMERA = {
   minDistance: 2,
-  maxDistance: 8,
-  startDistance: 5,
+  maxDistance: 10,
+  startDistance: 7,
   minPolarDeg: 10,
   maxPolarDeg: 75,
-  startPolarDeg: 55, // 0° = horizontal, 90° = cenital
+  startPolarDeg: 50, // 0° = horizontal, 90° = cenital
   rotateSpeedDegPerPx: 0.3,
   zoomStep: 0.5,
   collisionMargin: 0.2,
@@ -17,6 +17,15 @@ export const CAMERA = {
 export const CAMERA_TARGET_HEIGHT = 1.2;
 /** Constante de tiempo (s) del seguimiento del objetivo. */
 export const CAMERA_FOLLOW_TAU = 0.08;
+/**
+ * Desplazamiento lateral (°) de la cámara de reposo: no va justo detrás del personaje sino
+ * girada hacia su derecha («por encima del hombro derecho»).
+ */
+export const CAMERA_SIDE_OFFSET_DEG = 35;
+/** Constante de tiempo (s) con que la cámara se recoloca al azimut de reposo caminando. */
+export const CAMERA_RECENTER_TAU = 0.6;
+/** Segundos seguidos caminando tras un arrastre manual antes de reanudar la recolocación. */
+export const CAMERA_RECENTER_DELAY = 1.5;
 /** Distancia mínima efectiva (m) tras acortarla por colisión. */
 export const CAMERA_MIN_EFFECTIVE = 0.5;
 
@@ -37,9 +46,28 @@ export interface Vec3 {
 const clamp = (v: number, min: number, max: number): number => Math.min(max, Math.max(min, v));
 const normalizeDeg = (deg: number): number => ((deg % 360) + 360) % 360;
 
+/**
+ * Azimut de reposo para un avatar con `yawDeg`: detrás de él (+180) y desplazado
+ * `CAMERA_SIDE_OFFSET_DEG` hacia su derecha. Con el frente del avatar en +z de Three, su derecha
+ * es −x y la cámara en `(sin az, cos az)` queda ahí al sumar el desplazamiento.
+ */
+export function restAzimuth(yawDeg: number): number {
+  return normalizeDeg(yawDeg + 180 + CAMERA_SIDE_OFFSET_DEG);
+}
+
+/**
+ * Acerca `current` a `target` (grados) por el camino corto con suavizado exponencial de
+ * constante de tiempo `tau`. Resultado en [0, 360).
+ */
+export function recenterAzimuth(current: number, target: number, dt: number, tau: number): number {
+  const diff = ((((target - current) % 360) + 540) % 360) - 180;
+  const k = tau > 0 ? 1 - Math.exp(-Math.max(0, dt) / tau) : 1;
+  return normalizeDeg(current + diff * k);
+}
+
 export function initialOrbit(yawDeg = 0): OrbitState {
   return {
-    azimuth: normalizeDeg(yawDeg + 180),
+    azimuth: restAzimuth(yawDeg),
     polar: CAMERA.startPolarDeg,
     distance: CAMERA.startDistance,
   };
@@ -87,6 +115,16 @@ export function cameraForward(azimuthDeg: number): { x: number; y: number } {
   const az = (azimuthDeg * Math.PI) / 180;
   // La cámara mira del lado `(sin az, cos az)` hacia el objetivo; en el plano lógico Z = y.
   return { x: -Math.sin(az), y: -Math.cos(az) };
+}
+
+/**
+ * Dirección de avance de WASD con la cámara de seguimiento: «alejándose de la cámara» corregido
+ * por `CAMERA_SIDE_OFFSET_DEG`, de modo que con la cámara en reposo W avanza recto hacia donde
+ * mira el personaje. Sin la corrección, W empujaría al personaje 35° de lado, la cámara de reposo
+ * lo seguiría y el yaw derivaría sin fin.
+ */
+export function walkForward(azimuthDeg: number): { x: number; y: number } {
+  return cameraForward(azimuthDeg - CAMERA_SIDE_OFFSET_DEG);
 }
 
 /** Derecha de la pantalla en el plano lógico para una dirección de avance. */
@@ -287,6 +325,10 @@ export class OrbitRig {
   state: OrbitState = initialOrbit();
   private readonly target = new THREE.Vector3();
   private snapped = false;
+  /** Hay un arrastre manual pendiente de «perdonar» (recolocación en pausa). */
+  private dragged = false;
+  /** Segundos seguidos moviéndose desde el último arrastre o parada. */
+  private walkTime = 0;
   private readonly raycaster = new THREE.Raycaster();
 
   constructor(readonly camera: THREE.PerspectiveCamera) {}
@@ -295,6 +337,28 @@ export class OrbitRig {
   reset(yawDeg: number): void {
     this.state = initialOrbit(yawDeg);
     this.snapped = false;
+    this.dragged = false;
+    this.walkTime = 0;
+  }
+
+  /**
+   * Recoloca el azimut hacia el de reposo respecto a `yawDeg` mientras el avatar camina.
+   * Tras un arrastre manual espera `CAMERA_RECENTER_DELAY` s seguidos de movimiento. Parado no hace nada.
+   */
+  recenter(dt: number, yawDeg: number, moving: boolean): void {
+    if (!moving) {
+      this.walkTime = 0;
+      return;
+    }
+    this.walkTime += dt;
+    if (this.dragged) {
+      if (this.walkTime < CAMERA_RECENTER_DELAY) return;
+      this.dragged = false;
+    }
+    this.state = {
+      ...this.state,
+      azimuth: recenterAzimuth(this.state.azimuth, restAzimuth(yawDeg), dt, CAMERA_RECENTER_TAU),
+    };
   }
 
   /** El objetivo salta al avatar en el próximo `update` en vez de suavizarse. */
@@ -304,6 +368,8 @@ export class OrbitRig {
 
   rotate(dxPx: number, dyPx: number): void {
     this.state = rotateOrbit(this.state, dxPx, dyPx);
+    this.dragged = true;
+    this.walkTime = 0;
   }
 
   zoom(steps: number): void {
