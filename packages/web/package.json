@@ -25,6 +25,7 @@
     "@escaperoom/game-runtime": "workspace:*",
     "@escaperoom/kit": "workspace:*",
     "@escaperoom/mcp-server": "workspace:*",
+    "@escaperoom/nav3d": "workspace:*",
     "@escaperoom/shared": "workspace:*",
     "@hookform/resolvers": "^5.9.1",
     "@livekit/components-react": "2.9.24",

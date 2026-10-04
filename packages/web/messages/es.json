@@ -723,7 +723,9 @@
       "REFERENCED_ID": "Este elemento se usa en reglas o puzles. Quita primero esas referencias.",
       "UNKNOWN_DECORATION": "Esa decoración ya no existe.",
       "UNKNOWN_LIGHT": "Esa luz ya no existe.",
-      "INVALID_VALUE": "Valor no válido: el color es #rrggbb y la intensidad va de 0 a 1."
+      "INVALID_VALUE": "Valor no válido: el color es #rrggbb y la intensidad va de 0 a 1.",
+      "WRONG_DIMENSION": "Esta acción no existe en este tipo de sala.",
+      "UNKNOWN_PIECE": "Esa pieza ya no existe."
     },
     "canvas": {
       "label": "Vista",
@@ -760,6 +762,69 @@
       "decorate": "Añade decoración visual, sin lógica de juego.",
       "torch": "Coloca antorchas que iluminan la habitación.",
       "dismiss": "OK"
+    },
+    "tools3d": {
+      "select": "Seleccionar",
+      "place": "Colocar",
+      "spawn": "Aparición",
+      "torch": "Antorcha"
+    },
+    "toolHints3d": {
+      "select": "Elige piezas y objetos; con Mayús, varios. Atajos: W mover, E girar, R escalar, Supr borrar, Ctrl+D duplicar, Esc salir.",
+      "place": "Coloca el modelo elegido. Las piezas se pintan arrastrando. Atajos: Q gira lo que vas a colocar, Alt desactiva el imán.",
+      "spawn": "Pulsa en el suelo para añadir un punto de aparición (hasta 8 por habitación). Q gira su orientación.",
+      "torch": "Pulsa para colgar una antorcha a la altura de trabajo más 1,6 m."
+    },
+    "gizmo": {
+      "label": "Modo del gizmo",
+      "translate": "Mover",
+      "rotate": "Girar",
+      "scale": "Escalar"
+    },
+    "workHeight": {
+      "label": "Altura de trabajo (m)",
+      "down": "Bajar la altura de trabajo",
+      "up": "Subir la altura de trabajo"
+    },
+    "snap": "Imán",
+    "showNavmesh": "Ver zona transitable",
+    "palette3d": {
+      "kit": "Kit",
+      "objects": "Objetos",
+      "mine": "Mis modelos",
+      "mineEmpty": "Aún no has subido modelos.",
+      "asDecoration": "Colocar como decoración"
+    },
+    "categories": {
+      "suelo": "Suelo",
+      "muro": "Muros",
+      "estructura": "Estructura",
+      "mueble": "Muebles",
+      "pared": "Pared",
+      "suelto": "Sueltos"
+    },
+    "selection3d": {
+      "x": "X (m)",
+      "y": "Y (m)",
+      "h": "Altura (m)",
+      "yaw": "Giro (°)",
+      "scale": "Escala",
+      "many": "{count} elementos seleccionados",
+      "duplicate": "Duplicar",
+      "delete": "Borrar"
+    },
+    "room3d": {
+      "size": "Medidas",
+      "width": "Ancho (m)",
+      "depth": "Fondo (m)",
+      "ambient": "Luz ambiente",
+      "intensity": "Intensidad",
+      "counts": "{pieces} piezas · {objects} objetos · {spawns} puntos de aparición · {torches} antorchas",
+      "reachTitle": "Zona transitable",
+      "noFloor": "Esta habitación no tiene suelo transitable.",
+      "spawnOff": "El punto de aparición {id} está fuera de la zona transitable.",
+      "unreachable": "No se puede llegar hasta {object}.",
+      "platformNote": "Una tarima o plataforma aislada de 1 × 1 m no se puede pisar: junta al menos dos."
     }
   },
   "Inspector": {

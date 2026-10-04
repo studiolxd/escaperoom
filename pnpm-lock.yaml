@@ -675,6 +675,9 @@ importers:
       '@escaperoom/mcp-server':
         specifier: workspace:*
         version: link:../mcp-server
+      '@escaperoom/nav3d':
+        specifier: workspace:*
+        version: link:../nav3d
       '@escaperoom/shared':
         specifier: workspace:*
         version: link:../shared

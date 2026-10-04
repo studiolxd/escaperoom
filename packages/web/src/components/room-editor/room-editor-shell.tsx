@@ -1,22 +1,27 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import * as Y from "yjs";
 import {
+  Edit3DController,
   EditToolController,
   EditorSyncProvider,
   deleteRule,
   initRoomDoc,
   isRoomDocEmpty,
   readObject,
+  roomDimension,
   roomDocToPackage,
   roomPackageToDoc,
   useRoomPackage,
   useRoomValidation,
   ValidationPanel,
+  type EditTarget,
   type InspectorTarget,
+  type Tool3DState,
+  type ToolState,
   type ValidationPanelLabelsInput,
   type ValidationTarget,
 } from "@escaperoom/editor";
@@ -25,21 +30,27 @@ import type { EditorPalette } from "@escaperoom/game-runtime";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/error-boundary";
+import type { Pack3D } from "@/lib/game-model";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
 import { EDITOR_UI_KIT } from "./editor-ui-kit";
 import { PlaytestButton } from "./playtest-button";
 import type { RoomEditorCanvasProps } from "./room-editor-canvas";
+import type { RoomEditorCanvas3DProps } from "./room-editor-canvas-3d";
 import { RoomEditorInspector } from "./room-editor-inspector";
 import { RoomLobbyIntroDialog } from "./room-lobby-intro-dialog";
 import { RoomPlayersDialog } from "./room-players-dialog";
 import { RoomTimeLimitDialog } from "./room-time-limit-dialog";
-import {
-  RoomEditorWorkspace,
-  type CanvasTab,
-  type RoomEditorStatus,
-} from "./room-editor-workspace";
+import { RoomEditorWorkspace } from "./room-editor-workspace";
+import { RoomEditorWorkspace3D } from "./room-editor-workspace-3d";
+import type { CanvasTab, RoomEditorStatus } from "./editor-shared";
 
 const RoomEditorCanvas = dynamic(() => import("./room-editor-canvas"), {
+  ssr: false,
+  loading: () => <CanvasLoading />,
+});
+
+/** Lienzo 3D (Three.js): una sala 2D no lo descarga, ni una 3D descarga Phaser. */
+const RoomEditorCanvas3D = dynamic(() => import("./room-editor-canvas-3d"), {
   ssr: false,
   loading: () => <CanvasLoading />,
 });
@@ -68,6 +79,8 @@ export interface RoomEditorShellProps {
   roomId: string;
   palette: EditorPalette;
   pack?: RoomPreviewPack;
+  /** Pack 3D (URL base de los GLB y tileset) para el lienzo de las salas 3D. */
+  pack3d?: Pack3D;
   /** URL del WebSocket de edición (3.3). */
   syncUrl: string;
   /**
@@ -79,7 +92,8 @@ export interface RoomEditorShellProps {
 
 type Session = {
   doc: Y.Doc;
-  controller: EditToolController;
+  /** Primera habitación del paquete de demostración (vacío si el doc se sincroniza después). */
+  firstRoom: string;
   provider?: EditorSyncProvider;
 };
 
@@ -96,10 +110,9 @@ function createSession(
   const doc = new Y.Doc();
   if (props.demoPackage) roomPackageToDoc(props.demoPackage, doc);
   const firstRoom = props.demoPackage?.map.rooms[0]?.id ?? "";
-  const controller = new EditToolController(doc, { roomId: firstRoom });
-  if (props.demoPackage) return { doc, controller };
+  if (props.demoPackage) return { doc, firstRoom };
   const provider = new EditorSyncProvider({ url: props.syncUrl, roomId: props.roomId, doc });
-  return { doc, controller, provider };
+  return { doc, firstRoom, provider };
 }
 
 /**
@@ -182,6 +195,7 @@ export function RoomEditorShell(props: RoomEditorShellProps) {
       session={session}
       palette={props.palette}
       pack={props.pack}
+      pack3d={props.pack3d}
       status={status}
     />
   );
@@ -203,12 +217,14 @@ function ValidatedWorkspace({
   session,
   palette,
   pack,
+  pack3d,
   status,
 }: {
   roomId: string;
   session: Session;
   palette: EditorPalette;
   pack?: RoomPreviewPack;
+  pack3d?: Pack3D;
   status: RoomEditorStatus;
 }) {
   const t = useTranslations("RoomEditor");
@@ -216,20 +232,32 @@ function ValidatedWorkspace({
     "labels",
   ) as ValidationPanelLabelsInput;
   const graphLabels = useTranslations("RulesGraph").raw("labels") as RulesGraphLabelsInput;
-  const { doc, controller } = session;
+  const { doc } = session;
+  // La dimensión de la sala no cambia: el borrador ya está sincronizado cuando se monta esto.
+  const is3d = roomDimension(doc) === "3d";
+  const controller = useMemo<EditToolController | Edit3DController>(
+    () =>
+      is3d
+        ? new Edit3DController(doc, { roomId: session.firstRoom })
+        : new EditToolController(doc, { roomId: session.firstRoom }),
+    [doc, is3d, session.firstRoom],
+  );
   const validation = useRoomValidation(doc, roomDocToPackage);
   const pkg = useRoomPackage(doc);
-  const tools = useSyncExternalStore(
+  const state = useSyncExternalStore<ToolState | Tool3DState>(
     controller.subscribe,
-    controller.getState,
-    controller.getState,
+    controller.getState as () => ToolState | Tool3DState,
+    controller.getState as () => ToolState | Tool3DState,
   );
   const [picked, setPicked] = useState<InspectorTarget | null>(null);
   const [canvasTab, setCanvasTab] = useState<CanvasTab>("map");
   const [focusRuleId, setFocusRuleId] = useState<string | undefined>(undefined);
 
-  // Seleccionar un objeto en el lienzo sustituye al puzzle/regla elegido.
-  const selectedObjectId = tools.selectedObjectId;
+  // Seleccionar un objeto en el lienzo sustituye al puzzle/regla elegido. En 3D, solo cuenta
+  // un único objeto seleccionado (con varios elementos, manda el puzle o la regla elegidos).
+  const selectedObjectId = is3d
+    ? singleObjectId((state as Tool3DState).selection)
+    : (state as ToolState).selectedObjectId;
   useEffect(() => {
     if (selectedObjectId) setPicked(null);
   }, [selectedObjectId]);
@@ -242,10 +270,12 @@ function ValidatedWorkspace({
       const object = readObject(doc, target.id);
       if (!object) return;
       controller.setRoom(object.roomId);
-      controller.select(object.id);
+      if (controller instanceof Edit3DController) controller.select([{ kind: "object", id: object.id }]);
+      else controller.select(object.id);
       return;
     }
-    controller.select(undefined);
+    if (controller instanceof Edit3DController) controller.select([]);
+    else controller.select(undefined);
     setPicked(target);
   };
 
@@ -268,13 +298,96 @@ function ValidatedWorkspace({
     }
   };
 
+  const shared = {
+    doc,
+    status,
+    canvasTab,
+    onCanvasTabChange: setCanvasTab,
+    rulesGraph: (
+      <ErrorBoundary>
+        <RulesGraph
+          doc={doc}
+          labels={graphLabels}
+          issues={validation.ruleGraphIssues}
+          height="100%"
+          focusRuleId={focusRuleId}
+          onSelectRule={(ruleId) => select({ kind: "rule", id: ruleId })}
+          components={EDITOR_UI_KIT}
+        />
+      </ErrorBoundary>
+    ),
+    inspector: (
+      <RoomEditorInspector
+        doc={doc}
+        target={inspectorTarget}
+        onSelect={select}
+        onOpenRule={openRule}
+        onDelete={inspectorTarget?.kind === "puzzle" ? undefined : deleteTarget}
+        loadUploads={status !== "local"}
+        pack={pack}
+      />
+    ),
+    validation: (
+      <ValidationPanel
+        state={validation}
+        labels={panelLabels}
+        onSelectTarget={selectTarget}
+        components={EDITOR_UI_KIT}
+      />
+    ),
+    headerActions: (
+      <>
+        <RoomPlayersDialog doc={doc} players={pkg.meta.players} />
+        <RoomTimeLimitDialog doc={doc} timeLimitMinutes={pkg.meta.timeLimitMinutes} />
+        <RoomLobbyIntroDialog
+          roomId={roomId}
+          doc={doc}
+          pkg={pkg}
+          pack={pack}
+          uploadsEnabled={status !== "local"}
+          onEditLobby={(lobbyId) => {
+            setCanvasTab("map");
+            controller.setRoom(lobbyId);
+          }}
+        />
+        <Button
+          size="sm"
+          variant="ghost"
+          className="border border-white/15 text-white hover:bg-white/10"
+          onClick={() => validation.validateNow()}
+        >
+          {t("header.validate")}
+        </Button>
+        <PlaytestButton roomId={roomId} disabled={!session.provider} />
+      </>
+    ),
+  };
+
+  if (controller instanceof Edit3DController) {
+    return (
+      <RoomEditorWorkspace3D
+        {...shared}
+        controller={controller}
+        pack3d={pack3d}
+        renderCanvas={(canvasProps: RoomEditorCanvas3DProps) => (
+          <ErrorBoundary
+            layout="overlay"
+            title={t("canvasErrorTitle")}
+            description={t("canvasErrorDescription")}
+          >
+            <RoomEditorCanvas3D {...canvasProps} />
+          </ErrorBoundary>
+        )}
+      />
+    );
+  }
+
   return (
     <RoomEditorWorkspace
-      doc={doc}
+      {...shared}
       controller={controller}
       palette={palette}
       pack={pack}
-      status={status}
       renderCanvas={(canvasProps: RoomEditorCanvasProps) => (
         <ErrorBoundary
           layout="overlay"
@@ -284,66 +397,12 @@ function ValidatedWorkspace({
           <RoomEditorCanvas {...canvasProps} />
         </ErrorBoundary>
       )}
-      canvasTab={canvasTab}
-      onCanvasTabChange={setCanvasTab}
-      rulesGraph={
-        <ErrorBoundary>
-          <RulesGraph
-            doc={doc}
-            labels={graphLabels}
-            issues={validation.ruleGraphIssues}
-            height="100%"
-            focusRuleId={focusRuleId}
-            onSelectRule={(ruleId) => select({ kind: "rule", id: ruleId })}
-            components={EDITOR_UI_KIT}
-          />
-        </ErrorBoundary>
-      }
-      inspector={
-        <RoomEditorInspector
-          doc={doc}
-          target={inspectorTarget}
-          onSelect={select}
-          onOpenRule={openRule}
-          onDelete={inspectorTarget?.kind === "puzzle" ? undefined : deleteTarget}
-          loadUploads={status !== "local"}
-          pack={pack}
-        />
-      }
-      validation={
-        <ValidationPanel
-          state={validation}
-          labels={panelLabels}
-          onSelectTarget={selectTarget}
-          components={EDITOR_UI_KIT}
-        />
-      }
-      headerActions={
-        <>
-          <RoomPlayersDialog doc={doc} players={pkg.meta.players} />
-          <RoomTimeLimitDialog doc={doc} timeLimitMinutes={pkg.meta.timeLimitMinutes} />
-          <RoomLobbyIntroDialog
-            roomId={roomId}
-            doc={doc}
-            pkg={pkg}
-            pack={pack}
-            uploadsEnabled={status !== "local"}
-            onEditLobby={(lobbyId) => {
-              setCanvasTab("map");
-              controller.setRoom(lobbyId);
-            }}
-          />
-          <Button
-            size="sm"
-            variant="ghost"
-            className="border border-white/15 text-white hover:bg-white/10"
-            onClick={() => validation.validateNow()}
-          >
-            {t("header.validate")}
-          </Button>
-          <PlaytestButton roomId={roomId} disabled={!session.provider} />
-        </>
-      }
     />
   );
+}
+
+/** Id del objeto si es lo único seleccionado en el editor 3D. */
+function singleObjectId(selection: readonly EditTarget[]): string | undefined {
+  const only = selection.length === 1 ? selection[0] : undefined;
+  return only?.kind === "object" ? only.id : undefined;
 }
