@@ -25,7 +25,7 @@ async function defaultReadText(url: string, maxBytes: number): Promise<string | 
 export type IntroMediaRouteContext = { params: Promise<{ roomId: string }> };
 export type IntroMediaAssetRouteContext = { params: Promise<{ roomId: string; assetId: string }> };
 
-const STATUS_BY_CODE: Record<IntroMediaErrorCode, number> = {
+export const STATUS_BY_CODE: Record<IntroMediaErrorCode, number> = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
@@ -36,13 +36,13 @@ const STATUS_BY_CODE: Record<IntroMediaErrorCode, number> = {
   VALIDATION_ERROR: 422,
 };
 
-const handle = handleDomainErrors(IntroMediaError, STATUS_BY_CODE);
+export const handle = handleDomainErrors(IntroMediaError, STATUS_BY_CODE);
 
 /** Vida de la URL de previsualización del editor. */
-const PREVIEW_URL_TTL_SECONDS = 60 * 60;
+export const PREVIEW_URL_TTL_SECONDS = 60 * 60;
 
 /** `{ filename, contentType, byteSize }` del cuerpo de `POST …/intro-media/video`. */
-function parseVideoUploadBody(body: unknown): {
+export function parseVideoUploadBody(body: unknown): {
   filename: string;
   contentType: string;
   byteSize: number;

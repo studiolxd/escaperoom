@@ -1,4 +1,7 @@
+import { ROOM_DOC_KEYS, setCustomModel3D } from "@escaperoom/editor/room-doc";
 import { slidingRateLimiter } from "@escaperoom/kit/rate-limit";
+import { getModels3DCatalog } from "@escaperoom/shared/packs";
+import { ID_PATTERN } from "@escaperoom/shared/schemas";
 import {
   AudioError,
   IntroMediaError,
@@ -9,6 +12,7 @@ import {
 } from "@escaperoom/shared/services";
 import { z } from "zod";
 import type { UploadQuotaPolicy } from "../deps";
+import { mutateDraft } from "../draft-writer";
 import { textResult, ToolError, type ToolErrorCode } from "../results";
 import { defineTool, MUTATION, RoomIdSchema } from "./define";
 
@@ -116,18 +120,32 @@ export const uploadTool = defineTool({
   name: "upload",
   title: "Subir un asset",
   description:
-    'Sube una imagen (portada de sala, kind: cover_image), un audio (biblioteca del creador, kind: audio) o un medio de la introducción de la sala (kind: intro_video = vídeo mp4/webm; kind: intro_subtitles = subtítulos WebVTT de un idioma, con `lang`) y devuelve la referencia para usarlo en otras tools (intro_video/intro_subtitles devuelven `ref: "media:<uuid>"` para `set_room_intro`). El binario va en base64 en `data` (MCP no soporta subida por streaming). Mismo límite de tipo, tamaño y cuota que la web: imágenes hasta 5 MB (jpeg/png/webp/gif por sus magic bytes), audio hasta 10 MB (mp3, disponible al instante), subtítulos hasta 512 KB (UTF-8, empiezan por «WEBVTT»); el vídeo, hasta 10 MB por aquí (tope de transporte base64) — los de hasta 200 MB se suben desde el editor web.',
+    'Sube una imagen (portada de sala, kind: cover_image), un audio (biblioteca del creador, kind: audio), un modelo 3D propio de una sala 3D (kind: model3d = GLB, con `modelId`) o un medio de la introducción de la sala (kind: intro_video = vídeo mp4/webm; kind: intro_subtitles = subtítulos WebVTT de un idioma, con `lang`) y devuelve la referencia para usarlo en otras tools (intro_video/intro_subtitles devuelven `ref: "media:<uuid>"` para `set_room_intro`; model3d registra el modelo en la sala con el id `modelId` y se usa como `sprite` en add_object o como `model` en place_pieces). El binario va en base64 en `data` (MCP no soporta subida por streaming). Mismo límite de tipo, tamaño y cuota que la web: imágenes hasta 5 MB (jpeg/png/webp/gif por sus magic bytes), audio hasta 10 MB (mp3, disponible al instante), subtítulos hasta 512 KB (UTF-8, empiezan por «WEBVTT»); el vídeo, hasta 10 MB por aquí (tope de transporte base64) — los de hasta 200 MB se suben desde el editor web. Modelo 3D: un GLB (glTF binario v2) con todo incrustado, hasta 15 MB en la web y 10 MB por aquí, máximo 100.000 triángulos, texturas de hasta 2048 px, sin cámaras ni luces ni extensiones fuera de la lista admitida; se mide solo (tamaño, colisionador, animaciones).',
   phase: "meta",
   ticket: "D-12",
   inputSchema: z.object({
     kind: z
-      .enum(["cover_image", "audio", "intro_video", "intro_subtitles"])
+      .enum(["cover_image", "audio", "intro_video", "intro_subtitles", "model3d"])
       .describe(
-        "cover_image = portada de una sala (exige roomId); audio = pista para la biblioteca del creador (exige rightsDeclared: true); intro_video = vídeo mp4/webm de la introducción (exige roomId); intro_subtitles = WebVTT de un idioma para ese vídeo (exige roomId y lang)",
+        "cover_image = portada de una sala (exige roomId); audio = pista para la biblioteca del creador (exige rightsDeclared: true); intro_video = vídeo mp4/webm de la introducción (exige roomId); intro_subtitles = WebVTT de un idioma para ese vídeo (exige roomId y lang); model3d = modelo GLB propio de una sala 3D (exige roomId y modelId)",
       ),
     roomId: RoomIdSchema.optional().describe(
-      "Obligatorio si kind = cover_image, intro_video o intro_subtitles",
+      "Obligatorio si kind = cover_image, intro_video, intro_subtitles o model3d",
     ),
+    modelId: z
+      .string()
+      .regex(ID_PATTERN, "id en minúsculas, dígitos y guiones")
+      .optional()
+      .describe(
+        "Obligatorio si kind = model3d: id con el que se usará el modelo en `sprite`, estados y place_pieces",
+      ),
+    label: z
+      .string()
+      .max(200)
+      .optional()
+      .describe(
+        "kind = model3d: nombre legible del modelo (por defecto, el del fichero sin extensión)",
+      ),
     lang: z
       .string()
       .min(1)
@@ -146,7 +164,72 @@ export const uploadTool = defineTool({
       .describe("Obligatorio (true) si kind = audio: declaración de derechos (specs/15 §4)"),
   }),
   annotations: MUTATION,
-  async run({ kind, roomId, lang, filename, contentType, data, rightsDeclared }, { actor, deps }) {
+  async run(
+    { kind, roomId, lang, modelId, label, filename, contentType, data, rightsDeclared },
+    { actor, deps },
+  ) {
+    if (kind === "model3d") {
+      if (!roomId) throw new ToolError("INVALID_INPUT", 'kind: "model3d" exige `roomId`');
+      if (!modelId) {
+        throw new ToolError(
+          "INVALID_INPUT",
+          'kind: "model3d" exige `modelId` (id con el que se usará el modelo en `sprite`, estados y place_pieces)',
+        );
+      }
+      if (!deps.introMedia) {
+        throw new ToolError(
+          "NOT_AVAILABLE",
+          "la subida de modelos 3D no está disponible en este transporte del MCP",
+        );
+      }
+      await consumeUploadQuota(actor, deps.uploadQuota?.introMedia);
+      const bytes = decodeBase64(data);
+      let uploaded;
+      try {
+        uploaded = await deps.introMedia.uploadModelBytes(actor, roomId, {
+          filename,
+          contentType,
+          bytes,
+        });
+      } catch (error) {
+        if (error instanceof IntroMediaError) {
+          throw new ToolError(INTRO_MEDIA_ERROR_TO_TOOL_ERROR[error.code], error.message);
+        }
+        throw error;
+      }
+      // Si el registro falla, el asset subido se queda (no se borra) y el error se devuelve tal cual.
+      await mutateDraft({ actor, deps, tool: "upload" }, roomId, (doc) => {
+        const tileset = String(doc.getMap<unknown>(ROOM_DOC_KEYS.map).get("tileset") ?? "");
+        const catalogIds = new Set(Object.keys(getModels3DCatalog(tileset)?.models ?? {}));
+        setCustomModel3D(
+          doc,
+          modelId,
+          {
+            ref: uploaded.ref,
+            label: label ?? filename.replace(/\.[^./\\]*$/, "").slice(0, 200),
+            size: uploaded.size,
+            colliders: uploaded.colliders,
+            clips: uploaded.clips,
+          },
+          { catalogIds },
+        );
+      });
+      const { w, d, hgt } = uploaded.size;
+      const clips = uploaded.clips.length > 0 ? uploaded.clips.join(", ") : "ninguno";
+      return textResult(
+        `✅ upload — modelo "${modelId}" subido (${w}×${d}×${hgt} m, ${uploaded.triangles} triángulos, clips: ${clips}). Úsalo como sprite en add_object o como model en place_pieces.`,
+        {
+          kind,
+          roomId,
+          modelId,
+          ref: uploaded.ref,
+          size: uploaded.size,
+          triangles: uploaded.triangles,
+          clips: uploaded.clips,
+        },
+      );
+    }
+
     if (kind === "intro_video" || kind === "intro_subtitles") {
       if (!roomId) throw new ToolError("INVALID_INPUT", `kind: "${kind}" exige \`roomId\``);
       if (kind === "intro_subtitles" && !lang) {

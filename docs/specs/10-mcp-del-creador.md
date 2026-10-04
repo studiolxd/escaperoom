@@ -62,6 +62,13 @@ Se copia el patrón de SLXD (ADR-017/022):
   `intro-media-upload` con la web. El vídeo por MCP se queda en el tope de transporte (10 MB
   decodificados; 200 MB en base64 serían ~267 MB de JSON-RPC en una sola llamada): los vídeos de
   hasta 200 MB se suben desde el editor web (PUT presignado directo al bucket).
+  `kind: "model3d"` (7.8a; exige `roomId` y `modelId`, `label` opcional; solo salas 3D) sube un GLB
+  (`IntroMediaService.uploadModelBytes`: glTF 2.0 con todo incrustado, ≤ 10 MB por aquí y 15 MB en
+  la web, ≤ 100.000 triángulos, texturas ≤ 2048 px, sin cámaras, luces ni extensiones fuera de la
+  lista admitida), lo mide y lo **registra en `world3d.models`** con `setCustomModel3D` (tamaño,
+  colisionador por defecto de caja y clips salen del propio GLB). Comparte la cuota
+  `intro-media-upload`. Si el registro falla (id del catálogo, tope de 40, sala 2D), el fichero
+  subido se queda y el error se devuelve tal cual.
 - **La costura:** cada tool llama a un **servicio de dominio** con un `actor`; no reimplementa el
   router tRPC (ADR-010).
 
@@ -81,6 +88,7 @@ Organizado por fase de creación, con esquemas Zod (compartidos desde `packages/
 | `place_pieces({subroomId, pieces? \| fill?})` | **Solo salas 3D** (7.9). Piezas de arquitectura sin lógica (suelo, muros…): lista de 1–500 `{model, x, y, h, yaw, scale?}` o `fill` (rectángulo de celdas enteras, piezas al centro de cada celda). Metros y grados, `yaw` 0 = sur. Devuelve los ids |
 | `update_pieces({updates})` | **Solo 3D.** Mueve/gira/escala/cambia de modelo piezas por id (1–500, una transacción) |
 | `remove_pieces({ids? \| subroomId + model?})` | **Solo 3D.** Borra piezas por ids, o todas las de una habitación (o solo las de un modelo) |
+| `remove_model({roomId, modelId})` | **Solo 3D** (7.8a). Quita un modelo propio subido con `upload` (`kind: "model3d"`). `INVALID_INPUT` con `reason: "REFERENCED_ID"` si alguna pieza lo usa como `model` o algún objeto como `sprite`/sprite de estado (lista los 3 primeros); `NOT_FOUND` (`reason: "UNKNOWN_MODEL"`) si no existe |
 | `set_spawn_points({subroomId, spawnPoints})` | **Solo 3D.** Puntos de aparición `{id, x, y, h, yaw}` (1–8) de una habitación |
 | `set_room_intro({roomId, intro})` | Introducción que cada jugador ve antes de su 3-2-1 (encargo lobby-diseño, specs/04 §10): `{type: "text", text: LocalizedText}` en idiomas declarados, o `{type: "video", video: "media:<uuid>", subtitles?: {<idioma>: "media:<uuid>"}}` con las refs que devuelve `upload`; `null` la quita. Sustituye la anterior entera |
 
@@ -130,7 +138,7 @@ Organizado por fase de creación, con esquemas Zod (compartidos desde `packages/
 | `find_tools({query?, phase?})` | Busca por texto y/o fase sobre el catálogo de tools de contenido; devuelve nombre + descripción |
 | `tool_schema({name})` | Esquema de entrada completo de una tool concreta |
 | `run_tool({name, arguments?})` | La ejecuta por su nombre, por el mismo pipeline que una llamada directa |
-| `upload({kind, roomId?, lang?, filename, contentType, data, rightsDeclared?})` | Sube (base64) una imagen de portada (`cover_image`), un audio (`audio`), o el vídeo (`intro_video`) o los subtítulos WebVTT de un idioma (`intro_subtitles`) de la introducción, y devuelve su referencia (`media:<uuid>` para `set_room_intro`) |
+| `upload({kind, roomId?, lang?, modelId?, label?, filename, contentType, data, rightsDeclared?})` | Sube (base64) una imagen de portada (`cover_image`), un audio (`audio`), el vídeo (`intro_video`) o los subtítulos WebVTT de un idioma (`intro_subtitles`) de la introducción, y devuelve su referencia (`media:<uuid>` para `set_room_intro`); o un modelo 3D GLB (`model3d`, con `modelId`) que queda registrado en la sala y aparece en `get_model_catalog` |
 
 ## 3. Patrón clave: validación + dry-run en cada tool
 
