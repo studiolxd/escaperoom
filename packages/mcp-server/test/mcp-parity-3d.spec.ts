@@ -77,7 +77,9 @@ beforeAll(async () => {
   const roomId = String(created.structured?.roomId);
   for (const step of script.steps(roomId)) await run(client, step, log);
   built = { roomId, drafts, client, log };
-});
+  // ~900 piezas y ~250 llamadas con el validador incremental: sin carga ~7 s, con `pnpm verify:pr`
+  // y otros paquetes en paralelo sube mucho más que el tope por defecto de los hooks (20 s).
+}, 180_000);
 
 afterAll(async () => {
   await closeAll?.();
