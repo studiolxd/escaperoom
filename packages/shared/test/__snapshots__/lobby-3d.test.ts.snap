@@ -1,0 +1,121 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`withLobbyRoom en 2D no cambia > el lobby generado del Rey Aldric sigue siendo el de capas de tiles 10×8 1`] = `
+{
+  "decorations": [],
+  "grid": {
+    "cols": 10,
+    "rows": 8,
+  },
+  "id": "lobby",
+  "kind": "lobby",
+  "layers": [
+    {
+      "name": "ground",
+      "rle": [
+        10,
+        1,
+        10,
+        1,
+        10,
+        1,
+        10,
+        1,
+        10,
+        1,
+        10,
+        1,
+        10,
+        1,
+        10,
+        1,
+      ],
+    },
+    {
+      "name": "walls",
+      "rle": [
+        10,
+        10,
+        1,
+        10,
+        9,
+        0,
+        1,
+        10,
+        9,
+        0,
+        1,
+        10,
+        9,
+        0,
+        1,
+        10,
+        9,
+        0,
+        1,
+        10,
+        9,
+        0,
+        1,
+        10,
+        9,
+        0,
+        1,
+        10,
+        9,
+        0,
+      ],
+    },
+  ],
+  "lighting": [
+    {
+      "color": "#3a2f22",
+      "intensity": 0.6,
+      "type": "ambient",
+    },
+  ],
+  "name": "Sala de espera",
+  "spawnPoints": [
+    {
+      "id": "spawn-1",
+      "x": 5,
+      "y": 5,
+    },
+    {
+      "id": "spawn-2",
+      "x": 4,
+      "y": 5,
+    },
+    {
+      "id": "spawn-3",
+      "x": 6,
+      "y": 5,
+    },
+    {
+      "id": "spawn-4",
+      "x": 3,
+      "y": 5,
+    },
+    {
+      "id": "spawn-5",
+      "x": 7,
+      "y": 6,
+    },
+    {
+      "id": "spawn-6",
+      "x": 2,
+      "y": 6,
+    },
+    {
+      "id": "spawn-7",
+      "x": 8,
+      "y": 6,
+    },
+    {
+      "id": "spawn-8",
+      "x": 9,
+      "y": 6,
+    },
+  ],
+}
+`;

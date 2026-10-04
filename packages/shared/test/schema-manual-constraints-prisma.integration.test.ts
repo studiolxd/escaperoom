@@ -104,6 +104,13 @@ describe.skipIf(!process.env.DATABASE_URL)(
       expect(await triggerExists("trgRoomVersionSyncLanguages", "roomVersion")).toBe(true);
     });
 
+    it("ckRoomDimension solo admite 2d o 3d (20261004100000, modo 3D)", async () => {
+      const def = await constraintDef("ckRoomDimension");
+      expect(def).toMatch(/dimension/);
+      expect(def).toMatch(/2d/);
+      expect(def).toMatch(/3d/);
+    });
+
     it("review_rating_check admite la escala doblada 2–10 (medios puntos, 20260925160000)", async () => {
       const def = await constraintDef("review_rating_check");
       expect(def).toMatch(/rating >= 2/);

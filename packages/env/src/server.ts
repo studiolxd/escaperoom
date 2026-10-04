@@ -158,3 +158,10 @@ export const analyticsSchema = z.object({
   // siendo los valores de desarrollo de `.env.example`.
   ANALYTICS_DISABLED: bool(false),
 });
+
+export const rooms3dSchema = z.object({
+  // Interruptor del modo 3D (specs/27, fase 7): apagado por defecto hasta que
+  // el modo esté listo. Solo se declara aquí; lo leen los encargos 7.2 (API y
+  // asistente de creación) y 7.9 (interfaz) al componer su `serverSchema`.
+  ROOMS_3D_ENABLED: bool(false),
+});

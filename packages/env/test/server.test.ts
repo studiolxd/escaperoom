@@ -4,11 +4,17 @@ import {
   editorSyncSchema,
   elevenLabsSchema,
   observabilitySchema,
+  rooms3dSchema,
   stripeSchema,
   tokensSchema,
 } from "../src/server";
 
 describe("product schema fragments", () => {
+  it("rooms3dSchema: ROOMS_3D_ENABLED apagado por defecto y activable", () => {
+    expect(rooms3dSchema.parse({}).ROOMS_3D_ENABLED).toBe(false);
+    expect(rooms3dSchema.parse({ ROOMS_3D_ENABLED: "true" }).ROOMS_3D_ENABLED).toBe(true);
+  });
+
   it("editorSyncSchema: todo opcional, sin variables", () => {
     const result = editorSyncSchema.safeParse({});
     expect(result.success).toBe(true);

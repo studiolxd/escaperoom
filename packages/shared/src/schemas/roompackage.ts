@@ -11,6 +11,7 @@ import {
 import { PuzzleDefinitionSchema } from "./puzzle";
 import { RuleConditionSchema, RuleSchema } from "./rules";
 import { ItemDefSchema, MapSchema, WorldObjectSchema } from "./world";
+import { RoomDimensionSchema, World3DSchema } from "./world3d";
 
 /**
  * Valor canónico de `meta.packageFormat` (specs/08 §6). El schema solo exige
@@ -113,6 +114,8 @@ export const RoomPackageMetaSchema = z.object({
   assetsManifest: z.string(),
   /** Introducción opcional (texto o vídeo) antes de la cuenta atrás — ver `RoomIntroSchema`. */
   intro: RoomIntroSchema.optional(),
+  /** Modo 3D (specs/27 §3.3): fija al crear la sala; ausente = `"2d"`. */
+  dimension: RoomDimensionSchema.optional(),
 });
 
 /** Diálogo localizado, opcionalmente condicionado — specs/08 §2.3. */
@@ -144,6 +147,8 @@ export const RoomPackageSchema = z.object({
   rules: z.array(RuleSchema).max(MAX_CONTENT_ARRAY_ITEMS),
   dialogs: z.array(DialogDefSchema).max(MAX_CONTENT_ARRAY_ITEMS),
   hints: z.array(HintDefSchema).max(MAX_CONTENT_ARRAY_ITEMS),
+  /** Mundo 3D (specs/27 §3): solo en salas con `meta.dimension: "3d"`. */
+  world3d: World3DSchema.optional(),
 });
 
 export type Difficulty = z.infer<typeof DifficultySchema>;

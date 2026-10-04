@@ -1,5 +1,6 @@
 import type { RoomPackage } from "./roompackage";
 import type { LightConfig, SubRoom, TileLayer } from "./world";
+import { dimensionOf, type Piece3D, type World3D } from "./world3d";
 
 /**
  * Sala de espera (lobby) de la partida — encargo lobby-diseño, specs/08 §2.1 y
@@ -165,15 +166,111 @@ export function buildDefaultLobbyRoom(map: MapLike, maxPlayers = 8): SubRoom {
   };
 }
 
+/** Tamaño del lobby generado en una sala 3D (metros). */
+export const DEFAULT_LOBBY_GRID_3D = { cols: 8, rows: 8 } as const;
+
+/** Id de pieza determinista del lobby 3D: `p-` + índice en base 36 relleno a 8 caracteres. */
+function lobbyPieceId(index: number): string {
+  return `p-${index.toString(36).padStart(8, "0")}`;
+}
+
+/**
+ * Lobby por defecto de una sala 3D sin lobby diseñado (specs/27 §3, brief
+ * 7.1a §4): habitación 8×8 m sin capas ni decoraciones, `min(8, players.max)`
+ * puntos de aparición en dos filas centradas (`h: 0`, `yaw: 0`) y, en
+ * `world3d`, un suelo `suelo-piedra-1` por celda interior (36) y un bloque
+ * `muro` por celda del perímetro (28).
+ */
+export function buildDefaultLobbyRoom3D(
+  map: MapLike,
+  maxPlayers = 8,
+  world3d?: Pick<World3D, "rooms">,
+): { room: SubRoom; pieces: Piece3D[] } {
+  const source = initialRoomOf(map) ?? map.rooms[0];
+  const { cols, rows } = DEFAULT_LOBBY_GRID_3D;
+  const count = Math.max(1, Math.min(8, maxPlayers));
+  const spawnPoints = Array.from({ length: count }, (_, i) => ({
+    id: `spawn-${i + 1}`,
+    x: 2.5 + (i % 4),
+    y: i < 4 ? 3.5 : 4.5,
+    h: 0,
+    yaw: 0,
+  }));
+  const lighting: LightConfig[] = (source?.lighting ?? []).filter(
+    (light) => light.type === "ambient",
+  );
+
+  const floors: Piece3D[] = [];
+  const walls: Piece3D[] = [];
+  for (let j = 0; j < rows; j += 1) {
+    for (let i = 0; i < cols; i += 1) {
+      const perimeter = i === 0 || j === 0 || i === cols - 1 || j === rows - 1;
+      (perimeter ? walls : floors).push({
+        id: "",
+        model: perimeter ? "muro" : "suelo-piedra-1",
+        x: i + 0.5,
+        y: j + 0.5,
+        h: 0,
+        yaw: 0,
+      });
+    }
+  }
+  // Id determinista; si ya existe entre las piezas del paquete, salta al siguiente libre.
+  const taken = new Set(
+    Object.values(world3d?.rooms ?? {}).flatMap((room) => room.pieces.map((piece) => piece.id)),
+  );
+  let next = 0;
+  const pieces = [...floors, ...walls].map((piece) => {
+    while (taken.has(lobbyPieceId(next))) next += 1;
+    const id = lobbyPieceId(next);
+    next += 1;
+    return { ...piece, id };
+  });
+
+  return {
+    room: {
+      id: freeLobbyId(map),
+      name: DEFAULT_LOBBY_ROOM_NAME,
+      kind: LOBBY_ROOM_KIND,
+      grid: { cols, rows },
+      layers: [],
+      decorations: [],
+      spawnPoints,
+      lighting,
+    },
+    pieces,
+  };
+}
+
 /**
  * El paquete con sala de espera garantizada: el mismo objeto si ya tiene un
  * lobby diseñado; si no, una copia con el lobby por defecto al final de
  * `map.rooms` (nunca primero: la habitación inicial sigue siendo la primera
  * de juego). Es lo que juegan la `GameRoom`, el cliente local y el modelo del
- * runtime; el paquete guardado/publicado no cambia.
+ * runtime; el paquete guardado/publicado no cambia. En una sala 3D el lobby
+ * generado es 3D (`buildDefaultLobbyRoom3D`) y sus piezas se añaden a
+ * `world3d`; en 2D no cambia nada.
  */
-export function withLobbyRoom<T extends Pick<RoomPackage, "map" | "meta">>(pkg: T): T {
+export function withLobbyRoom<
+  T extends Pick<RoomPackage, "map" | "meta"> & { world3d?: World3D | undefined },
+>(pkg: T): T {
   if (lobbyRoomOf(pkg.map)) return pkg;
+  if (dimensionOf(pkg.meta) === "3d") {
+    const { room, pieces } = buildDefaultLobbyRoom3D(
+      pkg.map,
+      pkg.meta.players.max,
+      pkg.world3d,
+    );
+    return {
+      ...pkg,
+      map: { ...pkg.map, rooms: [...pkg.map.rooms, room] },
+      world3d: {
+        models: {},
+        ...pkg.world3d,
+        rooms: { ...pkg.world3d?.rooms, [room.id]: { pieces } },
+      },
+    };
+  }
   return {
     ...pkg,
     map: {

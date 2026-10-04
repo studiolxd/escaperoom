@@ -10,6 +10,7 @@ export * from "./common";
 export * from "./limits";
 export * from "./localized-text";
 export * from "./world";
+export * from "./world3d";
 export * from "./puzzle";
 export * from "./rules";
 export * from "./roompackage";

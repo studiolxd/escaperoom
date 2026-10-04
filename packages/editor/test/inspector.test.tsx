@@ -74,6 +74,12 @@ function render(target: InspectorTarget | null, doc = aldricDoc(), extra: object
 }
 
 describe("generador de formularios desde los esquemas Zod", () => {
+  it("el formulario de un WorldObject nunca muestra `transform` (modo 3D)", () => {
+    const root = describeTarget("object");
+    expect(root.fields?.map((f) => f.key)).not.toContain("transform");
+    expect(findField(root, "transform")).toBeUndefined();
+  });
+
   it("un WorldObject da un campo por propiedad, con referencias y opcionales", () => {
     const root = describeTarget("object");
     expect(root.kind).toBe("object");

@@ -12,6 +12,8 @@ export type ValidationStatus = "ok" | "warning" | "error";
 export type ValidationCheckId =
   | "references"
   | "geometry"
+  | "world3d"
+  | "world3d_models"
   | "structure"
   | "spawn_capacity"
   | "code_lock_unlimited_lockout"

@@ -73,3 +73,15 @@ export const MAX_INTRO_SUBTITLES_BYTES = 512 * 1024;
 
 /** Longitud máxima de una referencia de medio de la introducción (`media:<uuid>` o clave del bucket). */
 export const MAX_INTRO_MEDIA_REF_LENGTH = 512;
+
+/**
+ * Modo 3D (specs/27 §3.2): topes del mundo 3D (piezas por habitación, altura
+ * máxima, modelos propios del creador, escala y colisionadores/clips por modelo).
+ */
+export const MAX_WORLD3D_PIECES_PER_ROOM = 4000;
+export const MAX_WORLD3D_HEIGHT = 32;
+export const MAX_WORLD3D_CUSTOM_MODELS = 40;
+export const MIN_SCALE_3D = 0.1;
+export const MAX_SCALE_3D = 10;
+export const MAX_MODEL3D_COLLIDERS = 16;
+export const MAX_MODEL3D_CLIPS = 32;
