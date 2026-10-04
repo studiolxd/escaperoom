@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import {
   CAMERA,
@@ -22,6 +23,13 @@ import {
   zoomEditor,
   type EditorCameraState,
   orbitPosition,
+  OrbitRig,
+  CAMERA_SIDE_OFFSET_DEG,
+  CAMERA_RECENTER_DELAY,
+  CAMERA_RECENTER_TAU,
+  recenterAzimuth,
+  restAzimuth,
+  walkForward,
   rotateOrbit,
   zoomOrbit,
 } from "../../src/three/camera";
@@ -54,9 +62,9 @@ describe("orbitPosition", () => {
 });
 
 describe("initialOrbit", () => {
-  it("se coloca detrás del avatar: azimut = yaw + 180", () => {
-    expect(initialOrbit(0).azimuth).toBe(180);
-    expect(initialOrbit(270).azimuth).toBe(90);
+  it("se coloca detrás del avatar y desplazada a su derecha: azimut = yaw + 180 + offset", () => {
+    expect(initialOrbit(0).azimuth).toBe(180 + CAMERA_SIDE_OFFSET_DEG);
+    expect(initialOrbit(270).azimuth).toBe(90 + CAMERA_SIDE_OFFSET_DEG);
     const o = initialOrbit(0);
     expect(o.polar).toBe(CAMERA.startPolarDeg);
     expect(o.distance).toBe(CAMERA.startDistance);
@@ -106,7 +114,8 @@ describe("cameraForward", () => {
   });
   it("con la cámara detrás de un avatar que mira a +y, avanzar es +y", () => {
     const f = cameraForward(initialOrbit(0).azimuth);
-    expect(f.y).toBeCloseTo(1);
+    expect(f.y).toBeGreaterThan(0.8); // la cámara de reposo mira 35° de lado
+    expect(walkForward(initialOrbit(0).azimuth).y).toBeCloseTo(1);
   });
   it("la derecha de la pantalla queda a la derecha del avance", () => {
     const f = cameraForward(180); // mira a +y (sur)
@@ -270,5 +279,84 @@ describe("cámara de editor", () => {
       expect(zoomEditor(base, 1000).distance).toBe(60);
       expect(zoomEditor(base, -1000).distance).toBe(2);
     });
+  });
+});
+
+describe("recenterAzimuth", () => {
+  it("va por el camino corto", () => {
+    expect(recenterAzimuth(10, 100, 100, 0.6)).toBeCloseTo(100, 3);
+    const half = recenterAzimuth(0, 90, 0.6 * Math.LN2, 0.6);
+    expect(half).toBeCloseTo(45, 3);
+  });
+  it("cruza 0/360 sin dar la vuelta larga", () => {
+    const r = recenterAzimuth(350, 10, 0.6 * Math.LN2, 0.6);
+    expect(r).toBeCloseTo(0, 3);
+    const l = recenterAzimuth(10, 350, 0.6 * Math.LN2, 0.6);
+    expect(l).toBeCloseTo(0, 3);
+  });
+  it("converge al objetivo y dt = 0 no mueve", () => {
+    let a = 200;
+    for (let i = 0; i < 300; i++) a = recenterAzimuth(a, 20, 1 / 30, CAMERA_RECENTER_TAU);
+    expect(a).toBeCloseTo(20, 3);
+    expect(recenterAzimuth(33, 99, 0, 0.6)).toBeCloseTo(33);
+  });
+});
+
+describe("initialOrbit con desplazamiento lateral", () => {
+  it("la cámara queda a la DERECHA del personaje y detrás", () => {
+    for (const yaw of [0, 90, 215]) {
+      const o = initialOrbit(yaw);
+      expect(o.azimuth).toBeCloseTo(restAzimuth(yaw));
+      const pos = orbitPosition({ ...o, polar: 0 }, origin);
+      const r = (yaw * Math.PI) / 180;
+      const fwd = { x: Math.sin(r), z: Math.cos(r) }; // frente del avatar en Three
+      const right = { x: -fwd.z, z: fwd.x }; // forward × up
+      expect(pos.x * right.x + pos.z * right.z).toBeGreaterThan(0);
+      expect(pos.x * fwd.x + pos.z * fwd.z).toBeLessThan(0);
+      const hyp = Math.hypot(pos.x, pos.z);
+      const sin = (pos.x * right.x + pos.z * right.z) / hyp;
+      expect(Math.asin(sin) * (180 / Math.PI)).toBeCloseTo(CAMERA_SIDE_OFFSET_DEG);
+    }
+  });
+  it("walkForward con la cámara en reposo apunta al frente del avatar", () => {
+    const f = walkForward(initialOrbit(0).azimuth);
+    expect(f.x).toBeCloseTo(0);
+    expect(f.y).toBeCloseTo(1);
+  });
+});
+
+describe("OrbitRig.recenter", () => {
+  const rig = () => {
+    const r = new OrbitRig(new THREE.PerspectiveCamera());
+    r.reset(0);
+    return r;
+  };
+  const walk = (r: OrbitRig, seconds: number, yaw: number, moving = true) => {
+    for (let i = 0; i < Math.round(seconds * 30); i++) r.recenter(1 / 30, yaw, moving);
+  };
+  it("caminando se acerca al reposo del yaw actual", () => {
+    const r = rig();
+    walk(r, 5, 90);
+    expect(r.azimuth).toBeCloseTo(restAzimuth(90), 0);
+  });
+  it("parado no se mueve solo", () => {
+    const r = rig();
+    const before = r.azimuth;
+    walk(r, 3, 90, false);
+    expect(r.azimuth).toBe(before);
+  });
+  it("tras un arrastre espera 1,5 s seguidos caminando", () => {
+    const r = rig();
+    r.rotate(100, 0);
+    const dragged = r.azimuth;
+    walk(r, CAMERA_RECENTER_DELAY - 0.2, 90);
+    expect(r.azimuth).toBe(dragged);
+    walk(r, 0.5, 90, false); // parar reinicia la cuenta
+    walk(r, CAMERA_RECENTER_DELAY - 0.2, 90);
+    expect(r.azimuth).toBe(dragged);
+    walk(r, 1, 90);
+    expect(r.azimuth).not.toBe(dragged);
+    walk(r, 5, 90);
+    expect(r.azimuth).toBeCloseTo(restAzimuth(90), 0);
   });
 });

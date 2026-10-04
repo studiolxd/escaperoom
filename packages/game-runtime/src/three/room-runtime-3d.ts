@@ -11,7 +11,7 @@ import {
   CAMERA,
   FREE_CAMERA_SPEED,
   OrbitRig,
-  cameraForward,
+  walkForward,
   cameraRight,
   editorCameraPosition,
   freeCameraDirection,
@@ -1086,6 +1086,7 @@ export class RoomRuntime3D {
     this.avatar?.update(dt);
     this.avatar?.setMoving(this.moving);
     this.syncAvatarView();
+    if (!this.observer && this.posePlaced) this.rig.recenter(dt, this.pose.yaw, this.moving);
     this.updateRemotes(dt);
     this.updateCamera(dt);
   }
@@ -1100,7 +1101,7 @@ export class RoomRuntime3D {
       const speed = keyboard
         ? 1
         : Math.min(1, Math.max(MIN_MOVE_VECTOR, Math.hypot(vector!.x, vector!.y)));
-      const fwd = cameraForward(this.rig.azimuth);
+      const fwd = walkForward(this.rig.azimuth);
       const right = cameraRight(fwd);
       const result = stepToward(
         this.pose,

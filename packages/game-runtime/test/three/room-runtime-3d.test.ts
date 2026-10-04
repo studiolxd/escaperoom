@@ -309,13 +309,28 @@ describe("RoomRuntime3D (headless)", () => {
       for (let i = 0; i < 6; i++) runtime.tick(1 / 30);
       const moved = runtime.avatarCell!;
       expect(moved.x - before.x).toBeGreaterThan(0.3);
-      expect(Math.abs(moved.y - before.y)).toBeLessThan(0.05);
+      // La cámara se recoloca al girar el avatar hacia el spawn, así que el rumbo se curva un poco.
+      expect(Math.abs(moved.y - before.y)).toBeLessThan(0.15);
       expect(events.some((e) => e.type === "avatar-move")).toBe(true);
 
       runtime.setMoveVector(null);
       const stopped = runtime.avatarCell!;
       for (let i = 0; i < 10; i++) runtime.tick(1 / 30);
       expect(runtime.avatarCell).toEqual(stopped);
+      runtime.destroy();
+    });
+
+    it("con W pulsado 5 s el yaw converge (la cámara no realimenta el giro)", async () => {
+      const { runtime } = await start();
+      runtime.setMoveVector({ x: 0, y: 1 });
+      const yaws: number[] = [];
+      for (let i = 0; i < 150; i++) {
+        runtime.tick(1 / 30);
+        yaws.push(runtime.avatarPose!.yaw);
+      }
+      const diff = (a: number, b: number) => Math.abs(((a - b + 540) % 360) - 180);
+      expect(diff(yaws[149]!, yaws[120]!)).toBeLessThan(0.5);
+      expect(diff(yaws[149]!, yaws[148]!)).toBeLessThan(0.05);
       runtime.destroy();
     });
 
