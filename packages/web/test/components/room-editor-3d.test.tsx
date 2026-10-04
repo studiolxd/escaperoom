@@ -30,6 +30,7 @@ type FakeRuntime = {
   setGizmoMode: Mock;
   setSnap: Mock;
   setNavmeshVisible: Mock;
+  refreshCustomModels: Mock;
 };
 const runtimes = vi.hoisted(() => [] as FakeRuntime[]);
 const reach = vi.hoisted(() => ({ issues: [] as unknown[] }));
@@ -48,6 +49,7 @@ vi.mock("@escaperoom/game-runtime/three", () => ({
     setGizmoMode = vi.fn();
     setSnap = vi.fn();
     setNavmeshVisible = vi.fn();
+    refreshCustomModels = vi.fn();
     destroy = vi.fn();
     onEditEvent = vi.fn((h: (e: unknown) => void) => {
       this.handlers.event = h;
@@ -479,5 +481,35 @@ describe("RoomEditorCanvas3D", () => {
       rerender(createElement(RoomEditorCanvas3D, { ...base, roomId: other.id, state: controller.getState() }));
       expect(runtime.showRoom).toHaveBeenCalledWith(other.id);
     }
+  });
+
+  it("pide la URL de los modelos propios, se la da al runtime y lo repinta al llegar", async () => {
+    const { controller } = setup();
+    const withOwn = {
+      ...model,
+      customModels: {
+        arca: { ref: "media:u1", label: "Arca", size: { w: 1, d: 1, hgt: 1 }, colliders: [], clips: [] },
+      },
+    };
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ url: "https://s/arca.glb" })));
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      createElement(RoomEditorCanvas3D, {
+        model: withOwn,
+        roomId,
+        controller,
+        state: controller.getState(),
+        altPressed: false,
+        navmeshVisible: false,
+      }),
+    );
+    await waitFor(() => expect(runtimes).toHaveLength(1));
+    const runtime = runtimes[0]!;
+    const resolve = runtime.options.resolveCustomModelUrl as (ref: string) => string | undefined;
+    await waitFor(() => expect(runtime.refreshCustomModels).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith(`/api/rooms/${roomId}/models/url?ref=media%3Au1`);
+    expect(resolve("media:u1")).toBe("https://s/arca.glb");
+    expect(resolve("media:otra")).toBeUndefined();
+    vi.unstubAllGlobals();
   });
 });

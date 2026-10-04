@@ -9,6 +9,7 @@ import {
   type TransformChange3D,
 } from "@escaperoom/game-runtime/three";
 import type { Pack3D } from "@/lib/game-model";
+import { useCustomModelUrls } from "./use-custom-model-urls";
 
 export interface RoomEditorCanvas3DProps {
   model: RuntimeModel;
@@ -62,6 +63,9 @@ export default function RoomEditorCanvas3D({
   const runtimeRef = useRef<RoomRuntime3D | null>(null);
   const latest = useRef({ model, roomId, controller, state, altPressed, navmeshVisible });
   latest.current = { model, roomId, controller, state, altPressed, navmeshVisible };
+  // Las URLs de los modelos propios se piden según aparecen (el editor no las recibe del servidor).
+  const refs = Object.values(model.customModels).map((m) => m.ref);
+  const { urlOf, version: urlsVersion } = useCustomModelUrls(roomId, refs);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -75,6 +79,7 @@ export default function RoomEditorCanvas3D({
         initialRoomId: current.roomId,
         packBaseUrl: pack3d?.baseUrl,
         packId: pack3d?.packId,
+        resolveCustomModelUrl: urlOf,
       });
       runtimeRef.current = runtime;
       const offEvent = runtime.onEditEvent((event: EditPointer3D) => {
@@ -104,7 +109,12 @@ export default function RoomEditorCanvas3D({
       stop?.();
       runtimeRef.current = null;
     };
-  }, [pack3d]);
+  }, [pack3d, urlOf]);
+
+  // Llegó la URL de algún modelo propio: sustituye su caja por el GLB.
+  useEffect(() => {
+    if (urlsVersion > 0) runtimeRef.current?.refreshCustomModels();
+  }, [urlsVersion]);
 
   // Varias transacciones Yjs seguidas se agrupan por frame: solo la última se aplica.
   useEffect(() => {
