@@ -31,7 +31,7 @@
     "@modelcontextprotocol/sdk": "1.30.0",
     "@sentry/nextjs": "^10.69.0",
     "@trpc/server": "11.19.0",
-    "@xyflow/react": "^12.11.6",
+    "@xyflow/react": "^12.12.0",
     "ai": "^7.0.109",
     "better-auth": "1.7.5",
     "class-variance-authority": "^0.7.1",
