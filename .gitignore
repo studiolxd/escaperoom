@@ -58,3 +58,7 @@ tools/assets-generator/packs/*/entregas/**
 !tools/assets-generator/packs/*/entregas/**/*.md
 tools/assets-generator/estilos/*/referencias/**
 !tools/assets-generator/estilos/*/referencias/**/
+
+# Modelos 3D del pack: binarios en local (specs/27 §4)
+packages/web/public/packs/**/models/*.glb
+packages/web/public/packs/**/avatars/*.glb
