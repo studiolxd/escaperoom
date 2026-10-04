@@ -125,6 +125,7 @@
     "clear": "Borrar",
     "backspace": "Retroceder",
     "submit": "Abrir",
+    "keyboardHint": "También puedes usar el teclado.",
     "pending": "Comprobando…",
     "attempts": "Intentos: {used}/{max}",
     "attemptsUnlimited": "Intentos: {used}",

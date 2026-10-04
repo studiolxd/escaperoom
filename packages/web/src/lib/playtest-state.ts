@@ -28,15 +28,26 @@ export interface WorldInputState {
   inventoryOpen: boolean;
   /** Hay un panel de puzzle modal abierto. */
   panelOpen?: boolean;
+  /** Hay un diálogo de inspección abierto (el de la intro cuenta por `introOpen`). */
+  dialogOpen?: boolean;
+  /** Hay abierta la imagen grande de `show_image`. */
+  imageOpen?: boolean;
 }
 
 /**
  * ¿Debe el mundo (Phaser) aceptar input del jugador? Falso mientras la intro o
- * el inventario estén abiertos (o un panel modal), para que los clics no se
+ * el inventario estén abiertos (o un panel modal, un diálogo de inspección o la
+ * imagen grande), para que el avatar no se mueva con ellos abiertos y los clics no se
  * cuelen por debajo (specs/04 §4 y §8-UI).
  */
 export function isWorldInputEnabled(state: WorldInputState): boolean {
-  return !state.introOpen && !state.inventoryOpen && !state.panelOpen;
+  return (
+    !state.introOpen &&
+    !state.inventoryOpen &&
+    !state.panelOpen &&
+    !state.dialogOpen &&
+    !state.imageOpen
+  );
 }
 
 /**

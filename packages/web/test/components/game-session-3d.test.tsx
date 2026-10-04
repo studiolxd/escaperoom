@@ -170,4 +170,21 @@ describe("useGameHud — sala 3D", () => {
     act(() => onArrive?.());
     expect(client.move).toHaveBeenCalledWith(0, 0, door.leadsTo);
   });
+
+  it("el diálogo de inspección abierto bloquea el movimiento y, al cerrarlo, vuelve", () => {
+    const { result } = setup();
+    expect(result.current.worldInputEnabled).toBe(true);
+    act(() => result.current.setDialog({ id: "d-brasero", text: "Un brasero." }));
+    expect(result.current.worldInputEnabled).toBe(false);
+    act(() => result.current.setDialog(null));
+    expect(result.current.worldInputEnabled).toBe(true);
+  });
+
+  it("la imagen grande abierta bloquea el movimiento y, al cerrarla, vuelve", () => {
+    const { result } = setup();
+    act(() => result.current.setImagePanel({ image: "carta", caption: "Una carta." }));
+    expect(result.current.worldInputEnabled).toBe(false);
+    act(() => result.current.setImagePanel(null));
+    expect(result.current.worldInputEnabled).toBe(true);
+  });
 });

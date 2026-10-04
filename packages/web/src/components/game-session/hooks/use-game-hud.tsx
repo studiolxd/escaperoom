@@ -257,7 +257,13 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
   const introOpen = isIntroOpen(dialog);
   const worldInputEnabled =
     (playing || walkingLobby) &&
-    isWorldInputEnabled({ introOpen, inventoryOpen, panelOpen: panel !== null }) &&
+    isWorldInputEnabled({
+      introOpen,
+      inventoryOpen,
+      panelOpen: panel !== null,
+      dialogOpen: dialog !== null,
+      imageOpen: imagePanel !== null,
+    }) &&
     selected === null &&
     pickerFor === null;
 

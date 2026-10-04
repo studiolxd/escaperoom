@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
 import type { CodeLockPublicView } from "@escaperoom/shared/templates";
 import { Button } from "@/components/ui/button";
+import { useArrowNavigation } from "@/components/game-session/hooks/use-arrow-navigation";
 
 /** Resultado del último intento, tal como lo devolvió el servidor. */
 export type CodeLockFeedback =
@@ -19,6 +20,19 @@ export interface CodeLockPanelProps {
   pending?: boolean;
   /** Último resultado del servidor para pintar el feedback. */
   feedback?: CodeLockFeedback;
+  /**
+   * Teclado físico (dígitos, Retroceso, Supr, Intro, flechas) y su pista.
+   * `false` en la vista previa del editor, donde no es una partida.
+   */
+  keyboard?: boolean;
+}
+
+/** ¿El foco está en un campo de texto? Ahí las teclas son del campo, no del candado. */
+function isTypingTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement &&
+    (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+  );
 }
 
 const KEYPAD_ROWS: ReadonlyArray<ReadonlyArray<string>> = [
@@ -37,10 +51,12 @@ export function CodeLockPanel({
   onAttempt,
   pending = false,
   feedback = null,
+  keyboard = true,
 }: CodeLockPanelProps) {
   const t = useTranslations("CodeLock");
   const [entry, setEntry] = useState("");
   const [now, setNow] = useState(() => Date.now());
+  const keypadRef = useRef<HTMLDivElement>(null);
 
   const lockedRemainingMs =
     view.lockedUntil !== null && view.lockedUntil > now ? view.lockedUntil - now : 0;
@@ -78,6 +94,50 @@ export function CodeLockPanel({
     if (disabled || entry.length !== view.length) return;
     onAttempt(entry);
   }
+
+  // Siempre apuntan a la última versión: el listener de teclado se registra una vez.
+  const actionsRef = useRef({ pressDigit, backspace, clear, submit, entry, disabled });
+  actionsRef.current = { pressDigit, backspace, clear, submit, entry, disabled };
+
+  useArrowNavigation({
+    containerRef: keypadRef,
+    selector: "button:not(:disabled)",
+    columns: 3,
+    autoFocus: keyboard,
+    enabled: keyboard && !disabled,
+  });
+
+  useEffect(() => {
+    if (!keyboard) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || isTypingTarget(event.target)) return;
+      const current = actionsRef.current;
+      if (current.disabled) return;
+      // Fila superior ("Digit0".."Digit9") y teclado numérico ("Numpad0".."Numpad9").
+      const digit = /^(?:Digit|Numpad)([0-9])$/.exec(event.code)?.[1];
+      if (digit !== undefined) {
+        event.preventDefault();
+        current.pressDigit(digit);
+      } else if (event.key === "Backspace") {
+        event.preventDefault();
+        current.backspace();
+      } else if (event.key === "Delete") {
+        event.preventDefault();
+        current.clear();
+      } else if (event.key === "Enter" && current.entry.length === view.length) {
+        // Con la entrada completa, Intro envía; con un botón de borrar enfocado
+        // se deja al navegador (pulsa ese botón).
+        if (event.target instanceof Element && event.target.closest("[data-keypad-edit]")) return;
+        event.preventDefault();
+        if (!event.repeat) current.submit();
+      } else {
+        return;
+      }
+      event.stopPropagation();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [keyboard, view.length]);
 
   const seconds = Math.ceil(lockedRemainingMs / 1_000);
   let status = t("prompt", { length: view.length });
@@ -125,7 +185,7 @@ export function CodeLockPanel({
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div ref={keypadRef} className="grid grid-cols-3 gap-2">
         {KEYPAD_ROWS.flat().map((digit) => (
           <Button
             key={digit}
@@ -139,7 +199,13 @@ export function CodeLockPanel({
             {digit}
           </Button>
         ))}
-        <Button variant="ghost" size="lg" disabled={disabled} onClick={clear}>
+        <Button
+          variant="ghost"
+          size="lg"
+          disabled={disabled}
+          data-keypad-edit
+          onClick={clear}
+        >
           {t("clear")}
         </Button>
         <Button
@@ -152,7 +218,13 @@ export function CodeLockPanel({
         >
           0
         </Button>
-        <Button variant="ghost" size="lg" disabled={disabled} onClick={backspace}>
+        <Button
+          variant="ghost"
+          size="lg"
+          disabled={disabled}
+          data-keypad-edit
+          onClick={backspace}
+        >
           {t("backspace")}
         </Button>
       </div>
@@ -160,6 +232,10 @@ export function CodeLockPanel({
       <Button disabled={disabled || entry.length !== view.length} onClick={submit}>
         {pending ? t("pending") : t("submit")}
       </Button>
+
+      {keyboard ? (
+        <p className="text-center text-[0.65rem] text-muted-foreground">{t("keyboardHint")}</p>
+      ) : null}
 
       <p
         aria-live="polite"

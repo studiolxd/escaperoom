@@ -1,5 +1,7 @@
+import { useRef } from "react";
 import type { RuntimeObject } from "@escaperoom/game-runtime";
 import { Button } from "@/components/ui/button";
+import { useArrowNavigation } from "../hooks/use-arrow-navigation";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export interface ContextMenuPopoverProps {
@@ -56,15 +58,29 @@ export function ContextMenuPopover({
   onSelectObject,
   alternativesLabel,
 }: ContextMenuPopoverProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  // Flechas (izq./der. y arriba/abajo) recorren Objetos apilados → acciones →
+  // Cancelar, dando la vuelta; Espacio/Intro pulsan el botón con foco.
+  useArrowNavigation({
+    containerRef: menuRef,
+    selector: "button",
+    wrap: true,
+    enabled: object !== undefined,
+  });
   return (
     <Dialog open={object !== undefined} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
         onEscapeKeyDown={onEscapeKeyDown}
+        onOpenAutoFocus={(event) => {
+          // Foco inicial en la primera acción (no en un objeto apilado).
+          event.preventDefault();
+          menuRef.current?.querySelector<HTMLElement>("[data-menu-action]")?.focus();
+        }}
         className="w-fit max-w-[min(92vw,26rem)] rounded-xl border border-amber-500/30 px-4 py-3 shadow-xl dark:border-amber-200/30"
       >
         {object ? (
-          <>
+          <div ref={menuRef}>
             <DialogTitle className="font-mono text-sm">{objectName(object.id)}</DialogTitle>
             {alternatives.length > 1 ? (
               <div role="group" aria-label={alternativesLabel} className="mt-2 flex flex-wrap gap-1.5">
@@ -88,6 +104,7 @@ export function ContextMenuPopover({
               {(object.actions ?? ["inspect", "use_item"]).map((action) => (
                 <Button
                   key={action}
+                  data-menu-action
                   size="sm"
                   variant={action === "use_item" ? "default" : "secondary"}
                   onClick={() => {
@@ -102,7 +119,7 @@ export function ContextMenuPopover({
                 {cancelLabel}
               </Button>
             </div>
-          </>
+          </div>
         ) : null}
       </DialogContent>
     </Dialog>

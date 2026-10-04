@@ -71,6 +71,7 @@ export function TemplatePreviewPanel({
           view={toCodeLockPublicView(preview.state, preview.def)}
           onAttempt={(code) => onAction({ type: "attempt_code", code })}
           feedback={preview.feedback}
+          keyboard={false}
         />
       );
     case "simultaneous_plates":

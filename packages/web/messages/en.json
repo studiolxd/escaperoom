@@ -25,6 +25,7 @@
     "clear": "Clear",
     "backspace": "Backspace",
     "submit": "Open",
+    "keyboardHint": "You can also use the keyboard.",
     "pending": "Checking…",
     "attempts": "Attempts: {used}/{max}",
     "wrong": "Wrong code · {count} attempts left",
