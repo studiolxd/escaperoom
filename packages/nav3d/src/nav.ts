@@ -1,4 +1,4 @@
-import { init, NavMeshQuery, type NavMesh } from "recast-navigation";
+import { getNavMeshPositionsAndIndices, init, NavMeshQuery, type NavMesh } from "recast-navigation";
 import { generateSoloNavMesh } from "recast-navigation/generators";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import type { Models3DCatalog } from "@escaperoom/shared/packs";
@@ -21,6 +21,8 @@ export interface RoomNav {
   slide(from: NavPoint, to: NavPoint): NavPoint;
   /** `true` si la navmesh no tiene ningún polígono. */
   readonly empty: boolean;
+  /** Triángulos de la navmesh para dibujarla (depuración); coordenadas Three (X, Y, Z) = (x, h, y). */
+  debugGeometry(): { positions: Float32Array; indices: Uint32Array };
   destroy(): void;
 }
 
@@ -45,6 +47,7 @@ const EMPTY_NAV: RoomNav = {
   closest: () => null,
   path: () => null,
   slide: (from) => from,
+  debugGeometry: () => ({ positions: new Float32Array(0), indices: new Uint32Array(0) }),
   destroy: () => undefined,
 };
 
@@ -100,6 +103,10 @@ export function createRoomNav(input: NavInput): RoomNav {
         if (height.success) end.h = height.height;
       }
       return end;
+    },
+    debugGeometry() {
+      const [positions, indices] = getNavMeshPositionsAndIndices(navMesh);
+      return { positions: new Float32Array(positions), indices: new Uint32Array(indices) };
     },
     destroy() {
       query.destroy();

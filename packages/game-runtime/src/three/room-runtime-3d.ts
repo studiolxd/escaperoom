@@ -13,12 +13,27 @@ import {
   OrbitRig,
   cameraForward,
   cameraRight,
+  editorCameraPosition,
   freeCameraDirection,
   freeCameraFromLook,
+  initialEditorCamera,
   moveFreeCamera,
+  panPivot,
+  rotateEditor,
   rotateFreeCamera,
+  zoomEditor,
+  type EditorCameraState,
   type FreeCameraState,
 } from "./camera";
+import {
+  EditLayer,
+  type EditPointer3D,
+  type EditTarget3D,
+  type GizmoDelta,
+  type GizmoMode,
+  type TransformChange3D,
+} from "./edit";
+import { EditInput, type EditPointerInput, type EditPointerType } from "./edit-input";
 import { InputController } from "./input";
 import { followPath, stepToward, yawOf, type Pose } from "./movement";
 import { highlightedObject } from "./proximity";
@@ -48,6 +63,11 @@ export interface RoomRuntime3DOptions {
   backgroundColor?: string; // por defecto "#0b1120"
   /** Observador: sin avatar ni entrada de juego; cámaras `follow` y `free`. Por defecto `false`. */
   observer?: boolean;
+  /**
+   * `"edit"`: lienzo del editor 3D (specs/27 §8): sin avatar ni juego, cámara de editor, rejilla,
+   * selección y gizmos; no escribe en el documento. Por defecto `"play"`. No se combina con `observer`.
+   */
+  mode?: "play" | "edit";
   /** Solo tests: no crea WebGLRenderer ni bucle de animación. */
   headless?: boolean;
 }
@@ -99,7 +119,7 @@ export class RoomRuntime3D {
   /** Se resuelve cuando la navmesh de la habitación inicial está lista. */
   readonly ready: Promise<void>;
 
-  private readonly model: RuntimeModel;
+  private model: RuntimeModel;
   private readonly parent: HTMLElement;
   private readonly options: RoomRuntime3DOptions;
   private readonly headless: boolean;
@@ -109,15 +129,21 @@ export class RoomRuntime3D {
   private readonly rig = new OrbitRig(this.camera);
   private readonly raycaster = new THREE.Raycaster();
   private readonly handlers = new Set<(event: WorldSceneEvent) => void>();
-  private readonly objectStates: ObjectStateMap;
+  private objectStates: ObjectStateMap;
   private readonly localPlayerId: string;
   private readonly avatarEnabled: boolean;
   private readonly emitAvatarMoves: boolean;
   private readonly observer: boolean;
+  private readonly edit: boolean;
 
   private renderer: THREE.WebGLRenderer | undefined;
   private resizeObserver: ResizeObserver | undefined;
   private input: InputController | undefined;
+  private editInput: EditInput | undefined;
+  private editLayer: EditLayer | undefined;
+  private editCam: EditorCameraState = initialEditorCamera({ cols: 1, rows: 1 });
+  private workHeightValue = 0;
+  private readonly editHandlers = new Set<(event: EditPointer3D) => void>();
   private fadeOverlay: HTMLDivElement | undefined;
   private restoreParentPosition: string | undefined;
   private fadeTimers: ReturnType<typeof setTimeout>[] = [];
@@ -185,7 +211,11 @@ export class RoomRuntime3D {
     this.localPlayerId = options.localPlayerId ?? "p0";
     this.localCharacterId = options.localCharacterId;
     this.observer = options.observer ?? false;
-    this.avatarEnabled = !this.observer && (options.avatar ?? true);
+    this.edit = options.mode === "edit";
+    if (this.edit && this.observer) {
+      throw new Error("RoomRuntime3D: `observer` y `mode: \"edit\"` no se pueden combinar");
+    }
+    this.avatarEnabled = !this.observer && !this.edit && (options.avatar ?? true);
     this.emitAvatarMoves = options.emitAvatarMoves ?? false;
 
     const startRoom = model.subroomsById[this.roomId]!;
@@ -199,7 +229,13 @@ export class RoomRuntime3D {
 
     const background = options.backgroundColor ?? DEFAULT_BACKGROUND;
     this.scene.background = new THREE.Color(background);
-    this.scene.fog = new THREE.Fog(background, FOG_NEAR, FOG_FAR);
+    // En edición no hay niebla: se aleja la cámara hasta 60 m y debe verse toda la sala.
+    if (!this.edit) this.scene.fog = new THREE.Fog(background, FOG_NEAR, FOG_FAR);
+    if (this.edit) {
+      this.qualityAuto = false;
+      this.editLayer = new EditLayer(() => this.roomNavInput());
+      this.scene.add(this.editLayer.group);
+    }
 
     if (this.avatarEnabled) {
       this.avatar = new AvatarView({ tint: this.localTint, ...this.avatarSource(this.localCharacterId) });
@@ -246,7 +282,7 @@ export class RoomRuntime3D {
   }
 
   placeAvatar(x: number, y: number, h?: number, yaw?: number): void {
-    if (this.observer) return;
+    if (this.observer || this.edit) return;
     const wanted: NavPoint = { x, y, h: h ?? this.pose.h };
     let snapped = this.nav?.closest(wanted) ?? null;
     if (!snapped && h === undefined) {
@@ -298,6 +334,7 @@ export class RoomRuntime3D {
   }
 
   setPlayers(players: readonly ScenePlayer[]): void {
+    if (this.edit) return;
     this.players = players;
     this.syncRemotes();
     this.syncObserverFollow();
@@ -355,7 +392,7 @@ export class RoomRuntime3D {
    * no hace nada ni llama a `onArrive`).
    */
   walkTo(point: { x: number; y: number; h?: number }, onArrive?: () => void): boolean {
-    if (this.observer || !this.nav || !this.avatar || !this.posePlaced || !this.inputEnabled) {
+    if (this.edit || this.observer || !this.nav || !this.avatar || !this.posePlaced || !this.inputEnabled) {
       return false;
     }
     this.clearRoute();
@@ -375,7 +412,7 @@ export class RoomRuntime3D {
 
   /** Igual que el clic sobre un objeto: camina hasta él y emite `interact` (o `use-item`/`interact-direct` con ítem). */
   walkToObject(objectId: string, itemId?: string): void {
-    if (this.observer) return;
+    if (this.observer || this.edit) return;
     this.interactWith(objectId, itemId);
   }
 
@@ -403,7 +440,7 @@ export class RoomRuntime3D {
 
   /** Lo mismo que pulsar E: emite `interact` del resaltado. Devuelve `false` si no hay. */
   interactHighlighted(): boolean {
-    if (this.observer || !this.inputEnabled || !this.avatar || !this.highlighted) return false;
+    if (this.observer || this.edit || !this.inputEnabled || !this.avatar || !this.highlighted) return false;
     this.avatar.playInteract();
     this.emit({ type: "interact", objectId: this.highlighted });
     return true;
@@ -412,7 +449,7 @@ export class RoomRuntime3D {
   // ---- observador
 
   setObserverCamera(camera: ObserverCamera): void {
-    if (!this.observer) return;
+    if (!this.observer || this.edit) return;
     if (camera.type === "follow") {
       const player = this.players.find((p) => p.id === camera.playerId);
       if (!player || !player.connected || !this.model.subroomsById[player.roomId]) {
@@ -444,6 +481,7 @@ export class RoomRuntime3D {
 
   /** `"auto"` (por defecto) empieza en alta y baja sola; fijar un valor desactiva el automático. */
   setQuality(quality: Quality3D | "auto"): void {
+    if (this.edit) return; // calidad fija alta, sin sombras
     if (quality === "auto") {
       this.qualityAuto = true;
       this.qualityMonitor = createQualityMonitor();
@@ -467,7 +505,7 @@ export class RoomRuntime3D {
 
   /** Suelta un ítem del inventario en coordenadas de cliente; devuelve el objeto que lo recibe. */
   dropItemAt(itemId: string, screenX: number, screenY: number): string | undefined {
-    if (!this.renderer || !this.avatar || !this.posePlaced) return undefined;
+    if (this.edit || !this.renderer || !this.avatar || !this.posePlaced) return undefined;
     const objectId = this.pickObject(screenX, screenY);
     if (!objectId) return undefined;
     this.interactWith(objectId, itemId);
@@ -488,6 +526,9 @@ export class RoomRuntime3D {
     for (const timer of this.fadeTimers) clearTimeout(timer);
     this.fadeTimers = [];
     this.input?.dispose();
+    this.editInput?.dispose();
+    this.editLayer?.dispose();
+    this.editHandlers.clear();
     this.resizeObserver?.disconnect();
     this.disposeRoom();
     for (const { avatar } of this.remotes.values()) avatar.view.dispose();
@@ -507,7 +548,126 @@ export class RoomRuntime3D {
     }
   }
 
+  // ---------------------------------------------------------------- edición
+
+  private requireEdit(method: string): EditLayer {
+    if (!this.editLayer) throw new Error(`RoomRuntime3D.${method} solo existe con mode: "edit"`);
+    return this.editLayer;
+  }
+
+  /** Sustituye el modelo y repinta SOLO lo que cambió (por id); no mueve la cámara ni funde. */
+  setModel(model: RuntimeModel): void {
+    const layer = this.requireEdit("setModel");
+    if (model.dimension !== "3d") throw new Error("RoomRuntime3D solo admite salas 3D");
+    const first = model.subrooms[0];
+    if (!first) throw new Error("RoomRuntime3D.setModel: el modelo no tiene habitaciones");
+    this.model = model;
+    this.objectStates = createObjectStateMap(model);
+    const world = this.world;
+    if (!world) return; // `init` construirá la sala con este modelo
+    const room = model.subroomsById[this.roomId];
+    if (!room) {
+      this.buildRoom(first.id);
+      return;
+    }
+    world.sync(model, room, this.objectStates, (key) => layer.isHeld(key));
+    world.updateTorches(undefined, this.objectStates, true);
+    layer.refresh(room);
+  }
+
+  /** Altura del plano de trabajo (m): la rejilla y el picking del suelo usan este plano. */
+  setWorkHeight(h: number): void {
+    const layer = this.requireEdit("setWorkHeight");
+    this.workHeightValue = h;
+    this.editCam = { ...this.editCam, pivot: { ...this.editCam.pivot, y: h } };
+    layer.setWorkHeight(h);
+  }
+
+  get workHeight(): number {
+    return this.workHeightValue;
+  }
+
+  /** Puntero sobre el lienzo (solo con el botón izquierdo sin Espacio; lo demás es cámara). */
+  onEditEvent(handler: (event: EditPointer3D) => void): () => void {
+    this.editHandlers.add(handler);
+    return () => {
+      this.editHandlers.delete(handler);
+    };
+  }
+
+  /** Elementos seleccionados (contorno y caja); `[]` = nada. Ids inexistentes se ignoran. */
+  setSelection(targets: readonly EditTarget3D[]): void {
+    this.editLayer?.setSelection(targets);
+  }
+
+  /** Pieza u objeto «en la mano» que sigue al puntero antes de colocarse; `null` lo quita. */
+  setGhost(
+    ghost: { model: string; x: number; y: number; h: number; yaw: number; scale?: number } | null,
+  ): void {
+    this.editLayer?.setGhost(ghost);
+  }
+
+  /** Gizmo sobre la selección; `null` = sin gizmo. */
+  setGizmoMode(mode: GizmoMode | null): void {
+    this.editLayer?.setGizmoMode(mode);
+  }
+
+  /** Imán: paso de traslación en m (0 = libre) y de giro en grados (0 = libre). */
+  setSnap(snap: { move: number; yaw: number }): void {
+    this.editLayer?.setSnap(snap);
+  }
+
+  /** Mientras se arrastra un gizmo (cada fotograma con cambio) y al soltar (`final: true`). */
+  onTransform(
+    handler: (changes: readonly TransformChange3D[], final: boolean) => void,
+  ): () => void {
+    return this.editLayer?.onTransform(handler) ?? (() => undefined);
+  }
+
+  /** Dibuja (o no) la navmesh de la habitación sobre el suelo. */
+  setNavmeshVisible(visible: boolean): void {
+    this.editLayer?.setNavmeshVisible(visible);
+  }
+
   // ------------------------------------------------- solo headless (tests)
+
+  /**
+   * Simula un evento de puntero del modo edición en coordenadas normalizadas (−1…1, y hacia
+   * arriba). Solo con `headless: true`.
+   */
+  simulatePointer(
+    type: EditPointerType,
+    ndcX: number,
+    ndcY: number,
+    modifiers: Partial<Omit<EditPointerInput, "type" | "clientX" | "clientY">> = {},
+  ): void {
+    this.requireHeadless("simulatePointer");
+    this.requireEdit("simulatePointer");
+    this.emitEditPointer(type, new THREE.Vector2(ndcX, ndcY), {
+      button: 0,
+      shiftKey: false,
+      altKey: false,
+      ctrlKey: false,
+      metaKey: false,
+      ...modifiers,
+    });
+  }
+
+  /**
+   * Aplica un gesto de gizmo con la misma función que usa el arrastre. Los incrementos son
+   * respecto al inicio del gesto (`dscale` es un factor); `final: true` lo cierra. Devuelve los
+   * incrementos efectivos tras el imán. Solo con `headless: true`.
+   */
+  applyGizmoDelta(delta: Partial<GizmoDelta>, final = false): GizmoDelta {
+    this.requireHeadless("applyGizmoDelta");
+    return this.requireEdit("applyGizmoDelta").applyGizmoDelta(delta, final);
+  }
+
+  /** Ejecuta ya la regeneración pendiente de la navmesh visible y espera. Solo con `headless: true`. */
+  flushNavmesh(): Promise<void> {
+    this.requireHeadless("flushNavmesh");
+    return this.requireEdit("flushNavmesh").flushNavmesh();
+  }
 
   /** Avanza la simulación `dt` segundos. Solo con `headless: true`. */
   tick(dt: number): void {
@@ -543,7 +703,7 @@ export class RoomRuntime3D {
   private mountRenderer(): void {
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.shadowMap.enabled = this.currentQuality === "high";
+    renderer.shadowMap.enabled = this.currentQuality === "high" && !this.edit;
     renderer.setPixelRatio(this.pixelRatioFor(this.currentQuality));
     renderer.domElement.style.display = "block";
     renderer.domElement.style.touchAction = "none";
@@ -565,7 +725,42 @@ export class RoomRuntime3D {
       this.resizeObserver.observe(this.parent);
     }
 
-    this.input = new InputController(
+    if (this.edit && this.editLayer) {
+      // Los controles del gizmo se registran antes que la entrada: su `pointerdown` va primero.
+      this.editLayer.attachGizmo(this.camera, renderer.domElement);
+      this.editInput = new EditInput(
+        renderer.domElement,
+        {
+          onPointer: (e) => this.handleEditPointer(e),
+          onOrbit: (dx, dy) => {
+            this.editCam = rotateEditor(this.editCam, dx, dy);
+          },
+          onPan: (dx, dy) => {
+            this.editCam = panPivot(this.editCam, dx, dy, this.parent.clientHeight);
+          },
+          onWheel: (steps) => {
+            this.editCam = zoomEditor(this.editCam, steps);
+          },
+          onFocusKey: () => this.focusSelection(),
+          onLeave: () => undefined,
+        },
+        () => this.editLayer?.gizmoDragging ?? false,
+      );
+    } else {
+      this.input = this.createGameInput(renderer);
+    }
+
+    renderer.setAnimationLoop(() => {
+      const now = performance.now();
+      const dt = Math.min((now - (this.lastFrameAt ?? now)) / 1000, MAX_FRAME_S);
+      this.lastFrameAt = now;
+      this.step(dt);
+      renderer.render(this.scene, this.camera);
+    });
+  }
+
+  private createGameInput(renderer: THREE.WebGLRenderer): InputController {
+    return new InputController(
       renderer.domElement,
       {
         onClick: (x, y) => this.handleClick(x, y),
@@ -581,14 +776,6 @@ export class RoomRuntime3D {
       },
       { observer: this.observer },
     );
-
-    renderer.setAnimationLoop(() => {
-      const now = performance.now();
-      const dt = Math.min((now - (this.lastFrameAt ?? now)) / 1000, MAX_FRAME_S);
-      this.lastFrameAt = now;
-      this.step(dt);
-      renderer.render(this.scene, this.camera);
-    });
   }
 
   private resize(): void {
@@ -619,8 +806,11 @@ export class RoomRuntime3D {
     this.hovered = undefined;
     this.qualityMuteUntilMs = this.clockMs + QUALITY_MUTE_S * 1000;
 
-    const input = buildRoomNavInput(this.model, room, this.catalog);
-    this.nav = createRoomNav(input);
+    // En edición no hay navmesh de juego: la colisión es una malla vacía.
+    const input = this.edit
+      ? { positions: new Float32Array(0), indices: new Uint32Array(0) }
+      : buildRoomNavInput(this.model, room, this.catalog);
+    this.nav = this.edit ? undefined : createRoomNav(input);
     this.world = new RoomWorld(
       this.model,
       room,
@@ -631,9 +821,20 @@ export class RoomRuntime3D {
       }),
       input,
       this.objectStates,
-      this.currentQuality,
+      { quality: this.currentQuality, edit: this.edit },
     );
     this.scene.add(this.world.group);
+
+    if (this.edit && this.editLayer) {
+      this.world.updateTorches({ x: room.width / 2, y: room.height / 2 }, this.objectStates, true);
+      this.editLayer.bind(this.world, room);
+      this.editCam = initialEditorCamera(
+        { cols: room.width, rows: room.height },
+        this.workHeightValue,
+      );
+      this.updateCamera(0);
+      return;
+    }
 
     const spawn = room.spawns[0];
     if (spawn) this.placeAvatar(spawn.x, spawn.y, spawn.h, spawn.yaw);
@@ -649,6 +850,51 @@ export class RoomRuntime3D {
     }
     this.syncRemotes();
     this.updateCamera(0);
+  }
+
+  // ---- edición
+
+  /** Geometría de colisión de la habitación visible (para dibujar la navmesh en el editor). */
+  private roomNavInput() {
+    const room = this.model.subroomsById[this.roomId];
+    return room ? buildRoomNavInput(this.model, room, this.catalog) : undefined;
+  }
+
+  private handleEditPointer(input: EditPointerInput): void {
+    const ndc = this.ndc(input.clientX, input.clientY);
+    if (ndc) this.emitEditPointer(input.type, ndc, input);
+  }
+
+  private emitEditPointer(
+    type: EditPointerType,
+    ndc: THREE.Vector2,
+    mods: Pick<EditPointerInput, "button" | "shiftKey" | "altKey" | "ctrlKey" | "metaKey">,
+  ): void {
+    const layer = this.editLayer;
+    if (!layer || this.editHandlers.size === 0) return;
+    this.scene.updateMatrixWorld(); // en headless no hay fotograma que lo haga
+    this.raycaster.setFromCamera(ndc, this.camera);
+    this.raycaster.far = Infinity;
+    const event: EditPointer3D = {
+      type,
+      point: layer.pickPoint(this.raycaster),
+      target: layer.pick(this.raycaster),
+      button: mods.button,
+      shiftKey: mods.shiftKey,
+      altKey: mods.altKey,
+      ctrlKey: mods.ctrlKey,
+      metaKey: mods.metaKey,
+    };
+    for (const handler of [...this.editHandlers]) handler(event);
+  }
+
+  /** Tecla F: centra el pivote en la selección (o en el centro de la habitación). */
+  private focusSelection(): void {
+    const room = this.model.subroomsById[this.roomId];
+    const center = this.editLayer?.selectionCenter();
+    const x = center?.x ?? (room ? room.width / 2 : this.editCam.pivot.x);
+    const z = center?.z ?? (room ? room.height / 2 : this.editCam.pivot.z);
+    this.editCam = { ...this.editCam, pivot: { x, y: this.workHeightValue, z } };
   }
 
   // ---- interacción
@@ -802,6 +1048,13 @@ export class RoomRuntime3D {
     this.clockMs += dt * 1000;
     const nav = this.nav;
     const world = this.world;
+
+    if (this.edit) {
+      world?.update(dt);
+      this.editLayer?.update();
+      this.updateCamera(dt);
+      return;
+    }
 
     if (nav && world && this.avatar && this.posePlaced && this.inputEnabled) {
       this.moveLocal(dt, nav);
@@ -974,6 +1227,14 @@ export class RoomRuntime3D {
   }
 
   private updateCamera(dt: number): void {
+    if (this.edit) {
+      const at = editorCameraPosition(this.editCam);
+      const pivot = this.editCam.pivot;
+      this.camera.position.set(at.x, at.y, at.z);
+      this.camera.lookAt(pivot.x, pivot.y, pivot.z);
+      this.camera.updateMatrixWorld();
+      return;
+    }
     const room = this.model.subroomsById[this.roomId]!;
     if (this.observer && this.observerCam.type === "free") {
       this.moveFree(dt, room);

@@ -178,6 +178,107 @@ export function freeCameraFromLook(position: Vec3, direction: Vec3): FreeCameraS
   };
 }
 
+/** Cámara de editor (specs/27 §8): órbita alrededor de un pivote en el plano de trabajo. */
+export const EDITOR_CAMERA = {
+  minDistance: 2,
+  maxDistance: 60,
+  minElevationDeg: 5,
+  maxElevationDeg: 89,
+  startElevationDeg: 50,
+  zoomOutFactor: 1.1,
+  zoomInFactor: 0.9,
+  startDistanceFactor: 1.2,
+} as const;
+
+export interface EditorCameraState {
+  /** Mismo convenio que `OrbitState.azimuth`. */
+  azimuth: number;
+  /** Elevación en grados: 0 = horizontal, 90 = cenital. */
+  elevation: number;
+  distance: number;
+  /** Punto al que mira la cámara (coordenadas Three). */
+  pivot: Vec3;
+}
+
+/** Estado inicial: pivote en el centro de la habitación, a `workHeight`. */
+export function initialEditorCamera(
+  room: { cols: number; rows: number },
+  workHeight = 0,
+): EditorCameraState {
+  return {
+    azimuth: 0,
+    elevation: EDITOR_CAMERA.startElevationDeg,
+    distance: clamp(
+      Math.max(room.cols, room.rows) * EDITOR_CAMERA.startDistanceFactor,
+      EDITOR_CAMERA.minDistance,
+      EDITOR_CAMERA.maxDistance,
+    ),
+    pivot: { x: room.cols / 2, y: workHeight, z: room.rows / 2 },
+  };
+}
+
+/** Posición de la cámara de editor (puro, coordenadas Three). */
+export function editorCameraPosition(state: EditorCameraState): Vec3 {
+  return orbitPosition(
+    { azimuth: state.azimuth, polar: state.elevation, distance: state.distance },
+    state.pivot,
+  );
+}
+
+/** Gira con un arrastre de (dx, dy) píxeles; elevación limitada a 5°–89°. */
+export function rotateEditor(state: EditorCameraState, dxPx: number, dyPx: number): EditorCameraState {
+  return {
+    ...state,
+    azimuth: normalizeDeg(state.azimuth - dxPx * CAMERA.rotateSpeedDegPerPx),
+    elevation: clamp(
+      state.elevation + dyPx * CAMERA.rotateSpeedDegPerPx,
+      EDITOR_CAMERA.minElevationDeg,
+      EDITOR_CAMERA.maxElevationDeg,
+    ),
+  };
+}
+
+/**
+ * Desplaza el pivote por el plano de trabajo con un arrastre de (dx, dy) píxeles, de modo que el
+ * suelo «sigue» al puntero. `viewportHeightPx` es el alto del lienzo (fija los metros por píxel).
+ */
+export function panPivot(
+  state: EditorCameraState,
+  dxPx: number,
+  dyPx: number,
+  viewportHeightPx: number,
+): EditorCameraState {
+  if (viewportHeightPx <= 0) return state;
+  const metersPerPx = (2 * state.distance * Math.tan((CAMERA.fovDeg * Math.PI) / 360)) / viewportHeightPx;
+  const forward = cameraForward(state.azimuth);
+  const right = cameraRight(forward);
+  // En el suelo, un píxel vertical abarca 1 / sin(elevación) píxeles de «profundidad».
+  const depth = metersPerPx / Math.sin((state.elevation * Math.PI) / 180);
+  const sideways = dxPx * metersPerPx;
+  const ahead = dyPx * depth;
+  return {
+    ...state,
+    pivot: {
+      x: state.pivot.x - right.x * sideways + forward.x * ahead,
+      y: state.pivot.y,
+      z: state.pivot.z - right.y * sideways + forward.y * ahead,
+    },
+  };
+}
+
+/** `steps` > 0 aleja (×1,1 por paso), < 0 acerca (×0,9); distancia limitada a 2–60 m. */
+export function zoomEditor(state: EditorCameraState, steps: number): EditorCameraState {
+  const factor = steps >= 0 ? EDITOR_CAMERA.zoomOutFactor : EDITOR_CAMERA.zoomInFactor;
+  return {
+    ...state,
+    distance: clamp(
+      state.distance * factor ** Math.abs(steps),
+      EDITOR_CAMERA.minDistance,
+      EDITOR_CAMERA.maxDistance,
+    ),
+  };
+}
+
 /**
  * Cámara en órbita aplicada a una `THREE.PerspectiveCamera`: seguimiento
  * suavizado del objetivo y acortamiento por colisión contra la malla de la sala.

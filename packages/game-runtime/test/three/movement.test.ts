@@ -95,6 +95,7 @@ describe("stepToward", () => {
     closest: (p) => p,
     path: () => null,
     slide: (_from, to) => to,
+    debugGeometry: () => ({ positions: new Float32Array(0), indices: new Uint32Array(0) }),
     destroy: () => undefined,
   };
   const blocked: RoomNav = { ...free, slide: (from) => from };
