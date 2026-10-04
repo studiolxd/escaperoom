@@ -21,8 +21,10 @@ export interface CodeLockPanelProps {
   /** Último resultado del servidor para pintar el feedback. */
   feedback?: CodeLockFeedback;
   /**
-   * Teclado físico (dígitos, Retroceso, Supr, Intro, flechas) y su pista.
-   * `false` en la vista previa del editor, donde no es una partida.
+   * Teclado físico (dígitos, Retroceso, Supr, Intro, flechas, foco inicial).
+   * `false` en la vista previa del editor, donde no es una partida y no debe
+   * capturar teclas ni robar el foco del inspector (el markup no cambia: la
+   * vista previa sigue siendo idéntica a la de juego).
    */
   keyboard?: boolean;
 }
@@ -233,9 +235,7 @@ export function CodeLockPanel({
         {pending ? t("pending") : t("submit")}
       </Button>
 
-      {keyboard ? (
-        <p className="text-center text-[0.65rem] text-muted-foreground">{t("keyboardHint")}</p>
-      ) : null}
+      <p className="text-center text-[0.65rem] text-muted-foreground">{t("keyboardHint")}</p>
 
       <p
         aria-live="polite"

@@ -200,9 +200,9 @@ describe("CodeLockPanel — teclado", () => {
     expect(entered()).toBe("2");
   });
 
-  it("con keyboard=false no hay pista ni teclado físico", () => {
+  it("con keyboard=false no hay teclado físico ni foco inicial", () => {
     setup({}, { keyboard: false });
-    expect(screen.queryByText("También puedes usar el teclado.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Dígito 1" })).not.toHaveFocus();
     const event = new KeyboardEvent("keydown", { code: "Digit5", key: "5", bubbles: true, cancelable: true });
     document.body.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(false);
