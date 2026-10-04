@@ -208,9 +208,9 @@ describe("RoomEditorWorkspace3D — barra y atajos", () => {
   });
 
   it("pasa al lienzo el estado del controlador y Alt desactiva el imán mientras dure", () => {
-    const renderCanvas = vi.fn(() => null);
+    const renderCanvas = vi.fn((_props: { altPressed: boolean; state: unknown }) => null);
     const { controller } = renderWorkspace({ renderCanvas });
-    const last = () => renderCanvas.mock.calls.at(-1)![0] as { altPressed: boolean; state: unknown };
+    const last = () => renderCanvas.mock.calls.at(-1)![0];
     expect(last().altPressed).toBe(false);
     act(() => {
       fireEvent.keyDown(window, { key: "Alt" });
