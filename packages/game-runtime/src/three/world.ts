@@ -95,6 +95,9 @@ export class ModelSlot {
   /** Id del modelo pintado ahora mismo (`undefined` antes del primer `set`). */
   modelId: string | undefined;
   private content: THREE.Object3D | undefined;
+  /** Último visual pedido (para `refreshCustomModels`) y animación de estado. */
+  private requested: { kind: string; url: string | undefined } | undefined;
+  private animation: string | undefined;
   private token = 0;
   private opacity = 1;
   private editOutline: THREE.Material | undefined;
@@ -118,7 +121,9 @@ export class ModelSlot {
   set(modelId: string, animation?: string): void {
     const token = ++this.token;
     this.modelId = modelId;
+    this.animation = animation;
     const visual = resolveVisual(modelId, this.world.assets);
+    this.requested = { kind: visual.kind, url: visual.url };
     this.clear();
     this.content = this.world.boxes.create(visual);
     this.world.markShadows(this.content);
@@ -149,6 +154,14 @@ export class ModelSlot {
         /* sin GLB: se queda la caja */
       },
     );
+  }
+
+  /** Vuelve a resolver el visual: si ahora hay otra URL (o otro tipo) lo repinta; si no, no hace nada. */
+  refreshVisual(): void {
+    if (this.modelId === undefined) return;
+    const visual = resolveVisual(this.modelId, this.world.assets);
+    if (visual.kind === this.requested?.kind && visual.url === this.requested?.url) return;
+    this.set(this.modelId, this.animation);
   }
 
   /** Opacidad del modelo (edición: objetos ocultos y fantasma). 1 = opaco. */
@@ -391,6 +404,8 @@ export class RoomWorld {
     this.model = model;
     this.room = room;
     this.lastStates = states;
+    // Modelos propios añadidos o cambiados desde que se creó el mundo.
+    this.assets.customModels = model.customModels;
 
     const livePieces = new Set<string>();
     for (const piece of room.pieces) {
@@ -436,6 +451,11 @@ export class RoomWorld {
 
     if (resized) this.frameSunShadow(room);
     if (JSON.stringify(room.lighting) !== this.lightingKey) this.applyLighting(states);
+  }
+
+  /** Repinta los modelos propios cuya URL (o definición) ha cambiado; los demás no se tocan. */
+  refreshCustomModels(): void {
+    for (const slot of this.slots) slot.refreshVisual();
   }
 
   private removeSlot(slot: ModelSlot): void {
