@@ -527,7 +527,7 @@
       "OUT_OF_BOUNDS": "That cell is outside the room.",
       "DUPLICATE_ID": "Something already uses that ID.",
       "INVALID_ID": "Use only lowercase letters, digits and hyphens (e.g. throne-chest).",
-      "REFERENCED_ID": "That object is already used by rules or puzzles; rename it from the inspector.",
+      "REFERENCED_ID": "This element is used in rules or puzzles. Remove those references first.",
       "UNKNOWN_DECORATION": "That decoration no longer exists.",
       "UNKNOWN_LIGHT": "That light no longer exists.",
       "INVALID_VALUE": "Invalid value: colour is #rrggbb and intensity goes from 0 to 1."

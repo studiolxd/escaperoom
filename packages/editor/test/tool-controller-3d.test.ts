@@ -2,6 +2,7 @@ import * as Y from "yjs";
 import { describe, expect, it } from "vitest";
 import {
   Edit3DController,
+  deleteRule,
   listLights,
   listPieces3D,
   listSpawnPoints3D,
@@ -181,6 +182,7 @@ describe("Edit3DController — transform, borrar, duplicar", () => {
 
   it("deleteSelection borra de todo tipo en una transacción", () => {
     const { doc, controller } = setup();
+    deleteRule(doc, "r-fin");
     controller.setTool("torch");
     controller.pointer(ev("click", 1, 1));
     controller.setTool("select");
@@ -212,12 +214,17 @@ describe("Edit3DController — transform, borrar, duplicar", () => {
     expect(listLights(doc, "sala")).toEqual([{ type: "ambient", color: "#ffffff", intensity: 1 }]);
   });
 
-  it("un objeto referenciado por una regla se borra igual que en 2D", () => {
+  it("un objeto referenciado no se borra y no se borra nada más", () => {
     const { doc, controller } = setup();
-    controller.select([{ kind: "object", id: "arca" }]);
+    controller.select([
+      { kind: "piece", id: "p-suelo000" },
+      { kind: "object", id: "arca" },
+    ]);
     controller.deleteSelection();
-    expect(readObject(doc, "arca")).toBeUndefined();
-    expect(roomDocToPackage(doc).rules).toHaveLength(1);
+    expect(controller.getState().error?.code).toBe("REFERENCED_ID");
+    expect(readObject(doc, "arca")).toBeDefined();
+    expect(pieces(doc)).toHaveLength(4);
+    expect(controller.getState().selection).toHaveLength(2);
   });
 
   it("nunca deja la habitación sin puntos de aparición", () => {

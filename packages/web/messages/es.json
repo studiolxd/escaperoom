@@ -720,7 +720,7 @@
       "OUT_OF_BOUNDS": "Esa celda está fuera de la habitación.",
       "DUPLICATE_ID": "Ya hay algo con ese ID.",
       "INVALID_ID": "Usa solo minúsculas, números y guiones (p. ej. arca-trono).",
-      "REFERENCED_ID": "Ese objeto ya se usa en reglas o puzzles; cámbiale el ID desde el inspector.",
+      "REFERENCED_ID": "Este elemento se usa en reglas o puzles. Quita primero esas referencias.",
       "UNKNOWN_DECORATION": "Esa decoración ya no existe.",
       "UNKNOWN_LIGHT": "Esa luz ya no existe.",
       "INVALID_VALUE": "Valor no válido: el color es #rrggbb y la intensidad va de 0 a 1."

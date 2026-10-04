@@ -1,6 +1,6 @@
 import type * as Y from "yjs";
 import { MAX_WORLD3D_HEIGHT } from "@escaperoom/shared/schemas";
-import { RoomDocError, removeObject } from "./commands";
+import { RoomDocError, findIdReferences, removeObject } from "./commands";
 import {
   applyTransforms3D,
   duplicate3D,
@@ -184,6 +184,15 @@ export class Edit3DController {
         .sort((a, b) => b - a);
 
       // Se comprueba todo antes de escribir: o se borra la selección entera o nada.
+      for (const id of objects) {
+        const refs = findIdReferences(this.doc, id);
+        if (refs.length > 0) {
+          throw new RoomDocError(
+            "REFERENCED_ID",
+            `"${id}" se usa en ${refs.slice(0, 3).join(", ")}${refs.length > 3 ? ` y ${refs.length - 3} más` : ""}; quita antes esas referencias`,
+          );
+        }
+      }
       let remainingSpawns: ReturnType<typeof listSpawnPoints3D> | undefined;
       if (spawnIds.size > 0) {
         const all = listSpawnPoints3D(this.doc, roomId);

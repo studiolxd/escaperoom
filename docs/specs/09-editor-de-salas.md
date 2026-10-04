@@ -119,6 +119,8 @@ Detalles de UX:
 
 - **IDs legibles por humanos:** al colocar el arca, el editor propone `id: "arca-trono"`
   (editable). Los textos de pistas referencian estos IDs — es lo que hace mantenible una sala grande.
+- **Borrado protegido:** no se puede borrar un objeto referenciado por reglas, puzles u otros objetos;
+  hay que quitar antes las referencias (error `REFERENCED_ID`, en 2D y en 3D).
 - **Panel de propiedades contextual:** click en objeto → inspector a la derecha (posición,
   sprite, estado inicial, reglas que lo tocan).
 - **Validador automático** que corre en cada cambio (ver §5).

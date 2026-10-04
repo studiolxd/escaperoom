@@ -388,9 +388,22 @@ export function moveObject(doc: Y.Doc, id: string, position: Cell, roomId?: stri
   return moved;
 }
 
+/**
+ * Borra un objeto. Si algo lo referencia (reglas, puzles u otros objetos)
+ * lanza `REFERENCED_ID` y no borra nada: hay que quitar antes las referencias.
+ */
 export function removeObject(doc: Y.Doc, id: string): void {
   doc.transact(() => {
     objectRecord(doc, id);
+    const refs = findIdReferences(doc, id);
+    if (refs.length > 0) {
+      const shown = refs.slice(0, 3).join(", ");
+      const more = refs.length > 3 ? ` y ${refs.length - 3} más` : "";
+      throw new RoomDocError(
+        "REFERENCED_ID",
+        `"${id}" se usa en ${shown}${more}; quita antes esas referencias`,
+      );
+    }
     collection(doc, "objects").delete(id);
   });
 }
