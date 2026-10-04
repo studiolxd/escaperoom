@@ -12,6 +12,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { CATALOG_PATH, roomPath } from "@/lib/catalog-seo";
 import { roomGamePlayPath } from "@/lib/game-net";
+import { cn } from "cn";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BuyRoomButton } from "./buy-room-button";
@@ -263,6 +264,13 @@ export function RoomDetailView({
 
         <div className="force-light relative z-10 flex flex-col gap-2 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 text-white">
           <div className="flex flex-wrap gap-2 text-xs">
+            <RoomDimensionBadge
+              dimension={room.dimension}
+              className={cn(
+                "h-auto rounded-full px-2 py-1 text-xs font-normal",
+                room.dimension === "3d" ? undefined : "bg-white text-black",
+              )}
+            />
             <span className="rounded-full bg-white px-2 py-1 text-black">
               {t("version", { semver: room.latestVersion.semver })}
             </span>
@@ -276,12 +284,9 @@ export function RoomDetailView({
               </span>
             ) : null}
           </div>
-          <div className="flex items-start justify-between gap-2">
-            <h1 className="text-2xl font-semibold sm:text-3xl" lang={room.defaultLanguage}>
-              {room.title}
-            </h1>
-            <RoomDimensionBadge dimension={room.dimension} />
-          </div>
+          <h1 className="text-2xl font-semibold sm:text-3xl" lang={room.defaultLanguage}>
+            {room.title}
+          </h1>
           <RatingSummary ratingAvg={room.ratingAvg} ratingCount={room.ratingCount} />
           <RoomPlayCta
             room={room}
