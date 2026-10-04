@@ -10,8 +10,16 @@ import {
   type ObjectStateMap,
 } from "../world";
 import { BoxFactory, instantiateModel, resolveVisual, type AssetContext } from "./assets";
+import type { Quality3D } from "./quality";
 
 export const MAX_TORCH_LIGHTS = 8;
+/** Antorchas simultáneas en calidad baja. */
+export const LOW_TORCH_LIGHTS = 4;
+export const SHADOW_MAP_SIZE = 2048;
+/** Dirección (hacia el sol) de la luz direccional. */
+const SUN_DIRECTION = new THREE.Vector3(-0.7, 0.9, 0.5).normalize();
+/** Altura (m) que se da a la caja de la habitación para encuadrar las sombras. */
+const SHADOW_BOX_HEIGHT = 4;
 /** Movimiento (m) del avatar a partir del cual se recalculan las antorchas más cercanas. */
 export const TORCH_RECALC_DISTANCE = 1;
 const TORCH_COLOR = 0xffb060;
@@ -92,6 +100,7 @@ class ModelSlot {
     const visual = resolveVisual(modelId, this.world.assets);
     this.clear();
     this.content = this.world.boxes.create(visual);
+    this.world.markShadows(this.content);
     this.holder.add(this.content);
     if (!visual.url) return;
     instantiateModel(visual.url).then(
@@ -99,6 +108,7 @@ class ModelSlot {
         if (this.world.disposed || token !== this.token) return;
         this.clear();
         this.content = loaded.scene;
+        this.world.markShadows(loaded.scene);
         this.holder.add(loaded.scene);
         this.world.reapplyOutline(this);
         const clip = animation
@@ -164,7 +174,11 @@ export class RoomWorld {
   });
   private outlined = new Set<string>();
   private lastTorchFocus: { x: number; y: number } | undefined;
+  private lastStates: ObjectStateMap | undefined;
   private readonly hemisphere: THREE.HemisphereLight;
+  private readonly sun: THREE.DirectionalLight;
+  private shadows: boolean;
+  private torchLimit: number;
 
   constructor(
     private readonly model: RuntimeModel,
@@ -172,7 +186,10 @@ export class RoomWorld {
     readonly assets: AssetContext,
     navInput: NavInput,
     states: ObjectStateMap,
+    quality: Quality3D = "high",
   ) {
+    this.shadows = quality === "high";
+    this.torchLimit = quality === "high" ? MAX_TORCH_LIGHTS : LOW_TORCH_LIGHTS;
     for (const piece of room.pieces) {
       const slot = new ModelSlot(this, piece);
       slot.set(piece.model);
@@ -194,7 +211,8 @@ export class RoomWorld {
     this.group.add(this.collision);
 
     const sun = new THREE.DirectionalLight(0xffffff, 3);
-    sun.position.set(-0.7, 0.9, 0.5);
+    this.sun = sun;
+    this.frameSunShadow(room);
     this.hemisphere = new THREE.HemisphereLight(0xdfe8ff, 0x3a3530, 0.6);
     const ambient = room.lighting.find((l) => l.type === "ambient");
     if (ambient && ambient.type === "ambient") {
@@ -209,7 +227,54 @@ export class RoomWorld {
       this.torchPool.push(light);
       this.group.add(light);
     }
+    this.applyTorchLimit();
     this.updateTorches(undefined, states);
+  }
+
+  /** La cámara de sombras cubre la caja de la habitación; la luz mantiene su dirección. */
+  private frameSunShadow(room: RuntimeSubRoom): void {
+    const center = new THREE.Vector3(room.width / 2, SHADOW_BOX_HEIGHT / 2, room.height / 2);
+    const radius = Math.hypot(room.width, room.height, SHADOW_BOX_HEIGHT) / 2 + 0.5;
+    this.sun.target.position.copy(center);
+    this.sun.position.copy(center).addScaledVector(SUN_DIRECTION, radius + 2);
+    const shadow = this.sun.shadow;
+    shadow.mapSize.set(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
+    shadow.camera.left = -radius;
+    shadow.camera.right = radius;
+    shadow.camera.top = radius;
+    shadow.camera.bottom = -radius;
+    shadow.camera.near = 0.1;
+    shadow.camera.far = 2 * radius + 4;
+    shadow.camera.updateProjectionMatrix();
+    shadow.bias = -0.0005;
+    shadow.normalBias = 0.02;
+    this.sun.castShadow = this.shadows;
+  }
+
+  /** Piezas y objetos reciben y proyectan sombra (con calidad alta). */
+  markShadows(root: THREE.Object3D): void {
+    root.traverse((node) => {
+      const mesh = node as THREE.Mesh;
+      if (!mesh.isMesh || mesh.userData.outline) return;
+      mesh.castShadow = this.shadows;
+      mesh.receiveShadow = this.shadows;
+    });
+  }
+
+  /** Cambia la calidad en caliente: sombras y número de antorchas simultáneas. */
+  setQuality(quality: Quality3D): void {
+    this.shadows = quality === "high";
+    this.torchLimit = quality === "high" ? MAX_TORCH_LIGHTS : LOW_TORCH_LIGHTS;
+    this.sun.castShadow = this.shadows;
+    for (const slot of this.slots) this.markShadows(slot.holder);
+    this.applyTorchLimit();
+    this.updateTorches(undefined, this.lastStates ?? {}, true);
+  }
+
+  private applyTorchLimit(): void {
+    this.torchPool.forEach((light, i) => {
+      light.visible = i < this.torchLimit;
+    });
   }
 
   /** Cambia el estado de un objeto: sustituye el modelo y, si hay clip de transición, lo reproduce. */
@@ -245,6 +310,7 @@ export class RoomWorld {
     force = true,
   ): boolean {
     if (this.torchPool.length === 0) return false;
+    this.lastStates = states;
     if (
       !force &&
       focus &&
@@ -267,7 +333,7 @@ export class RoomWorld {
           Math.hypot(b.t.x - center.x, b.t.y - center.y),
       );
     this.torchPool.forEach((light, i) => {
-      const torch = lit[i];
+      const torch = i < this.torchLimit ? lit[i] : undefined;
       if (!torch) {
         light.intensity = 0;
         return;

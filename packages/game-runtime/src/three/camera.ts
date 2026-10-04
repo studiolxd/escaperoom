@@ -94,6 +94,90 @@ export function cameraRight(forward: { x: number; y: number }): { x: number; y: 
   return { x: -forward.y, y: forward.x };
 }
 
+/** Velocidad (m/s) de la cámara libre del observador. */
+export const FREE_CAMERA_SPEED = 5;
+/** Margen (m) de la cámara libre alrededor de la caja de la habitación. */
+export const FREE_CAMERA_MARGIN = 5;
+export const FREE_CAMERA_MIN_H = 0.5;
+export const FREE_CAMERA_MAX_H = 15;
+export const FREE_CAMERA_MAX_PITCH = 80;
+
+/** Cámara libre: posición en el plano lógico (`x`, `y`) y altura `h`; ángulos en grados. */
+export interface FreeCameraState {
+  x: number;
+  y: number;
+  h: number;
+  /** Mismo convenio que `OrbitState.azimuth`: avanza hacia `cameraForward(azimuth)`. */
+  azimuth: number;
+  /** Positivo = mira hacia abajo, [−80, 80]. */
+  pitch: number;
+}
+
+/**
+ * Mueve la cámara libre `dt` segundos. `forward`/`right` van en el plano respecto a hacia
+ * donde mira (módulo ≤ 1, se recorta si lo supera); `up` sube (+) o baja (−) la cámara.
+ * Queda dentro de la caja de la habitación ampliada `FREE_CAMERA_MARGIN` y de 0,5 a 15 m.
+ */
+export function moveFreeCamera(
+  state: FreeCameraState,
+  input: { forward: number; right: number; up: number },
+  dt: number,
+  bounds: { cols: number; rows: number },
+): FreeCameraState {
+  const fwd = cameraForward(state.azimuth);
+  const right = cameraRight(fwd);
+  let f = input.forward;
+  let r = input.right;
+  const len = Math.hypot(f, r);
+  if (len > 1) {
+    f /= len;
+    r /= len;
+  }
+  const reach = FREE_CAMERA_SPEED * dt;
+  return {
+    ...state,
+    x: clamp(state.x + (fwd.x * f + right.x * r) * reach, -FREE_CAMERA_MARGIN, bounds.cols + FREE_CAMERA_MARGIN),
+    y: clamp(state.y + (fwd.y * f + right.y * r) * reach, -FREE_CAMERA_MARGIN, bounds.rows + FREE_CAMERA_MARGIN),
+    h: clamp(state.h + input.up * reach, FREE_CAMERA_MIN_H, FREE_CAMERA_MAX_H),
+  };
+}
+
+/** Aplica un arrastre de (dx, dy) píxeles a la cámara libre (mismo factor y sentido que la órbita). */
+export function rotateFreeCamera(state: FreeCameraState, dxPx: number, dyPx: number): FreeCameraState {
+  return {
+    ...state,
+    azimuth: normalizeDeg(state.azimuth - dxPx * CAMERA.rotateSpeedDegPerPx),
+    pitch: clamp(
+      state.pitch + dyPx * CAMERA.rotateSpeedDegPerPx,
+      -FREE_CAMERA_MAX_PITCH,
+      FREE_CAMERA_MAX_PITCH,
+    ),
+  };
+}
+
+/** Dirección de la mirada de la cámara libre (coordenadas Three, unitaria). */
+export function freeCameraDirection(state: FreeCameraState): Vec3 {
+  const fwd = cameraForward(state.azimuth);
+  const pitch = (state.pitch * Math.PI) / 180;
+  return { x: fwd.x * Math.cos(pitch), y: -Math.sin(pitch), z: fwd.y * Math.cos(pitch) };
+}
+
+/** Cámara libre que ve lo mismo que una cámara en `position` mirando hacia `direction` (coordenadas Three). */
+export function freeCameraFromLook(position: Vec3, direction: Vec3): FreeCameraState {
+  const horizontal = Math.hypot(direction.x, direction.z);
+  return {
+    x: position.x,
+    y: position.z,
+    h: position.y,
+    azimuth: horizontal > 1e-9 ? normalizeDeg((Math.atan2(-direction.x, -direction.z) * 180) / Math.PI) : 0,
+    pitch: clamp(
+      (Math.atan2(-direction.y, horizontal) * 180) / Math.PI,
+      -FREE_CAMERA_MAX_PITCH,
+      FREE_CAMERA_MAX_PITCH,
+    ),
+  };
+}
+
 /**
  * Cámara en órbita aplicada a una `THREE.PerspectiveCamera`: seguimiento
  * suavizado del objetivo y acortamiento por colisión contra la malla de la sala.
@@ -109,6 +193,11 @@ export class OrbitRig {
   /** Coloca la cámara detrás de un avatar que mira hacia `yawDeg`, sin suavizado. */
   reset(yawDeg: number): void {
     this.state = initialOrbit(yawDeg);
+    this.snapped = false;
+  }
+
+  /** El objetivo salta al avatar en el próximo `update` en vez de suavizarse. */
+  snap(): void {
     this.snapped = false;
   }
 

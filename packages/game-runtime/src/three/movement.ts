@@ -75,18 +75,22 @@ export function followPath(
   return { pose: { x, y, h, yaw }, rest: path.slice(index), moving };
 }
 
-/** Paso de teclado: `dir` es un vector unitario en el plano lógico. Usa `nav.slide`. */
+/**
+ * Paso de teclado o joystick: `dir` es un vector en el plano lógico (solo importa su dirección).
+ * `speed` escala la velocidad de paseo (1 = `WALK_SPEED`). Usa `nav.slide`.
+ */
 export function stepToward(
   pose: Pose,
   dir: { x: number; y: number },
   dt: number,
   nav: RoomNav,
+  speed = 1,
 ): { pose: Pose; moving: boolean } {
   const len = Math.hypot(dir.x, dir.y);
   if (len < 1e-9 || dt <= 0) return { pose, moving: false };
   const ux = dir.x / len;
   const uy = dir.y / len;
-  const reach = WALK_SPEED * dt;
+  const reach = WALK_SPEED * speed * dt;
   const end = nav.slide(pose, { x: pose.x + ux * reach, y: pose.y + uy * reach, h: pose.h });
   const moved = Math.hypot(end.x - pose.x, end.y - pose.y);
   const yaw = turnToward(pose.yaw, yawOf(ux, uy), TURN_SPEED_DEG * dt);

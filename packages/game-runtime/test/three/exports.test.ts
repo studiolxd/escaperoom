@@ -17,7 +17,7 @@ describe("aislamiento de Three.js", () => {
   });
 
   it("los módulos puros no importan three ni tocan el DOM", () => {
-    for (const file of ["movement", "proximity"]) {
+    for (const file of ["movement", "proximity", "quality"]) {
       const src = read(`../../src/three/${file}.ts`);
       expect(src).not.toMatch(/from\s+["']three/);
       expect(src).not.toMatch(/\bdocument\b|\bwindow\b/);
