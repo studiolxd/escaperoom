@@ -235,6 +235,8 @@ describe("RoomEditorPalette3D", () => {
     render(
       withIntl(
         createElement(RoomEditorPalette3D, {
+          doc: setup().doc,
+          roomId: "sala",
           catalog,
           customModels: undefined,
           placing: undefined,
@@ -264,7 +266,7 @@ describe("RoomEditorPalette3D", () => {
   it("«Mis modelos» muestra los de la sala o el aviso de vacío; aria-pressed marca el activo", async () => {
     const user = userEvent.setup();
     const onSelectModel = vi.fn();
-    const props = { catalog, placing: undefined, onSelectModel };
+    const props = { doc: setup().doc, roomId: "sala", catalog, placing: undefined, onSelectModel };
     const { rerender } = render(
       withIntl(createElement(RoomEditorPalette3D, { ...props, customModels: {} })),
     );

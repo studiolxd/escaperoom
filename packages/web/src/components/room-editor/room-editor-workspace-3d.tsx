@@ -141,6 +141,8 @@ export function RoomEditorWorkspace3D({
 
       <div className="flex min-h-0 flex-1">
         <RoomEditorPalette3D
+          doc={doc}
+          roomId={activeRoomId}
           catalog={catalog}
           customModels={pkg.world3d?.models}
           placing={tools.placing}

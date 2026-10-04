@@ -2,14 +2,18 @@
 
 import { useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import type { Tool3DState } from "@escaperoom/editor";
+import { removeCustomModel3D, setCustomModel3D, type Tool3DState } from "@escaperoom/editor";
 import type { Model3DEntry, Models3DCatalog } from "@escaperoom/shared/packs";
 import type { World3D } from "@escaperoom/shared/schemas";
+import { Trash2 } from "lucide-react";
+import type * as Y from "yjs";
 import { cn } from "cn";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { QUIET_BUTTON } from "./editor-shared";
+import { ModelUploadButton } from "./model-upload-button";
 
 /** Colores de la categoría (los mismos que las cajas de sustitución del runtime). */
 export const CATEGORY_COLORS = {
@@ -29,6 +33,9 @@ export const PALETTE_3D_TABS = ["kit", "objects", "mine"] as const;
 export type Palette3DTab = (typeof PALETTE_3D_TABS)[number];
 
 export interface RoomEditorPalette3DProps {
+  /** Documento y sala: la pestaña «Mis modelos» sube, ajusta y borra modelos propios en él. */
+  doc: Y.Doc;
+  roomId: string;
   catalog: Models3DCatalog | undefined;
   customModels: World3D["models"] | undefined;
   placing: Tool3DState["placing"];
@@ -63,6 +70,8 @@ function entryItem(id: string, entry: Model3DEntry, locale: string): Item {
  * modelos propios de la sala. Misma anchura y estilo que la paleta 2D.
  */
 export function RoomEditorPalette3D({
+  doc,
+  roomId,
   catalog,
   customModels,
   placing,
@@ -72,6 +81,7 @@ export function RoomEditorPalette3D({
   const locale = useLocale();
   const [tab, setTab] = useState<Palette3DTab>("kit");
   const [asDecoration, setAsDecoration] = useState(false);
+  const [mineError, setMineError] = useState<string | null>(null);
 
   const entries = Object.entries(catalog?.models ?? {});
   const byCategory = (categories: readonly string[]) =>
@@ -89,6 +99,38 @@ export function RoomEditorPalette3D({
     snap: false,
   }));
 
+  const catalogIds = new Set(Object.keys(catalog?.models ?? {}));
+  const takenIds = new Set([...catalogIds, ...Object.keys(customModels ?? {})]);
+
+  const setBlocks = (id: string, blocks: boolean) => {
+    const model = customModels?.[id];
+    if (!model) return;
+    const { w, d, hgt } = model.size;
+    try {
+      setCustomModel3D(
+        doc,
+        id,
+        {
+          ...model,
+          colliders: blocks ? [{ type: "box", cx: 0, cy: 0, ch: hgt / 2, sx: w, sy: d, sh: hgt }] : [],
+        },
+        { catalogIds },
+      );
+      setMineError(null);
+    } catch (err) {
+      setMineError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const removeModel = (id: string) => {
+    try {
+      removeCustomModel3D(doc, id);
+      setMineError(null);
+    } catch (err) {
+      setMineError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
   const objectIds = new Set(objects.map((o) => o.item.id));
 
   const toggleDecoration = (checked: boolean) => {
@@ -101,7 +143,7 @@ export function RoomEditorPalette3D({
 
   const pick = (item: Item, as: "piece" | "object", snap: boolean) => onSelectModel(item.id, as, snap);
 
-  const renderItem = (item: Item, as: "piece" | "object", snap: boolean) => {
+  const renderItem = (item: Item, as: "piece" | "object", snap: boolean, own = false) => {
     const active = placing?.model === item.id;
     return (
       <li key={item.id}>
@@ -128,14 +170,43 @@ export function RoomEditorPalette3D({
             </span>
           </span>
         </Button>
+        {own && (
+          <div className="mt-1 flex items-center justify-between gap-2 px-1.5" data-own-model={item.id}>
+            <Label className="gap-2 text-[11px] font-normal text-white/70">
+              {t("models.blocks")}
+              <Switch
+                checked={(customModels?.[item.id]?.colliders.length ?? 0) > 0}
+                onCheckedChange={(checked) => setBlocks(item.id, checked)}
+                data-blocks={item.id}
+              />
+            </Label>
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              className="text-white/60 hover:text-white"
+              aria-label={t("models.delete")}
+              data-delete-model={item.id}
+              onClick={() => removeModel(item.id)}
+            >
+              <Trash2 aria-hidden className="size-3.5" />
+            </Button>
+          </div>
+        )}
       </li>
     );
   };
 
-  const section = (heading: string, items: Item[], as: "piece" | "object", useSnap: boolean) => (
+  const section = (
+    heading: string,
+    items: Item[],
+    as: "piece" | "object",
+    useSnap: boolean,
+    own = false,
+  ) => (
     <section key={heading} className="mb-3" data-palette-group={heading}>
       <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-white/60">{heading}</h3>
-      <ul className="space-y-1">{items.map((item) => renderItem(item, as, useSnap ? item.snap : false))}</ul>
+      <ul className="space-y-1">{items.map((item) => renderItem(item, as, useSnap ? item.snap : false, own))}</ul>
     </section>
   );
 
@@ -189,12 +260,27 @@ export function RoomEditorPalette3D({
         </>
       )}
 
-      {tab === "mine" &&
-        (mine.length === 0 ? (
-          <p className="text-xs text-white/50">{t("palette3d.mineEmpty")}</p>
-        ) : (
-          section(t("palette3d.mine"), mine, "object", false)
-        ))}
+      {tab === "mine" && (
+        <>
+          <ModelUploadButton
+            doc={doc}
+            roomId={roomId}
+            takenIds={takenIds}
+            catalogIds={catalogIds}
+            customCount={mine.length}
+          />
+          {mineError && (
+            <Alert variant="destructive" className="mb-3" data-mine-error="">
+              <AlertDescription>{mineError}</AlertDescription>
+            </Alert>
+          )}
+          {mine.length === 0 ? (
+            <p className="text-xs text-white/50">{t("palette3d.mineEmpty")}</p>
+          ) : (
+            section(t("palette3d.mine"), mine, "object", false, true)
+          )}
+        </>
+      )}
     </aside>
   );
 }

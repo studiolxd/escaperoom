@@ -526,6 +526,30 @@
       "governedBy": "Objeto que a controla",
       "noObject": "Sempre acesa",
       "removeTorch": "Remover tocha"
+    },
+    "models": {
+      "upload": "Carregar modelo",
+      "uploading": "A carregar…",
+      "validating": "A validar…",
+      "dialogTitle": "Adicionar modelo",
+      "id": "Identificador",
+      "idHint": "Usa-se em regras e ferramentas. Apenas minúsculas, números e hífenes.",
+      "name": "Nome",
+      "add": "Adicionar",
+      "cancel": "Cancelar",
+      "measured": "Medidas",
+      "triangles": "{count} triângulos",
+      "weight": "{mb} MB",
+      "clips": "Animações: {list}",
+      "noClips": "Sem animações",
+      "blocks": "Bloqueia a passagem",
+      "delete": "Apagar modelo",
+      "limit": "Chegaste ao máximo de 40 modelos por sala.",
+      "tooLarge": "O ficheiro excede 15 MB.",
+      "uploadFailed": "Não foi possível carregar o modelo.",
+      "errors": {
+        "UNKNOWN_MODEL": "Esse modelo já não existe."
+      }
     }
   },
   "Inspector": {
@@ -1106,14 +1130,14 @@
   },
   "NewEvent": {
     "heading": "Organizar um evento com esta sala",
-    "titleLabel": "T\u00edtulo do evento",
+    "titleLabel": "Título do evento",
     "playersLabel": "Jogadores previstos",
-    "pricingTitle": "Pre\u00e7o por jogador",
-    "pricingLoading": "A carregar os escal\u00f5es de pre\u00e7o\u2026",
-    "pricingUnavailable": "N\u00e3o foi poss\u00edvel carregar os escal\u00f5es de pre\u00e7o.",
+    "pricingTitle": "Preço por jogador",
+    "pricingLoading": "A carregar os escalões de preço…",
+    "pricingUnavailable": "Não foi possível carregar os escalões de preço.",
     "pricingRangeOpen": "{min}+ jogadores:",
-    "pricingRangeCapped": "{min}\u2013{max} jogadores:",
-    "submitError": "N\u00e3o foi poss\u00edvel criar o evento. Tenta novamente.",
+    "pricingRangeCapped": "{min}–{max} jogadores:",
+    "submitError": "Não foi possível criar o evento. Tenta novamente.",
     "submit": "Criar evento",
     "errors": {
       "titleRequired": "O título é obrigatório",
@@ -1301,6 +1325,12 @@
       "ALREADY_REVIEWED": "Outra pessoa já o resolveu.",
       "VALIDATION_ERROR": "A decisão não é válida para este conteúdo.",
       "UNKNOWN": "Algo correu mal. Tente novamente."
+    },
+    "models": {
+      "open": "Ver modelos 3D",
+      "title": "Modelos 3D da sala",
+      "empty": "Esta sala não tem modelos próprios.",
+      "loadError": "Não foi possível carregar os modelos."
     }
   },
   "Legal": {
@@ -1438,5 +1468,11 @@
       "dimension3dDesc": "Os jogadores percorrem a sala com a câmara atrás da sua personagem.",
       "dimensionFixed": "O formato não pode ser alterado depois de a sala ser criada."
     }
+  },
+  "ModelViewer": {
+    "originalMaterial": "Material original",
+    "clip": "Animação",
+    "noClip": "Nenhuma",
+    "error": "Não foi possível carregar o modelo."
   }
 }

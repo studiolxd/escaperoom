@@ -526,6 +526,30 @@
       "governedBy": "Objet qui la contrôle",
       "noObject": "Toujours allumée",
       "removeTorch": "Retirer la torche"
+    },
+    "models": {
+      "upload": "Importer un modèle",
+      "uploading": "Envoi en cours…",
+      "validating": "Validation…",
+      "dialogTitle": "Ajouter un modèle",
+      "id": "Identifiant",
+      "idHint": "Utilisé dans les règles et les outils. Uniquement des minuscules, des chiffres et des tirets.",
+      "name": "Nom",
+      "add": "Ajouter",
+      "cancel": "Annuler",
+      "measured": "Dimensions",
+      "triangles": "{count} triangles",
+      "weight": "{mb} Mo",
+      "clips": "Animations : {list}",
+      "noClips": "Aucune animation",
+      "blocks": "Bloque le passage",
+      "delete": "Supprimer le modèle",
+      "limit": "Vous avez atteint le maximum de 40 modèles par salle.",
+      "tooLarge": "Le fichier dépasse 15 Mo.",
+      "uploadFailed": "Impossible d'envoyer le modèle.",
+      "errors": {
+        "UNKNOWN_MODEL": "Ce modèle n'existe plus."
+      }
     }
   },
   "Inspector": {
@@ -1105,16 +1129,16 @@
     }
   },
   "NewEvent": {
-    "heading": "Organiser un \u00e9v\u00e9nement avec cette salle",
-    "titleLabel": "Titre de l'\u00e9v\u00e9nement",
-    "playersLabel": "Joueurs pr\u00e9vus",
+    "heading": "Organiser un événement avec cette salle",
+    "titleLabel": "Titre de l'événement",
+    "playersLabel": "Joueurs prévus",
     "pricingTitle": "Prix par joueur",
-    "pricingLoading": "Chargement des tarifs\u2026",
+    "pricingLoading": "Chargement des tarifs…",
     "pricingUnavailable": "Impossible de charger les tarifs.",
-    "pricingRangeOpen": "{min}+ joueurs\u00a0:",
-    "pricingRangeCapped": "{min}\u2013{max} joueurs\u00a0:",
-    "submitError": "Impossible de cr\u00e9er l'\u00e9v\u00e9nement. R\u00e9essayez.",
-    "submit": "Cr\u00e9er l'\u00e9v\u00e9nement",
+    "pricingRangeOpen": "{min}+ joueurs :",
+    "pricingRangeCapped": "{min}–{max} joueurs :",
+    "submitError": "Impossible de créer l'événement. Réessayez.",
+    "submit": "Créer l'événement",
     "errors": {
       "titleRequired": "Le titre est obligatoire",
       "titleTooLong": "Le titre est trop long",
@@ -1301,6 +1325,12 @@
       "ALREADY_REVIEWED": "Quelqu'un l'a déjà traité.",
       "VALIDATION_ERROR": "Cette décision n'est pas valable pour ce contenu.",
       "UNKNOWN": "Une erreur s'est produite. Réessayez."
+    },
+    "models": {
+      "open": "Voir les modèles 3D",
+      "title": "Modèles 3D de la salle",
+      "empty": "Cette salle n'a pas de modèles personnalisés.",
+      "loadError": "Impossible de charger les modèles."
     }
   },
   "Legal": {
@@ -1438,5 +1468,11 @@
       "dimension3dDesc": "Les joueurs parcourent la salle avec la caméra derrière leur personnage.",
       "dimensionFixed": "Le format ne peut pas être modifié après la création de la salle."
     }
+  },
+  "ModelViewer": {
+    "originalMaterial": "Matériau d'origine",
+    "clip": "Animation",
+    "noClip": "Aucune",
+    "error": "Impossible de charger le modèle."
   }
 }
