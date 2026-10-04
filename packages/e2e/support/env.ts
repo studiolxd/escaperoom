@@ -62,6 +62,8 @@ export const SEED = {
   reyAldricRoomId: "00000000-0000-0000-0000-000000000301",
   /** «Sala de pruebas 3D» (`docs/reference/roompackage-demo-3d.v1.json`), gratis y solo de desarrollo/CI. */
   demo3dRoomId: "00000000-0000-0000-0000-000000003001",
+  /** «La Maldición del Rey Aldric (3D)» (`docs/reference/roompackage-rey-aldric-3d.v1.json`), gratis y publicada en todos los entornos. */
+  reyAldric3dRoomId: "00000000-0000-0000-0000-000000003002",
 } as const;
 
 /**

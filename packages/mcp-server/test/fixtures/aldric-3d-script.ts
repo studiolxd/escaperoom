@@ -41,7 +41,12 @@ export function aldric3dScript(pkg: RoomPackage): {
     });
     push("set_map", "tileset", { tileset: pkg.map.tileset });
     for (const room of pkg.map.rooms) {
-      const pieces = (pkg.world3d?.rooms[room.id]?.pieces ?? []).map(({ id: _id, ...piece }) => piece);
+      // El MCP genera los ids de las piezas: se envían sin `id`.
+      const pieces = (pkg.world3d?.rooms[room.id]?.pieces ?? []).map((piece) => {
+        const { id, ...rest } = piece;
+        void id;
+        return rest;
+      });
       for (let from = 0; from < pieces.length; from += PIECES_PER_CALL) {
         push("place_pieces", `piezas ${room.id} ${from}-${from + PIECES_PER_CALL}`, {
           subroomId: room.id,
@@ -61,7 +66,8 @@ export function aldric3dScript(pkg: RoomPackage): {
       .filter((step) => !["define_subrooms", "set_map", "paint_tiles"].includes(step.tool))
       .map((step) => {
         if (step.tool !== "decorate_subroom") return step;
-        const { decorations: _decorations, ...args } = step.args;
+        const args = { ...step.args };
+        delete args.decorations;
         return { ...step, args };
       });
     return [...structure, ...content];
