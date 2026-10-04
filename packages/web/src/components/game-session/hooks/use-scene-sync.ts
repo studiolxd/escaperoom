@@ -75,12 +75,14 @@ export function useSceneSync(model: RuntimeModel, snapshot: GameSnapshot) {
     handleRef.current?.setPlayers(
       snapshot.players
         .filter((player) => !player.isSelf)
-        .map(({ id, name, roomId: playerRoom, x, y, tint, characterId, connected }) => ({
+        .map(({ id, name, roomId: playerRoom, x, y, h, yaw, tint, characterId, connected }) => ({
           id,
           name,
           roomId: playerRoom,
           x,
           y,
+          h,
+          yaw,
           tint,
           characterId,
           connected,

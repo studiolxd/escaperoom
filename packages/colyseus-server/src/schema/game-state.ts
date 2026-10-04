@@ -15,6 +15,9 @@ export const GamePlayerState = schema(
     name: t.string(),
     x: t.number(),
     y: t.number(),
+    /** Modo 3D: altura y giro (grados) del jugador; 0 en salas 2D. */
+    h: t.number(),
+    yaw: t.number(),
     /** Habitación (subroom) actual. */
     roomId: t.string(),
     tint: t.string(),

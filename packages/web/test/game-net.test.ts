@@ -6,6 +6,7 @@ import {
   EVENT_ROOM_NAME,
   GAME_ERRORS,
   GAME_MAX_STEP,
+  GAME_MAX_STEP_3D,
   GAME_MESSAGES,
   GAME_ROOM_NAME,
   MEDIA_TOKEN_MESSAGE,
@@ -20,6 +21,7 @@ import {
   createNetworkGameClient,
   createReadOnlyGameClient,
   EVENT_ROOM,
+  GAME_MAX_STEP_3D_M,
   GAME_MAX_STEP_CELLS,
   GAME_PROTOCOL,
   GAME_PROTOCOL_ERRORS,
@@ -168,6 +170,7 @@ describe("protocolo espejo del runtime = constantes del servidor", () => {
       token: MEDIA_TOKEN_MESSAGE,
     });
     expect(GAME_MAX_STEP_CELLS).toBe(GAME_MAX_STEP);
+    expect(GAME_MAX_STEP_3D_M).toBe(GAME_MAX_STEP_3D);
     expect(MOVE_OUT_OF_BOUNDS).toBe(OUT_OF_BOUNDS);
   });
 

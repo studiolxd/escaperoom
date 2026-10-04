@@ -1,0 +1,26 @@
+{
+  "name": "@escaperoom/nav3d",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Navmesh de las salas 3D (modo 3D, 7.4): construye la malla de navegación desde el RoomPackage y el catálogo de modelos y responde a punto más cercano, ruta y deslizamiento. Igual en Node y en el navegador.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@escaperoom/config": "workspace:*",
+    "@types/node": "^26.6.2",
+    "eslint": "^10.11.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.1"
+  },
+  "dependencies": {
+    "@escaperoom/shared": "workspace:*",
+    "recast-navigation": "0.43.1"
+  }
+}

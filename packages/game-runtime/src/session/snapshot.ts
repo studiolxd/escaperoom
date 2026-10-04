@@ -24,6 +24,9 @@ export interface GameRoomStateLike {
     name: string;
     x: number;
     y: number;
+    /** Modo 3D: altura y giro; las rooms anteriores no los traían. */
+    h?: number;
+    yaw?: number;
     roomId: string;
     tint: string;
     characterId: string;
@@ -95,6 +98,8 @@ function buildPlayers(
       name: player.name,
       x: player.x,
       y: player.y,
+      h: player.h ?? 0,
+      yaw: player.yaw ?? 0,
       roomId: player.roomId,
       tint: player.tint,
       characterId: player.characterId,

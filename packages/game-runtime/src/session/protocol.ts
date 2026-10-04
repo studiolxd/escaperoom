@@ -93,6 +93,9 @@ export const MEDIA_PROTOCOL = {
  */
 export const GAME_MAX_STEP_CELLS = 3;
 
+/** Salto máximo por mensaje `move` en una sala 3D, en metros (`GAME_MAX_STEP_3D`). */
+export const GAME_MAX_STEP_3D_M = 1.5;
+
 /**
  * Cadencia máxima de `move` (specs/11 §9: el servidor limita a 10 msg/s, ver
  * `message-rate-limit.ts`). El overlay de Phaser (arrastre del avatar) y
