@@ -470,7 +470,10 @@ implementado.
   Los retoques manuales futuros se harán cambiando el conversor o, cuando el usuario lo revise,
   sustituyendo ese test.
 - **Siembra:** sala `…3002` publicada gratis (`priceCents: 0`) en todos los entornos, con la
-  portada de la sala principal. La «Sala de pruebas 3D» (`…3001`) sigue siendo solo de desarrollo.
+  portada de la sala principal y la misma introducción (texto y narración) que la 2D, añadida
+  solo en el seed (`meta.intro`; el fixture y el conversor no la llevan) y también en el `update`
+  del upsert, para que un `db:seed` sobre una base ya sembrada la ponga. La «Sala de pruebas 3D» (`…3001`) sigue siendo solo de
+  desarrollo.
 - **Pruebas:** validación, resolubilidad de 1 a 8 jugadores con la misma ruta crítica que el 2D y
   alcance sobre la navmesh en `shared`/`nav3d`; E2E de humo (primer puzle de la ruta, en modo
   sustitución, como CI) y paridad MCP (el guion construye el mundo 3D solo con herramientas).
