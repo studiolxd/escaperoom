@@ -28,6 +28,7 @@
     "./access-key-cards-queue": "./src/services/access-key-cards-queue.ts",
     "./analytics": "./src/analytics/index.ts",
     "./audio": "./src/audio/index.ts",
+    "./models3d": "./src/models3d/index.ts",
     "./db": "./src/db/index.ts"
   },
   "scripts": {

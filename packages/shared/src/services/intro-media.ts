@@ -2,6 +2,9 @@ import { isLanguageCode } from "../schemas/localized-text";
 import { MAX_INTRO_SUBTITLES_BYTES, MAX_INTRO_VIDEO_BYTES } from "../schemas/limits";
 import type { ReadableIssue } from "../schemas/errors";
 import type { RoomIntro } from "../schemas/roompackage";
+import type { Collider3D, Model3DSize } from "../schemas/world3d";
+import { inspectGlb, MODEL3D_LIMITS } from "../models3d/glb-inspect";
+import type { GlbIssueCode } from "../models3d/glb-inspect";
 import type { Actor } from "./actor";
 import { isUuid, requireUser } from "./common";
 
@@ -28,7 +31,7 @@ import { isUuid, requireUser } from "./common";
  * las dos a una clave del bucket, con la autorización que toque.
  */
 
-export type IntroMediaKind = "video" | "subtitles";
+export type IntroMediaKind = "video" | "subtitles" | "model";
 export type IntroMediaStatus = "pending" | "ready";
 
 /** Fila persistida de `introMediaAsset` (migración 20260926160000_intro_media_asset). */
@@ -121,6 +124,9 @@ export type IntroVideoType = keyof typeof INTRO_VIDEO_TYPES;
 
 export const INTRO_SUBTITLES_CONTENT_TYPE = "text/vtt";
 
+/** Modelos 3D de creadores (encargo 7.8a): GLB, mismo ciclo que el vídeo. */
+export const MODEL3D_CONTENT_TYPE = "model/gltf-binary";
+
 /** Vida de la URL firmada del PUT de subida. */
 export const INTRO_VIDEO_UPLOAD_TTL_SECONDS = 15 * 60;
 
@@ -130,7 +136,7 @@ const SNIFF_BYTES = 16;
 const MEDIA_REF_PREFIX = "media:";
 const PUBLISHED_REF_PREFIX = "r2://";
 /** Clave publicada de un medio de la introducción (la escribe `room-publish`). */
-const PUBLISHED_KEY_RE = /^assets\/rooms\/[0-9a-f-]{36}\/[0-9a-f]{64}\.(mp4|webm|vtt)$/;
+const PUBLISHED_KEY_RE = /^assets\/rooms\/[0-9a-f-]{36}\/[0-9a-f]{64}\.(mp4|webm|vtt|glb)$/;
 
 /** Referencia de borrador de un asset (`media:<uuid>`). */
 export const introMediaRef = (id: string): string => `${MEDIA_REF_PREFIX}${id}`;
@@ -237,6 +243,16 @@ export type IntroMediaAccess = Actor | { roomId: string } | null;
 
 export type VideoUploadInput = { filename: string; contentType: string; byteSize: number };
 
+export type ModelUploadResult = {
+  /** Referencia de borrador (`media:<uuid>`). */
+  ref: string;
+  size: Model3DSize;
+  colliders: Collider3D[];
+  clips: string[];
+  triangles: number;
+  byteSize: number;
+};
+
 export type VideoUploadTicket = {
   assetId: string;
   /** PUT directo al bucket (caduca en `INTRO_VIDEO_UPLOAD_TTL_SECONDS`). */
@@ -244,6 +260,14 @@ export type VideoUploadTicket = {
   /** Cabeceras que el cliente debe mandar tal cual en el PUT. */
   headers: Record<string, string>;
 };
+
+function modelIssueError(code: GlbIssueCode, message: string): IntroMediaError {
+  if (code === "too_large") return new IntroMediaError("PAYLOAD_TOO_LARGE", message);
+  if (code === "not_glb" || code === "bad_version" || code === "truncated" || code === "bad_json") {
+    return new IntroMediaError("UNSUPPORTED_MEDIA_TYPE", message);
+  }
+  return new IntroMediaError("VALIDATION_ERROR", message);
+}
 
 export function createIntroMediaService(deps: {
   store: IntroMediaStore;
@@ -292,6 +316,45 @@ export function createIntroMediaService(deps: {
       );
     }
     return type;
+  }
+
+  /** Tipo declarado de un GLB: `model/gltf-binary`, o vacío/octet-stream con nombre `.glb`. */
+  function requireModelType(contentType: string, filename: string): void {
+    const declared = normalizeType(contentType);
+    const ok =
+      declared === MODEL3D_CONTENT_TYPE ||
+      ((declared === "" || declared === "application/octet-stream") && /\.glb$/i.test(filename));
+    if (!ok) {
+      throw new IntroMediaError("UNSUPPORTED_MEDIA_TYPE", "Solo se aceptan modelos GLB (.glb)");
+    }
+  }
+
+  function checkModelSize(byteSize: number): void {
+    if (!Number.isInteger(byteSize) || byteSize <= 0) {
+      throw new IntroMediaError("VALIDATION_ERROR", "El fichero está vacío", {
+        issues: [{ path: "byteSize", message: "Debe ser un entero positivo" }],
+      });
+    }
+    if (byteSize > MODEL3D_LIMITS.maxBytes) {
+      throw new IntroMediaError(
+        "PAYLOAD_TOO_LARGE",
+        `El modelo ocupa ${formatMb(byteSize)}; el máximo es ${formatMb(MODEL3D_LIMITS.maxBytes)}`,
+      );
+    }
+  }
+
+  const modelKey = (roomId: string, id: string) => `uploads/models/${roomId}/${id}.glb`;
+
+  /** Inspecciona el GLB; si no vale, lanza el `IntroMediaError` que toca. */
+  function inspectOrThrow(bytes: Uint8Array): Omit<ModelUploadResult, "ref" | "byteSize"> {
+    const r = inspectGlb(bytes);
+    if (!r.ok) throw modelIssueError(r.code, r.message);
+    return {
+      size: r.size,
+      colliders: [r.collider],
+      clips: r.clips,
+      triangles: r.triangles,
+    };
   }
 
   const videoKey = (roomId: string, id: string, type: IntroVideoType) =>
@@ -474,6 +537,138 @@ export function createIntroMediaService(deps: {
         throw err;
       }
       return { ref: introMediaRef(id) };
+    },
+
+    /**
+     * Reserva un modelo GLB (`pending`) y firma el PUT directo al bucket. Solo
+     * valida el tipo y el tamaño DECLARADOS; el contenido se inspecciona en
+     * `completeModelUpload`.
+     */
+    async createModelUpload(
+      actor: Actor,
+      roomId: string,
+      input: VideoUploadInput,
+    ): Promise<VideoUploadTicket> {
+      const room = await requireAuthor(actor, roomId);
+      requireModelType(input.contentType, input.filename);
+      checkModelSize(input.byteSize);
+      const id = newId();
+      const storageKey = modelKey(room.id, id);
+      await store.insertAsset({
+        id,
+        ownerId: actor.userId,
+        roomId: room.id,
+        kind: "model",
+        lang: null,
+        storageKey,
+        contentType: MODEL3D_CONTENT_TYPE,
+        byteSize: input.byteSize,
+        status: "pending",
+      });
+      const { url, headers } = await blobs.signedUploadUrl(storageKey, {
+        contentType: MODEL3D_CONTENT_TYPE,
+        contentLength: input.byteSize,
+      });
+      return { assetId: id, uploadUrl: url, headers };
+    },
+
+    /**
+     * Lee el objeto entero, lo inspecciona (`inspectGlb`) y lo marca `ready`.
+     * Si no vale, borra objeto y asset. Idempotente sobre un asset ya `ready`
+     * (vuelve a inspeccionar para devolver los metadatos).
+     */
+    async completeModelUpload(
+      actor: Actor,
+      roomId: string,
+      assetId: string,
+    ): Promise<ModelUploadResult> {
+      const room = await requireAuthor(actor, roomId);
+      const asset = await requireOwnAsset(actor, room.id, assetId);
+      if (asset.kind !== "model") throw new IntroMediaError("NOT_FOUND", "Medio no encontrado");
+
+      const head = await blobs.head(asset.storageKey);
+      if (!head) {
+        if (asset.status === "ready") throw new IntroMediaError("NOT_FOUND", "Medio no encontrado");
+        throw new IntroMediaError(
+          "UPLOAD_INCOMPLETE",
+          "El modelo aún no está subido: termina el PUT antes de completar",
+        );
+      }
+      const discard = async (error: IntroMediaError): Promise<never> => {
+        await blobs.delete(asset.storageKey).catch(() => undefined);
+        await store.deleteAsset(asset.id);
+        throw error;
+      };
+      if (head.byteSize <= 0) {
+        return discard(new IntroMediaError("VALIDATION_ERROR", "El fichero está vacío"));
+      }
+      if (head.byteSize > MODEL3D_LIMITS.maxBytes) {
+        return discard(
+          new IntroMediaError(
+            "PAYLOAD_TOO_LARGE",
+            `El modelo ocupa ${formatMb(head.byteSize)}; el máximo es ${formatMb(MODEL3D_LIMITS.maxBytes)}`,
+          ),
+        );
+      }
+      const bytes = await blobs.readRange(asset.storageKey, 0, head.byteSize - 1);
+      let measured: Omit<ModelUploadResult, "ref" | "byteSize">;
+      try {
+        measured = inspectOrThrow(bytes);
+      } catch (err) {
+        if (err instanceof IntroMediaError && asset.status === "pending") return discard(err);
+        throw err;
+      }
+      const ready =
+        asset.status === "ready" ? asset : await store.markReady(asset.id, head.byteSize);
+      return { ref: introMediaRef(ready.id), ...measured, byteSize: head.byteSize };
+    },
+
+    /**
+     * Modelo que llega en el propio cuerpo (meta-tool `upload` del MCP): mismas
+     * comprobaciones que el PUT presignado; nace `ready`.
+     */
+    async uploadModelBytes(
+      actor: Actor,
+      roomId: string,
+      input: { filename: string; contentType: string; bytes: Uint8Array },
+    ): Promise<ModelUploadResult> {
+      const room = await requireAuthor(actor, roomId);
+      requireModelType(input.contentType, input.filename);
+      checkModelSize(input.bytes.byteLength);
+      const measured = inspectOrThrow(input.bytes);
+      const id = newId();
+      const storageKey = modelKey(room.id, id);
+      await blobs.put(storageKey, input.bytes, MODEL3D_CONTENT_TYPE);
+      try {
+        await store.insertAsset({
+          id,
+          ownerId: actor.userId,
+          roomId: room.id,
+          kind: "model",
+          lang: null,
+          storageKey,
+          contentType: MODEL3D_CONTENT_TYPE,
+          byteSize: input.bytes.byteLength,
+          status: "ready",
+        });
+      } catch (err) {
+        await blobs.delete(storageKey).catch(() => undefined);
+        throw err;
+      }
+      return { ref: introMediaRef(id), ...measured, byteSize: input.bytes.byteLength };
+    },
+
+    /** Vuelve a medir un modelo ya `ready` (visor de moderación y editor). */
+    async describeModel(access: IntroMediaAccess, ref: string): Promise<ModelUploadResult> {
+      const key = await resolveMediaRef(access, ref);
+      if (!key.endsWith(".glb")) {
+        throw new IntroMediaError("VALIDATION_ERROR", "La referencia no es un modelo GLB");
+      }
+      const head = await blobs.head(key);
+      if (!head) throw new IntroMediaError("NOT_FOUND", "Medio no encontrado");
+      const bytes = await blobs.readRange(key, 0, head.byteSize - 1);
+      const measured = inspectOrThrow(bytes);
+      return { ref, ...measured, byteSize: head.byteSize };
     },
 
     /** Subtítulos WebVTT de un idioma (UTF-8, cabecera `WEBVTT`, ≤ `maxSubtitlesBytes`). */

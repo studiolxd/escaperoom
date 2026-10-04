@@ -263,7 +263,8 @@ export function nextSemver(existing: readonly string[], change: RoomPackageChang
 /**
  * Referencias de asset del creador (`audioUrl` de cualquier `LocalizedText`:
  * diálogos, pistas, textos de objetos…, y los `media:` del vídeo y los
- * subtítulos de `meta.intro`), únicas y ordenadas.
+ * subtítulos de `meta.intro` y los modelos propios de `world3d.models`),
+ * únicas y ordenadas.
  */
 export function collectAssetRefs(pkg: RoomPackage): string[] {
   const refs = new Set<string>();
@@ -281,12 +282,16 @@ export function collectAssetRefs(pkg: RoomPackage): string[] {
   for (const ref of introMediaRefsOf(pkg.meta.intro)) {
     if (INTRO_MEDIA_REF_RE.test(ref)) refs.add(ref);
   }
+  for (const model of Object.values(pkg.world3d?.models ?? {})) {
+    if (INTRO_MEDIA_REF_RE.test(model.ref)) refs.add(model.ref);
+  }
   return [...refs].sort();
 }
 
 /**
  * Sustituye cada `audioUrl` referenciado en `replacements`, y las referencias
- * del vídeo y los subtítulos de `meta.intro` (devuelve una copia).
+ * del vídeo y los subtítulos de `meta.intro` y los `ref` de
+ * `world3d.models` (devuelve una copia).
  */
 export function rewriteAssetRefs(
   pkg: RoomPackage,
@@ -322,6 +327,17 @@ export function rewriteAssetRefs(
         : {}),
     };
   }
+  if (out.world3d && Object.keys(out.world3d.models).length > 0) {
+    out.world3d = {
+      ...out.world3d,
+      models: Object.fromEntries(
+        Object.entries(out.world3d.models).map(([id, model]) => [
+          id,
+          { ...model, ref: replacements.get(model.ref) ?? model.ref },
+        ]),
+      ),
+    };
+  }
   return out;
 }
 
@@ -336,6 +352,7 @@ const EXT_BY_TYPE: Record<string, string> = {
   "video/mp4": "mp4",
   "video/webm": "webm",
   "text/vtt": "vtt",
+  "model/gltf-binary": "glb",
 };
 
 const sha256 = (data: Uint8Array | string) => createHash("sha256").update(data).digest("hex");
