@@ -1,3 +1,10 @@
+import { getModelCatalogTool } from "./get-model-catalog";
+import { getPiecesTool } from "./get-pieces";
+import { moveObjectTool } from "./move-object";
+import { placePiecesTool } from "./place-pieces";
+import { removePiecesTool } from "./remove-pieces";
+import { setSpawnPointsTool } from "./set-spawn-points";
+import { updatePiecesTool } from "./update-pieces";
 import { addDialogTool } from "./add-dialog";
 import { addHintTool } from "./add-hint";
 import { addObjectTool } from "./add-object";
@@ -42,9 +49,14 @@ export const CONTENT_TOOLSET: readonly CreatorTool[] = [
   setRoomIntroTool,
   paintTilesTool,
   defineSubroomsTool,
+  placePiecesTool,
+  updatePiecesTool,
+  removePiecesTool,
+  setSpawnPointsTool,
   // Fase B — Contenido
   addObjectTool,
   decorateSubroomTool,
+  moveObjectTool,
   defineItemTool,
   addPuzzleTool,
   addDialogTool,
@@ -61,6 +73,8 @@ export const CONTENT_TOOLSET: readonly CreatorTool[] = [
   getTemplateCatalogTool,
   getPuzzleTool,
   getRulesForTool,
+  getPiecesTool,
+  getModelCatalogTool,
 ];
 
 /**

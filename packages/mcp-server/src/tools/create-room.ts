@@ -1,5 +1,5 @@
 import { DEFAULT_TILESET, writeRoomMeta } from "@escaperoom/editor/room-doc";
-import { RoomPackageMetaSchema } from "@escaperoom/shared/schemas";
+import { RoomDimensionSchema, RoomPackageMetaSchema } from "@escaperoom/shared/schemas";
 import { RoomDraftError } from "@escaperoom/shared/services";
 import * as Y from "yjs";
 import { z } from "zod";
@@ -23,6 +23,9 @@ const MetaInputSchema = RoomPackageMetaSchema.pick({
    * por defecto (como hoy); `null` = sin duración; entero positivo = minutos.
    */
   timeLimitMinutes: RoomPackageMetaSchema.shape.timeLimitMinutes,
+  dimension: RoomDimensionSchema.optional().describe(
+    '"2d" (por defecto) o "3d". No se puede cambiar después de crear la sala.',
+  ),
 });
 
 /** Id provisional para comprobar la metadata antes de dar de alta la sala. */
@@ -56,12 +59,15 @@ export const createRoomTool = defineTool({
   name: "create_room",
   title: "Crear sala",
   description:
-    "Crea un draft de sala nuevo con su metadata: título, tema, idiomas, dificultad (1–3), nº de jugadores y, opcionalmente, la duración de partida en minutos (`timeLimitMinutes`: por defecto 60, `null` = sin duración, sin tope máximo). Devuelve el id del draft.",
+    "Crea un draft de sala nuevo con su metadata: título, tema, idiomas, dificultad (1–3), nº de jugadores y, opcionalmente, la duración de partida en minutos (`timeLimitMinutes`: por defecto 60, `null` = sin duración, sin tope máximo). `dimension`: \"2d\" (isométrica, por defecto) o \"3d\" (tercera persona); fija para siempre. Devuelve el id del draft.",
   phase: "structure",
   ticket: "4.2",
   inputSchema: z.object({ meta: MetaInputSchema, dryRun: DryRunSchema }),
   annotations: MUTATION,
   async run({ meta, dryRun }, { actor, deps }) {
+    if (meta.dimension === "3d" && !deps.rooms3dEnabled) {
+      throw new ToolError("NOT_AVAILABLE", "Las salas 3D aún no están disponibles");
+    }
     if (meta.players.min < 1 || meta.players.min > meta.players.max) {
       throw new ToolError(
         "INVALID_INPUT",
@@ -80,6 +86,7 @@ export const createRoomTool = defineTool({
     try {
       room = await deps.drafts.createDraft(actor, {
         title: meta.title,
+        dimension: meta.dimension ?? "2d",
         initialUpdate: (roomId) => initialUpdate(meta, roomId, actor.userId),
       });
     } catch (error) {
@@ -87,7 +94,9 @@ export const createRoomTool = defineTool({
       throw error;
     }
     return textResult(
-      `✅ create_room — draft creado: ${room.id} ("${meta.title}"). Siguiente paso: set_map y define_subrooms.`,
+      `✅ create_room — draft creado: ${room.id} ("${meta.title}"). Siguiente paso: ${
+        meta.dimension === "3d" ? "define_subrooms y place_pieces" : "set_map y define_subrooms"
+      }.`,
       { roomId: room.id },
     );
   },
