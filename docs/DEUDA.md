@@ -16,15 +16,23 @@ Tareas pendientes que no bloquean pero hay que resolver.
 - [ ] **Gráficos propios del creador en salas 2D (por definir).** En 3D un creador puede
       subir sus modelos (GLB, `specs/27` §9); en 2D todo lo que se ve en el mapa sale del
       pack gráfico oficial y solo se pueden subir portada, audios y la introducción.
-      Pendiente de buscar la mejor manera de permitir sprites propios en 2D. No es simétrico
-      con el 3D: el creador tendría que traer el dibujo ya en isométrico, y hay que resolver
-      una imagen por estado y por orientación, el punto de apoyo y el tamaño de cada una
-      (orden de dibujo respecto a los avatares), las celdas que ocupa, y la coherencia
-      visual con el pack (perspectiva y luz), que no se puede validar automáticamente como
-      los triángulos y texturas de un GLB. En código: el runtime 2D solo carga sprites de
-      los atlas del pack (habría que cargar imágenes sueltas de la sala), más subida,
-      publicación, editor y MCP. Alternativa a valorar: generar los sprites 2D a partir de
-      un GLB subido, con el mismo render isométrico del pipeline de assets.
+      Pendiente de buscar la mejor manera de permitir sprites propios en 2D. Que la
+      perspectiva, la luz y el estilo encajen con el resto de la sala es responsabilidad del
+      autor: no hay que validarlo ni resolverlo. Lo que sí hay que diseñar bien son dos
+      cosas: (1) **subir las cosas por separado** — un objeto 2D son varias imágenes sueltas
+      (una por estado y, si mira a dos lados, una por orientación), y hace falta una forma
+      clara de subirlas, agruparlas como un mismo objeto y completarlas o sustituirlas
+      después, sin que queden objetos a medias; (2) **el punto de apoyo** — cada imagen
+      necesita su punto de apoyo y su tamaño para que el objeto pise bien su celda y se
+      ordene correctamente delante o detrás de los avatares, coherente entre todos los
+      estados del mismo objeto, y el autor necesita una forma sencilla de fijarlo y de ver
+      el resultado (hoy lo calcula el pipeline del pack: `size` y `origin` por frame,
+      `specs/26` §3.1). Además: las celdas que ocupa un objeto mayor que una. En código: el
+      runtime 2D solo carga sprites de los atlas del pack (habría que cargar imágenes
+      sueltas de la sala), más subida, publicación, editor y MCP. Alternativa a valorar:
+      generar los sprites 2D a partir de un GLB subido, con el mismo render isométrico del
+      pipeline de assets — un solo fichero por objeto y el punto de apoyo calculado, lo que
+      resolvería las dos preocupaciones.
 - [ ] **Extraer el motor de creación y de juego a un paquete compartido `@studiolxd` (muy
       largo plazo).** Sacar a un paquete propio de `@studiolxd` todo el motor de creación
       y de juego, para consumirlo desde aquí y desde una futura aplicación de la suite
