@@ -444,6 +444,8 @@ export function writeRoomMeta(doc: Y.Doc, input: RoomMetaInput): void {
     meta.set("difficulty", input.difficulty ?? 2);
     meta.set("players", { ...(input.players ?? { min: 1, max: 4 }) });
     meta.set("assetsManifest", input.assetsManifest ?? packAssetsManifest(DEFAULT_TILESET));
+    // Solo "3d" escribe la clave: una sala 2D no la lleva (ausente = "2d").
+    if (input.dimension === "3d") meta.set("dimension", "3d");
     initRoomLanguages(doc, input.languages, input.defaultLanguage);
     writeRoomDocFormat(doc);
   });

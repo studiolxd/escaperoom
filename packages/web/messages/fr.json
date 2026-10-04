@@ -698,6 +698,11 @@
     }
   },
   "Catalog": {
+    "dimension": "Format",
+    "dimensionAny": "Tous",
+    "dimension2d": "2D",
+    "dimension3d": "3D",
+    "dimensionBadgeLabel": "Salle en {dimension}",
     "loading": "Chargement des salles…",
     "metaTitle": "Catalogue d'escape games en ligne",
     "metaDescription": "Découvrez des escape games en ligne coopératifs : filtrez par langue, difficulté, prix et nombre de joueurs, et lisez les avis de ceux qui y ont joué.",
@@ -1413,5 +1418,15 @@
     "light": "Clair",
     "dark": "Sombre",
     "system": "Système"
+  },
+  "Onboarding": {
+    "step2": {
+      "dimensionTitle": "Format de la salle",
+      "dimension2dOption": "2D isométrique",
+      "dimension2dDesc": "Vue de dessus, sur une grille.",
+      "dimension3dOption": "3D à la troisième personne",
+      "dimension3dDesc": "Les joueurs parcourent la salle avec la caméra derrière leur personnage.",
+      "dimensionFixed": "Le format ne peut pas être modifié après la création de la salle."
+    }
   }
 }

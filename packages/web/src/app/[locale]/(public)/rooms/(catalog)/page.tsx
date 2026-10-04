@@ -14,6 +14,7 @@ const FILTER_KEYS = [
   "q",
   "language",
   "difficulty",
+  "dimension",
   "minPlayers",
   "maxPlayers",
   "maxPrice",

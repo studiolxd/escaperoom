@@ -14,7 +14,11 @@ import {
   createCatalogService,
   createInMemoryPublishedRoomListing,
   createInMemoryRoomPackageRepository,
+  matchesCatalogFilter,
+  parseCatalogQuery,
   parseLanguageFilter,
+  toCatalogRoom,
+  type CatalogRoom,
   type InMemoryCatalogRoom,
 } from "../src/services";
 
@@ -138,5 +142,53 @@ describe("helpers de LocalizedText", () => {
     expect(includesAllLanguages(["es"], [])).toBe(true);
     expect(["es", "pt-BR", "ast"].every(isLanguageCode)).toBe(true);
     expect(["ES", "español", "", "e"].some(isLanguageCode)).toBe(false);
+  });
+});
+
+describe("catálogo — formato 2D/3D", () => {
+  const build = (meta: Record<string, unknown>): CatalogRoom =>
+    toCatalogRoom({
+      roomId: "r",
+      meta: { ...fixture.meta, ...meta } as never,
+      version: { id: "v", semver: "1.0.0", publishedAt: new Date(0) },
+      authorId: "a",
+      authorDisplayName: "A",
+      commerce: {
+        priceCents: null,
+        currency: "EUR",
+        saleIndividual: true,
+        saleEvents: true,
+        licensePriceCents: null,
+      },
+      rating: { avg: null, count: 0 },
+    });
+  const room2d = build({});
+  const room3d = build({ dimension: "3d" });
+  const filter = (input: Record<string, unknown>) => parseCatalogQuery(input).filter;
+
+  it("toCatalogRoom rellena dimension; sin meta.dimension es 2d", () => {
+    expect(room2d.dimension).toBe("2d");
+    expect(room3d.dimension).toBe("3d");
+  });
+
+  it("matchesCatalogFilter: 2d, 3d y null", () => {
+    expect(matchesCatalogFilter(room2d, filter({ dimension: "2d" }))).toBe(true);
+    expect(matchesCatalogFilter(room3d, filter({ dimension: "2d" }))).toBe(false);
+    expect(matchesCatalogFilter(room2d, filter({ dimension: "3d" }))).toBe(false);
+    expect(matchesCatalogFilter(room3d, filter({ dimension: "3d" }))).toBe(true);
+    expect(matchesCatalogFilter(room2d, filter({}))).toBe(true);
+    expect(matchesCatalogFilter(room3d, filter({}))).toBe(true);
+  });
+
+  it("un dimension no válido se ignora sin error", () => {
+    expect(filter({ dimension: "4d" }).dimension).toBeNull();
+    expect(filter({ dimension: "" }).dimension).toBeNull();
+  });
+
+  it("el listado en memoria: todas las salas existentes son 2D y el filtro 3d queda vacío", async () => {
+    const { items } = await service().listRooms(ANONYMOUS_ACTOR, { dimension: "3d" });
+    expect(items).toEqual([]);
+    const all = await service().listRooms(ANONYMOUS_ACTOR, { dimension: "2d" });
+    expect(all.items.length).toBeGreaterThan(0);
   });
 });

@@ -76,4 +76,38 @@ describe("CatalogFilters", () => {
     expect(screen.getByRole("searchbox")).toHaveValue("cambiada");
     expect(push).not.toHaveBeenCalled();
   });
+
+  describe("filtro de formato", () => {
+    // Radix Select usa APIs de puntero que jsdom no trae.
+    beforeEach(() => {
+      Element.prototype.hasPointerCapture ??= () => false;
+      Element.prototype.setPointerCapture ??= () => {};
+      Element.prototype.releasePointerCapture ??= () => {};
+      Element.prototype.scrollIntoView ??= () => {};
+    });
+
+    it("elegir 3D pone dimension=3d en la consulta", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      renderFilters({});
+
+      await user.click(screen.getByRole("combobox", { name: "dimension" }));
+      await user.click(await screen.findByRole("option", { name: "dimension3d" }));
+
+      expect(push).toHaveBeenCalledWith(
+        expect.objectContaining({ query: expect.objectContaining({ dimension: "3d" }) }),
+      );
+    });
+
+    it("elegir «Cualquiera» quita dimension de la consulta", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      renderFilters({ dimension: "3d" });
+
+      await user.click(screen.getByRole("combobox", { name: "dimension" }));
+      await user.click(await screen.findByRole("option", { name: "dimensionAny" }));
+
+      expect(push).toHaveBeenCalledTimes(1);
+      const call = push.mock.calls[0]?.[0] as { query: Record<string, string> };
+      expect(call.query).not.toHaveProperty("dimension");
+    });
+  });
 });

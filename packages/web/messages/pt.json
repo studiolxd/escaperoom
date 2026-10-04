@@ -698,6 +698,11 @@
     }
   },
   "Catalog": {
+    "dimension": "Formato",
+    "dimensionAny": "Qualquer",
+    "dimension2d": "2D",
+    "dimension3d": "3D",
+    "dimensionBadgeLabel": "Sala em {dimension}",
     "loading": "A carregar salas…",
     "metaTitle": "Catálogo de escape rooms online",
     "metaDescription": "Descobre escape rooms online cooperativos: filtra por idioma, dificuldade, preço e número de jogadores, e lê as avaliações de quem já jogou.",
@@ -1413,5 +1418,15 @@
     "light": "Claro",
     "dark": "Escuro",
     "system": "Sistema"
+  },
+  "Onboarding": {
+    "step2": {
+      "dimensionTitle": "Formato da sala",
+      "dimension2dOption": "2D isométrica",
+      "dimension2dDesc": "Vista de cima, sobre uma grelha.",
+      "dimension3dOption": "3D na terceira pessoa",
+      "dimension3dDesc": "Os jogadores percorrem a sala com a câmara atrás da sua personagem.",
+      "dimensionFixed": "O formato não pode ser alterado depois de a sala ser criada."
+    }
   }
 }

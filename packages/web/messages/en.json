@@ -749,6 +749,11 @@
     "anyLanguage": "Any language",
     "difficulty": "Difficulty",
     "anyDifficulty": "Any difficulty",
+    "dimension": "Format",
+    "dimensionAny": "Any",
+    "dimension2d": "2D",
+    "dimension3d": "3D",
+    "dimensionBadgeLabel": "{dimension} room",
     "players": "Players",
     "anyPlayers": "Any",
     "playersFrom": "From",
@@ -1359,7 +1364,13 @@
       "cta": "Create room and open the editor",
       "creating": "Creating your room…",
       "error": "Couldn't create the room. Please try again.",
-      "openEditor": "Open in the editor →"
+      "openEditor": "Open in the editor →",
+      "dimensionTitle": "Room format",
+      "dimension2dOption": "2D isometric",
+      "dimension2dDesc": "Top-down view on a grid.",
+      "dimension3dOption": "3D third person",
+      "dimension3dDesc": "Players walk the room with the camera behind their character.",
+      "dimensionFixed": "The format cannot be changed after the room is created."
     },
     "step3": {
       "title": "3. Place 1 guided puzzle",

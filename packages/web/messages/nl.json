@@ -709,6 +709,11 @@
     "anyLanguage": "Alle talen",
     "difficulty": "Moeilijkheid",
     "anyDifficulty": "Alle moeilijkheden",
+    "dimension": "Formaat",
+    "dimensionAny": "Alle",
+    "dimension2d": "2D",
+    "dimension3d": "3D",
+    "dimensionBadgeLabel": "Kamer in {dimension}",
     "players": "Spelers",
     "anyPlayers": "Alle",
     "playersFrom": "Van",
@@ -1413,5 +1418,15 @@
     "light": "Licht",
     "dark": "Donker",
     "system": "Systeem"
+  },
+  "Onboarding": {
+    "step2": {
+      "dimensionTitle": "Kamerformaat",
+      "dimension2dOption": "2D isometrisch",
+      "dimension2dDesc": "Bovenaanzicht op een raster.",
+      "dimension3dOption": "3D in derde persoon",
+      "dimension3dDesc": "Spelers lopen door de kamer met de camera achter hun personage.",
+      "dimensionFixed": "Het formaat kan na het aanmaken van de kamer niet meer worden gewijzigd."
+    }
   }
 }

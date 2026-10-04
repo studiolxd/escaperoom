@@ -10,6 +10,7 @@ import type { CatalogListFilter, CatalogRoom, PublishedRoomListing } from "../sr
 const FILTER: CatalogListFilter = {
   languages: [],
   difficulties: [],
+  dimension: null,
   minPrice: null,
   maxPrice: null,
   playersMin: null,
@@ -27,6 +28,7 @@ const ROOM: CatalogRoom = {
   description: "desc",
   theme: "medieval",
   difficulty: 1,
+  dimension: "2d",
   languages: ["es"],
   defaultLanguage: "es",
   estimatedMinutes: 30,
@@ -118,6 +120,7 @@ describe("createCachedPublishedRoomListing", () => {
       q: "aldric",
       languages: ["es"],
       difficulties: FILTER.difficulties,
+      dimension: FILTER.dimension,
       minPrice: FILTER.minPrice,
       maxPrice: FILTER.maxPrice,
       playersMin: FILTER.playersMin,

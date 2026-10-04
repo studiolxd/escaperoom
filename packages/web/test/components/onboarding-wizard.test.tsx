@@ -10,6 +10,15 @@ vi.mock("next-intl", () => ({
     values ? `${key}:${JSON.stringify(values)}` : key,
 }));
 
+const createRoomAction = vi.hoisted(() => vi.fn());
+vi.mock("@/actions/onboarding", () => ({ createOnboardingRoomAction: createRoomAction }));
+
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
 vi.mock("@/lib/analytics-client", () => ({ trackOnboardingStep: vi.fn() }));
 
 vi.mock("@/components/room-editor/playtest-button", () => ({
@@ -54,5 +63,45 @@ describe("OnboardingWizard (F-7: plantilla de la sala con RadioGroup)", () => {
 
     expect(blank).toHaveAttribute("aria-checked", "true");
     expect(radios[0]).toHaveAttribute("aria-checked", "false");
+  });
+
+  describe("formato 2D/3D (modo 3D)", () => {
+    async function toStep2(rooms3dEnabled: boolean) {
+      const user = userEvent.setup();
+      render(<OnboardingWizard rooms3dEnabled={rooms3dEnabled} />);
+      await user.click(screen.getByRole("button", { name: "step1.cta" }));
+      return user;
+    }
+
+    it("envía dimension 3d con plantilla en blanco y nada con el Rey Aldric", async () => {
+      createRoomAction.mockResolvedValue({ ok: true, data: { roomId: "r1", template: "blank" } });
+      const user = await toStep2(true);
+      await user.click(screen.getAllByRole("radio")[1]!);
+      await user.click(screen.getAllByRole("radio")[3]!);
+      await user.click(screen.getByRole("button", { name: "step2.cta" }));
+      expect(createRoomAction).toHaveBeenLastCalledWith({ template: "blank", dimension: "3d" });
+    });
+
+    it("sin el interruptor no aparece el selector de formato", async () => {
+      const user = await toStep2(false);
+      await user.click(screen.getAllByRole("radio")[1]!);
+      expect(screen.getAllByRole("radio")).toHaveLength(2);
+      expect(screen.queryByText("step2.dimensionTitle")).not.toBeInTheDocument();
+    });
+
+    it("con el interruptor y plantilla en blanco sí aparece; con el Rey Aldric no", async () => {
+      const user = await toStep2(true);
+      // plantilla por defecto: rey-aldric
+      expect(screen.getAllByRole("radio")).toHaveLength(2);
+      await user.click(screen.getAllByRole("radio")[1]!);
+      expect(screen.getAllByRole("radio")).toHaveLength(4);
+      expect(screen.getByText("step2.dimensionTitle")).toBeInTheDocument();
+      expect(screen.getByText("step2.dimensionFixed")).toBeInTheDocument();
+
+      await user.click(screen.getAllByRole("radio")[3]!); // 3D
+      await user.click(screen.getAllByRole("radio")[0]!); // vuelve al Rey Aldric
+      expect(screen.getAllByRole("radio")).toHaveLength(2);
+      expect(screen.queryByText("step2.dimensionTitle")).not.toBeInTheDocument();
+    });
   });
 });

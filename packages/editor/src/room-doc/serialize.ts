@@ -272,6 +272,7 @@ function readMeta(doc: Y.Doc): RoomPackageMeta {
   const players = meta.get("players") as { min?: unknown; max?: unknown } | undefined;
   const difficulty = meta.get("difficulty");
   const intro = readIntroRecord(meta.get(INTRO_KEY), languages);
+  const dimension = meta.get("dimension");
   return {
     id: str(meta.get("id")),
     title: str(meta.get("title")),
@@ -287,6 +288,8 @@ function readMeta(doc: Y.Doc): RoomPackageMeta {
     difficulty: (difficulty === 1 || difficulty === 3 ? difficulty : 2) as Difficulty,
     players: { min: num(players?.min, 1), max: num(players?.max, 1) },
     assetsManifest: str(meta.get("assetsManifest")),
+    // Solo si la clave existe: una sala 2D sin `dimension` no la gana (ida y vuelta exacta).
+    ...(dimension === "2d" || dimension === "3d" ? { dimension } : {}),
     // Solo si la hay: una sala sin introducción no lleva la clave (ida y vuelta exacta).
     ...(intro ? { intro } : {}),
   };
