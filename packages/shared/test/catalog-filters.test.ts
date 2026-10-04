@@ -308,6 +308,7 @@ describe("rating agregado en el listado y el detalle", () => {
       description: fixture.meta.description,
       theme: "medieval",
       difficulty: 2,
+      dimension: "2d",
       languages: ["es"],
       defaultLanguage: "es",
       estimatedMinutes: 55,

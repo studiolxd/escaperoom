@@ -13,6 +13,7 @@ const listRoomsInput = z
     difficulty: z
       .union([z.string(), z.number(), z.array(z.union([z.string(), z.number()]))])
       .optional(),
+    dimension: z.enum(["2d", "3d"]).optional(),
     minPrice: intLike,
     maxPrice: intLike,
     minPlayers: intLike,

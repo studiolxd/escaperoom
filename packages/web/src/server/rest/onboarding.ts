@@ -15,7 +15,17 @@ export type OnboardingHandlerDeps = {
   resolveActor: (request: Request) => Promise<Actor>;
   /** JSON crudo del fixture del Rey Aldric (specs/08 §8); inyectado para poder testear sin FS. */
   readReyAldricRoomPackageJson: () => string;
+  /** `ROOMS_3D_ENABLED` (modo 3D, specs/27): sin él, `dimension: "3d"` se rechaza. */
+  rooms3dEnabled: boolean;
 };
+
+/** Entrada no válida del alta de sala (plantilla o formato); la REST la traduce a 422. */
+export class OnboardingValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "OnboardingValidationError";
+  }
+}
 
 const STATUS_BY_CODE = {
   UNAUTHORIZED: 401,
@@ -35,6 +45,7 @@ const handle = handleDomainErrors(RoomDraftError, STATUS_BY_CODE);
 export const CreateRoomBodySchema = z.object({
   template: z.enum(["rey-aldric", "blank"]),
   title: z.string().trim().min(1).max(200).optional(),
+  dimension: z.enum(["2d", "3d"]).optional(),
 });
 
 /**
@@ -53,7 +64,12 @@ function loadCachedReyAldricFixture(readJson: () => string): RoomPackage {
 }
 
 /** Update inicial de una sala en blanco: metadata mínima y tileset por defecto. */
-function blankInitialUpdate(roomId: string, authorId: string, title: string): Uint8Array {
+function blankInitialUpdate(
+  roomId: string,
+  authorId: string,
+  title: string,
+  dimension: "2d" | "3d",
+): Uint8Array {
   const doc = new Y.Doc();
   try {
     doc.transact(() => {
@@ -61,6 +77,7 @@ function blankInitialUpdate(roomId: string, authorId: string, title: string): Ui
         id: roomId,
         authorId,
         title,
+        dimension,
         theme: "medieval",
         languages: ["es"],
         defaultLanguage: "es",
@@ -88,17 +105,31 @@ export type CreateOnboardingRoomResult = { roomId: string; template: OnboardingR
  * cuerpo antes de llamar aquí.
  */
 export async function createOnboardingRoom(
-  deps: Pick<OnboardingHandlerDeps, "drafts" | "readReyAldricRoomPackageJson">,
+  deps: Pick<
+    OnboardingHandlerDeps,
+    "drafts" | "readReyAldricRoomPackageJson" | "rooms3dEnabled"
+  >,
   actor: Actor,
   input: CreateOnboardingRoomInput,
 ): Promise<CreateOnboardingRoomResult> {
   const { template, title } = input;
+  const dimension = input.dimension ?? "2d";
+
+  if (dimension === "3d") {
+    if (!deps.rooms3dEnabled) {
+      throw new OnboardingValidationError("El modo 3D no está disponible");
+    }
+    if (template === "rey-aldric") {
+      throw new OnboardingValidationError("La plantilla del Rey Aldric solo existe en 2D");
+    }
+  }
 
   if (template === "blank") {
     const roomTitle = title || "Mi primera sala";
     const room = await deps.drafts.createDraft(actor, {
       title: roomTitle,
-      initialUpdate: (roomId) => blankInitialUpdate(roomId, actor.userId, roomTitle),
+      dimension,
+      initialUpdate: (roomId) => blankInitialUpdate(roomId, actor.userId, roomTitle, dimension),
     });
     return { roomId: room.id, template };
   }
@@ -144,13 +175,20 @@ export function createOnboardingHandlers(deps: OnboardingHandlerDeps) {
         if (!parsed.success) {
           return errorResponse(
             "VALIDATION_ERROR",
-            '"template" debe ser "rey-aldric" o "blank"; "title" (opcional) una cadena no vacía',
+            '"template" debe ser "rey-aldric" o "blank"; "title" (opcional) una cadena no vacía; "dimension" (opcional) "2d" o "3d"',
             422,
           );
         }
 
-        const result = await createOnboardingRoom(deps, actor, parsed.data);
-        return Response.json(result, { status: 201, headers: NO_STORE });
+        try {
+          const result = await createOnboardingRoom(deps, actor, parsed.data);
+          return Response.json(result, { status: 201, headers: NO_STORE });
+        } catch (err) {
+          if (err instanceof OnboardingValidationError) {
+            return errorResponse("VALIDATION_ERROR", err.message, 422);
+          }
+          throw err;
+        }
       });
     },
   };

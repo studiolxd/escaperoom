@@ -2,12 +2,14 @@
 
 import { headers } from "next/headers";
 import { isAnonymous, RoomDraftError } from "@escaperoom/shared/services";
+import { env } from "@/env";
 import { resolveActorFromHeaders } from "@/server/context";
 import { readReyAldricRoomPackageJson } from "@/lib/room-preview-fixture";
 import { getRoomDraftService } from "@/server/services";
 import {
   createOnboardingRoom,
   CreateRoomBodySchema,
+  OnboardingValidationError,
   type CreateOnboardingRoomResult,
 } from "@/server/rest/onboarding";
 import {
@@ -18,7 +20,11 @@ import {
   type ActionResult,
 } from "@/server/actions/action-result";
 
-export type CreateOnboardingRoomInput = { template: "rey-aldric" | "blank"; title?: string };
+export type CreateOnboardingRoomInput = {
+  template: "rey-aldric" | "blank";
+  title?: string;
+  dimension?: "2d" | "3d";
+};
 
 /**
  * Server action de `OnboardingWizard` (paso 2, "Pinta tu primera sala"):
@@ -48,12 +54,19 @@ export async function createOnboardingRoomAction(
 
   try {
     const result = await createOnboardingRoom(
-      { drafts: getRoomDraftService(), readReyAldricRoomPackageJson },
+      {
+        drafts: getRoomDraftService(),
+        readReyAldricRoomPackageJson,
+        rooms3dEnabled: env.ROOMS_3D_ENABLED,
+      },
       actor,
       parsed.data,
     );
     return actionOk(result);
   } catch (err) {
+    if (err instanceof OnboardingValidationError) {
+      return actionError("VALIDATION_ERROR", err.message);
+    }
     if (err instanceof RoomDraftError) return actionError(err.code, err.message);
     throw err;
   }

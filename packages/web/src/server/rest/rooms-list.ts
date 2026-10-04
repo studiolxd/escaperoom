@@ -39,6 +39,7 @@ export function catalogInputFromSearchParams(params: URLSearchParams): CatalogLi
   return {
     language: params.getAll("language"),
     difficulty: params.getAll("difficulty"),
+    dimension: params.get("dimension") ?? undefined,
     minPrice: params.get("minPrice"),
     maxPrice: params.get("maxPrice"),
     minPlayers: params.get("minPlayers"),

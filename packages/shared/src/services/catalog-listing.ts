@@ -45,6 +45,7 @@ export function matchesCatalogFilter(room: CatalogRoom, filter: CatalogListFilte
   return (
     includesAllLanguages(room.languages, filter.languages) &&
     (filter.difficulties.length === 0 || filter.difficulties.includes(room.difficulty)) &&
+    (filter.dimension === null || room.dimension === filter.dimension) &&
     (filter.minPrice === null || price >= filter.minPrice) &&
     (filter.maxPrice === null || price <= filter.maxPrice) &&
     (filter.playersMin === null || room.players.max >= filter.playersMin) &&
@@ -170,6 +171,9 @@ function whereClause(filter: CatalogListFilter): Prisma.Sql {
     conditions.push(
       Prisma.sql`(${meta} ->> 'difficulty')::int IN (${Prisma.join(filter.difficulties)})`,
     );
+  }
+  if (filter.dimension !== null) {
+    conditions.push(Prisma.sql`COALESCE(${meta} ->> 'dimension', '2d') = ${filter.dimension}`);
   }
   if (filter.minPrice !== null) {
     conditions.push(Prisma.sql`COALESCE(r."priceCents", 0) >= ${filter.minPrice}`);
@@ -357,11 +361,12 @@ const CATALOG_CACHE_GENERATION_TTL_SECONDS = 7 * 24 * 60 * 60;
  * Cambia cuando el formato de lo cacheado varía de forma incompatible (v2:
  * `ratingAvg` pasa a calcularse sobre la escala doblada de `review.rating`;
  * v3: el filtro de jugadores pasa de `players: N` a un rango
- * `playersMin`/`playersMax`, así que la clave de la consulta cambia de forma)
+ * `playersMin`/`playersMax`, así que la clave de la consulta cambia de forma;
+ * v4: el filtro gana `dimension` y `CatalogRoom` lleva `dimension`)
  * para que las claves antiguas, escritas por código previo al cambio,
  * simplemente dejen de leerse en vez de servir valores duplicados.
  */
-const CATALOG_CACHE_VERSION = "v3";
+const CATALOG_CACHE_VERSION = "v4";
 
 /**
  * Serializa un valor con las claves de cada objeto ordenadas, para que el

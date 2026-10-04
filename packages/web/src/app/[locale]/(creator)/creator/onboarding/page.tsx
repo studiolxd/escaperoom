@@ -2,6 +2,7 @@ import { isAnonymous } from "@escaperoom/shared/services";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { setRequestLocale } from "next-intl/server";
+import { env } from "@/env";
 import { OnboardingLogin } from "@/components/onboarding/onboarding-login";
 import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 import { resolveActorFromHeaders } from "@/server/context";
@@ -31,7 +32,7 @@ export default async function CreatorOnboardingPage({ params }: Props) {
 
   return (
     <main className="min-h-dvh bg-background">
-      <OnboardingWizard />
+      <OnboardingWizard rooms3dEnabled={env.ROOMS_3D_ENABLED} />
     </main>
   );
 }

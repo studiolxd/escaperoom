@@ -1,3 +1,4 @@
+import { env } from "@/env";
 import { resolveActorFromRequest } from "@/server/context";
 import { readReyAldricRoomPackageJson } from "@/lib/room-preview-fixture";
 import { withRateLimit } from "@/server/rate-limit";
@@ -18,5 +19,6 @@ export const POST = withRateLimit("onboarding-room-create", (request: Request) =
     drafts: getRoomDraftService(),
     resolveActor: resolveActorFromRequest,
     readReyAldricRoomPackageJson,
+    rooms3dEnabled: env.ROOMS_3D_ENABLED,
   }).postCreateRoom(request),
 );

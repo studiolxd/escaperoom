@@ -56,6 +56,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
       priceCents: number | null;
       day: number;
       status?: "published" | "draft";
+      dimension?: "3d";
     }) {
       const title = `${TAG} ${spec.key}`;
       const room = await prisma.room.create({
@@ -87,6 +88,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
               defaultLanguage: spec.languages[0],
               difficulty: spec.difficulty,
               players: { min: spec.players[0], max: spec.players[1] },
+              ...(spec.dimension ? { dimension: spec.dimension } : {}),
             },
           } as object,
         },
@@ -127,6 +129,7 @@ describe.skipIf(!process.env.DATABASE_URL)(
         players: [3, 5],
         priceCents: 999,
         day: 3,
+        dimension: "3d",
       });
       await seedRoom({
         key: "nocturno",
@@ -230,6 +233,15 @@ describe.skipIf(!process.env.DATABASE_URL)(
         "lab",
         "mansion",
       ]);
+    });
+
+    it("filtra por formato en SQL: sin meta.dimension cuenta como 2D", async () => {
+      expect(await list({ dimension: "3d" })).toEqual(["lab"]);
+      expect(await list({ dimension: "2d" })).toEqual(["mansion", "nocturno", "castillo", "cripta"]);
+      expect(await list({ dimension: "otro" })).toEqual(await list());
+      const { items } = await catalog().listRooms(ANONYMOUS_ACTOR, { q: TAG });
+      expect(items.find((r) => keyOf(r.id) === "lab")?.dimension).toBe("3d");
+      expect(items.find((r) => keyOf(r.id) === "cripta")?.dimension).toBe("2d");
     });
 
     it("paginación por cursor", async () => {

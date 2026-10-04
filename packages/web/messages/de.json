@@ -709,6 +709,11 @@
     "anyLanguage": "Alle Sprachen",
     "difficulty": "Schwierigkeit",
     "anyDifficulty": "Alle Schwierigkeiten",
+    "dimension": "Format",
+    "dimensionAny": "Alle",
+    "dimension2d": "2D",
+    "dimension3d": "3D",
+    "dimensionBadgeLabel": "Raum in {dimension}",
     "players": "Spieler",
     "anyPlayers": "Beliebig",
     "playersFrom": "Von",
@@ -1413,5 +1418,15 @@
     "light": "Hell",
     "dark": "Dunkel",
     "system": "System"
+  },
+  "Onboarding": {
+    "step2": {
+      "dimensionTitle": "Raumformat",
+      "dimension2dOption": "2D isometrisch",
+      "dimension2dDesc": "Ansicht von oben auf einem Raster.",
+      "dimension3dOption": "3D aus der Third-Person-Perspektive",
+      "dimension3dDesc": "Die Spieler erkunden den Raum mit der Kamera hinter ihrer Figur.",
+      "dimensionFixed": "Das Format kann nach dem Erstellen des Raums nicht mehr geändert werden."
+    }
   }
 }

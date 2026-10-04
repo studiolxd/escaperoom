@@ -8,6 +8,7 @@ import {
   type RoomDraftService,
 } from "@escaperoom/shared/services";
 import { __resetInMemoryRateLimitersForTests } from "@escaperoom/kit/rate-limit";
+import * as Y from "yjs";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { RATE_LIMIT_POLICIES } from "../src/server/rate-limit";
 import { createOnboardingHandlers } from "../src/server/rest/onboarding";
@@ -32,13 +33,14 @@ const fixturePath = fileURLToPath(
   new URL("../../../docs/reference/roompackage-rey-aldric.v1.json", import.meta.url),
 );
 
-function setup() {
+function setup({ rooms3dEnabled = false }: { rooms3dEnabled?: boolean } = {}) {
   const drafts = createRoomDraftService({ store: createInMemoryRoomDraftStore([]) });
   const actors: Record<string, Actor> = { autora: author };
   const handlers = createOnboardingHandlers({
     drafts,
     resolveActor: async (req) => actors[req.headers.get("x-test-user") ?? ""] ?? ANONYMOUS_ACTOR,
     readReyAldricRoomPackageJson: () => readFileSync(fixturePath, "utf8"),
+    rooms3dEnabled,
   });
   const post = (body: unknown, user?: string) =>
     handlers.postCreateRoom(
@@ -78,6 +80,43 @@ describe("POST /api/onboarding/rooms (ticket 6.7, specs/20 §2 §3)", () => {
 
     const draft = await drafts.loadDraft(author, roomId);
     expect(draft.updates.length).toBeGreaterThan(0);
+  });
+
+  it("3D con el interruptor apagado responde 422 VALIDATION_ERROR", async () => {
+    const { post } = setup();
+    const res = await post({ template: "blank", dimension: "3d" }, "autora");
+    expect(res.status).toBe(422);
+    expect((await res.json()).error.code).toBe("VALIDATION_ERROR");
+  });
+
+  it("3D con la plantilla del Rey Aldric responde 422", async () => {
+    const { post } = setup({ rooms3dEnabled: true });
+    const res = await post({ template: "rey-aldric", dimension: "3d" }, "autora");
+    expect(res.status).toBe(422);
+  });
+
+  it("3D en blanco crea el borrador con dimension 3d y el documento lleva meta.dimension", async () => {
+    const { post, drafts } = setup({ rooms3dEnabled: true });
+    const res = await post({ template: "blank", dimension: "3d" }, "autora");
+    expect(res.status).toBe(201);
+    const { roomId } = (await res.json()) as { roomId: string };
+    const doc = new Y.Doc();
+    for (const row of (await drafts.loadDraft(author, roomId)).updates) {
+      Y.applyUpdate(doc, row.data);
+    }
+    expect(doc.getMap("meta").get("dimension")).toBe("3d");
+  });
+
+  it("una sala en blanco sin dimension (o 2d) no escribe meta.dimension", async () => {
+    const { post, drafts } = setup({ rooms3dEnabled: true });
+    for (const body of [{ template: "blank" }, { template: "blank", dimension: "2d" }]) {
+      const { roomId } = (await (await post(body, "autora")).json()) as { roomId: string };
+      const doc = new Y.Doc();
+      for (const row of (await drafts.loadDraft(author, roomId)).updates) {
+        Y.applyUpdate(doc, row.data);
+      }
+      expect(doc.getMap("meta").has("dimension")).toBe(false);
+    }
   });
 
   it("rechaza una plantilla desconocida con 422 VALIDATION_ERROR (A-22: fijado en specs/13 §1)", async () => {

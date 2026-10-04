@@ -23,10 +23,11 @@ type CreateState =
  * (specs/16 §2.1, specs/20 §5). Los pasos 3–5 se apoyan en el editor real
  * (`/editor/:roomId`) en vez de reimplementar sus herramientas aquí.
  */
-export function OnboardingWizard() {
+export function OnboardingWizard({ rooms3dEnabled = false }: { rooms3dEnabled?: boolean }) {
   const t = useTranslations("Onboarding");
   const [stepIndex, setStepIndex] = useState(0);
   const [template, setTemplate] = useState<"rey-aldric" | "blank">("rey-aldric");
+  const [dimension, setDimension] = useState<"2d" | "3d">("2d");
   const [create, setCreate] = useState<CreateState>({ kind: "idle" });
 
   const step: StepId = STEP_IDS[stepIndex] ?? "theme";
@@ -41,7 +42,10 @@ export function OnboardingWizard() {
   const createRoom = async () => {
     setCreate({ kind: "creating" });
     try {
-      const result = await createOnboardingRoomAction({ template });
+      const result = await createOnboardingRoomAction({
+        template,
+        ...(rooms3dEnabled && template === "blank" ? { dimension } : {}),
+      });
       if (!result.ok) throw new Error("create failed");
       setCreate({ kind: "done", roomId: result.data.roomId });
       goNext();
@@ -93,7 +97,10 @@ export function OnboardingWizard() {
             <RadioGroup
               name="template"
               value={template}
-              onValueChange={(value) => setTemplate(value as "rey-aldric" | "blank")}
+              onValueChange={(value) => {
+                setTemplate(value as "rey-aldric" | "blank");
+                if (value === "rey-aldric") setDimension("2d");
+              }}
               className="space-y-2"
             >
               <Label
@@ -123,6 +130,42 @@ export function OnboardingWizard() {
                 </span>
               </Label>
             </RadioGroup>
+
+            {rooms3dEnabled && template === "blank" && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">{t("step2.dimensionTitle")}</p>
+                <RadioGroup
+                  name="dimension"
+                  value={dimension}
+                  onValueChange={(value) => setDimension(value as "2d" | "3d")}
+                  className="space-y-2"
+                >
+                  <Label
+                    htmlFor="onboarding-dimension-2d"
+                    className="items-start text-sm font-normal"
+                  >
+                    <RadioGroupItem id="onboarding-dimension-2d" value="2d" className="mt-1" />
+                    <span>
+                      <span className="font-medium">{t("step2.dimension2dOption")}</span>
+                      <br />
+                      <span className="text-muted-foreground">{t("step2.dimension2dDesc")}</span>
+                    </span>
+                  </Label>
+                  <Label
+                    htmlFor="onboarding-dimension-3d"
+                    className="items-start text-sm font-normal"
+                  >
+                    <RadioGroupItem id="onboarding-dimension-3d" value="3d" className="mt-1" />
+                    <span>
+                      <span className="font-medium">{t("step2.dimension3dOption")}</span>
+                      <br />
+                      <span className="text-muted-foreground">{t("step2.dimension3dDesc")}</span>
+                    </span>
+                  </Label>
+                </RadioGroup>
+                <p className="text-xs text-muted-foreground">{t("step2.dimensionFixed")}</p>
+              </div>
+            )}
 
             {create.kind !== "done" && (
               <Button onClick={createRoom} disabled={create.kind === "creating"}>

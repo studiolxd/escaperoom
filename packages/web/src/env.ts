@@ -7,6 +7,7 @@ import {
   editorSyncSchema,
   elevenLabsSchema,
   observabilitySchema,
+  rooms3dSchema,
   stripeSchema,
   tokensSchema,
 } from "@escaperoom/env/server";
@@ -35,7 +36,8 @@ export const env = parseEnv({
     .extend(observabilitySchema.shape)
     .extend(elevenLabsSchema.shape)
     .extend(stripeSchema.shape)
-    .extend(analyticsSchema.shape),
+    .extend(analyticsSchema.shape)
+    .extend(rooms3dSchema.shape),
   clientSchema: baseClientSchema.extend(analyticsClientSchema.shape),
   clientSource: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,

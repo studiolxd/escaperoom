@@ -942,6 +942,11 @@
     "anyLanguage": "Cualquier idioma",
     "difficulty": "Dificultad",
     "anyDifficulty": "Cualquier dificultad",
+    "dimension": "Formato",
+    "dimensionAny": "Cualquiera",
+    "dimension2d": "2D",
+    "dimension3d": "3D",
+    "dimensionBadgeLabel": "Sala en {dimension}",
     "players": "Personas",
     "anyPlayers": "Cualquiera",
     "playersFrom": "De",
@@ -1663,7 +1668,13 @@
       "cta": "Crear sala y abrir el editor",
       "creating": "Creando tu sala…",
       "error": "No se pudo crear la sala. Inténtalo de nuevo.",
-      "openEditor": "Abrir en el editor →"
+      "openEditor": "Abrir en el editor →",
+      "dimensionTitle": "Formato de la sala",
+      "dimension2dOption": "2D isométrica",
+      "dimension2dDesc": "Vista desde arriba, sobre una rejilla.",
+      "dimension3dOption": "3D en tercera persona",
+      "dimension3dDesc": "Los jugadores recorren la sala con la cámara detrás de su personaje.",
+      "dimensionFixed": "El formato no se puede cambiar después de crear la sala."
     },
     "step3": {
       "title": "3. Coloca 1 puzzle guiado",

@@ -4,6 +4,7 @@ import { Link } from "@/i18n/navigation";
 import { roomPath } from "@/lib/catalog-seo";
 import { languageName } from "./language-name";
 import { RatingSummary } from "./rating-summary";
+import { RoomDimensionBadge } from "./room-dimension-badge";
 
 /**
  * Precio individual formateado en el locale de la UI. "Gratis" SOLO con
@@ -57,9 +58,12 @@ export function RoomCard({
           />
         ) : null}
         <div className="force-light relative z-10 flex flex-col gap-1 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 text-white">
-          <h2 className="text-lg font-semibold" lang={room.defaultLanguage}>
-            {room.title}
-          </h2>
+          <div className="flex items-start justify-between gap-2">
+            <h2 className="text-lg font-semibold" lang={room.defaultLanguage}>
+              {room.title}
+            </h2>
+            <RoomDimensionBadge dimension={room.dimension} />
+          </div>
           <RatingSummary ratingAvg={room.ratingAvg} ratingCount={room.ratingCount} />
         </div>
       </div>
