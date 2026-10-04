@@ -85,6 +85,22 @@ python3 scripts/comun/validar.py --pack <pack>
   referencias, créditos e id de Magnific de cada paso; ver `scripts/fichas.py`); pruebas y versiones descartadas
   fuera de git (o en `archivo/` de pipeline-assets), nunca aquí.
 
+## Exportación 3D (modo 3D, encargo 7.3)
+GLB para Three.js a partir de los mismos constructores de `blender/objetos.py` (sin tocar los scripts de render 2D):
+```bash
+python3 scripts/exportar_3d.py --muestra            # arca, brasero, muro, suelo-piedra-1 y caballero-m (7 GLB)
+python3 scripts/exportar_3d.py --objeto arca        # o --kit / --avatar <id>; un GLB por estado de objetos.json
+pnpm visor                                           # http://localhost:5199 (Vite + Three.js, toon como el juego)
+pnpm test                                            # node --test del optimizador
+```
+- `scripts/blender/construir.py` (copia de la lógica de `render_objeto.py`), `exportar_glb.py`, `exportar_kit.py`,
+  `exportar_avatar.py` y `glb_comun.py` (hornea materiales procedurales a textura con Cycles, `DIFFUSE` solo color).
+  `scripts/optimizar_glb.mjs` (gltf-transform: dedup, prune, weld, simplify, WebP, meshopt) deja los GLB en
+  `packages/web/public/packs/<pack>/models|avatars/` (fuera de git) y `renders/glb/informe.json`.
+- Convenciones (specs/27 §2 y §4): metros, origen en el centro de la base, frente a +Z, escala en la malla, PBR con
+  metallic 0 / roughness 1, emisivo solo en fuego y agua. Presupuesto: objeto ≤ 2 MB / 30.000 tris / 1024 px; avatar
+  ≤ 4 MB / 40.000 tris.
+
 ## Pipeline de personajes jugables (validado con caballero-m, 25/09/2026)
 1. Master 2D en Magnific (Space "Personajes jugables", GPT 2, 2K, hojas de `estilos/<estilo>/referencias/`) → retoque
    por zonas si hace falta (máscara solo blanco/negro, ajustada a la silueta) → `fuentes/personajes/<id>/master.png`.

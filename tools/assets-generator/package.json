@@ -11,10 +11,19 @@
     "pack": "python3 scripts/empaquetar/empaquetar_pack.py",
     "verificar": "python3 scripts/verificar.py",
     "validar": "python3 scripts/comun/validar.py",
-    "fichas": "python3 scripts/fichas.py"
+    "fichas": "python3 scripts/fichas.py",
+    "exportar-3d": "python3 scripts/exportar_3d.py",
+    "visor": "vite visor --port 5199 --strictPort",
+    "test": "node --test scripts/optimizar_glb.test.mjs"
   },
   "devDependencies": {
-    "sharp": "0.34.5"
+    "@gltf-transform/core": "4.5.1",
+    "@gltf-transform/extensions": "4.5.1",
+    "@gltf-transform/functions": "4.5.1",
+    "meshoptimizer": "1.3.0",
+    "sharp": "0.34.5",
+    "three": "0.186.1",
+    "vite": "8.3.2"
   },
   "engines": {
     "node": ">=26"
