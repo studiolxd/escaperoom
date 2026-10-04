@@ -32,6 +32,32 @@ describe("catálogo de modelos 3D", () => {
     expect(getModels3DCatalog("medieval-v1")).toEqual(json);
   });
 
+  it("medieval-v1 trae el kit, los objetos de muestra y el avatar (encargo 7.6p)", () => {
+    const real = getModels3DCatalog("medieval-v1")!;
+    expect(real.version).toBe("0.1.0");
+    expect(Object.keys(real.models)).toHaveLength(22);
+    expect(Object.keys(real.avatars)).toEqual(["caballero-m"]);
+    expect(real.avatars["caballero-m"]).toMatchObject({
+      file: "avatars/caballero-m.glb",
+      height: 1.75,
+      clips: { idle: "idle", walk: "walk", interact: "interact" },
+    });
+    for (const [id, model] of Object.entries(real.models)) {
+      expect(model.file, id).toBe(`models/${id}.glb`);
+      expect(Object.keys(model.label).sort(), id).toEqual(["en", "es"]);
+    }
+  });
+
+  it("toda pieza snap: true tiene medidas en planta enteras", () => {
+    const real = getModels3DCatalog("medieval-v1")!;
+    const snapped = Object.entries(real.models).filter(([, model]) => model.snap);
+    expect(snapped).toHaveLength(14);
+    for (const [id, model] of snapped) {
+      expect(Number.isInteger(model.size.w), `${id}.w`).toBe(true);
+      expect(Number.isInteger(model.size.d), `${id}.d`).toBe(true);
+    }
+  });
+
   it("un pack sin catálogo devuelve undefined", () => {
     expect(getModels3DCatalog("no-existe")).toBeUndefined();
     expect(getModels3DCatalog("toString")).toBeUndefined();

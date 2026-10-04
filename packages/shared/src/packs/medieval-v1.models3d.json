@@ -1,1 +1,681 @@
-{ "packId": "medieval-v1", "version": "0.0.0", "models": {}, "avatars": {} }
+{
+  "packId": "medieval-v1",
+  "version": "0.1.0",
+  "models": {
+    "suelo-piedra-1": {
+      "file": "models/suelo-piedra-1.glb",
+      "category": "suelo",
+      "label": {
+        "es": {
+          "text": "Suelo de piedra 1"
+        },
+        "en": {
+          "text": "Stone floor 1"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 0.1
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": -0.05,
+          "sx": 1,
+          "sy": 1,
+          "sh": 0.1
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "suelo-piedra-2": {
+      "file": "models/suelo-piedra-2.glb",
+      "category": "suelo",
+      "label": {
+        "es": {
+          "text": "Suelo de piedra 2"
+        },
+        "en": {
+          "text": "Stone floor 2"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 0.1
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": -0.05,
+          "sx": 1,
+          "sy": 1,
+          "sh": 0.1
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "suelo-alfombra": {
+      "file": "models/suelo-alfombra.glb",
+      "category": "suelo",
+      "label": {
+        "es": {
+          "text": "Alfombra"
+        },
+        "en": {
+          "text": "Carpet"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 0.1
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": -0.05,
+          "sx": 1,
+          "sy": 1,
+          "sh": 0.1
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "suelo-madera": {
+      "file": "models/suelo-madera.glb",
+      "category": "suelo",
+      "label": {
+        "es": {
+          "text": "Suelo de madera"
+        },
+        "en": {
+          "text": "Wooden floor"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 0.1
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": -0.05,
+          "sx": 1,
+          "sy": 1,
+          "sh": 0.1
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "muro": {
+      "file": "models/muro.glb",
+      "category": "muro",
+      "label": {
+        "es": {
+          "text": "Muro"
+        },
+        "en": {
+          "text": "Wall"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 2.4
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 1.2,
+          "sx": 1,
+          "sy": 1,
+          "sh": 2.4
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "muro-ventana": {
+      "file": "models/muro-ventana.glb",
+      "category": "muro",
+      "label": {
+        "es": {
+          "text": "Muro con ventana"
+        },
+        "en": {
+          "text": "Wall with window"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 2.4
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 1.2,
+          "sx": 1,
+          "sy": 1,
+          "sh": 2.4
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "muro-arco": {
+      "file": "models/muro-arco.glb",
+      "category": "muro",
+      "label": {
+        "es": {
+          "text": "Muro con arco"
+        },
+        "en": {
+          "text": "Wall with arch"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 2.4
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": -0.45,
+          "cy": 0,
+          "ch": 1.0,
+          "sx": 0.1,
+          "sy": 1,
+          "sh": 2.0
+        },
+        {
+          "type": "box",
+          "cx": 0.45,
+          "cy": 0,
+          "ch": 1.0,
+          "sx": 0.1,
+          "sy": 1,
+          "sh": 2.0
+        },
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 2.2,
+          "sx": 1,
+          "sy": 1,
+          "sh": 0.4
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "columna": {
+      "file": "models/columna.glb",
+      "category": "estructura",
+      "label": {
+        "es": {
+          "text": "Columna"
+        },
+        "en": {
+          "text": "Column"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 2.4
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 1.2,
+          "sx": 0.5,
+          "sy": 0.5,
+          "sh": 2.4
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "escalon": {
+      "file": "models/escalon.glb",
+      "category": "estructura",
+      "label": {
+        "es": {
+          "text": "Escalón"
+        },
+        "en": {
+          "text": "Step"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 0.2
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 0.1,
+          "sx": 1,
+          "sy": 1,
+          "sh": 0.2
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "tarima": {
+      "file": "models/tarima.glb",
+      "category": "estructura",
+      "label": {
+        "es": {
+          "text": "Tarima"
+        },
+        "en": {
+          "text": "Platform"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 0.4
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 0.2,
+          "sx": 1,
+          "sy": 1,
+          "sh": 0.4
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "rampa": {
+      "file": "models/rampa.glb",
+      "category": "estructura",
+      "label": {
+        "es": {
+          "text": "Rampa"
+        },
+        "en": {
+          "text": "Ramp"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 2,
+        "hgt": 0.4
+      },
+      "colliders": [
+        {
+          "type": "ramp",
+          "cx": 0,
+          "cy": 0,
+          "sx": 1,
+          "sy": 2,
+          "h0": 0,
+          "h1": 0.4,
+          "dir": "y-"
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "escalera": {
+      "file": "models/escalera.glb",
+      "category": "estructura",
+      "label": {
+        "es": {
+          "text": "Escalera"
+        },
+        "en": {
+          "text": "Stairs"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 2,
+        "hgt": 1.0
+      },
+      "colliders": [
+        {
+          "type": "ramp",
+          "cx": 0,
+          "cy": 0,
+          "sx": 1,
+          "sy": 2,
+          "h0": 0,
+          "h1": 1.0,
+          "dir": "y-"
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "umbral": {
+      "file": "models/umbral.glb",
+      "category": "estructura",
+      "label": {
+        "es": {
+          "text": "Umbral"
+        },
+        "en": {
+          "text": "Threshold"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 0.05
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 0.025,
+          "sx": 1,
+          "sy": 1,
+          "sh": 0.05
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "trampilla": {
+      "file": "models/trampilla.glb",
+      "category": "estructura",
+      "label": {
+        "es": {
+          "text": "Trampilla"
+        },
+        "en": {
+          "text": "Trapdoor"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 0.05
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 0.025,
+          "sx": 1,
+          "sy": 1,
+          "sh": 0.05
+        }
+      ],
+      "snap": true,
+      "clips": []
+    },
+    "arca-cerrada": {
+      "file": "models/arca-cerrada.glb",
+      "category": "mueble",
+      "label": {
+        "es": {
+          "text": "Arca cerrada"
+        },
+        "en": {
+          "text": "Closed chest"
+        }
+      },
+      "size": {
+        "w": 0.95,
+        "d": 0.81,
+        "hgt": 0.85
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 0.42,
+          "sx": 0.95,
+          "sy": 0.81,
+          "sh": 0.85
+        }
+      ],
+      "snap": false,
+      "clips": [],
+      "group": "arca"
+    },
+    "arca-abierta": {
+      "file": "models/arca-abierta.glb",
+      "category": "mueble",
+      "label": {
+        "es": {
+          "text": "Arca abierta"
+        },
+        "en": {
+          "text": "Open chest"
+        }
+      },
+      "size": {
+        "w": 0.95,
+        "d": 1.29,
+        "hgt": 1.2
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 0.42,
+          "sx": 0.95,
+          "sy": 0.81,
+          "sh": 0.85
+        }
+      ],
+      "snap": false,
+      "clips": [],
+      "group": "arca"
+    },
+    "brasero-apagado": {
+      "file": "models/brasero-apagado.glb",
+      "category": "mueble",
+      "label": {
+        "es": {
+          "text": "Brasero apagado"
+        },
+        "en": {
+          "text": "Unlit brazier"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 0.95
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 0.47,
+          "sx": 0.8,
+          "sy": 0.8,
+          "sh": 0.95
+        }
+      ],
+      "snap": false,
+      "clips": [],
+      "group": "brasero"
+    },
+    "brasero-encendido": {
+      "file": "models/brasero-encendido.glb",
+      "category": "mueble",
+      "label": {
+        "es": {
+          "text": "Brasero encendido"
+        },
+        "en": {
+          "text": "Lit brazier"
+        }
+      },
+      "size": {
+        "w": 1,
+        "d": 1,
+        "hgt": 1.88
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 0.47,
+          "sx": 0.8,
+          "sy": 0.8,
+          "sh": 0.95
+        }
+      ],
+      "snap": false,
+      "clips": [],
+      "group": "brasero"
+    },
+    "puerta-madera": {
+      "file": "models/puerta-madera.glb",
+      "category": "estructura",
+      "label": {
+        "es": {
+          "text": "Puerta de madera"
+        },
+        "en": {
+          "text": "Wooden door"
+        }
+      },
+      "size": {
+        "w": 0.8,
+        "d": 0.1,
+        "hgt": 2.0
+      },
+      "colliders": [],
+      "snap": false,
+      "clips": [],
+      "group": "puerta"
+    },
+    "puerta-madera-abierta": {
+      "file": "models/puerta-madera-abierta.glb",
+      "category": "estructura",
+      "label": {
+        "es": {
+          "text": "Puerta de madera abierta"
+        },
+        "en": {
+          "text": "Open wooden door"
+        }
+      },
+      "size": {
+        "w": 0.8,
+        "d": 0.8,
+        "hgt": 2.0
+      },
+      "colliders": [],
+      "snap": false,
+      "clips": [],
+      "group": "puerta"
+    },
+    "trono": {
+      "file": "models/trono.glb",
+      "category": "mueble",
+      "label": {
+        "es": {
+          "text": "Trono"
+        },
+        "en": {
+          "text": "Throne"
+        }
+      },
+      "size": {
+        "w": 1.2,
+        "d": 1.0,
+        "hgt": 2.0
+      },
+      "colliders": [
+        {
+          "type": "box",
+          "cx": 0,
+          "cy": 0,
+          "ch": 1.0,
+          "sx": 1.2,
+          "sy": 1.0,
+          "sh": 2.0
+        }
+      ],
+      "snap": false,
+      "clips": []
+    },
+    "placa-piedra": {
+      "file": "models/placa-piedra.glb",
+      "category": "suelto",
+      "label": {
+        "es": {
+          "text": "Placa de piedra"
+        },
+        "en": {
+          "text": "Stone plate"
+        }
+      },
+      "size": {
+        "w": 0.72,
+        "d": 0.72,
+        "hgt": 0.08
+      },
+      "colliders": [],
+      "snap": false,
+      "clips": []
+    }
+  },
+  "avatars": {
+    "caballero-m": {
+      "file": "avatars/caballero-m.glb",
+      "label": {
+        "es": {
+          "text": "Caballero"
+        },
+        "en": {
+          "text": "Knight"
+        }
+      },
+      "height": 1.75,
+      "clips": {
+        "idle": "idle",
+        "walk": "walk",
+        "interact": "interact"
+      }
+    }
+  }
+}
