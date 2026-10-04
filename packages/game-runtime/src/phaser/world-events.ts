@@ -33,7 +33,7 @@ export type WorldSceneEvent =
    * con `emitAvatarMoves`: el cliente de red la envía al servidor, que es el
    * autoritativo (placas y mirillas dependen de ella).
    */
-  | { type: "avatar-move"; roomId: string; x: number; y: number }
+  | { type: "avatar-move"; roomId: string; x: number; y: number; h?: number; yaw?: number }
   /** El avatar cruzó una puerta abierta: la capa React informa a `RoomSession`. */
   | { type: "enter-room"; roomId: string; fromRoomId: string }
   | {

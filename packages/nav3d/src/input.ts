@@ -1,4 +1,11 @@
-import type { Collider3D, RoomPackage } from "@escaperoom/shared/schemas";
+import type {
+  Collider3D,
+  Model3DSize,
+  Piece3D,
+  RoomPackage,
+  Transform3D,
+  World3D,
+} from "@escaperoom/shared/schemas";
 import { resolveModel3D, type Models3DCatalog } from "@escaperoom/shared/packs";
 
 export interface NavInput {
@@ -121,29 +128,51 @@ function place(
   }
 }
 
+type CustomModels = World3D["models"] | Record<string, { size: Model3DSize; colliders: Collider3D[] }>;
+
+/**
+ * Geometría de una habitación a partir de sus partes sueltas, sin necesitar un
+ * `RoomPackage` completo (la usa el runtime, que solo tiene el `RuntimeModel`).
+ * `objects` son ya los que bloquean (specs/27 §5.1), con el modelo del estado inicial.
+ */
+export function buildNavInputFromParts(parts: {
+  pieces: readonly Piece3D[];
+  objects: readonly { modelId: string; transform: Transform3D }[];
+  catalog: Models3DCatalog | undefined;
+  customModels: CustomModels | undefined;
+}): NavInput {
+  const out = { positions: [] as number[], indices: [] as number[] };
+  const custom = parts.customModels as World3D["models"] | undefined;
+  for (const piece of parts.pieces) {
+    place(resolveModel3D(piece.model, parts.catalog, custom), piece, out);
+  }
+  for (const object of parts.objects) {
+    place(resolveModel3D(object.modelId, parts.catalog, custom), object.transform, out);
+  }
+  return { positions: Float32Array.from(out.positions), indices: Uint32Array.from(out.indices) };
+}
+
 /** Geometría de toda una habitación (specs/27 §5.1). */
 export function buildNavInput(
   pkg: RoomPackage,
   roomId: string,
   catalog: Models3DCatalog | undefined,
 ): NavInput {
-  const out = { positions: [] as number[], indices: [] as number[] };
-  const custom = pkg.world3d?.models;
-
-  for (const piece of pkg.world3d?.rooms[roomId]?.pieces ?? []) {
-    place(resolveModel3D(piece.model, catalog, custom), piece, out);
-  }
-
   const plateIds = new Set(
     pkg.puzzles.flatMap((p) => (p.type === "simultaneous_plates" ? p.plates.map((pl) => pl.objectId) : [])),
   );
+  const objects: { modelId: string; transform: Transform3D }[] = [];
   for (const object of pkg.objects) {
     if (object.roomId !== roomId || !object.transform) continue;
     if (object.type === "puerta" || object.leadsTo !== undefined || plateIds.has(object.id)) continue;
     const state = object.states[object.initialState];
     const modelId = (typeof state === "object" ? state.sprite : undefined) ?? object.sprite;
-    place(resolveModel3D(modelId, catalog, custom), object.transform, out);
+    objects.push({ modelId, transform: object.transform });
   }
-
-  return { positions: Float32Array.from(out.positions), indices: Uint32Array.from(out.indices) };
+  return buildNavInputFromParts({
+    pieces: pkg.world3d?.rooms[roomId]?.pieces ?? [],
+    objects,
+    catalog,
+    customModels: pkg.world3d?.models,
+  });
 }
