@@ -410,7 +410,7 @@ export class RoomRuntime3D {
     return true;
   }
 
-  /** Igual que el clic sobre un objeto: camina hasta él y emite `interact` (o `use-item`/`interact-direct` con ítem). */
+  /** Igual que el clic sobre un objeto: camina hasta él y emite `interact` (o `use-item` con ítem). */
   walkToObject(objectId: string, itemId?: string): void {
     if (this.observer || this.edit) return;
     this.interactWith(objectId, itemId);
@@ -1001,7 +1001,7 @@ export class RoomRuntime3D {
     for (const handler of [...this.highlightHandlers]) handler(objectId);
   }
 
-  /** Camina hasta el objeto y, al llegar, emite `interact` (o `use-item`/`interact-direct` con ítem). */
+  /** Camina hasta el objeto y, al llegar, emite `interact` (o `use-item` con ítem). */
   private interactWith(objectId: string, itemId?: string): void {
     if (!this.nav || !this.world || !this.isObjectInteractive(objectId)) return;
     const object = this.model.objectsById[objectId]!;
@@ -1042,10 +1042,8 @@ export class RoomRuntime3D {
     this.avatar?.playInteract();
     if (pending.itemId === undefined) {
       this.emit({ type: "interact", objectId: pending.objectId });
-    } else if (object?.useItemIds?.includes(pending.itemId)) {
-      this.emit({ type: "use-item", itemId: pending.itemId, objectId: pending.objectId });
     } else {
-      this.emit({ type: "interact-direct", objectId: pending.objectId });
+      this.emit({ type: "use-item", itemId: pending.itemId, objectId: pending.objectId });
     }
   }
 

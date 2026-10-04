@@ -298,7 +298,7 @@ altura). El jugador aparece en un `spawnPoint` de la habitación destino.
 `setObjectState`, `setPlayers`, `setLocalTint`, `setLocalCharacter`, `setInputEnabled`,
 `dropItemAt`, `onWorldEvent`, `setBackgroundColor`, `isObjectInteractive`,
 `getObjectScreenFraction`, `destroy`) y los mismos `WorldSceneEvent` (`interact`, `use-item`,
-`interact-direct`, `avatar-move` con `h` y `yaw`, `enter-room`). La capa React (HUD, paneles,
+`avatar-move` con `h` y `yaw`, `enter-room`). La capa React (HUD, paneles,
 `useSceneSync`) elige uno u otro según `model.dimension` y no cambia nada más.
 
 - **Render:** `MeshToonMaterial` con la luz del estilo (sol arriba-izquierda y ambiente) y
@@ -319,7 +319,7 @@ altura). El jugador aparece en un `spawnPoint` de la habitación destino.
 - **Resaltado:** el objeto interactuable más cercano a menos de 2 m y dentro de un cono de 120°
   frente al avatar se resalta con contorno. E, Espacio o el botón táctil lo seleccionan.
 - **Arrastrar del inventario:** `dropItemAt` lanza un rayo desde el punto de pantalla; si da en
-  un objeto interactuable, emite `use-item` o `interact-direct` con el mismo criterio que en 2D.
+  un objeto interactuable, emite siempre `use-item` (el HUD decide si tiene efecto), como en 2D.
 - **Táctil:** joystick virtual a la izquierda, botón «Interactuar» a la derecha, arrastrar en el
   resto de la pantalla gira la cámara y tocar hace de clic.
 - **Calidad:** alta o baja. Empieza en alta y baja sola si la media cae por debajo de 30 FPS

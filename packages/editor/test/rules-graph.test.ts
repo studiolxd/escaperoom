@@ -107,10 +107,10 @@ describe("grafo de reglas — crear la regla del brasero desde cero", () => {
 
     // 1. Nueva regla (botón de la barra): nace con un trigger por defecto y un id
     //    libre; en su nodo se renombra, se cambia el tipo y se rellena el campo.
-    const ruleId = createRule(doc, { id: nextRuleId(doc), trigger: defaultTrigger("on_interact") });
+    const ruleId = createRule(doc, { id: nextRuleId(doc), trigger: defaultTrigger("on_use_item") });
     renameRule(doc, ruleId, "r-encender-brasero");
     updateRule(doc, "r-encender-brasero", {
-      trigger: { ...defaultTrigger("on_interact"), objectId: "brasero" },
+      trigger: { ...defaultTrigger("on_use_item"), itemId: "antorcha", objectId: "brasero" },
     });
     const triggerNode = nodeById(graphOf(doc), triggerNodeId("r-encender-brasero"));
 

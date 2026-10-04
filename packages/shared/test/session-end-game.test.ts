@@ -49,7 +49,7 @@ function playToVictory(): Engine {
   grant("llave-bronce");
   dispatch({ type: "on_use_item", objectId: "armario", itemId: "llave-bronce", playerId: "p1" });
   grant("antorcha");
-  dispatch({ type: "on_interact", objectId: "brasero", playerId: "p1" });
+  dispatch({ type: "on_use_item", objectId: "brasero", itemId: "antorcha", playerId: "p1" });
 
   grant("caliz-real");
   grant("pergamino-bodega");
@@ -57,7 +57,7 @@ function playToVictory(): Engine {
 
   grant("llave-plata");
   solve(engine, "p-mural-vendimia", 0);
-  dispatch({ type: "on_interact", objectId: "mural-ranura", playerId: "p1" });
+  dispatch({ type: "on_use_item", objectId: "mural-ranura", itemId: "caliz-real", playerId: "p1" });
 
   solve(engine, "p-placas-estatuas", 0);
   dispatch({ type: "on_interact", objectId: "mural-ranura", playerId: "p1" });

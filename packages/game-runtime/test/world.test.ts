@@ -324,8 +324,9 @@ describe("inspección: diálogo por idioma con fallback (specs/04 §4)", () => {
     // vivo: distractor con imagen siempre disponible) — la primera regla que
     // deriva su inspección "representativa" pasa a ser esa.
     expect(inspectObject(model, "brasero")?.conditioned).toBe(false);
-    expect(inspectObject(model, "mural-ranura")?.conditioned).toBe(true);
-    expect(inspectObject(model, "mural-ranura")?.dialogId).toBe("d-ranura");
+    // La ranura: `r-caliz-en-ranura` (d-ranura) es ahora `on_use_item`, así que
+    // inspeccionarla ya no deriva ese diálogo (solo la recogida del cáliz).
+    expect(inspectObject(model, "mural-ranura")?.dialogId).toBeUndefined();
     expect(inspectObject(model, "arca-candado")?.dialogId).toBeUndefined();
   });
 
@@ -355,19 +356,18 @@ describe("loader: proyección de inspección sin filtrar secretos", () => {
     expect(model.objectsById["cuadro-aurelio"]?.inspectConditioned).toBeUndefined();
     expect(model.objectsById["vasijas"]?.inspectDialogId).toBe("d-vasijas");
     expect(model.objectsById["sarcofago"]?.inspectDialogId).toBe("d-sarcofago");
-    expect(model.objectsById["mural-ranura"]?.inspectDialogId).toBe("d-ranura");
+    expect(model.objectsById["mural-ranura"]?.inspectDialogId).toBeUndefined();
   });
 
   it("marca condicionadas las reglas que dependen del estado de la partida", () => {
     const model = loadFixtureModel();
     // El brasero: su regla de ambientación (sin condiciones) va primero, así
     // que la que representa su inspección ya no es la condicionada de
-    // encenderlo (ítem 6 de la revisión en vivo). `mural-ranura` sigue
-    // teniendo como primera regla una condicionada.
+    // encenderlo (ítem 6 de la revisión en vivo). `mural-ranura` tiene como
+    // única regla `on_interact` la condicionada de recoger el cáliz.
     expect(model.objectsById["brasero"]?.inspectDialogId).toBe("d-brasero-apagado");
     expect(model.objectsById["brasero"]?.inspectConditioned).toBeUndefined();
-    expect(model.objectsById["mural-ranura"]?.inspectDialogId).toBe("d-ranura");
-    expect(model.objectsById["mural-ranura"]?.inspectConditioned).toBe(true);
+    expect(model.objectsById["mural-ranura"]?.inspectDialogId).toBeUndefined();
   });
 
   it("no inventa inspección para objetos sin regla on_interact con diálogo", () => {

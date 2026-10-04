@@ -1628,3 +1628,39 @@ salas 2D. Fase 7 del plan (`plan/fase-7-modo-3d.md`). Crear salas 3D queda tras 
 `ROOMS_3D_ENABLED` (encendido por defecto desde 7.10b; `ROOMS_3D_ENABLED=false` lo apaga). El piloto es el Rey Aldric en 3D, como sala aparte
 y gratis. Quedan como deuda: techo, mundo continuo, navmesh que cambie con el estado de los
 objetos, los 7 personajes restantes en 3D y la conversión 2D→3D ofrecida a creadores.
+
+---
+
+## ADR-046 — Usar un objeto donde no tiene efecto muestra un aviso en lugar de inspeccionar; las mecánicas de «usar X en Y» se escriben con `on_use_item` (2026-10-05)
+
+**Contexto:** la revisión en vivo (juego-en-vivo, #192) hizo que «usar X sobre Y» (arrastrar X del
+inventario a Y, o «Usar objeto…» en el menú de Y) sin una regla `on_use_item` para ese par se
+convirtiera en «inspeccionar Y» (primero con el menú, después como `interact-direct`, directo y sin
+menú). Era un parche para dos salas del Rey Aldric (la antorcha sobre el brasero y el cáliz sobre
+la ranura del mural) que expresaban «usar X en Y» como «interactuar con Y llevando X»
+(`on_interact` + `item_in_inventory`). El efecto secundario: cualquier ítem soltado sobre cualquier
+objeto parecía hacer algo.
+
+**Decisión (del usuario):**
+
+- Usar X sobre Y solo hace algo si existe una regla `on_use_item` de X sobre Y, o si X es el
+  objeto-puente de esa placa/mirilla (`RuntimeObject.useItemIds`). En cualquier otro caso se
+  muestra «Esto no se puede usar aquí.» (`game.log.cannotUseHere`) y no pasa nada más: no se
+  llama al servidor ni se inspecciona.
+- Los dos runtimes (Phaser y Three) emiten siempre `use-item { itemId, objectId }` al soltar o usar
+  un ítem sobre un objeto; el evento `interact-direct` desaparece. Quien decide es el HUD
+  (`applyItemUse`).
+- «Usar objeto…» sigue ofreciendo todos los ítems del inventario: el jugador puede equivocarse.
+- Las salas que expresaban «usar X en Y» como «interactuar con Y llevando X» están mal escritas y se
+  corrigen: en el Rey Aldric, `r-encender-brasero` y `r-caliz-en-ranura` pasan a `on_use_item`
+  (condiciones y acciones intactas: la antorcha se sigue consumiendo y el cáliz no).
+- El validador avisa (`interact_requires_item`, warning) de una regla `on_interact` cuya condición
+  `item_in_inventory` tiene `consumed: true`, sugiriendo `on_use_item`.
+
+**Alternativas descartadas:** mantener la conversión a inspeccionar (esconde errores del jugador y
+del creador); hacer que el servidor rechace el uso (un viaje de red para un aviso que el cliente ya
+sabe dar).
+
+**Consecuencias:** revierte el criterio de la revisión en vivo sobre soltar ítems en objetos sin
+`on_use_item`. La ruta crítica del Rey Aldric cambia de «interactuar» a «usar» en esos dos pasos
+(tests del motor, de integración y E2E actualizados; fixture 3D regenerado con el conversor).

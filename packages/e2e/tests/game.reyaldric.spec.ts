@@ -82,7 +82,7 @@ async function playThroneRoom(a: UiPlayer, b: UiPlayer): Promise<void> {
     // 3. Combinar yesquero + antorcha apagada → antorcha
     await a.combine(["Yesquero", "Antorcha apagada"], "Antorcha encendida");
     // 4. Encender el brasero con la antorcha → dígito 3
-    await a.inspect("brasero");
+    await a.useItemOn("brasero", "Antorcha encendida");
     // 5. Candado del arca «4732» → cáliz + pergamino
     await a.openPanel("arca-candado");
     await a.typeCode("4732");
@@ -143,7 +143,9 @@ test("Rey Aldric: 2 jugadores completan la sala por clics y ven la victoria", as
     // 8. Examinar la llave de plata (receta de un ingrediente) → llave de oro
     await b.combine(["Llave de plata"], "Llave de oro");
     await b.expectItems("Llave de plata", "Llave de oro");
-    // 9. Cáliz en la ranura del mural (lore) y recuperarlo
+    // 9. Cáliz en la ranura del mural (usar el ítem sobre ella; no se gasta) y
+    // recuperarlo (inspeccionar la ranura)
+    await a.useItemOn("mural-ranura", "Cáliz real");
     await a.inspect("mural-ranura");
     await a.expectItems("Cáliz real");
     // 10. Memoria de copas, por turnos entre los dos

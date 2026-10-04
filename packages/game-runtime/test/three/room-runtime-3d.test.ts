@@ -96,11 +96,11 @@ describe("RoomRuntime3D (headless)", () => {
     runtime.destroy();
   });
 
-  it("con otro ítem emite `interact-direct`", async () => {
+  it("con cualquier otro ítem emite igualmente `use-item` (el HUD decide)", async () => {
     const { runtime, events } = await start();
     runtime.walkToObject("arca", "moneda");
     run(runtime, () => events.length > 0);
-    expect(events).toEqual([{ type: "interact-direct", objectId: "arca" }]);
+    expect(events).toEqual([{ type: "use-item", itemId: "moneda", objectId: "arca" }]);
     runtime.destroy();
   });
 

@@ -313,7 +313,7 @@ describe("panel del organizador con 2 grupos jugando", () => {
     // del brasero (cuadro, llave, yesquero, antorcha apagada) — hay que
     // repartirlo en otra ventana.
     await new Promise((resolve) => setTimeout(resolve, 1100));
-    ana.send(GAME_MESSAGES.interact, { objectId: "brasero" });
+    ana.send(GAME_MESSAGES.useItem, { itemId: "antorcha", objectId: "brasero" });
     await until(ana, (state) => state.flags.get("digito3") === "3");
     ana.send(GAME_MESSAGES.puzzleAttempt, {
       puzzleId: "p-candado-arca",
@@ -438,7 +438,7 @@ describe("modo observador", () => {
     // Límite de `interact` (4 msg/s, specs/11 §9): repartir el del brasero en
     // otra ventana, como en el guion de arriba.
     await new Promise((resolve) => setTimeout(resolve, 1100));
-    ana.send(GAME_MESSAGES.interact, { objectId: "brasero" });
+    ana.send(GAME_MESSAGES.useItem, { itemId: "antorcha", objectId: "brasero" });
     await until(ana, (state) => state.flags.get("digito3") === "3");
     const view = next(ana, GAME_MESSAGES.puzzleView);
     ana.send(GAME_MESSAGES.puzzleOpen, { puzzleId: "p-candado-arca" });

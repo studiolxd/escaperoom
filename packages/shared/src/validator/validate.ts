@@ -8,6 +8,7 @@ import {
   checkCodeLockUnlimitedLockout,
   checkCooperativeBridges,
   checkGeometry,
+  checkInteractRequiresItem,
   checkReferences,
   checkSpawnCapacity,
   checkStructuralInvariants,
@@ -150,6 +151,7 @@ export function validateRoomPackage(
     structureCheck(pkg),
     spawnCapacityCheck(pkg),
     codeLockUnlimitedLockoutCheck(pkg),
+    interactRequiresItemCheck(pkg),
     orphansCheck(
       index,
       closures.map((closure) => closure.state),
@@ -480,6 +482,17 @@ function codeLockUnlimitedLockoutCheck(pkg: RoomPackage): ValidationCheck {
     issues,
     "Sin candados ilimitados con lockoutSec muerto",
     `Candados sin límite con lockoutSec que nunca se aplica: ${issues.map((issue) => issue.ids[0]).join(", ")}`,
+  );
+}
+
+function interactRequiresItemCheck(pkg: RoomPackage): ValidationCheck {
+  const issues = checkInteractRequiresItem(pkg);
+  return check(
+    "interact_requires_item",
+    "warning",
+    issues,
+    "Sin reglas on_interact que gasten un ítem (usar X sobre Y se escribe con on_use_item)",
+    `Reglas on_interact que gastan un ítem: ${issues.map((issue) => issue.ids[0]).join(", ")}`,
   );
 }
 

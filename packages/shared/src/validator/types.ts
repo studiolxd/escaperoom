@@ -17,6 +17,7 @@ export type ValidationCheckId =
   | "structure"
   | "spawn_capacity"
   | "code_lock_unlimited_lockout"
+  | "interact_requires_item"
   | "orphans"
   | "dead_ends"
   | "solvability"

@@ -38,6 +38,8 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
     dispatch({ type: "on_interact", objectId: "antorcha-apagada-suelo", playerId: "p1" });
     grant("antorcha");
     dispatch({ type: "on_interact", objectId: "brasero", playerId: "p1" });
+    // Encender el brasero es «usar la antorcha sobre él» (on_use_item), no interactuar.
+    dispatch({ type: "on_use_item", objectId: "brasero", itemId: "antorcha", playerId: "p1" });
 
     expect(order).toEqual([
       "r-inicio",
@@ -70,6 +72,7 @@ describe("motor de reglas — Salón del Rey Aldric", () => {
     );
     engine.grantItem("antorcha", "interactor", 0);
     engine.dispatch({ type: "on_interact", objectId: "brasero", playerId: "p1" }, 0);
+    engine.dispatch({ type: "on_use_item", objectId: "brasero", itemId: "antorcha", playerId: "p1" }, 0);
 
     const before = engine.snapshot();
     const replay: string[] = [];
@@ -119,6 +122,7 @@ describe("motor de reglas — ruta crítica del Rey Aldric", () => {
     );
     grant("antorcha", 0);
     dispatch({ type: "on_interact", objectId: "brasero", playerId: "p1" }, 0);
+    dispatch({ type: "on_use_item", objectId: "brasero", itemId: "antorcha", playerId: "p1" }, 0);
 
     grant("caliz-real", 0);
     grant("pergamino-bodega", 0);
@@ -126,7 +130,7 @@ describe("motor de reglas — ruta crítica del Rey Aldric", () => {
 
     grant("llave-plata", 0);
     dispatch({ type: "on_puzzle_solved", puzzleId: "p-mural-vendimia", playerId: "p1" }, 0);
-    dispatch({ type: "on_interact", objectId: "mural-ranura", playerId: "p1" }, 0);
+    dispatch({ type: "on_use_item", objectId: "mural-ranura", itemId: "caliz-real", playerId: "p1" }, 0);
 
     engine.state.puzzleStates["p-placas-estatuas"] = { state: "solved", attempts: 1, solvedAt: 0 };
     dispatch({ type: "on_interact", objectId: "mural-ranura", playerId: "p1" }, 0);

@@ -455,11 +455,11 @@ describe("E2E de protocolo — Rey Aldric con 2 clientes de Colyseus", () => {
     );
     expect(torch).toMatchObject({ ok: true, output: "antorcha" });
     await hasItems(a, ["antorcha"]);
-    // 4. Encender el brasero → dígito 3 visible. Límite de `interact` (4
-    // msg/s, specs/11 §9): ya van 4 antes de este (cuadro, llave, yesquero,
-    // antorcha apagada) — hay que repartirlo en otra ventana.
+    // 4. Encender el brasero (usar la antorcha sobre él) → dígito 3 visible.
+    // Se reparte en otra ventana de rate limit, como antes con `interact`.
     await new Promise((resolve) => setTimeout(resolve, 1100));
     a.client.send(GAME_MESSAGES.interact, { objectId: "brasero" });
+    a.client.send(GAME_MESSAGES.useItem, { itemId: "antorcha", objectId: "brasero" });
     await until(a, (state) => state.flags.get("digito3") === "3");
     // 5. Candado del arca "4732" → cáliz + pergamino
     expect(await attempt(a, "p-candado-arca", { code: "4732" })).toMatchObject({
@@ -497,10 +497,12 @@ describe("E2E de protocolo — Rey Aldric con 2 clientes de Colyseus", () => {
     );
     expect(goldKey).toMatchObject({ ok: true, outcome: "combined", output: "llave-oro" });
     await hasItems(b, ["llave-plata", "llave-oro"]);
-    // 9. Cáliz en la ranura del mural (lore) y recuperarlo (r-recoger-caliz)
+    // 9. Cáliz en la ranura del mural (usarlo sobre ella; no se gasta) y
+    // recuperarlo (inspeccionar la ranura: r-recoger-caliz)
     const ranura = next(a, GAME_MESSAGES.dialogShow);
-    a.client.send(GAME_MESSAGES.interact, { objectId: "mural-ranura" });
+    a.client.send(GAME_MESSAGES.useItem, { itemId: "caliz-real", objectId: "mural-ranura" });
     expect(await ranura).toEqual({ dialogId: "d-ranura" });
+    a.client.send(GAME_MESSAGES.interact, { objectId: "mural-ranura" });
     await hasItems(a, ["caliz-real"]);
     // 10. Copas de memoria (3 pares) → dígito 3 + antorchas de la escalera
     await solveMemory([a, b]);

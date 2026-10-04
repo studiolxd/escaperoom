@@ -899,3 +899,27 @@ export function checkCodeLockUnlimitedLockout(pkg: RoomPackage): ValidationIssue
   }
   return issues;
 }
+
+/**
+ * Regla `on_interact` sobre un objeto cuya condición `item_in_inventory` gasta
+ * un ítem (`consumed: true`): suele ser «usar X sobre Y» mal escrito como
+ * «interactuar con Y llevando X». En el juego, arrastrar X sobre Y solo hace
+ * algo con una regla `on_use_item` (o un objeto-puente), así que el jugador
+ * recibiría «Esto no se puede usar aquí».
+ */
+export function checkInteractRequiresItem(pkg: RoomPackage): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  for (const rule of pkg.rules) {
+    if (rule.trigger.type !== "on_interact") continue;
+    const objectId = rule.trigger.objectId;
+    for (const condition of rule.conditions) {
+      if (condition.type !== "item_in_inventory" || condition.consumed !== true) continue;
+      issues.push({
+        code: "interact_requires_item",
+        message: `La regla «${rule.id}» se activa al interactuar con «${objectId}» llevando «${condition.itemId}». Si la idea es usar «${condition.itemId}» sobre «${objectId}», usa el disparador «al usar un objeto» (on_use_item): arrastrar «${condition.itemId}» sobre «${objectId}» dará «Esto no se puede usar aquí».`,
+        ids: [rule.id, objectId, condition.itemId],
+      });
+    }
+  }
+  return issues;
+}

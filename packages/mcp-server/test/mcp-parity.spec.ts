@@ -253,11 +253,7 @@ describe("paridad editor ↔ MCP: el Rey Aldric construido por MCP (4.8)", () =>
     // Las habitaciones sí conservan el orden (el primer spawn es el del salón).
     expect(pkg.map.rooms.map((room) => room.id)).toEqual(aldric.map.rooms.map((room) => room.id));
     // Desempates por posición entre reglas del mismo disparador: mismo orden.
-    // (r-caliz-en-ranura antes que r-recoger-caliz: ambas al interactuar con la ranura).
-    expect(Object.values(ruleTieGroups(aldric.rules))).toContainEqual([
-      "r-caliz-en-ranura",
-      "r-recoger-caliz",
-    ]);
+    // (r-caliz-en-ranura es ahora on_use_item: ya no comparte grupo con r-recoger-caliz).
     expect(ruleTieGroups(pkg.rules)).toEqual(ruleTieGroups(aldric.rules));
   });
 

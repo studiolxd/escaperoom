@@ -130,7 +130,7 @@ acciones. Las reglas se serializan como:
   "id": "rule-encender-brasero",
   "priority": 0,
   "once": true,
-  "trigger": { "type": "on_interact", "objectId": "brasero" },
+  "trigger": { "type": "on_use_item", "itemId": "antorcha", "objectId": "brasero" },
   "conditions": [{ "type": "item_in_inventory", "itemId": "antorcha", "consumed": true }],
   "actions": [
     { "type": "set_object_state", "objectId": "brasero", "state": "lit" },

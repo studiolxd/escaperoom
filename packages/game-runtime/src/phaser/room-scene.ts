@@ -1123,19 +1123,10 @@ export class RoomScene extends Phaser.Scene {
       this.path = [];
       const itemId = this.pendingItemId;
       this.pendingItemId = undefined;
-      // Sin una regla `on_use_item` real para este ítem, "usarlo" no
-      // dispara nada por sí solo (revisión en vivo, p. ej. la antorcha
-      // sobre el brasero: su mecánica es "tenerla en el inventario e
-      // interactuar", no "usarla sobre el objeto"). Interactuar en su
-      // lugar deja que la condición del propio objeto la consuma, el mismo
-      // resultado que clicarlo con el ítem ya en el inventario — pero
-      // DIRECTO, sin abrir el menú a elegir Inspeccionar/Usar objeto: al
-      // soltar el ítem aquí la persona ya dijo lo que quería hacer, el
-      // menú era una elección de más (revisión en vivo).
-      if (itemId && object.useItemIds?.includes(itemId)) {
+      // Soltar un ítem sobre un objeto emite SIEMPRE `use-item`: la capa
+      // React decide si tiene efecto (`useItemIds`) o muestra un aviso.
+      if (itemId) {
         this.emit({ type: "use-item", itemId, objectId });
-      } else if (itemId) {
-        this.emit({ type: "interact-direct", objectId });
       } else {
         this.inspectObjectById(objectId);
       }
@@ -1548,13 +1539,8 @@ export class RoomScene extends Phaser.Scene {
       findPath(this.avatar.gridCell, approach, (x, y) => this.collision.isWalkable(x, y));
     if (!path) {
       // Sin ruta real hasta ninguna celda de acercamiento: mejor intentarlo
-      // a distancia que dejarlo sin efecto (mismo criterio de
-      // `useItemIds` que en `resolvePendingInteraction`).
-      if (object.useItemIds?.includes(itemId)) {
-        this.emit({ type: "use-item", itemId, objectId: target });
-      } else {
-        this.emit({ type: "interact-direct", objectId: target });
-      }
+      // a distancia que dejarlo sin efecto.
+      this.emit({ type: "use-item", itemId, objectId: target });
       return target;
     }
     this.pendingObjectId = target;

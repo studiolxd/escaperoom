@@ -5,6 +5,7 @@ const ICON: Record<ValidationStatus, string> = { ok: "✅", warning: "🟡", err
 /** Checks que solo aparecen en el texto cuando encuentran algo. */
 const SILENT_WHEN_PASSED = new Set([
   "references",
+  "interact_requires_item",
   "double_use",
   "puzzle_hints",
   "recipe_consumption",

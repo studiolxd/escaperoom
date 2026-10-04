@@ -166,6 +166,7 @@
       "solved": "Résolu : {puzzle}",
       "roomLocked": "La porte est encore fermée",
       "rateLimited": "Tu vas trop vite : attends un instant",
+      "cannotUseHere": "Impossible d’utiliser cela ici.",
       "rejected": "Impossible de faire cela ici"
     }
   },
