@@ -119,10 +119,10 @@ describe("catálogo de modelos 3D", () => {
   it("las categorías siguen el reparto del brief: cada familia en la suya", () => {
     const real = getModels3DCatalog("medieval-v1")!;
     const cat = (id: string) => real.models[id]?.category;
-    for (const id of ["llave-bronce-suelo", "yesquero-suelo", "antorcha-apagada-suelo", "placa-arriba", "vasijas-8"]) expect(cat(id), id).toBe("suelto");
+    for (const id of ["llave-bronce-suelo", "yesquero-suelo", "antorcha-apagada-suelo", "placa-arriba"]) expect(cat(id), id).toBe("suelto");
     for (const id of ["puerta-cerrada", "reja-abierta", "compuerta-cerrada", "canal", "canal-tramo", "columna", "escalon", "umbral"]) expect(cat(id), id).toBe("estructura");
     for (const id of ["antorcha", "cuadro-rey", "cuadro-rey-torcido", "tapiz-dragones", "estandarte", "mural-completo", "compartimento-abierto", "ranura-con-caliz"]) expect(cat(id), id).toBe("pared");
-    for (const id of ["arca-cerrada", "armario-abierto", "brasero-encendido", "trono", "mesa-activa", "sarcofago", "altar-con-agua", "relicario-sellado"]) expect(cat(id), id).toBe("mueble");
+    for (const id of ["arca-cerrada", "armario-abierto", "brasero-encendido", "trono", "mesa-activa", "sarcofago", "altar-con-agua", "relicario-sellado", "vasijas-8"]) expect(cat(id), id).toBe("mueble");
   });
 
   it("los estados abiertos y el brasero encendido bloquean con la caja del estado cerrado; puertas, rejas, pared y suelto no bloquean", () => {

@@ -45,10 +45,10 @@
     "columna-capital": {"category":"estructura","label":{"es":"Capitel de columna","en":"Column capital"},"group":"columna-capital","size":{"w":0.62,"d":0.62,"hgt":0.34},"centro":{"cx":0,"cy":0,"ch":0.17}},
     "placa-arriba": {"category":"suelto","label":{"es":"Placa de piedra","en":"Stone plate"},"group":"placa","colliders":[],"size":{"w":0.78,"d":0.78,"hgt":0.077},"centro":{"cx":0,"cy":0,"ch":0.039}},
     "placa-hundida": {"category":"suelto","label":{"es":"Placa de piedra hundida","en":"Pressed stone plate"},"group":"placa","colliders":[],"size":{"w":0.78,"d":0.78,"hgt":0.075},"centro":{"cx":0,"cy":0,"ch":-0.015}},
-    "vasijas-8": {"category":"suelto","label":{"es":"Vasijas","en":"Jars"},"group":"vasijas","colliders":[],"size":{"w":2.2,"d":1.162,"hgt":0.896},"centro":{"cx":0,"cy":0,"ch":0.448}},
-    "llave-bronce-suelo": {"category":"suelto","label":{"es":"Llave de bronce","en":"Bronze key"},"colliders":[],"size":{"w":0.131,"d":0.25,"hgt":0.047},"centro":{"cx":0,"cy":0,"ch":0.024}},
+    "vasijas-8": {"category":"mueble","label":{"es":"Vasijas","en":"Jars"},"group":"vasijas","size":{"w":2.2,"d":1.162,"hgt":0.896},"centro":{"cx":0,"cy":0,"ch":0.448}},
+    "llave-bronce-suelo": {"category":"suelto","label":{"es":"Llave de bronce","en":"Bronze key"},"colliders":[],"size":{"w":0.158,"d":0.3,"hgt":0.057},"centro":{"cx":0,"cy":0,"ch":0.028}},
     "yesquero-suelo": {"category":"suelto","label":{"es":"Yesquero","en":"Tinderbox"},"colliders":[],"size":{"w":0.139,"d":0.25,"hgt":0.067},"centro":{"cx":0,"cy":0,"ch":0.034}},
-    "antorcha-apagada-suelo": {"category":"suelto","label":{"es":"Antorcha apagada","en":"Unlit torch"},"colliders":[],"size":{"w":0.054,"d":0.25,"hgt":0.052},"centro":{"cx":0,"cy":0,"ch":0.026}},
+    "antorcha-apagada-suelo": {"category":"suelto","label":{"es":"Antorcha apagada","en":"Unlit torch"},"colliders":[],"size":{"w":0.131,"d":0.6,"hgt":0.125},"centro":{"cx":0,"cy":0,"ch":0.062}},
     "antorcha": {"category":"pared","label":{"es":"Antorcha","en":"Torch"},"group":"antorcha","colliders":[],"size":{"w":0.126,"d":0.367,"hgt":0.829},"centro":{"cx":0,"cy":0,"ch":0.415}},
     "cuadro-rey": {"category":"pared","label":{"es":"Cuadro del rey","en":"King's portrait"},"group":"cuadro-rey","colliders":[],"size":{"w":1.085,"d":0.06,"hgt":1.15},"centro":{"cx":0,"cy":0.03,"ch":1.3}},
     "cuadro-rey-torcido": {"category":"pared","label":{"es":"Cuadro del rey torcido","en":"Crooked king's portrait"},"group":"cuadro-rey","colliders":[],"size":{"w":1.331,"d":0.06,"hgt":1.378},"centro":{"cx":-0.139,"cy":0.03,"ch":1.317}},
@@ -72,9 +72,9 @@
     "placa-piedra": "placa-arriba"
   },
   "suelo": {
-    "llave-bronce-suelo": {"glb":"objetos/llave/tripo.glb","largo":0.25},
+    "llave-bronce-suelo": {"glb":"objetos/llave/tripo.glb","largo":0.3},
     "yesquero-suelo": {"glb":"objetos/yesquero/tripo.glb","largo":0.25},
-    "antorcha-apagada-suelo": {"glb":"objetos/antorcha-apagada/tripo.glb","largo":0.25}
+    "antorcha-apagada-suelo": {"glb":"objetos/antorcha-apagada/tripo.glb","largo":0.6}
   },
   "sprites2d": {
     "altar": {"model":"altar-seco","yaw":0},

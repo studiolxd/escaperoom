@@ -99,9 +99,9 @@
         }
       },
       "size": {
-        "d": 0.25,
-        "hgt": 0.052,
-        "w": 0.054
+        "d": 0.6,
+        "hgt": 0.125,
+        "w": 0.131
       },
       "snap": false
     },
@@ -832,9 +832,9 @@
         }
       },
       "size": {
-        "d": 0.25,
-        "hgt": 0.047,
-        "w": 0.131
+        "d": 0.3,
+        "hgt": 0.057,
+        "w": 0.158
       },
       "snap": false
     },
@@ -1708,9 +1708,19 @@
       "snap": true
     },
     "vasijas-8": {
-      "category": "suelto",
+      "category": "mueble",
       "clips": [],
-      "colliders": [],
+      "colliders": [
+        {
+          "ch": 0.448,
+          "cx": 0,
+          "cy": 0,
+          "sh": 0.896,
+          "sx": 2.2,
+          "sy": 1.162,
+          "type": "box"
+        }
+      ],
       "file": "models/vasijas-8.glb",
       "group": "vasijas",
       "label": {
