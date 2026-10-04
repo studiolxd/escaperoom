@@ -1,6 +1,12 @@
 import * as Y from "yjs";
 import { DEFAULT_ROOM_TIME_LIMIT_MINUTES } from "@escaperoom/shared/schemas";
-import type { Position, RoomPackageMeta, WorldObject } from "@escaperoom/shared/schemas";
+import { positionFromTransform } from "@escaperoom/shared/schemas";
+import type {
+  Position,
+  RoomDimension,
+  RoomPackageMeta,
+  WorldObject,
+} from "@escaperoom/shared/schemas";
 import { initRoomLanguages } from "../i18n-fields/room-languages";
 import {
   ROOM_DOC_KEYS,
@@ -11,6 +17,7 @@ import {
   writeRoomDocFormat,
   type RecordMap,
 } from "./doc-model";
+import { assertInside3D } from "./commands3d";
 import { DEFAULT_PACKAGE_FORMAT, buildSubRoomRecord, readLayerTiles } from "./serialize";
 import { tileKey } from "./tiles";
 
@@ -36,6 +43,9 @@ export type RoomDocErrorCode =
   | "UNKNOWN_DECORATION"
   | "UNKNOWN_LIGHT"
   | "INVALID_VALUE"
+  /** Comando de una dimensión usado en una sala de la otra (specs/27 §3.3). */
+  | "WRONG_DIMENSION"
+  | "UNKNOWN_PIECE"
   /** Segundo lobby, o lobby como única habitación (encargo lobby-diseño). */
   | "LOBBY_CONFLICT";
 
@@ -49,6 +59,18 @@ export class RoomDocError extends Error {
 }
 
 export type Cell = { x: number; y: number };
+
+/** Dimensión de la sala del doc (`meta.dimension`); ausente = `"2d"`. */
+export function roomDimension(doc: Y.Doc): RoomDimension {
+  return doc.getMap<unknown>(ROOM_DOC_KEYS.meta).get("dimension") === "3d" ? "3d" : "2d";
+}
+
+/** Lanza `WRONG_DIMENSION` si la sala no es de la dimensión esperada. */
+export function assertDimension(doc: Y.Doc, expected: RoomDimension, what: string): void {
+  if (roomDimension(doc) !== expected) {
+    throw new RoomDocError("WRONG_DIMENSION", `${what} solo existe en salas ${expected}`);
+  }
+}
 
 /** Entrada de la habitación interna, o `UNKNOWN_ROOM`. */
 export function subRoom(doc: Y.Doc, roomId: string): RecordMap {
@@ -125,6 +147,7 @@ export function paintTiles(
 ): number {
   let changed = 0;
   doc.transact(() => {
+    assertDimension(doc, "2d", "paintTiles");
     const room = subRoom(doc, roomId);
     const inside = cells.filter((cell) => isCellInRoom(doc, roomId, cell));
     if (inside.length === 0) return;
@@ -142,6 +165,7 @@ export function eraseTiles(
   layer: string,
   cells: readonly Cell[],
 ): number {
+  assertDimension(doc, "2d", "eraseTiles");
   return paintTiles(doc, roomId, layer, cells, 0);
 }
 
@@ -156,6 +180,7 @@ export function fillTiles(
   origin: Cell,
   tileId: number,
 ): number {
+  assertDimension(doc, "2d", "fillTiles");
   if (!isCellInRoom(doc, roomId, origin)) return 0;
   const room = subRoom(doc, roomId);
   const { cols, rows } = gridOf(room);
@@ -266,6 +291,7 @@ export function assertFreeId(doc: Y.Doc, id: string): void {
 export function placeObject(doc: Y.Doc, input: PlaceObjectInput): string {
   const id = input.id ?? proposeObjectId(doc, input.sprite, input.roomId);
   doc.transact(() => {
+    assertDimension(doc, "2d", "placeObject");
     subRoom(doc, input.roomId);
     assertInside(doc, input.roomId, input.position);
     assertFreeId(doc, id);
@@ -298,7 +324,18 @@ export function addObject(
   let replaced = false;
   doc.transact(() => {
     subRoom(doc, object.roomId);
-    assertInside(doc, object.roomId, object.position);
+    if (roomDimension(doc) === "3d") {
+      if (!object.transform) {
+        throw new RoomDocError(
+          "INVALID_VALUE",
+          `El objeto "${object.id}" necesita «transform» en una sala 3D`,
+        );
+      }
+      assertInside3D(doc, object.roomId, object.transform);
+      object = { ...object, position: positionFromTransform(object.transform) };
+    } else {
+      assertInside(doc, object.roomId, object.position);
+    }
     const objects = collection(doc, "objects");
     const existing = objects.get(object.id);
     if (existing && opts.replace) {
@@ -331,6 +368,7 @@ export function readObject(doc: Y.Doc, id: string): WorldObject | undefined {
 export function moveObject(doc: Y.Doc, id: string, position: Cell, roomId?: string): boolean {
   let moved = false;
   doc.transact(() => {
+    assertDimension(doc, "2d", "moveObject");
     const record = objectRecord(doc, id);
     const targetRoom = roomId ?? String(record.get("roomId"));
     subRoom(doc, targetRoom);
@@ -369,6 +407,9 @@ export function findIdReferences(doc: Y.Doc, id: string): string[] {
   };
   for (const root of Object.values(ROOM_DOC_KEYS)) {
     if (root === ROOM_DOC_KEYS.meta) continue;
+    // Piezas y modelos 3D tienen espacios de id propios (`model` es un id de modelo, no una
+    // referencia a un objeto): no deben bloquear el renombrado de un objeto que se llame igual.
+    if (root === ROOM_DOC_KEYS.pieces3d || root === ROOM_DOC_KEYS.models3d) continue;
     const map = doc.getMap<unknown>(root);
     for (const [key, value] of map.entries()) {
       if (root === ROOM_DOC_KEYS.objects && key === id) continue;
@@ -443,6 +484,8 @@ export function writeRoomMeta(doc: Y.Doc, input: RoomMetaInput): void {
     );
     meta.set("difficulty", input.difficulty ?? 2);
     meta.set("players", { ...(input.players ?? { min: 1, max: 4 }) });
+    // Solo las salas 3D llevan la clave (ausente = 2D); no hay comando que la cambie.
+    if (input.dimension === "3d") meta.set("dimension", "3d");
     meta.set("assetsManifest", input.assetsManifest ?? packAssetsManifest(DEFAULT_TILESET));
     initRoomLanguages(doc, input.languages, input.defaultLanguage);
     writeRoomDocFormat(doc);

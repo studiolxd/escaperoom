@@ -7,6 +7,7 @@ export * from "./doc-model";
 export * from "./migrate";
 export * from "./serialize";
 export * from "./commands";
+export * from "./commands3d";
 export * from "./decor";
 export * from "./content";
 export * from "./logic";

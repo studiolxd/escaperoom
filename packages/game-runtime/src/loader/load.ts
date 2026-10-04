@@ -1,10 +1,13 @@
 import {
   DEFAULT_ROOM_TIME_LIMIT_MINUTES,
+  MAX_WORLD3D_HEIGHT,
   RoomPackageSchema,
+  dimensionOf,
   initialRoomOf,
   lobbyRoomOf,
   formatRoomPackageError,
   toReadableIssues,
+  type Piece3D,
   type PuzzleDefinition,
   type RoomPackage,
   type Rule,
@@ -106,6 +109,7 @@ export function toRuntimeModel(
   options: ToRuntimeModelOptions = {},
 ): RuntimeModel {
   const { meta, map } = roomPackage;
+  const dimension = dimensionOf(meta);
   const locale = options.locale ?? meta.defaultLanguage;
 
   const subrooms: RuntimeSubRoom[] = [];
@@ -118,7 +122,11 @@ export function toRuntimeModel(
       );
     }
 
-    const runtimeRoom = toRuntimeSubRoom(room);
+    const runtimeRoom = toRuntimeSubRoom(
+      room,
+      dimension,
+      dimension === "3d" ? (roomPackage.world3d?.rooms[room.id]?.pieces ?? []) : [],
+    );
     subrooms.push(runtimeRoom);
     subroomsById[room.id] = runtimeRoom;
   }
@@ -143,7 +151,12 @@ export function toRuntimeModel(
         `RoomPackage inválido: el objeto "${object.id}" referencia la habitación "${object.roomId}", que no existe en map.rooms.`,
       );
     }
-    assertInGrid(room, object.position.x, object.position.y, `el objeto "${object.id}"`);
+    if (dimension === "3d") {
+      const at = object.transform ?? object.position;
+      assertInBox3D(room, at.x, at.y, object.transform?.h ?? 0, `el objeto "${object.id}"`);
+    } else {
+      assertInGrid(room, object.position.x, object.position.y, `el objeto "${object.id}"`);
+    }
     if (objectsById[object.id]) {
       throw new RoomPackageLoadError(
         `RoomPackage inválido: hay más de un objeto con el id "${object.id}". Los ids de objeto deben ser únicos.`,
@@ -217,6 +230,8 @@ export function toRuntimeModel(
       timeLimitMinutes:
         meta.timeLimitMinutes === undefined ? DEFAULT_ROOM_TIME_LIMIT_MINUTES : meta.timeLimitMinutes,
     },
+    dimension,
+    customModels: dimension === "3d" ? customModelsOf(roomPackage) : {},
     locale,
     initialRoomId: initialRoomOf(map)?.id ?? subrooms[0]?.id ?? "",
     ...(lobbyRoomOf(map) ? { lobbyRoomId: lobbyRoomOf(map)!.id } : {}),
@@ -361,7 +376,24 @@ function panelForObject(roomPackage: RoomPackage, object: WorldObject): string |
 // (idioma pedido → primera entrada).
 export { resolveLocalizedText };
 
-function toRuntimeSubRoom(room: SubRoom): RuntimeSubRoom {
+function customModelsOf(roomPackage: RoomPackage): RuntimeModel["customModels"] {
+  const out: RuntimeModel["customModels"] = {};
+  for (const [id, model] of Object.entries(roomPackage.world3d?.models ?? {})) {
+    out[id] = {
+      ref: model.ref,
+      size: model.size,
+      colliders: model.colliders,
+      clips: model.clips,
+    };
+  }
+  return out;
+}
+
+function toRuntimeSubRoom(
+  room: SubRoom,
+  dimension: "2d" | "3d",
+  pieces: Piece3D[],
+): RuntimeSubRoom {
   const { cols, rows } = room.grid;
   const cells = cols * rows;
 
@@ -371,9 +403,21 @@ function toRuntimeSubRoom(room: SubRoom): RuntimeSubRoom {
   }));
 
   const spawns = room.spawnPoints.map((spawn, index) => {
-    assertInGridById(room.id, cols, rows, spawn.x, spawn.y, `el punto de aparición "${spawn.id}"`);
-    return { id: spawn.id, x: spawn.x, y: spawn.y, playerIndex: index + 1 };
+    const what = `el punto de aparición "${spawn.id}"`;
+    if (dimension === "3d") assertInBox3DById(room.id, cols, rows, spawn.x, spawn.y, spawn.h ?? 0, what);
+    else assertInGridById(room.id, cols, rows, spawn.x, spawn.y, what);
+    return {
+      id: spawn.id,
+      x: spawn.x,
+      y: spawn.y,
+      h: spawn.h ?? 0,
+      yaw: spawn.yaw ?? 0,
+      playerIndex: index + 1,
+    };
   });
+  for (const piece of pieces) {
+    assertInBox3DById(room.id, cols, rows, piece.x, piece.y, piece.h, `la pieza "${piece.id}"`);
+  }
 
   return {
     id: room.id,
@@ -391,6 +435,7 @@ function toRuntimeSubRoom(room: SubRoom): RuntimeSubRoom {
     spawns,
     lighting: room.lighting.map(toRuntimeLight),
     objects: [],
+    pieces: dimension === "3d" ? pieces : [],
   };
 }
 
@@ -400,6 +445,7 @@ function toRuntimeLight(light: SubRoom["lighting"][number]): RuntimeLight {
       type: "torch",
       x: light.x,
       y: light.y,
+      ...(light.h !== undefined ? { h: light.h } : {}),
       ...(light.objectId ? { objectId: light.objectId } : {}),
     };
   }
@@ -433,6 +479,7 @@ function toRuntimeObject(object: WorldObject, inspection?: DerivedInspection): R
     roomId: object.roomId,
     type: object.type,
     position: object.position,
+    ...(object.transform ? { transform: object.transform } : {}),
     sprite: resolveStateSprite(object.states[object.initialState], object.sprite),
     states,
     spriteByState,
@@ -606,6 +653,27 @@ function assertInGridById(
   if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= width || y >= height) {
     throw new RoomPackageLoadError(
       `RoomPackage inválido: ${what} está en (${x}, ${y}), fuera de la rejilla ${width}×${height} de la habitación "${roomId}".`,
+    );
+  }
+}
+
+/** Modo 3D: la caja de la habitación es continua (`0 ≤ x ≤ cols`, `0 ≤ y ≤ rows`, `0 ≤ h ≤ 32`). */
+function assertInBox3D(room: RuntimeSubRoom, x: number, y: number, h: number, what: string): void {
+  assertInBox3DById(room.id, room.width, room.height, x, y, h, what);
+}
+
+function assertInBox3DById(
+  roomId: string,
+  width: number,
+  height: number,
+  x: number,
+  y: number,
+  h: number,
+  what: string,
+): void {
+  if (!(x >= 0 && x <= width && y >= 0 && y <= height && h >= 0 && h <= MAX_WORLD3D_HEIGHT)) {
+    throw new RoomPackageLoadError(
+      `RoomPackage inválido: ${what} está en (${x}, ${y}, h ${h}), fuera de la caja ${width}×${height} m (altura máxima ${MAX_WORLD3D_HEIGHT} m) de la habitación "${roomId}".`,
     );
   }
 }

@@ -1,5 +1,9 @@
 import type {
+  Collider3D,
   DialogDef,
+  Model3DSize,
+  Piece3D,
+  Transform3D,
   LocalizedText,
   Position,
   PuzzleDefinition,
@@ -36,6 +40,10 @@ export interface RuntimeSpawn {
   id: string;
   x: number;
   y: number;
+  /** Altura (modo 3D); `0` si falta. */
+  h: number;
+  /** Giro en grados (modo 3D); `0` si falta. */
+  yaw: number;
   playerIndex: number;
 }
 
@@ -43,6 +51,8 @@ export interface RuntimeTorchLight {
   type: "torch";
   x: number;
   y: number;
+  /** Altura de la antorcha (modo 3D); ausente = el valor por defecto del runtime. */
+  h?: number;
   objectId?: string;
 }
 
@@ -77,6 +87,8 @@ export interface RuntimeObject {
   roomId: string;
   type: string;
   position: Position;
+  /** Colocación libre (modo 3D, specs/27 §3); ausente en 2D. */
+  transform?: Transform3D;
   sprite: string;
   /**
    * Nombre visible resuelto al idioma activo (F-27): el propio del objeto o,
@@ -209,6 +221,8 @@ export interface RuntimeSubRoom {
   spawns: RuntimeSpawn[];
   lighting: RuntimeLight[];
   objects: RuntimeObject[];
+  /** Piezas de arquitectura/decoración (modo 3D); `[]` en 2D. */
+  pieces: Piece3D[];
 }
 
 export interface RuntimeMeta {
@@ -230,6 +244,12 @@ export interface RuntimeMeta {
 
 export interface RuntimeModel {
   meta: RuntimeMeta;
+  dimension: "2d" | "3d";
+  /** Modelos propios de la sala (specs/27 §9); `{}` en 2D. */
+  customModels: Record<
+    string,
+    { ref: string; size: Model3DSize; colliders: Collider3D[]; clips: string[] }
+  >;
   /** Idioma con el que se resolvieron los textos (`meta.defaultLanguage` o el pedido). */
   locale: string;
   /**

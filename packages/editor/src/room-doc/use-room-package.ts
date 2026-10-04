@@ -8,6 +8,7 @@ import {
   buildRoomMap,
   buildRoomObjects,
   buildRoomPuzzles,
+  buildRoomWorld3D,
   observeRoomDocRoots,
   roomDocToPackage,
   type RoomDocRoot,
@@ -53,6 +54,16 @@ export function useRoomPackage(doc: Y.Doc): RoomPackage {
       }
       if (dirty.has(ROOM_DOC_KEYS.hints) || metaChanged) {
         next.hints = buildRoomHints(doc, languages);
+      }
+      // 3D: el mundo depende de las piezas, los modelos propios, las habitaciones y la dimensión.
+      if (
+        metaChanged ||
+        dirty.has(ROOM_DOC_KEYS.pieces3d) ||
+        dirty.has(ROOM_DOC_KEYS.models3d) ||
+        dirty.has(ROOM_DOC_KEYS.subrooms)
+      ) {
+        if (next.meta.dimension === "3d") next.world3d = buildRoomWorld3D(doc);
+        else delete next.world3d;
       }
       return next;
     };
