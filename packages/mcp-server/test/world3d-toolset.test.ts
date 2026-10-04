@@ -282,6 +282,129 @@ describe("MCP 3D (encargo 7.9)", () => {
     expect(bad.isError).toBe(true);
   });
 
+  it("get_room de una sala 3D omite suelos y muros y lo dice; includeFloorsAndWalls los trae (7.11)", async () => {
+    const client = await connect(AUTHOR, true);
+    const roomId = await create3dRoom(client);
+    await ok(client, "set_map", { roomId, tileset: "medieval-v1" });
+    const catalog = await ok(client, "get_model_catalog", { roomId });
+    const models = catalog.structured?.models as { id: string; category: string }[];
+    const floorModel = models.find((m) => m.category === "suelo")!.id;
+    const wallModel = models.find((m) => m.category === "muro")!.id;
+    await ok(client, "place_pieces", {
+      roomId,
+      subroomId: SALON,
+      fill: { model: floorModel, from: { x: 0, y: 0 }, to: { x: 5, y: 5 }, h: 0 },
+    });
+    await ok(client, "place_pieces", {
+      roomId,
+      subroomId: SALON,
+      pieces: [
+        { model: wallModel, x: 0.5, y: 0, h: 0, yaw: 0 },
+        { model: wallModel, x: 1.5, y: 0, h: 0, yaw: 0 },
+      ],
+    });
+
+    const room = await ok(client, "get_room", { roomId });
+    const pkg = room.structured?.room as { world3d: { rooms: Record<string, { pieces: unknown[] }> } };
+    expect(pkg.world3d.rooms[SALON]!.pieces).toEqual([]);
+    expect(room.structured?.omitted).toEqual({
+      [SALON]: {
+        suelo: { count: 36, models: { [floorModel]: 36 } },
+        muro: { count: 2, models: { [wallModel]: 2 } },
+      },
+    });
+    const [json, note] = room.text.split("\n\n");
+    expect(JSON.parse(json!)).toEqual(room.structured?.room);
+    expect(note).toContain(`Omitidas 38 piezas de suelo y muro (por habitación: ${SALON}: 36 suelos, 2 muros)`);
+    expect(note).toContain("get_pieces(");
+
+    const full = await ok(client, "get_room", { roomId, includeFloorsAndWalls: true });
+    const fullPkg = full.structured?.room as { world3d: { rooms: Record<string, { pieces: unknown[] }> } };
+    expect(fullPkg.world3d.rooms[SALON]!.pieces).toHaveLength(38);
+    expect(full.structured?.omitted).toBeUndefined();
+    expect(JSON.parse(full.text)).toEqual(full.structured?.room);
+  });
+
+  it("get_room de una sala 3D sin suelos ni muros y de una sala 2D no cambia (sin omitted, texto = JSON)", async () => {
+    const client = await connect(AUTHOR, true);
+    const room3d = await create3dRoom(client);
+    const empty = await ok(client, "get_room", { roomId: room3d });
+    expect(empty.structured?.omitted).toBeUndefined();
+    expect(JSON.parse(empty.text)).toEqual(empty.structured?.room);
+
+    const created = await ok(client, "create_room", { meta: SMALL_ROOM_META });
+    const room2d = String(created.structured?.roomId);
+    const flat = await ok(client, "get_room", { roomId: room2d });
+    expect(flat.structured?.omitted).toBeUndefined();
+    expect(Object.keys(flat.structured ?? {})).toEqual(["room"]);
+    expect(flat.text).toBe(JSON.stringify(flat.structured?.room));
+  });
+
+  it("get_pieces filtra por categoría (y con model) y pagina sin repetir ni saltarse piezas (7.11)", async () => {
+    const client = await connect(AUTHOR, true);
+    const roomId = await create3dRoom(client);
+    await ok(client, "set_map", { roomId, tileset: "medieval-v1" });
+    const catalog = await ok(client, "get_model_catalog", { roomId });
+    const models = catalog.structured?.models as { id: string; category: string }[];
+    const floors = models.filter((m) => m.category === "suelo");
+    const floorModel = floors[0]!.id;
+    const wallModel = models.find((m) => m.category === "muro")!.id;
+    await ok(client, "place_pieces", {
+      roomId,
+      subroomId: SALON,
+      fill: { model: floorModel, from: { x: 0, y: 0 }, to: { x: 5, y: 5 }, h: 0 },
+    });
+    await ok(client, "place_pieces", {
+      roomId,
+      subroomId: SALON,
+      pieces: [{ model: wallModel, x: 0.5, y: 0, h: 0, yaw: 0 }],
+    });
+
+    const suelos = await ok(client, "get_pieces", { roomId, subroomId: SALON, category: "suelo" });
+    expect((suelos.structured?.pieces as Piece[]).every((p) => p.model === floorModel)).toBe(true);
+    expect(suelos.structured).toMatchObject({ total: 36, offset: 0, limit: 300, nextOffset: null });
+    expect(suelos.text.split("\n")[0]).toBe(`Piezas 1–36 de 36 en "${SALON}" (categoría suelo)`);
+
+    const both = await ok(client, "get_pieces", {
+      roomId,
+      subroomId: SALON,
+      category: "suelo",
+      model: wallModel,
+    });
+    expect(both.structured?.total).toBe(0);
+    expect(both.text).toBe(`0 pieza(s) en "${SALON}" (modelo ${wallModel}, categoría suelo)`);
+
+    const seen: string[] = [];
+    const sizes: number[] = [];
+    let offset: number | null = 0;
+    while (offset !== null) {
+      const page = await ok(client, "get_pieces", {
+        roomId,
+        subroomId: SALON,
+        category: "suelo",
+        limit: 10,
+        offset,
+      });
+      const pieces = page.structured?.pieces as Piece[];
+      sizes.push(pieces.length);
+      seen.push(...pieces.map((p) => p.id));
+      const next = page.structured?.nextOffset as number | null;
+      if (next !== null) expect(page.text.split("\n")[0]).toContain(`siguiente página: offset ${next}`);
+      offset = next;
+    }
+    expect(sizes).toEqual([10, 10, 10, 6]);
+    expect(new Set(seen).size).toBe(36);
+    expect(seen).toEqual((suelos.structured?.pieces as Piece[]).map((p) => p.id));
+
+    const out = await call(client, "get_pieces", { roomId, subroomId: SALON, category: "suelo", offset: 36 });
+    expect(out.isError).toBe(true);
+    expect(errorCode(out)).toBe("INVALID_INPUT");
+    expect(out.text).toContain("36");
+
+    const propio = await ok(client, "get_pieces", { roomId, subroomId: SALON, category: "propio" });
+    expect(propio.structured?.total).toBe(0);
+  });
+
   it("el toolset incluye las siete herramientas y find_tools las encuentra", async () => {
     for (const name of [
       "place_pieces",

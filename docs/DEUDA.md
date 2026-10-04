@@ -13,6 +13,18 @@ Tareas pendientes que no bloquean pero hay que resolver.
       (hoy, como en 2D, solo hay puerta en el lado de salida), miniaturas de modelos en la paleta,
       previsualización 3D de la sala de espera en el editor y textos del editor 3D en
       fr/de/pt/nl.
+- [ ] **Gráficos propios del creador en salas 2D (por definir).** En 3D un creador puede
+      subir sus modelos (GLB, `specs/27` §9); en 2D todo lo que se ve en el mapa sale del
+      pack gráfico oficial y solo se pueden subir portada, audios y la introducción.
+      Pendiente de buscar la mejor manera de permitir sprites propios en 2D. No es simétrico
+      con el 3D: el creador tendría que traer el dibujo ya en isométrico, y hay que resolver
+      una imagen por estado y por orientación, el punto de apoyo y el tamaño de cada una
+      (orden de dibujo respecto a los avatares), las celdas que ocupa, y la coherencia
+      visual con el pack (perspectiva y luz), que no se puede validar automáticamente como
+      los triángulos y texturas de un GLB. En código: el runtime 2D solo carga sprites de
+      los atlas del pack (habría que cargar imágenes sueltas de la sala), más subida,
+      publicación, editor y MCP. Alternativa a valorar: generar los sprites 2D a partir de
+      un GLB subido, con el mismo render isométrico del pipeline de assets.
 - [ ] **Extraer el motor de creación y de juego a un paquete compartido `@studiolxd` (muy
       largo plazo).** Sacar a un paquete propio de `@studiolxd` todo el motor de creación
       y de juego, para consumirlo desde aquí y desde una futura aplicación de la suite

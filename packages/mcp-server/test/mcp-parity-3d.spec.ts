@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { roomDocToPackage } from "@escaperoom/editor/room-doc";
-import { parseRoomPackage, type RoomPackage, type Rule } from "@escaperoom/shared/schemas";
+import { parseRoomPackage, type Piece3D, type RoomPackage, type Rule } from "@escaperoom/shared/schemas";
 import {
   buildDraftDoc,
   createCatalogService,
@@ -14,7 +14,12 @@ import { validateRoomPackage } from "@escaperoom/shared/validator";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createCreatorMcpServer, DraftSnapshotCache, type CreatorMcpDeps } from "../src";
+import {
+  createCreatorMcpServer,
+  DEFAULT_MAX_TOOL_RESPONSE_BYTES,
+  DraftSnapshotCache,
+  type CreatorMcpDeps,
+} from "../src";
 import { aldric3dScript, PIECES_PER_CALL } from "./fixtures/aldric-3d-script";
 import type { ScriptStep } from "./fixtures/aldric-script";
 import { call } from "./fixtures/client";
@@ -220,17 +225,54 @@ describe("paridad editor ↔ MCP: el Rey Aldric 3D construido por MCP (7.10b)", 
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("get_room supera el tope de respuesta con las ~900 piezas: la vista por partes (get_pieces) da las mismas que ve el editor", async () => {
-    // Sala 3D completa: `get_room` pasaría de 64 KB y el MCP responde con las vistas filtradas.
-    const whole = await call(built.client, "get_room", { roomId: built.roomId });
-    expect(whole.isError).toBe(true);
-    expect(whole.text).toContain("supera el tope de 64 KB");
+  it("get_room cabe sin suelos ni muros y, con get_pieces por categoría, reconstruye el paquete completo (7.11)", async () => {
+    const view = await call(built.client, "get_room", { roomId: built.roomId });
+    expect(view.isError, view.text.slice(0, 300)).toBe(false);
+    const bytes = Buffer.byteLength(view.text, "utf8");
+    expect(bytes).toBeLessThan(DEFAULT_MAX_TOOL_RESPONSE_BYTES);
+    console.info(`get_room del Rey Aldric 3D sin suelos ni muros: ${bytes} bytes (${(bytes / 1024).toFixed(1)} KB)`);
 
+    const partial = view.structured?.room as RoomPackage;
+    const rebuilt = structuredClone(partial);
     const pkg = await draftPackage();
     for (const room of pkg.map.rooms) {
-      const listed = await call(built.client, "get_pieces", { roomId: built.roomId, subroomId: room.id });
-      expect(listed.isError, listed.text).toBe(false);
-      expect(listed.structured?.pieces, room.id).toEqual(pkg.world3d!.rooms[room.id]!.pieces);
+      const pieces = [...(partial.world3d!.rooms[room.id]?.pieces ?? [])];
+      for (const category of ["suelo", "muro"]) {
+        let offset: number | null = 0;
+        while (offset !== null) {
+          const page = await call(built.client, "get_pieces", {
+            roomId: built.roomId,
+            subroomId: room.id,
+            category,
+            offset,
+          });
+          expect(page.isError, page.text.slice(0, 300)).toBe(false);
+          pieces.push(...(page.structured?.pieces as Piece3D[]));
+          offset = page.structured?.nextOffset as number | null;
+        }
+      }
+      rebuilt.world3d!.rooms[room.id] = { pieces };
     }
+    expect(normalize(rebuilt)).toEqual(normalize(aldric3d));
+    expect(normalize(rebuilt)).toEqual(normalize(pkg));
+    // La vista por habitación sin filtrar da las mismas piezas que ve el editor.
+    for (const room of pkg.map.rooms) {
+      const listed = await call(built.client, "get_pieces", { roomId: built.roomId, subroomId: room.id, limit: 500 });
+      expect(listed.isError, listed.text.slice(0, 300)).toBe(false);
+      if (listed.structured?.nextOffset === null) {
+        expect(listed.structured?.pieces, room.id).toEqual(pkg.world3d!.rooms[room.id]!.pieces);
+      }
+    }
+  });
+
+  it("get_room con includeFloorsAndWalls sigue superando el tope y apunta a get_pieces", async () => {
+    const whole = await call(built.client, "get_room", { roomId: built.roomId, includeFloorsAndWalls: true });
+    expect(whole.isError).toBe(true);
+    expect(whole.text).toContain("supera el tope de 64 KB");
+    expect(whole.text).toContain("get_pieces({ roomId, subroomId, category, offset })");
+    expect(whole.structured?.error).toMatchObject({
+      code: "RESPONSE_TOO_LARGE",
+      alternatives: expect.arrayContaining(["get_pieces"]),
+    });
   });
 });
