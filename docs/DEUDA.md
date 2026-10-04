@@ -29,10 +29,20 @@ Tareas pendientes que no bloquean pero hay que resolver.
       el resultado (hoy lo calcula el pipeline del pack: `size` y `origin` por frame,
       `specs/26` §3.1). Además: las celdas que ocupa un objeto mayor que una. En código: el
       runtime 2D solo carga sprites de los atlas del pack (habría que cargar imágenes
-      sueltas de la sala), más subida, publicación, editor y MCP. Alternativa a valorar:
-      generar los sprites 2D a partir de un GLB subido, con el mismo render isométrico del
-      pipeline de assets — un solo fichero por objeto y el punto de apoyo calculado, lo que
-      resolvería las dos preocupaciones.
+      sueltas de la sala), más subida, publicación, editor y MCP.
+      Alternativa a valorar: que la aplicación genere los sprites 2D a partir de un GLB
+      subido — un solo fichero por objeto y el punto de apoyo calculado, lo que resolvería
+      las dos preocupaciones. Dos formas de hacerlo, por decidir: (a) **en el navegador
+      del creador, con Three.js**: al subir el GLB en el editor, el navegador lo pinta con
+      una cámara isométrica fija y guarda las imágenes (ya existen el cargador de GLB, el
+      material toon y el visor de modelos); sin coste de servidor e inmediato, con el
+      punto de apoyo calculado y los estados y orientaciones sacados del mismo modelo; a
+      cambio, el acabado no será idéntico al de los sprites del pack (que salen de
+      Blender) y por MCP no hay navegador, así que un agente no podría generar sprites;
+      (b) **en el servidor, con Blender**: un worker con Blender renderiza los sprites en
+      una cola, como hoy se hace a mano con `tools/assets-generator`; mismo acabado que el
+      pack y funciona también por MCP, pero es infraestructura nueva y pesada (Blender en
+      un contenedor, cola, CPU por render y esperas de segundos o minutos por objeto).
 - [ ] **Extraer el motor de creación y de juego a un paquete compartido `@studiolxd` (muy
       largo plazo).** Sacar a un paquete propio de `@studiolxd` todo el motor de creación
       y de juego, para consumirlo desde aquí y desde una futura aplicación de la suite
