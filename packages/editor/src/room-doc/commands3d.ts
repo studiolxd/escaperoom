@@ -481,10 +481,11 @@ export function duplicate3D(
         if (!record || record.get("roomId") !== roomId) {
           throw new RoomDocError("UNKNOWN_PIECE", `No existe la pieza "${target.id}" en "${roomId}"`);
         }
-        const piece = readFlatRecord(record) as Piece3DInput & { roomId?: string };
-        const { roomId: _room, ...rest } = piece;
+        const piece = readFlatRecord(record) as Piece3DInput;
         newPieces.push({
-          ...rest,
+          model: piece.model,
+          yaw: piece.yaw,
+          ...(piece.scale !== undefined ? { scale: piece.scale } : {}),
           x: piece.x + offset.x,
           y: piece.y + offset.y,
           h: piece.h + offset.h,

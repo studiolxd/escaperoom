@@ -7,7 +7,6 @@ import {
   listPieces3D,
   listSpawnPoints3D,
   readObject,
-  roomDocToPackage,
   roomPackageToDoc,
   setSpawnPoints3D,
   type Pointer3D,
