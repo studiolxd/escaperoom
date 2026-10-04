@@ -213,8 +213,9 @@ describe("objetos 3D", () => {
   it("addObject en 3D exige transform y sobrescribe position", () => {
     const doc = doc3d();
     const arca = readObject(doc, "arca")!;
-    const { transform: _transform, ...sinTransform } = arca;
-    expect(codeOf(() => addObject(doc, { ...sinTransform, id: "otra-arca" }))).toBe("INVALID_VALUE");
+    const sinTransform: Partial<typeof arca> = { ...arca };
+    delete sinTransform.transform;
+    expect(codeOf(() => addObject(doc, { ...(sinTransform as typeof arca), id: "otra-arca" }))).toBe("INVALID_VALUE");
     addObject(doc, {
       ...arca,
       id: "otra-arca",
