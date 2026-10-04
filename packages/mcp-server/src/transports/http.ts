@@ -70,7 +70,7 @@ function rateLimitedResponse(
     `Límite de uso del MCP superado: máximo ${decision.limit} llamadas a tools cada ` +
     `${decision.windowSeconds} s por token. Reintenta en ${decision.retryAfterSeconds} s. ` +
     "Para gastar menos llamadas, agrupa cambios y consulta con get_room_graph, get_puzzle o " +
-    "get_rules_for en vez de releer get_room.";
+    "get_rules_for (y get_pieces en salas 3D) en vez de releer get_room.";
   const id = messages.length === 1 ? (messages[0]!.id ?? null) : null;
   return new Response(
     JSON.stringify({

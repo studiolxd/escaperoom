@@ -125,9 +125,9 @@ Organizado por fase de creación, con esquemas Zod (compartidos desde `packages/
 
 | Tool | Descripción |
 |---|---|
-| `get_pieces({subroomId, model?})` | **Solo salas 3D** (7.9). Piezas de una habitación, una por línea `id model x y h yaw`; filtra por `model` si hay muchas |
+| `get_pieces({subroomId, model?, category?, offset?, limit?})` | **Solo salas 3D** (7.9, 7.11). Piezas de una habitación, una por línea `id model x y h yaw`; filtra por `model` y/o `category` (`suelo`, `muro`, `estructura`, `mueble`, `pared`, `suelto`, `propio`, `desconocido`) y pagina con `offset`/`limit` (300 por defecto, máx. 500; `structuredContent`: `{pieces, total, offset, limit, nextOffset}`) |
 | `get_model_catalog({category?})` | **Solo salas 3D** (7.9). Modelos 3D disponibles (pack del draft + propios de la sala): `id — categoría — w×d×hgt m — snap — clips` |
-| `get_room()` | Estado completo del draft como JSON |
+| `get_room({includeFloorsAndWalls?})` | Estado completo del draft como JSON. En salas 3D omite por defecto las piezas de suelo y muro (la respuesta lo indica en `omitted` y en una nota); `includeFloorsAndWalls: true` las incluye (puede superar el tope de respuesta). Las salas 2D no cambian (7.11) |
 | `get_template_catalog()` | Catálogo de plantillas con sus esquemas (configs válidas) |
 | Vistas filtradas | `get_puzzle(id)`, `get_rules_for(objectId)` — ahorran tokens |
 
@@ -219,6 +219,8 @@ Decisiones:
   verde y confirmación humana explícita (el humano aprueba el "git push" de la sala).
 - **Coste de tokens:** `get_room()` puede devolver salas grandes. Vistas filtradas
   (`get_puzzle(id)`, `get_rules_for(objectId)`) para que el agente no cargue todo en cada paso.
+  En una sala 3D, `get_room()` omite por defecto los suelos y muros (cientos de piezas) y las piezas
+  se leen por categoría y paginadas con `get_pieces`; el tope de 64 KB por respuesta no cambia.
 - **Sin lógica paralela:** las tools llaman a los **servicios de dominio** (ADR-010/022), no a una API
   HTTP intermedia, y escriben en el mismo canal Yjs que el editor (ver `specs/13-api-rest.md` §12).
 

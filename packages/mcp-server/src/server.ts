@@ -50,18 +50,27 @@ function oversizeResult(tool: CreatorTool, result: CallToolResult, bytes: number
   const room = (result.structuredContent as { room?: Record<string, unknown> } | undefined)?.room;
   const puzzleIds = idsOf(room?.puzzles);
   const objectIds = idsOf(room?.objects);
+  const is3d = (room?.meta as { dimension?: unknown } | undefined)?.dimension === "3d";
   const lines = [
     `la respuesta ocupa ${kb(bytes)} y supera el tope de ${kb(limit)} por respuesta (coste de tokens).`,
     "Consulta la sala por partes con las vistas filtradas: get_room_graph({ roomId }) para la estructura y los ids, " +
       "get_puzzle({ roomId, puzzleId }) para un puzzle con sus pistas y reglas, y " +
       "get_rules_for({ roomId, objectId }) para las reglas que tocan un objeto.",
   ];
+  if (is3d) {
+    lines.push(
+      "Sala 3D: las piezas se piden por partes con get_pieces({ roomId, subroomId, category, offset }), " +
+        "y get_room sin includeFloorsAndWalls omite los suelos y muros.",
+    );
+  }
   if (puzzleIds?.length) lines.push(`Puzzles: [${puzzleIds.join(", ")}]`);
   if (objectIds?.length) lines.push(`Objetos: [${objectIds.join(", ")}]`);
   return errorResult(tool.name, "RESPONSE_TOO_LARGE", lines.join("\n"), {
     bytes,
     limit,
-    alternatives: [...FILTERED_VIEWS],
+    alternatives: is3d
+      ? [...FILTERED_VIEWS, "get_pieces", "get_room (sin includeFloorsAndWalls)"]
+      : [...FILTERED_VIEWS],
     ...(puzzleIds ? { puzzleIds } : {}),
     ...(objectIds ? { objectIds } : {}),
   });
@@ -118,7 +127,7 @@ export async function runTool(
 export function createCreatorMcpServer(deps: CreatorMcpDeps): McpServer {
   const server = new McpServer(MCP_SERVER_INFO, {
     instructions:
-      "MCP del creador de escape rooms: construye y edita salas en borrador (draft) con las mismas reglas que el editor visual. Empieza por get_room y valida con validate. Cada mutación se valida antes de escribirse: si introduce errores nuevos se rechaza con el motivo; pasa `dryRun: true` para ensayarla sin escribir. Para publicar: validate (checklist en verde), preview para probarla y publish, que NO publica: devuelve un enlace que el creador confirma en la web.",
+      "MCP del creador de escape rooms: construye y edita salas en borrador (draft) con las mismas reglas que el editor visual. Empieza por get_room y valida con validate. En salas 3D get_room omite por defecto los suelos y muros: las piezas se leen por categoría y paginadas con get_pieces. Cada mutación se valida antes de escribirse: si introduce errores nuevos se rechaza con el motivo; pasa `dryRun: true` para ensayarla sin escribir. Para publicar: validate (checklist en verde), preview para probarla y publish, que NO publica: devuelve un enlace que el creador confirma en la web.",
   });
 
   for (const tool of CREATOR_TOOLSET) {
