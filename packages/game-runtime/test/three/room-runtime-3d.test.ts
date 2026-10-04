@@ -7,7 +7,7 @@ import type { WorldSceneEvent } from "../../src/phaser/world-events";
 import { makeRoom3D } from "../fixtures/room-3d";
 
 // Sin red ni WebGL: la carga del GLB se simula con un espía que falla (se queda la caja).
-const instantiateModel = vi.hoisted(() => vi.fn((_url: string) => Promise.reject(new Error("sin red"))));
+const instantiateModel = vi.hoisted(() => vi.fn((...args: [url: string]) => Promise.reject(new Error(`sin red: ${args[0]}`))));
 vi.mock("../../src/three/assets", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/three/assets")>()),
   instantiateModel,

@@ -29,7 +29,7 @@ const model = (id: string) => ({
 });
 
 function open(response: Response) {
-  const fetchMock = vi.fn(async (_url: string) => response);
+  const fetchMock = vi.fn((...args: [url: string]) => Promise.resolve(args[0] ? response : response));
   vi.stubGlobal("fetch", fetchMock);
   render(
     createElement(NextIntlClientProvider, {
