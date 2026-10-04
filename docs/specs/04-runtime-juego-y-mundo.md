@@ -6,6 +6,10 @@ interacciones con el servidor está en `11-protocolo-multijugador.md`; la lógic
 
 ---
 
+> Este documento describe el mundo de las salas **2D**. Las salas 3D comparten con él las
+> secciones 3.1–3.2 (objetos y estados), 4 (interacción) y 5–6 (fases, cronómetro y fin de
+> juego); su mundo, cámara y movimiento están en `27-modo-3d.md`.
+
 ## 1. Modelo de mundo
 
 - **Mapa isométrico por habitaciones.** Cada habitación (`SubRoom`) es un mapa propio con su

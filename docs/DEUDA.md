@@ -2,14 +2,12 @@
 
 Tareas pendientes que no bloquean pero hay que resolver.
 
-- [ ] **Salas en 3D, además de 2D (muy largo plazo).** Permitir crear y jugar salas en
-      3D, además de las 2D isométricas actuales, tanto en el creador (editor y MCP) como
-      en el juego. Implica también una etiqueta **2D/3D** en cada sala y un **filtro
-      2D/3D en el catálogo**. Antes de implementar: spec propia (motor de render 3D —
-      Phaser 4 no trae 3D real, ADR-001 —, formato de la sala en el `RoomPackage`,
-      assets y pipeline de `tools/assets-generator`, rendimiento en equipos modestos
-      de colegios, paridad editor↔MCP y compatibilidad con las mecánicas y plantillas
-      de puzzles existentes).
+- [ ] **Salas en 3D, además de 2D — en curso (Fase 7).** Spec en `specs/27-modo-3d.md`,
+      decisión en ADR-045 y encargos en `plan/fase-7-modo-3d.md`. Fuera de la primera versión,
+      y por tanto deuda: techo en las habitaciones, mundo continuo entre habitaciones (hoy,
+      fundido en las puertas), navmesh que cambie con el estado de los objetos, los 7
+      personajes restantes en 3D, ofrecer a los creadores la conversión de una sala 2D a 3D y
+      comprobar la altura en las zonas de `on_all_players_in_zone`.
 - [ ] **Extraer el motor de creación y de juego a un paquete compartido `@studiolxd` (muy
       largo plazo).** Sacar a un paquete propio de `@studiolxd` todo el motor de creación
       y de juego, para consumirlo desde aquí y desde una futura aplicación de la suite

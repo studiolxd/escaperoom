@@ -108,6 +108,11 @@ interface ItemDef {
 }
 ```
 
+### 2.5 Salas 3D
+
+`meta.dimension` (`"2d"` por defecto, o `"3d"`) y los campos que añade una sala 3D
+(`world3d`, `transform`, `h`, `yaw`) están en `27-modo-3d.md` §3. Una sala 2D no los lleva.
+
 ## 3. Estado inicial y runtime
 
 - La **definición** es estática y se descarga una vez; la **instancia** viva (puzzles,

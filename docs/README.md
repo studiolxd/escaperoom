@@ -56,6 +56,7 @@ después en código.
 | 24 | [Operaciones y escalabilidad](specs/24-operaciones-y-escalabilidad.md) | Dos tipos de pico, cuellos de botella, señales de escalado, observabilidad |
 | 25 | [Estrategia de contenido y lanzamiento](specs/25-estrategia-de-contenido-y-lanzamiento.md) | Salas oficiales semilla, calendario de marketing, comunidad de creadores |
 | 26 | [Pack gráfico v1](specs/26-pack-grafico-v1.md) | Brief y contrato de entrega del pack `medieval-v1` (tileset, sprites, avatar, FX, manifiesto) |
+| 27 | [Modo 3D](specs/27-modo-3d.md) | Salas en 3D en tercera persona: formato, catálogo de modelos, navmesh, runtime, editor, MCP y modelos de creadores |
 
 ## Índice del plan (`docs/plan/`)
 
@@ -69,6 +70,7 @@ después en código.
 | [Fase 4 — MCP del creador](plan/fase-4-mcp.md) | Servidor MCP, toolset, dry-run, chat en web, test E2E por conversación |
 | [Fase 5 — Negocio](plan/fase-5-negocio.md) | Stripe, catálogo, eventos, claves, emails, PDF, panel, licencias |
 | [Fase 6 — Endurecimiento y lanzamiento](plan/fase-6-endurecimiento-y-lanzamiento.md) | Moderación, seguridad, analítica, legal, i18n, beta, lanzamiento |
+| [Fase 7 — Modo 3D](plan/fase-7-modo-3d.md) | Salas en 3D: encargos, dependencias y briefs (`plan/modo-3d/`) |
 | [Trazabilidad](plan/00-trazabilidad.md) | Matriz spec ↔ ticket ↔ hito, y correspondencia con los documentos archivados |
 
 ## Índice de referencia (`docs/reference/`)
