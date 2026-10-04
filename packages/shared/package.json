@@ -36,6 +36,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
+    "convertir:3d": "tsx scripts/convertir-sala-3d.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:reset": "prisma migrate reset --force",

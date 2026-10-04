@@ -1,7 +1,7 @@
 import { getModels3DCatalog, type Models3DCatalog } from "../packs";
 import type { RoomPackage } from "../schemas";
 import { MAX_WORLD3D_CUSTOM_MODELS } from "../schemas/limits";
-import { dimensionOf, positionFromTransform, type World3D } from "../schemas/world3d";
+import { dimensionOf, HIDDEN_STATE_SPRITE, positionFromTransform, type World3D } from "../schemas/world3d";
 import type { SpriteState } from "../schemas/world";
 import { resolveModel3D } from "../packs";
 import type { ValidationIssue } from "./types";
@@ -198,6 +198,7 @@ export function checkWorld3DModels(pkg: RoomPackage, catalog?: Models3DCatalog):
     }
     for (const [stateName, state] of Object.entries(object.states)) {
       const modelId = stateModel(object, state);
+      if (modelId === HIDDEN_STATE_SPRITE) continue;
       const model = resolveModel3D(modelId, cat, custom);
       if (!model) {
         // `object.sprite` ya se avisó arriba; solo los sprites propios del estado.

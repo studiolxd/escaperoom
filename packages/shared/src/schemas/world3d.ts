@@ -111,6 +111,12 @@ export const World3DSchema = z.object({
   models: z.record(z.string().regex(ID_PATTERN), CustomModel3DSchema),
 });
 
+/**
+ * Sprite del estado «no visible» de un objeto (p. ej. la llave que aún no ha aparecido): no es un
+ * modelo, el runtime no pinta nada. El validador no lo avisa como `unknown_model`.
+ */
+export const HIDDEN_STATE_SPRITE = "oculto";
+
 /** `position` derivada de un `transform` (specs/27 §3.1). */
 export function positionFromTransform(t: { x: number; y: number }): Position {
   return { x: Math.round(t.x), y: Math.round(t.y) };
