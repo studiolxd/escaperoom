@@ -173,7 +173,7 @@ style-src 'self' 'unsafe-inline';
 img-src 'self' data: blob: <storage>;
 font-src 'self' data:;
 media-src 'self' data: blob: <storage>;
-connect-src 'self' <colyseus ws+http> <editor-sync ws+http> <livekit wss+https> <storage> <CSP_EXTRA_CONNECT_SRC>;
+connect-src 'self' blob: <colyseus ws+http> <editor-sync ws+http> <livekit wss+https> <storage> <CSP_EXTRA_CONNECT_SRC>;
 worker-src 'self' blob:;
 frame-src 'none'; object-src 'none'; base-uri 'self';
 form-action 'self' https://accounts.google.com;
@@ -195,6 +195,7 @@ Excepciones a `'self'` y su motivo:
 | `style-src` | `'unsafe-inline'` | Atributos `style` de React (paneles de puzzle, React Flow del editor) y el CSS de `next/font`. No ejecuta código. **Deuda documentada (F-30, auditoría 2026-09-24):** no hay nonce de estilos porque los atributos `style` inline de React no lo soportan sin reescribir esos componentes a CSS Modules/clases — evaluar esa migración es trabajo aparte, no una corrección de esta ronda. |
 | `img-src`, `media-src` | `data:`, `blob:`, bucket | Texturas base64 por defecto de Phaser, vistas previas generadas en cliente y URLs firmadas del bucket (`STORAGE_ENDPOINT`). |
 | `connect-src` | Colyseus, editor-sync, LiveKit, bucket | `NEXT_PUBLIC_COLYSEUS_URL` (matchmaking HTTP + WebSocket), `NEXT_PUBLIC_EDITOR_SYNC_URL` (Yjs), `NEXT_PUBLIC_LIVEKIT_URL`/`LIVEKIT_URL` (señalización; LiveKit self-hosted, sin caso especial de CSP). Sin variables, los `localhost` de desarrollo **solo en `NODE_ENV=development`** (A-23: antes se colaban también en producción sin la variable fijada). `CSP_EXTRA_CONNECT_SRC` añade orígenes sin tocar código. |
+| `connect-src` | `blob:` | Modo 3D: GLTFLoader pide con `fetch()` las texturas incrustadas de los GLB a través de URLs `blob:` creadas en la propia página; `blob:` solo referencia datos que la página ya tiene en memoria, no abre ningún origen externo. |
 | `worker-src` | `blob:` | Worker de cifrado E2EE de LiveKit. |
 | `form-action` | `accounts.google.com` | Redirección del login con Google (OAuth). |
 
