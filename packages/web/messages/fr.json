@@ -495,7 +495,7 @@
       "OUT_OF_BOUNDS": "Cette case est hors de la pièce.",
       "DUPLICATE_ID": "Cet ID est déjà utilisé.",
       "INVALID_ID": "Utilisez uniquement des minuscules, des chiffres et des tirets (ex. coffre-trone).",
-      "REFERENCED_ID": "Cet objet est déjà utilisé par des règles ou des puzzles ; renommez-le depuis l’inspecteur.",
+      "REFERENCED_ID": "Cet élément est utilisé dans des règles ou des puzzles. Supprimez d’abord ces références.",
       "UNKNOWN_DECORATION": "Cette décoration n’existe plus.",
       "UNKNOWN_LIGHT": "Cette lumière n’existe plus.",
       "INVALID_VALUE": "Valeur non valide : la couleur est #rrggbb et l’intensité va de 0 à 1."

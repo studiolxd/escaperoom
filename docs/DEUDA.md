@@ -2,12 +2,17 @@
 
 Tareas pendientes que no bloquean pero hay que resolver.
 
-- [ ] **Salas en 3D, además de 2D — en curso (Fase 7).** Spec en `specs/27-modo-3d.md`,
-      decisión en ADR-045 y encargos en `plan/fase-7-modo-3d.md`. Fuera de la primera versión,
-      y por tanto deuda: techo en las habitaciones, mundo continuo entre habitaciones (hoy,
-      fundido en las puertas), navmesh que cambie con el estado de los objetos, los 7
-      personajes restantes en 3D, ofrecer a los creadores la conversión de una sala 2D a 3D y
-      comprobar la altura en las zonas de `on_all_players_in_zone`.
+- [x] **Salas en 3D, además de 2D — hecha (Fase 7).** Spec en `specs/27-modo-3d.md`,
+      decisión en ADR-045 y encargos en `plan/fase-7-modo-3d.md`. El modo está encendido por
+      defecto (`ROOMS_3D_ENABLED=false` lo apaga) y «La Maldición del Rey Aldric (3D)» está
+      sembrada gratis en el catálogo. Fuera de la primera versión, y por tanto deuda: techo en
+      las habitaciones, mundo continuo entre habitaciones (hoy, fundido en las puertas),
+      navmesh que cambie con el estado de los objetos, los 7 personajes restantes en 3D,
+      ofrecer a los creadores la conversión de una sala 2D a 3D, comprobar la altura en las
+      zonas de `on_all_players_in_zone`, puertas de vuelta entre habitaciones del Rey Aldric 3D
+      (hoy, como en 2D, solo hay puerta en el lado de salida), miniaturas de modelos en la paleta,
+      previsualización 3D de la sala de espera en el editor y textos del editor 3D en
+      fr/de/pt/nl.
 - [ ] **Extraer el motor de creación y de juego a un paquete compartido `@studiolxd` (muy
       largo plazo).** Sacar a un paquete propio de `@studiolxd` todo el motor de creación
       y de juego, para consumirlo desde aquí y desde una futura aplicación de la suite

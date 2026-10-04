@@ -495,7 +495,7 @@
       "OUT_OF_BOUNDS": "Essa célula está fora da divisão.",
       "DUPLICATE_ID": "Esse ID já está em uso.",
       "INVALID_ID": "Usa apenas minúsculas, números e hífenes (p. ex. arca-trono).",
-      "REFERENCED_ID": "Esse objeto já é usado em regras ou puzzles; muda-lhe o ID a partir do inspetor.",
+      "REFERENCED_ID": "Este elemento é usado em regras ou puzzles. Remove primeiro essas referências.",
       "UNKNOWN_DECORATION": "Essa decoração já não existe.",
       "UNKNOWN_LIGHT": "Essa luz já não existe.",
       "INVALID_VALUE": "Valor inválido: a cor é #rrggbb e a intensidade vai de 0 a 1."

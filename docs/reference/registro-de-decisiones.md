@@ -1624,7 +1624,7 @@ spec propia antes de implementar: es `specs/27-modo-3d.md`.
   al otro; se ofrece crear otra sala.
 
 **Consecuencias:** ADR-001 queda revisado: el «descartado 3D en runtime» ya solo aplica a las
-salas 2D. Fase 7 del plan (`plan/fase-7-modo-3d.md`). Mientras no esté completa, crear salas 3D
-queda tras el interruptor `ROOMS_3D_ENABLED`. El piloto es el Rey Aldric en 3D, como sala aparte
+salas 2D. Fase 7 del plan (`plan/fase-7-modo-3d.md`). Crear salas 3D queda tras el interruptor
+`ROOMS_3D_ENABLED` (encendido por defecto desde 7.10b; `ROOMS_3D_ENABLED=false` lo apaga). El piloto es el Rey Aldric en 3D, como sala aparte
 y gratis. Quedan como deuda: techo, mundo continuo, navmesh que cambie con el estado de los
 objetos, los 7 personajes restantes en 3D y la conversión 2D→3D ofrecida a creadores.

@@ -45,8 +45,10 @@ pinta, cómo se mueve el avatar y cómo se edita.
 
 El plano lógico `(x, y)` es el mismo que en 2D. El 3D añade la altura `h`.
 
-- **Unidad:** 1 = 1 metro. Una celda del 2D equivale a 1 m (el conversor copia las posiciones
-  tal cual, así que las placas, mirillas y zonas de los puzles no cambian de valor).
+- **Unidad:** 1 = 1 metro. Una celda del 2D equivale a 1 m. En 2D las posiciones son centros de
+  celda (la celda `i` va de `i − 0,5` a `i + 0,5`); en 3D el origen está en la esquina (la celda `i`
+  va de `i` a `i + 1`), así que el conversor suma 0,5 a las placas y las mirillas se resuelven con
+  `Math.floor` en salas 3D (en 2D, `Math.round`). Las zonas de los puzles no cambian de valor.
 - **Ejes lógicos:** `x` crece hacia el este, `y` hacia el sur, `h` hacia arriba. El origen
   `(0, 0, 0)` es la esquina noroeste del suelo de la habitación.
 - **Three.js:** `X = x`, `Y = h`, `Z = y`.
@@ -434,19 +436,44 @@ implementado.
 
 ## 11. Rey Aldric 3D
 
-- **Conversor interno** (`tools/`, no se ofrece a creadores): lee el fixture 2D y escribe
-  `docs/reference/roompackage-rey-aldric-3d.v1.json`.
-  - Cada tile de suelo → pieza de suelo en `(x + 0,5, y + 0,5, 0)`.
-  - Cada tile de muro → bloque `muro` (o `muro-arco`, `muro-ventana`).
-  - Cada objeto → `transform` en el centro de su celda; sufijo `-der` → `yaw = 90`, sin sufijo →
-    `yaw = 0`; el sprite pierde el sufijo. Los objetos de pared se desplazan 0,5 m hacia el
-    interior y se orientan hacia la sala.
-  - Puzles, reglas, ítems, diálogos y pistas se copian sin cambios.
-- **Retoque:** después de convertir, ajustes a mano con el editor 3D o el MCP, guardados en el
-  propio fixture.
-- **Siembra:** sala publicada gratis (`priceCents: 0`), con su portada.
-- **Pruebas:** E2E de humo que completa la sala en 3D (en modo sustitución, como CI) y paridad
-  MCP (el guion construye el mundo 3D solo con herramientas).
+- **Conversor interno** (no se ofrece a creadores, ni en la web ni en el MCP): vive en
+  `packages/shared/src/convert3d/convert.ts` (`convertRoomTo3D`, módulo puro y probado) y se
+  ejecuta con `pnpm --filter @escaperoom/shared convertir:3d`
+  (`packages/shared/scripts/convertir-sala-3d.ts`). Lee `docs/reference/roompackage-rey-aldric.v1.json`
+  y escribe `docs/reference/roompackage-rey-aldric-3d.v1.json` (`meta.id: "room-rey-aldric-3d"`).
+  Usa la tabla sprite 2D → modelo y giro (`sprites2d`) y `sinModelo` de
+  `tools/assets-generator/packs/medieval-v1/modelos3d.json`. La celda `(cx, cy)` del 2D ocupa en 3D
+  `[cx, cx+1] × [cy, cy+1]`; su centro es `(cx + 0,5, cy + 0,5)`.
+  - **Suelo y muros** (`ground` y `walls`, por celda con tile ≠ 0) → pieza en el centro de la
+    celda, `h = 0`: tiles 1, 2 y 3 → `suelo-piedra-1`, `suelo-piedra-2` y `suelo-alfombra`; tile 10 →
+    `muro`; tiles 20, 21 y 22 → `muro-arco` (`yaw` 0 si hay muro o borde a su izquierda o derecha,
+    90 si no). Un tile sin pieza hace fallar el conversor. Bajo un muro no hay suelo, salvo bajo un
+    arco. Ids de pieza deterministas (`p-` + contador en base 36 de 8 cifras).
+  - **Cara interior** de una celda de muro: la primera de `(0,+1)`, `(+1,0)`, `(0,−1)`, `(−1,0)` cuya
+    vecina existe y no es muro; el giro que mira hacia dentro es 0, 90, 180 y 270.
+  - **Objetos:** `sprite` → modelo de la tabla (sufijo `-der` → `yaw = 90`, sin sufijo → 0; el
+    sprite pierde el sufijo), igual que el de cada estado; los estados `oculto` se dejan. Una puerta
+    va al centro de su celda mirando hacia la cara interior; un objeto sobre una celda de muro
+    (cuadros, tapices, mural, antorchas, mirillas…) va en la cara interior, `0,01 + 0,02 × k` m hacia
+    dentro (`k` = los ya colocados en esa celda) y mirando hacia dentro; el resto, al centro de su
+    celda o, con `footprint`, al centro del conjunto de celdas (el `footprint` se quita).
+    `position = positionFromTransform(transform)`.
+  - **Decoraciones** → piezas en el centro de su celda. **Aparición:** centro de la celda, `h = 0`,
+    `yaw = 0`. **Antorchas:** en la cara interior si su celda es de muro, si no al centro; `h = 1,6`.
+  - **Puzles:** las placas de `simultaneous_plates` y las coordenadas de `hidingSpot` (si las hay)
+    suman `+ 0,5`; `split_clue` no cambia (la zona significa lo mismo: en salas 3D `splitClueView`
+    usa `Math.floor` en lugar de `Math.round`, §2). `puzzle.position` es de celda entera y se deja.
+    Reglas, ítems, diálogos y pistas se copian tal cual. `world3d.models` = `{}`.
+  - **Estado «oculto»:** `oculto` no es un modelo (el runtime no pinta nada); el validador no lo
+    avisa como `unknown_model` (`HIDDEN_STATE_SPRITE`).
+- **Fixture:** el 3D se versiona y un test falla si no coincide con lo que genera el conversor hoy.
+  Los retoques manuales futuros se harán cambiando el conversor o, cuando el usuario lo revise,
+  sustituyendo ese test.
+- **Siembra:** sala `…3002` publicada gratis (`priceCents: 0`) en todos los entornos, con la
+  portada de la sala principal. La «Sala de pruebas 3D» (`…3001`) sigue siendo solo de desarrollo.
+- **Pruebas:** validación, resolubilidad de 1 a 8 jugadores con la misma ruta crítica que el 2D y
+  alcance sobre la navmesh en `shared`/`nav3d`; E2E de humo (primer puzle de la ruta, en modo
+  sustitución, como CI) y paridad MCP (el guion construye el mundo 3D solo con herramientas).
 
 ## 12. Pruebas
 
@@ -466,11 +493,6 @@ implementado.
 
 | # | Punto | Afecta a | Cómo se cierra |
 |---|---|---|---|
-| A1 | **Los materiales de Blender no se exportan solos a GLB.** Los modelos de Tripo traen textura, pero lo que añaden los constructores (piedra y madera procedurales, fuego, agua, sello del relicario) son materiales de nodos: hay que hornearlos a textura. | Aspecto de los assets, no el código | Con los primeros modelos que se exporten (7.3). Lo valida el usuario en el visor. |
-| A2 | **El kit de suelos y muros no existe en 3D** (hoy son tiles SVG). Se modela por código en Blender cuando haga falta. | Rey Aldric 3D (7.10) | Al generar las piezas que necesite la sala. |
-| A3 | **Peso y aspecto de cerca.** `trono/tripo.glb` pesa 31 MB y `caballero-m/tripo.glb`, 41 MB. Hay que ver cómo quedan reducidos al presupuesto de §7.1. | Aspecto de los assets | Al exportar cada uno. |
-| A4 | **Clip «interactuar» del avatar:** el `alcanzar` de Mixamo se hizo para 4 fotogramas en 2D. | Avatar | Al exportar el caballero (7.3). |
-| A5 | **recast-navigation en Node:** confirmar que el WASM arranca en Colyseus y en Vitest. | 7.4 | Primer paso de 7.4. Si falla, el agente para y avisa. |
 | A9 | **Retoques del Rey Aldric 3D** respecto a la conversión automática. | 7.10 | Revisión en vivo del usuario, como la del 2D. |
 
 Ninguno bloquea el código: runtime, editor y partida se construyen y se prueban con cajas de

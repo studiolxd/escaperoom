@@ -12,30 +12,33 @@ Cada encargo es una PR hecha por un agente en su propio worktree. Los briefs est
 
 ## Encargos
 
-| # | Encargo | Depende de | Brief |
-|---|---|---|---|
-| 7.0 | Subir `next` a 16.3.6 (aviso crítico que hace fallar `pnpm audit --prod` y, con él, `pnpm verify:pr`) | — | `modo-3d/7.0-subir-next.md` |
-| 7.1a | Formato en `shared`: esquemas, catálogo de modelos, validador, sala de espera por defecto, dimensión fija en la base de datos | 7.0 | `modo-3d/7.1a-formato-shared.md` |
-| 7.1b | Documento del editor (Yjs) y comandos 3D; modelo del runtime | 7.1a | `modo-3d/7.1b-documento-y-loader.md` |
-| 7.2 | Catálogo y creación: selector 2D/3D, filtro y etiquetas | 7.1a | `modo-3d/7.2-catalogo-y-creacion.md` |
-| 7.3 | Pipeline de assets: exportador a GLB, optimización y visor, con siete modelos de muestra | 7.0 | `modo-3d/7.3-assets-3d.md` |
-| 7.4 | Navmesh (`nav3d`) y movimiento 3D en el servidor | 7.1a | `modo-3d/7.4-navmesh-y-servidor.md` |
-| 7.5 | Runtime 3D (`game-runtime/three`), incluido el modo observador | 7.1b, 7.4 | Se redacta al integrar 7.1b y 7.4 |
-| 7.6 | Partida web: elegir runtime, controles táctiles, sala de espera, observador, previsualizaciones | 7.5 | Se redacta al integrar 7.5 |
-| 7.7 | Editor 3D, con la distribución del editor 2D | 7.1b, 7.5 | Se redacta al integrar 7.5 |
-| 7.8 | Modelos de creadores (GLB propios) y visor 3D en el panel de moderación | 7.1b, 7.7 | Se redacta al integrar 7.7 |
-| 7.9 | MCP 3D | 7.1b | `modo-3d/7.9-mcp-3d.md` |
-| 7.10 | Rey Aldric 3D: conversor, assets que necesite, fixture, siembra, E2E y paridad MCP | 7.3, 7.5–7.7, 7.9 | Se redacta al integrar 7.7 |
+Todos integrados en `main` (el 7.10b, con la PR que cierra la fase).
 
-Los encargos 7.5–7.8 y 7.10 no tienen decisiones pendientes: su comportamiento está en la spec.
-Su brief se escribe cuando sus dependencias estén integradas, para que cite los archivos y las
-firmas reales en vez de las previstas.
+| # | Encargo | Brief | Estado |
+|---|---|---|---|
+| 7.0 | Subir `next` a 16.3.6 (aviso crítico que hacía fallar `pnpm audit --prod` y, con él, `pnpm verify:pr`) | `modo-3d/7.0-subir-next.md` | Integrado |
+| 7.1a | Formato en `shared`: esquemas, catálogo de modelos, validador, sala de espera por defecto, dimensión fija en la base de datos | `modo-3d/7.1a-formato-shared.md` | Integrado |
+| 7.1b | Documento del editor (Yjs) y comandos 3D; modelo del runtime | `modo-3d/7.1b-documento-y-loader.md` | Integrado |
+| 7.2 | Catálogo y creación: selector 2D/3D, filtro y etiquetas | `modo-3d/7.2-catalogo-y-creacion.md` | Integrado |
+| 7.3 | Pipeline de assets: exportador a GLB, optimización y visor, con siete modelos de muestra | `modo-3d/7.3-assets-3d.md` | Integrado |
+| 7.4 | Navmesh (`nav3d`) y movimiento 3D en el servidor | `modo-3d/7.4-navmesh-y-servidor.md` | Integrado |
+| 7.5a | Runtime 3D: mundo, avatar, cámara e interacción | `modo-3d/7.5a-runtime-3d.md` | Integrado |
+| 7.5b | Runtime 3D: API para la web, táctil, observador y calidad | `modo-3d/7.5b-runtime-tactil-observador-calidad.md` | Integrado |
+| 7.5c | Runtime 3D: modo edición | `modo-3d/7.5c-runtime-modo-edicion.md` | Integrado |
+| 7.6p | Catálogo de modelos inicial y sala de pruebas 3D | `modo-3d/7.6p-catalogo-y-sala-de-pruebas.md` | Integrado |
+| 7.6 | Partida web en 3D | `modo-3d/7.6-partida-web.md` | Integrado |
+| 7.7 | Editor 3D | `modo-3d/7.7-editor-3d.md` | Integrado |
+| 7.8a | Modelos de creadores: validación, subida, publicación y MCP | `modo-3d/7.8a-modelos-propios-servidor.md` | Integrado |
+| 7.8b | Modelos de creadores: interfaz, carga en el runtime y visor de moderación | `modo-3d/7.8b-modelos-propios-interfaz.md` | Integrado |
+| 7.9 | MCP 3D | `modo-3d/7.9-mcp-3d.md` | Integrado |
+| 7.10a | Assets 3D del Rey Aldric y catálogo generado | `modo-3d/7.10a-assets-rey-aldric.md` | Integrado |
+| 7.10b | Rey Aldric 3D: conversor, fixture, siembra, pruebas, paridad MCP, E2E y modo 3D encendido | `modo-3d/7.10b-rey-aldric-3d.md` | Integrado con esta PR |
 
 ## Assets bajo demanda
 
 No hay un encargo de «pack completo». El encargo 7.3 deja el pipeline (exportar, optimizar, ver)
 y siete modelos de muestra. A partir de ahí, cada modelo se genera cuando una sala lo necesita
-(en la práctica, dentro de 7.10 para el Rey Aldric 3D) y se añade su entrada a
+(en la práctica, dentro de 7.10a para el Rey Aldric 3D) y se añade su entrada a
 `packages/shared/src/packs/medieval-v1.models3d.json`. Mientras un modelo no exista, runtime y
 editor lo pintan como una caja. Cualquier paso con coste (Magnific, Tripo) sigue la norma de
 aprobación paso a paso de `tools/assets-generator/CLAUDE.md`.
@@ -56,11 +59,12 @@ aprobación paso a paso de `tools/assets-generator/CLAUDE.md`.
 4. Al integrar 7.1b: **7.9**. Al integrar 7.1b y 7.4: **7.5**.
 5. Al integrar 7.5: **7.6** y **7.7**. Después **7.8** y **7.10**.
 
-## Mientras el 3D no esté completo
+## Interruptor del modo 3D
 
-Crear salas 3D queda detrás de un interruptor (`ROOMS_3D_ENABLED`, apagado por defecto; lo
-introduce 7.1a). Con él apagado, ni el asistente web ni `create_room` ofrecen 3D. El filtro y las
-etiquetas del catálogo no dependen del interruptor. Se enciende por defecto en 7.10.
+Crear salas 3D está detrás de un interruptor (`ROOMS_3D_ENABLED`, introducido en 7.1a). Desde
+7.10b está **encendido por defecto**; se apaga con `ROOMS_3D_ENABLED=false`. Con él apagado, ni
+el asistente web ni `create_room` ofrecen 3D. El filtro y las etiquetas del catálogo no dependen
+del interruptor.
 
 ## Normas comunes de todos los encargos
 
@@ -87,6 +91,4 @@ Valen para cualquier agente de esta fase, además de las del `CLAUDE.md` del rep
    verificación visual la hace el usuario.
 10. Antes de abrir la PR: `pnpm verify:pr` en verde. La PR describe qué se hizo, qué tests se
     añadieron y cualquier desviación del brief.
-11. Si `git push` falla con «Permission … denied to suvires», usa la clave del repositorio:
-    `GIT_SSH_COMMAND="ssh -i ~/.ssh/id_ed25519_studiolxd -o IdentitiesOnly=yes -o IdentityAgent=none" git push -u origin <rama>`.
-12. Al terminar, abre la PR y avisa. No la integres tú.
+11. Al terminar, abre la PR y avisa. No la integres tú.
