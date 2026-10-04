@@ -216,7 +216,7 @@ cookie de sesión (`SameSite=Lax`) y además rechaza `Sec-Fetch-Site` distinto d
 Configuración: `PUBLISH_CONFIRM_SECRET` (mismo valor en web y en el MCP por stdio; en desarrollo hay
 uno fijo; en producción sin él `publish` responde `NOT_AVAILABLE`) y el origen de la web para los
 enlaces (`siteUrl()` en la ruta de Next; `ESCAPEROOM_APP_URL` por stdio, por defecto
-`http://localhost:3000`). Por stdio `preview` responde `NOT_AVAILABLE` (el lanzador del playtest
+`http://localhost:3500`). Por stdio `preview` responde `NOT_AVAILABLE` (el lanzador del playtest
 vive en web): el creador usa «Jugar» en el editor.
 
 ## Estructura
@@ -268,7 +268,7 @@ HTTP se entrega al handler de la ruta en el mismo proceso; con `CREATOR_CHAT_MCP
   | --- | --- |
   | `ESCAPEROOM_MCP_USER_ID` | Id del usuario (Better Auth) con el que actúa el agente. **Obligatoria.** |
   | `ESCAPEROOM_MCP_ORGANIZATION_ID` | Organización activa (opcional). |
-  | `ESCAPEROOM_APP_URL` | Origen de la web para el enlace de confirmación de `publish` (por defecto `http://localhost:3000`). |
+  | `ESCAPEROOM_APP_URL` | Origen de la web para el enlace de confirmación de `publish` (por defecto `http://localhost:3500`). |
   | `PUBLISH_CONFIRM_SECRET` | Secreto de la confirmación de `publish`: el mismo que en web (opcional en desarrollo). |
   | `DATABASE_URL` | Postgres de la app (el mismo que `packages/web`). |
 

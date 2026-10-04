@@ -115,7 +115,7 @@ await runStdioServer({
   // encendido por defecto, `ROOMS_3D_ENABLED=false` lo apaga).
   rooms3dEnabled: ["true", "1"].includes(process.env.ROOMS_3D_ENABLED ?? "true"),
   actor,
-  appUrl: process.env[MCP_ENV.appUrl]?.trim() || "http://localhost:3000",
+  appUrl: process.env[MCP_ENV.appUrl]?.trim() || "http://localhost:3500",
   publishRequests,
   // El lanzador del playtest (3.8) vive en web: por stdio `preview` responde
   // «no disponible» y el creador usa «Jugar» en el editor.

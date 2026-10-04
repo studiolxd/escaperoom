@@ -17,7 +17,7 @@
 #
 # Los worktrees enlazados también obtienen tres puertos propios (web,
 # Colyseus, editor-sync) fuera de los que usa el worktree principal
-# (3000/2567/2568) y el smoke E2E (3100/2667/2668): ver «Puertos por
+# (3500/2567/2568) y el smoke E2E (3100/2667/2668): ver «Puertos por
 # worktree» más abajo.
 #
 #   pnpm dev:env              # idempotente; NO pisa un .env existente ni los
@@ -174,7 +174,7 @@ if [ "$KIND" = "enlazado" ]; then
 fi
 
 # --- Puertos por worktree ----------------------------------------------------
-# Los puertos 3000 (web), 2567 (Colyseus) y 2568 (editor-sync) son del
+# Los puertos 3500 (web), 2567 (Colyseus) y 2568 (editor-sync) son del
 # worktree principal (los usa el usuario con `pnpm dev`), y 3100/2667/2668 son
 # del smoke E2E (packages/e2e/support/env.ts) — un worktree enlazado nunca
 # debe arrancar en ninguno de esos seis. Cada enlazado obtiene tres puertos

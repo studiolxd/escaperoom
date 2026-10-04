@@ -71,7 +71,7 @@ export const auth = betterAuth({
       // detalle a quien ya está autenticado como el email invitado).
       sendInvitationEmail: async (data, request) => {
         const locale = resolveMailLocale(localeFromHeaders(request?.headers));
-        const origin = publicOrigin(request?.url ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3000");
+        const origin = publicOrigin(request?.url ?? process.env.BETTER_AUTH_URL ?? "http://localhost:3500");
         const url = `${origin}/${locale}/invitations/organization/${data.id}/accept`;
         await sendOrganizationInvitationEmail(
           { transport: magicLinkTransport },
