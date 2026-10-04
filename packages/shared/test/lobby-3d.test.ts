@@ -63,6 +63,22 @@ describe("withLobbyRoom en 3D", () => {
     expect(withLobbyRoom(pkg).world3d).toEqual(withLobby.world3d);
   });
 
+  it("si un id determinista ya existe entre las piezas, salta al siguiente libre", () => {
+    const busy = makeRoom3D();
+    busy.world3d!.rooms["sala"]!.pieces[0]!.id = "p-00000000";
+    busy.world3d!.rooms["sala"]!.pieces[1]!.id = "p-00000002";
+    const result = withLobbyRoom(busy);
+    const lobbyPieces = result.world3d!.rooms[lobbyRoomOf(result.map)!.id]!.pieces;
+    expect(lobbyPieces).toHaveLength(64);
+    expect(lobbyPieces.slice(0, 3).map((p) => p.id)).toEqual([
+      "p-00000001",
+      "p-00000003",
+      "p-00000004",
+    ]);
+    const all = Object.values(result.world3d!.rooms).flatMap((r) => r.pieces.map((p) => p.id));
+    expect(new Set(all).size).toBe(all.length);
+  });
+
   it("conserva el resto de world3d y el paquete original", () => {
     expect(withLobby.world3d!.models).toEqual(pkg.world3d!.models);
     expect(withLobby.world3d!.rooms["sala"]).toEqual(pkg.world3d!.rooms["sala"]);

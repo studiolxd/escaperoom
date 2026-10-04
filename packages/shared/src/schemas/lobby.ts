@@ -184,6 +184,7 @@ function lobbyPieceId(index: number): string {
 export function buildDefaultLobbyRoom3D(
   map: MapLike,
   maxPlayers = 8,
+  world3d?: Pick<World3D, "rooms">,
 ): { room: SubRoom; pieces: Piece3D[] } {
   const source = initialRoomOf(map) ?? map.rooms[0];
   const { cols, rows } = DEFAULT_LOBBY_GRID_3D;
@@ -214,10 +215,17 @@ export function buildDefaultLobbyRoom3D(
       });
     }
   }
-  const pieces = [...floors, ...walls].map((piece, index) => ({
-    ...piece,
-    id: lobbyPieceId(index),
-  }));
+  // Id determinista; si ya existe entre las piezas del paquete, salta al siguiente libre.
+  const taken = new Set(
+    Object.values(world3d?.rooms ?? {}).flatMap((room) => room.pieces.map((piece) => piece.id)),
+  );
+  let next = 0;
+  const pieces = [...floors, ...walls].map((piece) => {
+    while (taken.has(lobbyPieceId(next))) next += 1;
+    const id = lobbyPieceId(next);
+    next += 1;
+    return { ...piece, id };
+  });
 
   return {
     room: {
@@ -248,7 +256,11 @@ export function withLobbyRoom<
 >(pkg: T): T {
   if (lobbyRoomOf(pkg.map)) return pkg;
   if (dimensionOf(pkg.meta) === "3d") {
-    const { room, pieces } = buildDefaultLobbyRoom3D(pkg.map, pkg.meta.players.max);
+    const { room, pieces } = buildDefaultLobbyRoom3D(
+      pkg.map,
+      pkg.meta.players.max,
+      pkg.world3d,
+    );
     return {
       ...pkg,
       map: { ...pkg.map, rooms: [...pkg.map.rooms, room] },

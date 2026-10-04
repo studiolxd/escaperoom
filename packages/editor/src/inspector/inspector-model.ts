@@ -97,7 +97,13 @@ export function describeTarget(
       return describeSchema(WorldObjectSchema, {
         kinds,
         omit: ["id"],
-        hints: { ...refHints(OBJECT_REFS), type: { suggestions: OBJECT_TYPE_SUGGESTIONS } },
+        hints: {
+          ...refHints(OBJECT_REFS),
+          type: { suggestions: OBJECT_TYPE_SUGGESTIONS },
+          // Modo 3D: `transform` no se edita en el formulario genérico (gizmo y
+          // control propio del editor 3D); nunca se muestra, ni en 2D ni en 3D.
+          transform: { hidden: true },
+        },
       });
     case "puzzle": {
       const keys = Object.fromEntries(
