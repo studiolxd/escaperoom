@@ -1,6 +1,39 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { SEED } from "../support/env";
 import { rotateCameraUntilVisible, UiPlayer } from "../support/game";
+
+/**
+ * El jugador aparece junto a la puerta sur mirando al sur y la cámara va detrás de él (al norte),
+ * así que el cuadro, 11 m al norte, no se ve. Como haría una persona: se gira la cámara 180°
+ * arrastrando el ratón (0,3°/px → 600 px) y se camina con W (hacia donde mira la cámara) hasta que
+ * el objeto entra en plano; después ya se puede pulsar sobre él.
+ */
+async function walkNorthUntilVisible(page: Page, objectId: string): Promise<void> {
+  const canvas = page.locator("canvas").first();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("El canvas del juego no tiene tamaño en pantalla.");
+  const cx = box.x + box.width / 2;
+  const cy = box.y + box.height / 2;
+  for (let drag = 0; drag < 5; drag += 1) {
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    await page.mouse.move(cx + 120, cy, { steps: 6 });
+    await page.mouse.up();
+  }
+  // «En plano» con margen: pegado al borde de la pantalla el clic podría fallar al moverse la cámara.
+  const inView = () =>
+    page.evaluate((id) => {
+      const at = window.__escaperoomGame?.getObjectScreenFraction(id);
+      return at !== undefined && at.x > 0.08 && at.x < 0.92 && at.y > 0.15 && at.y < 0.9;
+    }, objectId);
+  for (let step = 0; step < 20 && !(await inView()); step += 1) {
+    await page.keyboard.down("KeyW");
+    await page.waitForTimeout(500);
+    await page.keyboard.up("KeyW");
+  }
+  await expect.poll(inView, { message: `«${objectId}» no entra en plano` }).toBe(true);
+  await page.waitForTimeout(500); // la cámara sigue al avatar con un pequeño retardo
+}
 
 /**
  * `game.reyaldric-3d.spec.ts` (encargo 7.10b, specs/27 §11-§12): de humo, un jugador. «La Maldición
@@ -32,7 +65,7 @@ test("Rey Aldric 3D: se llega al mapa 3D y se resuelve el primer puzle de la rut
   });
 
   await test.step("Salón del Trono: el cuadro esconde la llave de bronce (p-llave-cuadro)", async () => {
-    await rotateCameraUntilVisible(page, "cuadro-aurelio");
+    await walkNorthUntilVisible(page, "cuadro-aurelio");
     await player.inspect("cuadro-aurelio");
     await rotateCameraUntilVisible(page, "llave-bronce-suelo");
     await player.pickUp("llave-bronce-suelo");
