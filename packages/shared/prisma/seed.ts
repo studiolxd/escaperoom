@@ -249,7 +249,21 @@ async function main() {
   // todos los entornos, como la sala principal. Fixture generado por el
   // conversor 2D→3D (`pnpm --filter @escaperoom/shared convertir:3d`).
   const rey3d = JSON.parse(readFileSync(rey3dFixturePath, "utf8")) as RoomPackageFixture;
-  const rey3dPackage = { ...rey3d, meta: { ...rey3d.meta, id: REY_ALDRIC_3D_ROOM_ID } };
+  // Misma introducción (texto y narración) que la sala 2D; solo en el seed, el
+  // fixture y el conversor no la llevan.
+  const rey3dIntroAudioRef = await seedIntroAudioRef(REY_ALDRIC_3D_ROOM_ID);
+  const rey3dPackage = {
+    ...rey3d,
+    meta: {
+      ...rey3d.meta,
+      id: REY_ALDRIC_3D_ROOM_ID,
+      intro: {
+        type: "text",
+        text: { es: { text: MAIN_ROOM_INTRO_TEXT } },
+        ...(rey3dIntroAudioRef ? { audioUrl: rey3dIntroAudioRef } : {}),
+      },
+    },
+  };
   const rey3dCoverImageKey = await seedCoverImageKey(REY_ALDRIC_3D_ROOM_ID, "rey-aldric-cover.jpg");
   await prisma.room.upsert({
     where: { id: REY_ALDRIC_3D_ROOM_ID },
