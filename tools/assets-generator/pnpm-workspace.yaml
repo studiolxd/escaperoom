@@ -1,2 +1,5 @@
 allowBuilds:
   sharp: true
+overrides:
+  # ndarray-pixels (de @gltf-transform/functions) trae su propio sharp: dos libvips cargados a la vez avisan en macOS
+  sharp: 0.34.5

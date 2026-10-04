@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Visor 3D del pack</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #0b1120; color: #e5e7eb; font: 13px/1.4 system-ui, sans-serif; overflow: hidden; }
+      canvas { display: block; }
+      #panel { position: absolute; top: 8px; left: 8px; width: 300px; max-height: calc(100% - 16px); overflow: auto; padding: 10px;
+        background: rgba(11, 17, 32, 0.88); border: 1px solid #334155; border-radius: 6px; }
+      #panel h1 { font-size: 14px; margin: 0 0 8px; }
+      #panel label { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 0; }
+      #panel select { background: #1e293b; color: inherit; border: 1px solid #475569; border-radius: 4px; padding: 2px 4px; }
+      #informe { margin-top: 10px; border-top: 1px solid #334155; padding-top: 8px; }
+      #informe table { width: 100%; border-collapse: collapse; font-size: 11px; }
+      #informe th, #informe td { text-align: left; padding: 2px 4px 2px 0; vertical-align: top; }
+      #informe .mal { color: #fca5a5; }
+      #estado { margin-top: 8px; color: #fca5a5; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <div id="panel">
+      <h1>Visor 3D · medieval-v1</h1>
+      <label>Arca <select id="arca"><option value="cerrada">cerrada</option><option value="abierta">abierta</option></select></label>
+      <label>Brasero <select id="brasero"><option value="apagado">apagado</option><option value="encendido">encendido</option></select></label>
+      <label>Caballero <select id="caballero"><option>idle</option><option>walk</option><option>interact</option></select></label>
+      <label>Material <select id="material"><option value="toon">toon</option><option value="original">original del GLB</option></select></label>
+      <label>Ejes y rejilla de 1 m <select id="ayudas"><option value="no">no</option><option value="si">sí</option></select></label>
+      <div id="estado"></div>
+      <div id="informe"></div>
+    </div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
