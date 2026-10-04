@@ -198,15 +198,15 @@ describe("validador 3D — checkWorld3DModels (avisos)", () => {
 
   it("resuelve contra el catálogo del pack cuando se le pasa uno", () => {
     const pkg = makeRoom3D();
-    pkg.world3d!.rooms["sala"]!.pieces[0]!.model = "muro";
+    pkg.world3d!.rooms["sala"]!.pieces[0]!.model = "muro-de-prueba";
     const catalog: Models3DCatalog = {
       packId: "medieval-v1",
       version: "0.0.1",
       models: {
-        muro: {
-          file: "models/muro.glb",
+        "muro-de-prueba": {
+          file: "models/muro-de-prueba.glb",
           category: "muro",
-          label: { es: { text: "Muro" } },
+          label: { es: { text: "Muro de prueba" } },
           size: { w: 1, d: 1, hgt: 2.4 },
           colliders: [],
           snap: true,

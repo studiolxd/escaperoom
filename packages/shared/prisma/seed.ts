@@ -25,6 +25,8 @@ const prisma = createPrismaClient({
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.resolve(here, "../../../docs/reference/roompackage-rey-aldric.v1.json");
+const demo3dFixturePath = path.resolve(here, "../../../docs/reference/roompackage-demo-3d.v1.json");
+const DEMO_3D_ROOM_ID = "00000000-0000-0000-0000-000000003001";
 const seedAssetsDir = path.resolve(here, "../../../docs/reference/seed-assets");
 
 /**
@@ -288,6 +290,39 @@ async function main() {
         package: devPackage as unknown as Prisma.InputJsonValue,
         assetsHash: createHash("sha256").update(`${assetsHash}:${i}`).digest("hex"),
         changelog: "Sala de desarrollo (seed)",
+        publishedBy: ID.creator,
+      },
+    });
+  }
+
+  // Sala de pruebas 3D SOLO de desarrollo (encargo 7.6p): fixture versionado
+  // de `docs/reference`, para probar el modo 3D antes de tener el Rey Aldric 3D.
+  if (process.env.NODE_ENV !== "production") {
+    const demo3d = JSON.parse(readFileSync(demo3dFixturePath, "utf8")) as RoomPackageFixture;
+    const demo3dPackage = { ...demo3d, meta: { ...demo3d.meta, id: DEMO_3D_ROOM_ID } };
+    await prisma.room.upsert({
+      where: { id: DEMO_3D_ROOM_ID },
+      update: {},
+      create: {
+        id: DEMO_3D_ROOM_ID,
+        authorId: ID.creator,
+        title: demo3d.meta.title,
+        status: "published",
+        saleIndividual: true,
+        saleEvents: true,
+        priceCents: 0,
+        dimension: "3d",
+      },
+    });
+    await prisma.roomVersion.upsert({
+      where: { roomId_semver: { roomId: DEMO_3D_ROOM_ID, semver: demo3d.meta.version } },
+      update: { package: demo3dPackage as unknown as Prisma.InputJsonValue },
+      create: {
+        roomId: DEMO_3D_ROOM_ID,
+        semver: demo3d.meta.version,
+        package: demo3dPackage as unknown as Prisma.InputJsonValue,
+        assetsHash,
+        changelog: "Sala de pruebas 3D (seed)",
         publishedBy: ID.creator,
       },
     });
