@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type DragEvent, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import { cn } from "cn";
 import type { CombinationOutcome, CombineItemsPublicView } from "@escaperoom/shared/templates";
 import { Button } from "@/components/ui/button";
+import { useArrowNavigation } from "@/components/game-session/hooks/use-arrow-navigation";
 import { combineInputs, toggleSelection } from "@/lib/playtest-state";
 
 /** Item del catálogo resuelto para pintar (el host localiza `name`/`content`). */
@@ -81,6 +82,18 @@ export function InventoryPanel({
   const disabled = pending || unavailable;
   const totalSlots = Math.max(cols * rows, view.inventory.length);
 
+  const gridRef = useRef<HTMLDivElement>(null);
+  // Flechas por la rejilla (los huecos vacíos están deshabilitados y se saltan;
+  // el inventario se llena desde el primer hueco, así que el orden visual se
+  // mantiene); Espacio/Intro pulsan el ítem con foco como un clic.
+  useArrowNavigation({
+    containerRef: gridRef,
+    selector: '[role="option"]:not(:disabled)',
+    columns: Math.max(1, cols),
+    autoFocus: true,
+    enabled: !disabled,
+  });
+
   function labelFor(id: string): string {
     return catalog.get(id)?.name ?? t("unknownItem");
   }
@@ -146,6 +159,7 @@ export function InventoryPanel({
       </header>
 
       <div
+        ref={gridRef}
         className="grid-cols-dynamic grid gap-2"
         style={{ "--cols": cols } as CSSProperties}
         role="listbox"

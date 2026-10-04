@@ -82,3 +82,49 @@ describe("ContextMenuPopover: objetos apilados en la misma celda", () => {
     expect(screen.getByRole("button", { name: "Inspeccionar" })).toBeInTheDocument();
   });
 });
+
+describe("ContextMenuPopover: teclado", () => {
+  it("el foco inicial va a la primera acción, no al objeto apilado", async () => {
+    renderMenu("mural-ranura", [object("mural-vendimia"), object("mural-ranura")]);
+    expect(await screen.findByRole("button", { name: "Inspeccionar" })).toHaveFocus();
+  });
+
+  it("las flechas recorren los botones en orden y dan la vuelta; Espacio/Intro pulsan", async () => {
+    const { onInspect } = renderMenu("mural-ranura", [
+      object("mural-vendimia"),
+      object("mural-ranura"),
+    ]);
+    const user = userEvent.setup();
+    const btn = (name: string) => screen.getByRole("button", { name });
+    await screen.findByRole("button", { name: "Inspeccionar" });
+    await user.keyboard("{ArrowDown}");
+    expect(btn("Usar objeto…")).toHaveFocus();
+    await user.keyboard("{ArrowRight}");
+    expect(btn("Cancelar")).toHaveFocus();
+    await user.keyboard("{ArrowRight}"); // da la vuelta al primero (objeto apilado)
+    expect(btn("El mural de la vendimia")).toHaveFocus();
+    await user.keyboard("{ArrowUp}"); // y hacia atrás, al último
+    expect(btn("Cancelar")).toHaveFocus();
+    await user.keyboard("{ArrowLeft}{ArrowLeft}");
+    expect(btn("Inspeccionar")).toHaveFocus();
+    await user.keyboard("{ }");
+    expect(onInspect).toHaveBeenCalledTimes(1);
+    await user.keyboard("{Enter}");
+    expect(onInspect).toHaveBeenCalledTimes(2);
+  });
+
+  it("Espacio y las flechas no llegan a window (el runtime les haría preventDefault)", async () => {
+    renderMenu("mural-ranura", [object("mural-vendimia"), object("mural-ranura")]);
+    const user = userEvent.setup();
+    await screen.findByRole("button", { name: "Inspeccionar" });
+    const world = vi.fn();
+    const down = (event: KeyboardEvent) => world(`${event.type}:${event.key}`);
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", down);
+    await user.keyboard("{ }{ArrowDown}");
+    window.removeEventListener("keydown", down);
+    window.removeEventListener("keyup", down);
+    // Solo el keyup de la flecha pasa (no pulsa nada): Espacio y los keydown, no.
+    expect(world.mock.calls).toEqual([["keyup:ArrowDown"]]);
+  });
+});

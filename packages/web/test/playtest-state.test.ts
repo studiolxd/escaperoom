@@ -32,6 +32,22 @@ describe("el inventario abierto no propaga clics al mundo", () => {
   });
 });
 
+describe("diálogo de inspección e imagen grande bloquean el movimiento", () => {
+  const closed = { introOpen: false, inventoryOpen: false };
+
+  it("deshabilita el mundo con el diálogo de inspección abierto", () => {
+    expect(isWorldInputEnabled({ ...closed, dialogOpen: true })).toBe(false);
+  });
+
+  it("deshabilita el mundo con la imagen grande abierta", () => {
+    expect(isWorldInputEnabled({ ...closed, imageOpen: true })).toBe(false);
+  });
+
+  it("lo rehabilita al cerrarlos", () => {
+    expect(isWorldInputEnabled({ ...closed, dialogOpen: false, imageOpen: false })).toBe(true);
+  });
+});
+
 describe("combinar con dos seleccionados", () => {
   it("selecciona, deselecciona y reemplaza al más antiguo", () => {
     let staged: string[] = [];
