@@ -7,7 +7,7 @@ import {
   PLAYTEST_ROOM_NAME as SERVER_ROOM_NAME,
   playtestRegistry,
 } from "@escaperoom/colyseus-server";
-import { removeObject, roomDocToPackage, roomPackageToDoc } from "@escaperoom/editor/room-doc";
+import { findIdReferences, removeObject, roomDocToPackage, roomPackageToDoc } from "@escaperoom/editor/room-doc";
 import {
   GAME_PROTOCOL,
   PLAYTEST_EXPIRED_CLOSE,
@@ -272,10 +272,14 @@ describe("playtest de punta a punta (web → Colyseus real)", () => {
     await expect.poll(() => room.state.phase).toBe("playing");
 
     // El autor borra el cuadro del borrador con la partida en curso…
-    await api.push(() => removeObject(api.doc, "cuadro-aurelio"));
+    // (`removeObject` no borra objetos referenciados: se elige uno sin referencias.)
+    const spare = roomDocToPackage(api.doc).objects.find(
+      (o) => findIdReferences(api.doc, o.id).length === 0,
+    )!;
+    await api.push(() => removeObject(api.doc, spare.id));
     const second = await api.play("autora");
     expect(second.status).toBe(201);
-    expect(received[1]!.roomPackage.objects.map((o) => o.id)).not.toContain("cuadro-aurelio");
+    expect(received[1]!.roomPackage.objects.map((o) => o.id)).not.toContain(spare.id);
 
     // …pero la partida ya creada juega con el paquete congelado.
     const granted = new Promise((resolve) => room.onMessage(GAME_PROTOCOL.itemGranted, resolve));

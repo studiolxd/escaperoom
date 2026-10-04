@@ -2,6 +2,12 @@ import * as Y from "yjs";
 import { describe, expect, it } from "vitest";
 import {
   RoomDocError,
+  addTorch,
+  applyTransforms3D,
+  duplicate3D,
+  listLights,
+  listSpawnPoints3D,
+  updateTorch,
   addLobbyRoom,
   defineSubRooms,
   fillPieces3D,
@@ -332,5 +338,129 @@ describe("renameObject y piezas", () => {
     renameObject(doc, "muro", "muro-grande");
     expect(readObject(doc, "muro-grande")).toBeDefined();
     expect(readObject(doc, "muro")).toBeUndefined();
+  });
+});
+
+describe("antorchas 3D con altura", () => {
+  it("addTorch acepta h (por defecto 1.6 para comprobar) y updateTorch la cambia", () => {
+    const doc = doc3d();
+    const index = addTorch(doc, "sala", { x: 1.25, y: 2.5, h: 2 });
+    expect(index).toBe(1); // el ambiente ocupa el 0
+    expect(listLights(doc, "sala")[1]).toEqual({ type: "torch", x: 1.25, y: 2.5, h: 2 });
+    updateTorch(doc, "sala", 1, { x: 3, h: 2.4 });
+    expect(listLights(doc, "sala")[1]).toEqual({ type: "torch", x: 3, y: 2.5, h: 2.4 });
+    addTorch(doc, "sala", { x: 1, y: 1 });
+    expect(listLights(doc, "sala")[2]).toEqual({ type: "torch", x: 1, y: 1 });
+  });
+
+  it("comprueba la posición en metros y la altura", () => {
+    const doc = doc3d();
+    expect(codeOf(() => addTorch(doc, "sala", { x: 4, y: 4 }))).toBeUndefined();
+    expect(codeOf(() => addTorch(doc, "sala", { x: 4.5, y: 1 }))).toBe("OUT_OF_BOUNDS");
+    expect(codeOf(() => addTorch(doc, "sala", { x: 1, y: 1, h: 33 }))).toBe("OUT_OF_BOUNDS");
+  });
+});
+
+describe("applyTransforms3D", () => {
+  it("aplica piezas, objetos, spawns y antorchas en una sola transacción", () => {
+    const doc = doc3d();
+    addTorch(doc, "sala", { x: 1, y: 1, h: 1.6 });
+    let transactions = 0;
+    doc.on("afterTransaction", () => (transactions += 1));
+    applyTransforms3D(doc, "sala", [
+      { kind: "piece", id: "p-suelo000", x: 2.5, y: 2.5, h: 0.2, yaw: 90, scale: 2 },
+      { kind: "object", id: "arca", x: 1.2, y: 3.6, h: 0, yaw: 270 },
+      { kind: "spawn", id: "spawn-1", x: 3, y: 3, h: 0.4, yaw: 45 },
+      { kind: "torch", index: 1, x: 2, y: 2, h: 2.2 },
+    ]);
+    expect(transactions).toBe(1);
+    const pkg = roomDocToPackage(doc);
+    expect(pkg.world3d?.rooms.sala?.pieces[0]).toMatchObject({ x: 2.5, y: 2.5, h: 0.2, yaw: 90, scale: 2 });
+    expect(readObject(doc, "arca")).toMatchObject({
+      transform: { x: 1.2, y: 3.6, h: 0, yaw: 270 },
+      position: { x: 1, y: 4 },
+    });
+    expect(listSpawnPoints3D(doc, "sala")).toEqual([{ id: "spawn-1", x: 3, y: 3, h: 0.4, yaw: 45 }]);
+    expect(listLights(doc, "sala")[1]).toEqual({ type: "torch", x: 2, y: 2, h: 2.2 });
+  });
+
+  it("es atómico: un cambio inválido no aplica ninguno", () => {
+    const doc = doc3d();
+    const before = JSON.stringify(roomDocToPackage(doc));
+    expect(
+      codeOf(() =>
+        applyTransforms3D(doc, "sala", [
+          { kind: "piece", id: "p-suelo000", x: 2.5, y: 2.5, h: 0, yaw: 0 },
+          { kind: "object", id: "arca", x: 9, y: 9, h: 0, yaw: 0 },
+        ]),
+      ),
+    ).toBe("OUT_OF_BOUNDS");
+    expect(
+      codeOf(() =>
+        applyTransforms3D(doc, "sala", [
+          { kind: "spawn", id: "spawn-1", x: 2, y: 2, h: 0, yaw: 0 },
+          { kind: "piece", id: "p-noexiste", x: 1, y: 1, h: 0, yaw: 0 },
+        ]),
+      ),
+    ).toBe("UNKNOWN_PIECE");
+    expect(JSON.stringify(roomDocToPackage(doc))).toBe(before);
+  });
+});
+
+describe("duplicate3D", () => {
+  it("duplica piezas y objetos desplazados, con id nuevo y sin lógica", () => {
+    const doc = doc3d();
+    doc.transact(() => {
+      const record = doc.getMap<Y.Map<unknown>>("objects").get("arca")!;
+      record.set("lockedBy", "llave");
+      record.set("leadsTo", "otra");
+      record.set("inventory", ["x"]);
+      record.set("hidingSpot", { contains: "x" });
+    });
+    const created = duplicate3D(
+      doc,
+      "sala",
+      [
+        { kind: "piece", id: "p-suelo000" },
+        { kind: "object", id: "arca" },
+      ],
+      { x: 1, y: 0.5, h: 0.2 },
+    );
+    expect(created.pieces).toHaveLength(1);
+    expect(created.objects).toHaveLength(1);
+    const copy = readObject(doc, created.objects[0]!)!;
+    expect(copy.id).not.toBe("arca");
+    expect(copy).toMatchObject({
+      sprite: "arca-test",
+      type: "arca",
+      states: { closed: "arca-test" },
+      initialState: "closed",
+      interactable: true,
+      transform: { x: 3.6, y: 2.7, h: 0.2, yaw: 180 },
+    });
+    for (const key of ["lockedBy", "leadsTo", "inventory", "hidingSpot"] as const) {
+      expect(copy[key], key).toBeUndefined();
+    }
+    expect(listPieces3D(doc, "sala")).toHaveLength(5);
+    expect(listPieces3D(doc, "sala").at(-1)).toMatchObject({ x: 1.5, y: 1, h: 0.2 });
+  });
+
+  it("es todo o nada si una copia queda fuera", () => {
+    const doc = doc3d();
+    expect(
+      codeOf(() =>
+        duplicate3D(
+          doc,
+          "sala",
+          [
+            { kind: "piece", id: "p-suelo000" },
+            { kind: "object", id: "arca" },
+          ],
+          { x: 3, y: 0, h: 0 },
+        ),
+      ),
+    ).toBe("OUT_OF_BOUNDS");
+    expect(listPieces3D(doc, "sala")).toHaveLength(4);
+    expect(roomDocToPackage(doc).objects).toHaveLength(1);
   });
 });

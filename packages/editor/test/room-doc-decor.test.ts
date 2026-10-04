@@ -251,3 +251,13 @@ describe("controlador de herramientas: decorar y antorcha", () => {
     ]);
   });
 });
+
+describe("antorchas en 2D con h", () => {
+  it("ignoran `h` (no cambia el formato 2D)", () => {
+    const doc = bareAldric();
+    const index = addTorch(doc, "bodega", { x: 2, y: 0, h: 3 });
+    expect(listLights(doc, "bodega")[index]).toEqual({ type: "torch", x: 2, y: 0 });
+    updateTorch(doc, "bodega", index, { h: 2 });
+    expect(listLights(doc, "bodega")[index]).toEqual({ type: "torch", x: 2, y: 0 });
+  });
+});

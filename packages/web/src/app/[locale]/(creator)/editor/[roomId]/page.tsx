@@ -8,8 +8,9 @@ import { OnboardingLogin } from "@/components/onboarding/onboarding-login";
 import { RoomEditorShell } from "@/components/room-editor/room-editor-shell";
 import { resolveActorFromHeaders } from "@/server/context";
 import { getRoomDraftService } from "@/server/services";
-import { resolveEditorPalette } from "@/lib/editor-palette";
+import { DEFAULT_TILESET, resolveEditorPalette } from "@/lib/editor-palette";
 import { EDITOR_SYNC_URL } from "@/lib/editor-sync";
+import { buildPack3D } from "@/lib/game-model";
 import { readReyAldricRoomPackageJson } from "@/lib/room-preview-fixture";
 
 type Props = {
@@ -69,13 +70,17 @@ export default async function RoomEditorPage({ params, searchParams }: Props) {
   }
 
   const demoPackage = isDemo ? loadRoomPackage(readReyAldricRoomPackageJson()) : undefined;
-  const { palette, pack } = resolveEditorPalette(demoPackage?.map.tileset);
+  const tileset = demoPackage?.map.tileset ?? DEFAULT_TILESET;
+  const { palette, pack } = resolveEditorPalette(tileset);
+  // Pack de los modelos GLB para el lienzo de las salas 3D (la dimensión se conoce al sincronizar).
+  const pack3d = buildPack3D({ dimension: "3d" }, tileset);
 
   return (
     <RoomEditorShell
       roomId={roomId}
       palette={palette}
       pack={pack}
+      pack3d={pack3d}
       syncUrl={EDITOR_SYNC_URL}
       demoPackage={demoPackage}
     />

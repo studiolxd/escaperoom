@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type * as Y from "yjs";
 import {
@@ -8,15 +8,12 @@ import {
   EDITOR_TILE_LAYERS,
   useRoomPackage,
   type EditToolController,
-  type ToolError,
 } from "@escaperoom/editor";
 import {
-  toRuntimeModel,
   type EditPointerEvent,
   type EditorPalette,
-  type RuntimeModel,
 } from "@escaperoom/game-runtime";
-import { isLobbyRoom, type RoomPackage } from "@escaperoom/shared/schemas";
+import { isLobbyRoom } from "@escaperoom/shared/schemas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -33,16 +30,16 @@ import type { RoomEditorCanvasProps } from "./room-editor-canvas";
 import { EditorToolHint } from "./editor-tool-hint";
 import { RoomEditorPalette } from "./room-editor-palette";
 import { RoomEditorRoomPanel } from "./room-editor-room-panel";
+import {
+  CANVAS_TABS,
+  QUIET_BUTTON,
+  errorText,
+  useRuntimeModel,
+  type CanvasTab,
+  type RoomEditorStatus,
+} from "./editor-shared";
 
-/** Botón secundario legible sobre el fondo oscuro del editor. */
-const QUIET_BUTTON = "border border-white/15 text-white hover:bg-white/10";
-
-/** Estado de la conexión que muestra la cabecera. */
-export type RoomEditorStatus = "local" | "connecting" | "connected" | "offline";
-
-/** Pestañas del área central (specs/09 §4.1): lienzo WYSIWYG o grafo de reglas. */
-export const CANVAS_TABS = ["map", "rules"] as const;
-export type CanvasTab = (typeof CANVAS_TABS)[number];
+export { CANVAS_TABS, type CanvasTab, type RoomEditorStatus };
 
 export interface RoomEditorWorkspaceProps {
   doc: Y.Doc;
@@ -63,23 +60,6 @@ export interface RoomEditorWorkspaceProps {
   validation?: ReactNode;
   /** Acciones de cabecera: validar (3.7), jugar (3.8), publicar (3.9). */
   headerActions: ReactNode;
-}
-
-/** Último `RuntimeModel` válido del paquete: un estado intermedio inválido no vacía el lienzo. */
-function useRuntimeModel(pkg: RoomPackage, locale: string) {
-  const lastValid = useRef<RuntimeModel | null>(null);
-  return useMemo(() => {
-    try {
-      const model = toRuntimeModel(pkg, { locale });
-      lastValid.current = model;
-      return { model, error: undefined };
-    } catch (error) {
-      return {
-        model: lastValid.current,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  }, [pkg, locale]);
 }
 
 /**
@@ -296,24 +276,4 @@ export function RoomEditorWorkspace({
       </div>
     </div>
   );
-}
-
-type Translator = ReturnType<typeof useTranslations<"RoomEditor">>;
-
-const ERROR_CODES = [
-  "UNKNOWN_ROOM",
-  "UNKNOWN_OBJECT",
-  "OUT_OF_BOUNDS",
-  "DUPLICATE_ID",
-  "INVALID_ID",
-  "REFERENCED_ID",
-  "UNKNOWN_DECORATION",
-  "UNKNOWN_LIGHT",
-  "INVALID_VALUE",
-] as const;
-
-function errorText(t: Translator, error: ToolError): string {
-  return (ERROR_CODES as readonly string[]).includes(error.code)
-    ? t(`errors.${error.code as (typeof ERROR_CODES)[number]}`)
-    : error.message;
 }

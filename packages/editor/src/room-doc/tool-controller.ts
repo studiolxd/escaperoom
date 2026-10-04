@@ -185,8 +185,13 @@ export class EditToolController {
   deleteSelection(): void {
     const id = this.state.selectedObjectId;
     if (!id || !readObject(this.doc, id)) return;
-    removeObject(this.doc, id);
-    this.update({ selectedObjectId: undefined });
+    try {
+      removeObject(this.doc, id);
+    } catch (error) {
+      this.update({ error: toToolError(error) });
+      return;
+    }
+    this.update({ selectedObjectId: undefined, error: undefined });
   }
 
   /** Punto de entrada de los eventos de puntero del runtime. */

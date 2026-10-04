@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     "@escaperoom/game-runtime",
     "@escaperoom/kit",
     "@escaperoom/mcp-server",
+    "@escaperoom/nav3d",
     "@escaperoom/shared",
   ],
   poweredByHeader: false,

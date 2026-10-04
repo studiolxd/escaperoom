@@ -527,10 +527,12 @@
       "OUT_OF_BOUNDS": "That cell is outside the room.",
       "DUPLICATE_ID": "Something already uses that ID.",
       "INVALID_ID": "Use only lowercase letters, digits and hyphens (e.g. throne-chest).",
-      "REFERENCED_ID": "That object is already used by rules or puzzles; rename it from the inspector.",
+      "REFERENCED_ID": "This element is used in rules or puzzles. Remove those references first.",
       "UNKNOWN_DECORATION": "That decoration no longer exists.",
       "UNKNOWN_LIGHT": "That light no longer exists.",
-      "INVALID_VALUE": "Invalid value: colour is #rrggbb and intensity goes from 0 to 1."
+      "INVALID_VALUE": "Invalid value: colour is #rrggbb and intensity goes from 0 to 1.",
+      "WRONG_DIMENSION": "This action does not exist in this kind of room.",
+      "UNKNOWN_PIECE": "That piece no longer exists."
     },
     "canvas": {
       "label": "View",
@@ -566,6 +568,69 @@
       "place": "Place interactive objects (keys, locks, furniture…).",
       "decorate": "Add visual decoration, no game logic.",
       "torch": "Place torches that light up the room."
+    },
+    "tools3d": {
+      "select": "Select",
+      "place": "Place",
+      "spawn": "Spawn",
+      "torch": "Torch"
+    },
+    "toolHints3d": {
+      "select": "Pick pieces and objects; hold Shift for several. Shortcuts: W move, E rotate, R scale, Del delete, Ctrl+D duplicate, Esc exit.",
+      "place": "Places the chosen model. Pieces are painted by dragging. Shortcuts: Q rotates what you are about to place, Alt turns snapping off.",
+      "spawn": "Click the floor to add a spawn point (up to 8 per room). Q turns its facing.",
+      "torch": "Click to hang a torch at the working height plus 1.6 m."
+    },
+    "gizmo": {
+      "label": "Gizmo mode",
+      "translate": "Move",
+      "rotate": "Rotate",
+      "scale": "Scale"
+    },
+    "workHeight": {
+      "label": "Working height (m)",
+      "down": "Lower the working height",
+      "up": "Raise the working height"
+    },
+    "snap": "Snap",
+    "showNavmesh": "Show walkable area",
+    "palette3d": {
+      "kit": "Kit",
+      "objects": "Objects",
+      "mine": "My models",
+      "mineEmpty": "You haven't uploaded any models yet.",
+      "asDecoration": "Place as decoration"
+    },
+    "categories": {
+      "suelo": "Floors",
+      "muro": "Walls",
+      "estructura": "Structure",
+      "mueble": "Furniture",
+      "pared": "Wall items",
+      "suelto": "Loose"
+    },
+    "selection3d": {
+      "x": "X (m)",
+      "y": "Y (m)",
+      "h": "Height (m)",
+      "yaw": "Rotation (°)",
+      "scale": "Scale",
+      "many": "{count} items selected",
+      "duplicate": "Duplicate",
+      "delete": "Delete"
+    },
+    "room3d": {
+      "size": "Size",
+      "width": "Width (m)",
+      "depth": "Depth (m)",
+      "ambient": "Ambient light",
+      "intensity": "Intensity",
+      "counts": "{pieces} pieces · {objects} objects · {spawns} spawn points · {torches} torches",
+      "reachTitle": "Walkable area",
+      "noFloor": "This room has no walkable floor.",
+      "spawnOff": "Spawn point {id} is outside the walkable area.",
+      "unreachable": "{object} cannot be reached.",
+      "platformNote": "A lone 1 × 1 m platform cannot be stepped on: join at least two."
     }
   },
   "Inspector": {

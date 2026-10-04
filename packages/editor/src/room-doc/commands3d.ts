@@ -7,7 +7,9 @@ import {
   MIN_SCALE_3D,
   positionFromTransform,
   type Grid,
+  type LightConfig,
   type Piece3D,
+  type SpawnPoint,
   type Transform3D,
   type WorldObject,
 } from "@escaperoom/shared/schemas";
@@ -19,11 +21,13 @@ import {
   subRoom,
 } from "./commands";
 import { setSubRoomGrid } from "./content";
+import { checkTorch3D } from "./decor";
 import {
   buildFlatRecord,
   collection,
   nextOrder,
   orderedIds,
+  plain,
   readFlatRecord,
   type RecordMap,
 } from "./doc-model";
@@ -323,8 +327,212 @@ export function setSpawnPoints3D(
       assertInside3D(doc, roomId, spawn);
       assertYaw(spawn.yaw);
     }
-    const list = new Y.Array<unknown>();
-    list.push(spawns.map((spawn) => ({ ...spawn })));
-    room.set("spawnPoints", list);
+    writeSpawnPoints(room, spawns);
   });
+}
+
+function writeSpawnPoints(room: RecordMap, spawns: readonly SpawnPoint[]): void {
+  const list = new Y.Array<unknown>();
+  list.push(spawns.map((spawn) => ({ ...spawn })));
+  room.set("spawnPoints", list);
+}
+
+/** Puntos de aparición de la habitación, en orden. */
+export function listSpawnPoints3D(doc: Y.Doc, roomId: string): SpawnPoint[] {
+  const list = subRoom(doc, roomId).get("spawnPoints");
+  return list instanceof Y.Array ? (list.toJSON() as SpawnPoint[]) : [];
+}
+
+// ---------------------------------------------------------------------------
+// Operaciones por lotes del editor (encargo 7.7)
+// ---------------------------------------------------------------------------
+
+export type Transform3DChange =
+  | { kind: "piece"; id: string; x: number; y: number; h: number; yaw: number; scale?: number }
+  | { kind: "object"; id: string; x: number; y: number; h: number; yaw: number; scale?: number }
+  | { kind: "spawn"; id: string; x: number; y: number; h: number; yaw: number }
+  | { kind: "torch"; index: number; x: number; y: number; h: number };
+
+/**
+ * Aplica todos los cambios en UNA transacción (un gesto del gizmo = un paso de
+ * historial). Se valida todo antes de escribir: si un cambio falla, no se
+ * aplica ninguno (Yjs no deshace una transacción a medias).
+ */
+export function applyTransforms3D(
+  doc: Y.Doc,
+  roomId: string,
+  changes: readonly Transform3DChange[],
+): void {
+  doc.transact(() => {
+    assertDimension(doc, "3d", "applyTransforms3D");
+    const room = subRoom(doc, roomId);
+    const pieces = collection(doc, "pieces3d");
+    const objects = collection(doc, "objects");
+    const writes: (() => void)[] = [];
+    const spawns = listSpawnPoints3D(doc, roomId);
+    let spawnsChanged = false;
+    const lights = (room.get("lighting") instanceof Y.Array
+      ? (room.get("lighting") as Y.Array<unknown>).toJSON()
+      : []) as LightConfig[];
+
+    for (const change of changes) {
+      if (change.kind === "piece") {
+        const record = pieces.get(change.id);
+        if (!record || record.get("roomId") !== roomId) {
+          throw new RoomDocError("UNKNOWN_PIECE", `No existe la pieza "${change.id}" en "${roomId}"`);
+        }
+        const patch: Partial<Piece3DInput> = {
+          x: change.x,
+          y: change.y,
+          h: change.h,
+          yaw: change.yaw,
+          scale: change.scale,
+        };
+        checkPiece(doc, roomId, { ...(readFlatRecord(record) as Piece3DInput), ...patch });
+        writes.push(() => {
+          for (const [key, value] of Object.entries(patch)) {
+            if (value === undefined) record.delete(key);
+            else record.set(key, value);
+          }
+        });
+      } else if (change.kind === "object") {
+        const record = objects.get(change.id);
+        if (!record || record.get("roomId") !== roomId) {
+          throw new RoomDocError("UNKNOWN_OBJECT", `No existe el objeto "${change.id}" en "${roomId}"`);
+        }
+        const transform: Transform3D = {
+          x: change.x,
+          y: change.y,
+          h: change.h,
+          yaw: change.yaw,
+          ...(change.scale !== undefined ? { scale: change.scale } : {}),
+        };
+        assertTransform(doc, roomId, transform);
+        writes.push(() => {
+          record.set("transform", { ...transform });
+          record.set("position", positionFromTransform(transform));
+        });
+      } else if (change.kind === "spawn") {
+        const index = spawns.findIndex((spawn) => spawn.id === change.id);
+        if (index === -1) {
+          throw new RoomDocError("INVALID_ID", `No existe el punto de aparición "${change.id}" en "${roomId}"`);
+        }
+        assertInside3D(doc, roomId, change);
+        assertYaw(change.yaw);
+        spawns[index] = { id: change.id, x: change.x, y: change.y, h: change.h, yaw: change.yaw };
+        spawnsChanged = true;
+      } else {
+        const current = lights[change.index];
+        if (current?.type !== "torch") {
+          throw new RoomDocError("UNKNOWN_LIGHT", `La luz #${change.index} no es una antorcha`);
+        }
+        const next = checkTorch3D(doc, roomId, {
+          x: change.x,
+          y: change.y,
+          h: change.h,
+          ...(current.objectId !== undefined ? { objectId: current.objectId } : {}),
+        });
+        writes.push(() => {
+          const list = room.get("lighting") as Y.Array<unknown>;
+          list.delete(change.index, 1);
+          list.insert(change.index, [plain(next)]);
+        });
+      }
+    }
+    for (const write of writes) write();
+    if (spawnsChanged) writeSpawnPoints(room, spawns);
+  });
+}
+
+export type Duplicate3DTarget = { kind: "piece"; id: string } | { kind: "object"; id: string };
+
+/** Campos de un objeto que se copian al duplicarlo (nunca `lockedBy`, `leadsTo`, `inventory` ni `hidingSpot`). */
+const DUPLICATED_OBJECT_FIELDS = [
+  "type",
+  "sprite",
+  "states",
+  "initialState",
+  "interactable",
+  "name",
+] as const;
+
+/**
+ * Duplica piezas y objetos desplazándolos `offset`. Los objetos reciben id
+ * nuevo con `proposeObjectId`. No duplica spawns ni antorchas. Todo o nada.
+ */
+export function duplicate3D(
+  doc: Y.Doc,
+  roomId: string,
+  targets: readonly Duplicate3DTarget[],
+  offset: { x: number; y: number; h: number },
+): { pieces: string[]; objects: string[] } {
+  const created = { pieces: [] as string[], objects: [] as string[] };
+  doc.transact(() => {
+    assertDimension(doc, "3d", "duplicate3D");
+    subRoom(doc, roomId);
+    const pieces = collection(doc, "pieces3d");
+    const objects = collection(doc, "objects");
+    const newPieces: Piece3DInput[] = [];
+    const newObjects: { sprite: string; transform: Transform3D; extra: Record<string, unknown> }[] = [];
+
+    for (const target of targets) {
+      if (target.kind === "piece") {
+        const record = pieces.get(target.id);
+        if (!record || record.get("roomId") !== roomId) {
+          throw new RoomDocError("UNKNOWN_PIECE", `No existe la pieza "${target.id}" en "${roomId}"`);
+        }
+        const piece = readFlatRecord(record) as Piece3DInput;
+        newPieces.push({
+          model: piece.model,
+          yaw: piece.yaw,
+          ...(piece.scale !== undefined ? { scale: piece.scale } : {}),
+          x: piece.x + offset.x,
+          y: piece.y + offset.y,
+          h: piece.h + offset.h,
+        });
+      } else {
+        const record = objects.get(target.id);
+        if (!record || record.get("roomId") !== roomId) {
+          throw new RoomDocError("UNKNOWN_OBJECT", `No existe el objeto "${target.id}" en "${roomId}"`);
+        }
+        const flat = readFlatRecord(record);
+        const t = flat.transform as Transform3D | undefined;
+        if (!t) throw new RoomDocError("INVALID_VALUE", `El objeto "${target.id}" no tiene transform 3D`);
+        const extra: Record<string, unknown> = {};
+        for (const key of DUPLICATED_OBJECT_FIELDS) {
+          if (flat[key] !== undefined) extra[key] = flat[key];
+        }
+        newObjects.push({
+          sprite: String(flat.sprite),
+          transform: { ...t, x: t.x + offset.x, y: t.y + offset.y, h: t.h + offset.h },
+          extra,
+        });
+      }
+    }
+
+    // Validación completa antes de escribir nada.
+    for (const piece of newPieces) checkPiece(doc, roomId, piece);
+    for (const object of newObjects) assertTransform(doc, roomId, object.transform);
+    assertRoomCapacity(doc, roomId, newPieces.length);
+
+    created.pieces = writePieces(doc, roomId, newPieces);
+    for (const object of newObjects) {
+      const id = proposeObjectId(doc, object.sprite, roomId);
+      const value: WorldObject = {
+        id,
+        roomId,
+        type: "decorativo",
+        position: positionFromTransform(object.transform),
+        transform: object.transform,
+        sprite: object.sprite,
+        states: {},
+        initialState: "",
+        interactable: true,
+        ...object.extra,
+      } as WorldObject;
+      objects.set(id, buildFlatRecord(value, nextOrder(objects)));
+      created.objects.push(id);
+    }
+  });
+  return created;
 }

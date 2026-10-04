@@ -347,6 +347,22 @@ describe("comandos de objetos", () => {
     removeObject(doc, "arca-vinos");
     expect(roomDocToPackage(doc)).toEqual(fixture);
   });
+
+  it("removeObject no borra un objeto referenciado y cita dónde se usa", () => {
+    const doc = aldricDoc();
+    let message = "";
+    try {
+      removeObject(doc, "brasero");
+    } catch (error) {
+      expect((error as { code?: string }).code).toBe("REFERENCED_ID");
+      message = (error as Error).message;
+    }
+    expect(message).toMatch(/"brasero" se usa en .+; quita antes esas referencias/);
+    expect(readObject(doc, "brasero")).toBeDefined();
+    const id = placeObject(doc, { roomId: "bodega", sprite: "arca", position: { x: 2, y: 2 } });
+    removeObject(doc, id);
+    expect(readObject(doc, id)).toBeUndefined();
+  });
 });
 
 describe("controlador de herramientas (eventos del runtime → doc)", () => {
@@ -463,11 +479,20 @@ describe("controlador de herramientas (eventos del runtime → doc)", () => {
     expect(tools.getState().selectedObjectId).toBe("trono");
     tools.pointer(down(5, 5));
     expect(tools.getState().selectedObjectId).toBeUndefined();
+    // `trono` lo referencian reglas: no se puede borrar y queda el error.
     tools.pointer(down(9, 0, "trono"));
     tools.pointer(up(9, 0));
     tools.deleteSelection();
-    expect(readObject(doc, "trono")).toBeUndefined();
+    expect(readObject(doc, "trono")).toBeDefined();
+    expect(tools.getState().error?.code).toBe("REFERENCED_ID");
+    expect(tools.getState().selectedObjectId).toBe("trono");
+    // Un objeto sin referencias sí se borra.
+    const id = placeObject(doc, { roomId: "salon-trono", sprite: "arca", position: { x: 3, y: 3 } });
+    tools.select(id);
+    tools.deleteSelection();
+    expect(readObject(doc, id)).toBeUndefined();
     expect(tools.getState().selectedObjectId).toBeUndefined();
+    expect(tools.getState().error).toBeUndefined();
   });
 
   it("un arrastre fuera de la rejilla se queda en la última celda válida", () => {
