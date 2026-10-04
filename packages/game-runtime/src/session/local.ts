@@ -2,6 +2,7 @@ import { filterChatText } from "@escaperoom/shared/chat";
 import type { EngineResult } from "@escaperoom/shared/engine";
 import { resolveLocalizedText } from "@escaperoom/shared/hints";
 import {
+  dimensionOf,
   lobbyRoomOf,
   resolveRoomTimeLimitSec,
   withLobbyRoom,
@@ -98,6 +99,7 @@ export function createLocalGameClient(
   // Como la `GameRoom`: siempre hay sala de espera (la diseñada o la generada).
   const roomPackage = withLobbyRoom(sourcePackage);
   const lobbyRoomId = lobbyRoomOf(roomPackage.map)?.id;
+  const is3D = dimensionOf(roomPackage.meta) === "3d";
   const selfId = options.playerId ?? "p1";
   const wallNow = options.now ?? (() => Date.now());
   const createdAt = wallNow();
@@ -135,6 +137,8 @@ export function createLocalGameClient(
       name: options.name ?? "Jugador 1",
       x: position?.x ?? 0,
       y: position?.y ?? 0,
+      h: position?.h ?? 0,
+      yaw: position?.yaw ?? 0,
       roomId: position?.roomId ?? "",
       tint: options.tint ?? "#38bdf8",
       characterId,
@@ -387,7 +391,7 @@ export function createLocalGameClient(
       // No-op: no hay a quien expulsar en un playtest de un jugador.
     },
 
-    move(x, y, roomId) {
+    move(x, y, roomId, extra) {
       // En la sala de espera también se mueve el avatar, sin cruzar a otra habitación.
       const waiting = !inMap && !session.ended;
       if (!waiting && !playing()) return;
@@ -410,8 +414,34 @@ export function createLocalGameClient(
           return;
         }
         const room = roomPackage.map.rooms.find((candidate) => candidate.id === target)!;
-        const spawn = room.spawnPoints[0] ?? { x: 0, y: 0 };
-        publish(session.movePlayer(selfId, target, spawn.x, spawn.y, logicalNow()).engine);
+        const spawn: { x: number; y: number; h?: number; yaw?: number } = room.spawnPoints[0] ?? {
+          x: 0,
+          y: 0,
+        };
+        publish(
+          session.movePlayer(
+            selfId,
+            target,
+            spawn.x,
+            spawn.y,
+            logicalNow(),
+            is3D ? { h: spawn.h ?? 0, yaw: spawn.yaw ?? 0 } : undefined,
+          ).engine,
+        );
+        return;
+      }
+      if (is3D) {
+        // Sin navmesh: el cliente ya se ciñe a la suya y el servidor real es quien valida.
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
+          fail(MOVE_OUT_OF_BOUNDS, "Movimiento rechazado por el servidor.");
+          return;
+        }
+        publish(
+          session.movePlayer(selfId, current.roomId, x, y, logicalNow(), {
+            h: extra?.h ?? current.h ?? 0,
+            yaw: extra?.yaw ?? current.yaw ?? 0,
+          }).engine,
+        );
         return;
       }
       const grid = roomPackage.map.rooms.find((room) => room.id === current.roomId)!.grid;

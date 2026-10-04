@@ -10,6 +10,7 @@ import {
 import { z } from "zod";
 import * as Sentry from "@sentry/node";
 import { logger } from "@escaperoom/kit/logger";
+import { createRoomNavFor, initNav3D, type RoomNav } from "@escaperoom/nav3d";
 import { sanitizeChatText } from "@escaperoom/shared/chat";
 import type { EngineResult } from "@escaperoom/shared/engine";
 import { resolveLocalizedText } from "@escaperoom/shared/hints";
@@ -20,7 +21,9 @@ import {
   type GameAccessClaims,
   type GameAccessTokenError,
 } from "@escaperoom/shared/game-access-token";
+import { getModels3DCatalog, type Models3DCatalog } from "@escaperoom/shared/packs";
 import {
+  dimensionOf,
   lobbyRoomOf,
   resolveRoomTimeLimitSec,
   withLobbyRoom,
@@ -42,8 +45,10 @@ import {
   CHAT_MESSAGE,
   ERROR_MESSAGE,
   GAME_DOOR_REACH,
+  GAME_DOOR_REACH_HEIGHT_3D,
   GAME_ERRORS,
   GAME_MAX_STEP,
+  GAME_MAX_STEP_3D,
   GAME_MESSAGES,
   GAME_TICK_MS,
   HOST_REASSIGN_GRACE_SEC,
@@ -67,7 +72,7 @@ import {
   readGameMessageRateLimits,
   type GameMessageRateLimits,
 } from "../message-rate-limit.js";
-import { distance, validateMove } from "../movement.js";
+import { distance, OUT_OF_BOUNDS, validateMove, validateMove3D } from "../movement.js";
 import {
   GameInventoryState,
   GamePlayerState,
@@ -186,6 +191,9 @@ const movePayload = z.object({
   x: z.number(),
   y: z.number(),
   roomId: z.string().min(1).max(64).optional(),
+  /** Modo 3D: altura y giro (grados); ignorados en salas 2D. */
+  h: z.number().finite().optional(),
+  yaw: z.number().finite().min(0).lt(360).optional(),
 });
 const objectPayload = z.object({ objectId: z.string().min(1).max(64) });
 const useItemPayload = z.object({
@@ -284,6 +292,9 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
    */
   private launched = false;
   protected session?: RoomSession;
+  /** Modo 3D: catálogo de modelos del pack y navmesh por habitación (se crean bajo demanda). */
+  private catalog: Models3DCatalog | undefined;
+  private readonly navs = new Map<string, RoomNav>();
   private createdAt = 0;
   private seed = 0;
   private ended = false;
@@ -397,6 +408,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     // con el suelo y los muros de su habitación inicial (`withLobbyRoom`).
     const roomPackage = withLobbyRoom(this.loadRoomPackage(options));
     this.roomPackage = roomPackage;
+    if (this.is3D()) {
+      await initNav3D();
+      this.catalog = this.models3DCatalog(roomPackage.map.tileset);
+    }
     this.lobbyRoomId = lobbyRoomOf(roomPackage.map)?.id ?? "";
     this.maxClients = Math.min(MAX_PLAYERS, roomPackage.meta.players.max);
     this.createdAt = Date.now();
@@ -901,6 +916,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
     player.name = sanitizeName(options.name) ?? `Jugador ${this.state.players.size + 1}`;
     player.x = position.x;
     player.y = position.y;
+    player.h = position.h ?? 0;
+    player.yaw = position.yaw ?? 0;
     player.roomId = position.roomId;
     player.tint = pickPlayerTint(usedTints);
     player.characterId = this.resolveJoinCharacter(options.characterId, usedCharacters);
@@ -1017,6 +1034,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       player.name = sanitizeName(displayName) ?? previous.name;
       player.x = previous.x;
       player.y = previous.y;
+      player.h = previous.h;
+      player.yaw = previous.yaw;
       player.roomId = previous.roomId;
       player.tint = previous.tint;
       player.characterId = previous.characterId;
@@ -1044,6 +1063,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       player.name = sanitizeName(displayName) ?? `Jugador ${this.state.players.size + 1}`;
       player.x = position.x;
       player.y = position.y;
+      player.h = position.h ?? 0;
+      player.yaw = position.yaw ?? 0;
       player.roomId = position.roomId;
       player.tint = pickPlayerTint(usedTints);
       player.characterId = this.resolveJoinCharacter(undefined, []);
@@ -1190,6 +1211,7 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
    * llama a `super`.
    */
   onDispose(): Promise<void> | void {
+    this.disposeNavs();
     this.heartbeatInterval?.clear();
     if (this.ended || this.gameAccess?.kind !== "purchase") return;
     const purchaseId = this.gameAccess.purchaseId;
@@ -1201,6 +1223,32 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
           "game-access: fallo al liberar la compra",
         );
       });
+  }
+
+  /** ¿Es una sala 3D (`meta.dimension: "3d"`)? */
+  private is3D(): boolean {
+    return dimensionOf(this.roomPackage.meta) === "3d";
+  }
+
+  /** Catálogo de modelos 3D del pack. Protegido para que los tests inyecten uno propio. */
+  protected models3DCatalog(packId: string): Models3DCatalog | undefined {
+    return getModels3DCatalog(packId);
+  }
+
+  /** Navmesh de una habitación 3D: se genera la primera vez que se pide. */
+  private navFor(roomId: string): RoomNav {
+    let nav = this.navs.get(roomId);
+    if (!nav) {
+      nav = createRoomNavFor(this.roomPackage, roomId, this.catalog);
+      this.navs.set(roomId, nav);
+    }
+    return nav;
+  }
+
+  /** Libera la memoria WASM de las navmesh. `EventRoom` sobrescribe `onDispose` y lo llama a mano. */
+  protected disposeNavs(): void {
+    for (const nav of this.navs.values()) nav.destroy();
+    this.navs.clear();
   }
 
   // — Handlers ————————————————————————————————————————————————————
@@ -1453,6 +1501,10 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       this.fail(client, GAME_ERRORS.invalidState, "Habitación actual inválida.");
       return;
     }
+    if (this.is3D()) {
+      this.handleMove3D(client, session, current, payload);
+      return;
+    }
     const grid = roomDef.grid;
     const result = validateMove(current, payload, {
       maxDistance: GAME_MAX_STEP,
@@ -1473,13 +1525,48 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
   }
 
   /**
+   * `move` en una sala 3D (specs/27 §5.4): el punto se ajusta a la navmesh de la
+   * habitación y se guarda el ajustado, no el pedido. Una habitación sin suelo
+   * rechaza todo movimiento.
+   */
+  private handleMove3D(
+    client: Client,
+    session: RoomSession,
+    current: { roomId: string; x: number; y: number; h?: number; yaw?: number },
+    payload: z.infer<typeof movePayload>,
+  ): void {
+    const nav = this.navFor(current.roomId);
+    const currentH = current.h ?? 0;
+    const result = nav.empty
+      ? ({ ok: false, error: OUT_OF_BOUNDS } as const)
+      : validateMove3D(
+          { x: current.x, y: current.y, h: currentH },
+          { x: payload.x, y: payload.y, h: payload.h ?? currentH },
+          { maxDistance: GAME_MAX_STEP_3D, closest: (p) => nav.closest(p) },
+        );
+    if (!result.ok) {
+      this.fail(client, result.error, "Movimiento rechazado por el servidor.");
+      return;
+    }
+    const moved = session.movePlayer(
+      client.sessionId,
+      current.roomId,
+      result.position.x,
+      result.position.y,
+      this.logicalNow(),
+      { h: result.position.h, yaw: payload.yaw ?? current.yaw ?? 0 },
+    );
+    this.publish(moved.engine);
+  }
+
+  /**
    * Cruce de habitación: el jugador debe estar junto a una puerta **abierta**
    * que conecte ambas; aparece en un punto de spawn de la nueva habitación.
    */
   private handleRoomChange(
     client: Client,
     session: RoomSession,
-    current: { roomId: string; x: number; y: number },
+    current: { roomId: string; x: number; y: number; h?: number },
     targetRoomId: string,
   ): void {
     // C-6: una conexión entre dos habitaciones puede declararse desde
@@ -1494,7 +1581,14 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       this.roomPackage.objects.find(
         (object) => object.roomId === targetRoomId && object.leadsTo === current.roomId,
       );
-    const nearDoor = door === undefined || distance(current, door.position) <= GAME_DOOR_REACH;
+    // En 3D la distancia se mide en planta al `transform` de la puerta, más la diferencia de altura.
+    const doorTransform = this.is3D() ? door?.transform : undefined;
+    const nearDoor =
+      door === undefined ||
+      (doorTransform
+        ? distance(current, doorTransform) <= GAME_DOOR_REACH &&
+          Math.abs((current.h ?? 0) - doorTransform.h) <= GAME_DOOR_REACH_HEIGHT_3D
+        : distance(current, door.position) <= GAME_DOOR_REACH);
     if (!nearDoor || !session.canEnterRoom(current.roomId, targetRoomId)) {
       this.fail(client, GAME_ERRORS.roomLocked, "La puerta está cerrada o demasiado lejos.");
       return;
@@ -1505,16 +1599,16 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       return;
     }
     const index = [...this.state.players.values()].filter((p) => p.roomId === targetRoomId).length;
-    const spawn = target.spawnPoints[index % Math.max(1, target.spawnPoints.length)] ?? {
-      x: 0,
-      y: 0,
-    };
+    const spawn: { x: number; y: number; h?: number; yaw?: number } = target.spawnPoints[
+      index % Math.max(1, target.spawnPoints.length)
+    ] ?? { x: 0, y: 0 };
     const moved = session.movePlayer(
       client.sessionId,
       targetRoomId,
       spawn.x,
       spawn.y,
       this.logicalNow(),
+      this.is3D() ? { h: spawn.h ?? 0, yaw: spawn.yaw ?? 0 } : undefined,
     );
     this.publish(moved.engine);
   }
@@ -1951,6 +2045,8 @@ export class GameRoom extends Room<{ state: GameRoomState }> {
       if (!position) return;
       player.x = position.x;
       player.y = position.y;
+      player.h = position.h ?? 0;
+      player.yaw = position.yaw ?? 0;
       player.roomId = position.roomId;
     });
   }

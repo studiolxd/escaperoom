@@ -35,6 +35,21 @@ export interface MoveLimits {
 export type MoveValidationResult =
   { ok: true; position: Vector2 } | { ok: false; error: MoveErrorCode };
 
+export interface Vector3 {
+  x: number;
+  y: number;
+  h: number;
+}
+
+export interface Move3DLimits {
+  /** Distancia máxima, en metros, entre la posición actual y el punto ajustado. */
+  maxDistance: number;
+  /** Punto de la navmesh más cercano, o `null` si el pedido queda fuera. */
+  closest(p: Vector3): Vector3 | null;
+}
+
+export type Move3DResult = { ok: true; position: Vector3 } | { ok: false; error: MoveErrorCode };
+
 /** Distancia euclídea entre dos posiciones del grid. */
 export function distance(a: Vector2, b: Vector2): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
@@ -73,4 +88,30 @@ export function validateMove(
   }
 
   return { ok: true, position: { x: requested.x, y: requested.y } };
+}
+
+/**
+ * Validación de un `move` en una sala 3D (specs/27 §5.4): el punto pedido se
+ * ajusta a la navmesh (si no hay punto cercano, `OUT_OF_BOUNDS`) y el salto
+ * hasta ese punto ajustado, en 3D, no puede superar `maxDistance`
+ * (`MOVE_TOO_FAST`). Devuelve el punto de la navmesh, no el pedido. Puro: la
+ * navmesh entra por `closest`.
+ */
+export function validateMove3D(
+  current: Vector3,
+  requested: Vector3,
+  limits: Move3DLimits,
+): Move3DResult {
+  if (!Number.isFinite(requested.x) || !Number.isFinite(requested.y) || !Number.isFinite(requested.h)) {
+    return { ok: false, error: OUT_OF_BOUNDS };
+  }
+
+  const snapped = limits.closest(requested);
+  if (!snapped) return { ok: false, error: OUT_OF_BOUNDS };
+
+  if (Math.hypot(snapped.x - current.x, snapped.y - current.y, snapped.h - current.h) > limits.maxDistance) {
+    return { ok: false, error: MOVE_TOO_FAST };
+  }
+
+  return { ok: true, position: { x: snapped.x, y: snapped.y, h: snapped.h } };
 }

@@ -22,6 +22,7 @@ export type CatalogFilterValues = {
   q?: string;
   language?: string;
   difficulty?: string;
+  dimension?: string;
   minPlayers?: string;
   maxPlayers?: string;
   maxPrice?: string;
@@ -213,6 +214,23 @@ export function CatalogFilters({
                 {t(`difficulty${level}`)}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-1 text-sm">
+        <Label htmlFor={`${id}-dimension`}>{t("dimension")}</Label>
+        <Select
+          value={values.dimension || ANY}
+          onValueChange={(value) => onFieldChange("dimension", value === ANY ? "" : value)}
+        >
+          <SelectTrigger id={`${id}-dimension`} className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ANY}>{t("dimensionAny")}</SelectItem>
+            <SelectItem value="2d">{t("dimension2d")}</SelectItem>
+            <SelectItem value="3d">{t("dimension3d")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

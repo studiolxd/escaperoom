@@ -38,6 +38,7 @@ function memoryStore(): CatalogCacheStore {
 const FILTER: CatalogListFilter = {
   languages: [],
   difficulties: [],
+  dimension: null,
   minPrice: null,
   maxPrice: null,
   playersMin: null,
@@ -61,6 +62,7 @@ function catalogRoom(overrides: Partial<CatalogRoom> = {}): CatalogRoom {
     description: "desc",
     theme: "medieval",
     difficulty: 1,
+    dimension: "2d",
     languages: ["es"],
     defaultLanguage: "es",
     estimatedMinutes: 30,

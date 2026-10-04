@@ -260,6 +260,9 @@ export interface ScenePlayer {
   roomId: string;
   x: number;
   y: number;
+  /** Modo 3D: altura y giro (grados). Phaser los ignora. */
+  h?: number;
+  yaw?: number;
   /** `#rrggbb`. */
   tint: string;
   /** Personaje jugable (`manifest.avatars[].id`, o el de reserva). */

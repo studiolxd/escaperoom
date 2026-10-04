@@ -54,6 +54,12 @@ export const GAME_MAX_STEP = 3;
 /** Distancia máxima, en celdas, a una puerta abierta para cruzar a otra habitación. */
 export const GAME_DOOR_REACH = 2;
 
+/** Salto máximo por mensaje `move` en una sala 3D, en metros (specs/27 §5.4). */
+export const GAME_MAX_STEP_3D = 1.5;
+
+/** Diferencia máxima de altura con una puerta para cruzarla en 3D. */
+export const GAME_DOOR_REACH_HEIGHT_3D = 1.5;
+
 /**
  * C-2 (auditoría 2026-09-24, ajuste de producto): mientras la partida está en
  * el lobby (aún sin empezar), un desconectado libera su plaza a los 60 s —no

@@ -5,6 +5,7 @@ import {
   type RoomPackage,
   type RoomPackageMeta,
 } from "../schemas";
+import { dimensionOf, type RoomDimension } from "../schemas/world3d";
 import type { Actor, ActorRole } from "./actor";
 
 /**
@@ -98,6 +99,8 @@ export type CatalogRoom = CatalogCommerce &
     description: string;
     theme: string;
     difficulty: Difficulty;
+    /** Formato de la sala: `meta.dimension` ausente = `"2d"`. */
+    dimension: RoomDimension;
     languages: string[];
     defaultLanguage: string;
     estimatedMinutes: number;
@@ -112,6 +115,7 @@ export type CatalogSort = (typeof CATALOG_SORTS)[number];
  * Filtro ya validado del listado. Todos los criterios se combinan con AND:
  * - `languages`: la sala incluye TODOS los idiomas pedidos (`@>`);
  * - `difficulties`: la dificultad está entre las pedidas;
+ * - `dimension`: formato de la sala (`null` = cualquiera);
  * - `minPrice`/`maxPrice`: precio individual en céntimos (sin precio = 0);
  * - `playersMin`/`playersMax`: rango "de X a Y" pedido; casa cualquier sala
  *   cuyo propio rango `[min,max]` solape con `[playersMin,playersMax]`
@@ -123,6 +127,7 @@ export type CatalogSort = (typeof CATALOG_SORTS)[number];
 export type CatalogListFilter = {
   languages: string[];
   difficulties: Difficulty[];
+  dimension: RoomDimension | null;
   minPrice: number | null;
   maxPrice: number | null;
   playersMin: number | null;
@@ -187,6 +192,7 @@ export function toCatalogRoom(input: {
     description: meta.description,
     theme: meta.theme,
     difficulty: meta.difficulty,
+    dimension: dimensionOf(meta),
     languages: [...meta.languages],
     defaultLanguage: meta.defaultLanguage,
     estimatedMinutes: meta.estimatedMinutes,
@@ -325,6 +331,8 @@ export function decodeCatalogCursor(cursor: string | null | undefined): number {
 export type CatalogListInput = {
   language?: MultiValue;
   difficulty?: MultiValue | number | readonly number[];
+  /** `"2d"` o `"3d"`; cualquier otro valor o ausente = sin filtrar. */
+  dimension?: string;
   minPrice?: string | number | null;
   maxPrice?: string | number | null;
   minPlayers?: string | number | null;
@@ -384,6 +392,7 @@ export function parseCatalogQuery(input: CatalogListInput = {}): {
     filter: {
       languages: parseLanguageFilter(input.language),
       difficulties: parseDifficulties(input.difficulty),
+      dimension: input.dimension === "2d" || input.dimension === "3d" ? input.dimension : null,
       minPrice,
       maxPrice,
       playersMin,

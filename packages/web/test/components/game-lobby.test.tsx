@@ -52,6 +52,8 @@ function player(overrides: Partial<GamePlayerSnapshot> = {}): GamePlayerSnapshot
     name: "Ana",
     x: 5,
     y: 5,
+    h: 0,
+    yaw: 0,
     roomId: "lobby",
     tint: "#ffffff",
     characterId: "caballero-m",

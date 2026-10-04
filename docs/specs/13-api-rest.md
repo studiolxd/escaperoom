@@ -66,7 +66,7 @@ Better Auth gestiona `/api/auth/*` (signin, callback OAuth, signout, session; pl
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| GET | `/api/rooms` | público | Listado paginado de salas `published`. Filtros: `q` (título, `pg_trgm`), `difficulty`, `language` (la sala **incluye** el idioma), `minPrice`, `maxPrice`, `players`; `sort=recent\|rating\|price_asc\|price_desc` |
+| GET | `/api/rooms` | público | Listado paginado de salas `published`. Filtros: `q` (título, `pg_trgm`), `difficulty`, `dimension` (`2d` o `3d`; otro valor = sin filtrar), `language` (la sala **incluye** el idioma), `minPrice`, `maxPrice`, `players`; `sort=recent\|rating\|price_asc\|price_desc` |
 | GET | `/api/rooms/:roomId` | público | Detalle de catálogo (metadata de la última versión publicada) — **nunca** el `package` completo |
 | GET | `/api/rooms/:roomId/versions` | público | Histórico de versiones (solo metadata `semver`, `changelog`, `published_at`) |
 | GET | `/api/rooms/:roomId/reviews` | público | Listado paginado de reseñas |
@@ -83,6 +83,7 @@ Forma de respuesta de `GET /api/rooms/:roomId`:
   "authorDisplayName": "...",
   "description": "...",
   "difficulty": 2,
+  "dimension": "2d",
   "estimatedMinutes": 55,
   "players": { "min": 1, "max": 4 },
   "languages": ["es"],

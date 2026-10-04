@@ -20,6 +20,7 @@ import { languageName } from "./language-name";
 import { RatingSummary } from "./rating-summary";
 import { ReviewForm } from "./review-form";
 import { RoomCoverUpload } from "./room-cover-upload";
+import { RoomDimensionBadge } from "./room-dimension-badge";
 import { RoomPrice } from "./room-card";
 import { StarRating } from "./star-rating";
 
@@ -222,6 +223,7 @@ export function RoomDetailView({
 
   const facts: Array<[string, React.ReactNode]> = [
     [t("difficulty"), tc(`difficulty${room.difficulty}`)],
+    [tc("dimension"), room.dimension === "3d" ? tc("dimension3d") : tc("dimension2d")],
     [t("duration"), tc("minutes", { minutes: room.estimatedMinutes })],
     [t("players"), tc("playersRange", { min: room.players.min, max: room.players.max })],
     [t("languages"), room.languages.map((code) => languageName(code, locale)).join(", ")],
@@ -274,9 +276,12 @@ export function RoomDetailView({
               </span>
             ) : null}
           </div>
-          <h1 className="text-2xl font-semibold sm:text-3xl" lang={room.defaultLanguage}>
-            {room.title}
-          </h1>
+          <div className="flex items-start justify-between gap-2">
+            <h1 className="text-2xl font-semibold sm:text-3xl" lang={room.defaultLanguage}>
+              {room.title}
+            </h1>
+            <RoomDimensionBadge dimension={room.dimension} />
+          </div>
           <RatingSummary ratingAvg={room.ratingAvg} ratingCount={room.ratingCount} />
           <RoomPlayCta
             room={room}
