@@ -14,7 +14,8 @@
     "fichas": "python3 scripts/fichas.py",
     "exportar-3d": "python3 scripts/exportar_3d.py",
     "visor": "vite visor --port 5199 --strictPort",
-    "test": "node --test scripts/optimizar_glb.test.mjs"
+    "test": "node --test scripts/optimizar_glb.test.mjs scripts/generar_catalogo_3d.test.mjs",
+    "catalogo-3d": "node scripts/generar_catalogo_3d.mjs"
   },
   "devDependencies": {
     "@gltf-transform/core": "4.5.1",

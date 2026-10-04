@@ -99,6 +99,8 @@ def main():
         trabajos += [(i, "models", "objeto") for i in blender(pack, "exportar_kit.py", {"KIT": piezas}, b)]
     if pared:
         trabajos += [(i, "models", "objeto") for i in blender(pack, "exportar_pared_glb.py", {}, b)]
+    if suelo:
+        trabajos += [(i, "models", "objeto") for i in blender(pack, "exportar_prop_suelo_glb.py", {}, b)]
     for v in avatares:
         trabajos += [(i, "avatars", "avatar") for i in blender(pack, "exportar_avatar.py", {"PERSONAJE": v}, b)]
 
