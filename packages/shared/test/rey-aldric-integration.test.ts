@@ -223,7 +223,7 @@ function playSalonHastaArca(script: Script): void {
   record(session.combine("p-combina", ["yesquero", "antorcha-apagada"], clock.next(), "p1").engine);
   expect(session.inventory("p1")).toContain("antorcha");
   // 4. Encender el brasero → dígito 3 visible
-  record(session.interact("brasero", clock.next(), "p1").engine);
+  record(session.useItemOnObject("antorcha", "brasero", clock.next(), "p1").engine);
   expect(session.flag("digito3")).toBe(3);
   // 5. Candado del arca "4732" → cáliz + busto de piedra + pergamino
   const arca = session.attemptCode("p-candado-arca", "4732", clock.next(), "p1");
@@ -248,6 +248,7 @@ function playBodega(script: Script, muralist: string, memoryPlayers: string[]): 
   record(inspected.engine);
   expect(session.inventory(muralist)).toEqual(expect.arrayContaining(["llave-plata", "llave-oro"]));
   // 9. Cáliz en la ranura del mural (lore) y recuperarlo (r-recoger-caliz)
+  record(session.useItemOnObject("caliz-real", "mural-ranura", clock.next(), "p1").engine);
   record(session.interact("mural-ranura", clock.next(), "p1").engine);
   expect(session.inventory("p1")).toContain("caliz-real");
   // 10. Copas de memoria (3 pares) → dígito 3 + antorchas de la escalera

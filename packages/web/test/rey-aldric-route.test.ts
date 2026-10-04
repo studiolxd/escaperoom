@@ -33,7 +33,7 @@ describe("ruta crítica del playtest (2.8)", () => {
     session.interact("yesquero-suelo", 2);
     session.interact("antorcha-apagada-suelo", 2);
     session.combine("p-combina", ["yesquero", "antorcha-apagada"], 3);
-    session.interact("brasero", 4);
+    session.useItemOnObject("antorcha", "brasero", 4);
     session.attemptCode("p-candado-arca", "4732", 5);
     expect(done(session)).toEqual(["cuadro", "armario", "antorcha", "brasero", "arca"]);
   });

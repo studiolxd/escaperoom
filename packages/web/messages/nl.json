@@ -166,6 +166,7 @@
       "solved": "Opgelost: {puzzle}",
       "roomLocked": "De deur is nog dicht",
       "rateLimited": "Je gaat te snel: wacht even",
+      "cannotUseHere": "Dat kun je hier niet gebruiken.",
       "rejected": "Dat kan hier niet"
     }
   },

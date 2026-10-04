@@ -104,7 +104,7 @@ describe("toolset de lógica y consulta (4.3)", () => {
     expect(graph.rules.map((rule) => rule.id)).toEqual(aldric.rules.map((rule) => rule.id));
     expect(graph.rules.find((rule) => rule.id === "r-encender-brasero")).toEqual({
       id: "r-encender-brasero",
-      when: "on_interact(objectId=brasero)",
+      when: "on_use_item(objectId=brasero, itemId=antorcha)",
       if: ["item_in_inventory(itemId=antorcha, consumed=true)"],
       then: [
         "set_object_state(objectId=brasero, state=lit)",

@@ -120,7 +120,7 @@ test("evento: claves en lote, PDF, canje sin cuenta y progreso en el panel del o
     await player.expectItems("Llave de bronce");
     await player.useItemOn("armario", "Llave de bronce");
     await player.combine(["Yesquero", "Vela"], "Antorcha encendida");
-    await player.inspect("brasero");
+    await player.useItemOn("brasero", "Antorcha encendida");
     await player.openPanel("arca-candado");
     await player.typeCode("4732");
     await player.expectItems("Cáliz real", "Pergamino de los vinos");

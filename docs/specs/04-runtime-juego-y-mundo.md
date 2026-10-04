@@ -139,6 +139,14 @@ contenido pasa a la "zona de descubrimiento". Comportamiento configurable con `d
   El mismo evento se emite al **arrastrar** (drag&drop) un item del inventario sobre un objeto del
   mundo. Ejemplo canónico: el armario se abre por las tres vías (menú desde Espacio, menú desde
   clic y arrastre de la llave sobre el armario).
+- **Usar un objeto solo hace algo si el objeto lo ofrece** (ADR-046). Tanto «Usar objeto…» como el
+  arrastre emiten siempre `use-item { itemId, objectId }`; el HUD solo lo manda al servidor si el
+  ítem está en `useItemIds` del objeto (hay una regla `on_use_item` de ese ítem sobre ese objeto, o
+  el ítem es el objeto-puente de la placa/mirilla). En cualquier otro caso muestra «Esto no se
+  puede usar aquí.» en el registro del HUD y no hace nada más: no llama al servidor ni inspecciona.
+  «Usar objeto…» ofrece todos los ítems del inventario, así que el jugador puede equivocarse. Las
+  mecánicas de «usar X en Y» se escriben con `on_use_item`, no con `on_interact` +
+  `item_in_inventory` (el validador lo avisa: `interact_requires_item`).
 - Al inspeccionar, se muestran diálogos/descripciones (`show_dialog`) y, cuando la pista es un
   conteo que no se lee al tamaño del sprite (dragones de un tapiz, torres de un cuadro, vasijas…),
   una imagen grande (`show_image`, `specs/26` §3.4/§6.1): abre un panel con la imagen de

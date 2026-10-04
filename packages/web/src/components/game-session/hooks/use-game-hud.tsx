@@ -530,14 +530,11 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
 
   const applyItemUse = useCallback(
     (itemId: string, objectId: string) => {
-      // Sin una regla `on_use_item` real para este ítem sobre este objeto,
-      // "usarlo" no dispara nada (revisión en vivo: la mecánica de algunos
-      // objetos es "tener el ítem en el inventario e interactuar", no
-      // "usarlo sobre el objeto" — p. ej. la antorcha sobre el brasero).
-      // Interactuar en su lugar deja que la condición del propio objeto lo
-      // consuma, igual que clicarlo con el ítem ya en el inventario.
+      // Usar X sobre Y solo hace algo si Y lo ofrece (`useItemIds`: regla
+      // `on_use_item` o objeto-puente). En cualquier otro caso: aviso y nada
+      // más, sin llamar al servidor ni convertirlo en inspeccionar.
       if (!model.objectsById[objectId]?.useItemIds?.includes(itemId)) {
-        inspect(objectId);
+        pushLog(tp("log.cannotUseHere"));
         return;
       }
       // Igual que `inspect()`: recuerda el objeto para poder titular un
@@ -552,7 +549,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
       client.useItem(itemId, objectId);
       pushLog(tp("log.useItem", { item: itemName(itemId), object: objectName(objectId) }));
     },
-    [client, inspect, itemName, model, objectName, pushLog, tp],
+    [client, itemName, model, objectName, pushLog, tp],
   );
 
   const enterRoom = useCallback(
@@ -595,14 +592,6 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
         setSelected(null);
         setPickerFor(null);
         applyItemUse(event.itemId, event.objectId);
-      } else if (event.type === "interact-direct") {
-        // Soltar un ítem sobre un objeto sin `on_use_item` para él (revisión
-        // en vivo, p. ej. la antorcha sobre el brasero): interactuar
-        // directo, sin el menú Inspeccionar/Usar objeto — al arrastrar y
-        // soltar la persona ya dijo lo que quería hacer.
-        setSelected(null);
-        setPickerFor(null);
-        inspect(event.objectId);
       } else if (event.type === "enter-room") {
         // La escena ya muestra la sala nueva; el servidor confirma o corrige.
         sceneRoomRef.current = event.roomId;

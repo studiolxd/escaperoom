@@ -199,6 +199,7 @@
       "solved": "Solved: {puzzle}",
       "roomLocked": "The door is still closed",
       "rateLimited": "You're going too fast: wait a moment",
+      "cannotUseHere": "You can’t use that here.",
       "rejected": "You can't do that here"
     }
   },

@@ -119,4 +119,24 @@ describe.each(["2D", "3D"] as const)("useGameHud — objeto-puente en el Rey Ald
     expect(client.useItem).toHaveBeenCalledWith("busto-piedra", "placa-izq");
     expect(client.interact).not.toHaveBeenCalled();
   });
+
+  it("un ítem sin efecto sobre ese objeto: aviso y ninguna llamada al servidor", () => {
+    const { client, result } = setup();
+    act(() => result.current.applyItemUse("busto-piedra", "puerta-salon"));
+    expect(client.useItem).not.toHaveBeenCalled();
+    expect(client.interact).not.toHaveBeenCalled();
+    expect(result.current.log[0]?.text).toBe("Esto no se puede usar aquí.");
+  });
+
+  it("un evento use-item del runtime con ítem válido llega al servidor", () => {
+    const { client, result } = setup();
+    act(() =>
+      result.current.onWorldEvent({
+        type: "use-item",
+        itemId: "busto-piedra",
+        objectId: "placa-izq",
+      }),
+    );
+    expect(client.useItem).toHaveBeenCalledWith("busto-piedra", "placa-izq");
+  });
 });

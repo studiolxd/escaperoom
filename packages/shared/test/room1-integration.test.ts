@@ -85,6 +85,7 @@ function playSala1(): ScriptResult {
   const combined = session.combine("p-combina", ["yesquero", "antorcha-apagada"], 0);
   if (combined.engine) collectEngine(combined.engine);
   collectInteraction(session.interact("brasero", 0));
+  collectInteraction(session.useItemOnObject("antorcha", "brasero", 0));
   const lock = session.attemptCode("p-candado-arca", "4732", 0);
   if (lock.engine) collectEngine(lock.engine);
   const plates = session.solveWorldPuzzle("p-placas-estatuas", 0);
@@ -179,6 +180,7 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
     session.interact("antorcha-apagada-suelo", 0);
     session.combine("p-combina", ["yesquero", "antorcha-apagada"], 0);
     session.interact("brasero", 0);
+    session.useItemOnObject("antorcha", "brasero", 0);
     session.attemptCode("p-candado-arca", "4732", 0);
     session.solveWorldPuzzle("p-placas-estatuas", 0);
 
@@ -207,6 +209,7 @@ describe("integración — Sala 1 (Salón del Trono) del Rey Aldric", () => {
     session.interact("antorcha-apagada-suelo", 0);
     session.combine("p-combina", ["yesquero", "antorcha-apagada"], 0);
     session.interact("brasero", 0);
+    session.useItemOnObject("antorcha", "brasero", 0);
 
     const wrong = session.attemptCode("p-candado-arca", "0000", 0);
     expect(wrong.outcome).toBe("wrong");

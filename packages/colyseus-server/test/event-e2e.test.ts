@@ -295,7 +295,7 @@ async function reachArcaLock(client: TestClient): Promise<void> {
   });
   await until(client, () => hasItem(client, "antorcha"));
   await new Promise((resolve) => setTimeout(resolve, 1100));
-  client.send(GAME_MESSAGES.interact, { objectId: "brasero" });
+  client.send(GAME_MESSAGES.useItem, { itemId: "antorcha", objectId: "brasero" });
   await until(client, (state) => state.flags.get("digito3") === "3");
 }
 

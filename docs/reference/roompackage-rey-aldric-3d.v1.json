@@ -2184,8 +2184,9 @@
       "priority": 0,
       "once": true,
       "trigger": {
-        "type": "on_interact",
-        "objectId": "brasero"
+        "type": "on_use_item",
+        "objectId": "brasero",
+        "itemId": "antorcha"
       },
       "conditions": [
         {
@@ -2496,8 +2497,9 @@
       "priority": 0,
       "once": true,
       "trigger": {
-        "type": "on_interact",
-        "objectId": "mural-ranura"
+        "type": "on_use_item",
+        "objectId": "mural-ranura",
+        "itemId": "caliz-real"
       },
       "conditions": [
         {

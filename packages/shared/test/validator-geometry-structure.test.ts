@@ -174,3 +174,33 @@ describe("validador — candado sin límite con lockoutSec muerto (encargo canda
     }
   });
 });
+
+describe("validador — interact_requires_item (usar X sobre Y se escribe con on_use_item)", () => {
+  it("el Rey Aldric no da el aviso", () => {
+    expect(checkOf(validateRoomPackage(reyAldric), "interact_requires_item").status).toBe("ok");
+  });
+
+  it("on_interact con item_in_inventory consumed:true es un aviso, no un error", () => {
+    const pkg = cloneFixture();
+    const rule = pkg.rules.find((r) => r.id === "r-encender-brasero")!;
+    rule.trigger = { type: "on_interact", objectId: "brasero" };
+    const report = validateRoomPackage(pkg);
+    const check = checkOf(report, "interact_requires_item");
+    expect(check.status).toBe("warning");
+    expect(check.issues).toHaveLength(1);
+    expect(check.issues[0]).toMatchObject({
+      code: "interact_requires_item",
+      ids: ["r-encender-brasero", "brasero", "antorcha"],
+    });
+    expect(check.issues[0]!.message).toContain("on_use_item");
+    expect(check.issues[0]!.message).toContain("Esto no se puede usar aquí");
+    expect(report.ok).toBe(true);
+  });
+
+  it("con consumed:false no avisa", () => {
+    const pkg = cloneFixture();
+    const rule = pkg.rules.find((r) => r.id === "r-caliz-en-ranura")!;
+    rule.trigger = { type: "on_interact", objectId: "mural-ranura" };
+    expect(checkOf(validateRoomPackage(pkg), "interact_requires_item").status).toBe("ok");
+  });
+});
