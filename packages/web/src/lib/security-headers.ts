@@ -190,6 +190,10 @@ export function buildContentSecurityPolicy(nonce: string, env: SecurityEnv = {})
       "connect-src",
       unique([
         "'self'",
+        // Modo 3D: GLTFLoader pide con fetch() las texturas incrustadas de los GLB a
+        // través de URLs blob: creadas en la propia página; blob: solo referencia datos
+        // que la página ya tiene en memoria, no abre ningún origen externo.
+        "blob:",
         ...realtime,
         ...storage,
         ...sentry,

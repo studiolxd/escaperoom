@@ -57,6 +57,12 @@ describe("buildContentSecurityPolicy", () => {
     );
   });
 
+  it("connect-src permite blob: (GLTFLoader pide con fetch las texturas incrustadas de los GLB)", () => {
+    expect(directive(prod, "connect-src")).toContain("blob:");
+    const dev = buildContentSecurityPolicy("n", { NODE_ENV: "development" });
+    expect(directive(dev, "connect-src")).toContain("blob:");
+  });
+
   it("connect-src abre el origen de ingesta del DSN de Sentry (F-12)", () => {
     const withSentry = buildContentSecurityPolicy("abc123", {
       NODE_ENV: "production",
