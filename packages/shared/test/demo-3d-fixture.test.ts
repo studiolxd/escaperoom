@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { parseRoomPackage } from "../src/schemas";
+import { createRoomSession } from "../src/session";
 import { renderValidationReport, validateRoomPackage } from "../src/validator";
 
 /** Sala de pruebas 3D (encargo 7.6p §2): fixture versionado, íntegro y resoluble. */
@@ -36,5 +37,16 @@ describe("fixture Sala de pruebas 3D", () => {
     expect(codes).not.toContain("unknown_model");
     expect(codes).not.toContain("unknown_clip");
     expect(report.checks.find((check) => check.id === "world3d_models")!.issues).toEqual([]);
+  });
+
+  it("no se puede pasar de antesala a camara sin resolver nada", () => {
+    const session = createRoomSession(pkg, { playerIds: ["a"] });
+    expect(session.canEnterRoom("antesala", "camara")).toBe(false);
+  });
+
+  it("la ruta crítica incluye resolver candado-arca", () => {
+    const steps = report.criticalRoute!.steps;
+    expect(steps.length).toBeGreaterThan(2);
+    expect(steps.some((step) => step.kind === "solve_puzzle" && step.subjectId === "candado-arca")).toBe(true);
   });
 });

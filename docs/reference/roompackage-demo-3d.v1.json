@@ -232,9 +232,10 @@
       },
       "sprite": "puerta-madera-abierta",
       "states": {
+        "closed": "puerta-madera",
         "open": "puerta-madera-abierta"
       },
-      "initialState": "open",
+      "initialState": "closed",
       "interactable": true,
       "leadsTo": "antesala"
     },
@@ -414,6 +415,11 @@
         {
           "type": "set_object_state",
           "objectId": "puerta",
+          "state": "open"
+        },
+        {
+          "type": "set_object_state",
+          "objectId": "puerta-vuelta",
           "state": "open"
         }
       ]
