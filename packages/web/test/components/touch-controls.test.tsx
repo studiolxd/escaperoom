@@ -121,7 +121,7 @@ describe("<TouchControls> — táctil", () => {
 });
 
 describe("<TouchControls> — escritorio", () => {
-  it("sin joystick ni botón: solo la pista «E — objeto» con un objeto resaltado", () => {
+  it("sin joystick, botón ni pista de tecla, ni con un objeto resaltado", () => {
     mockPointer(false);
     const { handle, highlight } = makeHandle();
     renderControls(handle);
@@ -129,7 +129,7 @@ describe("<TouchControls> — escritorio", () => {
     expect(screen.queryByTestId("touch-hint-key")).not.toBeInTheDocument();
 
     highlight("brasero");
-    expect(screen.getByTestId("touch-hint-key")).toHaveTextContent("E — Objeto brasero");
+    expect(screen.queryByTestId("touch-hint-key")).not.toBeInTheDocument();
     expect(screen.queryByTestId("touch-interact")).not.toBeInTheDocument();
   });
 });

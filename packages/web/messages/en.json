@@ -1082,8 +1082,7 @@
     },
     "touch": {
       "interact": "Interact",
-      "interactWith": "Interact with {object}",
-      "hintKey": "E — {object}"
+      "interactWith": "Interact with {object}"
     }
   },
   "Chat": {

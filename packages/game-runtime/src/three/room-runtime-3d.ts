@@ -167,8 +167,6 @@ export class RoomRuntime3D {
   private localHeight: HeightSample | undefined;
   private readonly highlightHandlers = new Set<(objectId: string | undefined) => void>();
   private highlighted: string | undefined;
-  private hovered: string | undefined;
-  private pointer: { x: number; y: number } | undefined;
 
   private players: readonly ScenePlayer[] = [];
   private readonly remotes = new Map<
@@ -348,7 +346,6 @@ export class RoomRuntime3D {
     if (!this.isObjectInteractive(objectId)) {
       if (this.pending?.objectId === objectId) this.clearRoute();
       if (this.highlighted === objectId) this.setHighlighted(undefined);
-      if (this.hovered === objectId) this.hovered = undefined;
     }
   }
 
@@ -430,7 +427,7 @@ export class RoomRuntime3D {
     return this.highlighted;
   }
 
-  /** Se llama cada vez que cambia el objeto resaltado por proximidad (no el de hover). */
+  /** Se llama cada vez que cambia el objeto cercano seleccionado por proximidad. */
   onHighlightChange(handler: (objectId: string | undefined) => void): () => void {
     this.highlightHandlers.add(handler);
     return () => {
@@ -774,9 +771,6 @@ export class RoomRuntime3D {
         onClick: (x, y) => this.handleClick(x, y),
         onDrag: (dx, dy) => this.handleDrag(dx, dy),
         onWheel: (steps) => this.handleWheel(steps),
-        onHover: (x, y) => {
-          this.pointer = x === undefined || y === undefined ? undefined : { x, y };
-        },
         onInteractKey: () => {
           this.interactHighlighted();
         },
@@ -811,7 +805,6 @@ export class RoomRuntime3D {
     this.localHeight = undefined;
     for (const remote of this.remotes.values()) remote.height = undefined;
     this.setHighlighted(undefined);
-    this.hovered = undefined;
     this.qualityMuteUntilMs = this.clockMs + QUALITY_MUTE_S * 1000;
 
     // En edición no hay navmesh de juego: la colisión es una malla vacía.
@@ -1074,9 +1067,7 @@ export class RoomRuntime3D {
     this.sampleQuality(dt);
 
     if (world) {
-      this.updateHover();
-      // Decisión del usuario (2026-10-05): el objeto cercano NO se contornea; solo el hover.
-      world.setOutlined(new Set(this.hovered !== undefined ? [this.hovered] : []));
+      // Decisión del usuario (2026-10-05): en la partida ningún objeto se contornea.
       world.update(dt);
     }
 
@@ -1156,14 +1147,6 @@ export class RoomRuntime3D {
       if (at && this.isObjectInteractive(id)) out.push({ id, x: at.x, y: at.y, h: at.h });
     }
     return out;
-  }
-
-  private updateHover(): void {
-    if (!this.pointer || !this.inputEnabled || this.observer) {
-      this.hovered = undefined;
-      return;
-    }
-    this.hovered = this.pickObject(this.pointer.x, this.pointer.y);
   }
 
   // ---- pintado

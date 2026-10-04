@@ -26,9 +26,7 @@ export interface InputCallbacks {
   onDrag(dxPx: number, dyPx: number): void;
   /** `steps` > 0 aleja, < 0 acerca. */
   onWheel(steps: number): void;
-  /** Puntero sobre el lienzo (`undefined` = ha salido). */
-  onHover(clientX: number | undefined, clientY: number | undefined): void;
-  /** E o Espacio. */
+  /** Espacio. */
   onInteractKey(): void;
   /** Se pulsó una tecla de movimiento. */
   onMoveKey(): void;
@@ -38,7 +36,7 @@ const FORWARD = new Set(["KeyW", "ArrowUp"]);
 const BACK = new Set(["KeyS", "ArrowDown"]);
 const LEFT = new Set(["KeyA", "ArrowLeft"]);
 const RIGHT = new Set(["KeyD", "ArrowRight"]);
-const INTERACT = new Set(["KeyE", "Space"]);
+const INTERACT = new Set(["Space"]);
 
 const DOWN = new Set(["KeyQ"]);
 const UP = new Set(["KeyE"]);
@@ -102,13 +100,9 @@ export class InputController {
         return;
       }
       const d = this.down;
-      if (!d || d.id !== e.pointerId) {
-        if (!d) this.callbacks.onHover(e.clientX, e.clientY);
-        return;
-      }
+      if (!d || d.id !== e.pointerId) return;
       if (!d.dragging && !isClick({ x: d.x, y: d.y }, { x: e.clientX, y: e.clientY })) {
         d.dragging = true;
-        this.callbacks.onHover(undefined, undefined);
         // El primer tramo del arrastre ya cuenta desde el punto de pulsación.
         d.lastX = d.x;
         d.lastY = d.y;
@@ -132,7 +126,6 @@ export class InputController {
     };
     listen(target, "pointerup", (e) => release(e, false));
     listen(target, "pointercancel", (e) => release(e, true));
-    listen(target, "pointerleave", () => this.callbacks.onHover(undefined, undefined));
     listen(
       target,
       "wheel",
@@ -223,7 +216,6 @@ export class InputController {
       this.touchMulti = true;
       this.pinchBase = this.pinchDistance();
     }
-    this.callbacks.onHover(undefined, undefined);
   }
 
   private touchMove(e: PointerEvent): void {
