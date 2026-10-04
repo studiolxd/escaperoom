@@ -107,7 +107,10 @@ export type CreatorMcpDeps = {
    * sala, sniff de magic bytes (mp4/webm), WebVTT UTF-8 y los mismos límites.
    * `undefined`/`null` → `upload` responde `NOT_AVAILABLE` para esos `kind`.
    */
-  introMedia?: Pick<IntroMediaService, "uploadVideoBytes" | "uploadSubtitles"> | null;
+  introMedia?: Pick<
+    IntroMediaService,
+    "uploadVideoBytes" | "uploadSubtitles" | "uploadModelBytes"
+  > | null;
   /**
    * Cuotas de `upload` por `kind` (revisión de la PR #168). `undefined`/`null`
    * (por `kind`, o el objeto entero) = sin cuota propia además del límite

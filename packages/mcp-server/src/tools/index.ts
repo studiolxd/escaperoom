@@ -2,6 +2,7 @@ import { getModelCatalogTool } from "./get-model-catalog";
 import { getPiecesTool } from "./get-pieces";
 import { moveObjectTool } from "./move-object";
 import { placePiecesTool } from "./place-pieces";
+import { removeModelTool } from "./remove-model";
 import { removePiecesTool } from "./remove-pieces";
 import { setSpawnPointsTool } from "./set-spawn-points";
 import { updatePiecesTool } from "./update-pieces";
@@ -55,6 +56,7 @@ export const CONTENT_TOOLSET: readonly CreatorTool[] = [
   setSpawnPointsTool,
   // Fase B — Contenido
   addObjectTool,
+  removeModelTool,
   decorateSubroomTool,
   moveObjectTool,
   defineItemTool,
