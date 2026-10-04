@@ -22,12 +22,14 @@ import { InventoryDialog } from "./components/inventory-dialog";
 import { ItemPickerPopover } from "./components/item-picker-popover";
 import { ItemPickupPop } from "./components/item-pickup-pop";
 import type { IntroModel } from "@/lib/intro-model";
+import type { Pack3D } from "@/lib/game-model";
 import { EntryFade } from "./components/entry-fade";
 import { IntroOverlay } from "./components/intro-overlay";
 import { LobbyPanel } from "./components/lobby-panel";
 import { ObjectsBar } from "./components/objects-bar";
 import { PanelHost } from "./components/panel-host";
 import { PlayersAside } from "./components/players-aside";
+import { TouchControls } from "./components/touch-controls";
 import { useGameHud } from "./hooks/use-game-hud";
 import { useHudHotkeys } from "./hooks/use-hud-hotkeys";
 import { useLobbyFlow } from "./hooks/use-lobby-flow";
@@ -39,12 +41,19 @@ const GameSessionCanvas = dynamic(() => import("./game-session-canvas"), {
   loading: () => <div className="absolute inset-0" />,
 });
 
+const GameSessionCanvas3D = dynamic(() => import("./game-session-canvas-3d"), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0" />,
+});
+
 export { KNOWN_ERRORS } from "./hooks/use-game-hud";
 
 export interface GameSessionShellProps {
   /** Modelo público de la sala (sin soluciones), calculado en servidor. */
   model: RuntimeModel;
   pack?: RoomScenePack;
+  /** Pack de modelos 3D; solo se usa si `model.dimension === "3d"`. */
+  pack3d?: Pack3D;
   /** Fuente de estado: la `GameRoom` por red (o la emulación local). */
   client: GameClient;
   /** Estado de la conexión de red y reintento; sin él, la barra no se muestra. */
@@ -101,6 +110,7 @@ export interface GameSessionShellProps {
 export function GameSessionShell({
   model,
   pack,
+  pack3d,
   client,
   connection,
   inviteUrl,
@@ -115,7 +125,7 @@ export function GameSessionShell({
   objectsBarFooter,
 }: GameSessionShellProps) {
   const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
-  const { handleRef, onReady, sceneRoomRef, roomReady } = useSceneSync(model, snapshot);
+  const { handleRef, onReady, sceneRoomRef, roomReady, handleReady } = useSceneSync(model, snapshot);
   const hud = useGameHud({
     model,
     pack,
@@ -234,15 +244,35 @@ export function GameSessionShell({
         title={hud.t("errorTitle")}
         description={hud.t("errorDescription")}
       >
-        <GameSessionCanvas
-          model={model}
-          roomId={hud.roomId}
-          pack={pack}
-          inputEnabled={hud.worldInputEnabled}
-          onEvent={hud.onWorldEvent}
-          onReady={onReady}
-        />
+        {model.dimension === "3d" ? (
+          <GameSessionCanvas3D
+            model={model}
+            roomId={hud.roomId}
+            pack3d={pack3d}
+            inputEnabled={hud.worldInputEnabled}
+            onEvent={hud.onWorldEvent}
+            onReady={onReady}
+          />
+        ) : (
+          <GameSessionCanvas
+            model={model}
+            roomId={hud.roomId}
+            pack={pack}
+            inputEnabled={hud.worldInputEnabled}
+            onEvent={hud.onWorldEvent}
+            onReady={onReady}
+          />
+        )}
       </ErrorBoundary>
+
+      {model.dimension === "3d" && inMapStage ? (
+        <TouchControls
+          handleRef={handleRef}
+          ready={handleReady}
+          active={hud.worldInputEnabled}
+          objectName={hud.objectName}
+        />
+      ) : null}
 
       {hud.pickups.map((pickup) => (
         <ItemPickupPop

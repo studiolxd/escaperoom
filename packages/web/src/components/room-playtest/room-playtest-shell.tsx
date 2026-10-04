@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import { useTranslations } from "next-intl";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import type { RoomScenePack } from "@escaperoom/game-runtime/phaser";
+import type { Pack3D } from "@/lib/game-model";
 import { createLocalGameClient } from "@escaperoom/game-runtime/session";
 import type { RoomPackage } from "@escaperoom/shared/schemas";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export interface RoomPlaytestShellProps {
    */
   roomPackage: RoomPackage;
   pack?: RoomScenePack;
+  pack3d?: Pack3D;
   /** Introducción de la sala ya resuelta (texto o vídeo), si la tiene. */
   intro?: IntroModel | null;
 }
@@ -41,7 +43,7 @@ const PLAYER_ID = "p1";
  * slots de `GameSessionShell` (`variant="playtest"`, `objectsBarHeader`,
  * `objectsBarFooter`), nunca reimplementado.
  */
-export function RoomPlaytestShell({ model, roomPackage, pack, intro }: RoomPlaytestShellProps) {
+export function RoomPlaytestShell({ model, roomPackage, pack, pack3d, intro }: RoomPlaytestShellProps) {
   const t = useTranslations("Playtest");
 
   // Encargo lobby-diseño: el playtest pasa por el MISMO lobby que la
@@ -62,6 +64,7 @@ export function RoomPlaytestShell({ model, roomPackage, pack, intro }: RoomPlayt
     <GameSessionShell
       model={model}
       pack={pack}
+      pack3d={pack3d}
       client={client}
       intro={intro}
       variant="playtest"

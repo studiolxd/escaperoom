@@ -15,7 +15,8 @@
     "spawns": "Spawns",
     "packLoaded": "pacote gráfico «{packId}»",
     "packPlaceholder": "placeholder automático (sem pacote)",
-    "controls": "WASD/setas para mover · Espaço para interagir"
+    "controls": "WASD/setas para mover · Espaço para interagir",
+    "preview3dUnavailable": "A pré-visualização de salas 3D estará disponível com o editor 3D."
   },
   "CodeLock": {
     "title": "Cadeado numérico",
@@ -885,6 +886,11 @@
     },
     "room": {
       "missingToken": "Falta o código de acesso à partida. Volta à ficha da sala para jogar."
+    },
+    "touch": {
+      "interact": "Interagir",
+      "interactWith": "Interagir com {object}",
+      "hintKey": "E — {object}"
     }
   },
   "Chat": {
@@ -1224,7 +1230,11 @@
       "log": "Atividade",
       "noLog": "Ainda sem atividade.",
       "logSolved": "Resolvido: {puzzle}",
-      "logEnded": "Fim do jogo: {result}"
+      "logEnded": "Fim do jogo: {result}",
+      "camera": "Câmara",
+      "cameraFree": "Câmara livre",
+      "cameraFollow": "Seguir {player}",
+      "room": "Sala"
     },
     "puzzleTypes": {
       "code_lock": "Cadeado",

@@ -26,7 +26,7 @@ export default async function ObserveSessionPage({ params }: Props) {
   const { locale, id, sessionId } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("EventPanel");
-  const { model } = buildGameModel(loadRoomPackage(readReyAldricRoomPackageJson()), locale);
+  const { model, pack3d } = buildGameModel(loadRoomPackage(readReyAldricRoomPackageJson()), locale);
 
   return (
     <main className="relative min-h-dvh p-4 text-white md:p-8">
@@ -36,7 +36,7 @@ export default async function ObserveSessionPage({ params }: Props) {
           <h1 className="text-2xl font-semibold">{t("observer.title")}</h1>
           <p className="text-sm text-white/60">{model.meta.title}</p>
         </header>
-        <SpectatorGame eventId={id} sessionId={sessionId} model={model} />
+        <SpectatorGame eventId={id} sessionId={sessionId} model={model} pack3d={pack3d} />
       </div>
       <div className="absolute right-4 top-4">
         <LocaleSwitcher />

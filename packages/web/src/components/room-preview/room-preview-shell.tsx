@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import type { RuntimeModel } from "@escaperoom/game-runtime";
 import { Button } from "@/components/ui/button";
 import type { RoomPreviewPack } from "@/lib/room-preview-pack";
+import { Preview3DUnavailable } from "./preview-3d-unavailable";
 
 const RoomPreviewCanvas = dynamic(() => import("./room-preview-canvas"), {
   ssr: false,
@@ -34,6 +35,8 @@ export function RoomPreviewShell({ model, pack }: { model: RuntimeModel; pack?: 
   const t = useTranslations("RoomPreview");
   const [activeRoomId, setActiveRoomId] = useState(model.subrooms[0]?.id ?? "");
   const activeRoom = model.subroomsById[activeRoomId] ?? model.subrooms[0];
+
+  if (model.dimension === "3d") return <Preview3DUnavailable message={t("preview3dUnavailable")} />;
 
   return (
     <section className="relative h-[calc(100dvh-2rem)] w-full overflow-hidden rounded-xl border border-white/10">

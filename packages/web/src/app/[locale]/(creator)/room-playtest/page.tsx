@@ -5,6 +5,7 @@ import { setRequestLocale } from "next-intl/server";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { RoomPlaytestShell } from "@/components/room-playtest/room-playtest-shell";
 import { readReyAldricRoomPackageJson } from "@/lib/room-preview-fixture";
+import { buildPack3D } from "@/lib/game-model";
 import { resolveRoomPreviewPack } from "@/lib/room-preview-pack";
 
 type Props = { params: Promise<{ locale: string }> };
@@ -31,7 +32,12 @@ export default async function RoomPlaytestPage({ params }: Props) {
 
   return (
     <main className="relative min-h-dvh bg-background p-4">
-      <RoomPlaytestShell model={model} roomPackage={roomPackage} pack={pack} />
+      <RoomPlaytestShell
+        model={model}
+        roomPackage={roomPackage}
+        pack={pack}
+        pack3d={buildPack3D(model, roomPackage.map.tileset)}
+      />
       <div className="absolute right-4 top-4">
         <LocaleSwitcher />
       </div>

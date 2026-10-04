@@ -87,6 +87,7 @@ export default async function PlaytestPage({ params }: Props) {
         <NetworkGame
           model={loaded.payload.model}
           pack={loaded.payload.pack}
+          pack3d={loaded.payload.pack3d}
           target={{ kind: "playtest", playtestId: payload.playtestId, token }}
           title={`${t("page.title")} · ${loaded.payload.model.meta.title}`}
           subtitle={t("page.subtitle")}

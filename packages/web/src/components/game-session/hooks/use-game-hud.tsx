@@ -100,6 +100,7 @@ export interface UseGameHudOptions {
  * (`createLocalGameClient`).
  */
 export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoomRef, debugLog }: UseGameHudOptions) {
+  const is3D = model.dimension === "3d";
   const t = useTranslations("Game");
   const tp = useTranslations("Playtest");
   const locale = useLocale();
@@ -370,7 +371,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
           ) {
             const me = snapshotRef.current.self;
             if (event.messageType === "move") {
-              if (me) handleRef.current?.placeAvatar(me.x, me.y);
+              if (me) handleRef.current?.placeAvatar(me.x, me.y, me.h, me.yaw);
             } else {
               pushLog(tp("log.rateLimited"));
             }
@@ -389,7 +390,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
             event.code === MOVE_OUT_OF_BOUNDS
           ) {
             const me = snapshotRef.current.self;
-            if (me) handleRef.current?.placeAvatar(me.x, me.y);
+            if (me) handleRef.current?.placeAvatar(me.x, me.y, me.h, me.yaw);
             break;
           }
           if (event.code === GAME_PROTOCOL_ERRORS.roomLocked) {
@@ -397,7 +398,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
             if (me && sceneRoomRef.current !== me.roomId) {
               sceneRoomRef.current = me.roomId;
               handleRef.current?.showRoom(me.roomId);
-              handleRef.current?.placeAvatar(me.x, me.y);
+              handleRef.current?.placeAvatar(me.x, me.y, me.h, me.yaw);
             }
             pushLog(tp("log.roomLocked"));
             break;
@@ -447,18 +448,26 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
   const walkCancelRef = useRef<(() => void) | null>(null);
 
   const stopWalking = useCallback(() => {
+    // En 3D el runtime cancela su ruta solo (nueva ruta, WASD, joystick, `placeAvatar`).
+    if (is3D) return;
     walkCancelRef.current?.();
     walkCancelRef.current = null;
-  }, []);
+  }, [is3D]);
 
   useEffect(() => stopWalking, [stopWalking]);
 
   /** Camina en pasos válidos hasta `target` (placas, mirillas, puertas). */
   const walkTo = useCallback(
-    (target: { x: number; y: number }, onArrive?: () => void) => {
+    (target: { x: number; y: number; h?: number }, onArrive?: () => void) => {
       const me = snapshotRef.current.self;
       if (!me) {
         onArrive?.();
+        return;
+      }
+      if (is3D) {
+        // El runtime 3D camina por la navmesh y emite `avatar-move` por el camino (el servidor
+        // recibe los pasos). Si no hay ruta, él mismo llama a `onArrive`.
+        handleRef.current?.walkTo?.(target, onArrive);
         return;
       }
       const from = handleRef.current?.avatarCell() ?? { x: me.x, y: me.y };
@@ -473,7 +482,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
       );
       walkCancelRef.current = cancel;
     },
-    [client, stopWalking, handleRef],
+    [client, is3D, stopWalking, handleRef],
   );
 
   const openPanel = useCallback(
@@ -541,7 +550,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
   );
 
   const enterRoom = useCallback(
-    (targetRoomId: string, doorPosition?: { x: number; y: number }) => {
+    (targetRoomId: string, doorPosition?: { x: number; y: number; h?: number }) => {
       // F-23: el `move` de cruce solo se manda cuando el avatar ha llegado
       // de verdad a la puerta — `walkTo` ahora paga los pasos intermedios en
       // el tiempo (antes, un bucle síncrono los mandaba todos antes de que
@@ -572,7 +581,7 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
         // cruza de verdad.
         const object = model.objectsById[event.objectId];
         if (object?.leadsTo !== undefined && snapshotRef.current.objects[event.objectId] === "open") {
-          enterRoom(object.leadsTo, object.position);
+          enterRoom(object.leadsTo, object.transform ?? object.position);
         } else {
           setSelected(event.objectId);
         }
@@ -597,11 +606,12 @@ export function useGameHud({ model, pack, client, snapshot, handleRef, sceneRoom
         const phase = snapshotRef.current.phase;
         const canWalk = me?.inMap ? phase === "playing" : phase === "lobby";
         if (canWalk && me && event.roomId === me.roomId) {
-          client.move(event.x, event.y);
+          if (is3D) client.move(event.x, event.y, undefined, { h: event.h, yaw: event.yaw });
+          else client.move(event.x, event.y);
         }
       }
     },
-    [client, applyItemUse, enterRoom, inspect, sceneRoomRef, model],
+    [client, applyItemUse, enterRoom, inspect, sceneRoomRef, model, is3D],
   );
 
   const togglePlate = useCallback(

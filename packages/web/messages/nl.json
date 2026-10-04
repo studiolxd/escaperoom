@@ -15,7 +15,8 @@
     "spawns": "Spawnpunten",
     "packLoaded": "grafisch pack \"{packId}\"",
     "packPlaceholder": "automatische placeholder (geen pack)",
-    "controls": "WASD/pijlen om te bewegen · Spatie om te interageren"
+    "controls": "WASD/pijlen om te bewegen · Spatie om te interageren",
+    "preview3dUnavailable": "De voorbeeldweergave van 3D-kamers is beschikbaar met de 3D-editor."
   },
   "CodeLock": {
     "title": "Cijferslot",
@@ -885,6 +886,11 @@
     },
     "room": {
       "missingToken": "De speltoegangscode ontbreekt. Ga terug naar de kamerpagina om te spelen."
+    },
+    "touch": {
+      "interact": "Interactie",
+      "interactWith": "Interactie met {object}",
+      "hintKey": "E — {object}"
     }
   },
   "Chat": {
@@ -1224,7 +1230,11 @@
       "log": "Activiteit",
       "noLog": "Nog geen activiteit.",
       "logSolved": "Opgelost: {puzzle}",
-      "logEnded": "Einde van het spel: {result}"
+      "logEnded": "Einde van het spel: {result}",
+      "camera": "Camera",
+      "cameraFree": "Vrije camera",
+      "cameraFollow": "{player} volgen",
+      "room": "Kamer"
     },
     "puzzleTypes": {
       "code_lock": "Slot",

@@ -38,6 +38,10 @@ describe("buildContentSecurityPolicy", () => {
     expect(scripts).not.toContain("'unsafe-eval'");
   });
 
+  it("script-src permite compilar WebAssembly (navmesh 3D) sin abrir eval de JavaScript", () => {
+    expect(directive(prod, "script-src")).toContain("'wasm-unsafe-eval'");
+  });
+
   it("connect-src abre Colyseus (HTTP + WS), el editor, LiveKit y el bucket", () => {
     const connect = directive(prod, "connect-src");
     expect(connect).toEqual(

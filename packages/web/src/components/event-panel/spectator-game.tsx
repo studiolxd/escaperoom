@@ -1,16 +1,31 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
 import type { PublicRuntimeModel } from "@escaperoom/game-runtime";
-import { remainingMs, type GameClient } from "@escaperoom/game-runtime/session";
+import type { ObserverCamera } from "@escaperoom/game-runtime/three";
+import { remainingMs, type GameClient, type GameSnapshot } from "@escaperoom/game-runtime/session";
 import { EVENT_PANEL_ERROR_CODES } from "@escaperoom/shared/error-codes";
 import { ConnectionBadge } from "@/components/game-session/connection-badge";
 import { useGameConnection } from "@/components/game-session/use-game-connection";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { Pack3D } from "@/lib/game-model";
 import { Link } from "@/i18n/navigation";
 import { dashboardPath, eventApiPath, readApiError } from "@/lib/event-panel";
 import { formatDuration } from "@/lib/session-format";
+
+const SpectatorCanvas3D = dynamic(() => import("./spectator-canvas-3d"), {
+  ssr: false,
+  loading: () => <div className="absolute inset-0" />,
+});
 
 export const KNOWN_ERRORS: ReadonlySet<string> = new Set(EVENT_PANEL_ERROR_CODES);
 
@@ -27,10 +42,12 @@ export function SpectatorGame({
   eventId,
   sessionId,
   model,
+  pack3d,
 }: {
   eventId: string;
   sessionId: string;
   model: PublicRuntimeModel;
+  pack3d?: Pack3D;
 }) {
   const t = useTranslations("EventPanel");
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -82,16 +99,18 @@ export function SpectatorGame({
     );
   }
   if (!ticket) return <p className="text-sm text-white/70">{t("observer.connecting")}</p>;
-  return <SpectatorConnection ticket={ticket} model={model} back={back} />;
+  return <SpectatorConnection ticket={ticket} model={model} pack3d={pack3d} back={back} />;
 }
 
 function SpectatorConnection({
   ticket,
   model,
+  pack3d,
   back,
 }: {
   ticket: Ticket;
   model: PublicRuntimeModel;
+  pack3d?: Pack3D;
   back: React.ReactNode;
 }) {
   const t = useTranslations("EventPanel");
@@ -115,7 +134,7 @@ function SpectatorConnection({
         </span>
       </div>
       {connection.client ? (
-        <SpectatorView client={connection.client} model={model} />
+        <SpectatorView client={connection.client} model={model} pack3d={pack3d} />
       ) : connection.status === "error" ? (
         <div className="space-y-2">
           <p role="alert" className="text-sm text-red-300">
@@ -137,7 +156,15 @@ function SpectatorConnection({
  * proyección pública que ve un jugador): fase, reloj, jugadores y dónde están,
  * estado de cada puzzle, actividad difundida y chat del grupo.
  */
-export function SpectatorView({ client, model }: { client: GameClient; model: PublicRuntimeModel }) {
+export function SpectatorView({
+  client,
+  model,
+  pack3d,
+}: {
+  client: GameClient;
+  model: PublicRuntimeModel;
+  pack3d?: Pack3D;
+}) {
   const t = useTranslations("EventPanel");
   const snapshot = useSyncExternalStore(client.subscribe, client.getSnapshot, client.getSnapshot);
   const [log, setLog] = useState<Array<{ id: number; text: string }>>([]);
@@ -173,6 +200,10 @@ export function SpectatorView({ client, model }: { client: GameClient; model: Pu
   const left = remainingMs(snapshot);
 
   return (
+    <>
+    {model.dimension === "3d" ? (
+      <SpectatorWorld3D snapshot={snapshot} model={model} pack3d={pack3d} />
+    ) : null}
     <div className="grid gap-4 lg:grid-cols-[2fr_1fr]" data-testid="spectator-view">
       <section className="space-y-4 rounded-xl border border-white/10 bg-white/5 p-4">
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
@@ -283,5 +314,103 @@ export function SpectatorView({ client, model }: { client: GameClient; model: Pu
         </section>
       </aside>
     </div>
+    </>
+  );
+}
+
+const FREE_CAMERA = "free";
+const FOLLOW_PREFIX = "follow:";
+
+/**
+ * Mundo 3D del observador (specs/27 §6, ticket 7.6): el canvas con todos los jugadores y dos
+ * selectores — cámara (libre o siguiendo a un jugador) y, con cámara libre, habitación.
+ */
+function SpectatorWorld3D({
+  snapshot,
+  model,
+  pack3d,
+}: {
+  snapshot: GameSnapshot;
+  model: PublicRuntimeModel;
+  pack3d?: Pack3D;
+}) {
+  const t = useTranslations("EventPanel");
+  const [camera, setCamera] = useState<ObserverCamera>({ type: "free" });
+  const [room, setRoom] = useState(model.initialRoomId);
+
+  const players = useMemo(
+    () =>
+      snapshot.players.map(({ id, name, roomId, x, y, h, yaw, tint, characterId, connected }) => ({
+        id,
+        name,
+        roomId,
+        x,
+        y,
+        h,
+        yaw,
+        tint,
+        characterId,
+        connected,
+      })),
+    [snapshot.players],
+  );
+  const followable = snapshot.players.filter((player) => player.connected);
+  const cameraValue =
+    camera.type === "follow" && followable.some((player) => player.id === camera.playerId)
+      ? `${FOLLOW_PREFIX}${camera.playerId}`
+      : FREE_CAMERA;
+
+  return (
+    <section
+      className="relative h-[60vh] overflow-hidden rounded-xl border border-white/10"
+      data-testid="spectator-world-3d"
+    >
+      <SpectatorCanvas3D
+        model={model}
+        pack3d={pack3d}
+        players={players}
+        objects={snapshot.objects}
+        camera={camera}
+        onRoomChange={setRoom}
+      />
+      <div className="absolute left-3 top-3 z-10 flex flex-wrap items-center gap-2">
+        <Select
+          value={cameraValue}
+          onValueChange={(value) =>
+            setCamera(
+              value.startsWith(FOLLOW_PREFIX)
+                ? { type: "follow", playerId: value.slice(FOLLOW_PREFIX.length) }
+                : { type: "free", roomId: room },
+            )
+          }
+        >
+          <SelectTrigger size="sm" aria-label={t("observer.camera")} data-testid="spectator-camera">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={FREE_CAMERA}>{t("observer.cameraFree")}</SelectItem>
+            {followable.map((player) => (
+              <SelectItem key={player.id} value={`${FOLLOW_PREFIX}${player.id}`}>
+                {t("observer.cameraFollow", { player: player.name })}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {cameraValue === FREE_CAMERA ? (
+          <Select value={room} onValueChange={(roomId) => setCamera({ type: "free", roomId })}>
+            <SelectTrigger size="sm" aria-label={t("observer.room")} data-testid="spectator-room">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {model.subrooms.map((subroom) => (
+                <SelectItem key={subroom.id} value={subroom.id}>
+                  {subroom.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+      </div>
+    </section>
   );
 }

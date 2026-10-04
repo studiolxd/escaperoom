@@ -15,7 +15,8 @@
     "spawns": "Apparitions",
     "packLoaded": "pack graphique « {packId} »",
     "packPlaceholder": "placeholder automatique (sans pack)",
-    "controls": "WASD/flèches pour se déplacer · Espace pour interagir"
+    "controls": "WASD/flèches pour se déplacer · Espace pour interagir",
+    "preview3dUnavailable": "L'aperçu des salles 3D sera disponible avec l'éditeur 3D."
   },
   "CodeLock": {
     "title": "Cadenas numéroté",
@@ -885,6 +886,11 @@
     },
     "room": {
       "missingToken": "Le code d'accès à la partie est manquant. Retournez à la fiche de la salle pour jouer."
+    },
+    "touch": {
+      "interact": "Interagir",
+      "interactWith": "Interagir avec {object}",
+      "hintKey": "E — {object}"
     }
   },
   "Chat": {
@@ -1224,7 +1230,11 @@
       "log": "Activité",
       "noLog": "Aucune activité pour l’instant.",
       "logSolved": "Résolue : {puzzle}",
-      "logEnded": "Fin de la partie : {result}"
+      "logEnded": "Fin de la partie : {result}",
+      "camera": "Caméra",
+      "cameraFree": "Caméra libre",
+      "cameraFollow": "Suivre {player}",
+      "room": "Salle"
     },
     "puzzleTypes": {
       "code_lock": "Cadenas",
