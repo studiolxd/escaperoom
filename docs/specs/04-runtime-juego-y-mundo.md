@@ -143,7 +143,8 @@ contenido pasa a la "zona de descubrimiento". Comportamiento configurable con `d
   arrastre emiten siempre `use-item { itemId, objectId }`; el HUD solo lo manda al servidor si el
   ítem está en `useItemIds` del objeto (hay una regla `on_use_item` de ese ítem sobre ese objeto, o
   el ítem es el objeto-puente de la placa/mirilla). En cualquier otro caso muestra «Esto no se
-  puede usar aquí.» en el registro del HUD y no hace nada más: no llama al servidor ni inspecciona.
+  puede usar aquí.» en el mismo diálogo que la inspección (titulado con el objeto), que bloquea el
+  movimiento hasta cerrarlo (Esc o su botón), y no hace nada más: no llama al servidor ni inspecciona.
   «Usar objeto…» ofrece todos los ítems del inventario, así que el jugador puede equivocarse. Las
   mecánicas de «usar X en Y» se escriben con `on_use_item`, no con `on_interact` +
   `item_in_inventory` (el validador lo avisa: `interact_requires_item`).

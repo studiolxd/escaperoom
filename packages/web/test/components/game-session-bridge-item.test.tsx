@@ -120,12 +120,20 @@ describe.each(["2D", "3D"] as const)("useGameHud — objeto-puente en el Rey Ald
     expect(client.interact).not.toHaveBeenCalled();
   });
 
-  it("un ítem sin efecto sobre ese objeto: aviso y ninguna llamada al servidor", () => {
+  it("un ítem sin efecto sobre ese objeto: aviso en el diálogo, sin llamar al servidor y bloqueante", () => {
     const { client, result } = setup();
     act(() => result.current.applyItemUse("busto-piedra", "puerta-salon"));
     expect(client.useItem).not.toHaveBeenCalled();
     expect(client.interact).not.toHaveBeenCalled();
-    expect(result.current.log[0]?.text).toBe("Esto no se puede usar aquí.");
+    expect(result.current.dialog).toMatchObject({
+      id: "cannot-use-here",
+      text: "Esto no se puede usar aquí.",
+    });
+    expect(result.current.dialog?.title).toBeTruthy();
+    expect(result.current.worldInputEnabled).toBe(false);
+    act(() => result.current.closeDialog());
+    expect(result.current.dialog).toBeNull();
+    expect(result.current.worldInputEnabled).toBe(true);
   });
 
   it("un evento use-item del runtime con ítem válido llega al servidor", () => {
