@@ -151,6 +151,19 @@ adaptador `server/rest/intro-media.ts`.
 | GET | `/api/rooms/:roomId/intro-media/subtitles?ref=…` | autor | El WebVTT tal cual (`text/vtt; charset=utf-8`) desde el **mismo origen**, para el `<track>` de la vista previa del editor (un `<track>` a la URL firmada del bucket no carga sin CORS). `403`, `404`, `422`. Cuota `intro-media-read` |
 | GET | `/api/rooms/:roomId/intro-media/url?ref=…` | autor | `{ url }`: URL firmada (1 h) de un `media:` propio y listo, o de una clave publicada, para previsualizar en el editor. `409 NOT_READY` (vídeo sin completar), `403`, `404` |
 
+**Modelos 3D de los creadores (7.8a)**: reutilizan el servicio y la tabla de medios de la
+introducción (`kind: "model"`, mismo ciclo reserva → PUT → complete); adaptador
+`server/rest/room-models.ts`. No registran el modelo en el documento: lo hace el cliente (editor o
+MCP) con `setCustomModel3D`.
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| POST | `/api/rooms/:roomId/models` | autor | `{ filename, contentType, byteSize }` (`model/gltf-binary`; `application/octet-stream` o vacío se decide por la extensión `.glb`) → 201 `{ assetId, uploadUrl, headers }`. El GLB (≤ 15 MB) **no pasa por el servidor**: el navegador hace `PUT uploadUrl` con esas `headers`. `415`, `413` (declarado > 15 MB), `422` |
+| POST | `/api/rooms/:roomId/models/:assetId/complete` | autor | Lee el GLB subido, lo inspecciona (cabecera, extensiones permitidas, sin recursos externos, sin cámaras ni luces, ≤ 100.000 triángulos, texturas ≤ 2048 px) y lo mide → 200 `{ ref: "media:<uuid>", size, colliders, clips, triangles, byteSize }`. Idempotente. `409 UPLOAD_INCOMPLETE`; `415` (no es un GLB v2 válido), `413` (> 15 MB) o `422` (límite o contenido no admitido, con mensaje accionable): el objeto y el asset se **borran** |
+| GET | `/api/rooms/:roomId/models/url?ref=…` | autor | `{ url }`: URL firmada (1 h) de un `media:` propio y listo, o de una clave publicada. `409 NOT_READY`, `403`, `404` |
+
+Cuotas de los modelos: `intro-media-upload` (POST), `intro-media-complete` e `intro-media-read`.
+
 Cuotas (`docs/reference/seguridad.md` §1): `intro-media-upload` (vídeo y subtítulos, compartida
 con la meta-tool `upload` del MCP), `intro-media-complete` e `intro-media-read`. En partida y
 playtest las URLs (6 h) las firma el servidor al montar la página (`introMediaUrlResolver`,

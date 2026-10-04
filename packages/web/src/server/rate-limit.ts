@@ -169,8 +169,9 @@ export const RATE_LIMIT_POLICIES = {
     user: { limit: 6, windowSeconds: 3600 },
   },
   /**
-   * `POST /api/rooms/:roomId/intro-media/video` y `…/intro-media/subtitles`
-   * (encargo lobby-diseño): el autor sube el vídeo (hasta 200 MB, PUT
+   * `POST /api/rooms/:roomId/intro-media/video`, `…/intro-media/subtitles` y
+   * `POST /api/rooms/:roomId/models` (modelos 3D, encargo 7.8a; en el MCP,
+   * `kind: "model3d"`) (encargo lobby-diseño): el autor sube el vídeo (hasta 200 MB, PUT
    * presignado directo al bucket) o los WebVTT de la introducción. También la
    * consume la meta-tool `upload` del MCP con `kind: "intro_video"`/
    * `"intro_subtitles"` (misma clave `intro-media-upload:user:<id>`). Un vídeo
@@ -182,7 +183,8 @@ export const RATE_LIMIT_POLICIES = {
     user: { limit: 20, windowSeconds: 3600 },
   },
   /**
-   * `POST /api/rooms/:roomId/intro-media/video/:assetId/complete`: cada
+   * `POST /api/rooms/:roomId/intro-media/video/:assetId/complete` y
+   * `POST /api/rooms/:roomId/models/:assetId/complete`: cada
    * llamada hace un HEAD y un GET por rango al bucket; cada subida necesita
    * al menos una (más reintentos si el PUT aún no terminó).
    */
@@ -190,7 +192,7 @@ export const RATE_LIMIT_POLICIES = {
     ip: { limit: 60, windowSeconds: 3600 },
     user: { limit: 40, windowSeconds: 3600 },
   },
-  /** `GET /api/rooms/:roomId/intro-media/url` — URL firmada para previsualizar en el editor. */
+  /** `GET /api/rooms/:roomId/intro-media/url` y `…/models/url` — URL firmada para previsualizar en el editor. */
   "intro-media-read": {
     ip: { limit: 240, windowSeconds: 600 },
     user: { limit: 120, windowSeconds: 600 },
