@@ -82,7 +82,12 @@ export class UiPlayer {
    */
   async markReady(): Promise<void> {
     const options = this.page.locator('[data-testid^="character-option-"]:not([disabled])');
-    if (await options.first().isVisible({ timeout: 2_000 }).catch(() => false)) {
+    if (
+      await options
+        .first()
+        .isVisible({ timeout: 2_000 })
+        .catch(() => false)
+    ) {
       // El radio real es `sr-only` (oculto); es su <label> visible quien
       // recibe el clic real (y lo reenvía al radio por debajo), así que se
       // clica la etiqueta en vez del radio directamente. El primero LIBRE
@@ -264,7 +269,9 @@ export class UiPlayer {
   async expectNotInteractable(objectId: string): Promise<void> {
     await this.clickObjectOnCanvas(objectId, false);
     await this.page.waitForTimeout(3_000);
-    await expect(this.page.getByRole("button", { name: "Cancelar", exact: true })).not.toBeVisible();
+    await expect(
+      this.page.getByRole("button", { name: "Cancelar", exact: true }),
+    ).not.toBeVisible();
   }
 
   async inspect(objectId: string): Promise<void> {
