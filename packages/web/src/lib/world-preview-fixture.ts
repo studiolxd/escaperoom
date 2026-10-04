@@ -50,7 +50,7 @@ export function worldPreviewPackage(): unknown {
       packageFormat: "roompackage/v1",
       theme: "medieval",
       description:
-        "Sala de demo: pasa el cursor por los objetos para ver el brillo, pulsa Espacio o clic para inspeccionar y abre el cofre para ver su inventario interno.",
+        "Sala de demo: pulsa Espacio o haz clic para inspeccionar y abre el cofre para ver su inventario interno.",
       languages: ["es", "en"],
       defaultLanguage: "es",
       estimatedMinutes: 5,

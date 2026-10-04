@@ -24,7 +24,6 @@ const SHADOW_BOX_HEIGHT = 4;
 /** Movimiento (m) del avatar a partir del cual se recalculan las antorchas más cercanas. */
 export const TORCH_RECALC_DISTANCE = 1;
 const TORCH_COLOR = 0xffb060;
-const OUTLINE_COLOR = 0xffe08a;
 const OUTLINE_SCALE = 1.04;
 
 export function assetContext(
@@ -149,7 +148,6 @@ export class ModelSlot {
         this.world.markShadows(loaded.scene);
         this.holder.add(loaded.scene);
         this.applyDecor();
-        this.world.reapplyOutline(this);
         const clip = animation
           ? THREE.AnimationClip.findByName(loaded.animations, animation)
           : undefined;
@@ -323,11 +321,6 @@ export class RoomWorld {
 
   private readonly slots = new Set<ModelSlot>();
   private torchPool: THREE.PointLight[] = [];
-  private readonly outlineMaterial = new THREE.MeshBasicMaterial({
-    color: OUTLINE_COLOR,
-    side: THREE.BackSide,
-  });
-  private outlined = new Set<string>();
   private lastTorchFocus: { x: number; y: number } | undefined;
   private lastStates: ObjectStateMap | undefined;
   private readonly hemisphere: THREE.HemisphereLight;
@@ -530,7 +523,6 @@ export class RoomWorld {
       if (liveObjects.has(id)) continue;
       this.removeSlot(entry.slot);
       this.objects.delete(id);
-      this.outlined.delete(id);
     }
 
     if (resized) this.frameSunShadow(room);
@@ -602,7 +594,6 @@ export class RoomWorld {
     this.applyObjectVisibility(entry.slot, state);
     const animation = resolveObjectStateAnimation(entry.object, state);
     entry.slot.set(resolveObjectStateSprite(entry.object, state), animation);
-    this.reapplyOutline(entry.slot);
   }
 
   /** Objetos que ahora mismo responden al clic: interactables y no ocultos. */
@@ -666,45 +657,6 @@ export class RoomWorld {
     return this.torchPool.filter((l) => l.intensity > 0).length;
   }
 
-  /** Objetos con contorno (resaltado por proximidad o puntero). */
-  setOutlined(ids: ReadonlySet<string>): void {
-    for (const id of this.outlined) {
-      if (!ids.has(id)) this.clearOutline(id);
-    }
-    for (const id of ids) {
-      if (!this.outlined.has(id)) this.addOutline(id);
-    }
-    this.outlined = new Set(ids);
-  }
-
-  reapplyOutline(slot: ModelSlot): void {
-    for (const [id, entry] of this.objects) {
-      if (entry.slot === slot && this.outlined.has(id)) this.addOutline(id);
-    }
-  }
-
-  private addOutline(id: string): void {
-    const entry = this.objects.get(id);
-    if (!entry) return;
-    this.clearOutline(id);
-    for (const mesh of entry.slot.meshes()) {
-      const outline = new THREE.Mesh(mesh.geometry, this.outlineMaterial);
-      outline.userData.outline = true;
-      outline.scale.setScalar(OUTLINE_SCALE);
-      mesh.add(outline);
-    }
-  }
-
-  private clearOutline(id: string): void {
-    const entry = this.objects.get(id);
-    if (!entry) return;
-    entry.slot.holder.traverse((node) => {
-      for (const child of [...node.children]) {
-        if (child.userData.outline) node.remove(child);
-      }
-    });
-  }
-
   update(dt: number): void {
     for (const slot of this.slots) slot.mixer?.update(dt);
   }
@@ -716,7 +668,6 @@ export class RoomWorld {
     (this.collision.material as THREE.Material).dispose();
     this.cameraCollision.geometry.dispose();
     (this.cameraCollision.material as THREE.Material).dispose();
-    this.outlineMaterial.dispose();
     this.boxes.dispose();
     this.group.clear();
     this.group.removeFromParent();

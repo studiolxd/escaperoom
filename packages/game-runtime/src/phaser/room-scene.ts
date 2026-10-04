@@ -279,11 +279,10 @@ interface RemoteAvatar {
   target: { x: number; y: number };
 }
 
-/** Vista de un objeto en la escena: sprite, brillo de hover y profundidad. */
+/** Vista de un objeto en la escena: sprite y escala base. */
 interface ObjectView {
   object: RuntimeObject;
   sprite: Phaser.GameObjects.Sprite;
-  glow: Phaser.GameObjects.Ellipse;
   baseScaleX: number;
   baseScaleY: number;
 }
@@ -293,7 +292,6 @@ const DEPTH = {
   water: 1,
   tileSub: 10,
   decorationSub: 20,
-  objectGlowSub: 29,
   objectSub: 30,
   ambient: 9000,
   halo: 9001,
@@ -940,20 +938,6 @@ export class RoomScene extends Phaser.Scene {
       const anchor = tileAnchor(object.position.x, object.position.y);
       const depth = isoDepth(object.position.x, object.position.y, DEPTH.objectSub) + 1;
 
-      const glow = this.track(
-        this.add
-          .ellipse(
-            anchor.x,
-            anchor.y - size.height * 0.35,
-            size.width * 0.72,
-            size.height * 0.22,
-            0xffe08a,
-            0,
-          )
-          .setDepth(isoDepth(object.position.x, object.position.y, DEPTH.objectGlowSub) + 1)
-          .setBlendMode(Phaser.BlendModes.ADD),
-      );
-
       const sprite = this.add
         .sprite(anchor.x, anchor.y, ref.key, ref.frame)
         .setOrigin(origin[0], origin[1]);
@@ -963,7 +947,6 @@ export class RoomScene extends Phaser.Scene {
       const view: ObjectView = {
         object,
         sprite,
-        glow,
         baseScaleX: sprite.scaleX,
         baseScaleY: sprite.scaleY,
       };
@@ -1133,43 +1116,15 @@ export class RoomScene extends Phaser.Scene {
     }
   }
 
-  /** Brillo/pista al pasar el cursor sobre un objeto interactuable. */
+  /** Registra el objeto bajo el cursor (sin efecto visual: el clic sobre él no hace caminar). */
   private setHover(objectId: string): void {
-    if (this.hoveredObjectId === objectId) {
-      return;
-    }
-    if (this.hoveredObjectId) {
-      this.clearHover(this.hoveredObjectId);
-    }
-
-    const view = this.objectViews.get(objectId);
-    if (!view) {
-      return;
-    }
     this.hoveredObjectId = objectId;
-
-    view.glow.setAlpha(0.55);
-    this.tweens.add({
-      targets: view.glow,
-      alpha: { from: 0.3, to: 0.7 },
-      duration: 620,
-      yoyo: true,
-      repeat: -1,
-    });
   }
 
   private clearHover(objectId: string): void {
-    if (this.hoveredObjectId !== objectId) {
-      return;
+    if (this.hoveredObjectId === objectId) {
+      this.hoveredObjectId = undefined;
     }
-    this.hoveredObjectId = undefined;
-
-    const view = this.objectViews.get(objectId);
-    if (!view) {
-      return;
-    }
-    this.tweens.killTweensOf(view.glow);
-    view.glow.setAlpha(0);
   }
 
   /**

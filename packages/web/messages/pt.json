@@ -914,8 +914,7 @@
     },
     "touch": {
       "interact": "Interagir",
-      "interactWith": "Interagir com {object}",
-      "hintKey": "E — {object}"
+      "interactWith": "Interagir com {object}"
     }
   },
   "Chat": {

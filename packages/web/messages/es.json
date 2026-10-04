@@ -1276,8 +1276,7 @@
     },
     "touch": {
       "interact": "Interactuar",
-      "interactWith": "Interactuar con {object}",
-      "hintKey": "E — {object}"
+      "interactWith": "Interactuar con {object}"
     }
   },
   "TemplateConfig": {

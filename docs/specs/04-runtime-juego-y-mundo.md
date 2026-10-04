@@ -122,7 +122,7 @@ contenido pasa a la "zona de descubrimiento". Comportamiento configurable con `d
 
 ## 4. Interacción del jugador con el mundo
 
-- Objetos interactuables muestran brillo/pista al acercar el cursor.
+- Los objetos no se resaltan (ni al acercar el cursor ni por proximidad), decisión del usuario 2026-10-05; en 3D tampoco (specs/27 §7).
 - **Selección y menú contextual.** Al seleccionar un objeto (clic o Espacio cerca de él) no se
   resuelve nada de inmediato: se abre un **menú contextual** con las acciones disponibles para ese
   objeto. En v1 son `Inspeccionar` y `Usar objeto…`. El menú es **extensible por datos**: las

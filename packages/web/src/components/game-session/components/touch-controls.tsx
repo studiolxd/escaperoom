@@ -31,8 +31,8 @@ function isCoarsePointer(): boolean {
 
 /**
  * Controles de la partida 3D sobre el canvas: en táctil, joystick (abajo a la izquierda) y botón
- * «Interactuar» (abajo a la derecha, solo con un objeto resaltado); en escritorio, una pista
- * discreta («E — objeto») del objeto resaltado. `active` = `worldInputEnabled`.
+ * «Interactuar» (abajo a la derecha, solo con un objeto resaltado); en escritorio no pinta nada
+ * (se interactúa con Espacio). `active` = `worldInputEnabled`.
  */
 export function TouchControls({
   handleRef,
@@ -68,18 +68,7 @@ export function TouchControls({
   if (!active) return null;
   const name = highlighted ? objectName(highlighted) : undefined;
 
-  if (!coarse) {
-    return name ? (
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-6 z-20 flex justify-center"
-        data-testid="touch-hint-key"
-      >
-        <span className="rounded-full border border-border bg-card/75 px-3 py-1 text-xs text-foreground backdrop-blur">
-          {t("touch.hintKey", { object: name })}
-        </span>
-      </div>
-    ) : null;
-  }
+  if (!coarse) return null;
 
   return (
     <>

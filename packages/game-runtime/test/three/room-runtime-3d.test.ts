@@ -395,25 +395,23 @@ describe("RoomRuntime3D (headless)", () => {
 
   describe("contorno visual", () => {
     // Estado privado: se lee/escribe por cast solo en este test (el puntero real no existe en headless).
-    type Internals = {
-      world: { outlined: ReadonlySet<string> };
-      pointer: { x: number; y: number } | undefined;
-      pickObject: () => string | undefined;
+    const outlines = (runtime: unknown): number => {
+      let n = 0;
+      (runtime as { world: { group: THREE.Object3D } }).world.group.traverse((o) => {
+        if (o.userData.outline) n++;
+      });
+      return n;
     };
 
-    it("la proximidad cambia `highlightedObjectId` sin añadir contorno; el hover sí", async () => {
+    it("la proximidad cambia `highlightedObjectId` sin añadir contorno (ningún objeto se contornea en la partida)", async () => {
       const { runtime } = await start();
-      const inner = runtime as unknown as Internals;
       runtime.placeAvatar(1.5, 1.5, 0, 90); // mira al arca
       runtime.tick(0.1);
       runtime.tick(0.1);
       expect(runtime.highlightedObjectId).toBe("arca");
-      expect([...inner.world.outlined]).toEqual([]);
-
-      inner.pointer = { x: 0, y: 0 };
-      inner.pickObject = () => "arca";
+      expect(outlines(runtime)).toBe(0);
       runtime.tick(0.1);
-      expect([...inner.world.outlined]).toEqual(["arca"]);
+      expect(outlines(runtime)).toBe(0);
       runtime.destroy();
     });
   });

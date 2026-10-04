@@ -24,7 +24,7 @@ pinta, cómo se mueve el avatar y cómo se edita.
 | Habitaciones | Escenas separadas. Cruzar una puerta abierta hace un fundido y aparece en la otra (como en 2D). |
 | Techo | Sin techo en v1. Fondo oscuro con niebla. |
 | Movimiento | Clic para caminar, WASD, y joystick en táctil. |
-| Interacción | Clic en un objeto (camina hasta él y abre el menú), tecla E o botón táctil sobre el objeto cercano, y arrastrar un ítem del inventario sobre un objeto. Igual que en 2D más la proximidad. |
+| Interacción | Clic en un objeto (camina hasta él y abre el menú), tecla Espacio o botón táctil sobre el objeto cercano, y arrastrar un ítem del inventario sobre un objeto. Igual que en 2D más la proximidad. |
 | Validación | Navmesh de recast-navigation, generada igual en cliente y servidor. El servidor valida posición y velocidad. |
 | Motor | Three.js, en `@escaperoom/game-runtime/three`. |
 | Editor | Editor 3D completo (colocar, mover, girar con gizmos), sincronizado con Yjs. |
@@ -321,9 +321,10 @@ altura). El jugador aparece en un `spawnPoint` de la habitación destino.
 - **Clic frente a arrastre:** si el puntero se mueve menos de 6 px entre pulsar y soltar, es un
   clic (caminar o seleccionar); si no, gira la cámara.
 - **Resaltado:** el objeto interactuable más cercano a menos de 2 m y dentro de un cono de 120°
-  frente al avatar es el objeto cercano: E, Espacio o el botón táctil lo seleccionan, sin
-  resaltado visual (decisión del usuario, 2026-10-05); el HUD muestra su nombre («E — <objeto>»).
-  El contorno solo aparece al pasar el cursor por encima (hover), como en 2D.
+  frente al avatar es el objeto cercano: Espacio o el botón táctil lo seleccionan, sin
+  resaltado visual (decisión del usuario, 2026-10-05). En escritorio el HUD no muestra pista.
+  En la partida 3D ningún objeto se contornea, ni por proximidad ni al pasar el cursor por
+  encima (hover): decisión del usuario, 2026-10-05. Solo el editor contornea la selección.
 - **Arrastrar del inventario:** `dropItemAt` lanza un rayo desde el punto de pantalla; si da en
   un objeto interactuable, emite siempre `use-item` (el HUD decide si tiene efecto), como en 2D.
 - **Táctil:** joystick virtual a la izquierda, botón «Interactuar» a la derecha, arrastrar en el

@@ -34,7 +34,6 @@ function setup() {
     onClick: (x, y) => calls.click.push([x, y]),
     onDrag: (dx, dy) => calls.drag.push([dx, dy]),
     onWheel: (s) => calls.wheel.push(s),
-    onHover: () => undefined,
     onInteractKey: () => undefined,
     onMoveKey: () => undefined,
   };
@@ -123,5 +122,37 @@ describe("InputController: táctil", () => {
     canvas.pointer("pointerdown", { id: 1, x: 100, y: 100, t: 0 });
     canvas.pointer("pointercancel", { id: 1, x: 100, y: 100, t: 100 });
     expect(calls.click).toEqual([]);
+  });
+});
+
+describe("InputController: teclado", () => {
+  beforeEach(() => {
+    vi.stubGlobal("window", new EventTarget());
+    vi.stubGlobal("document", { activeElement: null });
+    vi.stubGlobal("HTMLElement", class {});
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("Espacio interactúa y E ya no", () => {
+    const canvas = new FakeCanvas();
+    const onInteractKey = vi.fn();
+    new InputController(canvas as unknown as HTMLElement, {
+      onClick: () => undefined,
+      onDrag: () => undefined,
+      onWheel: () => undefined,
+      onInteractKey,
+      onMoveKey: () => undefined,
+    });
+    const press = (code: string) => {
+      const e = new Event("keydown") as Event & Record<string, unknown>;
+      Object.assign(e, { code, repeat: false, ctrlKey: false, metaKey: false, altKey: false });
+      window.dispatchEvent(e);
+    };
+    press("KeyE");
+    expect(onInteractKey).not.toHaveBeenCalled();
+    press("Space");
+    expect(onInteractKey).toHaveBeenCalledTimes(1);
   });
 });
