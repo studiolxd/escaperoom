@@ -55,7 +55,7 @@ preconfiguran credenciales en el repo.
    - **Monitor Type**: `HTTP(s) - Keyword` (o `HTTP(s)` a secas; el keyword permite comprobar
      `"ok":true` en el cuerpo, no solo el código HTTP).
    - **Friendly Name**: `escaperoom-web /api/health`.
-   - **URL**: en dev, `http://host.docker.internal:3000/api/health` (Uptime Kuma corre en Docker;
+   - **URL**: en dev, `http://host.docker.internal:3500/api/health` (Uptime Kuma corre en Docker;
      `pnpm --filter @escaperoom/web dev` corre en el host, así que no vale `localhost` desde dentro
      del contenedor). En producción, la URL pública de `packages/web` + `/api/health`.
    - **Heartbeat Interval**: 30–60 s es suficiente para un MVP sin guardia 24/7 (specs/24 §6: "sin

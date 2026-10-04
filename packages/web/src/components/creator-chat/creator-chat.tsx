@@ -33,7 +33,7 @@ import {
  * que responda a `process.env.NEXT_PUBLIC_APP_URL` en tests.
  */
 function appOrigin(): string {
-  return new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").origin;
+  return new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3500").origin;
 }
 
 export interface CreatorChatProps {

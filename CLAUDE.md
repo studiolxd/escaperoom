@@ -89,7 +89,7 @@ el flujo por defecto para cualquier tarea de código es:
      la conexión física se devuelve al pool entre transacciones. Detalle
      completo (pool `max` por proceso, motivo de cada regla) en
      `infra/README.md` §"Prisma 7: adaptador, pool y PgBouncer".
-   - **Los puertos 3000 (web), 2567 (Colyseus) y 2568 (editor-sync) son del
+   - **Los puertos 3500 (web), 2567 (Colyseus) y 2568 (editor-sync) son del
      usuario**, aunque en ese momento estén libres: el worktree principal los
      usa cuando el usuario arranca `pnpm dev` ahí. **Ningún agente puede
      levantar nada en esos puertos.** Desde la auditoría 2026-09-25 (puertos
@@ -98,7 +98,7 @@ el flujo por defecto para cualquier tarea de código es:
      2700-2799, editor-sync 2800-2899; registro en
      `$(git rev-parse --git-common-dir)/escaperoom-dev-ports.json`, detalle en
      `infra/README.md`) y los escribe en su `.env`, así que `pnpm dev` **sin**
-     `PORT=` ya arranca en esos puertos y nunca en 3000/2567/2568. Aun así, el
+     `PORT=` ya arranca en esos puertos y nunca en 3500/2567/2568. Aun así, el
      agente debe mirar la salida real del arranque para confirmar en qué
      puerto quedó (no darlo por hecho), y correr `pnpm dev:env` como parte de
      la preparación del worktree (paso 1 más abajo) antes de `pnpm dev`.

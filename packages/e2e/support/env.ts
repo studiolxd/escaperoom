@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
  * colyseus-server y editor-sync) y los tests leen de aquí puertos, URLs y
  * secretos, para que lo que firma uno lo verifique el otro.
  *
- * Puertos propios (3100/2667/2668) y no los de `pnpm dev` (3000/2567/2568):
+ * Puertos propios (3100/2667/2668) y no los de `pnpm dev` (3500/2567/2568):
  * así la suite convive con un entorno de desarrollo arrancado en el mismo
  * equipo o en otro worktree. Todos se pueden sobrescribir por entorno.
  */

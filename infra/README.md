@@ -58,9 +58,11 @@ worktree enlazado nunca se quede sin querer con los del principal:
 
 | Servicio     | Worktree principal | Smoke E2E (`packages/e2e`) | Worktrees enlazados (rango) |
 | ------------ | ------------------- | -------------------------- | ---------------------------- |
-| web          | 3000                 | 3100                        | 3200–3299                    |
+| web          | 3500                 | 3100                        | 3200–3299                    |
 | Colyseus     | 2567                 | 2667                        | 2700–2799                    |
 | editor-sync  | 2568                 | 2668                        | 2800–2899                    |
+
+El worktree principal usa el 3500 para la web desde el 2026-10-05 (antes 3000), para no chocar con otras aplicaciones locales.
 
 En un enlazado, `pnpm dev:env` busca un puerto libre (nadie escucha en él,
 comprobado con `lsof`, y no está ya asignado a otro worktree) en cada rango, y
@@ -81,7 +83,7 @@ antes desde su `.env.example`. Con esto, `pnpm dev` **sin** `PORT=` en la línea
 de comandos ya arranca en el puerto propio del worktree — `packages/web/scripts/dev.ts`
 carga ese `.env` antes de invocar `next dev` (Commander lee `PORT` del entorno
 del proceso, no del `.env`, así que hace falta cargarlo primero) y arranca
-`editor-sync` en paralelo. El worktree principal sigue en 3000/2567/2568 (no se
+`editor-sync` en paralelo. El worktree principal sigue en 3500/2567/2568 (no se
 le escribe nada) y el `next build`/`next start` del smoke E2E
 (`packages/e2e/scripts/serve.ts`) no se ve afectado: pasa su propio `-p` y no
 lee `packages/web/.env`.
@@ -90,7 +92,7 @@ Verificado a mano (sin patrón de test para scripts de shell en este repo):
 `pnpm dev:env` dos veces seguidas (misma asignación la segunda), `pnpm dev`
 sin `PORT=` arrancando en los tres puertos propios, `GET /es/play` en ese
 puerto respondiendo 200 y con `NEXT_PUBLIC_COLYSEUS_URL` del worktree
-embebido en los chunks compilados, y 3000/2567/2568 libres durante toda la
+embebido en los chunks compilados, y 3500/2567/2568 libres durante toda la
 prueba.
 
 ## Puertos (no estándar, para no chocar con otras suites)

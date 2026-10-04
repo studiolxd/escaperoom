@@ -30,8 +30,8 @@ export const dynamic = "force-dynamic";
  * configuradas) tiene sentido derivarlo de las cabeceras.
  */
 export function requestOrigin(h: Headers): string {
-  if (process.env.NODE_ENV !== "development") return "http://localhost:3000";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  if (process.env.NODE_ENV !== "development") return "http://localhost:3500";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3500";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   return `${proto}://${host}`;
 }

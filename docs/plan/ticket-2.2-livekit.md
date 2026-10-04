@@ -57,10 +57,10 @@ Requisitos: `pnpm install`, Docker levantado y las apps en marcha.
 ```bash
 pnpm infra:up                                   # LiveKit (7880/7881/7882) + coturn (3478/5349)
 cp packages/colyseus-server/.env.example packages/colyseus-server/.env
-pnpm dev                                        # web:3000 + colyseus:2567
+pnpm dev                                        # web:3500 + colyseus:2567
 ```
 
-1. Abre `http://localhost:3000/es/lobby` en **dos navegadores** (o uno normal +
+1. Abre `http://localhost:3500/es/lobby` en **dos navegadores** (o uno normal +
    uno privado) para que cada uno tenga su propio `sessionId` y permisos de
    cámara.
 2. Acepta los permisos de micrófono/cámara. Cada pestaña debería mostrar dos
@@ -68,7 +68,7 @@ pnpm dev                                        # web:3000 + colyseus:2567
 3. Usa **Silenciar mic / Activar mic** y **Apagar cámara / Encender cámara**:
    el tile del otro navegador refleja el estado (icono 🎤/🔇).
 4. **Observador (solo-suscripción):** abre
-   `http://localhost:3000/es/lobby?role=observer`. Entra sin publicar
+   `http://localhost:3500/es/lobby?role=observer`. Entra sin publicar
    (no aparece su tile de cámara ni su micrófono) y sí recibe el audio/vídeo de
    los demás. El servidor lo confirma con `canPublish: false`.
 5. **Sin medios (degradación):** renombra el `.env`, reinicia el servidor

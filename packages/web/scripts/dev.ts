@@ -20,8 +20,8 @@ function loadLocalEnv(): void {
 
 loadLocalEnv();
 
-// Puerto del worktree principal por defecto (3000): el mismo que trae Next.
-const port = process.env.PORT ?? "3000";
+// Puerto del worktree principal por defecto (3500).
+const port = process.env.PORT ?? "3500";
 
 const children = [
   spawn("pnpm", ["exec", "next", "dev", "-p", port], { stdio: "inherit" }),

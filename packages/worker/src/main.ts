@@ -174,7 +174,7 @@ async function main(): Promise<void> {
             store: createPrismaInvitationStore(prisma),
             transport,
             confirmation: readConfirmationTokenConfig(),
-            appUrl: process.env.APP_URL?.trim() || "http://localhost:3000",
+            appUrl: process.env.APP_URL?.trim() || "http://localhost:3500",
           },
           connection: mailConnection,
           concurrency: workerConfig.invitationEmail.concurrency,
@@ -195,7 +195,7 @@ async function main(): Promise<void> {
           deps: {
             store: createPrismaPurchaseConfirmationStore(prisma),
             transport,
-            appUrl: process.env.APP_URL?.trim() || "http://localhost:3000",
+            appUrl: process.env.APP_URL?.trim() || "http://localhost:3500",
           },
           connection: purchaseConfirmationConnection,
           concurrency: workerConfig.purchaseConfirmationEmail.concurrency,

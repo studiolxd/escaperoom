@@ -156,7 +156,7 @@ services:
 
   # Monitor de disponibilidad (ticket 6.4, docs/specs/24 §6). Autohospedado,
   # sin API a integrar en código: se configura a mano desde su UI
-  # (http://localhost:59003 en dev) contra `GET http://host.docker.internal:3000/api/health`
+  # (http://localhost:59003 en dev) contra `GET http://host.docker.internal:3500/api/health`
   # de `pnpm --filter @escaperoom/web dev` (fuera de Docker, en el host). Ver
   # docs/reference/alertas-uptime-kuma.md para el procedimiento de alerta.
   uptime-kuma:

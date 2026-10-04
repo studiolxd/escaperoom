@@ -79,7 +79,7 @@ Valen para cualquier agente de esta fase, además de las del `CLAUDE.md` del rep
    `main` local.
 4. Preparación del worktree: `pnpm install`, `pnpm dev:env`, `pnpm db:migrate && pnpm db:seed`
    (nunca `pnpm db:reset`; nunca copiar el `.env` del worktree principal).
-5. No levantes nada en los puertos 3000, 2567 ni 2568. Si arrancas `pnpm dev`, mira en la salida
+5. No levantes nada en los puertos 3500, 2567 ni 2568. Si arrancas `pnpm dev`, mira en la salida
    en qué puerto quedó.
 6. Nunca mates procesos por patrón (`pkill -f`, `killall`). Solo el proceso de tu propio puerto:
    `lsof -ti :<puerto> | xargs kill`.

@@ -10,7 +10,7 @@ import type { Metadata } from "next";
 
 /** Origen público de la app, sin barra final (`NEXT_PUBLIC_APP_URL` > `APP_URL`). */
 export function siteUrl(env: Record<string, string | undefined> = process.env): string {
-  const raw = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "http://localhost:3000";
+  const raw = env.NEXT_PUBLIC_APP_URL ?? env.APP_URL ?? "http://localhost:3500";
   return raw.replace(/\/+$/, "");
 }
 
