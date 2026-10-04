@@ -26,6 +26,9 @@ export interface GamePlayerSnapshot {
   name: string;
   x: number;
   y: number;
+  /** Modo 3D: altura y giro (grados) del jugador; 0 en salas 2D. */
+  h: number;
+  yaw: number;
   /** Habitación (subroom) actual. */
   roomId: string;
   /** Color de tintado `#rrggbb` asignado por el servidor. */
@@ -163,8 +166,11 @@ export interface GameActions {
   enterMap(): void;
   /** C-13: solo anfitrión, expulsa a otro jugador (no puede volver a esta partida). */
   kick(playerId: string): void;
-  /** Posición deseada; con `roomId` distinto al actual, cruce de habitación. */
-  move(x: number, y: number, roomId?: string): void;
+  /**
+   * Posición deseada; con `roomId` distinto al actual, cruce de habitación.
+   * En salas 3D, `extra` lleva la altura y el giro (grados).
+   */
+  move(x: number, y: number, roomId?: string, extra?: { h?: number; yaw?: number }): void;
   interact(objectId: string): void;
   useItem(itemId: string, objectId: string): void;
   combine(inputs: readonly string[], puzzleId?: string): void;

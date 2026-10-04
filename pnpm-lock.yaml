@@ -214,6 +214,9 @@ importers:
       '@escaperoom/kit':
         specifier: workspace:*
         version: link:../kit
+      '@escaperoom/nav3d':
+        specifier: workspace:*
+        version: link:../nav3d
       '@escaperoom/shared':
         specifier: workspace:*
         version: link:../shared
@@ -535,6 +538,31 @@ importers:
       ws:
         specifier: ^8.21.3
         version: 8.21.3
+
+  packages/nav3d:
+    dependencies:
+      '@escaperoom/shared':
+        specifier: workspace:*
+        version: link:../shared
+      recast-navigation:
+        specifier: 0.43.1
+        version: 0.43.1
+    devDependencies:
+      '@escaperoom/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: ^26.6.2
+        version: 26.6.2
+      eslint:
+        specifier: ^10.11.0
+        version: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^5.0.1
+        version: 5.0.1(@opentelemetry/api@1.9.1)(@types/node@26.6.2)(jsdom@30.1.1(@noble/hashes@2.4.0))(vite@8.3.0(@types/node@26.6.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
   packages/shared:
     dependencies:
@@ -3148,6 +3176,15 @@ packages:
 
   '@radix-ui/rect@1.1.3':
     resolution: {integrity: sha512-JtyZR+mqgBibTo8xea3B6ZRmzZiM/YeVBtUkas6zMuXjAlfIFIW2FgqeM9eLyvEaYX66vr6DJMK+4U6LV0KhNw==}
+
+  '@recast-navigation/core@0.43.1':
+    resolution: {integrity: sha512-4igfPgnoV90O92sDSIA0xHa6tanh3z/udlgGmD0SqGQ6PKV4JS2l9jWO8YnxfZuXP/NV52H4c5FU6pSdZc9WDA==}
+
+  '@recast-navigation/generators@0.43.1':
+    resolution: {integrity: sha512-w7r6k/A93wWxuSN+Lg+PmlsUVXq06r5bqXmBglolxqDt2O/Y776BIhYtb6P2P6pbYqDWORu9NCZZJzfY4FNpaA==}
+
+  '@recast-navigation/wasm@0.43.1':
+    resolution: {integrity: sha512-XFL6PhO8JodwXUHBSAkfaLUdUEweIkJsdP3HTmtJvMs5fkqEWxWJmBskZlACHJepv55NAriqWxOtuLlG3t7+Hg==}
 
   '@rolldown/binding-android-arm-eabi@1.2.9':
     resolution: {integrity: sha512-tNISae1QEf/vkb3xkRcjV5SEdzPE97We5IVaa2Z8jSszQPZ8U60B/YCYpw4QI7VidYsBtKavczXf+DyDs9WGxw==}
@@ -6910,6 +6947,9 @@ packages:
   real-require@1.0.0:
     resolution: {integrity: sha512-P4nbQYQfePJxRSmY+v/KINxVucm4NF3p3s7pJveMTtom52FR4YGltUQLB8idDXwDDWW+eYrWDFbuzUnjoWHF7g==}
 
+  recast-navigation@0.43.1:
+    resolution: {integrity: sha512-BVBQEHE6uqD36opJomVkI5TxMVZ8bBLdDn90mYtBUYJnNlqEuNFOL8DH8lLOksfVVaC+kjykYuS57P6MrxVB7A==}
+
   recast@0.23.21:
     resolution: {integrity: sha512-mFAyJq9vUbSTARLZUvAEf1z3YxlvAwswbmxMx2mPA/MSm4KmpwvwvhsH/NIrZhyOuwD60Lzyw2qh83uCbgTPYw==}
     engines: {node: '>= 4'}
@@ -10325,6 +10365,17 @@ snapshots:
       '@types/react-dom': 19.3.0(@types/react@19.3.0)
 
   '@radix-ui/rect@1.1.3': {}
+
+  '@recast-navigation/core@0.43.1':
+    dependencies:
+      '@recast-navigation/wasm': 0.43.1
+
+  '@recast-navigation/generators@0.43.1':
+    dependencies:
+      '@recast-navigation/core': 0.43.1
+      '@recast-navigation/wasm': 0.43.1
+
+  '@recast-navigation/wasm@0.43.1': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.9':
     optional: true
@@ -14002,6 +14053,11 @@ snapshots:
   real-require@0.2.0: {}
 
   real-require@1.0.0: {}
+
+  recast-navigation@0.43.1:
+    dependencies:
+      '@recast-navigation/core': 0.43.1
+      '@recast-navigation/generators': 0.43.1
 
   recast@0.23.21:
     dependencies:

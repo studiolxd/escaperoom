@@ -190,6 +190,7 @@ export class EventRoom extends GameRoom {
 
   /** Vacía la cola de hitos antes de destruir la room (también al apagar el servidor). */
   async onDispose(): Promise<void> {
+    this.disposeNavs();
     await this.recorder?.flush();
   }
 

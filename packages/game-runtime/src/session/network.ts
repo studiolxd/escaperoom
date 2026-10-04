@@ -165,7 +165,14 @@ export function createNetworkGameClient(
     setReady: (ready) => send(GAME_PROTOCOL.setReady, { ready }),
     kick: (playerId) => send(GAME_PROTOCOL.kick, { playerId }),
     enterMap: () => send(GAME_PROTOCOL.enterMap, {}),
-    move: (x, y, roomId) => send(GAME_PROTOCOL.move, roomId ? { x, y, roomId } : { x, y }),
+    move: (x, y, roomId, extra) =>
+      send(GAME_PROTOCOL.move, {
+        x,
+        y,
+        ...(roomId ? { roomId } : {}),
+        ...(extra?.h !== undefined ? { h: extra.h } : {}),
+        ...(extra?.yaw !== undefined ? { yaw: extra.yaw } : {}),
+      }),
     interact: (objectId) => send(GAME_PROTOCOL.interact, { objectId }),
     useItem: (itemId, objectId) => send(GAME_PROTOCOL.useItem, { itemId, objectId }),
     combine: (inputs, puzzleId) =>
