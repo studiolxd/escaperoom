@@ -14,12 +14,24 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { createElement, type ReactElement } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
 import es from "../../messages/es.json";
 import { findRepoRoot } from "../../src/lib/repo-root";
 
 /** jsdom no tiene WebGL ni WASM: el runtime 3D y la navmesh se sustituyen por dobles. */
-const runtimes = vi.hoisted(() => [] as Record<string, any>[]);
+type FakeRuntime = {
+  options: Record<string, unknown>;
+  handlers: { event?: (e: unknown) => void; transform?: (c: unknown, f: boolean) => void };
+  setModel: Mock;
+  showRoom: Mock;
+  setSelection: Mock;
+  setGhost: Mock;
+  setWorkHeight: Mock;
+  setGizmoMode: Mock;
+  setSnap: Mock;
+  setNavmeshVisible: Mock;
+};
+const runtimes = vi.hoisted(() => [] as FakeRuntime[]);
 const reach = vi.hoisted(() => ({ issues: [] as unknown[] }));
 
 vi.mock("@escaperoom/game-runtime/three", () => ({
@@ -48,7 +60,7 @@ vi.mock("@escaperoom/game-runtime/three", () => ({
     constructor(_parent: HTMLElement, _model: unknown, options: Record<string, unknown>) {
       this.options = options;
       this.currentRoomId = String(options.initialRoomId);
-      runtimes.push(this as unknown as Record<string, any>);
+      runtimes.push(this as unknown as FakeRuntime);
     }
   },
 }));
