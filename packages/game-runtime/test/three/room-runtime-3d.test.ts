@@ -393,6 +393,107 @@ describe("RoomRuntime3D (headless)", () => {
     });
   });
 
+  describe("contorno visual", () => {
+    // Estado privado: se lee/escribe por cast solo en este test (el puntero real no existe en headless).
+    type Internals = {
+      world: { outlined: ReadonlySet<string> };
+      pointer: { x: number; y: number } | undefined;
+      pickObject: () => string | undefined;
+    };
+
+    it("la proximidad cambia `highlightedObjectId` sin añadir contorno; el hover sí", async () => {
+      const { runtime } = await start();
+      const inner = runtime as unknown as Internals;
+      runtime.placeAvatar(1.5, 1.5, 0, 90); // mira al arca
+      runtime.tick(0.1);
+      runtime.tick(0.1);
+      expect(runtime.highlightedObjectId).toBe("arca");
+      expect([...inner.world.outlined]).toEqual([]);
+
+      inner.pointer = { x: 0, y: 0 };
+      inner.pickObject = () => "arca";
+      runtime.tick(0.1);
+      expect([...inner.world.outlined]).toEqual(["arca"]);
+      runtime.destroy();
+    });
+  });
+
+  describe("colisión y oclusión de la cámara", () => {
+    // Estado privado leído por cast: la cámara y el mundo no tienen API pública en headless.
+    type Internals = {
+      camera: THREE.PerspectiveCamera;
+      rig: { focus: THREE.Vector3 };
+      world: { objects: Map<string, { slot: { occlusion: number } }> };
+    };
+    const catalog = {
+      packId: "test",
+      version: "1",
+      avatars: {},
+      models: {
+        "muro-test": {
+          file: "models/muro.glb",
+          category: "muro",
+          label: { es: "Muro" },
+          size: { w: 1, d: 1, hgt: 2 },
+          colliders: [{ type: "box", cx: 0, cy: 0, ch: 1, sx: 1, sy: 1, sh: 2 }],
+          snap: true,
+          clips: [],
+        },
+      },
+    } as unknown as NonNullable<ConstructorParameters<typeof RoomRuntime3D>[2]>["catalog"];
+
+    async function startWith(obstacle: "none" | "mueble" | "muro", at?: THREE.Vector3) {
+      const model = model3D();
+      const room = model.subroomsById.sala!;
+      const arca = model.objectsById.arca!;
+      if (obstacle === "mueble" && at) {
+        arca.transform = { x: at.x, y: at.z, h: at.y - 0.3, yaw: 0 };
+      } else {
+        arca.transform = { x: 3.4, y: 3.4, h: 0, yaw: 0 };
+      }
+      room.objects = [arca];
+      if (obstacle === "muro" && at) {
+        room.pieces = [...room.pieces, { id: "p-muro0001", model: "muro-test", x: at.x, y: at.z, h: at.y - 1, yaw: 0 }];
+      }
+      const runtime = new RoomRuntime3D(fakeParent(), model, { headless: true, catalog });
+      await runtime.ready;
+      runtime.placeAvatar(1.5, 1.5, 0, 0);
+      for (let i = 0; i < 90; i++) runtime.tick(1 / 30);
+      return { runtime, inner: runtime as unknown as Internals };
+    }
+    const gap = (i: Internals) => i.camera.position.distanceTo(i.rig.focus);
+
+    it("un mueble entre cámara y jugador no acorta la cámara, se vuelve translúcido y se recupera", async () => {
+      const free = await startWith("none");
+      const mid = free.inner.rig.focus.clone().lerp(free.inner.camera.position, 0.5);
+      const freeGap = gap(free.inner);
+      free.runtime.destroy();
+
+      const { runtime, inner } = await startWith("mueble", mid);
+      expect(gap(inner)).toBeCloseTo(freeGap, 1);
+      expect(inner.world.objects.get("arca")!.slot.occlusion).toBeCloseTo(0.3, 5);
+
+      // Apartado el mueble, vuelve a opacidad 1.
+      runtime.setObjectState("arca", "closed");
+      const entry = inner.world.objects.get("arca")! as unknown as { slot: { occlusion: number; holder: THREE.Object3D } };
+      entry.slot.holder.position.set(3.4, 0, 3.4);
+      for (let i = 0; i < 30; i++) runtime.tick(1 / 30);
+      expect(entry.slot.occlusion).toBe(1);
+      runtime.destroy();
+    });
+
+    it("un muro entre cámara y jugador sí acorta la cámara", async () => {
+      const free = await startWith("none");
+      const mid = free.inner.rig.focus.clone().lerp(free.inner.camera.position, 0.5);
+      const freeGap = gap(free.inner);
+      free.runtime.destroy();
+
+      const { runtime, inner } = await startWith("muro", mid);
+      expect(gap(inner)).toBeLessThan(freeGap - 1);
+      runtime.destroy();
+    });
+  });
+
   describe("observador", () => {
     async function startObserver(model = twoRoomModel()) {
       const runtime = new RoomRuntime3D(fakeParent(), model, { headless: true, observer: true });

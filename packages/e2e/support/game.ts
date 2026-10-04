@@ -248,6 +248,7 @@ export class UiPlayer {
   private async objectAction(objectId: string, action: string): Promise<void> {
     await this.clickObjectOnCanvas(objectId);
     await expect(this.page.getByRole("button", { name: "Cancelar", exact: true })).toBeVisible();
+    await this.retryIfOtherObjectOnTop(objectId, action);
     const here = this.page.getByRole("group", { name: "Objetos en este sitio" });
     if (await here.isVisible()) {
       const choice = here.getByRole("button", { name: objectName(objectId), exact: true });
@@ -255,6 +256,37 @@ export class UiPlayer {
       await expect(choice).toHaveAttribute("aria-pressed", "true");
     }
     await this.page.getByRole("button", { name: action, exact: true }).click();
+  }
+
+  /**
+   * Solo 3D: con la cámara lejos, otro objeto puede tapar el centro del pedido y el clic abre SU
+   * menú (cuya acción pedida no existe). Si es así, se cierra, se gira un poco la cámara (como
+   * una persona) y se vuelve a clicar, hasta un tope de intentos.
+   */
+  private async retryIfOtherObjectOnTop(objectId: string, action: string): Promise<void> {
+    if (!(await this.page.locator("[data-dimension='3d']").count())) return;
+    const wanted = this.page.getByRole("button", { name: action, exact: true });
+    const here = this.page.getByRole("group", { name: "Objetos en este sitio" });
+    const cancel = this.page.getByRole("button", { name: "Cancelar", exact: true });
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      const ok = await wanted
+        .waitFor({ state: "visible", timeout: 1_500 })
+        .then(() => true)
+        .catch(() => false);
+      if (ok || (await here.isVisible())) return;
+      await cancel.click();
+      const box = await this.page.locator("canvas").first().boundingBox();
+      if (!box) return;
+      const cx = box.x + box.width / 2;
+      const cy = box.y + box.height / 2;
+      await this.page.mouse.move(cx, cy);
+      await this.page.mouse.down();
+      await this.page.mouse.move(cx + (attempt % 2 === 0 ? 60 : -120), cy, { steps: 6 });
+      await this.page.mouse.up();
+      await this.page.waitForTimeout(500);
+      await this.clickObjectOnCanvas(objectId);
+      await expect(cancel).toBeVisible();
+    }
   }
 
   /**

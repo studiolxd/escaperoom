@@ -89,7 +89,8 @@ describe("rotateOrbit", () => {
 });
 
 describe("zoomOrbit", () => {
-  const start = initialOrbit(0);
+  // El arranque ya está en la distancia máxima: se parte de un punto intermedio.
+  const start = { ...initialOrbit(0), distance: 7 };
   it("una muesca mueve `zoomStep`", () => {
     expect(zoomOrbit(start, 1).distance).toBe(start.distance + CAMERA.zoomStep);
     expect(zoomOrbit(start, -2).distance).toBe(start.distance - 2 * CAMERA.zoomStep);
@@ -296,7 +297,7 @@ describe("recenterAzimuth", () => {
   });
   it("converge al objetivo y dt = 0 no mueve", () => {
     let a = 200;
-    for (let i = 0; i < 300; i++) a = recenterAzimuth(a, 20, 1 / 30, CAMERA_RECENTER_TAU);
+    for (let i = 0; i < 900; i++) a = recenterAzimuth(a, 20, 1 / 30, CAMERA_RECENTER_TAU);
     expect(a).toBeCloseTo(20, 3);
     expect(recenterAzimuth(33, 99, 0, 0.6)).toBeCloseTo(33);
   });
@@ -336,7 +337,7 @@ describe("OrbitRig.recenter", () => {
   };
   it("caminando se acerca al reposo del yaw actual", () => {
     const r = rig();
-    walk(r, 5, 90);
+    walk(r, 15, 90);
     expect(r.azimuth).toBeCloseTo(restAzimuth(90), 0);
   });
   it("parado no se mueve solo", () => {
@@ -356,7 +357,7 @@ describe("OrbitRig.recenter", () => {
     expect(r.azimuth).toBe(dragged);
     walk(r, 1, 90);
     expect(r.azimuth).not.toBe(dragged);
-    walk(r, 5, 90);
+    walk(r, 15, 90);
     expect(r.azimuth).toBeCloseTo(restAzimuth(90), 0);
   });
 });

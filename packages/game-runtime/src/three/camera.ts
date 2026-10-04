@@ -1,9 +1,9 @@
 import * as THREE from "three";
 
 export const CAMERA = {
-  minDistance: 2,
+  minDistance: 5,
   maxDistance: 10,
-  startDistance: 7,
+  startDistance: 10,
   minPolarDeg: 10,
   maxPolarDeg: 75,
   startPolarDeg: 50, // 0° = horizontal, 90° = cenital
@@ -23,7 +23,7 @@ export const CAMERA_FOLLOW_TAU = 0.08;
  */
 export const CAMERA_SIDE_OFFSET_DEG = 35;
 /** Constante de tiempo (s) con que la cámara se recoloca al azimut de reposo caminando. */
-export const CAMERA_RECENTER_TAU = 0.6;
+export const CAMERA_RECENTER_TAU = 1.8;
 /** Segundos seguidos caminando tras un arrastre manual antes de reanudar la recolocación. */
 export const CAMERA_RECENTER_DELAY = 1.5;
 /** Distancia mínima efectiva (m) tras acortarla por colisión. */
@@ -378,6 +378,11 @@ export class OrbitRig {
 
   get azimuth(): number {
     return this.state.azimuth;
+  }
+
+  /** Punto al que mira la cámara (suavizado). */
+  get focus(): THREE.Vector3 {
+    return this.target;
   }
 
   /** `anchor`: posición visual del avatar en coordenadas Three (se le suma `CAMERA_TARGET_HEIGHT`). */
