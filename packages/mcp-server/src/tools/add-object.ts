@@ -9,7 +9,7 @@ export const addObjectTool = defineTool({
   name: "add_object",
   title: "Añadir objeto",
   description:
-    "Añade un objeto interactuable al draft (puerta, cajón, estatua, placa, escondite…) con su tipo, posición, sprite, estados y estado inicial. `object.roomId` es la habitación interna y `position` una celda dentro de su rejilla.",
+    "Añade un objeto interactuable al draft (puerta, cajón, estatua, placa, escondite…) con su tipo, posición, sprite, estados y estado inicial. `object.roomId` es la habitación interna y `position` una celda dentro de su rejilla. En una sala 3D es obligatorio `object.transform` (`x`, `y`, `h` en metros, `yaw` en grados, 0 = mirando al sur); `position` se calcula sola a partir de él, y `sprite` y los estados nombran modelos de `get_model_catalog`.",
   phase: "content",
   ticket: "4.2",
   inputSchema: z.object({
@@ -24,9 +24,13 @@ export const addObjectTool = defineTool({
       addObject(doc, object, { replace }),
     );
     const { result } = outcome;
+    const { transform } = object;
+    const where = transform
+      ? `(${transform.x}, ${transform.y}, ${transform.h}) ${transform.yaw}°`
+      : `(${object.position.x}, ${object.position.y})`;
     return mutationResult(
       outcome,
-      `✅ add_object — "${object.id}" ${result.replaced ? "sustituido" : "añadido"} en "${object.roomId}" (${object.position.x}, ${object.position.y})`,
+      `✅ add_object — "${object.id}" ${result.replaced ? "sustituido" : "añadido"} en "${object.roomId}" ${where}`,
       { roomId, id: object.id, replaced: result.replaced },
     );
   },

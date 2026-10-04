@@ -41,6 +41,11 @@ export type CreatorMcpDeps = {
   drafts: RoomDraftService;
   /** Actor de la conexión; `null` = sin identidad (las tools devuelven error de auth). */
   actor: Actor | null;
+  /**
+   * Interruptor del modo 3D (`ROOMS_3D_ENABLED`, specs/27): sin él,
+   * `create_room` rechaza `dimension: "3d"` con `NOT_AVAILABLE`. Por defecto `false`.
+   */
+  rooms3dEnabled?: boolean;
   /** Conversión doc Yjs → RoomPackage del ticket 3.1 (opcional hasta que se publique). */
   roomDocToPackage?: RoomDocToPackage;
   /**

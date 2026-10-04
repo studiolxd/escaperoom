@@ -1,4 +1,4 @@
-import { RoomDocError, RoomLanguageError, listIds } from "@escaperoom/editor/room-doc";
+import { RoomDocError, RoomLanguageError, listIds, roomDimension } from "@escaperoom/editor/room-doc";
 import { buildDraftDoc, RoomDraftError, type Actor } from "@escaperoom/shared/services";
 import * as Y from "yjs";
 import type { CreatorMcpDeps } from "./deps";
@@ -80,6 +80,16 @@ export function roomDocErrorToToolError(error: RoomDocError, doc: Y.Doc): ToolEr
       reason: error.code,
       available,
     });
+  }
+  if (error.code === "UNKNOWN_PIECE") {
+    return new ToolError("NOT_FOUND", error.message, { reason: error.code });
+  }
+  if (error.code === "WRONG_DIMENSION") {
+    const advice =
+      roomDimension(doc) === "3d"
+        ? " Esta sala es 3D: usa place_pieces, update_pieces, remove_pieces, move_object y set_spawn_points."
+        : " Esta sala es 2D: usa set_map, paint_tiles y decorate_subroom.";
+    return new ToolError("INVALID_INPUT", `${error.message}.${advice}`, { reason: error.code });
   }
   const hint =
     error.code === "DUPLICATE_ID"

@@ -73,12 +73,18 @@ Organizado por fase de creación, con esquemas Zod (compartidos desde `packages/
 
 | Tool | Descripción |
 |---|---|
-| `create_room(meta)` | Crea draft: título, tema, idioma, dificultad, nº jugadores, duración de partida (`timeLimitMinutes`, opcional, sin tope; ticket duración-salas) |
+| `create_room(meta)` | Crea draft: título, tema, idioma, dificultad, nº jugadores, duración de partida (`timeLimitMinutes`, opcional, sin tope; ticket duración-salas) y `dimension` (`"2d"` por defecto o `"3d"`; fija para siempre; `"3d"` exige `ROOMS_3D_ENABLED`, si no `NOT_AVAILABLE`; encargo 7.9) |
 | `set_map({tileset, size, layers})` | Define dimensiones y tileset |
 | `set_room_duration({roomId, timeLimitMinutes})` | Cambia la duración de partida de un draft ya creado (ticket duración-salas; única tool que edita `meta` post-creación) |
 | `paint_tiles({layer, cells})` | Pinta celdas (el "brush" del agente) |
 | `define_subrooms([{id, name, bounds, kind?}])` | Habitaciones internas (Salón, Bodega, Catacumbas). `kind: "lobby"` marca la **sala de espera** (encargo lobby-diseño; como mucho una, nunca la única habitación, solo decoración: sin pruebas, puertas `leadsTo` ni objetos que den ítems — lo explica el validador); `kind: null` le quita el tipo. Se pinta (`paint_tiles`) y decora (`decorate_subroom`) como cualquier otra. Sin lobby diseñado, la partida usa uno generado |
+| `place_pieces({subroomId, pieces? \| fill?})` | **Solo salas 3D** (7.9). Piezas de arquitectura sin lógica (suelo, muros…): lista de 1–500 `{model, x, y, h, yaw, scale?}` o `fill` (rectángulo de celdas enteras, piezas al centro de cada celda). Metros y grados, `yaw` 0 = sur. Devuelve los ids |
+| `update_pieces({updates})` | **Solo 3D.** Mueve/gira/escala/cambia de modelo piezas por id (1–500, una transacción) |
+| `remove_pieces({ids? \| subroomId + model?})` | **Solo 3D.** Borra piezas por ids, o todas las de una habitación (o solo las de un modelo) |
+| `set_spawn_points({subroomId, spawnPoints})` | **Solo 3D.** Puntos de aparición `{id, x, y, h, yaw}` (1–8) de una habitación |
 | `set_room_intro({roomId, intro})` | Introducción que cada jugador ve antes de su 3-2-1 (encargo lobby-diseño, specs/04 §10): `{type: "text", text: LocalizedText}` en idiomas declarados, o `{type: "video", video: "media:<uuid>", subtitles?: {<idioma>: "media:<uuid>"}}` con las refs que devuelve `upload`; `null` la quita. Sustituye la anterior entera |
+
+> **Salas 2D y 3D (encargo 7.9).** `set_map` (con `size`/`layers`), `paint_tiles` y `decorate_subroom` son **solo de salas 2D**: en una sala 3D responden `INVALID_INPUT` (`reason: "WRONG_DIMENSION"`) remitiendo a las herramientas 3D (y al revés). `set_map` solo con `tileset` vale en ambas. En 3D, `define_subrooms` usa metros y `add_object` exige `object.transform`.
 
 ### Fase B — Contenido
 
@@ -89,6 +95,7 @@ Organizado por fase de creación, con esquemas Zod (compartidos desde `packages/
 | `add_puzzle({id, type, config})` | Las plantillas con su config (code, recetas, placas…) |
 | `add_dialog({id, text, conditions?})` | Textos narrativos |
 | `add_hint({puzzleId, tier, text, cost})` | Sistema de pistas |
+| `move_object({objectId, transform, subroomId?})` | **Solo salas 3D** (7.9). Mueve/gira un objeto (`transform` `{x, y, h, yaw, scale?}`) y, opcionalmente, lo cambia de habitación; `position` se recalcula |
 | `decorate_subroom({subroomId, decorations?, lighting?})` | Decoración (sprites sin interacción) e iluminación (antorchas por celda u objeto + luz ambiente) de una habitación; cada lista sustituye a la actual |
 
 ### Fase C — Lógica
@@ -110,6 +117,8 @@ Organizado por fase de creación, con esquemas Zod (compartidos desde `packages/
 
 | Tool | Descripción |
 |---|---|
+| `get_pieces({subroomId, model?})` | **Solo salas 3D** (7.9). Piezas de una habitación, una por línea `id model x y h yaw`; filtra por `model` si hay muchas |
+| `get_model_catalog({category?})` | **Solo salas 3D** (7.9). Modelos 3D disponibles (pack del draft + propios de la sala): `id — categoría — w×d×hgt m — snap — clips` |
 | `get_room()` | Estado completo del draft como JSON |
 | `get_template_catalog()` | Catálogo de plantillas con sus esquemas (configs válidas) |
 | Vistas filtradas | `get_puzzle(id)`, `get_rules_for(objectId)` — ahorran tokens |

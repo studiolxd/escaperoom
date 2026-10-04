@@ -1,3 +1,4 @@
+import { env } from "@/env";
 import { roomDocToPackage } from "@escaperoom/editor/room-doc";
 import { handleCreatorMcpRequest } from "@escaperoom/mcp-server";
 import { siteUrl } from "@/lib/catalog-seo";
@@ -38,6 +39,7 @@ function handler(request: Request): Promise<Response> {
       catalog: getCatalogService(),
       drafts: getRoomDraftService(),
       roomDocToPackage,
+      rooms3dEnabled: env.ROOMS_3D_ENABLED,
       // 4.5: `preview` (playtest de 3.8) y `publish` (solicitud que el creador
       // confirma en /publish-confirm con su sesión).
       appUrl: siteUrl(),
