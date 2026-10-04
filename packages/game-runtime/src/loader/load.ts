@@ -319,13 +319,31 @@ function toRuntimePuzzle(puzzle: PuzzleDefinition): RuntimePuzzle {
 
 /**
  * Ids de ítem con una regla `on_use_item` real para `objectId` (revisión en
- * vivo, ver `RuntimeObject.useItemIds`).
+ * vivo, ver `RuntimeObject.useItemIds`), más el objeto-puente
+ * (`soloBridgeItemId`) de un `simultaneous_plates` si `objectId` es una de sus
+ * placas, o de un `split_clue` si es una de sus mirillas: `useItemOnObject` lo
+ * aplica sin regla, pero sin estar aquí el HUD y los runtimes lo degradan a
+ * inspeccionar y el puente nunca llega al servidor.
  */
 function useItemIdsForObject(roomPackage: RoomPackage, objectId: string): string[] {
   const ids = new Set<string>();
   for (const rule of roomPackage.rules) {
     if (rule.trigger.type === "on_use_item" && rule.trigger.objectId === objectId) {
       ids.add(rule.trigger.itemId);
+    }
+  }
+  for (const puzzle of roomPackage.puzzles) {
+    if (puzzle.type === "simultaneous_plates") {
+      if (puzzle.soloBridgeItemId && puzzle.plates.some((plate) => plate.objectId === objectId)) {
+        ids.add(puzzle.soloBridgeItemId);
+      }
+    } else if (puzzle.type === "split_clue") {
+      if (
+        puzzle.soloBridgeItemId &&
+        puzzle.viewpoints.some((viewpoint) => viewpoint.objectId === objectId)
+      ) {
+        ids.add(puzzle.soloBridgeItemId);
+      }
     }
   }
   return [...ids];
