@@ -9,6 +9,7 @@ const aqui = dirname(fileURLToPath(import.meta.url))
 const PACK = process.env.PACK ?? 'medieval-v1'
 const PACK_DIR = resolve(aqui, '../../../packages/web/public/packs', PACK)
 const INFORME = resolve(aqui, '../packs', PACK, 'renders/glb/informe.json')
+const CATALOGO = resolve(aqui, '../../../packages/shared/src/packs', `${PACK}.models3d.json`)
 const TIPOS = { '.glb': 'model/gltf-binary', '.json': 'application/json', '.png': 'image/png', '.webp': 'image/webp' }
 
 function enviar(res, ruta) {
@@ -17,7 +18,8 @@ function enviar(res, ruta) {
   createReadStream(ruta).pipe(res)
 }
 
-/** Sirve /pack/* (carpeta del pack en packages/web/public) y /informe.json (renders/glb/informe.json). */
+/** Sirve /pack/* (carpeta del pack en packages/web/public), /informe.json (renders/glb/informe.json) y /catalogo.json
+ *  (packages/shared/src/packs/<pack>.models3d.json). */
 function servirPack() {
   return {
     name: 'servir-pack',
@@ -28,6 +30,7 @@ function servirPack() {
         enviar(res, ruta)
       })
       server.middlewares.use('/informe.json', (req, res, next) => (existsSync(INFORME) ? enviar(res, INFORME) : next()))
+      server.middlewares.use('/catalogo.json', (req, res, next) => (existsSync(CATALOGO) ? enviar(res, CATALOGO) : next()))
     },
   }
 }
