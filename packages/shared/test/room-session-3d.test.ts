@@ -154,6 +154,18 @@ describe("RoomSession — mirillas con altura", () => {
     expect(session.viewpointOf("p-mirillas", "a")).toBe("mirilla-a");
   });
 
+  it("en 3D la celda `i` va de `i` a `i + 1`: (9.2, 10.7) está en la zona {9, 10, 2, 2} y (11.1, 10.5) no", () => {
+    const pkg = withViewpoint(makeRoom3D(), 0);
+    const puzzle = pkg.puzzles.find((p) => p.id === "p-mirillas");
+    if (puzzle?.type !== "split_clue") throw new Error("falta el split_clue");
+    puzzle.viewpoints[0]!.zone = { x: 9, y: 10, w: 2, h: 2 };
+    const session = createRoomSession(pkg, { playerIds: ["a"] });
+    session.movePlayer("a", "sala", 9.2, 10.7, undefined, { h: 0 });
+    expect(session.viewpointOf("p-mirillas", "a")).toBe("mirilla-a");
+    session.movePlayer("a", "sala", 11.1, 10.5, undefined, { h: 0 });
+    expect(session.viewpointOf("p-mirillas", "a")).toBeNull();
+  });
+
   it("en 2D la altura no existe: el comportamiento no cambia", () => {
     const session = createRoomSession(withViewpoint(room2D(), 0), { playerIds: ["a"] });
     session.movePlayer("a", "sala", 1, 2, undefined, { h: 2 });
