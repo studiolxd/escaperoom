@@ -51,11 +51,17 @@ vi.mock("@/server/services", () => {
     getPlatformSettingsService: () => settings,
     getPricingTierService: () => pricing,
     getModerationService: () => moderation,
+    // Visor de modelos de la cola (7.8b): nunca llega a leer un medio (sala sin versión publicada).
+    getIntroMediaService: () => ({}),
   };
 });
 
+vi.mock("@escaperoom/shared/db", () => ({
+  prisma: { roomVersion: { findFirst: async () => null } },
+}));
+
 /** Rutas de la cola de moderación: `isModerator | isAdmin` (reportes y apelaciones 6.1). */
-const MODERATION_ROUTES = ["/api/admin/reports", "/api/admin/appeals"];
+const MODERATION_ROUTES = ["/api/admin/reports", "/api/admin/appeals", "/api/admin/moderation"];
 const isModerationRoute = (url: string) => MODERATION_ROUTES.some((r) => url.startsWith(r));
 
 const ADMIN_DIR = fileURLToPath(new URL("../src/app/api/admin", import.meta.url));

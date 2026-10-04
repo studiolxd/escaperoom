@@ -6,6 +6,13 @@ import type { ScenePlayer } from "../../src/phaser/room-scene";
 import type { WorldSceneEvent } from "../../src/phaser/world-events";
 import { makeRoom3D } from "../fixtures/room-3d";
 
+// Sin red ni WebGL: la carga del GLB se simula con un espía que falla (se queda la caja).
+const instantiateModel = vi.hoisted(() => vi.fn((...args: [url: string]) => Promise.reject(new Error(`sin red: ${args[0]}`))));
+vi.mock("../../src/three/assets", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/three/assets")>()),
+  instantiateModel,
+}));
+
 /** `parent` mínimo: el modo headless no toca el DOM. */
 function fakeParent(): HTMLElement {
   return {
@@ -549,5 +556,27 @@ describe("RoomRuntime3D (headless)", () => {
     expect(downward()).toBeGreaterThan(0);
     spy.mockRestore();
     runtime.destroy();
+  });
+
+  describe("refreshCustomModels", () => {
+    it("pide la URL de los modelos propios que antes no la tenían y no recarga los que ya la tienen", async () => {
+      instantiateModel.mockReset();
+      instantiateModel.mockRejectedValue(new Error("sin red"));
+      const urls = new Map<string, string>([["upload:bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "https://x/arca.glb"]]);
+      const resolveCustomModelUrl = vi.fn((ref: string) => urls.get(ref));
+      const { runtime } = await start({ resolveCustomModelUrl });
+      // Solo el arca tiene URL; el suelo se pinta como caja.
+      expect(instantiateModel.mock.calls.map((c) => c[0])).toEqual(["https://x/arca.glb"]);
+
+      runtime.refreshCustomModels();
+      expect(instantiateModel).toHaveBeenCalledTimes(1);
+
+      urls.set("upload:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "https://x/suelo.glb");
+      runtime.refreshCustomModels();
+      const requested = instantiateModel.mock.calls.map((c) => c[0]);
+      expect(requested.filter((u) => u === "https://x/suelo.glb")).toHaveLength(4);
+      expect(requested.filter((u) => u === "https://x/arca.glb")).toHaveLength(1);
+      runtime.destroy();
+    });
   });
 });

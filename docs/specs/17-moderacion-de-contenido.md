@@ -63,6 +63,10 @@ solvabilidad, no un sistema aparte.
 
 Sobre `contentReport` (`severity`, `category`, `source`) y `GET/PATCH /api/admin/reports`.
 
+En los reportes y apelaciones con sala, el botón «Ver modelos 3D» abre en un visor 3D los modelos
+propios de la última versión publicada de la sala (`GET /api/admin/moderation/rooms/:roomId/models`,
+specs/13), con sus medidas, triángulos y peso, para revisar su contenido sin entrar en la partida.
+
 ### 4.1 SLA por severidad
 
 | Severidad | Ejemplos | Primera revisión | Acción mientras se revisa |

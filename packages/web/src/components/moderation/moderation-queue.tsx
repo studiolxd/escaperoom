@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { readApiError } from "@/lib/event-panel";
+import { RoomModelsDialog } from "./room-models-dialog";
 
 /** Fila de `GET /api/admin/reports` (ver `reportJson` en `server/rest/moderation`). */
 export type QueueReport = {
@@ -226,6 +227,7 @@ export function ModerationQueueView() {
                 </p>
                 {noteField(r.id)}
                 <div className="flex flex-wrap gap-2">
+                  {r.roomId ? <RoomModelsDialog roomId={r.roomId} /> : null}
                   <Button
                     size="sm"
                     variant="destructive"
@@ -294,7 +296,8 @@ export function ModerationQueueView() {
                   {a.creatorId} {a.roomId ?? ""}
                 </p>
                 {noteField(a.id)}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  {a.roomId ? <RoomModelsDialog roomId={a.roomId} /> : null}
                   <Button
                     size="sm"
                     variant="overlay"

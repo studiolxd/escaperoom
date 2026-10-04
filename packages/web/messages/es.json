@@ -825,6 +825,30 @@
       "spawnOff": "El punto de aparición {id} está fuera de la zona transitable.",
       "unreachable": "No se puede llegar hasta {object}.",
       "platformNote": "Una tarima o plataforma aislada de 1 × 1 m no se puede pisar: junta al menos dos."
+    },
+    "models": {
+      "upload": "Subir modelo",
+      "uploading": "Subiendo…",
+      "validating": "Validando…",
+      "dialogTitle": "Añadir modelo",
+      "id": "Identificador",
+      "idHint": "Se usa en reglas y herramientas. Solo minúsculas, números y guiones.",
+      "name": "Nombre",
+      "add": "Añadir",
+      "cancel": "Cancelar",
+      "measured": "Medidas",
+      "triangles": "{count} triángulos",
+      "weight": "{mb} MB",
+      "clips": "Animaciones: {list}",
+      "noClips": "Sin animaciones",
+      "blocks": "Bloquea el paso",
+      "delete": "Borrar modelo",
+      "limit": "Has llegado al máximo de 40 modelos por sala.",
+      "tooLarge": "El fichero supera los 15 MB.",
+      "uploadFailed": "No se pudo subir el modelo.",
+      "errors": {
+        "UNKNOWN_MODEL": "Ese modelo ya no existe."
+      }
     }
   },
   "Inspector": {
@@ -1683,6 +1707,12 @@
       "ALREADY_REVIEWED": "Otra persona ya lo ha resuelto.",
       "VALIDATION_ERROR": "La decisión no es válida para este contenido.",
       "UNKNOWN": "Algo ha fallado. Inténtalo de nuevo."
+    },
+    "models": {
+      "open": "Ver modelos 3D",
+      "title": "Modelos 3D de la sala",
+      "empty": "Esta sala no tiene modelos propios.",
+      "loadError": "No se pudieron cargar los modelos."
     }
   },
   "Landing": {
@@ -1956,5 +1986,11 @@
     "light": "Claro",
     "dark": "Oscuro",
     "system": "Sistema"
+  },
+  "ModelViewer": {
+    "originalMaterial": "Material original",
+    "clip": "Animación",
+    "noClip": "Ninguna",
+    "error": "No se pudo cargar el modelo."
   }
 }

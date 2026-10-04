@@ -631,6 +631,30 @@
       "spawnOff": "Spawn point {id} is outside the walkable area.",
       "unreachable": "{object} cannot be reached.",
       "platformNote": "A lone 1 × 1 m platform cannot be stepped on: join at least two."
+    },
+    "models": {
+      "upload": "Upload model",
+      "uploading": "Uploading…",
+      "validating": "Validating…",
+      "dialogTitle": "Add model",
+      "id": "Identifier",
+      "idHint": "Used in rules and tools. Lowercase letters, numbers and hyphens only.",
+      "name": "Name",
+      "add": "Add",
+      "cancel": "Cancel",
+      "measured": "Measurements",
+      "triangles": "{count} triangles",
+      "weight": "{mb} MB",
+      "clips": "Animations: {list}",
+      "noClips": "No animations",
+      "blocks": "Blocks the way",
+      "delete": "Delete model",
+      "limit": "You have reached the maximum of 40 models per room.",
+      "tooLarge": "The file is larger than 15 MB.",
+      "uploadFailed": "The model could not be uploaded.",
+      "errors": {
+        "UNKNOWN_MODEL": "That model no longer exists."
+      }
     }
   },
   "Inspector": {
@@ -1377,6 +1401,12 @@
       "ALREADY_REVIEWED": "Someone else has already resolved it.",
       "VALIDATION_ERROR": "That decision isn't valid for this content.",
       "UNKNOWN": "Something went wrong. Please try again."
+    },
+    "models": {
+      "open": "View 3D models",
+      "title": "3D models of the room",
+      "empty": "This room has no custom models.",
+      "loadError": "The models could not be loaded."
     }
   },
   "Landing": {
@@ -1613,5 +1643,11 @@
     "light": "Light",
     "dark": "Dark",
     "system": "System"
+  },
+  "ModelViewer": {
+    "originalMaterial": "Original material",
+    "clip": "Animation",
+    "noClip": "None",
+    "error": "The model could not be loaded."
   }
 }

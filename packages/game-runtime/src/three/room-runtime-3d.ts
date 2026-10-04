@@ -575,6 +575,14 @@ export class RoomRuntime3D {
     layer.refresh(room);
   }
 
+  /**
+   * Vuelve a resolver la URL de los modelos propios que ahora se pintan como caja y, si ya hay
+   * URL, carga el GLB y sustituye la caja. No hace nada con los que ya tienen su GLB.
+   */
+  refreshCustomModels(): void {
+    this.world?.refreshCustomModels();
+  }
+
   /** Altura del plano de trabajo (m): la rejilla y el picking del suelo usan este plano. */
   setWorkHeight(h: number): void {
     const layer = this.requireEdit("setWorkHeight");

@@ -526,6 +526,30 @@
       "governedBy": "Steuerndes Objekt",
       "noObject": "Immer an",
       "removeTorch": "Fackel entfernen"
+    },
+    "models": {
+      "upload": "Modell hochladen",
+      "uploading": "Wird hochgeladen…",
+      "validating": "Wird geprüft…",
+      "dialogTitle": "Modell hinzufügen",
+      "id": "Kennung",
+      "idHint": "Wird in Regeln und Werkzeugen verwendet. Nur Kleinbuchstaben, Zahlen und Bindestriche.",
+      "name": "Name",
+      "add": "Hinzufügen",
+      "cancel": "Abbrechen",
+      "measured": "Maße",
+      "triangles": "{count} Dreiecke",
+      "weight": "{mb} MB",
+      "clips": "Animationen: {list}",
+      "noClips": "Keine Animationen",
+      "blocks": "Versperrt den Weg",
+      "delete": "Modell löschen",
+      "limit": "Du hast das Maximum von 40 Modellen pro Raum erreicht.",
+      "tooLarge": "Die Datei ist größer als 15 MB.",
+      "uploadFailed": "Das Modell konnte nicht hochgeladen werden.",
+      "errors": {
+        "UNKNOWN_MODEL": "Dieses Modell existiert nicht mehr."
+      }
     }
   },
   "Inspector": {
@@ -1301,6 +1325,12 @@
       "ALREADY_REVIEWED": "Jemand anderes hat ihn bereits bearbeitet.",
       "VALIDATION_ERROR": "Diese Entscheidung ist für diesen Inhalt nicht gültig.",
       "UNKNOWN": "Etwas ist schiefgelaufen. Bitte versuche es erneut."
+    },
+    "models": {
+      "open": "3D-Modelle ansehen",
+      "title": "3D-Modelle des Raums",
+      "empty": "Dieser Raum hat keine eigenen Modelle.",
+      "loadError": "Die Modelle konnten nicht geladen werden."
     }
   },
   "Legal": {
@@ -1438,5 +1468,11 @@
       "dimension3dDesc": "Die Spieler erkunden den Raum mit der Kamera hinter ihrer Figur.",
       "dimensionFixed": "Das Format kann nach dem Erstellen des Raums nicht mehr geändert werden."
     }
+  },
+  "ModelViewer": {
+    "originalMaterial": "Originalmaterial",
+    "clip": "Animation",
+    "noClip": "Keine",
+    "error": "Das Modell konnte nicht geladen werden."
   }
 }

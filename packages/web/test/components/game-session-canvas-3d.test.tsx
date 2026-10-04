@@ -93,4 +93,18 @@ describe("<GameSessionCanvas3D>", () => {
     unmount();
     expect(runtime.destroy).toHaveBeenCalled();
   });
+
+  it("resolveCustomModelUrl sale de pack3d.customModelUrls (sin URL, undefined)", () => {
+    render(
+      createElement(GameSessionCanvas3D, {
+        model,
+        roomId: "antesala",
+        pack3d: { packId: "medieval-v1", customModelUrls: { "r2://assets/rooms/r/a.glb": "https://s/a.glb" } },
+        onEvent: vi.fn(),
+      }),
+    );
+    const resolve = runtimes[0]!.options.resolveCustomModelUrl as (ref: string) => string | undefined;
+    expect(resolve("r2://assets/rooms/r/a.glb")).toBe("https://s/a.glb");
+    expect(resolve("r2://assets/rooms/r/b.glb")).toBeUndefined();
+  });
 });

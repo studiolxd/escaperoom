@@ -526,6 +526,30 @@
       "governedBy": "Object dat hem bestuurt",
       "noObject": "Altijd aan",
       "removeTorch": "Fakkel verwijderen"
+    },
+    "models": {
+      "upload": "Model uploaden",
+      "uploading": "Uploaden…",
+      "validating": "Valideren…",
+      "dialogTitle": "Model toevoegen",
+      "id": "Identificatie",
+      "idHint": "Wordt gebruikt in regels en tools. Alleen kleine letters, cijfers en koppeltekens.",
+      "name": "Naam",
+      "add": "Toevoegen",
+      "cancel": "Annuleren",
+      "measured": "Afmetingen",
+      "triangles": "{count} driehoeken",
+      "weight": "{mb} MB",
+      "clips": "Animaties: {list}",
+      "noClips": "Geen animaties",
+      "blocks": "Blokkeert de doorgang",
+      "delete": "Model verwijderen",
+      "limit": "Je hebt het maximum van 40 modellen per kamer bereikt.",
+      "tooLarge": "Het bestand is groter dan 15 MB.",
+      "uploadFailed": "Het model kon niet worden geüpload.",
+      "errors": {
+        "UNKNOWN_MODEL": "Dat model bestaat niet meer."
+      }
     }
   },
   "Inspector": {
@@ -1301,6 +1325,12 @@
       "ALREADY_REVIEWED": "Iemand anders heeft het al afgehandeld.",
       "VALIDATION_ERROR": "Dit besluit is niet geldig voor deze inhoud.",
       "UNKNOWN": "Er ging iets mis. Probeer het opnieuw."
+    },
+    "models": {
+      "open": "3D-modellen bekijken",
+      "title": "3D-modellen van de kamer",
+      "empty": "Deze kamer heeft geen eigen modellen.",
+      "loadError": "De modellen konden niet worden geladen."
     }
   },
   "Legal": {
@@ -1438,5 +1468,11 @@
       "dimension3dDesc": "Spelers lopen door de kamer met de camera achter hun personage.",
       "dimensionFixed": "Het formaat kan na het aanmaken van de kamer niet meer worden gewijzigd."
     }
+  },
+  "ModelViewer": {
+    "originalMaterial": "Origineel materiaal",
+    "clip": "Animatie",
+    "noClip": "Geen",
+    "error": "Het model kon niet worden geladen."
   }
 }

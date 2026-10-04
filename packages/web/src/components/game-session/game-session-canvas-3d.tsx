@@ -47,6 +47,7 @@ export default function GameSessionCanvas3D({
       initialRoomId: initialRoomRef.current,
       packBaseUrl: pack3d?.baseUrl,
       packId: pack3d?.packId,
+      resolveCustomModelUrl: (ref) => pack3d?.customModelUrls?.[ref],
       inputEnabled: false,
       emitAvatarMoves: true,
       backgroundColor: isDarkThemeActive() ? BACKGROUND_HEX.dark : BACKGROUND_HEX.light,

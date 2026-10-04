@@ -45,6 +45,7 @@ export default function SpectatorCanvas3D({
     const runtime = new RoomRuntime3D(container, model, {
       packBaseUrl: pack3d?.baseUrl,
       packId: pack3d?.packId,
+      resolveCustomModelUrl: (ref) => pack3d?.customModelUrls?.[ref],
       observer: true,
       backgroundColor: isDarkThemeActive() ? BACKGROUND_HEX.dark : BACKGROUND_HEX.light,
     });
