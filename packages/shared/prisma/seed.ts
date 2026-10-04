@@ -27,6 +27,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.resolve(here, "../../../docs/reference/roompackage-rey-aldric.v1.json");
 const demo3dFixturePath = path.resolve(here, "../../../docs/reference/roompackage-demo-3d.v1.json");
 const DEMO_3D_ROOM_ID = "00000000-0000-0000-0000-000000003001";
+const rey3dFixturePath = path.resolve(here, "../../../docs/reference/roompackage-rey-aldric-3d.v1.json");
+const REY_ALDRIC_3D_ROOM_ID = "00000000-0000-0000-0000-000000003002";
 const seedAssetsDir = path.resolve(here, "../../../docs/reference/seed-assets");
 
 /**
@@ -239,6 +241,40 @@ async function main() {
       package: mainRoomPackage as unknown as Prisma.InputJsonValue,
       assetsHash,
       changelog: "Versión inicial (seed)",
+      publishedBy: ID.creator,
+    },
+  });
+
+  // «La Maldición del Rey Aldric» en 3D (encargo 7.10b): gratis y publicada en
+  // todos los entornos, como la sala principal. Fixture generado por el
+  // conversor 2D→3D (`pnpm --filter @escaperoom/shared convertir:3d`).
+  const rey3d = JSON.parse(readFileSync(rey3dFixturePath, "utf8")) as RoomPackageFixture;
+  const rey3dPackage = { ...rey3d, meta: { ...rey3d.meta, id: REY_ALDRIC_3D_ROOM_ID } };
+  const rey3dCoverImageKey = await seedCoverImageKey(REY_ALDRIC_3D_ROOM_ID, "rey-aldric-cover.jpg");
+  await prisma.room.upsert({
+    where: { id: REY_ALDRIC_3D_ROOM_ID },
+    update: rey3dCoverImageKey ? { coverImageKey: rey3dCoverImageKey } : {},
+    create: {
+      id: REY_ALDRIC_3D_ROOM_ID,
+      authorId: ID.creator,
+      title: rey3d.meta.title,
+      status: "published",
+      saleIndividual: true,
+      saleEvents: true,
+      priceCents: 0,
+      dimension: "3d",
+      coverImageKey: rey3dCoverImageKey,
+    },
+  });
+  await prisma.roomVersion.upsert({
+    where: { roomId_semver: { roomId: REY_ALDRIC_3D_ROOM_ID, semver: rey3d.meta.version } },
+    update: { package: rey3dPackage as unknown as Prisma.InputJsonValue, assetsHash },
+    create: {
+      roomId: REY_ALDRIC_3D_ROOM_ID,
+      semver: rey3d.meta.version,
+      package: rey3dPackage as unknown as Prisma.InputJsonValue,
+      assetsHash,
+      changelog: "Versión inicial 3D (seed)",
       publishedBy: ID.creator,
     },
   });
