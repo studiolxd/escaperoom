@@ -28,7 +28,7 @@
     "@escaperoom/shared": "workspace:*",
     "@hookform/resolvers": "^5.9.1",
     "@livekit/components-react": "2.9.24",
-    "@modelcontextprotocol/sdk": "1.30.0",
+    "@modelcontextprotocol/sdk": "1.31.0",
     "@sentry/nextjs": "^10.69.0",
     "@trpc/server": "11.19.0",
     "@xyflow/react": "^12.11.6",
