@@ -15,10 +15,14 @@ const jpeg = (w: number, h: number) => {
   // SOI, APP0 (longitud 4), DHT falso, SOF0.
   const b = new Uint8Array(2 + 4 + 2 + 4 + 2 + 2 + 7);
   let p = 0;
-  b.set([0xff, 0xd8], p), (p += 2);
-  b.set([0xff, 0xe0, 0x00, 0x04, 0, 0], p), (p += 6);
-  b.set([0xff, 0xc4, 0x00, 0x02], p), (p += 4);
-  b.set([0xff, 0xc0, 0x00, 0x0b, 8], p), (p += 5);
+  b.set([0xff, 0xd8], p);
+  p += 2;
+  b.set([0xff, 0xe0, 0x00, 0x04, 0, 0], p);
+  p += 6;
+  b.set([0xff, 0xc4, 0x00, 0x02], p);
+  p += 4;
+  b.set([0xff, 0xc0, 0x00, 0x0b, 8], p);
+  p += 5;
   const dv = new DataView(b.buffer);
   dv.setUint16(p, h, false);
   dv.setUint16(p + 2, w, false);
