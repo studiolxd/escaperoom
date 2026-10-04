@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { Models3DCatalog } from "@escaperoom/shared/packs";
 import { buildNavInputFromParts, type NavInput } from "@escaperoom/nav3d";
+import type { Piece3D } from "@escaperoom/shared/schemas";
 import type { RuntimeModel, RuntimeObject, RuntimeSubRoom } from "../loader";
 import {
   resolveObjectStateAnimation,
@@ -79,17 +80,36 @@ export function createCollisionMesh(input: NavInput): THREE.Mesh {
   return mesh;
 }
 
+export interface Placement {
+  x: number;
+  y: number;
+  h: number;
+  yaw: number;
+  scale?: number | undefined;
+}
+
 /** Un modelo colocado (pieza u objeto): caja inmediata y GLB que la sustituye al llegar. */
-class ModelSlot {
+export class ModelSlot {
   readonly holder = new THREE.Group();
   mixer: THREE.AnimationMixer | undefined;
+  /** Id del modelo pintado ahora mismo (`undefined` antes del primer `set`). */
+  modelId: string | undefined;
   private content: THREE.Object3D | undefined;
   private token = 0;
+  private opacity = 1;
+  private editOutline: THREE.Material | undefined;
+  /** Materiales clonados para la opacidad: son nuestros y se liberan con el contenido. */
+  private owned: THREE.Material[] = [];
 
   constructor(
     private readonly world: RoomWorld,
-    placement: { x: number; y: number; h: number; yaw: number; scale?: number | undefined },
+    placement: Placement,
   ) {
+    this.place(placement);
+  }
+
+  /** Coloca el holder (idempotente). */
+  place(placement: Placement): void {
     this.holder.position.set(placement.x, placement.h, placement.y);
     this.holder.rotation.y = (placement.yaw * Math.PI) / 180;
     this.holder.scale.setScalar(placement.scale ?? 1);
@@ -97,11 +117,13 @@ class ModelSlot {
 
   set(modelId: string, animation?: string): void {
     const token = ++this.token;
+    this.modelId = modelId;
     const visual = resolveVisual(modelId, this.world.assets);
     this.clear();
     this.content = this.world.boxes.create(visual);
     this.world.markShadows(this.content);
     this.holder.add(this.content);
+    this.applyDecor();
     if (!visual.url) return;
     instantiateModel(visual.url).then(
       (loaded) => {
@@ -110,6 +132,7 @@ class ModelSlot {
         this.content = loaded.scene;
         this.world.markShadows(loaded.scene);
         this.holder.add(loaded.scene);
+        this.applyDecor();
         this.world.reapplyOutline(this);
         const clip = animation
           ? THREE.AnimationClip.findByName(loaded.animations, animation)
@@ -128,6 +151,33 @@ class ModelSlot {
     );
   }
 
+  /** Opacidad del modelo (edición: objetos ocultos y fantasma). 1 = opaco. */
+  setOpacity(opacity: number): void {
+    if (this.opacity === opacity) return;
+    this.opacity = opacity;
+    this.applyDecor();
+  }
+
+  /** Contorno de selección (edición); `undefined` lo quita. */
+  setEditOutline(material: THREE.Material | undefined): void {
+    if (this.editOutline === material) return;
+    this.editOutline = material;
+    this.applyDecor();
+  }
+
+  /** Caja envolvente (mundo) de las mallas visibles, sin contar contornos. */
+  bounds(): THREE.Box3 {
+    const box = new THREE.Box3();
+    this.holder.updateWorldMatrix(true, true);
+    const part = new THREE.Box3();
+    for (const mesh of this.meshes()) {
+      if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+      part.copy(mesh.geometry.boundingBox!).applyMatrix4(mesh.matrixWorld);
+      box.union(part);
+    }
+    return box;
+  }
+
   /** Mallas visibles de este modelo (para el contorno). */
   meshes(): THREE.Mesh[] {
     const out: THREE.Mesh[] = [];
@@ -140,15 +190,62 @@ class ModelSlot {
     return out;
   }
 
+  /** Opacidad y contorno de edición sobre el contenido actual. */
+  private applyDecor(): void {
+    const content = this.content;
+    if (!content) return;
+    for (const mesh of this.meshes()) {
+      for (const child of [...mesh.children]) {
+        if (child.userData.editOutline) mesh.remove(child);
+      }
+      if (this.opacity < 1) {
+        const clone = (m: THREE.Material) => {
+          const own = m.clone();
+          own.transparent = true;
+          own.opacity = this.opacity;
+          this.owned.push(own);
+          return own;
+        };
+        if (!mesh.userData.ownMaterial) {
+          mesh.material = Array.isArray(mesh.material) ? mesh.material.map(clone) : clone(mesh.material);
+          mesh.userData.ownMaterial = true;
+        } else {
+          for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+            m.opacity = this.opacity;
+          }
+        }
+      } else if (mesh.userData.ownMaterial) {
+        for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+          m.opacity = 1;
+        }
+      }
+      if (this.editOutline) {
+        const outline = new THREE.Mesh(mesh.geometry, this.editOutline);
+        outline.userData.outline = true;
+        outline.userData.editOutline = true;
+        outline.scale.setScalar(OUTLINE_SCALE);
+        mesh.add(outline);
+      }
+    }
+  }
+
   private clear(): void {
     this.mixer?.stopAllAction();
     this.mixer = undefined;
     if (this.content) this.holder.remove(this.content);
     this.content = undefined;
+    for (const material of this.owned) material.dispose();
+    this.owned = [];
   }
 
   invalidate(): void {
     this.token++;
+  }
+
+  /** Libera el contenido y descarta cualquier carga pendiente. */
+  dispose(): void {
+    this.invalidate();
+    this.clear();
   }
 }
 
@@ -158,16 +255,31 @@ export interface WorldObjectEntry {
   state: string;
 }
 
+export interface PieceEntry {
+  piece: Piece3D;
+  slot: ModelSlot;
+}
+
+export interface RoomWorldOptions {
+  quality?: Quality3D;
+  /** Edición: todos los objetos visibles (los ocultos al 40 %), sin sombras. */
+  edit?: boolean;
+}
+
+/** Opacidad de un objeto en estado `"oculto"` en el editor. */
+export const HIDDEN_OBJECT_OPACITY = 0.4;
+
 /** La habitación visible: piezas, objetos, luces y malla de colisión. */
 export class RoomWorld {
   readonly group = new THREE.Group();
   readonly collision: THREE.Mesh;
   readonly objects = new Map<string, WorldObjectEntry>();
+  readonly pieces = new Map<string, PieceEntry>();
   readonly boxes = new BoxFactory();
   disposed = false;
 
-  private readonly slots: ModelSlot[] = [];
-  private readonly torchPool: THREE.PointLight[] = [];
+  private readonly slots = new Set<ModelSlot>();
+  private torchPool: THREE.PointLight[] = [];
   private readonly outlineMaterial = new THREE.MeshBasicMaterial({
     color: OUTLINE_COLOR,
     side: THREE.BackSide,
@@ -179,33 +291,23 @@ export class RoomWorld {
   private readonly sun: THREE.DirectionalLight;
   private shadows: boolean;
   private torchLimit: number;
+  private readonly edit: boolean;
+  private lightingKey = "";
 
   constructor(
-    private readonly model: RuntimeModel,
-    private readonly room: RuntimeSubRoom,
+    private model: RuntimeModel,
+    private room: RuntimeSubRoom,
     readonly assets: AssetContext,
     navInput: NavInput,
     states: ObjectStateMap,
-    quality: Quality3D = "high",
+    options: RoomWorldOptions = {},
   ) {
-    this.shadows = quality === "high";
+    const quality = options.quality ?? "high";
+    this.edit = options.edit ?? false;
+    this.shadows = quality === "high" && !this.edit;
     this.torchLimit = quality === "high" ? MAX_TORCH_LIGHTS : LOW_TORCH_LIGHTS;
-    for (const piece of room.pieces) {
-      const slot = new ModelSlot(this, piece);
-      slot.set(piece.model);
-      this.slots.push(slot);
-      this.group.add(slot.holder);
-    }
-    for (const object of room.objects) {
-      if (!object.transform) continue;
-      const slot = new ModelSlot(this, object.transform);
-      const state = currentObjectState(states, object);
-      slot.set(resolveObjectStateSprite(object, state));
-      slot.holder.visible = state !== "oculto";
-      this.objects.set(object.id, { object, slot, state });
-      this.slots.push(slot);
-      this.group.add(slot.holder);
-    }
+    for (const piece of room.pieces) this.addPiece(piece);
+    for (const object of room.objects) this.addObject(object, states);
 
     this.collision = createCollisionMesh(navInput);
     this.group.add(this.collision);
@@ -214,13 +316,57 @@ export class RoomWorld {
     this.sun = sun;
     this.frameSunShadow(room);
     this.hemisphere = new THREE.HemisphereLight(0xdfe8ff, 0x3a3530, 0.6);
+    this.group.add(sun, sun.target, this.hemisphere);
+    this.applyLighting(states);
+  }
+
+  private addPiece(piece: Piece3D): void {
+    const slot = new ModelSlot(this, piece);
+    slot.holder.userData.editTarget = { kind: "piece", id: piece.id };
+    slot.set(piece.model);
+    this.slots.add(slot);
+    this.pieces.set(piece.id, { piece, slot });
+    this.group.add(slot.holder);
+  }
+
+  private addObject(object: RuntimeObject, states: ObjectStateMap): void {
+    if (!object.transform) return;
+    const slot = new ModelSlot(this, object.transform);
+    slot.holder.userData.editTarget = { kind: "object", id: object.id };
+    const state = currentObjectState(states, object);
+    slot.set(resolveObjectStateSprite(object, state));
+    this.applyObjectVisibility(slot, state);
+    this.objects.set(object.id, { object, slot, state });
+    this.slots.add(slot);
+    this.group.add(slot.holder);
+  }
+
+  /** Juego: `"oculto"` no se ve. Edición: se ve al 40 %. */
+  private applyObjectVisibility(slot: ModelSlot, state: string): void {
+    if (this.edit) {
+      slot.holder.visible = true;
+      slot.setOpacity(state === "oculto" ? HIDDEN_OBJECT_OPACITY : 1);
+    } else {
+      slot.holder.visible = state !== "oculto";
+    }
+  }
+
+  /** Ambiente y antorchas de la habitación actual (se reconstruyen si cambia la lista de luces). */
+  private applyLighting(states: ObjectStateMap): void {
+    const room = this.room;
+    this.lightingKey = JSON.stringify(room.lighting);
+    this.hemisphere.color.set(0xdfe8ff);
+    this.hemisphere.intensity = 0.6;
     const ambient = room.lighting.find((l) => l.type === "ambient");
     if (ambient && ambient.type === "ambient") {
       this.hemisphere.color.set(ambient.color);
       this.hemisphere.intensity = ambient.intensity;
     }
-    this.group.add(sun, sun.target, this.hemisphere);
-
+    for (const light of this.torchPool) {
+      this.group.remove(light);
+      light.dispose();
+    }
+    this.torchPool = [];
     const torchCount = room.lighting.filter((l) => l.type === "torch").length;
     for (let i = 0; i < Math.min(MAX_TORCH_LIGHTS, torchCount); i++) {
       const light = new THREE.PointLight(TORCH_COLOR, 0, 6);
@@ -228,7 +374,74 @@ export class RoomWorld {
       this.group.add(light);
     }
     this.applyTorchLimit();
-    this.updateTorches(undefined, states);
+    this.updateTorches(this.lastTorchFocus, states);
+  }
+
+  /**
+   * Edición: sustituye el modelo y repinta SOLO lo que cambió (por id). `hold` devuelve `true`
+   * para los elementos (`"piece:<id>"`, `"object:<id>"`) cuya posición no se toca (arrastre en curso).
+   */
+  sync(
+    model: RuntimeModel,
+    room: RuntimeSubRoom,
+    states: ObjectStateMap,
+    hold: (key: string) => boolean = () => false,
+  ): void {
+    const resized = room.width !== this.room.width || room.height !== this.room.height;
+    this.model = model;
+    this.room = room;
+    this.lastStates = states;
+
+    const livePieces = new Set<string>();
+    for (const piece of room.pieces) {
+      livePieces.add(piece.id);
+      const entry = this.pieces.get(piece.id);
+      if (!entry) {
+        this.addPiece(piece);
+        continue;
+      }
+      entry.piece = piece;
+      if (entry.slot.modelId !== piece.model) entry.slot.set(piece.model);
+      if (!hold(`piece:${piece.id}`)) entry.slot.place(piece);
+    }
+    for (const [id, entry] of [...this.pieces]) {
+      if (livePieces.has(id)) continue;
+      this.removeSlot(entry.slot);
+      this.pieces.delete(id);
+    }
+
+    const liveObjects = new Set<string>();
+    for (const object of room.objects) {
+      if (!object.transform) continue;
+      liveObjects.add(object.id);
+      const entry = this.objects.get(object.id);
+      if (!entry) {
+        this.addObject(object, states);
+        continue;
+      }
+      const state = currentObjectState(states, object);
+      const sprite = resolveObjectStateSprite(object, state);
+      entry.object = object;
+      entry.state = state;
+      if (entry.slot.modelId !== sprite) entry.slot.set(sprite);
+      this.applyObjectVisibility(entry.slot, state);
+      if (!hold(`object:${object.id}`)) entry.slot.place(object.transform);
+    }
+    for (const [id, entry] of [...this.objects]) {
+      if (liveObjects.has(id)) continue;
+      this.removeSlot(entry.slot);
+      this.objects.delete(id);
+      this.outlined.delete(id);
+    }
+
+    if (resized) this.frameSunShadow(room);
+    if (JSON.stringify(room.lighting) !== this.lightingKey) this.applyLighting(states);
+  }
+
+  private removeSlot(slot: ModelSlot): void {
+    slot.dispose();
+    this.slots.delete(slot);
+    this.group.remove(slot.holder);
   }
 
   /** La cámara de sombras cubre la caja de la habitación; la luz mantiene su dirección. */
@@ -263,7 +476,7 @@ export class RoomWorld {
 
   /** Cambia la calidad en caliente: sombras y número de antorchas simultáneas. */
   setQuality(quality: Quality3D): void {
-    this.shadows = quality === "high";
+    this.shadows = quality === "high" && !this.edit;
     this.torchLimit = quality === "high" ? MAX_TORCH_LIGHTS : LOW_TORCH_LIGHTS;
     this.sun.castShadow = this.shadows;
     for (const slot of this.slots) this.markShadows(slot.holder);
@@ -282,7 +495,7 @@ export class RoomWorld {
     const entry = this.objects.get(objectId);
     if (!entry) return;
     entry.state = state;
-    entry.slot.holder.visible = state !== "oculto";
+    this.applyObjectVisibility(entry.slot, state);
     const animation = resolveObjectStateAnimation(entry.object, state);
     entry.slot.set(resolveObjectStateSprite(entry.object, state), animation);
     this.reapplyOutline(entry.slot);
@@ -394,7 +607,7 @@ export class RoomWorld {
 
   dispose(): void {
     this.disposed = true;
-    for (const slot of this.slots) slot.invalidate();
+    for (const slot of this.slots) slot.dispose();
     this.collision.geometry.dispose();
     (this.collision.material as THREE.Material).dispose();
     this.outlineMaterial.dispose();

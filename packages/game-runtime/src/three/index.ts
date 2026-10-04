@@ -12,3 +12,5 @@ export * from "./movement";
 export * from "./proximity";
 export * from "./input";
 export * from "./quality";
+export * from "./edit";
+export * from "./edit-input";

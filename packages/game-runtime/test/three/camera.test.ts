@@ -13,7 +13,14 @@ import {
   rotateFreeCamera,
   type FreeCameraState,
   cameraRight,
+  EDITOR_CAMERA,
+  editorCameraPosition,
+  initialEditorCamera,
   initialOrbit,
+  panPivot,
+  rotateEditor,
+  zoomEditor,
+  type EditorCameraState,
   orbitPosition,
   rotateOrbit,
   zoomOrbit,
@@ -179,5 +186,89 @@ describe("freeCameraFromLook", () => {
     expect(back.h).toBeCloseTo(4);
     expect(back.azimuth).toBeCloseTo(123);
     expect(back.pitch).toBeCloseTo(30);
+  });
+});
+
+describe("cámara de editor", () => {
+  const base: EditorCameraState = {
+    azimuth: 0,
+    elevation: 89,
+    distance: 10,
+    pivot: { x: 5, y: 0, z: 5 },
+  };
+  /** Metros por píxel a 10 m con fov 50° y 720 px de alto. */
+  const mPerPx = (2 * 10 * Math.tan((50 * Math.PI) / 360)) / 720;
+
+  it("estado inicial: pivote en el centro, distancia max(cols, rows) × 1,2, elevación 50°", () => {
+    const s = initialEditorCamera({ cols: 10, rows: 6 }, 0.4);
+    expect(s.pivot).toEqual({ x: 5, y: 0.4, z: 3 });
+    expect(s.distance).toBeCloseTo(12);
+    expect(s.elevation).toBe(50);
+    expect(s.azimuth).toBe(0);
+  });
+
+  it("la distancia inicial respeta los límites", () => {
+    expect(initialEditorCamera({ cols: 1, rows: 1 }).distance).toBe(EDITOR_CAMERA.minDistance);
+    expect(initialEditorCamera({ cols: 100, rows: 100 }).distance).toBe(EDITOR_CAMERA.maxDistance);
+  });
+
+  it("editorCameraPosition coloca la cámara sobre el pivote", () => {
+    const p = editorCameraPosition({ ...base, elevation: 90, azimuth: 0 });
+    expect(p.x).toBeCloseTo(5);
+    expect(p.y).toBeCloseTo(10);
+    expect(p.z).toBeCloseTo(5);
+  });
+
+  it("rotateEditor limita la elevación a 5°–89° y normaliza el azimut", () => {
+    expect(rotateEditor(base, 0, 10_000).elevation).toBe(89);
+    expect(rotateEditor(base, 0, -10_000).elevation).toBe(5);
+    const turned = rotateEditor({ ...base, azimuth: 10 }, 100, 0);
+    expect(turned.azimuth).toBeGreaterThanOrEqual(0);
+    expect(turned.azimuth).toBeLessThan(360);
+  });
+
+  describe("panPivot", () => {
+    it("arrastrar a la derecha mueve el pivote a la izquierda (el suelo sigue al puntero)", () => {
+      const s = panPivot(base, 100, 0, 720);
+      expect(s.pivot.x).toBeCloseTo(5 - 100 * mPerPx, 5);
+      expect(s.pivot.z).toBeCloseTo(5);
+      expect(s.pivot.y).toBe(0);
+    });
+
+    it("arrastrar hacia abajo adelanta el pivote (hacia donde mira la cámara)", () => {
+      const s = panPivot(base, 0, 100, 720);
+      expect(s.pivot.x).toBeCloseTo(5);
+      // azimut 0: la cámara mira hacia −z; a 89° la profundidad es casi 1 píxel = 1 px.
+      expect(s.pivot.z).toBeCloseTo(5 - (100 * mPerPx) / Math.sin((89 * Math.PI) / 180), 5);
+    });
+
+    it("sigue el azimut de la cámara", () => {
+      const s = panPivot({ ...base, azimuth: 90 }, 100, 0, 720);
+      expect(s.pivot.x).toBeCloseTo(5);
+      expect(s.pivot.z).toBeCloseTo(5 + 100 * mPerPx, 5);
+    });
+
+    it("a más distancia, más metros por píxel", () => {
+      const near = panPivot({ ...base, distance: 5 }, 100, 0, 720);
+      const far = panPivot({ ...base, distance: 20 }, 100, 0, 720);
+      expect(5 - far.pivot.x).toBeCloseTo((5 - near.pivot.x) * 4, 5);
+    });
+
+    it("un lienzo sin alto no mueve nada", () => {
+      expect(panPivot(base, 100, 100, 0)).toBe(base);
+    });
+  });
+
+  describe("zoomEditor", () => {
+    it("×1,1 al alejar y ×0,9 al acercar, por muesca", () => {
+      expect(zoomEditor(base, 1).distance).toBeCloseTo(11);
+      expect(zoomEditor(base, -1).distance).toBeCloseTo(9);
+      expect(zoomEditor(base, 2).distance).toBeCloseTo(12.1);
+    });
+
+    it("limita la distancia a 2–60 m", () => {
+      expect(zoomEditor(base, 1000).distance).toBe(60);
+      expect(zoomEditor(base, -1000).distance).toBe(2);
+    });
   });
 });
