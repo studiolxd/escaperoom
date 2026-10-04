@@ -150,8 +150,8 @@ describe("<ModelUploadButton>", () => {
         createElement(ModelUploadButton, {
           doc,
           roomId,
-          takenIds: new Set(takenIds),
-          catalogIds: new Set(),
+          takenIds: new Set<string>(takenIds),
+          catalogIds: new Set<string>(),
           customCount,
         }),
       ),
