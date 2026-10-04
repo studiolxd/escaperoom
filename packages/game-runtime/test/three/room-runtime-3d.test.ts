@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import * as THREE from "three";
+import { describe, expect, it, vi } from "vitest";
 import { toRuntimeModel, type RuntimeModel } from "../../src/loader";
 import { RoomRuntime3D } from "../../src/three";
+import type { ScenePlayer } from "../../src/phaser/room-scene";
 import type { WorldSceneEvent } from "../../src/phaser/world-events";
 import { makeRoom3D } from "../fixtures/room-3d";
 
@@ -18,6 +20,17 @@ function model3D(): RuntimeModel {
   const model = toRuntimeModel(makeRoom3D());
   model.objectsById.arca = { ...model.objectsById.arca!, useItemIds: ["llave"] };
   return model;
+}
+
+/** Modelo con una segunda habitación vacía, para los cambios de sala del observador. */
+function twoRoomModel(): RuntimeModel {
+  const model = model3D();
+  model.subroomsById.otra = { ...model.subroomsById.sala!, id: "otra", name: "Otra", objects: [] };
+  return model;
+}
+
+function player(id: string, roomId: string, extra: Partial<ScenePlayer> = {}): ScenePlayer {
+  return { id, name: id, roomId, x: 1, y: 1, tint: "#ff0000", characterId: "", connected: true, ...extra };
 }
 
 async function start(options: ConstructorParameters<typeof RoomRuntime3D>[2] = {}) {
@@ -216,5 +229,325 @@ describe("RoomRuntime3D (headless)", () => {
     const { runtime } = await start();
     runtime.destroy();
     expect(() => runtime.destroy()).not.toThrow();
+  });
+
+  describe("walkTo", () => {
+    it("llama a `onArrive` al llegar y devuelve `true`", async () => {
+      const { runtime } = await start();
+      let arrived = 0;
+      expect(runtime.walkTo({ x: 1.6, y: 1.6, h: 0 }, () => arrived++)).toBe(true);
+      expect(arrived).toBe(0);
+      run(runtime, () => arrived > 0);
+      expect(arrived).toBe(1);
+      const cell = runtime.avatarCell!;
+      expect(Math.hypot(cell.x - 1.6, cell.y - 1.6)).toBeLessThan(0.2);
+      run(runtime, () => false);
+      expect(arrived).toBe(1);
+      runtime.destroy();
+    });
+
+    it("una segunda llamada cancela la primera sin llamar a su `onArrive`", async () => {
+      const { runtime } = await start();
+      const calls: string[] = [];
+      runtime.walkTo({ x: 1.6, y: 1.6, h: 0 }, () => calls.push("a"));
+      runtime.tick(0.1);
+      runtime.walkTo({ x: 0.6, y: 1.6, h: 0 }, () => calls.push("b"));
+      run(runtime, () => calls.length > 0);
+      run(runtime, () => false);
+      expect(calls).toEqual(["b"]);
+      runtime.destroy();
+    });
+
+    it("`placeAvatar` y el joystick cancelan la ruta sin llamar a `onArrive`", async () => {
+      const { runtime } = await start();
+      const calls: string[] = [];
+      runtime.walkTo({ x: 1.6, y: 1.6, h: 0 }, () => calls.push("a"));
+      runtime.placeAvatar(0.6, 0.6, 0, 0);
+      run(runtime, () => false);
+      runtime.walkTo({ x: 1.6, y: 1.6, h: 0 }, () => calls.push("b"));
+      runtime.setMoveVector({ x: 0, y: 1 });
+      runtime.tick(0.05);
+      runtime.setMoveVector(null);
+      run(runtime, () => false);
+      expect(calls).toEqual([]);
+      runtime.destroy();
+    });
+
+    it("sin ruta devuelve `false` y llama a `onArrive` de inmediato", async () => {
+      const { runtime } = await start();
+      let arrived = 0;
+      // Fuera de la navmesh (la sala mide 2×2 m de suelo) y muy por encima.
+      expect(runtime.walkTo({ x: 40, y: 40, h: 20 }, () => arrived++)).toBe(false);
+      expect(arrived).toBe(1);
+      expect(runtime.walkTo({ x: 40, y: 40 })).toBe(false);
+      runtime.destroy();
+    });
+
+    it("sin `h` usa la altura actual del avatar", async () => {
+      const { runtime } = await start();
+      let arrived = false;
+      expect(runtime.walkTo({ x: 1.6, y: 1.6 }, () => (arrived = true))).toBe(true);
+      run(runtime, () => arrived);
+      expect(arrived).toBe(true);
+      runtime.destroy();
+    });
+  });
+
+  describe("setMoveVector", () => {
+    it("avanza hacia donde mira la cámara, emite `avatar-move` y `null` lo detiene", async () => {
+      const { runtime, events } = await start({ emitAvatarMoves: true });
+      // La cámara parte detrás del avatar del spawn (yaw 90 → mira a +x): arriba = +x.
+      const before = runtime.avatarCell!;
+      runtime.setMoveVector({ x: 0, y: 1 });
+      for (let i = 0; i < 6; i++) runtime.tick(1 / 30);
+      const moved = runtime.avatarCell!;
+      expect(moved.x - before.x).toBeGreaterThan(0.3);
+      expect(Math.abs(moved.y - before.y)).toBeLessThan(0.05);
+      expect(events.some((e) => e.type === "avatar-move")).toBe(true);
+
+      runtime.setMoveVector(null);
+      const stopped = runtime.avatarCell!;
+      for (let i = 0; i < 10; i++) runtime.tick(1 / 30);
+      expect(runtime.avatarCell).toEqual(stopped);
+      runtime.destroy();
+    });
+
+    it("la velocidad es WALK_SPEED × módulo, con un mínimo de 0,3", async () => {
+      const dist = async (v: { x: number; y: number }) => {
+        const { runtime } = await start();
+        const before = runtime.avatarCell!;
+        runtime.setMoveVector(v);
+        runtime.tick(0.1);
+        const after = runtime.avatarCell!;
+        runtime.destroy();
+        return Math.hypot(after.x - before.x, after.y - before.y);
+      };
+      const full = await dist({ x: 0, y: 1 });
+      expect(await dist({ x: 0, y: 0.5 })).toBeCloseTo(full * 0.5, 2);
+      expect(await dist({ x: 0, y: 0.1 })).toBeCloseTo(full * 0.3, 2);
+    });
+
+    it("cancela la ruta y el objetivo pendiente", async () => {
+      const { runtime, events } = await start();
+      runtime.walkToObject("arca");
+      runtime.setMoveVector({ x: 0, y: -1 });
+      for (let i = 0; i < 3; i++) runtime.tick(1 / 30);
+      runtime.setMoveVector(null);
+      run(runtime, () => false);
+      expect(events).toEqual([]);
+      runtime.destroy();
+    });
+  });
+
+  describe("resaltado por proximidad", () => {
+    it("`onHighlightChange` avisa al acercarse y al alejarse; `interactHighlighted` emite `interact`", async () => {
+      const { runtime, events } = await start();
+      const seen: (string | undefined)[] = [];
+      const off = runtime.onHighlightChange((id) => seen.push(id));
+      runtime.tick(0.1);
+      expect(runtime.highlightedObjectId).toBeUndefined();
+      expect(runtime.interactHighlighted()).toBe(false);
+      expect(events).toEqual([]);
+
+      runtime.placeAvatar(1.5, 1.5, 0, 90); // mira al arca
+      runtime.tick(0.1);
+      runtime.tick(0.1);
+      expect(runtime.highlightedObjectId).toBe("arca");
+      expect(seen).toEqual(["arca"]);
+
+      expect(runtime.interactHighlighted()).toBe(true);
+      expect(events).toEqual([{ type: "interact", objectId: "arca" }]);
+
+      runtime.placeAvatar(0.6, 0.6, 0, 0);
+      runtime.tick(0.1);
+      expect(runtime.highlightedObjectId).toBeUndefined();
+      expect(seen).toEqual(["arca", undefined]);
+
+      off();
+      runtime.placeAvatar(1.5, 1.5, 0, 90);
+      runtime.tick(0.1);
+      expect(seen).toEqual(["arca", undefined]);
+      runtime.destroy();
+    });
+  });
+
+  describe("observador", () => {
+    async function startObserver(model = twoRoomModel()) {
+      const runtime = new RoomRuntime3D(fakeParent(), model, { headless: true, observer: true });
+      const events: WorldSceneEvent[] = [];
+      runtime.onWorldEvent((e) => events.push(e));
+      await runtime.ready;
+      return { runtime, events };
+    }
+
+    it("no tiene avatar ni entrada de juego", async () => {
+      const { runtime, events } = await startObserver();
+      expect(runtime.avatarPose).toBeUndefined();
+      expect(runtime.avatarCell).toBeUndefined();
+      runtime.placeAvatar(1, 1, 0, 0);
+      expect(runtime.avatarPose).toBeUndefined();
+      expect(runtime.walkTo({ x: 1, y: 1, h: 0 })).toBe(false);
+      runtime.walkToObject("arca");
+      expect(runtime.dropItemAt("llave", 10, 10)).toBeUndefined();
+      expect(runtime.interactHighlighted()).toBe(false);
+      for (let i = 0; i < 30; i++) runtime.tick(1 / 30);
+      expect(runtime.highlightedObjectId).toBeUndefined();
+      expect(events).toEqual([]);
+      runtime.destroy();
+    });
+
+    it("empieza en cámara libre en la habitación inicial", async () => {
+      const { runtime } = await startObserver();
+      expect(runtime.observerCamera).toEqual({ type: "free" });
+      expect(runtime.currentRoomId).toBe("sala");
+      runtime.destroy();
+    });
+
+    it("`follow` de un jugador que cambia de habitación hace `showRoom` y avisa", async () => {
+      const { runtime } = await startObserver();
+      const rooms: string[] = [];
+      runtime.onObserverRoomChange((r) => rooms.push(r));
+      runtime.setPlayers([player("p1", "sala")]);
+      runtime.setObserverCamera({ type: "follow", playerId: "p1" });
+      expect(runtime.observerCamera).toEqual({ type: "follow", playerId: "p1" });
+      expect(rooms).toEqual([]);
+
+      runtime.setPlayers([player("p1", "otra")]);
+      runtime.setPlayers([player("p1", "otra")]); // no repite el aviso mientras carga
+      expect(rooms).toEqual(["otra"]);
+      await runtime.ready;
+      await Promise.resolve();
+      expect(runtime.currentRoomId).toBe("otra");
+      expect(runtime.observerCamera.type).toBe("follow");
+      runtime.tick(0.1);
+      runtime.destroy();
+    });
+
+    it("si el jugador seguido se va o se desconecta, pasa a `free` en la habitación actual", async () => {
+      const { runtime } = await startObserver();
+      runtime.setPlayers([player("p1", "sala"), player("p2", "sala")]);
+      runtime.setObserverCamera({ type: "follow", playerId: "p1" });
+      runtime.tick(0.1);
+      runtime.setPlayers([player("p1", "sala", { connected: false }), player("p2", "sala")]);
+      expect(runtime.observerCamera).toEqual({ type: "free" });
+
+      runtime.setObserverCamera({ type: "follow", playerId: "p2" });
+      expect(runtime.observerCamera.type).toBe("follow");
+      runtime.setPlayers([]);
+      expect(runtime.observerCamera).toEqual({ type: "free" });
+      expect(runtime.currentRoomId).toBe("sala");
+      runtime.destroy();
+    });
+
+    it("seguir a un jugador desconocido deja la cámara libre", async () => {
+      const { runtime } = await startObserver();
+      runtime.setObserverCamera({ type: "follow", playerId: "nadie" });
+      expect(runtime.observerCamera).toEqual({ type: "free" });
+      runtime.destroy();
+    });
+
+    it("`free` con `roomId` cambia de habitación sin avisar a `onObserverRoomChange`", async () => {
+      const { runtime } = await startObserver();
+      const rooms: string[] = [];
+      runtime.onObserverRoomChange((r) => rooms.push(r));
+      runtime.setObserverCamera({ type: "free", roomId: "otra" });
+      await runtime.ready;
+      await Promise.resolve();
+      expect(runtime.currentRoomId).toBe("otra");
+      expect(runtime.observerCamera).toEqual({ type: "free", roomId: "otra" });
+      expect(rooms).toEqual([]);
+      runtime.destroy();
+    });
+
+    it("pinta a todos los jugadores de la sala visible, también al local", async () => {
+      const { runtime } = await startObserver();
+      const scene = (runtime as unknown as { scene: THREE.Scene }).scene;
+      const count = () => scene.children.length;
+      const base = count();
+      runtime.setPlayers([player("p0", "sala"), player("p1", "sala"), player("p2", "otra")]);
+      expect(count()).toBe(base + 2);
+      runtime.destroy();
+    });
+
+    it("`setMoveVector` mueve la cámara libre", async () => {
+      const { runtime } = await startObserver();
+      const camera = (runtime as unknown as { camera: THREE.PerspectiveCamera }).camera;
+      runtime.tick(0.1);
+      const before = camera.position.clone();
+      runtime.setMoveVector({ x: 0, y: 1 });
+      for (let i = 0; i < 6; i++) runtime.tick(1 / 30);
+      runtime.setMoveVector(null);
+      expect(camera.position.distanceTo(before)).toBeGreaterThan(0.5);
+      runtime.destroy();
+    });
+  });
+
+  describe("calidad", () => {
+    it("empieza en alta; `setQuality(\"low\")` la cambia y avisa una vez", async () => {
+      const { runtime } = await start();
+      const seen: string[] = [];
+      runtime.onQualityChange((q) => seen.push(q));
+      expect(runtime.quality).toBe("high");
+      runtime.setQuality("low");
+      runtime.setQuality("low");
+      expect(runtime.quality).toBe("low");
+      expect(seen).toEqual(["low"]);
+      runtime.setQuality("auto");
+      expect(runtime.quality).toBe("high");
+      expect(seen).toEqual(["low", "high"]);
+      runtime.destroy();
+    });
+
+    it("en automático baja sola con FPS bajos, una vez y sin subir", async () => {
+      const { runtime } = await start();
+      const seen: string[] = [];
+      runtime.onQualityChange((q) => seen.push(q));
+      for (let i = 0; i < 100; i++) runtime.tick(1 / 20); // 5 s: aún dentro de los 2 s de silencio + ventana
+      expect(runtime.quality).toBe("high");
+      for (let i = 0; i < 100; i++) runtime.tick(1 / 20);
+      expect(runtime.quality).toBe("low");
+      for (let i = 0; i < 200; i++) runtime.tick(1 / 60);
+      expect(runtime.quality).toBe("low");
+      expect(seen).toEqual(["low"]);
+      runtime.destroy();
+    });
+
+    it("con una calidad fijada no baja sola", async () => {
+      const { runtime } = await start();
+      runtime.setQuality("high");
+      for (let i = 0; i < 400; i++) runtime.tick(1 / 20);
+      expect(runtime.quality).toBe("high");
+      runtime.destroy();
+    });
+
+    it("no muestrea durante los 2 s siguientes a un `showRoom`", async () => {
+      const { runtime } = await start();
+      for (let i = 0; i < 20; i++) runtime.tick(1 / 20); // 1 s, dentro del silencio inicial
+      runtime.showRoom("sala");
+      await runtime.ready;
+      await Promise.resolve();
+      // 5 s a 20 FPS justo después: los 2 s de silencio retrasan el aviso.
+      for (let i = 0; i < 100; i++) runtime.tick(1 / 20);
+      expect(runtime.quality).toBe("high");
+      for (let i = 0; i < 60; i++) runtime.tick(1 / 20);
+      expect(runtime.quality).toBe("low");
+      runtime.destroy();
+    });
+  });
+
+  it("la altura visual solo se recalcula si el personaje se mueve más de 0,05 m en planta", async () => {
+    const { runtime } = await start();
+    runtime.tick(0.1);
+    const spy = vi.spyOn(THREE.Raycaster.prototype, "intersectObject");
+    const downward = () =>
+      spy.mock.contexts.filter((r) => (r as THREE.Raycaster).ray.direction.y === -1).length;
+    for (let i = 0; i < 30; i++) runtime.tick(1 / 30);
+    expect(downward()).toBe(0);
+    runtime.setMoveVector({ x: 0, y: 1 });
+    for (let i = 0; i < 6; i++) runtime.tick(1 / 30);
+    runtime.setMoveVector(null);
+    expect(downward()).toBeGreaterThan(0);
+    spy.mockRestore();
+    runtime.destroy();
   });
 });

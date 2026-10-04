@@ -11,3 +11,4 @@ export * from "./camera";
 export * from "./movement";
 export * from "./proximity";
 export * from "./input";
+export * from "./quality";
