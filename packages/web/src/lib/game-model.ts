@@ -30,6 +30,8 @@ export interface GameModelPayload {
 export interface Pack3D {
   baseUrl?: string;
   packId: string;
+  /** URLs firmadas de los modelos propios, por `ref` (`customModels[id].ref`). Sin URL, caja. */
+  customModelUrls?: Record<string, string>;
 }
 
 /** `pack3d` de una sala: solo existe si el modelo es 3D. */

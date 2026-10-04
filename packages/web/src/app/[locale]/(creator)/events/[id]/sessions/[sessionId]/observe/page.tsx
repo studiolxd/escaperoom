@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { SpectatorGame } from "@/components/event-panel/spectator-game";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { buildGameModel } from "@/lib/game-model";
+import { withCustomModelUrls } from "@/server/model-url";
 import { readReyAldricRoomPackageJson } from "@/lib/room-preview-fixture";
 
 type Props = { params: Promise<{ locale: string; id: string; sessionId: string }> };
@@ -26,7 +27,11 @@ export default async function ObserveSessionPage({ params }: Props) {
   const { locale, id, sessionId } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("EventPanel");
-  const { model, pack3d } = buildGameModel(loadRoomPackage(readReyAldricRoomPackageJson()), locale);
+  const { model, pack3d: basePack3d } = buildGameModel(
+    loadRoomPackage(readReyAldricRoomPackageJson()),
+    locale,
+  );
+  const pack3d = await withCustomModelUrls(basePack3d, model, { kind: "published" });
 
   return (
     <main className="relative min-h-dvh p-4 text-white md:p-8">

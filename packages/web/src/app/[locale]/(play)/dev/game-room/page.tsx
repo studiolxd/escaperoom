@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 import { NetworkGameDev } from "@/components/game-session/network-game-dev";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { buildGameModel } from "@/lib/game-model";
+import { withCustomModelUrls } from "@/server/model-url";
 import { readReyAldricRoomPackageJson } from "@/lib/room-preview-fixture";
 
 type Props = {
@@ -44,7 +45,8 @@ export default async function DevGameRoomPage({ params, searchParams }: Props) {
 
   const t = await getTranslations("Game");
   const roomPackage = loadRoomPackage(readReyAldricRoomPackageJson());
-  const { model, pack, pack3d } = buildGameModel(roomPackage, locale);
+  const { model, pack, pack3d: basePack3d } = buildGameModel(roomPackage, locale);
+  const pack3d = await withCustomModelUrls(basePack3d, model, { kind: "published" });
   const roomId = typeof room === "string" && /^[\w-]{1,64}$/u.test(room) ? room : undefined;
   const gameToken = signDevTestGameToken();
 

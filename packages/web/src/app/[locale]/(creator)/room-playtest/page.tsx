@@ -6,6 +6,7 @@ import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { RoomPlaytestShell } from "@/components/room-playtest/room-playtest-shell";
 import { readReyAldricRoomPackageJson } from "@/lib/room-preview-fixture";
 import { buildPack3D } from "@/lib/game-model";
+import { withCustomModelUrls } from "@/server/model-url";
 import { resolveRoomPreviewPack } from "@/lib/room-preview-pack";
 
 type Props = { params: Promise<{ locale: string }> };
@@ -36,7 +37,11 @@ export default async function RoomPlaytestPage({ params }: Props) {
         model={model}
         roomPackage={roomPackage}
         pack={pack}
-        pack3d={buildPack3D(model, roomPackage.map.tileset)}
+        pack3d={await withCustomModelUrls(
+          buildPack3D(model, roomPackage.map.tileset),
+          model,
+          { kind: "published" },
+        )}
       />
       <div className="absolute right-4 top-4">
         <LocaleSwitcher />

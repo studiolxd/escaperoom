@@ -14,6 +14,7 @@ import { resolveActorFromHeaders } from "@/server/context";
 import { buildGameIntro } from "@/server/game-intro";
 import { introAudioUrlResolver } from "@/server/intro-audio-url";
 import { introMediaUrlResolver } from "@/server/intro-media-url";
+import { withCustomModelUrls } from "@/server/model-url";
 import { getCatalogService, getGameAccessStore } from "@/server/services";
 
 type Props = {
@@ -50,7 +51,8 @@ export default async function RoomGamePage({ params, searchParams }: Props) {
   const roomPackage = await getGameAccessStore().loadRoomVersionPackage(room.latestVersion.id);
   if (!roomPackage) notFound();
 
-  const { model, pack, pack3d } = buildGameModel(roomPackage, locale);
+  const { model, pack, pack3d: basePack3d } = buildGameModel(roomPackage, locale);
+  const pack3d = await withCustomModelUrls(basePack3d, model, { kind: "published" });
   // Encargo lobby-diseño: introducción (texto o vídeo con URLs firmadas) y
   // portada para la cabecera del lobby. Ninguna de las dos impide jugar.
   const [intro, coverUrl] = await Promise.all([

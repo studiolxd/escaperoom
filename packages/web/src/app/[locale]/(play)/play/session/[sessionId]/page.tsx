@@ -4,6 +4,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { EventGame } from "@/components/game-session/event-game";
 import { LocaleSwitcher } from "@/components/i18n/locale-switcher";
 import { buildGameModel } from "@/lib/game-model";
+import { withCustomModelUrls } from "@/server/model-url";
 import { readReyAldricRoomPackageJson } from "@/lib/room-preview-fixture";
 
 type Props = {
@@ -30,7 +31,8 @@ export default async function EventSessionPage({ params }: Props) {
 
   const t = await getTranslations("Game");
   const roomPackage = loadRoomPackage(readReyAldricRoomPackageJson());
-  const { model, pack, pack3d } = buildGameModel(roomPackage, locale);
+  const { model, pack, pack3d: basePack3d } = buildGameModel(roomPackage, locale);
+  const pack3d = await withCustomModelUrls(basePack3d, model, { kind: "published" });
 
   return (
     <main className="relative min-h-dvh p-4">

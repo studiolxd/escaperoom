@@ -7,6 +7,7 @@ import type { IntroModel } from "@/lib/intro-model";
 import { buildGameIntro } from "@/server/game-intro";
 import { introAudioUrlResolver } from "@/server/intro-audio-url";
 import { introMediaUrlResolver } from "@/server/intro-media-url";
+import { withCustomModelUrls } from "@/server/model-url";
 import { isPlaytestExpired, readPlaytestToken } from "@/lib/playtest-link";
 import { getPlaytestPackageReader } from "@/server/playtest-launcher";
 
@@ -39,7 +40,12 @@ async function loadPlaytestModel(playtestId: string, locale: string): Promise<Lo
       draftRoomId ? introMediaUrlResolver({ kind: "draft", roomId: draftRoomId }) : undefined,
       draftRoomId ? introAudioUrlResolver({ kind: "draft", roomId: draftRoomId }) : undefined,
     );
-    return { ok: true, payload: buildGameModel(roomPackage, locale), intro };
+    const payload = buildGameModel(roomPackage, locale);
+    // Los GLB propios del borrador (`media:<uuid>` del autor) se sirven con URL firmada.
+    const pack3d = draftRoomId
+      ? await withCustomModelUrls(payload.pack3d, payload.model, { kind: "draft", roomId: draftRoomId })
+      : payload.pack3d;
+    return { ok: true, payload: { ...payload, ...(pack3d ? { pack3d } : {}) }, intro };
   } catch {
     return { ok: false, reason: "unavailable" };
   }
