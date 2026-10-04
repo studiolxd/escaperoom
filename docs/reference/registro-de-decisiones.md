@@ -53,6 +53,10 @@ para toda la UI (HUD, inventario, diálogos, chat, webcam) y para los puzzles qu
   pared. **Descartado *stills* estilo *Myst*** (imágenes pre-renderizadas + hotspots) como núcleo:
   gran acabado pero mata el UGC/IA y debilita el co-op; solo valdría para salas oficiales premium.
 
+**Revisión (2026-10-04) — modo 3D.** El «descartado 3D en runtime» de la revisión anterior pasa a
+aplicar solo a las salas 2D: una sala puede crearse en 3D, con Three.js y un mundo propio, y
+comparte con el 2D toda la lógica. Ver ADR-045 y `specs/27-modo-3d.md`.
+
 **Revisión (2026-09-26) — sube a Phaser 4.** Migración con el mismo aspecto (sustituye a la PR de
 Dependabot #127, que solo probaba que compilaba): `roundPixels: true` y `type: Phaser.AUTO`
 explícitos en todo `new Phaser.Game` (el defecto de `roundPixels` pasa a `false` en v4) y
@@ -1573,3 +1577,54 @@ ilimitado, sin aviso si es 0), editor (`packages/editor/test/template-config.tes
 describe como `unlimitedNumber` con el defecto correcto, el switch guarda 0 y restaura 5), panel
 (`packages/web/test/code-lock-panel.test.tsx`, nuevo: sin contador de restantes si es ilimitado),
 MCP (`add_puzzle` con `maxAttempts: 0`).
+
+---
+
+## ADR-045 — Modo 3D: una sala es 2D o 3D; mundo 3D propio, lógica compartida (2026-10-04)
+
+**Contexto:** ADR-001 descartó el 3D en runtime (revisión 2026-09-22) por coste de arte, por romper
+el editor de tiles y por la generación por IA. Desde entonces el pack `medieval-v1` se produce
+entero desde modelos 3D (ADR-031, ADR-032), así que el arte ya existe en 3D, y el usuario quiere
+ofrecer salas jugables en 3D además de las 2D. La entrada «Salas en 3D» de `DEUDA.md` pedía una
+spec propia antes de implementar: es `specs/27-modo-3d.md`.
+
+**Decisión:**
+
+- Una sala es **2D o 3D** (`meta.dimension`, `room.dimension`), elegido al crearla y **fijo**.
+  Las salas existentes son 2D y no cambian.
+- **Se comparte toda la lógica:** reglas, puzles (paneles React), ítems, diálogos, pistas, sesión
+  (`RoomSession`), protocolo y servidor. El plano lógico `(x, y)` de un jugador es el mismo en 2D
+  y en 3D (1 celda = 1 m); el 3D añade la altura `h` y el giro `yaw`.
+- **El mundo 3D es propio:** piezas de un kit modular y objetos con posición y giro libres
+  (`world3d`, `transform`), con desniveles transitables. No hay capas de tiles en 3D.
+- **Motor:** Three.js en `@escaperoom/game-runtime/three`, con la misma fachada que el runtime de
+  Phaser; la capa React elige uno u otro. Phaser sigue siendo el motor del 2D.
+- **Cámara en tercera persona** con órbita. Clic para caminar, WASD, joystick táctil, e
+  interacción por clic, por proximidad y arrastrando ítems, como en 2D.
+- **Movimiento autoritativo con navmesh** (recast-navigation, WASM), generada igual en cliente y
+  servidor a partir de los colisionadores que declara cada modelo en un catálogo versionado.
+- **Habitaciones como escenas separadas** con fundido en las puertas, igual que en 2D. Sin techo.
+- **Editor 3D completo y MCP con paridad** (ADR-010 se mantiene): los dos usan los mismos comandos
+  del documento.
+- **Los creadores pueden subir GLB propios**, disponibles al instante con validación técnica
+  automática y moderación por reportes (mismo criterio que ADR-039).
+- **Binarios del pack fuera de git**; el catálogo de modelos (medidas y colisiones) sí se
+  versiona. Sin los GLB, el runtime pinta cajas (modo de CI y E2E, como los placeholders del 2D).
+
+**Alternativas descartadas:**
+
+- **Diorama 3D con cámara fija** (el mismo formato de rejilla pintado en 3D): más barato, pero no
+  es la experiencia que se busca.
+- **Primera persona:** exige más detalle en los modelos y se pierde ver a los compañeros.
+- **Mundo continuo entre habitaciones:** obliga a colocar las habitaciones entre sí, a puertas
+  que bloquean según su estado y a cambiar el protocolo de movimiento.
+- **Mundo de colisiones propio en TypeScript, sin navmesh:** más simple, pero no da rutas para el
+  clic para caminar.
+- **Cambiar de dimensión una sala existente:** las posiciones de un mundo no se traducen solas
+  al otro; se ofrece crear otra sala.
+
+**Consecuencias:** ADR-001 queda revisado: el «descartado 3D en runtime» ya solo aplica a las
+salas 2D. Fase 7 del plan (`plan/fase-7-modo-3d.md`). Mientras no esté completa, crear salas 3D
+queda tras el interruptor `ROOMS_3D_ENABLED`. El piloto es el Rey Aldric en 3D, como sala aparte
+y gratis. Quedan como deuda: techo, mundo continuo, navmesh que cambie con el estado de los
+objetos, los 7 personajes restantes en 3D y la conversión 2D→3D ofrecida a creadores.
