@@ -1075,9 +1075,8 @@ export class RoomRuntime3D {
 
     if (world) {
       this.updateHover();
-      world.setOutlined(
-        new Set([this.highlighted, this.hovered].filter((id): id is string => id !== undefined)),
-      );
+      // Decisión del usuario (2026-10-05): el objeto cercano NO se contornea; solo el hover.
+      world.setOutlined(new Set(this.hovered !== undefined ? [this.hovered] : []));
       world.update(dt);
     }
 
@@ -1266,7 +1265,8 @@ export class RoomRuntime3D {
           ? this.avatar.root.position
           : new THREE.Vector3(room.width / 2, 0, room.height / 2);
     }
-    this.rig.update(dt, anchor, this.world?.collision);
+    this.rig.update(dt, anchor, this.world?.cameraCollision);
+    this.world?.updateOcclusion(dt, this.rig.focus, this.camera.position);
   }
 
   /** Cámara libre del observador: teclado (WASD, flechas, Q/E) o, sin teclas, el vector externo. */

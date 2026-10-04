@@ -80,6 +80,14 @@ export function createCollisionMesh(input: NavInput): THREE.Mesh {
   return mesh;
 }
 
+/** Categorías cuyas piezas frenan la cámara; el resto (y los objetos) se vuelve translúcido al taparla. */
+const CAMERA_BLOCKING_KINDS: ReadonlySet<string> = new Set(["muro", "estructura", "desconocido"]);
+/** Radio (m) del barrido cámara–personaje para decidir qué estorba. */
+export const OCCLUSION_RADIUS = 0.3;
+export const OCCLUDED_OPACITY = 0.3;
+/** Segundos de la transición de opacidad al taparse/destaparse. */
+export const OCCLUSION_FADE_S = 0.2;
+
 export interface Placement {
   x: number;
   y: number;
@@ -100,6 +108,9 @@ export class ModelSlot {
   private animation: string | undefined;
   private token = 0;
   private opacity = 1;
+  /** Opacidad pedida (edición/oculto) y multiplicador de oclusión de cámara; `opacity` es su producto. */
+  private baseOpacity = 1;
+  private occlusionFade = 1;
   private editOutline: THREE.Material | undefined;
   /** Materiales clonados para la opacidad: son nuestros y se liberan con el contenido. */
   private owned: THREE.Material[] = [];
@@ -166,6 +177,22 @@ export class ModelSlot {
 
   /** Opacidad del modelo (edición: objetos ocultos y fantasma). 1 = opaco. */
   setOpacity(opacity: number): void {
+    this.baseOpacity = opacity;
+    this.refreshOpacity();
+  }
+
+  /** Multiplicador de opacidad por tapar la cámara (1 = no tapa). */
+  setOcclusionFade(fade: number): void {
+    this.occlusionFade = fade;
+    this.refreshOpacity();
+  }
+
+  get occlusion(): number {
+    return this.occlusionFade;
+  }
+
+  private refreshOpacity(): void {
+    const opacity = this.baseOpacity * this.occlusionFade;
     if (this.opacity === opacity) return;
     this.opacity = opacity;
     this.applyDecor();
@@ -230,6 +257,7 @@ export class ModelSlot {
       } else if (mesh.userData.ownMaterial) {
         for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
           m.opacity = 1;
+          m.transparent = false;
         }
       }
       if (this.editOutline) {
@@ -286,6 +314,8 @@ export const HIDDEN_OBJECT_OPACITY = 0.4;
 export class RoomWorld {
   readonly group = new THREE.Group();
   readonly collision: THREE.Mesh;
+  /** Solo muros y estructura (más modelos desconocidos): lo único que frena la cámara del jugador. */
+  readonly cameraCollision: THREE.Mesh;
   readonly objects = new Map<string, WorldObjectEntry>();
   readonly pieces = new Map<string, PieceEntry>();
   readonly boxes = new BoxFactory();
@@ -324,6 +354,8 @@ export class RoomWorld {
 
     this.collision = createCollisionMesh(navInput);
     this.group.add(this.collision);
+    this.cameraCollision = createCollisionMesh(this.buildCameraCollisionInput());
+    this.group.add(this.cameraCollision);
 
     const sun = new THREE.DirectionalLight(0xffffff, 3);
     this.sun = sun;
@@ -331,6 +363,58 @@ export class RoomWorld {
     this.hemisphere = new THREE.HemisphereLight(0xdfe8ff, 0x3a3530, 0.6);
     this.group.add(sun, sun.target, this.hemisphere);
     this.applyLighting(states);
+  }
+
+  private isCameraBlocking(modelId: string): boolean {
+    return CAMERA_BLOCKING_KINDS.has(resolveVisual(modelId, this.assets).kind);
+  }
+
+  private buildCameraCollisionInput(): NavInput {
+    return buildNavInputFromParts({
+      pieces: this.room.pieces.filter((piece) => this.isCameraBlocking(piece.model)),
+      objects: [],
+      catalog: this.assets.catalog,
+      customModels: this.model.customModels,
+    });
+  }
+
+  /**
+   * Hace translúcidos (opacidad 0,3, transición de 0,2 s) los objetos y piezas que no frenan la
+   * cámara y quedan entre `from` (objetivo) y `to` (cámara); los vuelve a opacar al dejar de estorbar.
+   */
+  updateOcclusion(dt: number, from: THREE.Vector3, to: THREE.Vector3 | undefined): void {
+    const ray = new THREE.Ray();
+    let length = 0;
+    if (to) {
+      length = from.distanceTo(to);
+      ray.set(from, to.clone().sub(from).normalize());
+      ray.origin.addScaledVector(ray.direction, OCCLUSION_RADIUS); // lo que toca al personaje no cuenta
+      length -= OCCLUSION_RADIUS;
+    }
+    const step = (dt * (1 - OCCLUDED_OPACITY)) / OCCLUSION_FADE_S;
+    const hitPoint = new THREE.Vector3();
+    const test = (slot: ModelSlot, blocking: boolean) => {
+      let blocks = false;
+      if (length > 0 && !blocking && slot.holder.visible) {
+        const box = slot.bounds();
+        if (!box.isEmpty()) {
+          box.expandByScalar(OCCLUSION_RADIUS);
+          const hit = ray.intersectBox(box, hitPoint);
+          blocks = hit !== null && ray.origin.distanceTo(hit) <= length;
+        }
+      }
+      const current = slot.occlusion;
+      const goal = blocks ? OCCLUDED_OPACITY : 1;
+      if (current === goal) return;
+      slot.setOcclusionFade(
+        goal < current ? Math.max(goal, current - step) : Math.min(goal, current + step),
+      );
+    };
+    for (const { piece, slot } of this.pieces.values()) {
+      const kind = resolveVisual(piece.model, this.assets).kind;
+      test(slot, kind === "suelo" || this.isCameraBlocking(piece.model));
+    }
+    for (const { slot } of this.objects.values()) test(slot, false);
   }
 
   private addPiece(piece: Piece3D): void {
@@ -630,6 +714,8 @@ export class RoomWorld {
     for (const slot of this.slots) slot.dispose();
     this.collision.geometry.dispose();
     (this.collision.material as THREE.Material).dispose();
+    this.cameraCollision.geometry.dispose();
+    (this.cameraCollision.material as THREE.Material).dispose();
     this.outlineMaterial.dispose();
     this.boxes.dispose();
     this.group.clear();
