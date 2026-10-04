@@ -46,6 +46,8 @@ export type RoomDocErrorCode =
   /** Comando de una dimensión usado en una sala de la otra (specs/27 §3.3). */
   | "WRONG_DIMENSION"
   | "UNKNOWN_PIECE"
+  /** Modelo propio inexistente (encargo 7.8a). */
+  | "UNKNOWN_MODEL"
   /** Segundo lobby, o lobby como única habitación (encargo lobby-diseño). */
   | "LOBBY_CONFLICT";
 

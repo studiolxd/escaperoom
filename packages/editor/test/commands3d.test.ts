@@ -1,7 +1,13 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { parseRoomPackage } from "@escaperoom/shared/schemas";
 import * as Y from "yjs";
 import { describe, expect, it } from "vitest";
 import {
   RoomDocError,
+  setCustomModel3D,
+  removeCustomModel3D,
+  listCustomModels3D,
   addTorch,
   applyTransforms3D,
   duplicate3D,
@@ -28,6 +34,17 @@ import {
   setSubRoomGrid,
 } from "../src";
 import { makeRoom3D } from "./fixtures/room-3d";
+
+const aldric = parseRoomPackage(
+  JSON.parse(
+    readFileSync(
+      fileURLToPath(
+        new URL("../../../docs/reference/roompackage-rey-aldric.v1.json", import.meta.url),
+      ),
+      "utf8",
+    ),
+  ) as unknown,
+);
 
 function doc3d(): Y.Doc {
   return roomPackageToDoc(makeRoom3D());
@@ -462,5 +479,97 @@ describe("duplicate3D", () => {
     ).toBe("OUT_OF_BOUNDS");
     expect(listPieces3D(doc, "sala")).toHaveLength(4);
     expect(roomDocToPackage(doc).objects).toHaveLength(1);
+  });
+});
+
+describe("modelos propios (7.8a)", () => {
+  const model = {
+    ref: "media:cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    label: "Mesa",
+    size: { w: 2, d: 1, hgt: 1 },
+    colliders: [{ type: "box" as const, cx: 0, cy: 0, ch: 0.5, sx: 2, sy: 1, sh: 1 }],
+    clips: ["abrir"],
+  };
+
+  it("alta, listado y sustitución conservando el orden", () => {
+    const doc = doc3d();
+    const before = listCustomModels3D(doc).map((m) => m.id);
+    expect(before).toEqual(["suelo-test", "arca-test"]);
+    setCustomModel3D(doc, "mesa", model);
+    expect(listCustomModels3D(doc).map((m) => m.id)).toEqual([...before, "mesa"]);
+    setCustomModel3D(doc, "suelo-test", { ...model, label: "Otro suelo" });
+    const list = listCustomModels3D(doc);
+    expect(list.map((m) => m.id)).toEqual([...before, "mesa"]);
+    expect(list[0]).toMatchObject({ id: "suelo-test", label: "Otro suelo", ref: model.ref });
+  });
+
+  it("ida y vuelta por el códec", () => {
+    const doc = doc3d();
+    setCustomModel3D(doc, "mesa", model);
+    const pkg = roomDocToPackage(doc);
+    expect(pkg.world3d!.models.mesa).toEqual(model);
+    const again = roomPackageToDoc(pkg);
+    expect(listCustomModels3D(again).find((m) => m.id === "mesa")).toMatchObject(model);
+  });
+
+  it("id inválido → INVALID_ID; id de catálogo → INVALID_VALUE", () => {
+    const doc = doc3d();
+    expect(codeOf(() => setCustomModel3D(doc, "Mesa Grande", model))).toBe("INVALID_ID");
+    expect(
+      codeOf(() => setCustomModel3D(doc, "pared", model, { catalogIds: new Set(["pared"]) })),
+    ).toBe("INVALID_VALUE");
+    expect(listCustomModels3D(doc).some((m) => m.id === "pared")).toBe(false);
+  });
+
+  it("tope de 40 modelos (sustituir uno existente sigue permitido)", () => {
+    const doc = doc3d();
+    for (let i = listCustomModels3D(doc).length; i < 40; i += 1) {
+      setCustomModel3D(doc, `m-${i}`, model);
+    }
+    expect(listCustomModels3D(doc)).toHaveLength(40);
+    expect(codeOf(() => setCustomModel3D(doc, "uno-mas", model))).toBe("INVALID_VALUE");
+    expect(codeOf(() => setCustomModel3D(doc, "m-39", model))).toBeUndefined();
+  });
+
+  it("solo en salas 3D", () => {
+    const doc = roomPackageToDoc(aldric);
+    expect(codeOf(() => setCustomModel3D(doc, "mesa", model))).toBe("WRONG_DIMENSION");
+    expect(codeOf(() => removeCustomModel3D(doc, "mesa"))).toBe("WRONG_DIMENSION");
+  });
+
+  it("quitar uno libre; inexistente → UNKNOWN_MODEL", () => {
+    const doc = doc3d();
+    setCustomModel3D(doc, "mesa", model);
+    removeCustomModel3D(doc, "mesa");
+    expect(listCustomModels3D(doc).some((m) => m.id === "mesa")).toBe(false);
+    expect(codeOf(() => removeCustomModel3D(doc, "mesa"))).toBe("UNKNOWN_MODEL");
+  });
+
+  it("referenciado por una pieza → REFERENCED_ID (y no se borra)", () => {
+    const doc = doc3d();
+    expect(codeOf(() => removeCustomModel3D(doc, "suelo-test"))).toBe("REFERENCED_ID");
+    expect(listCustomModels3D(doc).some((m) => m.id === "suelo-test")).toBe(true);
+  });
+
+  it("referenciado por el sprite de un objeto → REFERENCED_ID", () => {
+    const doc = doc3d();
+    setCustomModel3D(doc, "mesa", model);
+    placeObject3D(doc, { roomId: "sala", sprite: "mesa", transform: { x: 1, y: 1, h: 0, yaw: 0 } });
+    expect(codeOf(() => removeCustomModel3D(doc, "mesa"))).toBe("REFERENCED_ID");
+  });
+
+  it("referenciado solo por un sprite de estado → REFERENCED_ID", () => {
+    const doc = doc3d();
+    setCustomModel3D(doc, "mesa", model);
+    const arca = doc.getMap<Y.Map<unknown>>("objects").get("arca")!;
+    arca.set("states", { closed: "arca-test", open: "mesa" });
+    let message = "";
+    try {
+      removeCustomModel3D(doc, "mesa");
+    } catch (error) {
+      message = (error as Error).message;
+    }
+    expect(message).toContain("open");
+    expect(codeOf(() => removeCustomModel3D(doc, "mesa"))).toBe("REFERENCED_ID");
   });
 });

@@ -1,11 +1,13 @@
 import * as Y from "yjs";
 import {
   ID_PATTERN,
+  MAX_WORLD3D_CUSTOM_MODELS,
   MAX_SCALE_3D,
   MAX_WORLD3D_HEIGHT,
   MAX_WORLD3D_PIECES_PER_ROOM,
   MIN_SCALE_3D,
   positionFromTransform,
+  type CustomModel3D,
   type Grid,
   type LightConfig,
   type Piece3D,
@@ -25,6 +27,7 @@ import { checkTorch3D } from "./decor";
 import {
   buildFlatRecord,
   collection,
+  ORDER_KEY,
   nextOrder,
   orderedIds,
   plain,
@@ -535,4 +538,82 @@ export function duplicate3D(
     }
   });
   return created;
+}
+
+// ---------------------------------------------------------------------------
+// Modelos propios de la sala (encargo 7.8a)
+// ---------------------------------------------------------------------------
+
+/**
+ * Registra (o sustituye) un modelo propio. `id` cumple `ID_PATTERN` y no puede
+ * coincidir con un modelo del catálogo del pack (`catalogIds`). Tope:
+ * `MAX_WORLD3D_CUSTOM_MODELS`.
+ */
+export function setCustomModel3D(
+  doc: Y.Doc,
+  id: string,
+  model: CustomModel3D,
+  opts: { catalogIds?: ReadonlySet<string> } = {},
+): void {
+  doc.transact(() => {
+    assertDimension(doc, "3d", "setCustomModel3D");
+    assertModelId(id, "modelo");
+    if (opts.catalogIds?.has(id)) {
+      throw new RoomDocError(
+        "INVALID_VALUE",
+        `"${id}" es un modelo del catálogo del pack; elige otro id para el modelo propio`,
+      );
+    }
+    const models = collection(doc, "models3d");
+    if (!models.has(id) && models.size >= MAX_WORLD3D_CUSTOM_MODELS) {
+      throw new RoomDocError(
+        "INVALID_VALUE",
+        `La sala ya tiene ${models.size} modelos propios; el máximo es ${MAX_WORLD3D_CUSTOM_MODELS}`,
+      );
+    }
+    const previous = models.get(id);
+    const order = previous ? Number(previous.get(ORDER_KEY) ?? 0) : nextOrder(models);
+    models.set(id, buildFlatRecord(model as unknown as Record<string, unknown>, order));
+  });
+}
+
+/**
+ * Quita un modelo propio. Lanza `REFERENCED_ID` si alguna pieza lo usa como
+ * `model` o algún objeto como `sprite` o sprite de estado (lista los 3
+ * primeros), y `UNKNOWN_MODEL` si no existe.
+ */
+export function removeCustomModel3D(doc: Y.Doc, id: string): void {
+  doc.transact(() => {
+    assertDimension(doc, "3d", "removeCustomModel3D");
+    const models = collection(doc, "models3d");
+    if (!models.has(id)) throw new RoomDocError("UNKNOWN_MODEL", `No existe el modelo propio "${id}"`);
+    const refs: string[] = [];
+    for (const piece of listPieces3D(doc)) {
+      if (piece.model === id) refs.push(`la pieza ${piece.id}`);
+    }
+    const objects = collection(doc, "objects");
+    for (const objectId of orderedIds(objects)) {
+      const object = readFlatRecord(objects.get(objectId) as RecordMap);
+      if (object.sprite === id) refs.push(`el sprite del objeto ${objectId}`);
+      const states = (object.states ?? {}) as Record<string, unknown>;
+      for (const [state, sprite] of Object.entries(states)) {
+        if (sprite === id) refs.push(`el estado «${state}» del objeto ${objectId}`);
+      }
+    }
+    if (refs.length > 0) {
+      throw new RoomDocError(
+        "REFERENCED_ID",
+        `El modelo "${id}" se usa en ${refs.slice(0, 3).join(", ")}${refs.length > 3 ? ` y ${refs.length - 3} más` : ""}; quita antes esos usos`,
+      );
+    }
+    models.delete(id);
+  });
+}
+
+/** Modelos propios de la sala, en orden de alta. */
+export function listCustomModels3D(doc: Y.Doc): (CustomModel3D & { id: string })[] {
+  const models = collection(doc, "models3d");
+  return orderedIds(models).map(
+    (id) => ({ ...readFlatRecord(models.get(id) as RecordMap), id }) as CustomModel3D & { id: string },
+  );
 }
