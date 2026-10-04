@@ -14,3 +14,4 @@ export * from "./input";
 export * from "./quality";
 export * from "./edit";
 export * from "./edit-input";
+export * from "./model-viewer";
