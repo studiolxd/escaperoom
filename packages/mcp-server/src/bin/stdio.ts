@@ -111,8 +111,9 @@ await runStdioServer({
     },
   }),
   roomDocToPackage,
-  // Mismo interruptor que la web (`bool` de @escaperoom/env: "true" o "1").
-  rooms3dEnabled: ["true", "1"].includes(process.env.ROOMS_3D_ENABLED ?? ""),
+  // Mismo interruptor que la web (`bool` de @escaperoom/env: "true" o "1";
+  // encendido por defecto, `ROOMS_3D_ENABLED=false` lo apaga).
+  rooms3dEnabled: ["true", "1"].includes(process.env.ROOMS_3D_ENABLED ?? "true"),
   actor,
   appUrl: process.env[MCP_ENV.appUrl]?.trim() || "http://localhost:3000",
   publishRequests,

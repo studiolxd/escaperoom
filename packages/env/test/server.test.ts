@@ -10,8 +10,9 @@ import {
 } from "../src/server";
 
 describe("product schema fragments", () => {
-  it("rooms3dSchema: ROOMS_3D_ENABLED apagado por defecto y activable", () => {
-    expect(rooms3dSchema.parse({}).ROOMS_3D_ENABLED).toBe(false);
+  it("rooms3dSchema: ROOMS_3D_ENABLED encendido por defecto y apagable", () => {
+    expect(rooms3dSchema.parse({}).ROOMS_3D_ENABLED).toBe(true);
+    expect(rooms3dSchema.parse({ ROOMS_3D_ENABLED: "false" }).ROOMS_3D_ENABLED).toBe(false);
     expect(rooms3dSchema.parse({ ROOMS_3D_ENABLED: "true" }).ROOMS_3D_ENABLED).toBe(true);
   });
 
